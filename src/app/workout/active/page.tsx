@@ -99,6 +99,36 @@ export default function ActiveWorkoutPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
 
+  // Screen Wake Lock — keeps the screen on during the active workout
+  useEffect(() => {
+    let wakeLock: WakeLockSentinel | null = null;
+
+    async function requestWakeLock() {
+      try {
+        if ("wakeLock" in navigator) {
+          wakeLock = await navigator.wakeLock.request("screen");
+        }
+      } catch {
+        // Wake Lock not supported or denied — fail silently
+      }
+    }
+
+    requestWakeLock();
+
+    // Re-acquire on visibility change (required by the Wake Lock spec)
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      wakeLock?.release();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
+
   // Load session from Dexie
   const session = useLiveQuery(
     () => (sessionId ? db.workouts.get(sessionId) : undefined),
