@@ -1,36 +1,105 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useWorkoutStore } from "@/stores/workoutStore";
+import { TimerWorkerManager } from "@/lib/timerWorker";
+import { playTimerChime, vibrateTimer, sendTimerNotification } from "@/lib/audio";
 
-export function RestTimer() {
+interface RestTimerProps {
+  audioEnabled?: boolean;
+  vibrationEnabled?: boolean;
+}
+
+export function RestTimer({ audioEnabled = false, vibrationEnabled = false }: RestTimerProps) {
   const {
     isRestTimerActive,
     restTimeRemaining,
     restTimerDuration,
-    tickTimer,
     skipRest,
     addRestTime,
   } = useWorkoutStore();
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const managerRef = useRef<TimerWorkerManager | null>(null);
+  const hasNotifiedRef = useRef(false);
 
+  // Lazily initialize the manager
+  const getManager = useCallback(() => {
+    if (!managerRef.current) {
+      managerRef.current = new TimerWorkerManager();
+    }
+    return managerRef.current;
+  }, []);
+
+  // Reset notification flag when a new rest timer starts
   useEffect(() => {
-    if (isRestTimerActive) {
-      intervalRef.current = setInterval(() => {
-        tickTimer();
-      }, 1000);
+    if (isRestTimerActive && restTimeRemaining > 0) {
+      hasNotifiedRef.current = false;
+    }
+  }, [isRestTimerActive, restTimerDuration]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Start / stop the Web Worker timer when rest state changes
+  useEffect(() => {
+    if (isRestTimerActive && restTimerDuration > 0) {
+      const manager = getManager();
+
+      const onTick = (remaining: number) => {
+        // Update the store with the worker's authoritative remaining time
+        useWorkoutStore.setState({ restTimeRemaining: remaining });
+      };
+
+      const onComplete = () => {
+        // Timer hit zero — the worker keeps ticking into overtime
+        // so the UI continues to show +0:XX. No action needed here;
+        // the tick callback handles the negative remaining values.
+      };
+
+      manager.start(restTimerDuration, onTick, onComplete);
+    } else {
+      // Timer was deactivated (skip or natural stop)
+      managerRef.current?.stop();
     }
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRestTimerActive]);
+
+  // Fire audio/haptics/notification when the timer reaches 0
+  useEffect(() => {
+    if (isRestTimerActive && restTimeRemaining === 0 && !hasNotifiedRef.current) {
+      hasNotifiedRef.current = true;
+
+      if (audioEnabled) {
+        playTimerChime();
       }
+      if (vibrationEnabled) {
+        vibrateTimer();
+      }
+      if (document.visibilityState === 'hidden') {
+        sendTimerNotification();
+      }
+    }
+  }, [isRestTimerActive, restTimeRemaining, audioEnabled, vibrationEnabled]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      managerRef.current?.stop();
     };
-  }, [isRestTimerActive, tickTimer]);
+  }, []);
+
+  const handleAddTime = useCallback(
+    (seconds: number) => {
+      addRestTime(seconds);
+      getManager().addTime(seconds);
+    },
+    [addRestTime, getManager]
+  );
+
+  const handleSkip = useCallback(() => {
+    managerRef.current?.stop();
+    skipRest();
+  }, [skipRest]);
 
   if (!isRestTimerActive) return null;
 
@@ -75,10 +144,10 @@ export function RestTimer() {
       <Progress value={progressPercent} className="h-2" />
 
       <div className="flex items-center justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={() => addRestTime(30)}>
+        <Button variant="outline" size="sm" onClick={() => handleAddTime(30)}>
           +30s
         </Button>
-        <Button variant="secondary" size="sm" onClick={skipRest}>
+        <Button variant="secondary" size="sm" onClick={handleSkip}>
           Skip
         </Button>
       </div>

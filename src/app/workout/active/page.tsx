@@ -24,6 +24,7 @@ import type {
   LiftState,
 } from "@/types";
 
+import { requestNotificationPermission } from "@/lib/audio";
 import { WorkoutHeader } from "@/components/ActiveWorkout/WorkoutHeader";
 import { ExerciseBlock } from "@/components/ActiveWorkout/ExerciseBlock";
 import { SetLogger } from "@/components/ActiveWorkout/SetLogger";
@@ -113,6 +114,13 @@ export default function ActiveWorkoutPage() {
 
   // Load lift states
   const liftStates = useLiveQuery(() => db.liftStates.toArray(), []);
+
+  // Request notification permission once on mount (if not already granted)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      requestNotificationPermission();
+    }
+  }, []);
 
   // Initialize workout from session data
   useEffect(() => {
@@ -615,7 +623,10 @@ export default function ActiveWorkoutPage() {
 
         {/* Rest Timer */}
         <div className="mt-3">
-          <RestTimer />
+          <RestTimer
+            audioEnabled={settings.restTimerAudio}
+            vibrationEnabled={settings.restTimerVibration}
+          />
         </div>
 
         {/* Warm-up sets display (completed warm-ups for current T1) */}
