@@ -55,6 +55,7 @@ export default function ExercisesPage() {
       }
       await db.userProfile.update(profile.id, {
         settings: { ...profile.settings, exercisePreferences: updated },
+        synced: false,
       });
     },
     [profile]

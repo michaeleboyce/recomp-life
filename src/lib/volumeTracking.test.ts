@@ -18,6 +18,7 @@ function makeSet(overrides: Partial<SetLog> = {}): SetLog {
     status: "completed",
     isSubstituted: false,
     location: "gym",
+    synced: false,
     ...overrides,
   };
 }

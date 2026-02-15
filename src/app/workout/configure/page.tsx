@@ -467,7 +467,7 @@ function ConfigureWorkoutContent() {
     if (userProfile) {
       try {
         const updatedSettings = { ...userProfile.settings, defaultLocation: location };
-        await db.userProfile.update(userProfile.id, { settings: updatedSettings });
+        await db.userProfile.update(userProfile.id, { settings: updatedSettings, synced: false });
       } catch {
         // Non-critical — continue even if save fails
       }
@@ -537,10 +537,12 @@ function ConfigureWorkoutContent() {
       if (sleepHours && stressLevel) {
         await db.readinessLogs.add({
           id: uuidv4(),
+          clientId: uuidv4(),
           sessionId,
           sleepHours,
           stressLevel,
           date: new Date(),
+          synced: false,
         });
       }
 

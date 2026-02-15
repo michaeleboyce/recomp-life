@@ -16,6 +16,7 @@ import {
 function makeLiftState(overrides: Partial<LiftState> = {}): LiftState {
   return {
     exerciseId: "squat",
+    clientId: "test-client",
     t1Weight: 200,
     t1Stage: "5x3",
     t1FailCount: 0,
@@ -35,6 +36,7 @@ function makeLiftState(overrides: Partial<LiftState> = {}): LiftState {
     recentE1RMs: [],
     recentAvgRPEs: [],
     recentAMRAPReps: [],
+    synced: false,
     ...overrides,
   };
 }

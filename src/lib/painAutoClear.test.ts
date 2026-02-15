@@ -13,10 +13,12 @@ function makeEntry(
 ): PainSorenessEntry {
   return {
     id: Math.random().toString(36).slice(2),
+    clientId: "test-client",
     date: new Date(2026, 1, 1),
     region: "left_knee",
     sensation: "pain",
     severity: 3,
+    synced: false,
     ...overrides,
   };
 }

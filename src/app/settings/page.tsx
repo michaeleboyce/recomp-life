@@ -47,6 +47,7 @@ export default function SettingsPage() {
       if (!profile) return;
       await db.userProfile.update(profile.id, {
         settings: { ...profile.settings, ...updates },
+        synced: false,
       });
     },
     [profile]
@@ -55,7 +56,7 @@ export default function SettingsPage() {
   const updateProfile = useCallback(
     async (updates: Partial<UserProfile>) => {
       if (!profile) return;
-      await db.userProfile.update(profile.id, updates);
+      await db.userProfile.update(profile.id, { ...updates, synced: false });
     },
     [profile]
   );

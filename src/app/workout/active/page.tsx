@@ -352,6 +352,7 @@ function ActiveWorkoutContent() {
       substituteExerciseId: currentExercise.substituteExerciseId,
       rpe: selectedRPE ?? undefined,
       location: store.location,
+      synced: false,
     };
 
     // Save to Dexie immediately
@@ -372,12 +373,14 @@ function ActiveWorkoutContent() {
         try {
           await db.estimated1RMs.put({
             id: uuidv4(),
+            clientId: uuidv4(),
             date: new Date(),
             exerciseId: currentExercise.exerciseId,
             workingWeight: currentExercise.weight,
             repsCompleted: selectedReps,
             estimated1RM: e1rm,
             workoutSessionId: session.id,
+            synced: false,
           });
         } catch (err) {
           console.error("Failed to save e1RM:", err);
@@ -528,6 +531,7 @@ function ActiveWorkoutContent() {
               newState.recentAMRAPReps = ls.recentAMRAPReps || [];
             }
 
+            newState.synced = false;
             await db.liftStates.put(newState);
           } else if (templateEx.tier === "T2") {
             const newState = evaluateT2Progression(
@@ -564,6 +568,7 @@ function ActiveWorkoutContent() {
               newState.recentAMRAPReps = ls.recentAMRAPReps || [];
             }
 
+            newState.synced = false;
             await db.liftStates.put(newState);
           }
         }

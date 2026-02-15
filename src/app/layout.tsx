@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { SyncProvider } from "@/components/SyncProvider";
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -54,6 +55,7 @@ export default function RootLayout({
         </div>
         <BottomNav />
         <ServiceWorkerRegistration />
+        <SyncProvider />
       </body>
     </html>
   );
