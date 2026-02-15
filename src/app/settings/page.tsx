@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import EquipmentProfileEditor from "@/components/Equipment/EquipmentProfileEditor";
 import ExercisePreferencesEditor from "@/components/Settings/ExercisePreferencesEditor";
+import { SkeletonCard } from "@/components/ui/skeleton";
 
 function formatHeight(totalInches: number): string {
   const feet = Math.floor(totalInches / 12);
@@ -192,8 +193,11 @@ export default function SettingsPage() {
 
   if (!dbReady || !profile) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground text-sm">Loading...</div>
+      <div className="mx-auto max-w-lg px-5 pt-5 pb-28 space-y-4">
+        <div className="h-5 w-20 rounded bg-muted animate-pulse mb-6" />
+        {[0, 1, 2, 3].map((i) => (
+          <SkeletonCard key={i} />
+        ))}
       </div>
     );
   }
@@ -201,7 +205,7 @@ export default function SettingsPage() {
   const { settings } = profile;
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-4">
+    <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
         <Link
@@ -583,7 +587,7 @@ function NumberField({
           setDraft(String(value));
           setEditing(true);
         }}
-        className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+        className="text-sm font-medium text-foreground hover:text-primary transition-colors font-mono tabular-nums"
       >
         {value} {suffix}
       </button>
