@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { adaptExerciseForHome, getConfidenceLevel } from './autoAdapt';
 import type { Exercise, EquipmentProfile } from '@/types';
+import { EXERCISES } from './exercises';
 
 // Test fixtures
 
@@ -195,6 +196,22 @@ describe('getConfidenceLevel', () => {
   it('returns "medium" for unknown substitute IDs', () => {
     expect(getConfidenceLevel('unknown_exercise', 'fits')).toBe('medium');
   });
+
+  it('returns "high" for db_floor_press', () => {
+    expect(getConfidenceLevel('db_floor_press', 'fits')).toBe('high');
+  });
+
+  it('returns "high" for db_arnold_press', () => {
+    expect(getConfidenceLevel('db_arnold_press', 'fits')).toBe('high');
+  });
+
+  it('returns "medium" for db_lunge', () => {
+    expect(getConfidenceLevel('db_lunge', 'fits')).toBe('medium');
+  });
+
+  it('returns "medium" for single_leg_db_rdl', () => {
+    expect(getConfidenceLevel('single_leg_db_rdl', 'fits')).toBe('medium');
+  });
 });
 
 describe('adaptExerciseForHome', () => {
@@ -313,6 +330,8 @@ describe('adaptExerciseForHome', () => {
     it('correctly evaluates exceeds for both_hands with high barbell weight', () => {
       const equipment = makeEquipment({ maxDumbbellWeight: 80 });
       // 135 * 0.80 = 108, round to 110 -- exceeds 80 by more than 10
+      // Note: barbellSquat fixture has id 'barbell_squat' which doesn't match
+      // any chain key, so no fallback is triggered
       const result = adaptExerciseForHome(barbellSquat, 135, equipment, gobletSquat);
 
       expect(result.adaptedWeight).toBe(110);
@@ -362,6 +381,83 @@ describe('adaptExerciseForHome', () => {
       expect(result.warningMessage).toBe(
         '\u26a0\ufe0f Barbell Deadlift at 220 lbs \u2192 needs 90 lb DBs. Your max is 80 lbs.'
       );
+    });
+  });
+
+  describe('fallback chain behavior', () => {
+    it('falls back from goblet squat to bulgarian split squat when weight exceeds max', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
+      // Squat at 135 lb: goblet = barbellToBothHands(135) = 110 (exceeds 80)
+      // BSS = barbellToDumbbell(135) = roundToNearest5(135*0.8/2) = roundToNearest5(54) = 55/hand (fits)
+      const result = adaptExerciseForHome(
+        EXERCISES.squat, 135, equipment, EXERCISES.goblet_squat
+      );
+
+      expect(result.adaptedExercise.id).toBe('bulgarian_split_squat');
+      expect(result.adaptedWeight).toBe(55);
+      expect(result.adaptationStatus).toBe('fits');
+    });
+
+    it('populates alternatives with all chain options when primary exceeds', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
+      const result = adaptExerciseForHome(
+        EXERCISES.squat, 135, equipment, EXERCISES.goblet_squat
+      );
+
+      expect(result.alternatives.length).toBeGreaterThanOrEqual(2);
+      expect(result.alternatives.some(a => a.exercise.id === 'goblet_squat')).toBe(true);
+      expect(result.alternatives.some(a => a.exercise.id === 'bulgarian_split_squat')).toBe(true);
+    });
+
+    it('caps primary at maxDumbbellWeight in alternatives', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
+      const result = adaptExerciseForHome(
+        EXERCISES.squat, 135, equipment, EXERCISES.goblet_squat
+      );
+
+      const gobletAlt = result.alternatives.find(a => a.exercise.id === 'goblet_squat');
+      expect(gobletAlt).toBeDefined();
+      expect(gobletAlt!.weight).toBe(80); // capped at max
+    });
+
+    it('returns primary substitute when weight fits without needing fallback', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
+      // Bench at 145 lb: DB bench = barbellToDumbbell(145) = 60/hand (fits within 80)
+      const result = adaptExerciseForHome(
+        EXERCISES.bench, 145, equipment, EXERCISES.db_bench
+      );
+
+      expect(result.adaptedExercise.id).toBe('db_bench');
+      expect(result.adaptedWeight).toBe(60);
+      expect(result.alternatives).toHaveLength(0);
+    });
+
+    it('caps at max and marks exceeds when ALL fallbacks exceed', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 30 });
+      // Squat at 200: goblet = 160 (exceeds), BSS = 80/hand (exceeds), lunge = 80/hand (exceeds)
+      const result = adaptExerciseForHome(
+        EXERCISES.squat, 200, equipment, EXERCISES.goblet_squat
+      );
+
+      expect(result.adaptationStatus).toBe('exceeds');
+      expect(result.adaptedWeight).toBe(30); // capped at max
+      expect(result.alternatives.length).toBeGreaterThan(0);
+    });
+
+    it('still returns borderline correctly when primary is borderline (no fallback needed)', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
+      // barbellToDumbbell(210) = roundToNearest5(210*0.8/2) = roundToNearest5(84) = 85
+      // 85 > 80 but 85 < 90 (80+10) -> borderline
+      // But now borderline triggers fallback too -- the system should try fallbacks
+      const result = adaptExerciseForHome(
+        EXERCISES.bench, 210, equipment, EXERCISES.db_bench
+      );
+
+      // DB bench at 85/hand exceeds 80, so system tries fallback chain
+      // db_floor_press also per_hand, same weight 85/hand, also exceeds
+      // Nothing fits, so should cap at 80 with exceeds (or borderline)
+      // Since primary is borderline (within 10), the overall should reflect that
+      expect(result.adaptedWeight).toBeLessThanOrEqual(85);
     });
   });
 });

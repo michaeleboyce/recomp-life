@@ -10,10 +10,12 @@ import type {
   Exercise,
   EquipmentProfile,
   ExerciseAdaptation,
+  AdaptationOption,
   AdaptationStatus,
   ConfidenceLevel,
 } from '@/types';
 import { barbellToDumbbell, barbellToBothHands } from './dbConversion';
+import { HOME_SUBSTITUTE_CHAINS, EXERCISES } from './exercises';
 
 /**
  * Determines the confidence level for a dumbbell substitute exercise.
@@ -28,8 +30,8 @@ export function getConfidenceLevel(
 ): ConfidenceLevel {
   if (adaptationStatus === 'exceeds') return 'low';
 
-  const highConfidence = ['db_bench', 'db_row', 'db_shoulder_press'];
-  const mediumConfidence = ['goblet_squat', 'bulgarian_split_squat', 'db_rdl'];
+  const highConfidence = ['db_bench', 'db_row', 'db_shoulder_press', 'db_floor_press', 'db_arnold_press'];
+  const mediumConfidence = ['goblet_squat', 'bulgarian_split_squat', 'db_rdl', 'db_lunge', 'single_leg_db_rdl'];
 
   if (highConfidence.includes(substituteId)) return 'high';
   if (mediumConfidence.includes(substituteId)) return 'medium';
@@ -116,24 +118,133 @@ export function adaptExerciseForHome(
     ? barbellToBothHands(prescribedWeight)
     : barbellToDumbbell(prescribedWeight);
 
-  let adaptationStatus: AdaptationStatus;
-  if (dbEquiv <= equipment.maxDumbbellWeight) {
-    adaptationStatus = 'fits';
-  } else if (dbEquiv < equipment.maxDumbbellWeight + 10) {
-    adaptationStatus = 'borderline';
-  } else {
-    adaptationStatus = 'exceeds';
+  const primaryStatus = computeStatus(dbEquiv, equipment.maxDumbbellWeight);
+
+  // If primary substitute fits, return immediately with no alternatives
+  if (primaryStatus === 'fits') {
+    const confidenceLevel = getConfidenceLevel(substituteExercise.id, primaryStatus);
+    const warningMessage = buildWarningMessage(
+      exercise.name,
+      prescribedWeight,
+      substituteExercise.name,
+      dbEquiv,
+      equipment.maxDumbbellWeight,
+      primaryStatus,
+      isBothHands
+    );
+
+    return {
+      originalExercise: exercise,
+      originalWeight: prescribedWeight,
+      adaptedExercise: substituteExercise,
+      adaptedWeight: dbEquiv,
+      adaptationStatus: primaryStatus,
+      confidenceLevel,
+      warningMessage,
+      alternatives: [],
+    };
   }
 
-  const confidenceLevel = getConfidenceLevel(substituteExercise.id, adaptationStatus);
+  // Primary exceeds or is borderline -- try fallback chain
+  const chain = HOME_SUBSTITUTE_CHAINS[exercise.id];
 
+  // No fallback chain for this exercise (e.g. test fixtures with non-matching IDs)
+  if (!chain) {
+    const confidenceLevel = getConfidenceLevel(substituteExercise.id, primaryStatus);
+    const warningMessage = buildWarningMessage(
+      exercise.name,
+      prescribedWeight,
+      substituteExercise.name,
+      dbEquiv,
+      equipment.maxDumbbellWeight,
+      primaryStatus,
+      isBothHands
+    );
+
+    return {
+      originalExercise: exercise,
+      originalWeight: prescribedWeight,
+      adaptedExercise: substituteExercise,
+      adaptedWeight: dbEquiv,
+      adaptationStatus: primaryStatus,
+      confidenceLevel,
+      warningMessage,
+      alternatives: [],
+    };
+  }
+
+  // Build alternatives from the full chain and find the first one that fits
+  const alternatives: AdaptationOption[] = [];
+  let bestFitExercise: Exercise | null = null;
+  let bestFitWeight = 0;
+
+  for (const chainExerciseId of chain) {
+    const chainExercise = EXERCISES[chainExerciseId];
+    if (!chainExercise) continue;
+
+    const chainIsBothHands = chainExercise.grip === 'both_hands';
+    const chainWeight = chainIsBothHands
+      ? barbellToBothHands(prescribedWeight)
+      : barbellToDumbbell(prescribedWeight);
+    const chainStatus = computeStatus(chainWeight, equipment.maxDumbbellWeight);
+    const weightUnit = chainIsBothHands ? 'lbs' : 'lbs/hand';
+
+    const fits = chainStatus === 'fits';
+    const cappedWeight = fits ? chainWeight : Math.min(chainWeight, equipment.maxDumbbellWeight);
+
+    alternatives.push({
+      label: `${chainExercise.name} @ ${cappedWeight} ${weightUnit}`,
+      exercise: chainExercise,
+      weight: cappedWeight,
+      pros: fits ? 'Full load achieved' : `Capped at max DB weight`,
+      cons: fits ? '' : `Needs ${chainWeight} ${weightUnit}, max is ${equipment.maxDumbbellWeight}`,
+    });
+
+    // Auto-select the FIRST one that fits
+    if (fits && !bestFitExercise) {
+      bestFitExercise = chainExercise;
+      bestFitWeight = chainWeight;
+    }
+  }
+
+  // If a fallback fits, use it
+  if (bestFitExercise) {
+    const bestIsBothHands = bestFitExercise.grip === 'both_hands';
+    const bestStatus: AdaptationStatus = 'fits';
+    const confidenceLevel = getConfidenceLevel(bestFitExercise.id, bestStatus);
+    const warningMessage = buildWarningMessage(
+      exercise.name,
+      prescribedWeight,
+      bestFitExercise.name,
+      bestFitWeight,
+      equipment.maxDumbbellWeight,
+      bestStatus,
+      bestIsBothHands
+    );
+
+    return {
+      originalExercise: exercise,
+      originalWeight: prescribedWeight,
+      adaptedExercise: bestFitExercise,
+      adaptedWeight: bestFitWeight,
+      adaptationStatus: bestStatus,
+      confidenceLevel,
+      warningMessage,
+      alternatives,
+    };
+  }
+
+  // Nothing fits -- use primary substitute capped at maxDumbbellWeight
+  const cappedWeight = equipment.maxDumbbellWeight;
+  const finalStatus: AdaptationStatus = primaryStatus; // preserves 'borderline' vs 'exceeds'
+  const confidenceLevel = getConfidenceLevel(substituteExercise.id, finalStatus);
   const warningMessage = buildWarningMessage(
     exercise.name,
     prescribedWeight,
     substituteExercise.name,
     dbEquiv,
     equipment.maxDumbbellWeight,
-    adaptationStatus,
+    finalStatus,
     isBothHands
   );
 
@@ -141,10 +252,19 @@ export function adaptExerciseForHome(
     originalExercise: exercise,
     originalWeight: prescribedWeight,
     adaptedExercise: substituteExercise,
-    adaptedWeight: dbEquiv,
-    adaptationStatus,
+    adaptedWeight: cappedWeight,
+    adaptationStatus: finalStatus,
     confidenceLevel,
     warningMessage,
-    alternatives: [],
+    alternatives,
   };
+}
+
+/**
+ * Computes the adaptation status for a given weight against the max dumbbell weight.
+ */
+function computeStatus(dbWeight: number, maxDumbbellWeight: number): AdaptationStatus {
+  if (dbWeight <= maxDumbbellWeight) return 'fits';
+  if (dbWeight < maxDumbbellWeight + 10) return 'borderline';
+  return 'exceeds';
 }
