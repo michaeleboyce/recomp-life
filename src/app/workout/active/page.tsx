@@ -9,7 +9,7 @@ import { useWorkoutStore, type WorkoutExerciseState } from "@/stores/workoutStor
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { getExercise, EXERCISES } from "@/lib/exercises";
 import { generateWarmUpSets } from "@/lib/warmups";
-import { barbellToDumbbell } from "@/lib/dbConversion";
+import { barbellToDumbbell, barbellToBothHands } from "@/lib/dbConversion";
 import { calculateE1RM } from "@/lib/e1rm";
 import {
   evaluateT1Progression,
@@ -221,7 +221,10 @@ export default function ActiveWorkoutPage() {
       ) {
         substituteExerciseId = exercise.dumbbellAlternative;
         originalWeight = weight;
-        adaptedWeight = barbellToDumbbell(weight);
+        const substituteExercise = getExercise(exercise.dumbbellAlternative);
+        adaptedWeight = substituteExercise.grip === "both_hands"
+          ? barbellToBothHands(weight)
+          : barbellToDumbbell(weight);
       }
 
       // Generate warm-up sets for T1 if enabled

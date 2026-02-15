@@ -27,6 +27,7 @@ export interface UserSettings {
   weighInReminderTime: string;
   trainingPhase: TrainingPhase;
   equipment: EquipmentProfile;
+  defaultLocation?: WorkoutLocation;
 }
 
 export interface UserProfile {
@@ -60,6 +61,8 @@ export type SensationType = "soreness" | "pain";
 export type MuscleGroup = "push" | "pull" | "legs" | "core" | "full_body";
 export type ExerciseType = "barbell" | "dumbbell" | "cable" | "bodyweight";
 
+export type DumbbellGrip = "per_hand" | "single" | "both_hands";
+
 export interface Exercise {
   id: string;
   name: string;
@@ -68,6 +71,7 @@ export interface Exercise {
   requiresGym: boolean;
   dumbbellAlternative?: string;
   barbellEquivalent?: string;
+  grip?: DumbbellGrip;
   primaryMuscles: BodyRegion[];
   secondaryMuscles: BodyRegion[];
   painSensitiveRegions: BodyRegion[];

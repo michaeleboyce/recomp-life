@@ -166,7 +166,7 @@ export default function LiftResult({
         <div className="text-right">
           <p className="text-sm font-bold text-foreground">
             {setRepDisplay} @ {weight} lbs
-            {isHome && actualExercise?.type === "dumbbell" && "/hand"}
+            {actualExercise?.grip === "per_hand" && "/hand"}
           </p>
         </div>
       </div>

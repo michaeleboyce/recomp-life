@@ -1,13 +1,16 @@
 "use client";
 
+import { useMemo } from "react";
 import { EXERCISES } from "@/lib/exercises";
-import type { TrainingPhase } from "@/types";
+import { HOME_ACCESSORY_ALTERNATIVES } from "@/lib/workoutTemplates";
+import type { TrainingPhase, WorkoutLocation } from "@/types";
 
 interface AccessoryPickerProps {
   recommendations: string[];
   selectedAccessories: string[];
   onToggle: (exerciseId: string) => void;
   trainingPhase: TrainingPhase;
+  location?: WorkoutLocation;
 }
 
 function getMaxAccessories(phase: TrainingPhase): number {
@@ -37,9 +40,36 @@ export function AccessoryPicker({
   selectedAccessories,
   onToggle,
   trainingPhase,
+  location = "gym",
 }: AccessoryPickerProps) {
   const maxAccessories = getMaxAccessories(trainingPhase);
   const atMax = selectedAccessories.length >= maxAccessories;
+
+  // Filter gym-only accessories at home, replacing with home alternatives
+  const filteredRecommendations = useMemo(() => {
+    if (location !== "home") return recommendations;
+
+    const seen = new Set<string>();
+    const result: string[] = [];
+
+    for (const id of recommendations) {
+      const exercise = EXERCISES[id];
+      if (!exercise) continue;
+
+      if (exercise.requiresGym) {
+        const altId = HOME_ACCESSORY_ALTERNATIVES[id];
+        if (altId && EXERCISES[altId] && !seen.has(altId)) {
+          seen.add(altId);
+          result.push(altId);
+        }
+      } else if (!seen.has(id)) {
+        seen.add(id);
+        result.push(id);
+      }
+    }
+
+    return result;
+  }, [recommendations, location]);
 
   return (
     <div className="space-y-3">
@@ -51,7 +81,7 @@ export function AccessoryPicker({
       </div>
 
       <div className="space-y-2">
-        {recommendations.map((exerciseId) => {
+        {filteredRecommendations.map((exerciseId) => {
           const exercise = EXERCISES[exerciseId];
           if (!exercise) return null;
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { roundToNearest5, barbellToDumbbell, dumbbellToBarbell } from './dbConversion';
+import { roundToNearest5, barbellToDumbbell, barbellToBothHands, dumbbellToBarbell } from './dbConversion';
 
 describe('roundToNearest5', () => {
   it('rounds 58 to 60', () => {
@@ -48,6 +48,35 @@ describe('barbellToDumbbell', () => {
   it('converts 100 lb barbell to 40 lb dumbbell per hand', () => {
     // 100 * 0.80 = 80, / 2 = 40
     expect(barbellToDumbbell(100)).toBe(40);
+  });
+});
+
+describe('barbellToBothHands', () => {
+  it('converts 135 lb barbell to 110 lb single dumbbell', () => {
+    // 135 * 0.80 = 108, round to 110
+    expect(barbellToBothHands(135)).toBe(110);
+  });
+
+  it('converts 100 lb barbell to 80 lb single dumbbell', () => {
+    // 100 * 0.80 = 80
+    expect(barbellToBothHands(100)).toBe(80);
+  });
+
+  it('converts 200 lb barbell to 160 lb single dumbbell', () => {
+    // 200 * 0.80 = 160
+    expect(barbellToBothHands(200)).toBe(160);
+  });
+
+  it('converts 85 lb barbell to 70 lb single dumbbell', () => {
+    // 85 * 0.80 = 68, round to 70
+    expect(barbellToBothHands(85)).toBe(70);
+  });
+
+  it('is always higher than barbellToDumbbell for the same input', () => {
+    // both_hands should produce a larger weight since we don't divide by 2
+    for (const w of [85, 100, 135, 200]) {
+      expect(barbellToBothHands(w)).toBeGreaterThan(barbellToDumbbell(w));
+    }
   });
 });
 

@@ -26,6 +26,18 @@ export function barbellToDumbbell(barbellWeight: number): number {
 }
 
 /**
+ * Converts a barbell weight to a single dumbbell held with both hands.
+ *
+ * Total DB weight = barbell x 0.80 (no division — one dumbbell only)
+ * and round to the nearest 5 lbs.
+ *
+ * Example: 135 lb barbell -> 135 * 0.80 = 108, round to 110 lb single dumbbell
+ */
+export function barbellToBothHands(barbellWeight: number): number {
+  return roundToNearest5(barbellWeight * 0.80);
+}
+
+/**
  * Converts a dumbbell weight per hand back to the barbell equivalent.
  *
  * Total dumbbell = per-hand x 2, then multiply by 1.20 (inverse of 0.80)

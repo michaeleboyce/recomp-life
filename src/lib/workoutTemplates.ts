@@ -136,3 +136,11 @@ export const ACCESSORY_RECOMMENDATIONS: Record<string, string[]> = {
   A2: ["face_pulls", "incline_db_fly", "leg_extensions", "ab_rollout"],
   B2: ["bicep_curls", "lateral_raises", "back_extensions", "calf_raises"],
 };
+
+/** Home-friendly replacements for gym-only accessories */
+export const HOME_ACCESSORY_ALTERNATIVES: Record<string, string> = {
+  face_pulls: "lateral_raises",
+  leg_curls: "hip_thrust",
+  leg_extensions: "calf_raises",
+  back_extensions: "ab_rollout",
+};

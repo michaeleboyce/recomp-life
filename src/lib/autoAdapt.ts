@@ -13,7 +13,7 @@ import type {
   AdaptationStatus,
   ConfidenceLevel,
 } from '@/types';
-import { barbellToDumbbell } from './dbConversion';
+import { barbellToDumbbell, barbellToBothHands } from './dbConversion';
 
 /**
  * Determines the confidence level for a dumbbell substitute exercise.
@@ -46,11 +46,13 @@ function buildWarningMessage(
   substituteName: string,
   dbWeight: number,
   maxDumbbellWeight: number,
-  status: AdaptationStatus
+  status: AdaptationStatus,
+  isBothHands: boolean
 ): string | undefined {
+  const weightUnit = isBothHands ? 'lbs' : 'lbs/hand';
   switch (status) {
     case 'fits':
-      return `${exerciseName} ${prescribedWeight} lbs \u2192 ${substituteName} ${dbWeight} lbs/hand \u2705`;
+      return `${exerciseName} ${prescribedWeight} lbs \u2192 ${substituteName} ${dbWeight} ${weightUnit} \u2705`;
     case 'borderline':
       return `${exerciseName} at ${prescribedWeight} lbs \u2192 ${dbWeight} lb DBs (your max is ${maxDumbbellWeight}). Close to limit.`;
     case 'exceeds':
@@ -109,7 +111,10 @@ export function adaptExerciseForHome(
   }
 
   // Case 2: Requires gym and has a dumbbell alternative
-  const dbEquiv = barbellToDumbbell(prescribedWeight);
+  const isBothHands = substituteExercise.grip === 'both_hands';
+  const dbEquiv = isBothHands
+    ? barbellToBothHands(prescribedWeight)
+    : barbellToDumbbell(prescribedWeight);
 
   let adaptationStatus: AdaptationStatus;
   if (dbEquiv <= equipment.maxDumbbellWeight) {
@@ -128,7 +133,8 @@ export function adaptExerciseForHome(
     substituteExercise.name,
     dbEquiv,
     equipment.maxDumbbellWeight,
-    adaptationStatus
+    adaptationStatus,
+    isBothHands
   );
 
   return {

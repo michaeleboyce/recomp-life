@@ -37,6 +37,7 @@ const dbBench: Exercise = {
   muscleGroup: 'push',
   requiresGym: false,
   barbellEquivalent: 'barbell_bench',
+  grip: 'per_hand',
   primaryMuscles: ['chest'],
   secondaryMuscles: [],
   painSensitiveRegions: [],
@@ -61,6 +62,7 @@ const gobletSquat: Exercise = {
   muscleGroup: 'legs',
   requiresGym: false,
   barbellEquivalent: 'barbell_squat',
+  grip: 'both_hands',
   primaryMuscles: ['left_quad', 'right_quad'],
   secondaryMuscles: [],
   painSensitiveRegions: [],
@@ -85,6 +87,7 @@ const dbRdl: Exercise = {
   muscleGroup: 'pull',
   requiresGym: false,
   barbellEquivalent: 'barbell_deadlift',
+  grip: 'per_hand',
   primaryMuscles: ['lower_back', 'left_hamstring', 'right_hamstring'],
   secondaryMuscles: [],
   painSensitiveRegions: [],
@@ -109,6 +112,7 @@ const dbShoulderPress: Exercise = {
   muscleGroup: 'push',
   requiresGym: false,
   barbellEquivalent: 'barbell_ohp',
+  grip: 'per_hand',
   primaryMuscles: ['left_shoulder', 'right_shoulder'],
   secondaryMuscles: [],
   painSensitiveRegions: [],
@@ -156,6 +160,7 @@ const dbRow: Exercise = {
   muscleGroup: 'pull',
   requiresGym: false,
   barbellEquivalent: 'barbell_row',
+  grip: 'per_hand',
   primaryMuscles: ['upper_back'],
   secondaryMuscles: [],
   painSensitiveRegions: [],
@@ -262,9 +267,9 @@ describe('adaptExerciseForHome', () => {
       expect(result.adaptedWeight).toBe(90);
     });
 
-    it('confidence: goblet_squat = medium', () => {
-      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
-      // 135 * 0.80 = 108, / 2 = 54, round to 55
+    it('confidence: goblet_squat = medium when weight fits', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 120 });
+      // both_hands: 135 * 0.80 = 108, round to 110
       const result = adaptExerciseForHome(barbellSquat, 135, equipment, gobletSquat);
 
       expect(result.confidenceLevel).toBe('medium');
@@ -292,6 +297,42 @@ describe('adaptExerciseForHome', () => {
 
       expect(result.adaptationStatus).toBe('no_substitute');
       expect(result.adaptedExercise).toBe(cableRow);
+    });
+  });
+
+  describe('both_hands grip exercises', () => {
+    it('uses barbellToBothHands for goblet squat (no /2 division)', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 120 });
+      // 135 * 0.80 = 108, round to 110 (NOT divided by 2)
+      const result = adaptExerciseForHome(barbellSquat, 135, equipment, gobletSquat);
+
+      expect(result.adaptedWeight).toBe(110);
+      expect(result.adaptationStatus).toBe('fits');
+    });
+
+    it('correctly evaluates exceeds for both_hands with high barbell weight', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
+      // 135 * 0.80 = 108, round to 110 -- exceeds 80 by more than 10
+      const result = adaptExerciseForHome(barbellSquat, 135, equipment, gobletSquat);
+
+      expect(result.adaptedWeight).toBe(110);
+      expect(result.adaptationStatus).toBe('exceeds');
+    });
+
+    it('uses lbs (not lbs/hand) in warning message for both_hands', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 120 });
+      const result = adaptExerciseForHome(barbellSquat, 135, equipment, gobletSquat);
+
+      expect(result.warningMessage).toContain('lbs');
+      expect(result.warningMessage).not.toContain('lbs/hand');
+    });
+
+    it('per_hand exercises still divide by 2', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
+      // 145 * 0.80 = 116, / 2 = 58, round to 60
+      const result = adaptExerciseForHome(barbellBench, 145, equipment, dbBench);
+
+      expect(result.adaptedWeight).toBe(60);
     });
   });
 

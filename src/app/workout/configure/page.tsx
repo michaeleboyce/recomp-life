@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useState, useMemo, useCallback } from "react";
+import { Suspense, useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { v4 as uuidv4 } from "uuid";
+import Link from "next/link";
 
 import { db } from "@/db/local";
 import {
@@ -44,6 +45,8 @@ import type {
   EquipmentProfile,
   TrainingPhase,
   WarmUpSet,
+  PainSorenessEntry,
+  BodyRegion,
 } from "@/types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -195,6 +198,16 @@ function ConfigureWorkoutContent() {
     db.workouts.orderBy("startedAt").reverse().first()
   );
 
+  const recentPainEntries = useLiveQuery(() => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return db.painEntries
+      .where("date")
+      .above(sevenDaysAgo)
+      .reverse()
+      .toArray();
+  }) ?? [];
+
   // ─── Determine the template ───────────────────────────────────────────
 
   const templateId = useMemo(() => {
@@ -214,9 +227,21 @@ function ConfigureWorkoutContent() {
 
   // Step 1: location + warm-ups
   const [location, setLocation] = useState<WorkoutLocation>("gym");
-  const [warmUps, setWarmUps] = useState<boolean>(
-    userProfile?.settings?.showWarmUps ?? true
-  );
+  const [warmUps, setWarmUps] = useState<boolean>(true);
+
+  // Sync from profile once it loads
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  useEffect(() => {
+    if (userProfile && !profileLoaded) {
+      setProfileLoaded(true);
+      if (userProfile.settings?.defaultLocation) {
+        setLocation(userProfile.settings.defaultLocation);
+      }
+      if (userProfile.settings?.showWarmUps !== undefined) {
+        setWarmUps(userProfile.settings.showWarmUps);
+      }
+    }
+  }, [userProfile, profileLoaded]);
 
   // Step 1.5: readiness
   const [sleepHours, setSleepHours] = useState<SleepHours | null>(null);
@@ -328,7 +353,18 @@ function ConfigureWorkoutContent() {
     [t1Type]
   );
 
-  const handleLocationNext = () => goToStep("readiness");
+  const handleLocationNext = async () => {
+    // Save location preference
+    if (userProfile) {
+      try {
+        const updatedSettings = { ...userProfile.settings, defaultLocation: location };
+        await db.userProfile.update(userProfile.id, { settings: updatedSettings });
+      } catch {
+        // Non-critical — continue even if save fails
+      }
+    }
+    goToStep("readiness");
+  };
 
   const handleReadinessNext = () => goToStep("technique");
   const handleReadinessSkip = () => goToStep("technique");
@@ -430,6 +466,9 @@ function ConfigureWorkoutContent() {
         {currentStep === "readiness" && (
           <Card>
             <CardContent className="pt-6">
+              <div className="flex justify-end mb-3">
+                <Badge variant="outline">{location === "home" ? "Home" : "Gym"}</Badge>
+              </div>
               <ReadinessCheck
                 sleepHours={sleepHours}
                 stressLevel={stressLevel}
@@ -446,6 +485,9 @@ function ConfigureWorkoutContent() {
         {currentStep === "technique" && t1Type && (
           <Card>
             <CardContent className="pt-6">
+              <div className="flex justify-end mb-3">
+                <Badge variant="outline">{location === "home" ? "Home" : "Gym"}</Badge>
+              </div>
               <TechniqueChecklist
                 exerciseType={t1Type}
                 onNext={handleTechniqueNext}
@@ -459,16 +501,40 @@ function ConfigureWorkoutContent() {
         {currentStep === "bodycheck" && (
           <Card>
             <CardHeader>
-              <CardTitle>Body Check</CardTitle>
-              <CardDescription>Any pain or soreness?</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Body Check</CardTitle>
+                  <CardDescription>Any pain or soreness?</CardDescription>
+                </div>
+                <Badge variant="outline">{location === "home" ? "Home" : "Gym"}</Badge>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {recentPainEntries.length > 0 && (
+                <div className="space-y-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-3">
+                  <p className="text-xs font-semibold text-yellow-400">
+                    Active entries (last 7 days)
+                  </p>
+                  {recentPainEntries.slice(0, 3).map((entry) => (
+                    <div key={entry.id} className="text-xs text-muted-foreground">
+                      {entry.region.replace(/_/g, " ")} — {entry.sensation} (severity {entry.severity}/5)
+                    </div>
+                  ))}
+                  {recentPainEntries.length > 3 && (
+                    <p className="text-xs text-muted-foreground">
+                      +{recentPainEntries.length - 3} more
+                    </p>
+                  )}
+                </div>
+              )}
               <Button className="w-full" onClick={handleBodyCheckNext}>
                 I feel fine {"\u2192"} Next
               </Button>
-              <Button variant="outline" className="w-full" disabled>
-                Log pain/soreness (coming in Phase 4)
-              </Button>
+              <Link href="/body-check">
+                <Button variant="outline" className="w-full">
+                  Log pain/soreness
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         )}
@@ -518,7 +584,7 @@ function ConfigureWorkoutContent() {
                             <div className="text-sm">
                               {"\u2192"} {adaptation.adaptedExercise.name} @{" "}
                               {adaptation.adaptedWeight} lbs
-                              {adaptation.adaptedExercise.type === "dumbbell" &&
+                              {adaptation.adaptedExercise.grip === "per_hand" &&
                                 "/hand"}
                             </div>
                             <div className="flex gap-2 flex-wrap">
@@ -568,6 +634,7 @@ function ConfigureWorkoutContent() {
                 selectedAccessories={selectedAccessories}
                 onToggle={handleToggleAccessory}
                 trainingPhase={trainingPhase}
+                location={location}
               />
 
               <Separator />

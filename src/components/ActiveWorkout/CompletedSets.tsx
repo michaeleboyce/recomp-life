@@ -23,8 +23,6 @@ export function CompletedSets({
   if (exerciseSets.length === 0) return null;
 
   const exercise = getExercise(exerciseId);
-  const isDumbbell = exercise.type === "dumbbell";
-  const isHome = location === "home";
 
   return (
     <div className="px-4 py-3">
@@ -32,7 +30,7 @@ export function CompletedSets({
       <div className="space-y-1.5">
         {exerciseSets.map((set, idx) => {
           const weightLabel =
-            isDumbbell && isHome
+            exercise.grip === "per_hand"
               ? `${set.weight}/h`
               : `${set.weight}`;
 

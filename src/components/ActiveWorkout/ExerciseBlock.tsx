@@ -42,7 +42,7 @@ export function ExerciseBlock({ exercise, location }: ExerciseBlockProps) {
   const isDumbbell = exerciseInfo.type === "dumbbell";
 
   const weightLabel =
-    isDumbbell && isHome
+    isDumbbell && exerciseInfo.grip === "per_hand"
       ? `${exercise.weight} lbs/hand`
       : `${exercise.weight} lbs`;
 
