@@ -14,4 +14,12 @@ export async function initializeDatabase() {
       await db.liftStates.put(state);
     }
   }
+
+  // Ensure all template exercises have LiftStates (migration for existing users)
+  for (const state of Object.values(INITIAL_LIFT_STATES)) {
+    const existing = await db.liftStates.get(state.exerciseId);
+    if (!existing) {
+      await db.liftStates.put(state);
+    }
+  }
 }

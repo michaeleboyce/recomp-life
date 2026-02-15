@@ -353,6 +353,12 @@ export interface InactivityAlert {
   prescription: "normal_workout" | "ramp_up_85";
 }
 
+export interface StallAlert {
+  detected: boolean;
+  message: string;
+  suggestions: string[];
+}
+
 // T2 Auto-Regulation Types
 
 export type T2AutoRegAction = "continue" | "suggest_drop";

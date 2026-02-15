@@ -41,6 +41,26 @@ export const INITIAL_LIFT_STATES: Record<string, LiftState> = {
     preDeloadT1Weight: null, preDeloadT2Weight: null,
     t2LoadDropCount: 0, recentE1RMs: [], recentAvgRPEs: [], recentAMRAPReps: []
   },
+  lat_pulldown: {
+    exerciseId: "lat_pulldown",
+    t1Weight: 0, t1Stage: "5x3", t1FailCount: 0,
+    t2Weight: 0, t2Stage: "3x10", t2FailCount: 0,
+    t1LastResetWeight: null, t2LastResetWeight: null,
+    t1LastWorkoutDate: null, t2LastWorkoutDate: null,
+    deloadActive: false, deloadSessionsRemaining: 0,
+    preDeloadT1Weight: null, preDeloadT2Weight: null,
+    t2LoadDropCount: 0, recentE1RMs: [], recentAvgRPEs: [], recentAMRAPReps: []
+  },
+  db_row: {
+    exerciseId: "db_row",
+    t1Weight: 0, t1Stage: "5x3", t1FailCount: 0,
+    t2Weight: 0, t2Stage: "3x10", t2FailCount: 0,
+    t1LastResetWeight: null, t2LastResetWeight: null,
+    t1LastWorkoutDate: null, t2LastWorkoutDate: null,
+    deloadActive: false, deloadSessionsRemaining: 0,
+    preDeloadT1Weight: null, preDeloadT2Weight: null,
+    t2LoadDropCount: 0, recentE1RMs: [], recentAvgRPEs: [], recentAMRAPReps: []
+  },
 };
 
 export const DEFAULT_USER_PROFILE: Omit<UserProfile, 'id' | 'createdAt'> = {
