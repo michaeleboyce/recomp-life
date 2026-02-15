@@ -469,6 +469,32 @@ export default function ActiveWorkoutPage() {
               liftType
             );
             newState.t1LastWorkoutDate = new Date();
+
+            // Populate tracking arrays (keep last 5)
+
+            // 1. recentE1RMs: query estimated1RMs table for this exercise
+            const recentE1RMEntriesT1 = await db.estimated1RMs
+              .where("exerciseId").equals(templateEx.exerciseId)
+              .reverse().sortBy("date");
+            newState.recentE1RMs = recentE1RMEntriesT1.slice(0, 5).map(e => e.estimated1RM);
+
+            // 2. recentAvgRPEs: calculate avg RPE from this session's sets
+            const rpeValuesT1 = exerciseSets.filter(s => s.rpe != null).map(s => s.rpe!);
+            if (rpeValuesT1.length > 0) {
+              const avgRPE = rpeValuesT1.reduce((a, b) => a + b, 0) / rpeValuesT1.length;
+              newState.recentAvgRPEs = [...(ls.recentAvgRPEs || []), avgRPE].slice(-5);
+            } else {
+              newState.recentAvgRPEs = ls.recentAvgRPEs || [];
+            }
+
+            // 3. recentAMRAPReps: from AMRAP set
+            const amrapSetT1 = exerciseSets.find(s => s.isAMRAP);
+            if (amrapSetT1) {
+              newState.recentAMRAPReps = [...(ls.recentAMRAPReps || []), amrapSetT1.actualReps].slice(-5);
+            } else {
+              newState.recentAMRAPReps = ls.recentAMRAPReps || [];
+            }
+
             await db.liftStates.put(newState);
           } else if (templateEx.tier === "T2") {
             const newState = evaluateT2Progression(
@@ -479,6 +505,32 @@ export default function ActiveWorkoutPage() {
               liftType
             );
             newState.t2LastWorkoutDate = new Date();
+
+            // Populate tracking arrays (keep last 5)
+
+            // 1. recentE1RMs: query estimated1RMs table for this exercise
+            const recentE1RMEntriesT2 = await db.estimated1RMs
+              .where("exerciseId").equals(templateEx.exerciseId)
+              .reverse().sortBy("date");
+            newState.recentE1RMs = recentE1RMEntriesT2.slice(0, 5).map(e => e.estimated1RM);
+
+            // 2. recentAvgRPEs: calculate avg RPE from this session's sets
+            const rpeValuesT2 = exerciseSets.filter(s => s.rpe != null).map(s => s.rpe!);
+            if (rpeValuesT2.length > 0) {
+              const avgRPE = rpeValuesT2.reduce((a, b) => a + b, 0) / rpeValuesT2.length;
+              newState.recentAvgRPEs = [...(ls.recentAvgRPEs || []), avgRPE].slice(-5);
+            } else {
+              newState.recentAvgRPEs = ls.recentAvgRPEs || [];
+            }
+
+            // 3. recentAMRAPReps: from AMRAP set
+            const amrapSetT2 = exerciseSets.find(s => s.isAMRAP);
+            if (amrapSetT2) {
+              newState.recentAMRAPReps = [...(ls.recentAMRAPReps || []), amrapSetT2.actualReps].slice(-5);
+            } else {
+              newState.recentAMRAPReps = ls.recentAMRAPReps || [];
+            }
+
             await db.liftStates.put(newState);
           }
         }
