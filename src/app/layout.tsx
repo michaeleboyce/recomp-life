@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -18,6 +19,24 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "ReComp Life",
   description: "GZCLP Workout Tracker & Body Recomposition",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ReComp Life",
+  },
+  icons: {
+    icon: "/icons/icon-512.png",
+    apple: "/icons/icon-192.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#09090b",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -30,10 +49,11 @@ export default function RootLayout({
       <body
         className={`${plusJakarta.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        <div className="min-h-screen pb-20">
+        <div className="min-h-screen pb-28">
           {children}
         </div>
         <BottomNav />
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
