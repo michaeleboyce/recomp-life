@@ -30,7 +30,7 @@ function WorkoutRing({ count, target }: { count: number; target: number }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="oklch(0.3 0 0)"
+          stroke="oklch(0.22 0.005 260)"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -38,7 +38,7 @@ function WorkoutRing({ count, target }: { count: number; target: number }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="oklch(0.85 0 0)"
+          stroke="oklch(0.65 0.10 160)"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -47,7 +47,7 @@ function WorkoutRing({ count, target }: { count: number; target: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xs font-bold text-foreground">
+        <span className="text-xs font-bold text-foreground font-mono tabular-nums">
           {count}/{target}
         </span>
       </div>

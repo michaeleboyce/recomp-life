@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { Dumbbell, Home, Footprints, Camera } from "lucide-react";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import type { WorkoutLocation, EquipmentProfile } from "@/types";
 
@@ -98,7 +99,7 @@ export default function NextWorkoutCard() {
   }
 
   return (
-    <Card>
+    <Card variant="raised">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">Next Workout</CardTitle>
@@ -123,7 +124,7 @@ export default function NextWorkoutCard() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-foreground font-mono">
+                <p className="text-sm font-bold text-foreground font-mono tabular-nums">
                   {location === "home" && t1Adaptation
                     ? t1Adaptation.adaptedWeight
                     : t1State?.t1Weight ?? "—"}{" "}
@@ -156,7 +157,7 @@ export default function NextWorkoutCard() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-foreground font-mono">
+                <p className="text-sm font-bold text-foreground font-mono tabular-nums">
                   {location === "home" && t2Adaptation
                     ? t2Adaptation.adaptedWeight
                     : t2State?.t2Weight ?? "—"}{" "}
@@ -189,28 +190,14 @@ export default function NextWorkoutCard() {
         )}
 
         {/* Location segmented control */}
-        <div className="flex rounded-lg bg-muted/50 p-1">
-          <button
-            onClick={() => setLocation("gym")}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-150 ${
-              location === "gym"
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Dumbbell className="h-4 w-4" /> Gym
-          </button>
-          <button
-            onClick={() => setLocation("home")}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-150 ${
-              location === "home"
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Home className="h-4 w-4" /> Home
-          </button>
-        </div>
+        <SegmentedControl
+          value={location}
+          onChange={setLocation}
+          options={[
+            { value: "gym" as const, label: "Gym", icon: <Dumbbell className="h-4 w-4" /> },
+            { value: "home" as const, label: "Home", icon: <Home className="h-4 w-4" /> },
+          ]}
+        />
 
         {/* Start workout button */}
         <Link href="/workout/configure" className="block">

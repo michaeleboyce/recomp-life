@@ -116,7 +116,7 @@ export default function RecoveryStatusBars() {
                     {exercise?.name ?? liftId}
                   </span>
                 </div>
-                <span className={`text-xs ${config.color}`}>
+                <span className={`text-xs font-mono tabular-nums ${config.color}`}>
                   {config.icon} {config.label} ({timeLabel})
                 </span>
               </div>
