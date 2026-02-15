@@ -51,6 +51,7 @@ export function getGroupedExercises(
     if (filter) {
       exercises = exercises.filter((ex) => ex.muscleGroup === filter);
     }
+    exercises.sort((a, b) => a.name.localeCompare(b.name));
     return { label, description, exercises };
   }).filter((group) => group.exercises.length > 0);
 }

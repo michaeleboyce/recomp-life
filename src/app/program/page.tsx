@@ -110,10 +110,10 @@ function CurrentRotation({
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-foreground font-mono">
+                <p className="text-sm font-bold text-foreground font-mono tabular-nums">
                   {t1State?.t1Weight ?? "--"} lbs
                 </p>
-                <p className="text-xs text-muted-foreground font-mono">
+                <p className="text-xs text-muted-foreground font-mono tabular-nums">
                   {t1State?.t1Stage ?? "5x3"}
                 </p>
               </div>
@@ -129,10 +129,10 @@ function CurrentRotation({
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-foreground font-mono">
+                <p className="text-sm font-bold text-foreground font-mono tabular-nums">
                   {t2State?.t2Weight ?? "--"} lbs
                 </p>
-                <p className="text-xs text-muted-foreground font-mono">
+                <p className="text-xs text-muted-foreground font-mono tabular-nums">
                   {t2State?.t2Stage ?? "3x10"}
                 </p>
               </div>
@@ -183,16 +183,16 @@ function LiftStateCard({
             <p className="text-lg font-bold text-foreground font-mono mt-0.5">
               {liftState.t1Weight} lbs
             </p>
-            <p className="text-xs text-muted-foreground font-mono">
+            <p className="text-xs text-muted-foreground font-mono tabular-nums">
               {liftState.t1Stage}
             </p>
             {liftState.t1FailCount > 0 && (
-              <p className="text-xs text-red-400 mt-1">
+              <p className="text-xs text-red-400 mt-1 font-mono tabular-nums">
                 {liftState.t1FailCount} fail{liftState.t1FailCount > 1 ? "s" : ""}
               </p>
             )}
             {liftState.deloadActive && (
-              <p className="text-xs text-amber-400 mt-1">
+              <p className="text-xs text-amber-400 mt-1 font-mono tabular-nums">
                 Deload ({liftState.deloadSessionsRemaining} left)
               </p>
             )}
@@ -204,11 +204,11 @@ function LiftStateCard({
             <p className="text-lg font-bold text-foreground font-mono mt-0.5">
               {liftState.t2Weight} lbs
             </p>
-            <p className="text-xs text-muted-foreground font-mono">
+            <p className="text-xs text-muted-foreground font-mono tabular-nums">
               {liftState.t2Stage}
             </p>
             {liftState.t2FailCount > 0 && (
-              <p className="text-xs text-red-400 mt-1">
+              <p className="text-xs text-red-400 mt-1 font-mono tabular-nums">
                 {liftState.t2FailCount} fail{liftState.t2FailCount > 1 ? "s" : ""}
               </p>
             )}
@@ -219,7 +219,7 @@ function LiftStateCard({
         {latestE1RM !== null && (
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Latest e1RM</span>
-            <span className="font-bold text-foreground font-mono">
+            <span className="font-bold text-foreground font-mono tabular-nums">
               {latestE1RM} lbs
             </span>
           </div>
@@ -285,15 +285,15 @@ function GymDebtSection({
                   <p className="text-sm font-medium text-foreground">
                     {exercise.name}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground font-mono tabular-nums">
                     T1: {state.t1Weight} lbs barbell
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-red-400 font-mono">
+                  <p className="text-xs text-red-400 font-mono tabular-nums">
                     +{overage} lbs over
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground font-mono tabular-nums">
                     DB equiv: {dbEquivalent} lbs/hand
                   </p>
                 </div>
@@ -352,7 +352,7 @@ export default function ProgramPage() {
   if (!dbReady) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground text-sm">Loading...</div>
+        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
       </div>
     );
   }
@@ -365,7 +365,7 @@ export default function ProgramPage() {
   ) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground text-sm">Loading...</div>
+        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
       </div>
     );
   }
@@ -382,8 +382,8 @@ export default function ProgramPage() {
     profile?.settings?.equipment?.maxDumbbellWeight ?? 50;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="mx-auto max-w-lg px-4 py-6 space-y-4">
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-lg px-5 pt-5 pb-28 space-y-4">
         {/* Header */}
         <h1 className="text-xl font-bold text-foreground">Program</h1>
 

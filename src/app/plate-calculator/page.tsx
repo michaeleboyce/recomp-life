@@ -103,7 +103,7 @@ function PlateVisual({ plates }: { plates: { plate: number; count: number }[] })
       <div className="text-center space-y-1">
         <p className="text-xs text-muted-foreground uppercase tracking-wider">Per side</p>
         {plates.map(({ plate, count }) => (
-          <p key={plate} className="text-sm text-foreground">
+          <p key={plate} className="text-sm text-foreground font-mono tabular-nums">
             {count} x {plate} lbs
           </p>
         ))}
@@ -150,7 +150,7 @@ export default function PlateCalculatorPage() {
   if (!dbReady || !profile) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground text-sm">Loading...</div>
+        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
       </div>
     );
   }
@@ -158,7 +158,7 @@ export default function PlateCalculatorPage() {
   const quickWeights = [95, 135, 185, 225, 275, 315].filter(w => w >= barWeight);
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-4">
+    <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       <header className="flex items-center gap-3 mb-6">
         <Link
           href="/settings"
@@ -174,12 +174,12 @@ export default function PlateCalculatorPage() {
         <Card>
           <CardContent className="pt-4 space-y-4">
             <div className="text-center">
-              <p className="text-4xl font-bold text-foreground">{targetWeight} lbs</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-4xl font-bold font-mono tabular-nums text-foreground">{targetWeight} lbs</p>
+              <p className="text-xs text-muted-foreground mt-1 font-mono tabular-nums">
                 Bar: {barWeight} lbs
               </p>
               {actualWeight !== targetWeight && (
-                <p className="text-xs text-amber-400 mt-1">
+                <p className="text-xs text-amber-400 mt-1 font-mono tabular-nums">
                   Closest loadable: {actualWeight} lbs
                 </p>
               )}

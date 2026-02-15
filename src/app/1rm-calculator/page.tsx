@@ -43,7 +43,7 @@ export default function OneRMCalculatorPage() {
   }, [e1rm]);
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-4 pb-24">
+    <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       <header className="flex items-center gap-3 mb-6">
         <Link
           href="/tools"
@@ -123,8 +123,8 @@ export default function OneRMCalculatorPage() {
                 <p className="text-xs text-muted-foreground mb-1">
                   Estimated 1RM for {EXERCISES[selectedExercise]?.name}
                 </p>
-                <p className="text-4xl font-bold text-primary">{e1rm} lbs</p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-4xl font-bold font-mono tabular-nums text-primary">{e1rm} lbs</p>
+                <p className="text-xs text-muted-foreground mt-1 font-mono tabular-nums">
                   Based on {weight} lbs x {reps} reps (Epley formula)
                 </p>
               </div>
@@ -144,9 +144,9 @@ export default function OneRMCalculatorPage() {
                           : "text-foreground"
                       }`}
                     >
-                      <span className="text-muted-foreground w-12">{pct}%</span>
-                      <span className="font-medium">{w} lbs</span>
-                      <span className="text-xs text-muted-foreground w-12 text-right">
+                      <span className="text-muted-foreground w-12 font-mono tabular-nums">{pct}%</span>
+                      <span className="font-medium font-mono tabular-nums">{w} lbs</span>
+                      <span className="text-xs text-muted-foreground w-12 text-right font-mono tabular-nums">
                         {r}
                       </span>
                     </div>

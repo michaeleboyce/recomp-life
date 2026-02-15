@@ -21,7 +21,7 @@ const TOOLS = [
 
 export default function ToolsPage() {
   return (
-    <div className="mx-auto max-w-lg px-4 py-4 pb-24">
+    <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       <header className="mb-6">
         <h1 className="text-lg font-bold text-foreground">Tools</h1>
       </header>

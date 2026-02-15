@@ -178,7 +178,7 @@ export default function ConfigureWorkoutPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-background">
-          <p className="text-muted-foreground">Loading...</p>
+          <div className="h-6 w-40 rounded bg-muted animate-pulse" />
         </div>
       }
     >
@@ -556,7 +556,7 @@ function ConfigureWorkoutContent() {
   if (!template) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading workout template...</p>
+        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
       </div>
     );
   }
@@ -565,7 +565,7 @@ function ConfigureWorkoutContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-lg px-4 py-6 space-y-4">
+      <div className="mx-auto max-w-lg px-5 pt-5 pb-28 space-y-4">
         {/* Progress bar */}
         <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
           <div
@@ -678,7 +678,7 @@ function ConfigureWorkoutContent() {
                     <div className="space-y-2">
                       {recoveryWarnings.map((w) => (
                         <p key={w.exerciseName} className="text-sm text-muted-foreground">
-                          You trained {w.exerciseName} {w.hoursAgo}h ago.
+                          You trained {w.exerciseName} <span className="font-mono tabular-nums">{w.hoursAgo}h</span> ago.
                         </p>
                       ))}
                     </div>
@@ -818,8 +818,8 @@ function ConfigureWorkoutContent() {
                       <span className="text-muted-foreground">
                         {templateExercise.tier}
                       </span>{" "}
-                      {exercise.name} {setsLabel}
-                      {weight > 0 && ` @ ${weight} lbs`}
+                      {exercise.name} <span className="font-mono tabular-nums">{setsLabel}</span>
+                      {weight > 0 && <span className="font-mono tabular-nums"> @ {weight} lbs</span>}
                     </div>
 
                     {/* Adapted exercise (home only) */}
@@ -828,8 +828,8 @@ function ConfigureWorkoutContent() {
                         {adaptation.adaptationStatus !== "no_substitute" ? (
                           <>
                             <div className="text-sm">
-                              {"\u2192"} {adaptation.adaptedExercise.name} @{" "}
-                              {adaptation.adaptedWeight} lbs
+                              {"\u2192"} {adaptation.adaptedExercise.name} <span className="font-mono tabular-nums">@{" "}
+                              {adaptation.adaptedWeight} lbs</span>
                               {adaptation.adaptedExercise.grip === "per_hand" &&
                                 "/hand"}
                             </div>
@@ -862,7 +862,7 @@ function ConfigureWorkoutContent() {
                                     }
                                   >
                                     <span className="font-medium">{alt.exercise.name}</span>{" "}
-                                    @ {alt.weight} {alt.exercise.grip === "per_hand" ? "lbs/hand" : "lbs"}
+                                    <span className="font-mono tabular-nums">@ {alt.weight} {alt.exercise.grip === "per_hand" ? "lbs/hand" : "lbs"}</span>
                                     {alt.pros && (
                                       <span className="text-muted-foreground ml-1">— {alt.pros}</span>
                                     )}
@@ -890,7 +890,7 @@ function ConfigureWorkoutContent() {
                           {exerciseWarmUpSets.map((ws, i) => (
                             <p
                               key={i}
-                              className="text-xs text-muted-foreground"
+                              className="text-xs text-muted-foreground font-mono tabular-nums"
                             >
                               {ws.label}: {ws.weight} lbs x {ws.reps}
                             </p>

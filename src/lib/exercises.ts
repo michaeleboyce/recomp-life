@@ -416,6 +416,30 @@ export const ACCESSORY_IDS: string[] = [
 ];
 
 /**
+ * Reasonable starting default weights (lbs) for accessories.
+ * Bodyweight exercises default to 0. Dumbbell "per_hand" values are per hand.
+ */
+export const DEFAULT_ACCESSORY_WEIGHTS: Record<string, number> = {
+  face_pulls: 30,
+  lateral_raises: 15,
+  bicep_curls: 25,
+  tricep_pushdowns: 40,
+  oh_tricep_ext: 30,
+  incline_db_fly: 25,
+  leg_curls: 70,
+  leg_extensions: 80,
+  calf_raises: 40,
+  ab_rollout: 0,
+  back_extensions: 0,
+  hip_thrust: 50,
+  hammer_curls: 25,
+  front_raises: 15,
+  reverse_fly: 12,
+  arnold_press: 25,
+  db_skull_crushers: 15,
+};
+
+/**
  * Ordered fallback chains for home dumbbell substitutes.
  * When the primary substitute (index 0) exceeds maxDumbbellWeight,
  * the system tries each fallback in order.

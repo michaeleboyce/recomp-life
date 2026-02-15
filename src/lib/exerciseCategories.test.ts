@@ -14,41 +14,43 @@ describe("getGroupedExercises", () => {
     ]);
   });
 
-  it("Main Lifts contains squat, bench, deadlift, ohp", () => {
+  it("Main Lifts contains squat, bench, deadlift, ohp (alphabetical)", () => {
     const groups = getGroupedExercises();
     const mainLifts = groups.find((g) => g.label === "Main Lifts")!;
     expect(mainLifts.exercises.map((e) => e.id)).toEqual([
-      "squat",
       "bench",
       "deadlift",
       "ohp",
+      "squat",
     ]);
   });
 
-  it("T3 Lifts contains lat_pulldown and db_row", () => {
+  it("T3 Lifts contains db_row and lat_pulldown (alphabetical)", () => {
     const groups = getGroupedExercises();
     const t3 = groups.find((g) => g.label === "T3 Lifts")!;
-    expect(t3.exercises.map((e) => e.id)).toEqual(["lat_pulldown", "db_row"]);
+    expect(t3.exercises.map((e) => e.id)).toEqual(["db_row", "lat_pulldown"]);
   });
 
-  it("Home Substitutions contains 5 dumbbell alternatives", () => {
+  it("Home Substitutions contains 5 dumbbell alternatives (alphabetical)", () => {
     const groups = getGroupedExercises();
     const home = groups.find((g) => g.label === "Home Substitutions")!;
     expect(home.exercises).toHaveLength(5);
     expect(home.exercises.map((e) => e.id)).toEqual([
-      "goblet_squat",
+      "bulgarian_split_squat",
       "db_bench",
       "db_rdl",
       "db_shoulder_press",
-      "bulgarian_split_squat",
+      "goblet_squat",
     ]);
   });
 
-  it("Accessories contains all 17 accessory exercises", () => {
+  it("Accessories contains all 17 accessory exercises (alphabetical)", () => {
     const groups = getGroupedExercises();
     const accessories = groups.find((g) => g.label === "Accessories")!;
     expect(accessories.exercises).toHaveLength(17);
-    expect(accessories.exercises.map((e) => e.id)).toEqual(ACCESSORY_IDS);
+    const names = accessories.exercises.map((e) => e.name);
+    const sorted = [...names].sort((a, b) => a.localeCompare(b));
+    expect(names).toEqual(sorted);
   });
 
   it("filtering by 'push' narrows results across groups", () => {
