@@ -295,6 +295,13 @@ export const EXERCISES: Record<string, Exercise> = {
   },
 };
 
+/** Single source of truth for which exercises are accessories. */
+export const ACCESSORY_IDS: string[] = [
+  "face_pulls", "lateral_raises", "bicep_curls", "tricep_pushdowns",
+  "oh_tricep_ext", "incline_db_fly", "leg_curls", "leg_extensions",
+  "calf_raises", "ab_rollout", "back_extensions", "hip_thrust",
+];
+
 /**
  * Get an exercise by its ID. Throws if the exercise does not exist.
  */

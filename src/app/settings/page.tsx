@@ -6,13 +6,14 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import type { UserProfile, UserSettings, TrainingPhase, EquipmentProfile } from "@/types";
+import type { UserProfile, UserSettings, TrainingPhase, EquipmentProfile, ExercisePreferences } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import EquipmentProfileEditor from "@/components/Equipment/EquipmentProfileEditor";
+import ExercisePreferencesEditor from "@/components/Settings/ExercisePreferencesEditor";
 
 function formatHeight(totalInches: number): string {
   const feet = Math.floor(totalInches / 12);
@@ -81,6 +82,13 @@ export default function SettingsPage() {
   const handleEquipmentChange = useCallback(
     async (equipment: EquipmentProfile) => {
       await updateSettings({ equipment });
+    },
+    [updateSettings]
+  );
+
+  const handleExercisePreferencesChange = useCallback(
+    async (exercisePreferences: ExercisePreferences) => {
+      await updateSettings({ exercisePreferences });
     },
     [updateSettings]
   );
@@ -222,6 +230,16 @@ export default function SettingsPage() {
             <EquipmentProfileEditor
               equipment={settings.equipment}
               onChange={handleEquipmentChange}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Exercise Preferences Section */}
+        <Card>
+          <CardContent>
+            <ExercisePreferencesEditor
+              preferences={settings.exercisePreferences ?? {}}
+              onChange={handleExercisePreferencesChange}
             />
           </CardContent>
         </Card>

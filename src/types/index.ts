@@ -28,6 +28,7 @@ export interface UserSettings {
   trainingPhase: TrainingPhase;
   equipment: EquipmentProfile;
   defaultLocation?: WorkoutLocation;
+  exercisePreferences?: ExercisePreferences;
 }
 
 export interface UserProfile {
@@ -55,6 +56,11 @@ export type BodyRegion =
   | "core";
 
 export type SensationType = "soreness" | "pain";
+
+// Exercise Preference Types
+
+export type ExercisePreference = "blocked" | "normal" | "preferred";
+export type ExercisePreferences = Record<string, ExercisePreference>;
 
 // Exercise Types
 

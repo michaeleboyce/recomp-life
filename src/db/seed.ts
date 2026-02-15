@@ -70,5 +70,6 @@ export const DEFAULT_USER_PROFILE: Omit<UserProfile, 'id' | 'createdAt'> = {
       availablePlates: [45, 35, 25, 10, 5, 2.5],
       barWeight: 45,
     },
+    exercisePreferences: {},
   },
 };
