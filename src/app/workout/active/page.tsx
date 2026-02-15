@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { Suspense, useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "@/db/local";
 import { useWorkoutStore, type WorkoutExerciseState } from "@/stores/workoutStore";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import { getExercise, EXERCISES } from "@/lib/exercises";
+import { getExercise, EXERCISES, DEFAULT_ACCESSORY_WEIGHTS } from "@/lib/exercises";
 import { generateWarmUpSets } from "@/lib/warmups";
 import { barbellToDumbbell, barbellToBothHands } from "@/lib/dbConversion";
 import { calculateE1RM } from "@/lib/e1rm";
@@ -66,6 +66,14 @@ function getLiftType(exerciseId: string): "upper" | "lower" {
 }
 
 export default function ActiveWorkoutPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="text-zinc-500">Loading workout...</div></div>}>
+      <ActiveWorkoutContent />
+    </Suspense>
+  );
+}
+
+function ActiveWorkoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams.get("sessionId");
@@ -280,7 +288,7 @@ export default function ActiveWorkoutPage() {
             tier: "accessory",
             targetSets: 3,
             targetReps: 15,
-            weight: 0,
+            weight: DEFAULT_ACCESSORY_WEIGHTS[accId] ?? 0,
             isAMRAP: true,
             isWarmUp: false,
             completedSets: 0,
