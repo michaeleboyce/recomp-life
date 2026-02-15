@@ -154,6 +154,58 @@ export const EXERCISES: Record<string, Exercise> = {
     painSensitiveRegions: ["left_shoulder", "right_shoulder", "lower_back"],
   },
 
+  db_lunge: {
+    id: "db_lunge",
+    name: "DB Lunge",
+    type: "dumbbell",
+    muscleGroup: "legs",
+    requiresGym: false,
+    barbellEquivalent: "squat",
+    grip: "per_hand",
+    primaryMuscles: ["left_quad", "right_quad"],
+    secondaryMuscles: ["left_hamstring", "right_hamstring", "left_hip", "right_hip"],
+    painSensitiveRegions: ["left_knee", "right_knee"],
+  },
+
+  db_floor_press: {
+    id: "db_floor_press",
+    name: "DB Floor Press",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    barbellEquivalent: "bench",
+    grip: "per_hand",
+    primaryMuscles: ["chest"],
+    secondaryMuscles: ["left_shoulder", "right_shoulder", "left_elbow", "right_elbow"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
+  single_leg_db_rdl: {
+    id: "single_leg_db_rdl",
+    name: "Single-Leg DB RDL",
+    type: "dumbbell",
+    muscleGroup: "pull",
+    requiresGym: false,
+    barbellEquivalent: "deadlift",
+    grip: "per_hand",
+    primaryMuscles: ["left_hamstring", "right_hamstring"],
+    secondaryMuscles: ["upper_back", "core", "left_hip", "right_hip"],
+    painSensitiveRegions: ["lower_back"],
+  },
+
+  db_arnold_press: {
+    id: "db_arnold_press",
+    name: "DB Arnold Press",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    barbellEquivalent: "ohp",
+    grip: "per_hand",
+    primaryMuscles: ["left_shoulder", "right_shoulder"],
+    secondaryMuscles: ["chest", "core"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
   // ─── Accessories ──────────────────────────────────────────────────────────────
 
   face_pulls: {
@@ -362,6 +414,18 @@ export const ACCESSORY_IDS: string[] = [
   "calf_raises", "ab_rollout", "back_extensions", "hip_thrust",
   "hammer_curls", "front_raises", "reverse_fly", "arnold_press", "db_skull_crushers",
 ];
+
+/**
+ * Ordered fallback chains for home dumbbell substitutes.
+ * When the primary substitute (index 0) exceeds maxDumbbellWeight,
+ * the system tries each fallback in order.
+ */
+export const HOME_SUBSTITUTE_CHAINS: Record<string, string[]> = {
+  squat: ["goblet_squat", "bulgarian_split_squat", "db_lunge"],
+  bench: ["db_bench", "db_floor_press"],
+  deadlift: ["db_rdl", "single_leg_db_rdl"],
+  ohp: ["db_shoulder_press", "db_arnold_press"],
+};
 
 /**
  * Get an exercise by its ID. Throws if the exercise does not exist.
