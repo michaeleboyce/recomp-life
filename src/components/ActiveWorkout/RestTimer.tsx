@@ -6,13 +6,48 @@ import { Progress } from "@/components/ui/progress";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { TimerWorkerManager } from "@/lib/timerWorker";
 import { playTimerChime, vibrateTimer, sendTimerNotification } from "@/lib/audio";
+import type { Tier, TrainingPhase } from "@/types";
+
+/** Base rest durations per tier (seconds) before phase adjustments */
+const BASE_REST_SECONDS: Record<Tier, number> = {
+  T1: 180,
+  T2: 120,
+  T3: 60,
+  accessory: 60,
+  warmup: 60,
+};
+
+/** Tiers that receive +30s during a cutting phase */
+const CUTTING_BONUS_TIERS: Set<Tier> = new Set(["T1", "T2"]);
+const CUTTING_BONUS_SECONDS = 30;
+
+/**
+ * Compute the default rest duration for a tier, adding +30s for T1/T2
+ * when the user is in a cutting phase.
+ */
+export function getPhaseAdjustedRest(tier: Tier, phase?: TrainingPhase): number {
+  const base = BASE_REST_SECONDS[tier] ?? 60;
+  if (phase?.mode === "cutting" && CUTTING_BONUS_TIERS.has(tier)) {
+    return base + CUTTING_BONUS_SECONDS;
+  }
+  return base;
+}
 
 interface RestTimerProps {
   audioEnabled?: boolean;
   vibrationEnabled?: boolean;
+  /** Current tier for the exercise being rested after */
+  tier?: Tier;
+  /** User's current training phase — used to show the cutting rest bonus indicator */
+  trainingPhase?: TrainingPhase;
 }
 
-export function RestTimer({ audioEnabled = false, vibrationEnabled = false }: RestTimerProps) {
+export function RestTimer({
+  audioEnabled = false,
+  vibrationEnabled = false,
+  tier,
+  trainingPhase,
+}: RestTimerProps) {
   const {
     isRestTimerActive,
     restTimeRemaining,
@@ -115,6 +150,12 @@ export function RestTimer({ audioEnabled = false, vibrationEnabled = false }: Re
       ? Math.min(100, Math.max(0, (elapsed / restTimerDuration) * 100))
       : 100;
 
+  // Show cutting bonus indicator when +30s was added
+  const hasCuttingBonus =
+    trainingPhase?.mode === "cutting" &&
+    tier !== undefined &&
+    CUTTING_BONUS_TIERS.has(tier);
+
   return (
     <div
       className={`mx-4 rounded-lg border p-4 space-y-3 ${
@@ -126,6 +167,9 @@ export function RestTimer({ audioEnabled = false, vibrationEnabled = false }: Re
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-muted-foreground">
           {isOvertime ? "REST COMPLETE" : "REST"}
+          {hasCuttingBonus && (
+            <span className="ml-2 text-xs text-blue-400">+30s cut</span>
+          )}
         </span>
         <span
           className={`text-xl font-mono font-bold ${
