@@ -95,7 +95,9 @@ export default function ActiveWorkoutPage() {
     message: string;
     reducedWeight: number;
     exerciseIndex: number;
+    rpe: number;
   } | null>(null);
+  const [t2AutoRegAccepted, setT2AutoRegAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
 
@@ -331,7 +333,11 @@ export default function ActiveWorkoutPage() {
       completedAt: new Date(),
       restAfterSeconds: 0,
       status:
-        selectedReps >= currentExercise.targetReps ? "completed" : "failed",
+        t2AutoRegAccepted && currentExercise.tier === "T2"
+          ? "autoregulated_load_drop"
+          : selectedReps >= currentExercise.targetReps
+            ? "completed"
+            : "failed",
       originalWeight: currentExercise.originalWeight,
       isSubstituted: !!currentExercise.substituteExerciseId,
       substituteExerciseId: currentExercise.substituteExerciseId,
@@ -387,6 +393,7 @@ export default function ActiveWorkoutPage() {
           message: result.message || "",
           reducedWeight: result.reducedWeight,
           exerciseIndex: currentExerciseIndex,
+          rpe: selectedRPE,
         });
       }
     }
@@ -421,6 +428,7 @@ export default function ActiveWorkoutPage() {
     currentExerciseIndex,
     settings,
     trainingPhase,
+    t2AutoRegAccepted,
     storeLogSet,
     advanceSet,
     startRestTimer,
@@ -429,9 +437,21 @@ export default function ActiveWorkoutPage() {
   // Handle T2 auto-reg accept
   const handleAcceptDrop = useCallback(() => {
     if (!t2AutoRegBanner) return;
+    // Store original weight before updating, then update weight for remaining sets
+    const exerciseAtIndex = exercises[t2AutoRegBanner.exerciseIndex];
+    if (exerciseAtIndex && !exerciseAtIndex.originalWeight) {
+      // Set originalWeight so subsequent sets record it
+      const updatedExercises = [...exercises];
+      updatedExercises[t2AutoRegBanner.exerciseIndex] = {
+        ...exerciseAtIndex,
+        originalWeight: exerciseAtIndex.weight,
+      };
+      // The store update below will set the new weight
+    }
     updateExerciseWeight(t2AutoRegBanner.exerciseIndex, t2AutoRegBanner.reducedWeight);
+    setT2AutoRegAccepted(true);
     setT2AutoRegBanner(null);
-  }, [t2AutoRegBanner, updateExerciseWeight]);
+  }, [t2AutoRegBanner, exercises, updateExerciseWeight]);
 
   const handleRejectDrop = useCallback(() => {
     setT2AutoRegBanner(null);
@@ -680,34 +700,33 @@ export default function ActiveWorkoutPage() {
 
         {/* T2 Auto-Regulation Banner */}
         {t2AutoRegBanner && (
-          <Card className="mx-4 mt-3 border-amber-500/50 bg-amber-500/10">
-            <CardContent className="py-3 space-y-3">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-amber-400">
-                  AUTO-ADJUST SUGGESTED
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t2AutoRegBanner.message}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="default"
-                  onClick={handleAcceptDrop}
-                >
-                  Accept Drop
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleRejectDrop}
-                >
-                  Keep Weight
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="mx-4 mt-3 rounded-xl border border-amber-700 bg-amber-900/30 p-4 space-y-3">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-amber-400">
+                {"\u26A1"} AUTO-ADJUST SUGGESTED
+              </p>
+              <p className="text-sm text-muted-foreground">
+                That set was RPE {t2AutoRegBanner.rpe}. Suggest dropping to{" "}
+                {t2AutoRegBanner.reducedWeight} lbs for remaining sets.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="default"
+                onClick={handleAcceptDrop}
+              >
+                Accept Drop
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRejectDrop}
+              >
+                Keep Weight
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* Rest Timer */}
