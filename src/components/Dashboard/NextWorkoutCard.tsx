@@ -19,7 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { Dumbbell, Home, Footprints, Camera } from "lucide-react";
-import type { WorkoutLocation } from "@/types";
+import { adaptExerciseForHome } from "@/lib/autoAdapt";
+import type { WorkoutLocation, EquipmentProfile } from "@/types";
 
 export default function NextWorkoutCard() {
   const [location, setLocation] = useState<WorkoutLocation>("gym");
@@ -45,6 +46,9 @@ export default function NextWorkoutCard() {
     return entries.filter((e) => e.sensation === "pain");
   });
 
+  const userProfile = useLiveQuery(() => db.userProfile.toCollection().first());
+  const equipment: EquipmentProfile | undefined = userProfile?.settings?.equipment;
+
   const nextTemplateId = lastWorkout
     ? getNextWorkoutId(lastWorkout.templateId)
     : "A1";
@@ -64,6 +68,18 @@ export default function NextWorkoutCard() {
 
   const t1Info = t1Exercise ? EXERCISES[t1Exercise.exerciseId] : null;
   const t2Info = t2Exercise ? EXERCISES[t2Exercise.exerciseId] : null;
+
+  const t1Adaptation = (() => {
+    if (location !== "home" || !t1Info || !t1State || !equipment) return null;
+    const sub = t1Info.dumbbellAlternative ? EXERCISES[t1Info.dumbbellAlternative] : undefined;
+    return adaptExerciseForHome(t1Info, t1State.t1Weight, equipment, sub);
+  })();
+
+  const t2Adaptation = (() => {
+    if (location !== "home" || !t2Info || !t2State || !equipment) return null;
+    const sub = t2Info.dumbbellAlternative ? EXERCISES[t2Info.dumbbellAlternative] : undefined;
+    return adaptExerciseForHome(t2Info, t2State.t2Weight, equipment, sub);
+  })();
 
   // Check if pain affects any exercises in this workout
   const painWarnings: string[] = [];
@@ -101,18 +117,28 @@ export default function NextWorkoutCard() {
                   T1
                 </span>
                 <p className="text-sm font-medium text-foreground">
-                  {location === "home" && t1Info.dumbbellAlternative
-                    ? EXERCISES[t1Info.dumbbellAlternative]?.name ?? t1Info.name
+                  {location === "home" && t1Adaptation
+                    ? t1Adaptation.adaptedExercise.name
                     : t1Info.name}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-bold text-foreground font-mono">
-                  {t1State?.t1Weight ?? "—"} lbs
+                  {location === "home" && t1Adaptation
+                    ? t1Adaptation.adaptedWeight
+                    : t1State?.t1Weight ?? "—"}{" "}
+                  lbs
+                  {location === "home" &&
+                    t1Adaptation?.adaptedExercise.grip === "per_hand" &&
+                    "/hand"}
                 </p>
                 <p className="text-xs text-muted-foreground font-mono">
                   {t1State?.t1Stage ?? "5x3"}
                 </p>
+                {location === "home" &&
+                  t1Adaptation?.adaptationStatus === "exceeds" && (
+                    <p className="text-xs text-yellow-400">capped</p>
+                  )}
               </div>
             </div>
           )}
@@ -124,18 +150,28 @@ export default function NextWorkoutCard() {
                   T2
                 </span>
                 <p className="text-sm font-medium text-foreground">
-                  {location === "home" && t2Info.dumbbellAlternative
-                    ? EXERCISES[t2Info.dumbbellAlternative]?.name ?? t2Info.name
+                  {location === "home" && t2Adaptation
+                    ? t2Adaptation.adaptedExercise.name
                     : t2Info.name}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-bold text-foreground font-mono">
-                  {t2State?.t2Weight ?? "—"} lbs
+                  {location === "home" && t2Adaptation
+                    ? t2Adaptation.adaptedWeight
+                    : t2State?.t2Weight ?? "—"}{" "}
+                  lbs
+                  {location === "home" &&
+                    t2Adaptation?.adaptedExercise.grip === "per_hand" &&
+                    "/hand"}
                 </p>
                 <p className="text-xs text-muted-foreground font-mono">
                   {t2State?.t2Stage ?? "3x10"}
                 </p>
+                {location === "home" &&
+                  t2Adaptation?.adaptationStatus === "exceeds" && (
+                    <p className="text-xs text-yellow-400">capped</p>
+                  )}
               </div>
             </div>
           )}
