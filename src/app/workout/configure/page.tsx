@@ -16,6 +16,8 @@ import { EXERCISES } from "@/lib/exercises";
 import { applyPreferences } from "@/lib/exercisePreferences";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { generateWarmUpSets } from "@/lib/warmups";
+import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
+import { calculateRecoveryStatus } from "@/lib/recovery";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -56,6 +58,7 @@ import type {
 type Step =
   | "location"
   | "readiness"
+  | "warnings"
   | "technique"
   | "bodycheck"
   | "preview";
@@ -63,6 +66,7 @@ type Step =
 const STEP_ORDER: Step[] = [
   "location",
   "readiness",
+  "warnings",
   "technique",
   "bodycheck",
   "preview",
@@ -211,6 +215,16 @@ function ConfigureWorkoutContent() {
       .toArray();
   }) ?? [];
 
+  // Recent runs (last 24h) for run fatigue advisory
+  const recentRuns = useLiveQuery(() => {
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+    return db.runs
+      .where("date")
+      .above(oneDayAgo)
+      .toArray();
+  }) ?? [];
+
   // ─── Determine the template ───────────────────────────────────────────
 
   const templateId = useMemo(() => {
@@ -253,8 +267,15 @@ function ConfigureWorkoutContent() {
   // Step 3: accessories
   const [selectedAccessories, setSelectedAccessories] = useState<string[]>([]);
 
+  // Warning step state
+  const [runAdvisoryDismissed, setRunAdvisoryDismissed] = useState(false);
+  const [recoveryChoice, setRecoveryChoice] = useState<"proceed" | "reduce" | null>(null);
+
   // Loading state for start button
   const [isStarting, setIsStarting] = useState(false);
+
+  // User overrides for alternative exercise selections
+  const [exerciseOverrides, setExerciseOverrides] = useState<Record<string, string>>({});
 
   // ─── Derived data ─────────────────────────────────────────────────────
 
@@ -267,6 +288,48 @@ function ConfigureWorkoutContent() {
   const t1Type = template ? getT1ExerciseType(template) : null;
 
   const exercisePreferences = userProfile?.settings?.exercisePreferences;
+
+  // Run fatigue advisory
+  const runAdvisory = useMemo(() => {
+    if (!template || recentRuns.length === 0) return null;
+    const hasLower = workoutHasLowerBody(templateId);
+    const advisory = evaluateRunImpact(recentRuns, hasLower, new Date(), trainingPhase);
+    if (advisory.level === "none") return null;
+    return advisory;
+  }, [template, recentRuns, templateId, trainingPhase]);
+
+  // Recovery warning: check if any lift in today's workout was trained <48h ago
+  const recoveryWarnings = useMemo(() => {
+    if (!template || liftStates.length === 0) return [];
+    const now = new Date();
+    const warnings: { exerciseName: string; hoursAgo: number }[] = [];
+
+    for (const tmplEx of template.exercises) {
+      const ls = liftStates.find((l) => l.exerciseId === tmplEx.exerciseId);
+      if (!ls) continue;
+
+      const lastTrained = ls.t1LastWorkoutDate || ls.t2LastWorkoutDate;
+      if (!lastTrained) continue;
+
+      // Use the most recent of t1 and t2 dates
+      let mostRecent = new Date(lastTrained);
+      if (ls.t1LastWorkoutDate && ls.t2LastWorkoutDate) {
+        const t1 = new Date(ls.t1LastWorkoutDate);
+        const t2 = new Date(ls.t2LastWorkoutDate);
+        mostRecent = t1.getTime() >= t2.getTime() ? t1 : t2;
+      }
+
+      const hoursSince = (now.getTime() - mostRecent.getTime()) / (1000 * 60 * 60);
+      if (hoursSince < 48) {
+        const exercise = EXERCISES[tmplEx.exerciseId];
+        warnings.push({
+          exerciseName: exercise?.name ?? tmplEx.exerciseId,
+          hoursAgo: Math.round(hoursSince),
+        });
+      }
+    }
+    return warnings;
+  }, [template, liftStates]);
   const accessoryRecommendations = useMemo(
     () => applyPreferences(ACCESSORY_RECOMMENDATIONS[templateId] ?? [], exercisePreferences),
     [templateId, exercisePreferences]
@@ -321,13 +384,44 @@ function ConfigureWorkoutContent() {
     }>;
   }, [template, liftStates, location, equipment]);
 
+  // ─── Apply user overrides for alternative exercises ────────────────────
+
+  const effectiveAdaptations = useMemo(() => {
+    return exerciseAdaptations.map((ea) => {
+      if (!ea?.adaptation || ea.adaptation.alternatives.length === 0) return ea;
+
+      const overrideId = exerciseOverrides[ea.templateExercise.exerciseId];
+      if (!overrideId) return ea;
+
+      const selectedAlt = ea.adaptation.alternatives.find(
+        (alt) => alt.exercise.id === overrideId
+      );
+      if (!selectedAlt) return ea;
+
+      const newStatus = selectedAlt.weight <= equipment.maxDumbbellWeight
+        ? 'fits' as const
+        : 'exceeds' as const;
+
+      return {
+        ...ea,
+        adaptation: {
+          ...ea.adaptation,
+          adaptedExercise: selectedAlt.exercise,
+          adaptedWeight: selectedAlt.weight,
+          adaptationStatus: newStatus,
+          confidenceLevel: ea.adaptation.confidenceLevel,
+        },
+      };
+    });
+  }, [exerciseAdaptations, exerciseOverrides, equipment]);
+
   // ─── Warm-up sets for preview ─────────────────────────────────────────
 
   const warmUpSetsMap = useMemo(() => {
     if (!warmUps) return new Map<string, WarmUpSet[]>();
     const map = new Map<string, WarmUpSet[]>();
 
-    exerciseAdaptations.forEach((ea) => {
+    effectiveAdaptations.forEach((ea) => {
       if (!ea) return;
       const tier = ea.templateExercise.tier;
       if (tier !== "T1" && tier !== "T2") return;
@@ -344,19 +438,28 @@ function ConfigureWorkoutContent() {
     });
 
     return map;
-  }, [warmUps, exerciseAdaptations, location, equipment]);
+  }, [warmUps, effectiveAdaptations, location, equipment]);
 
   // ─── Navigation ───────────────────────────────────────────────────────
 
   const goToStep = useCallback(
     (step: Step) => {
+      if (step === "warnings" && !runAdvisory && recoveryWarnings.length === 0) {
+        // Skip to technique (or bodycheck if no technique)
+        if (!t1Type) {
+          setCurrentStep("bodycheck");
+        } else {
+          setCurrentStep("technique");
+        }
+        return;
+      }
       if (step === "technique" && !t1Type) {
         setCurrentStep("bodycheck");
         return;
       }
       setCurrentStep(step);
     },
-    [t1Type]
+    [t1Type, runAdvisory, recoveryWarnings.length]
   );
 
   const handleLocationNext = async () => {
@@ -372,8 +475,23 @@ function ConfigureWorkoutContent() {
     goToStep("readiness");
   };
 
-  const handleReadinessNext = () => goToStep("technique");
-  const handleReadinessSkip = () => goToStep("technique");
+  const handleReadinessNext = () => {
+    // Skip warnings step if there are no warnings to show
+    if (!runAdvisory && recoveryWarnings.length === 0) {
+      goToStep("technique");
+    } else {
+      goToStep("warnings");
+    }
+  };
+  const handleReadinessSkip = () => {
+    if (!runAdvisory && recoveryWarnings.length === 0) {
+      goToStep("technique");
+    } else {
+      goToStep("warnings");
+    }
+  };
+
+  const handleWarningsNext = () => goToStep("technique");
 
   const handleTechniqueNext = () => goToStep("bodycheck");
   const handleTechniqueSkip = () => goToStep("bodycheck");
@@ -495,6 +613,120 @@ function ConfigureWorkoutContent() {
           </Card>
         )}
 
+        {/* ─── Step 1.6: Pre-Workout Warnings ────────────────────── */}
+        {currentStep === "warnings" && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Pre-Workout Warnings</CardTitle>
+                  <CardDescription>Review before continuing</CardDescription>
+                </div>
+                <Badge variant="outline">{location === "home" ? "Home" : "Gym"}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Run Fatigue Advisory */}
+              {runAdvisory && !runAdvisoryDismissed && runAdvisory.level === "advisory" && (
+                <div className="rounded-xl border border-amber-700 bg-amber-900/30 p-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-amber-400">Run Fatigue Advisory</p>
+                      <p className="text-sm text-muted-foreground">{runAdvisory.message}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
+                      Proceed
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
+                      Add warm-ups
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
+                      Reduce 10%
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {runAdvisory && !runAdvisoryDismissed && runAdvisory.level === "strong_rest" && (
+                <div className="rounded-xl border border-red-700 bg-red-900/30 p-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-red-400">Strong Rest Recommended</p>
+                      <p className="text-sm text-muted-foreground">{runAdvisory.message}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
+                      Proceed anyway
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => router.push("/")}>
+                      Rest today
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Recovery Warning */}
+              {recoveryWarnings.length > 0 && (
+                <div className="rounded-xl border border-amber-700 bg-amber-900/30 p-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                    <div className="space-y-2">
+                      {recoveryWarnings.map((w) => (
+                        <p key={w.exerciseName} className="text-sm text-muted-foreground">
+                          You trained {w.exerciseName} {w.hoursAgo}h ago.
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                      <input
+                        type="radio"
+                        name="recoveryChoice"
+                        checked={recoveryChoice === "proceed"}
+                        onChange={() => setRecoveryChoice("proceed")}
+                        className="accent-foreground"
+                      />
+                      Proceed as planned
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                      <input
+                        type="radio"
+                        name="recoveryChoice"
+                        checked={recoveryChoice === "reduce"}
+                        onChange={() => setRecoveryChoice("reduce")}
+                        className="accent-foreground"
+                      />
+                      Reduce T1 weight by 10%
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* No warnings remaining */}
+              {((!runAdvisory || runAdvisoryDismissed) && recoveryWarnings.length === 0) && (
+                <p className="text-sm text-muted-foreground">No warnings to show.</p>
+              )}
+
+              <Button
+                className="w-full"
+                onClick={handleWarningsNext}
+                disabled={
+                  (runAdvisory && !runAdvisoryDismissed) ||
+                  (recoveryWarnings.length > 0 && recoveryChoice === null)
+                }
+              >
+                Continue {"\u2192"} Technique
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* ─── Step 1.75: Technique Checklist ───────────────────────── */}
         {currentStep === "technique" && t1Type && (
           <Card>
@@ -564,7 +796,7 @@ function ConfigureWorkoutContent() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Exercise list */}
-              {exerciseAdaptations.map((ea) => {
+              {effectiveAdaptations.map((ea) => {
                 if (!ea) return null;
                 const { templateExercise, exercise, weight, adaptation } = ea;
 
@@ -609,6 +841,35 @@ function ConfigureWorkoutContent() {
                                 level={adaptation.confidenceLevel}
                               />
                             </div>
+                            {/* Alternative picker */}
+                            {adaptation.alternatives.length > 1 && (
+                              <div className="mt-2 space-y-1">
+                                <p className="text-xs text-muted-foreground">Alternatives:</p>
+                                {adaptation.alternatives.map((alt) => (
+                                  <button
+                                    key={alt.exercise.id}
+                                    type="button"
+                                    className={`w-full text-left text-xs px-2 py-1.5 rounded border transition-all ${
+                                      adaptation.adaptedExercise.id === alt.exercise.id
+                                        ? "border-foreground/40 bg-foreground/5"
+                                        : "border-border hover:border-foreground/20"
+                                    }`}
+                                    onClick={() =>
+                                      setExerciseOverrides((prev) => ({
+                                        ...prev,
+                                        [templateExercise.exerciseId]: alt.exercise.id,
+                                      }))
+                                    }
+                                  >
+                                    <span className="font-medium">{alt.exercise.name}</span>{" "}
+                                    @ {alt.weight} {alt.exercise.grip === "per_hand" ? "lbs/hand" : "lbs"}
+                                    {alt.pros && (
+                                      <span className="text-muted-foreground ml-1">— {alt.pros}</span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </>
                         ) : (
                           <div className="text-sm text-muted-foreground">
