@@ -37,6 +37,7 @@ import { WarmUpSet as WarmUpSetComponent } from "@/components/ActiveWorkout/Warm
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
+import { WorkoutComplete } from "@/components/ui/workout-complete";
 
 // Rest time defaults per tier
 function getDefaultRestTime(
@@ -67,7 +68,7 @@ function getLiftType(exerciseId: string): "upper" | "lower" {
 
 export default function ActiveWorkoutPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="text-zinc-500">Loading workout...</div></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="h-6 w-40 rounded bg-muted animate-pulse" /></div>}>
       <ActiveWorkoutContent />
     </Suspense>
   );
@@ -600,7 +601,7 @@ function ActiveWorkoutContent() {
   if (isLoading || !session || !settings) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Loading workout...</p>
+        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
       </div>
     );
   }
@@ -609,31 +610,31 @@ function ActiveWorkoutContent() {
   if (!sessionId) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">
-          No workout session found. Please start a workout from the dashboard.
-        </p>
+        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
       </div>
     );
   }
 
   // Workout complete screen
   if (isWorkoutComplete) {
+    const durationSeconds = workoutStartTime
+      ? Math.floor((Date.now() - workoutStartTime.getTime()) / 1000)
+      : 0;
+    const minutes = Math.floor(durationSeconds / 60);
+    const seconds = durationSeconds % 60;
+    const durationStr = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
     return (
       <div className="min-h-screen bg-background">
         <WorkoutHeader
           templateName={WORKOUT_TEMPLATES[store.templateId]?.name || store.templateId}
           workoutStartTime={workoutStartTime}
         />
-        <div className="flex flex-col items-center justify-center p-8 space-y-6">
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold">Workout Complete!</h2>
-            <p className="text-muted-foreground">
-              {completedSets.length} sets logged
-            </p>
-          </div>
+        <WorkoutComplete setsCompleted={completedSets.length} duration={durationStr} />
+        <div className="px-5">
           <Button
             size="lg"
-            className="w-full max-w-sm"
+            className="w-full"
             onClick={handleCompleteWorkout}
             disabled={isCompleting}
           >
@@ -648,7 +649,7 @@ function ActiveWorkoutContent() {
   if (!currentExercise) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">No exercises found.</p>
+        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
       </div>
     );
   }
@@ -687,6 +688,7 @@ function ActiveWorkoutContent() {
         <ExerciseBlock
           exercise={currentExercise}
           location={store.location}
+          isAMRAPSet={isCurrentSetAMRAP}
         />
 
         {/* AMRAP Indicator */}

@@ -43,7 +43,7 @@ export function SetLogger({
                   ? "outline"
                   : "ghost"
             }
-            className={`h-12 text-lg font-bold ${
+            className={`h-12 text-lg font-bold font-mono tabular-nums ${
               rep === targetReps && selectedReps !== rep
                 ? "border-2 border-primary"
                 : ""
@@ -66,7 +66,7 @@ export function SetLogger({
                   ? "outline"
                   : "ghost"
             }
-            className={`h-12 text-lg font-bold ${
+            className={`h-12 text-lg font-bold font-mono tabular-nums ${
               rep === targetReps && selectedReps !== rep
                 ? "border-2 border-primary"
                 : ""
@@ -80,7 +80,7 @@ export function SetLogger({
           variant={
             selectedReps !== null && selectedReps >= 10 ? "default" : "ghost"
           }
-          className="h-12 text-sm font-bold"
+          className="h-12 text-sm font-bold font-mono tabular-nums"
           onClick={() => setShowCustomInput(true)}
         >
           10+

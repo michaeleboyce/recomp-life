@@ -172,7 +172,7 @@ export function RestTimer({
           )}
         </span>
         <span
-          className={`text-xl font-mono font-bold ${
+          className={`text-xl font-mono tabular-nums font-bold ${
             isOvertime ? "text-amber-400" : "text-foreground"
           }`}
         >
