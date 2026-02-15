@@ -94,6 +94,7 @@ function getWeightForExercise(
   if (!state) return 0;
   if (tier === "T1") return state.t1Weight;
   if (tier === "T2") return state.t2Weight;
+  if (tier === "T3") return state.t3Weight;
   return 0;
 }
 

@@ -4,7 +4,7 @@ export const INITIAL_LIFT_STATES: Record<string, LiftState> = {
   squat: {
     exerciseId: "squat",
     t1Weight: 190, t1Stage: "5x3", t1FailCount: 0,
-    t2Weight: 135, t2Stage: "3x10", t2FailCount: 0,
+    t2Weight: 135, t2Stage: "3x10", t2FailCount: 0, t3Weight: 0,
     t1LastResetWeight: null, t2LastResetWeight: null,
     t1LastWorkoutDate: null, t2LastWorkoutDate: null,
     deloadActive: false, deloadSessionsRemaining: 0,
@@ -14,7 +14,7 @@ export const INITIAL_LIFT_STATES: Record<string, LiftState> = {
   bench: {
     exerciseId: "bench",
     t1Weight: 145, t1Stage: "5x3", t1FailCount: 0,
-    t2Weight: 100, t2Stage: "3x10", t2FailCount: 0,
+    t2Weight: 100, t2Stage: "3x10", t2FailCount: 0, t3Weight: 0,
     t1LastResetWeight: null, t2LastResetWeight: null,
     t1LastWorkoutDate: null, t2LastWorkoutDate: null,
     deloadActive: false, deloadSessionsRemaining: 0,
@@ -24,7 +24,7 @@ export const INITIAL_LIFT_STATES: Record<string, LiftState> = {
   deadlift: {
     exerciseId: "deadlift",
     t1Weight: 220, t1Stage: "5x3", t1FailCount: 0,
-    t2Weight: 155, t2Stage: "3x10", t2FailCount: 0,
+    t2Weight: 155, t2Stage: "3x10", t2FailCount: 0, t3Weight: 0,
     t1LastResetWeight: null, t2LastResetWeight: null,
     t1LastWorkoutDate: null, t2LastWorkoutDate: null,
     deloadActive: false, deloadSessionsRemaining: 0,
@@ -34,7 +34,7 @@ export const INITIAL_LIFT_STATES: Record<string, LiftState> = {
   ohp: {
     exerciseId: "ohp",
     t1Weight: 85, t1Stage: "5x3", t1FailCount: 0,
-    t2Weight: 60, t2Stage: "3x10", t2FailCount: 0,
+    t2Weight: 60, t2Stage: "3x10", t2FailCount: 0, t3Weight: 0,
     t1LastResetWeight: null, t2LastResetWeight: null,
     t1LastWorkoutDate: null, t2LastWorkoutDate: null,
     deloadActive: false, deloadSessionsRemaining: 0,
@@ -44,7 +44,7 @@ export const INITIAL_LIFT_STATES: Record<string, LiftState> = {
   lat_pulldown: {
     exerciseId: "lat_pulldown",
     t1Weight: 0, t1Stage: "5x3", t1FailCount: 0,
-    t2Weight: 0, t2Stage: "3x10", t2FailCount: 0,
+    t2Weight: 0, t2Stage: "3x10", t2FailCount: 0, t3Weight: 90,
     t1LastResetWeight: null, t2LastResetWeight: null,
     t1LastWorkoutDate: null, t2LastWorkoutDate: null,
     deloadActive: false, deloadSessionsRemaining: 0,
@@ -54,7 +54,7 @@ export const INITIAL_LIFT_STATES: Record<string, LiftState> = {
   db_row: {
     exerciseId: "db_row",
     t1Weight: 0, t1Stage: "5x3", t1FailCount: 0,
-    t2Weight: 0, t2Stage: "3x10", t2FailCount: 0,
+    t2Weight: 0, t2Stage: "3x10", t2FailCount: 0, t3Weight: 35,
     t1LastResetWeight: null, t2LastResetWeight: null,
     t1LastWorkoutDate: null, t2LastWorkoutDate: null,
     deloadActive: false, deloadSessionsRemaining: 0,

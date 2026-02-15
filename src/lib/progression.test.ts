@@ -28,6 +28,7 @@ function makeLiftState(overrides: Partial<LiftState> = {}): LiftState {
     t2Weight: 150,
     t2Stage: "3x10",
     t2FailCount: 0,
+    t3Weight: 0,
     t1LastResetWeight: null,
     t2LastResetWeight: null,
     t1LastWorkoutDate: null,

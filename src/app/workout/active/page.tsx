@@ -203,8 +203,12 @@ export default function ActiveWorkoutPage() {
         const config = stageConfig[ls.t2Stage];
         sets = config.sets;
         reps = config.reps;
+      } else if (templateEx.tier === "T3" && ls) {
+        weight = ls.t3Weight;
+        sets = templateEx.sets;
+        reps = templateEx.reps;
       } else {
-        weight = templateEx.tier === "T3" ? 0 : 0;
+        weight = 0;
         sets = templateEx.sets;
         reps = templateEx.reps;
       }

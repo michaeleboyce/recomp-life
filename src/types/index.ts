@@ -96,6 +96,7 @@ export interface LiftState {
   t2Weight: number;
   t2Stage: T2Stage;
   t2FailCount: number;
+  t3Weight: number;
   t1LastResetWeight: number | null;
   t2LastResetWeight: number | null;
   t1LastWorkoutDate: Date | null;

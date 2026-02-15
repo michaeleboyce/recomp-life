@@ -46,6 +46,24 @@ export class RecompDatabase extends Dexie {
         }
       });
     });
+
+    this.version(3).stores({
+      workouts: 'id, clientId, startedAt, templateId, synced',
+      sets: 'id, clientId, exerciseId, completedAt, synced',
+      runs: 'id, clientId, date, synced',
+      bodyweight: 'id, clientId, date, synced',
+      painEntries: 'id, date, region',
+      estimated1RMs: 'id, exerciseId, date',
+      liftStates: 'exerciseId',
+      userProfile: 'id',
+      readinessLogs: 'id, sessionId, date',
+    }).upgrade((tx) => {
+      return tx.table('liftStates').toCollection().modify((state) => {
+        if (state.t3Weight === undefined) {
+          state.t3Weight = 0;
+        }
+      });
+    });
   }
 }
 
