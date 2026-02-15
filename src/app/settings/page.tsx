@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Calculator } from "lucide-react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import type { UserProfile, UserSettings, TrainingPhase, EquipmentProfile, ExercisePreferences } from "@/types";
@@ -102,6 +102,93 @@ export default function SettingsPage() {
     },
     [updateSettings]
   );
+
+  const handleExportData = useCallback(async () => {
+    try {
+      const data = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        workouts: await db.workouts.toArray(),
+        sets: await db.sets.toArray(),
+        runs: await db.runs.toArray(),
+        bodyweight: await db.bodyweight.toArray(),
+        painEntries: await db.painEntries.toArray(),
+        estimated1RMs: await db.estimated1RMs.toArray(),
+        liftStates: await db.liftStates.toArray(),
+        userProfile: await db.userProfile.toArray(),
+        readinessLogs: await db.readinessLogs.toArray(),
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `recomp-life-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed:", err);
+    }
+  }, []);
+
+  const handleImportData = useCallback(async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        if (!data.version || !data.workouts || !data.userProfile) {
+          alert("Invalid backup file format.");
+          return;
+        }
+
+        if (!confirm("This will replace ALL existing data. Are you sure?")) {
+          return;
+        }
+
+        await db.transaction("rw",
+          [db.workouts, db.sets, db.runs, db.bodyweight,
+          db.painEntries, db.estimated1RMs, db.liftStates,
+          db.userProfile, db.readinessLogs],
+          async () => {
+            await db.workouts.clear();
+            await db.sets.clear();
+            await db.runs.clear();
+            await db.bodyweight.clear();
+            await db.painEntries.clear();
+            await db.estimated1RMs.clear();
+            await db.liftStates.clear();
+            await db.userProfile.clear();
+            await db.readinessLogs.clear();
+
+            if (data.workouts?.length) await db.workouts.bulkAdd(data.workouts);
+            if (data.sets?.length) await db.sets.bulkAdd(data.sets);
+            if (data.runs?.length) await db.runs.bulkAdd(data.runs);
+            if (data.bodyweight?.length) await db.bodyweight.bulkAdd(data.bodyweight);
+            if (data.painEntries?.length) await db.painEntries.bulkAdd(data.painEntries);
+            if (data.estimated1RMs?.length) await db.estimated1RMs.bulkAdd(data.estimated1RMs);
+            if (data.liftStates?.length) await db.liftStates.bulkAdd(data.liftStates);
+            if (data.userProfile?.length) await db.userProfile.bulkAdd(data.userProfile);
+            if (data.readinessLogs?.length) await db.readinessLogs.bulkAdd(data.readinessLogs);
+          }
+        );
+
+        window.location.reload();
+      } catch (err) {
+        console.error("Import failed:", err);
+        alert("Import failed. Please check the file format.");
+      }
+    };
+    input.click();
+  }, []);
 
   if (!dbReady || !profile) {
     return (
@@ -234,6 +321,15 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        <div className="flex justify-end -mt-2">
+          <Link href="/plate-calculator">
+            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+              <Calculator className="h-3.5 w-3.5 mr-1" />
+              Plate Calculator
+            </Button>
+          </Link>
+        </div>
+
         {/* Exercise Preferences Section */}
         <Card>
           <CardContent>
@@ -321,14 +417,14 @@ export default function SettingsPage() {
               Data
             </h2>
             <div className="space-y-2">
-              <Button variant="outline" className="w-full" disabled>
+              <Button variant="outline" className="w-full" onClick={handleExportData}>
                 Export Data (JSON)
               </Button>
-              <Button variant="outline" className="w-full" disabled>
+              <Button variant="outline" className="w-full" onClick={handleImportData}>
                 Import Data
               </Button>
               <p className="text-xs text-muted-foreground text-center pt-1">
-                Coming in a future update
+                Export creates a full backup. Import replaces all data.
               </p>
             </div>
           </CardContent>
