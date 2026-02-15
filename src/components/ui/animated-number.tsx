@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface AnimatedNumberProps {
   value: number;
   duration?: number;
   decimals?: number;
   className?: string;
+  prefix?: string;
+  suffix?: string;
 }
 
 export function AnimatedNumber({
@@ -14,6 +17,8 @@ export function AnimatedNumber({
   duration = 300,
   decimals = 0,
   className,
+  prefix,
+  suffix,
 }: AnimatedNumberProps) {
   const [display, setDisplay] = useState(value);
   const prevValue = useRef(value);
@@ -44,5 +49,9 @@ export function AnimatedNumber({
     };
   }, [value, duration]);
 
-  return <span className={className}>{display.toFixed(decimals)}</span>;
+  return (
+    <span className={cn("font-mono tabular-nums", className)}>
+      {prefix}{display.toFixed(decimals)}{suffix}
+    </span>
+  );
 }
