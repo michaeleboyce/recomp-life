@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { SkeletonCard } from "@/components/ui/skeleton";
 import LiftResult from "@/components/WorkoutSummary/LiftResult";
 import EquipmentAdaptedResult from "@/components/WorkoutSummary/EquipmentAdaptedResult";
 import PostWorkoutBodyCheck from "@/components/WorkoutSummary/PostWorkoutBodyCheck";
@@ -113,8 +114,12 @@ function WorkoutSummaryContent() {
 
   if (session === undefined || liftStates === undefined || previousE1RMs === undefined) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen bg-background pb-28">
+        <div className="mx-auto max-w-lg px-5 pt-5 space-y-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
       </div>
     );
   }
@@ -238,8 +243,8 @@ function WorkoutSummaryContent() {
   const dayLabel = t1Name ? `${t1Name} Day` : "";
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="mx-auto max-w-lg px-4 py-6 space-y-4">
+    <div className="min-h-screen bg-background pb-28">
+      <div className="mx-auto max-w-lg px-5 pt-5 pb-28 space-y-4">
         {/* Header */}
         <Card>
           <CardHeader className="pb-2 text-center">
@@ -252,7 +257,7 @@ function WorkoutSummaryContent() {
             </p>
           </CardHeader>
           <CardContent className="text-center space-y-1">
-            <p className="text-2xl font-bold text-foreground">
+            <p className="text-2xl font-bold text-foreground font-mono tabular-nums">
               {formatDuration(session.totalDurationSeconds)}
             </p>
             <p className="text-sm text-muted-foreground">
@@ -427,7 +432,7 @@ function WorkoutSummaryContent() {
                           </span>
                           {exercise?.name ?? e.exerciseId}
                         </span>
-                        <span className="text-muted-foreground">
+                        <span className="text-muted-foreground font-mono tabular-nums">
                           {weight ? `${weight} lbs` : ""}
                           {warning && (
                             <span className="text-yellow-400 ml-1">
@@ -460,8 +465,12 @@ export default function WorkoutSummaryPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
+        <div className="min-h-screen bg-background pb-28">
+          <div className="mx-auto max-w-lg px-5 pt-5 space-y-4">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
         </div>
       }
     >
