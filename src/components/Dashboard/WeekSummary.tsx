@@ -3,6 +3,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
 import { Card, CardContent } from "@/components/ui/card";
+import { calculateConsistencyStreak } from "@/lib/streaks";
 
 function getMonday(date: Date): Date {
   const d = new Date(date);
@@ -82,14 +83,23 @@ export default function WeekSummary() {
     const sunday = new Date(monday);
     sunday.setDate(sunday.getDate() + 7);
 
-    return db.workouts
+    const workouts = await db.workouts
       .where("startedAt")
       .between(monday, sunday)
       .toArray();
+    return workouts.filter((w) => w.completedAt !== null);
+  });
+
+  const allWorkoutDates = useLiveQuery(async () => {
+    const workouts = await db.workouts.toArray();
+    return workouts
+      .filter(w => w.completedAt !== null)
+      .map(w => new Date(w.startedAt));
   });
 
   const count = weekWorkouts?.length ?? 0;
   const target = 5;
+  const streak = allWorkoutDates ? calculateConsistencyStreak(allWorkoutDates, new Date()) : 0;
 
   return (
     <Card>
@@ -97,6 +107,11 @@ export default function WeekSummary() {
         <WorkoutRing count={count} target={target} />
         <WeekDots completedCount={count} />
         <p className="text-xs text-muted-foreground mt-2">This Week</p>
+        {streak > 0 && (
+          <p className="text-xs font-medium text-foreground mt-1">
+            {streak} week streak
+          </p>
+        )}
       </CardContent>
     </Card>
   );
