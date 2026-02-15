@@ -13,12 +13,14 @@ function makePainEntry(
 ): PainSorenessEntry {
   return {
     id: "test-pain-1",
+    clientId: "test-client",
     date: new Date(),
     region: "lower_back",
     sensation: "pain",
     severity: 3,
+    synced: false,
     ...overrides,
-  } as PainSorenessEntry;
+  };
 }
 
 // Helper to create an exercise entry for workout plan

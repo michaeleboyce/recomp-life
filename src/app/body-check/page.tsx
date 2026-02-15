@@ -114,7 +114,7 @@ export default function BodyCheckPage() {
   const historyRegion = selectedRegion;
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-4">
+    <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       {/* Header */}
       <header className="flex items-center gap-3 mb-4">
         <Link

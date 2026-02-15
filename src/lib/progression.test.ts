@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   roundToNearest5,
   getIncrement,
+  shouldFreezeProgression,
   evaluateT1Progression,
   evaluateT2Progression,
   evaluateT3Progression,
@@ -22,12 +23,14 @@ import type {
 function makeLiftState(overrides: Partial<LiftState> = {}): LiftState {
   return {
     exerciseId: "squat",
+    clientId: "test-client",
     t1Weight: 200,
     t1Stage: "5x3",
     t1FailCount: 0,
     t2Weight: 150,
     t2Stage: "3x10",
     t2FailCount: 0,
+    t3Weight: 0,
     t1LastResetWeight: null,
     t2LastResetWeight: null,
     t1LastWorkoutDate: null,
@@ -40,6 +43,7 @@ function makeLiftState(overrides: Partial<LiftState> = {}): LiftState {
     recentE1RMs: [],
     recentAvgRPEs: [],
     recentAMRAPReps: [],
+    synced: false,
     ...overrides,
   };
 }
@@ -74,6 +78,7 @@ function makeSetLog(overrides: Partial<SetLog> = {}): SetLog {
     status: "completed",
     isSubstituted: false,
     location: "gym",
+    synced: false,
     ...overrides,
   };
 }
@@ -214,6 +219,24 @@ describe("getIncrement", () => {
     const eq = makeEquipment({ dumbbellIncrementLbs: 5 });
     expect(getIncrement("upper", "home", eq)).toBe(5);
     expect(getIncrement("lower", "home", eq)).toBe(5);
+  });
+});
+
+describe("shouldFreezeProgression", () => {
+  it("returns true when 0 sets completed (skipped)", () => {
+    expect(shouldFreezeProgression(0, 5)).toBe(true);
+  });
+
+  it("returns true when partially completed", () => {
+    expect(shouldFreezeProgression(2, 5)).toBe(true);
+  });
+
+  it("returns false when all sets completed", () => {
+    expect(shouldFreezeProgression(5, 5)).toBe(false);
+  });
+
+  it("returns false when more than target sets completed", () => {
+    expect(shouldFreezeProgression(6, 5)).toBe(false);
   });
 });
 

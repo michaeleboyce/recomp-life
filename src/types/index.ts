@@ -28,15 +28,18 @@ export interface UserSettings {
   trainingPhase: TrainingPhase;
   equipment: EquipmentProfile;
   defaultLocation?: WorkoutLocation;
+  exercisePreferences?: ExercisePreferences;
 }
 
 export interface UserProfile {
   id: string;
+  clientId: string;
   name: string;
   bodyweight: number;
   heightInches: number;
   createdAt: Date;
   settings: UserSettings;
+  synced: boolean;
 }
 
 // Body Region Type
@@ -55,6 +58,11 @@ export type BodyRegion =
   | "core";
 
 export type SensationType = "soreness" | "pain";
+
+// Exercise Preference Types
+
+export type ExercisePreference = "blocked" | "normal" | "preferred";
+export type ExercisePreferences = Record<string, ExercisePreference>;
 
 // Exercise Types
 
@@ -84,12 +92,14 @@ export type T2Stage = "3x10" | "3x8" | "3x6";
 
 export interface LiftState {
   exerciseId: string;
+  clientId: string;
   t1Weight: number;
   t1Stage: T1Stage;
   t1FailCount: number;
   t2Weight: number;
   t2Stage: T2Stage;
   t2FailCount: number;
+  t3Weight: number;
   t1LastResetWeight: number | null;
   t2LastResetWeight: number | null;
   t1LastWorkoutDate: Date | null;
@@ -102,6 +112,7 @@ export interface LiftState {
   recentE1RMs: number[];
   recentAvgRPEs: number[];
   recentAMRAPReps: number[];
+  synced: boolean;
 }
 
 // Workout Session Types
@@ -128,6 +139,7 @@ export interface SetLog {
   substituteExerciseId?: string;
   rpe?: number;
   location: WorkoutLocation;
+  synced: boolean;
 }
 
 export type ModificationAction = "reduce_weight" | "substitute" | "skip";
@@ -156,6 +168,7 @@ export interface WorkoutSession {
   sets: SetLog[];
   preWorkoutPainEntries: PainSorenessEntry[];
   modifications: WorkoutModification[];
+  endedEarly?: boolean;
   synced: boolean;
 }
 
@@ -213,34 +226,40 @@ export type StressLevel = "low" | "normal" | "good";
 
 export interface ReadinessLog {
   id: string;
+  clientId: string;
   sessionId: string;
   sleepHours: SleepHours;
   stressLevel: StressLevel;
   date: Date;
+  synced: boolean;
 }
 
 // Pain/Soreness
 
 export interface PainSorenessEntry {
   id: string;
+  clientId: string;
   date: Date;
   region: BodyRegion;
   sensation: SensationType;
   severity: 1 | 2 | 3 | 4 | 5;
   notes?: string;
   associatedWorkoutId?: string;
+  synced: boolean;
 }
 
 // Estimated 1RM
 
 export interface Estimated1RM {
   id: string;
+  clientId: string;
   date: Date;
   exerciseId: string;
   workingWeight: number;
   repsCompleted: number;
   estimated1RM: number;
   workoutSessionId: string;
+  synced: boolean;
 }
 
 // Weekly Volume (computed, not stored)
@@ -334,6 +353,14 @@ export interface DeloadWeek {
   return: string;
 }
 
+export interface DeloadPrescription {
+  weightReductionPercent: number;
+  t3VolumeReduction: number; // 0 = no reduction, 0.25 = -25%, 0.5 = -50% (half)
+  dropAllAccessories: boolean;
+  maxAccessories: number;
+  rpeTarget: string;
+}
+
 export interface FatigueAlert {
   level: FatigueAlertLevel;
   signals: FatigueSignal[];
@@ -345,6 +372,12 @@ export interface InactivityAlert {
   level: InactivityAlertLevel;
   message: string;
   prescription: "normal_workout" | "ramp_up_85";
+}
+
+export interface StallAlert {
+  detected: boolean;
+  message: string;
+  suggestions: string[];
 }
 
 // T2 Auto-Regulation Types

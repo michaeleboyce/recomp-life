@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { AMRAPGlow } from "@/components/ui/amrap-glow";
 import { getExercise } from "@/lib/exercises";
 import { dumbbellToBarbell } from "@/lib/dbConversion";
 import type { WorkoutExerciseState } from "@/stores/workoutStore";
@@ -9,6 +10,7 @@ import type { WorkoutLocation } from "@/types";
 interface ExerciseBlockProps {
   exercise: WorkoutExerciseState;
   location: WorkoutLocation;
+  isAMRAPSet?: boolean;
 }
 
 function getTierColor(tier: string): string {
@@ -33,7 +35,7 @@ function formatScheme(exercise: WorkoutExerciseState): string {
   return `${exercise.targetSets}x${exercise.targetReps}${amrapSuffix}`;
 }
 
-export function ExerciseBlock({ exercise, location }: ExerciseBlockProps) {
+export function ExerciseBlock({ exercise, location, isAMRAPSet }: ExerciseBlockProps) {
   const exerciseInfo = getExercise(
     exercise.substituteExerciseId || exercise.exerciseId
   );
@@ -58,33 +60,35 @@ export function ExerciseBlock({ exercise, location }: ExerciseBlockProps) {
     : `${exercise.targetReps} reps`;
 
   return (
-    <div className="px-4 py-4 space-y-2">
-      <div className="flex items-center gap-2">
-        <Badge className={getTierColor(exercise.tier)}>
-          {exercise.tier === "warmup" ? "Warm-up" : exercise.tier}
-        </Badge>
-        <h2 className="text-lg font-semibold">{exerciseInfo.name}</h2>
-      </div>
+    <AMRAPGlow active={!!isAMRAPSet} className="mx-4">
+      <div className="py-4 px-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <Badge className={getTierColor(exercise.tier)}>
+            {exercise.tier === "warmup" ? "Warm-up" : exercise.tier}
+          </Badge>
+          <h2 className="text-lg font-semibold">{exerciseInfo.name}</h2>
+        </div>
 
-      <div className="text-muted-foreground text-sm space-y-0.5">
-        <p>
-          {formatScheme(exercise)} at {weightLabel}
-        </p>
-        {barbellEquiv !== null && (
-          <p className="text-xs text-muted-foreground/70">
-            (= {barbellEquiv} lbs barbell equiv.)
+        <div className="text-muted-foreground text-sm space-y-0.5">
+          <p className="font-mono tabular-nums">
+            {formatScheme(exercise)} at {weightLabel}
           </p>
-        )}
-      </div>
+          {barbellEquiv !== null && (
+            <p className="text-xs text-muted-foreground/70 font-mono tabular-nums">
+              (= {barbellEquiv} lbs barbell equiv.)
+            </p>
+          )}
+        </div>
 
-      <div className="pt-2">
-        <p className="text-base font-medium">
-          Set {currentSet} of {exercise.targetSets}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Target: {targetRepsDisplay}
-        </p>
+        <div className="pt-2">
+          <p className="text-base font-medium font-mono tabular-nums">
+            Set {currentSet} of {exercise.targetSets}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Target: {targetRepsDisplay}
+          </p>
+        </div>
       </div>
-    </div>
+    </AMRAPGlow>
   );
 }

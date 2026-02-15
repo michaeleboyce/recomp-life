@@ -1,42 +1,38 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
 import { calculateRecoveryStatus, getMostRecent } from "@/lib/recovery";
 import { EXERCISES } from "@/lib/exercises";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Footprints, Grip, ArrowUpFromLine, CircleDot } from "lucide-react";
 import type { RecoveryStatus, TrainingPhase } from "@/types";
 
 const MAIN_LIFTS = ["squat", "bench", "deadlift", "ohp"] as const;
 
+const LIFT_ICONS: Record<string, React.ElementType> = {
+  squat: Footprints,
+  bench: Grip,
+  deadlift: ArrowUpFromLine,
+  ohp: CircleDot,
+};
+
 const STATUS_CONFIG: Record<
   RecoveryStatus,
-  { color: string; bgColor: string; label: string; icon: string }
+  { color: string; label: string; icon: string }
 > = {
-  recovering: {
-    color: "text-red-400",
-    bgColor: "bg-red-400",
-    label: "Recovering",
-    icon: "",
-  },
-  ready: {
-    color: "text-yellow-400",
-    bgColor: "bg-yellow-400",
-    label: "Ready",
-    icon: "",
-  },
-  primed: {
-    color: "text-green-400",
-    bgColor: "bg-green-400",
-    label: "Primed",
-    icon: "\u2605",
-  },
-  detraining: {
-    color: "text-zinc-500",
-    bgColor: "bg-zinc-500",
-    label: "Detraining",
-    icon: "",
-  },
+  recovering: { color: "text-red-400", label: "Recovering", icon: "" },
+  ready: { color: "text-yellow-400", label: "Ready", icon: "" },
+  primed: { color: "text-green-400", label: "Primed", icon: "\u2605" },
+  detraining: { color: "text-zinc-500", label: "Detraining", icon: "" },
+};
+
+const STATUS_GRADIENT: Record<RecoveryStatus, string> = {
+  recovering: "linear-gradient(90deg, oklch(0.65 0.18 55), oklch(0.55 0.15 45))",
+  ready: "linear-gradient(90deg, oklch(0.7 0.16 85), oklch(0.65 0.14 95))",
+  primed: "linear-gradient(90deg, oklch(0.65 0.17 155), oklch(0.6 0.15 145))",
+  detraining: "linear-gradient(90deg, oklch(0.45 0.02 260), oklch(0.4 0.03 250))",
 };
 
 const STATUS_PROGRESS: Record<RecoveryStatus, number> = {
@@ -60,6 +56,12 @@ function formatDaysAgo(lastT1: Date | null, lastT2: Date | null): string {
 export default function RecoveryStatusBars() {
   const liftStates = useLiveQuery(() => db.liftStates.toArray());
   const profile = useLiveQuery(() => db.userProfile.toCollection().first());
+  const [animated, setAnimated] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimated(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!liftStates || liftStates.length === 0) {
     return (
@@ -103,21 +105,28 @@ export default function RecoveryStatusBars() {
           const config = STATUS_CONFIG[status];
           const progress = STATUS_PROGRESS[status];
           const timeLabel = formatDaysAgo(t1Date, t2Date);
+          const LiftIcon = LIFT_ICONS[liftId];
 
           return (
             <div key={liftId} className="space-y-1">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-foreground">
-                  {exercise?.name ?? liftId}
-                </span>
-                <span className={`text-xs ${config.color}`}>
+                <div className="flex items-center gap-1.5">
+                  {LiftIcon && <LiftIcon className="h-4 w-4 text-muted-foreground" />}
+                  <span className="font-medium text-foreground">
+                    {exercise?.name ?? liftId}
+                  </span>
+                </div>
+                <span className={`text-xs font-mono tabular-nums ${config.color}`}>
                   {config.icon} {config.label} ({timeLabel})
                 </span>
               </div>
               <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${config.bgColor}`}
-                  style={{ width: `${progress}%` }}
+                  className="h-full rounded-full transition-all duration-500 ease-out"
+                  style={{
+                    width: animated ? `${progress}%` : "0%",
+                    background: STATUS_GRADIENT[status],
+                  }}
                 />
               </div>
             </div>

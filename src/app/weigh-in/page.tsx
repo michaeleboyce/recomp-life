@@ -148,13 +148,13 @@ export default function WeighInPage() {
   if (!dbReady) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground text-sm">Loading...</div>
+        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-4">
+    <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
         <Link
@@ -186,7 +186,7 @@ export default function WeighInPage() {
                   setError(null);
                 }}
                 placeholder="0.0"
-                className="w-40 rounded-lg border border-input bg-background px-4 py-3 text-center text-3xl font-bold text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-40 rounded-lg border border-input bg-background px-4 py-3 text-center text-3xl font-bold font-mono tabular-nums text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               <span className="text-lg text-muted-foreground">lbs</span>
             </div>
@@ -244,7 +244,7 @@ export default function WeighInPage() {
                     <span className="text-muted-foreground">
                       {formatDate(entry.date)}
                     </span>
-                    <span className="font-medium text-foreground">
+                    <span className="font-medium font-mono tabular-nums text-foreground">
                       {entry.weight} lbs
                       {entry.timeOfDay !== "other" && (
                         <span className="text-muted-foreground ml-1">
@@ -270,7 +270,7 @@ export default function WeighInPage() {
                 {avg7Day !== null && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">7-day avg</span>
-                    <span className="font-medium text-foreground">
+                    <span className="font-medium font-mono tabular-nums text-foreground">
                       {avg7Day.toFixed(1)} lbs
                     </span>
                   </div>
@@ -288,7 +288,7 @@ export default function WeighInPage() {
                       }`}
                     >
                       {trendPerWeek < 0 ? "\u2193" : trendPerWeek > 0 ? "\u2191" : "\u2192"}{" "}
-                      {Math.abs(trendPerWeek).toFixed(1)} lbs/week
+                      <span className="font-mono tabular-nums">{Math.abs(trendPerWeek).toFixed(1)} lbs/week</span>
                     </span>
                   </div>
                 )}

@@ -210,7 +210,7 @@ function WorkoutEntry({ session, allE1RMs }: WorkoutEntryProps) {
                 {dayLabel && ` ${dayLabel}`}
               </p>
               <p className="text-xs text-muted-foreground">
-                {locationIcon} {locationLabel} {"\u2022"} {durationStr}
+                {locationIcon} {locationLabel} {"\u2022"} <span className="font-mono tabular-nums">{durationStr}</span>
               </p>
             </div>
             <span className="text-muted-foreground text-xs">
@@ -250,7 +250,7 @@ function WorkoutEntry({ session, allE1RMs }: WorkoutEntryProps) {
                         <span className="text-primary/60 font-medium mr-1">
                           {group.tier}
                         </span>
-                        {name} {weight} lbs {"\u2192"} {subExercise.name}
+                        {name} <span className="font-mono tabular-nums">{weight} lbs</span> {"\u2192"} {subExercise.name}
                       </span>
                       <span className={status.color}>
                         {status.icon} {status.label}
@@ -268,7 +268,7 @@ function WorkoutEntry({ session, allE1RMs }: WorkoutEntryProps) {
                       <span className="text-primary/60 font-medium mr-1">
                         {group.tier}
                       </span>
-                      {name} {weight} lbs
+                      {name} <span className="font-mono tabular-nums">{weight} lbs</span>
                     </span>
                     <span className={status.color}>
                       {status.icon} {status.label}
@@ -280,7 +280,7 @@ function WorkoutEntry({ session, allE1RMs }: WorkoutEntryProps) {
 
           {/* AMRAP + e1RM + RPE summary line */}
           {(amrapReps !== null || avgRPE !== null) && (
-            <div className="flex gap-3 text-xs text-muted-foreground">
+            <div className="flex gap-3 text-xs text-muted-foreground font-mono tabular-nums">
               {amrapReps !== null && <span>AMRAP: {amrapReps} reps</span>}
               {e1rm !== null && (
                 <span>
@@ -328,10 +328,10 @@ function WorkoutEntry({ session, allE1RMs }: WorkoutEntryProps) {
                             : "bg-yellow-500/10 text-yellow-400"
                       }`}
                     >
-                      Set {i + 1}: {s.actualReps}
-                      {s.isAMRAP ? "+" : ""} @ {s.weight} lbs
+                      <span className="font-mono tabular-nums">Set {i + 1}: {s.actualReps}
+                      {s.isAMRAP ? "+" : ""} @ {s.weight} lbs</span>
                       {s.rpe !== undefined && (
-                        <span className="text-muted-foreground ml-1">
+                        <span className="text-muted-foreground ml-1 font-mono tabular-nums">
                           RPE {s.rpe}
                         </span>
                       )}
@@ -393,7 +393,7 @@ function RunEntry({ run }: RunEntryProps) {
             {run.type}
           </Badge>
         </div>
-        <div className="flex gap-3 text-xs text-muted-foreground">
+        <div className="flex gap-3 text-xs text-muted-foreground font-mono tabular-nums">
           {run.distanceMiles !== null && (
             <span>{run.distanceMiles.toFixed(1)} mi</span>
           )}
@@ -433,7 +433,7 @@ export default function HistoryPage() {
   ) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
       </div>
     );
   }
@@ -477,8 +477,8 @@ export default function HistoryPage() {
   const isEmpty = entries.length === 0;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="mx-auto max-w-lg px-4 py-6 space-y-4">
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-lg px-5 pt-5 pb-28 space-y-4">
         {/* Header */}
         <h1 className="text-xl font-bold text-foreground">History</h1>
 

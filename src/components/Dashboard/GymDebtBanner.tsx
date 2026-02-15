@@ -3,91 +3,83 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
 import { EXERCISES } from "@/lib/exercises";
-import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
+import { barbellToDumbbell } from "@/lib/dbConversion";
 import { Card, CardContent } from "@/components/ui/card";
 
+interface GymDebtItem {
+  exerciseName: string;
+  tier: string;
+  barbellWeight: number;
+  dumbbellWeight: number;
+}
+
 export default function GymDebtBanner() {
-  const lastWorkout = useLiveQuery(async () => {
-    const workouts = await db.workouts
-      .orderBy("startedAt")
-      .reverse()
-      .limit(1)
-      .toArray();
-    return workouts[0] ?? null;
-  });
-
-  if (!lastWorkout) return null;
-  if (!lastWorkout.completedAt) return null;
-
-  const template = WORKOUT_TEMPLATES[lastWorkout.templateId];
-  if (!template) return null;
-
-  const duration = lastWorkout.totalDurationSeconds;
-  const completedAt = new Date(lastWorkout.completedAt);
-  const now = new Date();
-  const hoursAgo = Math.floor(
-    (now.getTime() - completedAt.getTime()) / (1000 * 60 * 60)
+  const userProfile = useLiveQuery(() =>
+    db.userProfile.toCollection().first()
   );
-  const daysAgo = Math.floor(hoursAgo / 24);
+  const liftStates = useLiveQuery(() => db.liftStates.toArray());
 
-  let timeLabel: string;
-  if (daysAgo === 0) {
-    if (hoursAgo === 0) timeLabel = "just now";
-    else timeLabel = `${hoursAgo}h ago`;
-  } else if (daysAgo === 1) {
-    timeLabel = "yesterday";
-  } else {
-    timeLabel = `${daysAgo} days ago`;
+  if (!userProfile || !liftStates) return null;
+
+  const equipment = userProfile.settings?.equipment;
+  if (!equipment) return null;
+
+  const maxDB = equipment.maxDumbbellWeight;
+  const debtItems: GymDebtItem[] = [];
+
+  for (const ls of liftStates) {
+    const exercise = EXERCISES[ls.exerciseId];
+    if (!exercise) continue;
+
+    // Only check exercises that require gym (barbell lifts)
+    if (!exercise.requiresGym) continue;
+
+    // Check T1 weight
+    if (ls.t1Weight > 0) {
+      const dbWeight = barbellToDumbbell(ls.t1Weight);
+      if (dbWeight > maxDB) {
+        debtItems.push({
+          exerciseName: exercise.name,
+          tier: "T1",
+          barbellWeight: ls.t1Weight,
+          dumbbellWeight: dbWeight,
+        });
+      }
+    }
+
+    // Check T2 weight
+    if (ls.t2Weight > 0) {
+      const dbWeight = barbellToDumbbell(ls.t2Weight);
+      if (dbWeight > maxDB) {
+        debtItems.push({
+          exerciseName: exercise.name,
+          tier: "T2",
+          barbellWeight: ls.t2Weight,
+          dumbbellWeight: dbWeight,
+        });
+      }
+    }
   }
 
-  const durationMin = Math.round(duration / 60);
+  if (debtItems.length === 0) return null;
 
-  const t1Exercise = lastWorkout.sets.find((s) => s.tier === "T1");
-  const t2Exercise = lastWorkout.sets.find((s) => s.tier === "T2");
-
-  const t1Name = t1Exercise
-    ? EXERCISES[t1Exercise.exerciseId]?.name ?? t1Exercise.exerciseId
-    : null;
-  const t2Name = t2Exercise
-    ? EXERCISES[t2Exercise.exerciseId]?.name ?? t2Exercise.exerciseId
-    : null;
-
-  const t1Sets = lastWorkout.sets.filter(
-    (s) => s.tier === "T1" && s.status === "completed"
-  );
-  const t2Sets = lastWorkout.sets.filter(
-    (s) => s.tier === "T2" && s.status === "completed"
-  );
+  const debtLabel = debtItems
+    .map((item) => `${item.exerciseName} ${item.tier} (${item.barbellWeight} lbs)`)
+    .join(", ");
 
   return (
     <Card>
       <CardContent className="pt-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-foreground">
-            Last Workout
-          </span>
-          <span className="text-xs text-muted-foreground">{timeLabel}</span>
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">
-            {template.name} &middot; {durationMin} min
-          </p>
-          {t1Name && (
-            <p className="text-sm text-foreground">
-              T1: {t1Name}{" "}
-              <span className="text-muted-foreground">
-                ({t1Sets.length} sets)
-              </span>
+        <div className="flex items-start gap-2">
+          <span className="text-sm shrink-0">{"🏋️"}</span>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-foreground">
+              {debtItems.length} exercise{debtItems.length !== 1 ? "s" : ""} waiting for gym
             </p>
-          )}
-          {t2Name && (
-            <p className="text-sm text-foreground">
-              T2: {t2Name}{" "}
-              <span className="text-muted-foreground">
-                ({t2Sets.length} sets)
-              </span>
+            <p className="text-xs text-muted-foreground">
+              {debtLabel}
             </p>
-          )}
+          </div>
         </div>
       </CardContent>
     </Card>

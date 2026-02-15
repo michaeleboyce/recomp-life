@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { Suspense, useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "@/db/local";
 import { useWorkoutStore, type WorkoutExerciseState } from "@/stores/workoutStore";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import { getExercise, EXERCISES } from "@/lib/exercises";
+import { getExercise, EXERCISES, DEFAULT_ACCESSORY_WEIGHTS } from "@/lib/exercises";
 import { generateWarmUpSets } from "@/lib/warmups";
 import { barbellToDumbbell, barbellToBothHands } from "@/lib/dbConversion";
 import { calculateE1RM } from "@/lib/e1rm";
@@ -15,6 +15,7 @@ import {
   evaluateT1Progression,
   evaluateT2Progression,
   evaluateT2AutoRegulation,
+  shouldFreezeProgression,
 } from "@/lib/progression";
 import type {
   SetLog,
@@ -37,6 +38,8 @@ import { WarmUpSet as WarmUpSetComponent } from "@/components/ActiveWorkout/Warm
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
+import { WorkoutComplete } from "@/components/ui/workout-complete";
+import { EndWorkoutConfirmDialog } from "@/components/ActiveWorkout/EndWorkoutConfirmDialog";
 
 // Rest time defaults per tier
 function getDefaultRestTime(
@@ -66,6 +69,14 @@ function getLiftType(exerciseId: string): "upper" | "lower" {
 }
 
 export default function ActiveWorkoutPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="h-6 w-40 rounded bg-muted animate-pulse" /></div>}>
+      <ActiveWorkoutContent />
+    </Suspense>
+  );
+}
+
+function ActiveWorkoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams.get("sessionId");
@@ -95,9 +106,12 @@ export default function ActiveWorkoutPage() {
     message: string;
     reducedWeight: number;
     exerciseIndex: number;
+    rpe: number;
   } | null>(null);
+  const [t2AutoRegAccepted, setT2AutoRegAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [showEndDialog, setShowEndDialog] = useState(false);
 
   // Screen Wake Lock — keeps the screen on during the active workout
   useEffect(() => {
@@ -203,8 +217,12 @@ export default function ActiveWorkoutPage() {
         const config = stageConfig[ls.t2Stage];
         sets = config.sets;
         reps = config.reps;
+      } else if (templateEx.tier === "T3" && ls) {
+        weight = ls.t3Weight;
+        sets = templateEx.sets;
+        reps = templateEx.reps;
       } else {
-        weight = templateEx.tier === "T3" ? 0 : 0;
+        weight = 0;
         sets = templateEx.sets;
         reps = templateEx.reps;
       }
@@ -274,7 +292,7 @@ export default function ActiveWorkoutPage() {
             tier: "accessory",
             targetSets: 3,
             targetReps: 15,
-            weight: 0,
+            weight: DEFAULT_ACCESSORY_WEIGHTS[accId] ?? 0,
             isAMRAP: true,
             isWarmUp: false,
             completedSets: 0,
@@ -296,6 +314,29 @@ export default function ActiveWorkoutPage() {
     !isLoading &&
     exercises.length > 0 &&
     currentExerciseIndex >= exercises.length;
+
+  // Navigation guard: prevent accidental tab close/refresh
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (exercises.length > 0 && !isWorkoutComplete) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [exercises.length, isWorkoutComplete]);
+
+  // Navigation guard: intercept browser back button
+  useEffect(() => {
+    if (exercises.length === 0 || isWorkoutComplete) return;
+    window.history.pushState(null, "", window.location.href);
+    const handler = () => {
+      window.history.pushState(null, "", window.location.href);
+      setShowEndDialog(true);
+    };
+    window.addEventListener("popstate", handler);
+    return () => window.removeEventListener("popstate", handler);
+  }, [exercises.length, isWorkoutComplete]);
 
   // Determine if current set is AMRAP
   const isCurrentSetAMRAP = useMemo(() => {
@@ -327,12 +368,17 @@ export default function ActiveWorkoutPage() {
       completedAt: new Date(),
       restAfterSeconds: 0,
       status:
-        selectedReps >= currentExercise.targetReps ? "completed" : "failed",
+        t2AutoRegAccepted && currentExercise.tier === "T2"
+          ? "autoregulated_load_drop"
+          : selectedReps >= currentExercise.targetReps
+            ? "completed"
+            : "failed",
       originalWeight: currentExercise.originalWeight,
       isSubstituted: !!currentExercise.substituteExerciseId,
       substituteExerciseId: currentExercise.substituteExerciseId,
       rpe: selectedRPE ?? undefined,
       location: store.location,
+      synced: false,
     };
 
     // Save to Dexie immediately
@@ -353,12 +399,14 @@ export default function ActiveWorkoutPage() {
         try {
           await db.estimated1RMs.put({
             id: uuidv4(),
+            clientId: uuidv4(),
             date: new Date(),
             exerciseId: currentExercise.exerciseId,
             workingWeight: currentExercise.weight,
             repsCompleted: selectedReps,
             estimated1RM: e1rm,
             workoutSessionId: session.id,
+            synced: false,
           });
         } catch (err) {
           console.error("Failed to save e1RM:", err);
@@ -383,6 +431,7 @@ export default function ActiveWorkoutPage() {
           message: result.message || "",
           reducedWeight: result.reducedWeight,
           exerciseIndex: currentExerciseIndex,
+          rpe: selectedRPE,
         });
       }
     }
@@ -417,6 +466,7 @@ export default function ActiveWorkoutPage() {
     currentExerciseIndex,
     settings,
     trainingPhase,
+    t2AutoRegAccepted,
     storeLogSet,
     advanceSet,
     startRestTimer,
@@ -425,13 +475,49 @@ export default function ActiveWorkoutPage() {
   // Handle T2 auto-reg accept
   const handleAcceptDrop = useCallback(() => {
     if (!t2AutoRegBanner) return;
+    // Store original weight before updating, then update weight for remaining sets
+    const exerciseAtIndex = exercises[t2AutoRegBanner.exerciseIndex];
+    if (exerciseAtIndex && !exerciseAtIndex.originalWeight) {
+      // Set originalWeight so subsequent sets record it
+      const updatedExercises = [...exercises];
+      updatedExercises[t2AutoRegBanner.exerciseIndex] = {
+        ...exerciseAtIndex,
+        originalWeight: exerciseAtIndex.weight,
+      };
+      // The store update below will set the new weight
+    }
     updateExerciseWeight(t2AutoRegBanner.exerciseIndex, t2AutoRegBanner.reducedWeight);
+    setT2AutoRegAccepted(true);
     setT2AutoRegBanner(null);
-  }, [t2AutoRegBanner, updateExerciseWeight]);
+  }, [t2AutoRegBanner, exercises, updateExerciseWeight]);
 
   const handleRejectDrop = useCallback(() => {
     setT2AutoRegBanner(null);
   }, []);
+
+  // Compute remaining exercises for end-workout dialog
+  const remainingExercises = useMemo(() => {
+    return exercises
+      .filter((e) => !e.isWarmUp && e.completedSets < e.targetSets)
+      .map((e) => {
+        const exercise = getExercise(
+          e.substituteExerciseId || e.exerciseId
+        );
+        return {
+          name: exercise.name,
+          tier: e.tier,
+          setsCompleted: e.completedSets,
+          targetSets: e.targetSets,
+        };
+      });
+  }, [exercises]);
+
+  // Handle ending workout early
+  const handleEndWorkout = useCallback(() => {
+    setShowEndDialog(false);
+    // Jump past all exercises to trigger workout complete
+    useWorkoutStore.setState({ currentExerciseIndex: exercises.length });
+  }, [exercises.length]);
 
   // Handle workout completion
   const handleCompleteWorkout = useCallback(async () => {
@@ -458,6 +544,33 @@ export default function ActiveWorkoutPage() {
 
           if (exerciseSets.length === 0) continue;
 
+          // Check for partial completion — freeze progression if so
+          const matchingExercise = exercises.find(
+            (e) =>
+              e.exerciseId === templateEx.exerciseId &&
+              e.tier === templateEx.tier &&
+              !e.isWarmUp
+          );
+          const targetSets = matchingExercise?.targetSets ?? templateEx.sets;
+
+          if (shouldFreezeProgression(exerciseSets.length, targetSets)) {
+            // Partial completion — freeze progression but update lastWorkoutDate
+            if (templateEx.tier === "T1") {
+              await db.liftStates.put({
+                ...ls,
+                t1LastWorkoutDate: new Date(),
+                synced: false,
+              });
+            } else if (templateEx.tier === "T2") {
+              await db.liftStates.put({
+                ...ls,
+                t2LastWorkoutDate: new Date(),
+                synced: false,
+              });
+            }
+            continue;
+          }
+
           const liftType = getLiftType(templateEx.exerciseId);
 
           if (templateEx.tier === "T1") {
@@ -469,6 +582,33 @@ export default function ActiveWorkoutPage() {
               liftType
             );
             newState.t1LastWorkoutDate = new Date();
+
+            // Populate tracking arrays (keep last 5)
+
+            // 1. recentE1RMs: query estimated1RMs table for this exercise
+            const recentE1RMEntriesT1 = await db.estimated1RMs
+              .where("exerciseId").equals(templateEx.exerciseId)
+              .reverse().sortBy("date");
+            newState.recentE1RMs = recentE1RMEntriesT1.slice(0, 5).map(e => e.estimated1RM);
+
+            // 2. recentAvgRPEs: calculate avg RPE from this session's sets
+            const rpeValuesT1 = exerciseSets.filter(s => s.rpe != null).map(s => s.rpe!);
+            if (rpeValuesT1.length > 0) {
+              const avgRPE = rpeValuesT1.reduce((a, b) => a + b, 0) / rpeValuesT1.length;
+              newState.recentAvgRPEs = [...(ls.recentAvgRPEs || []), avgRPE].slice(-5);
+            } else {
+              newState.recentAvgRPEs = ls.recentAvgRPEs || [];
+            }
+
+            // 3. recentAMRAPReps: from AMRAP set
+            const amrapSetT1 = exerciseSets.find(s => s.isAMRAP);
+            if (amrapSetT1) {
+              newState.recentAMRAPReps = [...(ls.recentAMRAPReps || []), amrapSetT1.actualReps].slice(-5);
+            } else {
+              newState.recentAMRAPReps = ls.recentAMRAPReps || [];
+            }
+
+            newState.synced = false;
             await db.liftStates.put(newState);
           } else if (templateEx.tier === "T2") {
             const newState = evaluateT2Progression(
@@ -479,6 +619,33 @@ export default function ActiveWorkoutPage() {
               liftType
             );
             newState.t2LastWorkoutDate = new Date();
+
+            // Populate tracking arrays (keep last 5)
+
+            // 1. recentE1RMs: query estimated1RMs table for this exercise
+            const recentE1RMEntriesT2 = await db.estimated1RMs
+              .where("exerciseId").equals(templateEx.exerciseId)
+              .reverse().sortBy("date");
+            newState.recentE1RMs = recentE1RMEntriesT2.slice(0, 5).map(e => e.estimated1RM);
+
+            // 2. recentAvgRPEs: calculate avg RPE from this session's sets
+            const rpeValuesT2 = exerciseSets.filter(s => s.rpe != null).map(s => s.rpe!);
+            if (rpeValuesT2.length > 0) {
+              const avgRPE = rpeValuesT2.reduce((a, b) => a + b, 0) / rpeValuesT2.length;
+              newState.recentAvgRPEs = [...(ls.recentAvgRPEs || []), avgRPE].slice(-5);
+            } else {
+              newState.recentAvgRPEs = ls.recentAvgRPEs || [];
+            }
+
+            // 3. recentAMRAPReps: from AMRAP set
+            const amrapSetT2 = exerciseSets.find(s => s.isAMRAP);
+            if (amrapSetT2) {
+              newState.recentAMRAPReps = [...(ls.recentAMRAPReps || []), amrapSetT2.actualReps].slice(-5);
+            } else {
+              newState.recentAMRAPReps = ls.recentAMRAPReps || [];
+            }
+
+            newState.synced = false;
             await db.liftStates.put(newState);
           }
         }
@@ -490,10 +657,13 @@ export default function ActiveWorkoutPage() {
         ? Math.floor((now.getTime() - workoutStartTime.getTime()) / 1000)
         : 0;
 
+      const endedEarly = currentExerciseIndex < exercises.length;
+
       await db.workouts.update(session.id, {
         completedAt: now,
         totalDurationSeconds: durationSeconds,
         sets: completedSets,
+        ...(endedEarly ? { endedEarly: true } : {}),
       });
 
       // Navigate to summary
@@ -509,6 +679,8 @@ export default function ActiveWorkoutPage() {
     isCompleting,
     completedSets,
     workoutStartTime,
+    currentExerciseIndex,
+    exercises,
     router,
   ]);
 
@@ -516,7 +688,7 @@ export default function ActiveWorkoutPage() {
   if (isLoading || !session || !settings) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Loading workout...</p>
+        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
       </div>
     );
   }
@@ -525,31 +697,31 @@ export default function ActiveWorkoutPage() {
   if (!sessionId) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">
-          No workout session found. Please start a workout from the dashboard.
-        </p>
+        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
       </div>
     );
   }
 
   // Workout complete screen
   if (isWorkoutComplete) {
+    const durationSeconds = workoutStartTime
+      ? Math.floor((Date.now() - workoutStartTime.getTime()) / 1000)
+      : 0;
+    const minutes = Math.floor(durationSeconds / 60);
+    const seconds = durationSeconds % 60;
+    const durationStr = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
     return (
       <div className="min-h-screen bg-background">
         <WorkoutHeader
           templateName={WORKOUT_TEMPLATES[store.templateId]?.name || store.templateId}
           workoutStartTime={workoutStartTime}
         />
-        <div className="flex flex-col items-center justify-center p-8 space-y-6">
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold">Workout Complete!</h2>
-            <p className="text-muted-foreground">
-              {completedSets.length} sets logged
-            </p>
-          </div>
+        <WorkoutComplete setsCompleted={completedSets.length} duration={durationStr} />
+        <div className="px-5">
           <Button
             size="lg"
-            className="w-full max-w-sm"
+            className="w-full"
             onClick={handleCompleteWorkout}
             disabled={isCompleting}
           >
@@ -564,7 +736,7 @@ export default function ActiveWorkoutPage() {
   if (!currentExercise) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">No exercises found.</p>
+        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
       </div>
     );
   }
@@ -603,6 +775,7 @@ export default function ActiveWorkoutPage() {
         <ExerciseBlock
           exercise={currentExercise}
           location={store.location}
+          isAMRAPSet={isCurrentSetAMRAP}
         />
 
         {/* AMRAP Indicator */}
@@ -624,34 +797,33 @@ export default function ActiveWorkoutPage() {
 
         {/* T2 Auto-Regulation Banner */}
         {t2AutoRegBanner && (
-          <Card className="mx-4 mt-3 border-amber-500/50 bg-amber-500/10">
-            <CardContent className="py-3 space-y-3">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-amber-400">
-                  AUTO-ADJUST SUGGESTED
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t2AutoRegBanner.message}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="default"
-                  onClick={handleAcceptDrop}
-                >
-                  Accept Drop
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleRejectDrop}
-                >
-                  Keep Weight
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="mx-4 mt-3 rounded-xl border border-amber-700 bg-amber-900/30 p-4 space-y-3">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-amber-400">
+                {"\u26A1"} AUTO-ADJUST SUGGESTED
+              </p>
+              <p className="text-sm text-muted-foreground">
+                That set was RPE {t2AutoRegBanner.rpe}. Suggest dropping to{" "}
+                {t2AutoRegBanner.reducedWeight} lbs for remaining sets.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="default"
+                onClick={handleAcceptDrop}
+              >
+                Accept Drop
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRejectDrop}
+              >
+                Keep Weight
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* Rest Timer */}
@@ -724,7 +896,26 @@ export default function ActiveWorkoutPage() {
           exercises={exercises}
           currentExerciseIndex={currentExerciseIndex}
         />
+
+        {/* End Workout Early */}
+        <div className="px-4 mt-6 mb-4">
+          <Button
+            variant="ghost"
+            className="w-full text-destructive hover:text-destructive"
+            onClick={() => setShowEndDialog(true)}
+          >
+            End Workout Early
+          </Button>
+        </div>
       </div>
+
+      {/* End Workout Confirmation Dialog */}
+      <EndWorkoutConfirmDialog
+        open={showEndDialog}
+        onOpenChange={setShowEndDialog}
+        onConfirm={handleEndWorkout}
+        remainingExercises={remainingExercises}
+      />
     </div>
   );
 }

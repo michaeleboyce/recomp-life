@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { EXERCISES, getExercise } from "./exercises";
+import { EXERCISES, getExercise, HOME_SUBSTITUTE_CHAINS } from "./exercises";
 import {
   WORKOUT_TEMPLATES,
   WORKOUT_ROTATION,
@@ -33,7 +33,11 @@ describe("Exercise Registry", () => {
       if (exercise.barbellEquivalent) {
         const equiv = EXERCISES[exercise.barbellEquivalent];
         expect(equiv).toBeDefined();
-        expect(equiv.dumbbellAlternative).toBe(id);
+        // Primary alternative is a direct link; fallback alternatives
+        // are discovered through HOME_SUBSTITUTE_CHAINS
+        const chain = HOME_SUBSTITUTE_CHAINS[exercise.barbellEquivalent] ?? [];
+        const isLinked = equiv.dumbbellAlternative === id || chain.includes(id);
+        expect(isLinked).toBe(true);
       }
     }
   });

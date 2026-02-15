@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Dumbbell, Home } from "lucide-react";
 import type { WorkoutLocation } from "@/types";
 
 interface LocationToggleProps {
@@ -20,9 +21,7 @@ export function LocationToggle({ location, onChange }: LocationToggleProps) {
           className="flex-1"
           onClick={() => onChange("gym")}
         >
-          <span className="mr-1" role="img" aria-label="gym">
-            {"\uD83C\uDFCB\uFE0F"}
-          </span>
+          <Dumbbell className="h-4 w-4 mr-1" />
           Gym
         </Button>
         <Button
@@ -30,9 +29,7 @@ export function LocationToggle({ location, onChange }: LocationToggleProps) {
           className="flex-1"
           onClick={() => onChange("home")}
         >
-          <span className="mr-1" role="img" aria-label="home">
-            {"\uD83C\uDFE0"}
-          </span>
+          <Home className="h-4 w-4 mr-1" />
           Home
         </Button>
       </div>

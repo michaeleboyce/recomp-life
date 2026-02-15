@@ -48,11 +48,13 @@ export default function RegionDetail({
 
     const entry: PainSorenessEntry = {
       id: uuidv4(),
+      clientId: uuidv4(),
       date: new Date(),
       region,
       sensation,
       severity: severity as 1 | 2 | 3 | 4 | 5,
       notes: notes.trim() || undefined,
+      synced: false,
     };
 
     await db.painEntries.put(entry);

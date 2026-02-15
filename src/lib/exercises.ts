@@ -154,6 +154,58 @@ export const EXERCISES: Record<string, Exercise> = {
     painSensitiveRegions: ["left_shoulder", "right_shoulder", "lower_back"],
   },
 
+  db_lunge: {
+    id: "db_lunge",
+    name: "DB Lunge",
+    type: "dumbbell",
+    muscleGroup: "legs",
+    requiresGym: false,
+    barbellEquivalent: "squat",
+    grip: "per_hand",
+    primaryMuscles: ["left_quad", "right_quad"],
+    secondaryMuscles: ["left_hamstring", "right_hamstring", "left_hip", "right_hip"],
+    painSensitiveRegions: ["left_knee", "right_knee"],
+  },
+
+  db_floor_press: {
+    id: "db_floor_press",
+    name: "DB Floor Press",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    barbellEquivalent: "bench",
+    grip: "per_hand",
+    primaryMuscles: ["chest"],
+    secondaryMuscles: ["left_shoulder", "right_shoulder", "left_elbow", "right_elbow"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
+  single_leg_db_rdl: {
+    id: "single_leg_db_rdl",
+    name: "Single-Leg DB RDL",
+    type: "dumbbell",
+    muscleGroup: "pull",
+    requiresGym: false,
+    barbellEquivalent: "deadlift",
+    grip: "per_hand",
+    primaryMuscles: ["left_hamstring", "right_hamstring"],
+    secondaryMuscles: ["upper_back", "core", "left_hip", "right_hip"],
+    painSensitiveRegions: ["lower_back"],
+  },
+
+  db_arnold_press: {
+    id: "db_arnold_press",
+    name: "DB Arnold Press",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    barbellEquivalent: "ohp",
+    grip: "per_hand",
+    primaryMuscles: ["left_shoulder", "right_shoulder"],
+    secondaryMuscles: ["chest", "core"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
   // ─── Accessories ──────────────────────────────────────────────────────────────
 
   face_pulls: {
@@ -293,6 +345,110 @@ export const EXERCISES: Record<string, Exercise> = {
     secondaryMuscles: ["left_hamstring", "right_hamstring"],
     painSensitiveRegions: [],
   },
+
+  hammer_curls: {
+    id: "hammer_curls",
+    name: "Hammer Curls",
+    type: "dumbbell",
+    muscleGroup: "pull",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["left_elbow", "right_elbow"],
+    secondaryMuscles: [],
+    painSensitiveRegions: [],
+  },
+
+  front_raises: {
+    id: "front_raises",
+    name: "Front Raises",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["left_shoulder", "right_shoulder"],
+    secondaryMuscles: [],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
+  reverse_fly: {
+    id: "reverse_fly",
+    name: "Reverse Fly",
+    type: "dumbbell",
+    muscleGroup: "pull",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["left_shoulder", "right_shoulder", "upper_back"],
+    secondaryMuscles: [],
+    painSensitiveRegions: [],
+  },
+
+  arnold_press: {
+    id: "arnold_press",
+    name: "Arnold Press",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["left_shoulder", "right_shoulder"],
+    secondaryMuscles: ["chest"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
+  db_skull_crushers: {
+    id: "db_skull_crushers",
+    name: "DB Skull Crushers",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["left_elbow", "right_elbow"],
+    secondaryMuscles: [],
+    painSensitiveRegions: ["left_elbow", "right_elbow"],
+  },
+};
+
+/** Single source of truth for which exercises are accessories. */
+export const ACCESSORY_IDS: string[] = [
+  "face_pulls", "lateral_raises", "bicep_curls", "tricep_pushdowns",
+  "oh_tricep_ext", "incline_db_fly", "leg_curls", "leg_extensions",
+  "calf_raises", "ab_rollout", "back_extensions", "hip_thrust",
+  "hammer_curls", "front_raises", "reverse_fly", "arnold_press", "db_skull_crushers",
+];
+
+/**
+ * Reasonable starting default weights (lbs) for accessories.
+ * Bodyweight exercises default to 0. Dumbbell "per_hand" values are per hand.
+ */
+export const DEFAULT_ACCESSORY_WEIGHTS: Record<string, number> = {
+  face_pulls: 30,
+  lateral_raises: 15,
+  bicep_curls: 25,
+  tricep_pushdowns: 40,
+  oh_tricep_ext: 30,
+  incline_db_fly: 25,
+  leg_curls: 70,
+  leg_extensions: 80,
+  calf_raises: 40,
+  ab_rollout: 0,
+  back_extensions: 0,
+  hip_thrust: 50,
+  hammer_curls: 25,
+  front_raises: 15,
+  reverse_fly: 12,
+  arnold_press: 25,
+  db_skull_crushers: 15,
+};
+
+/**
+ * Ordered fallback chains for home dumbbell substitutes.
+ * When the primary substitute (index 0) exceeds maxDumbbellWeight,
+ * the system tries each fallback in order.
+ */
+export const HOME_SUBSTITUTE_CHAINS: Record<string, string[]> = {
+  squat: ["goblet_squat", "bulgarian_split_squat", "db_lunge"],
+  bench: ["db_bench", "db_floor_press"],
+  deadlift: ["db_rdl", "single_leg_db_rdl"],
+  ohp: ["db_shoulder_press", "db_arnold_press"],
 };
 
 /**

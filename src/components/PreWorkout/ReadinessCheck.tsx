@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Moon, Minus, Sun, Circle } from "lucide-react";
 import type { SleepHours, StressLevel } from "@/types";
 
 interface ReadinessCheckProps {
@@ -39,21 +40,21 @@ export function ReadinessCheck({
             className="flex-1"
             onClick={() => onSleepChange("<5")}
           >
-            {"\uD83D\uDE34"} &lt;5h
+            <Moon className="h-4 w-4" /> &lt;5h
           </Button>
           <Button
             variant={sleepHours === "5-7" ? "default" : "outline"}
             className="flex-1"
             onClick={() => onSleepChange("5-7")}
           >
-            {"\uD83D\uDE10"} 5-7h
+            <Minus className="h-4 w-4" /> 5-7h
           </Button>
           <Button
             variant={sleepHours === "7+" ? "default" : "outline"}
             className="flex-1"
             onClick={() => onSleepChange("7+")}
           >
-            {"\uD83D\uDE0A"} 7+h
+            <Sun className="h-4 w-4" /> 7+h
           </Button>
         </div>
       </div>
@@ -68,21 +69,21 @@ export function ReadinessCheck({
             className="flex-1"
             onClick={() => onStressChange("low")}
           >
-            {"\uD83D\uDD34"} Low
+            <Circle className="h-3 w-3 fill-red-400 text-red-400" /> Low
           </Button>
           <Button
             variant={stressLevel === "normal" ? "default" : "outline"}
             className="flex-1"
             onClick={() => onStressChange("normal")}
           >
-            {"\uD83D\uDFE1"} Normal
+            <Circle className="h-3 w-3 fill-yellow-400 text-yellow-400" /> Normal
           </Button>
           <Button
             variant={stressLevel === "good" ? "default" : "outline"}
             className="flex-1"
             onClick={() => onStressChange("good")}
           >
-            {"\uD83D\uDFE2"} Good
+            <Circle className="h-3 w-3 fill-green-400 text-green-400" /> Good
           </Button>
         </div>
       </div>
