@@ -8,6 +8,8 @@ import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { getGroupedExercises } from "@/lib/exerciseCategories";
 import ExerciseRow from "@/components/Exercises/ExerciseRow";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { SkeletonCard } from "@/components/ui/skeleton";
 import type { ExercisePreference, ExercisePreferences, MuscleGroup } from "@/types";
 
 type FilterTab = "all" | "push" | "pull" | "legs" | "core";
@@ -60,14 +62,18 @@ export default function ExercisesPage() {
 
   if (!dbReady || !profile) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground text-sm">Loading...</div>
+      <div className="mx-auto max-w-lg px-5 pt-5 pb-28 space-y-4">
+        <div className="h-5 w-24 rounded bg-muted animate-pulse mb-6" />
+        <div className="h-9 rounded-lg bg-muted animate-pulse mb-4" />
+        {[0, 1, 2].map((i) => (
+          <SkeletonCard key={i} />
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-4 pb-24">
+    <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
         <Link
@@ -80,22 +86,12 @@ export default function ExercisesPage() {
       </header>
 
       {/* Filter tabs */}
-      <div className="flex gap-1 rounded-lg bg-muted/50 p-1 mb-4">
-        {FILTER_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            onClick={() => setFilter(tab.value)}
-            className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
-              filter === tab.value
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        value={filter}
+        onChange={setFilter}
+        options={FILTER_TABS.map((tab) => ({ value: tab.value, label: tab.label }))}
+        className="mb-4"
+      />
 
       {/* Grouped sections */}
       <div className="space-y-6">
