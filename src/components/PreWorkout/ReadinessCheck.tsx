@@ -10,8 +10,8 @@ interface ReadinessCheckProps {
   stressLevel: StressLevel | null;
   onSleepChange: (value: SleepHours) => void;
   onStressChange: (value: StressLevel) => void;
-  onNext: () => void;
-  onSkip: () => void;
+  onNext?: () => void;
+  onSkip?: () => void;
 }
 
 export function ReadinessCheck({
@@ -96,14 +96,20 @@ export function ReadinessCheck({
         </Alert>
       )}
 
-      <div className="flex flex-col gap-2">
-        <Button onClick={onNext} disabled={!sleepHours || !stressLevel}>
-          NEXT {"\u2192"} Body Check
-        </Button>
-        <Button variant="ghost" onClick={onSkip}>
-          Skip
-        </Button>
-      </div>
+      {(onNext || onSkip) && (
+        <div className="flex flex-col gap-2">
+          {onNext && (
+            <Button onClick={onNext} disabled={!sleepHours || !stressLevel}>
+              NEXT {"\u2192"} Body Check
+            </Button>
+          )}
+          {onSkip && (
+            <Button variant="ghost" onClick={onSkip}>
+              Skip
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

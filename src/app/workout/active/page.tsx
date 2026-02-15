@@ -31,8 +31,9 @@ import { ExerciseBlock } from "@/components/ActiveWorkout/ExerciseBlock";
 import { SetLogger } from "@/components/ActiveWorkout/SetLogger";
 import { RPESelector } from "@/components/ActiveWorkout/RPESelector";
 import { RestTimer } from "@/components/ActiveWorkout/RestTimer";
-import { CompletedSets } from "@/components/ActiveWorkout/CompletedSets";
-import { UpNext } from "@/components/ActiveWorkout/UpNext";
+import { SetProgressList } from "@/components/ActiveWorkout/SetProgressList";
+import { WorkoutMiniMap } from "@/components/ActiveWorkout/WorkoutMiniMap";
+import { WorkoutOverviewSheet } from "@/components/ActiveWorkout/WorkoutOverviewSheet";
 import { AMRAPIndicator } from "@/components/ActiveWorkout/AMRAPIndicator";
 import { WarmUpSet as WarmUpSetComponent } from "@/components/ActiveWorkout/WarmUpSet";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,14 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { WorkoutComplete } from "@/components/ui/workout-complete";
 import { EndWorkoutConfirmDialog } from "@/components/ActiveWorkout/EndWorkoutConfirmDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Rest time defaults per tier
 function getDefaultRestTime(
@@ -95,6 +104,7 @@ function ActiveWorkoutContent() {
     skipRest,
     startWorkout,
     updateExerciseWeight,
+    goToExercise,
     reset,
   } = store;
 
@@ -112,6 +122,8 @@ function ActiveWorkoutContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
   const [showEndDialog, setShowEndDialog] = useState(false);
+  const [overviewOpen, setOverviewOpen] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   // Screen Wake Lock — keeps the screen on during the active workout
   useEffect(() => {
@@ -142,6 +154,19 @@ function ActiveWorkoutContent() {
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
+
+  // Elapsed time tracker
+  const [elapsedStr, setElapsedStr] = useState("0:00");
+  useEffect(() => {
+    if (!workoutStartTime) return;
+    const interval = setInterval(() => {
+      const seconds = Math.floor((Date.now() - workoutStartTime.getTime()) / 1000);
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      setElapsedStr(`${m}:${s.toString().padStart(2, "0")}`);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [workoutStartTime]);
 
   // Load session from Dexie
   const session = useLiveQuery(
@@ -519,6 +544,43 @@ function ActiveWorkoutContent() {
     useWorkoutStore.setState({ currentExerciseIndex: exercises.length });
   }, [exercises.length]);
 
+  // Handle exercise selection from overview sheet
+  const handleSelectExercise = useCallback((index: number) => {
+    goToExercise(index);
+    setSelectedReps(null);
+    setSelectedRPE(null);
+    setE1rmDisplay(null);
+    setT2AutoRegBanner(null);
+    setT2AutoRegAccepted(false);
+  }, [goToExercise]);
+
+  // Handle cancel workout (discard all progress)
+  const handleCancelWorkout = useCallback(async () => {
+    if (!session) return;
+    // Delete all logged sets for this session
+    const setIds = completedSets.map(s => s.id);
+    if (setIds.length > 0) {
+      await db.sets.bulkDelete(setIds);
+    }
+    // Delete any e1RMs logged during this session
+    try {
+      const sessionE1RMs = await db.estimated1RMs
+        .where("workoutSessionId")
+        .equals(session.id)
+        .toArray();
+      if (sessionE1RMs.length > 0) {
+        await db.estimated1RMs.bulkDelete(sessionE1RMs.map(e => e.id));
+      }
+    } catch {
+      // Non-critical
+    }
+    // Delete the workout record
+    await db.workouts.delete(session.id);
+    // Reset store and go home
+    reset();
+    router.push("/");
+  }, [session, completedSets, reset, router]);
+
   // Handle workout completion
   const handleCompleteWorkout = useCallback(async () => {
     if (!session || !liftStates || !settings || isCompleting) return;
@@ -711,6 +773,45 @@ function ActiveWorkoutContent() {
     const seconds = durationSeconds % 60;
     const durationStr = `${minutes}:${seconds.toString().padStart(2, "0")}`;
 
+    // If no sets logged, offer to cancel
+    if (completedSets.length === 0) {
+      return (
+        <div className="min-h-screen bg-background">
+          <WorkoutHeader
+            templateName={WORKOUT_TEMPLATES[store.templateId]?.name || store.templateId}
+            workoutStartTime={workoutStartTime}
+          />
+          <div className="px-5 pt-8 space-y-6 text-center">
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold">No Sets Logged</h2>
+              <p className="text-sm text-muted-foreground">
+                You completed the workout without logging any sets.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <Button
+                variant="destructive"
+                size="lg"
+                className="w-full"
+                onClick={handleCancelWorkout}
+              >
+                Discard Workout
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={handleCompleteWorkout}
+                disabled={isCompleting}
+              >
+                {isCompleting ? "Saving..." : "Save Anyway"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-background">
         <WorkoutHeader
@@ -770,6 +871,13 @@ function ActiveWorkoutContent() {
         workoutStartTime={workoutStartTime}
       />
 
+      {/* Mini-Map */}
+      <WorkoutMiniMap
+        exercises={exercises}
+        currentExerciseIndex={currentExerciseIndex}
+        onTap={() => setOverviewOpen(true)}
+      />
+
       <div className="max-w-lg mx-auto">
         {/* Exercise Block */}
         <ExerciseBlock
@@ -825,6 +933,13 @@ function ActiveWorkoutContent() {
             </div>
           </div>
         )}
+
+        {/* Set Progress List */}
+        <SetProgressList
+          exercise={currentExercise}
+          completedSets={completedSets}
+          location={store.location}
+        />
 
         {/* Rest Timer */}
         <div className="mt-3">
@@ -884,27 +999,21 @@ function ActiveWorkoutContent() {
           </div>
         )}
 
-        {/* Completed Sets */}
-        <CompletedSets
-          sets={completedSets}
-          exerciseId={exerciseId}
-          location={store.location}
-        />
-
-        {/* Up Next */}
-        <UpNext
-          exercises={exercises}
-          currentExerciseIndex={currentExerciseIndex}
-        />
-
-        {/* End Workout Early */}
-        <div className="px-4 mt-6 mb-4">
+        {/* End Workout / Cancel buttons */}
+        <div className="px-4 mt-6 mb-4 space-y-2">
           <Button
             variant="ghost"
             className="w-full text-destructive hover:text-destructive"
             onClick={() => setShowEndDialog(true)}
           >
             End Workout Early
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full text-muted-foreground hover:text-destructive"
+            onClick={() => setShowCancelDialog(true)}
+          >
+            Cancel Workout
           </Button>
         </div>
       </div>
@@ -914,7 +1023,41 @@ function ActiveWorkoutContent() {
         open={showEndDialog}
         onOpenChange={setShowEndDialog}
         onConfirm={handleEndWorkout}
+        onCancel={handleCancelWorkout}
         remainingExercises={remainingExercises}
+        setsLogged={completedSets.length}
+      />
+
+      {/* Cancel Confirmation Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Cancel Workout?</DialogTitle>
+            <DialogDescription>
+              {completedSets.length > 0
+                ? `You've logged ${completedSets.length} set${completedSets.length > 1 ? "s" : ""}. Canceling will discard all progress.`
+                : "This workout will be discarded entirely."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowCancelDialog(false)}>
+              Keep Going
+            </Button>
+            <Button variant="destructive" onClick={handleCancelWorkout}>
+              Discard Workout
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Workout Overview Sheet */}
+      <WorkoutOverviewSheet
+        open={overviewOpen}
+        onOpenChange={setOverviewOpen}
+        exercises={exercises}
+        currentExerciseIndex={currentExerciseIndex}
+        onSelectExercise={handleSelectExercise}
+        elapsedTime={elapsedStr}
       />
     </div>
   );

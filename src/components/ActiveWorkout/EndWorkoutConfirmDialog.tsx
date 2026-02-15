@@ -21,14 +21,18 @@ interface EndWorkoutConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
+  onCancel: () => void;
   remainingExercises: RemainingExercise[];
+  setsLogged: number;
 }
 
 export function EndWorkoutConfirmDialog({
   open,
   onOpenChange,
   onConfirm,
+  onCancel,
   remainingExercises,
+  setsLogged,
 }: EndWorkoutConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -36,32 +40,47 @@ export function EndWorkoutConfirmDialog({
         <DialogHeader>
           <DialogTitle>End Workout Early?</DialogTitle>
           <DialogDescription>
-            The following exercises are incomplete:
+            {setsLogged === 0
+              ? "You haven't logged any sets yet."
+              : "The following exercises are incomplete:"}
           </DialogDescription>
         </DialogHeader>
 
-        <ul className="space-y-1 text-sm text-muted-foreground">
-          {remainingExercises.map((ex) => (
-            <li key={`${ex.name}-${ex.tier}`}>
-              {ex.name} ({ex.tier}) &mdash;{" "}
-              {ex.setsCompleted === 0
-                ? "skipped"
-                : `${ex.setsCompleted}/${ex.targetSets} sets`}
-            </li>
-          ))}
-        </ul>
+        {setsLogged > 0 && (
+          <ul className="space-y-1 text-sm text-muted-foreground">
+            {remainingExercises.map((ex) => (
+              <li key={`${ex.name}-${ex.tier}`}>
+                {ex.name} ({ex.tier}) &mdash;{" "}
+                {ex.setsCompleted === 0
+                  ? "skipped"
+                  : `${ex.setsCompleted}/${ex.targetSets} sets`}
+              </li>
+            ))}
+          </ul>
+        )}
 
-        <p className="text-sm text-muted-foreground">
-          Skipped and partial exercises will be frozen &mdash; your weights and
-          stages won&apos;t change.
-        </p>
+        {setsLogged > 0 && (
+          <p className="text-sm text-muted-foreground">
+            Skipped and partial exercises will be frozen &mdash; your weights and
+            stages won&apos;t change.
+          </p>
+        )}
 
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-2 sm:flex-col">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Keep Going
           </Button>
-          <Button variant="destructive" onClick={onConfirm}>
-            End Workout
+          {setsLogged > 0 && (
+            <Button variant="destructive" onClick={onConfirm}>
+              End &amp; Save Progress
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            className="text-destructive border-destructive/50 hover:bg-destructive/10"
+            onClick={onCancel}
+          >
+            {setsLogged === 0 ? "Discard Workout" : "Cancel & Discard All"}
           </Button>
         </DialogFooter>
       </DialogContent>

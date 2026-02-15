@@ -42,6 +42,7 @@ interface WorkoutStore {
   skipRest: () => void;
   addRestTime: (seconds: number) => void;
   advanceSet: () => void;
+  goToExercise: (exerciseIndex: number) => void;
   updateExerciseWeight: (exerciseIndex: number, newWeight: number) => void;
   reset: () => void;
 }
@@ -157,6 +158,18 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
       restTimeRemaining: state.restTimeRemaining + seconds,
       restTimerDuration: state.restTimerDuration + seconds,
     }));
+  },
+
+  goToExercise: (exerciseIndex: number) => {
+    const state = get();
+    if (exerciseIndex < 0 || exerciseIndex >= state.exercises.length) return;
+    set({
+      currentExerciseIndex: exerciseIndex,
+      currentSetIndex: state.exercises[exerciseIndex].completedSets,
+      isRestTimerActive: false,
+      restTimeRemaining: 0,
+      restTimerDuration: 0,
+    });
   },
 
   updateExerciseWeight: (exerciseIndex: number, newWeight: number) => {

@@ -17,21 +17,12 @@ import { applyPreferences } from "@/lib/exercisePreferences";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { generateWarmUpSets } from "@/lib/warmups";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
-import { calculateRecoveryStatus } from "@/lib/recovery";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, AlertTriangle, X, Circle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 
 import { LocationToggle } from "@/components/PreWorkout/LocationToggle";
 import { WarmUpToggle } from "@/components/PreWorkout/WarmUpToggle";
@@ -50,35 +41,9 @@ import type {
   EquipmentProfile,
   TrainingPhase,
   WarmUpSet,
-  PainSorenessEntry,
-  BodyRegion,
 } from "@/types";
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-type Step =
-  | "location"
-  | "readiness"
-  | "warnings"
-  | "technique"
-  | "bodycheck"
-  | "preview";
-
-const STEP_ORDER: Step[] = [
-  "location",
-  "readiness",
-  "warnings",
-  "technique",
-  "bodycheck",
-  "preview",
-];
-
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-function getProgressPercent(step: Step): number {
-  const idx = STEP_ORDER.indexOf(step);
-  return ((idx + 1) / STEP_ORDER.length) * 100;
-}
 
 function getT1ExerciseType(
   template: WorkoutTemplate
@@ -239,11 +204,8 @@ function ConfigureWorkoutContent() {
 
   const template = WORKOUT_TEMPLATES[templateId];
 
-  // ─── Step state ───────────────────────────────────────────────────────
+  // ─── State ────────────────────────────────────────────────────────────
 
-  const [currentStep, setCurrentStep] = useState<Step>("location");
-
-  // Step 1: location + warm-ups
   const [location, setLocation] = useState<WorkoutLocation>("gym");
   const [warmUps, setWarmUps] = useState<boolean>(true);
 
@@ -261,24 +223,23 @@ function ConfigureWorkoutContent() {
     }
   }, [userProfile, profileLoaded]);
 
-  // Step 1.5: readiness
+  // Save location preference when it changes
+  useEffect(() => {
+    if (!userProfile || !profileLoaded) return;
+    const savedLoc = userProfile.settings?.defaultLocation;
+    if (savedLoc !== location) {
+      const updatedSettings = { ...userProfile.settings, defaultLocation: location };
+      db.userProfile.update(userProfile.id, { settings: updatedSettings, synced: false }).catch(() => {});
+    }
+  }, [location, userProfile, profileLoaded]);
+
   const [sleepHours, setSleepHours] = useState<SleepHours | null>(null);
   const [stressLevel, setStressLevel] = useState<StressLevel | null>(null);
-
-  // Step 3: accessories
   const [selectedAccessories, setSelectedAccessories] = useState<string[]>([]);
-
-  // Warning step state
   const [runAdvisoryDismissed, setRunAdvisoryDismissed] = useState(false);
   const [recoveryChoice, setRecoveryChoice] = useState<"proceed" | "reduce" | null>(null);
-
-  // Loading state for start button
   const [isStarting, setIsStarting] = useState(false);
-
-  // User overrides for alternative exercise selections
   const [exerciseOverrides, setExerciseOverrides] = useState<Record<string, string>>({});
-
-  // Accepted/dismissed decay suggestions
   const [dismissedDecays, setDismissedDecays] = useState<Set<string>>(new Set());
 
   // ─── Derived data ─────────────────────────────────────────────────────
@@ -289,7 +250,6 @@ function ConfigureWorkoutContent() {
   const trainingPhase: TrainingPhase =
     userProfile?.settings?.trainingPhase ?? DEFAULT_PHASE;
 
-  // Weight decay suggestions for stale lifts
   const decaySuggestions = useMemo(() => {
     if (!template) return [];
     return getExerciseDecaySuggestions(
@@ -319,7 +279,6 @@ function ConfigureWorkoutContent() {
 
   const exercisePreferences = userProfile?.settings?.exercisePreferences;
 
-  // Run fatigue advisory
   const runAdvisory = useMemo(() => {
     if (!template || recentRuns.length === 0) return null;
     const hasLower = workoutHasLowerBody(templateId);
@@ -328,7 +287,6 @@ function ConfigureWorkoutContent() {
     return advisory;
   }, [template, recentRuns, templateId, trainingPhase]);
 
-  // Recovery warning: check if any lift in today's workout was trained <48h ago
   const recoveryWarnings = useMemo(() => {
     if (!template || liftStates.length === 0) return [];
     const now = new Date();
@@ -341,7 +299,6 @@ function ConfigureWorkoutContent() {
       const lastTrained = ls.t1LastWorkoutDate || ls.t2LastWorkoutDate;
       if (!lastTrained) continue;
 
-      // Use the most recent of t1 and t2 dates
       let mostRecent = new Date(lastTrained);
       if (ls.t1LastWorkoutDate && ls.t2LastWorkoutDate) {
         const t1 = new Date(ls.t1LastWorkoutDate);
@@ -360,6 +317,7 @@ function ConfigureWorkoutContent() {
     }
     return warnings;
   }, [template, liftStates]);
+
   const accessoryRecommendations = useMemo(
     () => applyPreferences(ACCESSORY_RECOMMENDATIONS[templateId] ?? [], exercisePreferences),
     [templateId, exercisePreferences]
@@ -414,8 +372,6 @@ function ConfigureWorkoutContent() {
     }>;
   }, [template, liftStates, location, equipment]);
 
-  // ─── Apply user overrides for alternative exercises ────────────────────
-
   const effectiveAdaptations = useMemo(() => {
     return exerciseAdaptations.map((ea) => {
       if (!ea?.adaptation || ea.adaptation.alternatives.length === 0) return ea;
@@ -445,8 +401,6 @@ function ConfigureWorkoutContent() {
     });
   }, [exerciseAdaptations, exerciseOverrides, equipment]);
 
-  // ─── Warm-up sets for preview ─────────────────────────────────────────
-
   const warmUpSetsMap = useMemo(() => {
     if (!warmUps) return new Map<string, WarmUpSet[]>();
     const map = new Map<string, WarmUpSet[]>();
@@ -470,63 +424,7 @@ function ConfigureWorkoutContent() {
     return map;
   }, [warmUps, effectiveAdaptations, location, equipment]);
 
-  // ─── Navigation ───────────────────────────────────────────────────────
-
-  const goToStep = useCallback(
-    (step: Step) => {
-      if (step === "warnings" && !runAdvisory && recoveryWarnings.length === 0) {
-        // Skip to technique (or bodycheck if no technique)
-        if (!t1Type) {
-          setCurrentStep("bodycheck");
-        } else {
-          setCurrentStep("technique");
-        }
-        return;
-      }
-      if (step === "technique" && !t1Type) {
-        setCurrentStep("bodycheck");
-        return;
-      }
-      setCurrentStep(step);
-    },
-    [t1Type, runAdvisory, recoveryWarnings.length]
-  );
-
-  const handleLocationNext = async () => {
-    // Save location preference
-    if (userProfile) {
-      try {
-        const updatedSettings = { ...userProfile.settings, defaultLocation: location };
-        await db.userProfile.update(userProfile.id, { settings: updatedSettings, synced: false });
-      } catch {
-        // Non-critical — continue even if save fails
-      }
-    }
-    goToStep("readiness");
-  };
-
-  const handleReadinessNext = () => {
-    // Skip warnings step if there are no warnings to show
-    if (!runAdvisory && recoveryWarnings.length === 0) {
-      goToStep("technique");
-    } else {
-      goToStep("warnings");
-    }
-  };
-  const handleReadinessSkip = () => {
-    if (!runAdvisory && recoveryWarnings.length === 0) {
-      goToStep("technique");
-    } else {
-      goToStep("warnings");
-    }
-  };
-
-  const handleWarningsNext = () => goToStep("technique");
-
-  const handleTechniqueNext = () => goToStep("bodycheck");
-  const handleTechniqueSkip = () => goToStep("bodycheck");
-
-  const handleBodyCheckNext = () => goToStep("preview");
+  // ─── Handlers ─────────────────────────────────────────────────────────
 
   const handleToggleAccessory = (exerciseId: string) => {
     setSelectedAccessories((prev) =>
@@ -535,8 +433,6 @@ function ConfigureWorkoutContent() {
         : [...prev, exerciseId]
     );
   };
-
-  // ─── Start Workout ────────────────────────────────────────────────────
 
   const handleStartWorkout = async () => {
     if (isStarting) return;
@@ -596,423 +492,358 @@ function ConfigureWorkoutContent() {
   const templateName = `${templateId} \u2014 ${getTemplateFriendlyName(templateId)}`;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-lg px-5 pt-5 pb-28 space-y-4">
-        {/* Progress bar */}
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-          <div
-            className="h-full rounded-full bg-foreground/80 transition-all duration-300 ease-out"
-            style={{
-              width: `${getProgressPercent(currentStep)}%`,
-              boxShadow: "0 0 8px oklch(0.85 0 0 / 0.3)",
-            }}
-          />
+    <div className="min-h-screen bg-background pb-28">
+      <div className="mx-auto max-w-lg px-5 pt-5 space-y-4">
+        {/* Header */}
+        <div>
+          <h1 className="text-xl font-bold">{templateName}</h1>
         </div>
 
-        {/* ─── Step 1: Location + Warm-ups ──────────────────────────── */}
-        {currentStep === "location" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Configure Workout</CardTitle>
-              <CardDescription>{templateName}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <LocationToggle location={location} onChange={setLocation} />
-              <WarmUpToggle enabled={warmUps} onChange={setWarmUps} />
-              <Button className="w-full" onClick={handleLocationNext}>
-                NEXT {"\u2192"} Readiness
+        {/* Location + Warm-ups side by side */}
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <LocationToggle location={location} onChange={setLocation} />
+          </div>
+          <div className="flex-1">
+            <WarmUpToggle enabled={warmUps} onChange={setWarmUps} />
+          </div>
+        </div>
+
+        {/* Auto-surfaced warnings (NOT collapsible) */}
+        {runAdvisory && !runAdvisoryDismissed && runAdvisory.level === "advisory" && (
+          <div className="rounded-xl border border-amber-700 bg-amber-900/30 p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-amber-400">Run Fatigue Advisory</p>
+                <p className="text-sm text-muted-foreground">{runAdvisory.message}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
+                Proceed
               </Button>
-            </CardContent>
-          </Card>
+              <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
+                Add warm-ups
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
+                Reduce 10%
+              </Button>
+            </div>
+          </div>
         )}
 
-        {/* ─── Step 1.5: Readiness Check ────────────────────────────── */}
-        {currentStep === "readiness" && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-end mb-3">
-                <Badge variant="outline">{location === "home" ? "Home" : "Gym"}</Badge>
+        {runAdvisory && !runAdvisoryDismissed && runAdvisory.level === "strong_rest" && (
+          <div className="rounded-xl border border-red-700 bg-red-900/30 p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-red-400">Strong Rest Recommended</p>
+                <p className="text-sm text-muted-foreground">{runAdvisory.message}</p>
               </div>
-              <ReadinessCheck
-                sleepHours={sleepHours}
-                stressLevel={stressLevel}
-                onSleepChange={setSleepHours}
-                onStressChange={setStressLevel}
-                onNext={handleReadinessNext}
-                onSkip={handleReadinessSkip}
-              />
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
+                Proceed anyway
+              </Button>
+              <Button size="sm" variant="destructive" onClick={() => router.push("/")}>
+                Rest today
+              </Button>
+            </div>
+          </div>
         )}
 
-        {/* ─── Step 1.6: Pre-Workout Warnings ────────────────────── */}
-        {currentStep === "warnings" && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Pre-Workout Warnings</CardTitle>
-                  <CardDescription>Review before continuing</CardDescription>
-                </div>
-                <Badge variant="outline">{location === "home" ? "Home" : "Gym"}</Badge>
+        {recoveryWarnings.length > 0 && (
+          <div className="rounded-xl border border-amber-700 bg-amber-900/30 p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+              <div className="space-y-2">
+                {recoveryWarnings.map((w) => (
+                  <p key={w.exerciseName} className="text-sm text-muted-foreground">
+                    You trained {w.exerciseName} <span className="font-mono tabular-nums">{w.hoursAgo}h</span> ago.
+                  </p>
+                ))}
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Run Fatigue Advisory */}
-              {runAdvisory && !runAdvisoryDismissed && runAdvisory.level === "advisory" && (
-                <div className="rounded-xl border border-amber-700 bg-amber-900/30 p-4 space-y-3">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-amber-400">Run Fatigue Advisory</p>
-                      <p className="text-sm text-muted-foreground">{runAdvisory.message}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
-                      Proceed
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
-                      Add warm-ups
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
-                      Reduce 10%
-                    </Button>
-                  </div>
-                </div>
-              )}
+            </div>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                <input
+                  type="radio"
+                  name="recoveryChoice"
+                  checked={recoveryChoice === "proceed"}
+                  onChange={() => setRecoveryChoice("proceed")}
+                  className="accent-foreground"
+                />
+                Proceed as planned
+              </label>
+              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                <input
+                  type="radio"
+                  name="recoveryChoice"
+                  checked={recoveryChoice === "reduce"}
+                  onChange={() => setRecoveryChoice("reduce")}
+                  className="accent-foreground"
+                />
+                Reduce T1 weight by 10%
+              </label>
+            </div>
+          </div>
+        )}
 
-              {runAdvisory && !runAdvisoryDismissed && runAdvisory.level === "strong_rest" && (
-                <div className="rounded-xl border border-red-700 bg-red-900/30 p-4 space-y-3">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-red-400">Strong Rest Recommended</p>
-                      <p className="text-sm text-muted-foreground">{runAdvisory.message}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
-                      Proceed anyway
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => router.push("/")}>
-                      Rest today
-                    </Button>
-                  </div>
-                </div>
-              )}
+        {/* Collapsible: How are you feeling? */}
+        <details className="group border border-border rounded-xl">
+          <summary className="px-4 py-3 flex items-center justify-between cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <span>How are you feeling?</span>
+            <span className="text-xs group-open:rotate-180 transition-transform">&#9660;</span>
+          </summary>
+          <div className="px-4 pb-4">
+            <ReadinessCheck
+              sleepHours={sleepHours}
+              stressLevel={stressLevel}
+              onSleepChange={setSleepHours}
+              onStressChange={setStressLevel}
+            />
+          </div>
+        </details>
 
-              {/* Recovery Warning */}
-              {recoveryWarnings.length > 0 && (
-                <div className="rounded-xl border border-amber-700 bg-amber-900/30 p-4 space-y-3">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
-                    <div className="space-y-2">
-                      {recoveryWarnings.map((w) => (
-                        <p key={w.exerciseName} className="text-sm text-muted-foreground">
-                          You trained {w.exerciseName} <span className="font-mono tabular-nums">{w.hoursAgo}h</span> ago.
+        {/* Collapsible: Any pain or soreness? */}
+        <details className="group border border-border rounded-xl">
+          <summary className="px-4 py-3 flex items-center justify-between cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <span>Any pain or soreness?</span>
+            {recentPainEntries.length > 0 && (
+              <Badge variant="outline" className="ml-2 text-xs">{recentPainEntries.length}</Badge>
+            )}
+            <span className="text-xs group-open:rotate-180 transition-transform ml-auto">&#9660;</span>
+          </summary>
+          <div className="px-4 pb-4 space-y-3">
+            {recentPainEntries.length > 0 && (
+              <div className="space-y-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-3">
+                <p className="text-xs font-semibold text-yellow-400">
+                  Active entries (last 7 days)
+                </p>
+                {recentPainEntries.slice(0, 3).map((entry) => (
+                  <div key={entry.id} className="text-xs text-muted-foreground">
+                    {entry.region.replace(/_/g, " ")} — {entry.sensation} (severity {entry.severity}/5)
+                  </div>
+                ))}
+                {recentPainEntries.length > 3 && (
+                  <p className="text-xs text-muted-foreground">
+                    +{recentPainEntries.length - 3} more
+                  </p>
+                )}
+              </div>
+            )}
+            <Link href="/body-check">
+              <Button variant="outline" size="sm" className="w-full">
+                Log pain/soreness
+              </Button>
+            </Link>
+          </div>
+        </details>
+
+        {/* Collapsible: Technique review (only if T1 is squat/deadlift) */}
+        {t1Type && (
+          <details className="group border border-border rounded-xl">
+            <summary className="px-4 py-3 flex items-center justify-between cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <span>Technique review ({t1Type === "squat" ? "Squat" : "Deadlift"})</span>
+              <span className="text-xs group-open:rotate-180 transition-transform">&#9660;</span>
+            </summary>
+            <div className="px-4 pb-4">
+              <TechniqueChecklist exerciseType={t1Type} />
+            </div>
+          </details>
+        )}
+
+        {/* Weight Decay Suggestions */}
+        {decaySuggestions
+          .filter((s) => !dismissedDecays.has(`${s.exerciseId}-${s.tier}`))
+          .map((suggestion) => {
+            const exerciseName =
+              EXERCISES[suggestion.exerciseId]?.name ?? suggestion.exerciseId;
+            const weeks = Math.floor(suggestion.daysSinceLastWorkout / 7);
+
+            return (
+              <div
+                key={`decay-${suggestion.exerciseId}-${suggestion.tier}`}
+                className="rounded-xl border border-amber-700 bg-amber-900/30 p-4 space-y-3"
+              >
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-amber-400">
+                    {exerciseName} ({suggestion.tier})
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {weeks} week{weeks !== 1 ? "s" : ""} since last session.
+                    Suggest reducing from{" "}
+                    <span className="font-mono tabular-nums">{suggestion.currentWeight}</span> to{" "}
+                    <span className="font-mono tabular-nums">{suggestion.suggestedWeight} lbs</span>.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() =>
+                      handleAcceptDecay(
+                        suggestion.exerciseId,
+                        suggestion.tier,
+                        suggestion.suggestedWeight
+                      )
+                    }
+                  >
+                    Accept ({suggestion.suggestedWeight} lbs)
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      handleDismissDecay(suggestion.exerciseId, suggestion.tier)
+                    }
+                  >
+                    Keep {suggestion.currentWeight} lbs
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+
+        {/* Exercise list */}
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Exercises</h2>
+          {effectiveAdaptations.map((ea) => {
+            if (!ea) return null;
+            const { templateExercise, exercise, weight, adaptation } = ea;
+
+            const exerciseWarmUpSets = warmUpSetsMap.get(
+              templateExercise.exerciseId
+            );
+
+            const setsLabel = templateExercise.isAMRAP
+              ? `${templateExercise.sets}x${templateExercise.reps}+`
+              : `${templateExercise.sets}x${templateExercise.reps}`;
+
+            return (
+              <div
+                key={templateExercise.exerciseId + templateExercise.tier}
+                className="space-y-2"
+              >
+                {/* Original exercise line */}
+                <div className="text-sm font-medium">
+                  <span className="text-muted-foreground">
+                    {templateExercise.tier}
+                  </span>{" "}
+                  {exercise.name} <span className="font-mono tabular-nums">{setsLabel}</span>
+                  {weight > 0 && <span className="font-mono tabular-nums"> @ {weight} lbs</span>}
+                </div>
+
+                {/* Adapted exercise (home only) */}
+                {location === "home" && adaptation && (
+                  <div className="pl-4 space-y-1">
+                    {adaptation.adaptationStatus !== "no_substitute" ? (
+                      <>
+                        <div className="text-sm">
+                          {"\u2192"} {adaptation.adaptedExercise.name} <span className="font-mono tabular-nums">@{" "}
+                          {adaptation.adaptedWeight} lbs</span>
+                          {adaptation.adaptedExercise.grip === "per_hand" &&
+                            "/hand"}
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                          <StatusBadge
+                            status={adaptation.adaptationStatus}
+                          />
+                          <ConfidenceBadge
+                            level={adaptation.confidenceLevel}
+                          />
+                        </div>
+                        {/* Alternative picker */}
+                        {adaptation.alternatives.length > 1 && (
+                          <div className="mt-2 space-y-1">
+                            <p className="text-xs text-muted-foreground">Alternatives:</p>
+                            {adaptation.alternatives.map((alt) => (
+                              <button
+                                key={alt.exercise.id}
+                                type="button"
+                                className={`w-full text-left text-xs px-2 py-1.5 rounded border transition-all ${
+                                  adaptation.adaptedExercise.id === alt.exercise.id
+                                    ? "border-foreground/40 bg-foreground/5"
+                                    : "border-border hover:border-foreground/20"
+                                }`}
+                                onClick={() =>
+                                  setExerciseOverrides((prev) => ({
+                                    ...prev,
+                                    [templateExercise.exerciseId]: alt.exercise.id,
+                                  }))
+                                }
+                              >
+                                <span className="font-medium">{alt.exercise.name}</span>{" "}
+                                <span className="font-mono tabular-nums">@ {alt.weight} {alt.exercise.grip === "per_hand" ? "lbs/hand" : "lbs"}</span>
+                                {alt.pros && (
+                                  <span className="text-muted-foreground ml-1">— {alt.pros}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        No home substitute available
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Warm-up sets */}
+                {warmUps &&
+                  exerciseWarmUpSets &&
+                  exerciseWarmUpSets.length > 0 && (
+                    <div className="pl-4">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Warm-up:
+                      </p>
+                      {exerciseWarmUpSets.map((ws, i) => (
+                        <p
+                          key={i}
+                          className="text-xs text-muted-foreground font-mono tabular-nums"
+                        >
+                          {ws.label}: {ws.weight} lbs x {ws.reps}
                         </p>
                       ))}
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                      <input
-                        type="radio"
-                        name="recoveryChoice"
-                        checked={recoveryChoice === "proceed"}
-                        onChange={() => setRecoveryChoice("proceed")}
-                        className="accent-foreground"
-                      />
-                      Proceed as planned
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                      <input
-                        type="radio"
-                        name="recoveryChoice"
-                        checked={recoveryChoice === "reduce"}
-                        onChange={() => setRecoveryChoice("reduce")}
-                        className="accent-foreground"
-                      />
-                      Reduce T1 weight by 10%
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {/* No warnings remaining */}
-              {((!runAdvisory || runAdvisoryDismissed) && recoveryWarnings.length === 0) && (
-                <p className="text-sm text-muted-foreground">No warnings to show.</p>
-              )}
-
-              <Button
-                className="w-full"
-                onClick={handleWarningsNext}
-                disabled={
-                  (runAdvisory && !runAdvisoryDismissed) ||
-                  (recoveryWarnings.length > 0 && recoveryChoice === null)
-                }
-              >
-                Continue {"\u2192"} Technique
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ─── Step 1.75: Technique Checklist ───────────────────────── */}
-        {currentStep === "technique" && t1Type && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-end mb-3">
-                <Badge variant="outline">{location === "home" ? "Home" : "Gym"}</Badge>
-              </div>
-              <TechniqueChecklist
-                exerciseType={t1Type}
-                onNext={handleTechniqueNext}
-                onSkip={handleTechniqueSkip}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ─── Step 2: Body Check ───────────────────────────────────── */}
-        {currentStep === "bodycheck" && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Body Check</CardTitle>
-                  <CardDescription>Any pain or soreness?</CardDescription>
-                </div>
-                <Badge variant="outline">{location === "home" ? "Home" : "Gym"}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {recentPainEntries.length > 0 && (
-                <div className="space-y-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-3">
-                  <p className="text-xs font-semibold text-yellow-400">
-                    Active entries (last 7 days)
-                  </p>
-                  {recentPainEntries.slice(0, 3).map((entry) => (
-                    <div key={entry.id} className="text-xs text-muted-foreground">
-                      {entry.region.replace(/_/g, " ")} — {entry.sensation} (severity {entry.severity}/5)
-                    </div>
-                  ))}
-                  {recentPainEntries.length > 3 && (
-                    <p className="text-xs text-muted-foreground">
-                      +{recentPainEntries.length - 3} more
-                    </p>
                   )}
-                </div>
-              )}
-              <Button className="w-full" onClick={handleBodyCheckNext}>
-                I feel fine {"\u2192"} Next
-              </Button>
-              <Link href="/body-check">
-                <Button variant="outline" className="w-full">
-                  Log pain/soreness
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
+              </div>
+            );
+          })}
+        </div>
 
-        {/* ─── Step 3: Exercise Preview + Accessories ───────────────── */}
-        {currentStep === "preview" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {templateName}
-                {location === "home" ? " (at HOME)" : " (at GYM)"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Weight Decay Suggestions */}
-              {decaySuggestions
-                .filter((s) => !dismissedDecays.has(`${s.exerciseId}-${s.tier}`))
-                .map((suggestion) => {
-                  const exerciseName =
-                    EXERCISES[suggestion.exerciseId]?.name ?? suggestion.exerciseId;
-                  const weeks = Math.floor(suggestion.daysSinceLastWorkout / 7);
+        <Separator />
 
-                  return (
-                    <div
-                      key={`decay-${suggestion.exerciseId}-${suggestion.tier}`}
-                      className="rounded-xl border border-amber-700 bg-amber-900/30 p-4 space-y-3"
-                    >
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold text-amber-400">
-                          {exerciseName} ({suggestion.tier})
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {weeks} week{weeks !== 1 ? "s" : ""} since last session.
-                          Suggest reducing from{" "}
-                          <span className="font-mono tabular-nums">{suggestion.currentWeight}</span> to{" "}
-                          <span className="font-mono tabular-nums">{suggestion.suggestedWeight} lbs</span>.
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="default"
-                          onClick={() =>
-                            handleAcceptDecay(
-                              suggestion.exerciseId,
-                              suggestion.tier,
-                              suggestion.suggestedWeight
-                            )
-                          }
-                        >
-                          Accept ({suggestion.suggestedWeight} lbs)
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            handleDismissDecay(suggestion.exerciseId, suggestion.tier)
-                          }
-                        >
-                          Keep {suggestion.currentWeight} lbs
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+        {/* Accessories */}
+        <AccessoryPicker
+          recommendations={accessoryRecommendations}
+          selectedAccessories={selectedAccessories}
+          onToggle={handleToggleAccessory}
+          trainingPhase={trainingPhase}
+          location={location}
+          exercisePreferences={exercisePreferences}
+        />
 
-              {/* Exercise list */}
-              {effectiveAdaptations.map((ea) => {
-                if (!ea) return null;
-                const { templateExercise, exercise, weight, adaptation } = ea;
+        <Separator />
 
-                const exerciseWarmUpSets = warmUpSetsMap.get(
-                  templateExercise.exerciseId
-                );
+        {/* Time estimate */}
+        <TimeEstimate accessoryCount={selectedAccessories.length} />
+      </div>
 
-                const setsLabel = templateExercise.isAMRAP
-                  ? `${templateExercise.sets}x${templateExercise.reps}+`
-                  : `${templateExercise.sets}x${templateExercise.reps}`;
-
-                return (
-                  <div
-                    key={templateExercise.exerciseId + templateExercise.tier}
-                    className="space-y-2"
-                  >
-                    {/* Original exercise line */}
-                    <div className="text-sm font-medium">
-                      <span className="text-muted-foreground">
-                        {templateExercise.tier}
-                      </span>{" "}
-                      {exercise.name} <span className="font-mono tabular-nums">{setsLabel}</span>
-                      {weight > 0 && <span className="font-mono tabular-nums"> @ {weight} lbs</span>}
-                    </div>
-
-                    {/* Adapted exercise (home only) */}
-                    {location === "home" && adaptation && (
-                      <div className="pl-4 space-y-1">
-                        {adaptation.adaptationStatus !== "no_substitute" ? (
-                          <>
-                            <div className="text-sm">
-                              {"\u2192"} {adaptation.adaptedExercise.name} <span className="font-mono tabular-nums">@{" "}
-                              {adaptation.adaptedWeight} lbs</span>
-                              {adaptation.adaptedExercise.grip === "per_hand" &&
-                                "/hand"}
-                            </div>
-                            <div className="flex gap-2 flex-wrap">
-                              <StatusBadge
-                                status={adaptation.adaptationStatus}
-                              />
-                              <ConfidenceBadge
-                                level={adaptation.confidenceLevel}
-                              />
-                            </div>
-                            {/* Alternative picker */}
-                            {adaptation.alternatives.length > 1 && (
-                              <div className="mt-2 space-y-1">
-                                <p className="text-xs text-muted-foreground">Alternatives:</p>
-                                {adaptation.alternatives.map((alt) => (
-                                  <button
-                                    key={alt.exercise.id}
-                                    type="button"
-                                    className={`w-full text-left text-xs px-2 py-1.5 rounded border transition-all ${
-                                      adaptation.adaptedExercise.id === alt.exercise.id
-                                        ? "border-foreground/40 bg-foreground/5"
-                                        : "border-border hover:border-foreground/20"
-                                    }`}
-                                    onClick={() =>
-                                      setExerciseOverrides((prev) => ({
-                                        ...prev,
-                                        [templateExercise.exerciseId]: alt.exercise.id,
-                                      }))
-                                    }
-                                  >
-                                    <span className="font-medium">{alt.exercise.name}</span>{" "}
-                                    <span className="font-mono tabular-nums">@ {alt.weight} {alt.exercise.grip === "per_hand" ? "lbs/hand" : "lbs"}</span>
-                                    {alt.pros && (
-                                      <span className="text-muted-foreground ml-1">— {alt.pros}</span>
-                                    )}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <div className="text-sm text-muted-foreground">
-                            No home substitute available
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Warm-up sets */}
-                    {warmUps &&
-                      exerciseWarmUpSets &&
-                      exerciseWarmUpSets.length > 0 && (
-                        <div className="pl-4">
-                          <p className="text-xs text-muted-foreground mb-1">
-                            Warm-up:
-                          </p>
-                          {exerciseWarmUpSets.map((ws, i) => (
-                            <p
-                              key={i}
-                              className="text-xs text-muted-foreground font-mono tabular-nums"
-                            >
-                              {ws.label}: {ws.weight} lbs x {ws.reps}
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                  </div>
-                );
-              })}
-
-              <Separator />
-
-              {/* Accessories */}
-              <AccessoryPicker
-                recommendations={accessoryRecommendations}
-                selectedAccessories={selectedAccessories}
-                onToggle={handleToggleAccessory}
-                trainingPhase={trainingPhase}
-                location={location}
-                exercisePreferences={exercisePreferences}
-              />
-
-              <Separator />
-
-              {/* Time estimate */}
-              <TimeEstimate accessoryCount={selectedAccessories.length} />
-
-              {/* Start button */}
-              <Button
-                className="w-full h-12 text-lg font-bold"
-                onClick={handleStartWorkout}
-                disabled={isStarting}
-              >
-                {isStarting ? "Starting..." : "START WORKOUT"}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+      {/* Sticky START button */}
+      <div className="fixed bottom-0 inset-x-0 p-4 bg-background/95 backdrop-blur border-t border-border safe-bottom">
+        <div className="mx-auto max-w-lg">
+          <Button
+            className="w-full h-14 text-lg font-bold"
+            onClick={handleStartWorkout}
+            disabled={isStarting}
+          >
+            {isStarting ? "Starting..." : "START WORKOUT"}
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 
 interface TechniqueChecklistProps {
   exerciseType: "squat" | "deadlift";
-  onNext: () => void;
-  onSkip: () => void;
+  onNext?: () => void;
+  onSkip?: () => void;
 }
 
 const SQUAT_CUES = [
@@ -62,14 +62,20 @@ export function TechniqueChecklist({
         ))}
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Button onClick={onNext}>
-          Got it {"\u2192"} Next
-        </Button>
-        <Button variant="ghost" onClick={onSkip}>
-          Skip
-        </Button>
-      </div>
+      {(onNext || onSkip) && (
+        <div className="flex flex-col gap-2">
+          {onNext && (
+            <Button onClick={onNext}>
+              Got it {"\u2192"} Next
+            </Button>
+          )}
+          {onSkip && (
+            <Button variant="ghost" onClick={onSkip}>
+              Skip
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
