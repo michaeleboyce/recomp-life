@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   roundToNearest5,
   getIncrement,
+  shouldFreezeProgression,
   evaluateT1Progression,
   evaluateT2Progression,
   evaluateT3Progression,
@@ -218,6 +219,24 @@ describe("getIncrement", () => {
     const eq = makeEquipment({ dumbbellIncrementLbs: 5 });
     expect(getIncrement("upper", "home", eq)).toBe(5);
     expect(getIncrement("lower", "home", eq)).toBe(5);
+  });
+});
+
+describe("shouldFreezeProgression", () => {
+  it("returns true when 0 sets completed (skipped)", () => {
+    expect(shouldFreezeProgression(0, 5)).toBe(true);
+  });
+
+  it("returns true when partially completed", () => {
+    expect(shouldFreezeProgression(2, 5)).toBe(true);
+  });
+
+  it("returns false when all sets completed", () => {
+    expect(shouldFreezeProgression(5, 5)).toBe(false);
+  });
+
+  it("returns false when more than target sets completed", () => {
+    expect(shouldFreezeProgression(6, 5)).toBe(false);
   });
 });
 

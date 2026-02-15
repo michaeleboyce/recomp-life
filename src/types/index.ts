@@ -168,6 +168,7 @@ export interface WorkoutSession {
   sets: SetLog[];
   preWorkoutPainEntries: PainSorenessEntry[];
   modifications: WorkoutModification[];
+  endedEarly?: boolean;
   synced: boolean;
 }
 

@@ -18,6 +18,7 @@ import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { generateWarmUpSets } from "@/lib/warmups";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
 import { calculateRecoveryStatus } from "@/lib/recovery";
+import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -277,6 +278,9 @@ function ConfigureWorkoutContent() {
   // User overrides for alternative exercise selections
   const [exerciseOverrides, setExerciseOverrides] = useState<Record<string, string>>({});
 
+  // Accepted/dismissed decay suggestions
+  const [dismissedDecays, setDismissedDecays] = useState<Set<string>>(new Set());
+
   // ─── Derived data ─────────────────────────────────────────────────────
 
   const equipment: EquipmentProfile =
@@ -284,6 +288,32 @@ function ConfigureWorkoutContent() {
 
   const trainingPhase: TrainingPhase =
     userProfile?.settings?.trainingPhase ?? DEFAULT_PHASE;
+
+  // Weight decay suggestions for stale lifts
+  const decaySuggestions = useMemo(() => {
+    if (!template) return [];
+    return getExerciseDecaySuggestions(
+      template.exercises,
+      liftStates,
+      trainingPhase,
+      new Date()
+    );
+  }, [template, liftStates, trainingPhase]);
+
+  const handleAcceptDecay = useCallback(
+    async (exerciseId: string, tier: "T1" | "T2", newWeight: number) => {
+      const ls = liftStates.find((l) => l.exerciseId === exerciseId);
+      if (!ls) return;
+      const update =
+        tier === "T1" ? { t1Weight: newWeight } : { t2Weight: newWeight };
+      await db.liftStates.put({ ...ls, ...update, synced: false });
+    },
+    [liftStates]
+  );
+
+  const handleDismissDecay = useCallback((exerciseId: string, tier: string) => {
+    setDismissedDecays((prev) => new Set(prev).add(`${exerciseId}-${tier}`));
+  }, []);
 
   const t1Type = template ? getT1ExerciseType(template) : null;
 
@@ -797,6 +827,58 @@ function ConfigureWorkoutContent() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Weight Decay Suggestions */}
+              {decaySuggestions
+                .filter((s) => !dismissedDecays.has(`${s.exerciseId}-${s.tier}`))
+                .map((suggestion) => {
+                  const exerciseName =
+                    EXERCISES[suggestion.exerciseId]?.name ?? suggestion.exerciseId;
+                  const weeks = Math.floor(suggestion.daysSinceLastWorkout / 7);
+
+                  return (
+                    <div
+                      key={`decay-${suggestion.exerciseId}-${suggestion.tier}`}
+                      className="rounded-xl border border-amber-700 bg-amber-900/30 p-4 space-y-3"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-amber-400">
+                          {exerciseName} ({suggestion.tier})
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {weeks} week{weeks !== 1 ? "s" : ""} since last session.
+                          Suggest reducing from{" "}
+                          <span className="font-mono tabular-nums">{suggestion.currentWeight}</span> to{" "}
+                          <span className="font-mono tabular-nums">{suggestion.suggestedWeight} lbs</span>.
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() =>
+                            handleAcceptDecay(
+                              suggestion.exerciseId,
+                              suggestion.tier,
+                              suggestion.suggestedWeight
+                            )
+                          }
+                        >
+                          Accept ({suggestion.suggestedWeight} lbs)
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleDismissDecay(suggestion.exerciseId, suggestion.tier)
+                          }
+                        >
+                          Keep {suggestion.currentWeight} lbs
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+
               {/* Exercise list */}
               {effectiveAdaptations.map((ea) => {
                 if (!ea) return null;

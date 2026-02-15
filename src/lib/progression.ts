@@ -56,6 +56,21 @@ export function getIncrement(
 }
 
 // ---------------------------------------------------------------------------
+// Partial-completion freeze detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true if the exercise was only partially completed (or fully skipped),
+ * meaning progression should be frozen — no pass, no fail.
+ */
+export function shouldFreezeProgression(
+  setsCompleted: number,
+  targetSets: number
+): boolean {
+  return setsCompleted < targetSets;
+}
+
+// ---------------------------------------------------------------------------
 // Freeze-status detection
 // ---------------------------------------------------------------------------
 

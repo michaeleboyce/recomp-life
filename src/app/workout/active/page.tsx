@@ -15,6 +15,7 @@ import {
   evaluateT1Progression,
   evaluateT2Progression,
   evaluateT2AutoRegulation,
+  shouldFreezeProgression,
 } from "@/lib/progression";
 import type {
   SetLog,
@@ -38,6 +39,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { WorkoutComplete } from "@/components/ui/workout-complete";
+import { EndWorkoutConfirmDialog } from "@/components/ActiveWorkout/EndWorkoutConfirmDialog";
 
 // Rest time defaults per tier
 function getDefaultRestTime(
@@ -109,6 +111,7 @@ function ActiveWorkoutContent() {
   const [t2AutoRegAccepted, setT2AutoRegAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [showEndDialog, setShowEndDialog] = useState(false);
 
   // Screen Wake Lock — keeps the screen on during the active workout
   useEffect(() => {
@@ -312,6 +315,29 @@ function ActiveWorkoutContent() {
     exercises.length > 0 &&
     currentExerciseIndex >= exercises.length;
 
+  // Navigation guard: prevent accidental tab close/refresh
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (exercises.length > 0 && !isWorkoutComplete) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [exercises.length, isWorkoutComplete]);
+
+  // Navigation guard: intercept browser back button
+  useEffect(() => {
+    if (exercises.length === 0 || isWorkoutComplete) return;
+    window.history.pushState(null, "", window.location.href);
+    const handler = () => {
+      window.history.pushState(null, "", window.location.href);
+      setShowEndDialog(true);
+    };
+    window.addEventListener("popstate", handler);
+    return () => window.removeEventListener("popstate", handler);
+  }, [exercises.length, isWorkoutComplete]);
+
   // Determine if current set is AMRAP
   const isCurrentSetAMRAP = useMemo(() => {
     if (!currentExercise) return false;
@@ -469,6 +495,30 @@ function ActiveWorkoutContent() {
     setT2AutoRegBanner(null);
   }, []);
 
+  // Compute remaining exercises for end-workout dialog
+  const remainingExercises = useMemo(() => {
+    return exercises
+      .filter((e) => !e.isWarmUp && e.completedSets < e.targetSets)
+      .map((e) => {
+        const exercise = getExercise(
+          e.substituteExerciseId || e.exerciseId
+        );
+        return {
+          name: exercise.name,
+          tier: e.tier,
+          setsCompleted: e.completedSets,
+          targetSets: e.targetSets,
+        };
+      });
+  }, [exercises]);
+
+  // Handle ending workout early
+  const handleEndWorkout = useCallback(() => {
+    setShowEndDialog(false);
+    // Jump past all exercises to trigger workout complete
+    useWorkoutStore.setState({ currentExerciseIndex: exercises.length });
+  }, [exercises.length]);
+
   // Handle workout completion
   const handleCompleteWorkout = useCallback(async () => {
     if (!session || !liftStates || !settings || isCompleting) return;
@@ -493,6 +543,33 @@ function ActiveWorkoutContent() {
           );
 
           if (exerciseSets.length === 0) continue;
+
+          // Check for partial completion — freeze progression if so
+          const matchingExercise = exercises.find(
+            (e) =>
+              e.exerciseId === templateEx.exerciseId &&
+              e.tier === templateEx.tier &&
+              !e.isWarmUp
+          );
+          const targetSets = matchingExercise?.targetSets ?? templateEx.sets;
+
+          if (shouldFreezeProgression(exerciseSets.length, targetSets)) {
+            // Partial completion — freeze progression but update lastWorkoutDate
+            if (templateEx.tier === "T1") {
+              await db.liftStates.put({
+                ...ls,
+                t1LastWorkoutDate: new Date(),
+                synced: false,
+              });
+            } else if (templateEx.tier === "T2") {
+              await db.liftStates.put({
+                ...ls,
+                t2LastWorkoutDate: new Date(),
+                synced: false,
+              });
+            }
+            continue;
+          }
 
           const liftType = getLiftType(templateEx.exerciseId);
 
@@ -580,10 +657,13 @@ function ActiveWorkoutContent() {
         ? Math.floor((now.getTime() - workoutStartTime.getTime()) / 1000)
         : 0;
 
+      const endedEarly = currentExerciseIndex < exercises.length;
+
       await db.workouts.update(session.id, {
         completedAt: now,
         totalDurationSeconds: durationSeconds,
         sets: completedSets,
+        ...(endedEarly ? { endedEarly: true } : {}),
       });
 
       // Navigate to summary
@@ -599,6 +679,8 @@ function ActiveWorkoutContent() {
     isCompleting,
     completedSets,
     workoutStartTime,
+    currentExerciseIndex,
+    exercises,
     router,
   ]);
 
@@ -814,7 +896,26 @@ function ActiveWorkoutContent() {
           exercises={exercises}
           currentExerciseIndex={currentExerciseIndex}
         />
+
+        {/* End Workout Early */}
+        <div className="px-4 mt-6 mb-4">
+          <Button
+            variant="ghost"
+            className="w-full text-destructive hover:text-destructive"
+            onClick={() => setShowEndDialog(true)}
+          >
+            End Workout Early
+          </Button>
+        </div>
       </div>
+
+      {/* End Workout Confirmation Dialog */}
+      <EndWorkoutConfirmDialog
+        open={showEndDialog}
+        onOpenChange={setShowEndDialog}
+        onConfirm={handleEndWorkout}
+        remainingExercises={remainingExercises}
+      />
     </div>
   );
 }

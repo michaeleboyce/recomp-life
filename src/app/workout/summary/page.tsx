@@ -162,6 +162,19 @@ function WorkoutSummaryContent() {
         s.status === "autoregulated_load_drop"
     );
 
+    // Check for partial completion (fewer sets than expected for the stage)
+    if (tier === "T1" || tier === "T2") {
+      const stageConfigs: Record<string, number> = {
+        "5x3": 5, "6x2": 6, "10x1": 10,
+        "3x10": 3, "3x8": 3, "3x6": 3,
+      };
+      const stage = tier === "T1" ? state.t1Stage : state.t2Stage;
+      const expectedSets = stageConfigs[stage] ?? sets.length;
+      if (sets.length < expectedSets) {
+        return { passed: null, nextWeight: null, stageChange: null };
+      }
+    }
+
     const allCompleted = sets.every(
       (s) => s.status === "completed" && s.actualReps >= s.targetReps
     );
@@ -233,6 +246,40 @@ function WorkoutSummaryContent() {
     return { passed: allCompleted, nextWeight: null, stageChange: null };
   }
 
+  // Identify skipped and partially completed exercises when workout ended early
+  const frozenExercises: { name: string; tier: string; label: string }[] = [];
+  if (session.endedEarly && template) {
+    const stageConfigs: Record<string, number> = {
+      "5x3": 5, "6x2": 6, "10x1": 10,
+      "3x10": 3, "3x8": 3, "3x6": 3,
+    };
+
+    for (const tmplEx of template.exercises) {
+      if (tmplEx.tier !== "T1" && tmplEx.tier !== "T2") continue;
+      const exerciseName = EXERCISES[tmplEx.exerciseId]?.name ?? tmplEx.exerciseId;
+      const loggedSets = session.sets.filter(
+        (s) => s.exerciseId === tmplEx.exerciseId && s.tier === tmplEx.tier && s.tier !== "warmup"
+      );
+      const ls = liftStates?.find((l) => l.exerciseId === tmplEx.exerciseId);
+      const stage = tmplEx.tier === "T1" ? ls?.t1Stage : ls?.t2Stage;
+      const expectedSets = stage ? (stageConfigs[stage] ?? tmplEx.sets) : tmplEx.sets;
+
+      if (loggedSets.length === 0) {
+        frozenExercises.push({
+          name: exerciseName,
+          tier: tmplEx.tier,
+          label: "skipped, progression frozen",
+        });
+      } else if (loggedSets.length < expectedSets) {
+        frozenExercises.push({
+          name: exerciseName,
+          tier: tmplEx.tier,
+          label: `partial (${loggedSets.length}/${expectedSets} sets), progression frozen`,
+        });
+      }
+    }
+  }
+
   const locationLabel = session.location === "gym" ? "\uD83C\uDFCB\uFE0F Gym" : "\uD83C\uDFE0 Home";
 
   // Find the T1 exercise name for the header
@@ -275,6 +322,24 @@ function WorkoutSummaryContent() {
             )}
           </CardContent>
         </Card>
+
+        {/* Ended Early Banner */}
+        {frozenExercises.length > 0 && (
+          <Card className="border-amber-700 bg-amber-900/20">
+            <CardContent className="py-4 space-y-2">
+              <p className="text-sm font-semibold text-amber-400">
+                Workout ended early
+              </p>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                {frozenExercises.map((ex) => (
+                  <li key={`${ex.name}-${ex.tier}`}>
+                    {ex.name} ({ex.tier}) &mdash; {ex.label}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Main Lifts */}
         <div className="space-y-3">
