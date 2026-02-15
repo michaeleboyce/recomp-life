@@ -341,6 +341,14 @@ export interface DeloadWeek {
   return: string;
 }
 
+export interface DeloadPrescription {
+  weightReductionPercent: number;
+  t3VolumeReduction: number; // 0 = no reduction, 0.25 = -25%, 0.5 = -50% (half)
+  dropAllAccessories: boolean;
+  maxAccessories: number;
+  rpeTarget: string;
+}
+
 export interface FatigueAlert {
   level: FatigueAlertLevel;
   signals: FatigueSignal[];
