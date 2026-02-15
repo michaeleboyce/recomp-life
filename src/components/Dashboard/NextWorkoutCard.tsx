@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
+import { Dumbbell, Home, Footprints, Camera } from "lucide-react";
 import type { WorkoutLocation } from "@/types";
 
 export default function NextWorkoutCard() {
@@ -91,7 +93,7 @@ export default function NextWorkoutCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Exercise list */}
-        <div className="space-y-2">
+        <div className="space-y-0">
           {t1Exercise && t1Info && (
             <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
               <div>
@@ -105,15 +107,16 @@ export default function NextWorkoutCard() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-foreground">
+                <p className="text-sm font-bold text-foreground font-mono">
                   {t1State?.t1Weight ?? "—"} lbs
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground font-mono">
                   {t1State?.t1Stage ?? "5x3"}
                 </p>
               </div>
             </div>
           )}
+          {t1Exercise && t2Exercise && <Separator className="my-1" />}
           {t2Exercise && t2Info && (
             <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
               <div>
@@ -127,10 +130,10 @@ export default function NextWorkoutCard() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-foreground">
+                <p className="text-sm font-bold text-foreground font-mono">
                   {t2State?.t2Weight ?? "—"} lbs
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground font-mono">
                   {t2State?.t2Stage ?? "3x10"}
                 </p>
               </div>
@@ -149,29 +152,33 @@ export default function NextWorkoutCard() {
           </div>
         )}
 
-        {/* Location toggle */}
-        <div className="flex gap-2">
-          <Button
-            variant={location === "gym" ? "default" : "outline"}
-            size="sm"
+        {/* Location segmented control */}
+        <div className="flex rounded-lg bg-muted/50 p-1">
+          <button
             onClick={() => setLocation("gym")}
-            className="flex-1"
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-150 ${
+              location === "gym"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
-            {"\uD83C\uDFCB\uFE0F"} GYM
-          </Button>
-          <Button
-            variant={location === "home" ? "default" : "outline"}
-            size="sm"
+            <Dumbbell className="h-4 w-4" /> Gym
+          </button>
+          <button
             onClick={() => setLocation("home")}
-            className="flex-1"
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-150 ${
+              location === "home"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
-            {"\uD83C\uDFE0"} HOME
-          </Button>
+            <Home className="h-4 w-4" /> Home
+          </button>
         </div>
 
         {/* Start workout button */}
         <Link href="/workout/configure" className="block">
-          <Button className="w-full h-12 text-base font-bold" size="lg">
+          <Button className="w-full h-12 text-base font-bold active:scale-[1.02] transition-transform" size="lg">
             START WORKOUT
           </Button>
         </Link>
@@ -180,12 +187,12 @@ export default function NextWorkoutCard() {
         <div className="flex gap-2">
           <Link href="/run" className="flex-1">
             <Button variant="outline" size="sm" className="w-full">
-              {"\uD83C\uDFC3"} Log a Run
+              <Footprints className="h-4 w-4" /> Log a Run
             </Button>
           </Link>
           <Link href="/body-check" className="flex-1">
             <Button variant="outline" size="sm" className="w-full">
-              {"\uD83E\uDE79"} Body Check
+              <Camera className="h-4 w-4" /> Body Check
             </Button>
           </Link>
         </div>

@@ -13,6 +13,7 @@ import {
   ACCESSORY_RECOMMENDATIONS,
 } from "@/lib/workoutTemplates";
 import { EXERCISES } from "@/lib/exercises";
+import { applyPreferences } from "@/lib/exercisePreferences";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { generateWarmUpSets } from "@/lib/warmups";
 
@@ -25,6 +26,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Check, AlertTriangle, X, Circle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 
@@ -110,19 +112,19 @@ function ConfidenceBadge({ level }: { level: "high" | "medium" | "low" }) {
     case "high":
       return (
         <Badge className="bg-green-600 text-white border-0">
-          {"\uD83D\uDFE2"} High conf.
+          <Circle className="h-3 w-3 fill-current" /> High conf.
         </Badge>
       );
     case "medium":
       return (
         <Badge className="bg-yellow-600 text-white border-0">
-          {"\uD83D\uDFE1"} Medium conf.
+          <Circle className="h-3 w-3 fill-current" /> Medium conf.
         </Badge>
       );
     case "low":
       return (
         <Badge className="bg-red-600 text-white border-0">
-          {"\uD83D\uDD34"} Low conf.
+          <Circle className="h-3 w-3 fill-current" /> Low conf.
         </Badge>
       );
   }
@@ -131,15 +133,15 @@ function ConfidenceBadge({ level }: { level: "high" | "medium" | "low" }) {
 function StatusBadge({ status }: { status: string }) {
   switch (status) {
     case "fits":
-      return <Badge variant="secondary">{"\u2705"} Fits</Badge>;
+      return <Badge variant="secondary"><Check className="h-3 w-3" /> Fits</Badge>;
     case "borderline":
       return (
         <Badge className="bg-yellow-600/20 text-yellow-400 border-0">
-          {"\u26A0\uFE0F"} Borderline
+          <AlertTriangle className="h-3 w-3" /> Borderline
         </Badge>
       );
     case "exceeds":
-      return <Badge variant="destructive">{"\u274C"} Exceeds</Badge>;
+      return <Badge variant="destructive"><X className="h-3 w-3" /> Exceeds</Badge>;
     case "no_substitute":
       return <Badge variant="outline">No substitute</Badge>;
     default:
@@ -263,8 +265,11 @@ function ConfigureWorkoutContent() {
 
   const t1Type = template ? getT1ExerciseType(template) : null;
 
-  const accessoryRecommendations =
-    ACCESSORY_RECOMMENDATIONS[templateId] ?? [];
+  const exercisePreferences = userProfile?.settings?.exercisePreferences;
+  const accessoryRecommendations = useMemo(
+    () => applyPreferences(ACCESSORY_RECOMMENDATIONS[templateId] ?? [], exercisePreferences),
+    [templateId, exercisePreferences]
+  );
 
   const exerciseAdaptations = useMemo(() => {
     if (!template) return [];
@@ -443,7 +448,15 @@ function ConfigureWorkoutContent() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-lg px-4 py-6 space-y-4">
         {/* Progress bar */}
-        <Progress value={getProgressPercent(currentStep)} className="h-1.5" />
+        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full rounded-full bg-foreground/80 transition-all duration-300 ease-out"
+            style={{
+              width: `${getProgressPercent(currentStep)}%`,
+              boxShadow: "0 0 8px oklch(0.85 0 0 / 0.3)",
+            }}
+          />
+        </div>
 
         {/* ─── Step 1: Location + Warm-ups ──────────────────────────── */}
         {currentStep === "location" && (
@@ -635,6 +648,7 @@ function ConfigureWorkoutContent() {
                 onToggle={handleToggleAccessory}
                 trainingPhase={trainingPhase}
                 location={location}
+                exercisePreferences={exercisePreferences}
               />
 
               <Separator />

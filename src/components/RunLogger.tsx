@@ -30,6 +30,14 @@ const EFFORT_LABELS: Record<number, string> = {
   5: "All-out",
 };
 
+const EFFORT_COLORS: Record<number, string> = {
+  1: "border-blue-500 bg-blue-500/10 text-blue-400",
+  2: "border-sky-400 bg-sky-400/10 text-sky-300",
+  3: "border-zinc-400 bg-zinc-400/10 text-zinc-300",
+  4: "border-amber-500 bg-amber-500/10 text-amber-400",
+  5: "border-red-500 bg-red-500/10 text-red-400",
+};
+
 export default function RunLogger() {
   const router = useRouter();
 
@@ -102,7 +110,7 @@ export default function RunLogger() {
             placeholder="30"
             value={durationMinutes}
             onChange={(e) => setDurationMinutes(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-foreground/30"
           />
         </div>
 
@@ -119,7 +127,7 @@ export default function RunLogger() {
             placeholder="3.0"
             value={distanceMiles}
             onChange={(e) => setDistanceMiles(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-foreground/30"
           />
         </div>
 
@@ -132,7 +140,7 @@ export default function RunLogger() {
                 key={value}
                 type="button"
                 onClick={() => setRunType(value)}
-                className={`flex-1 rounded-md border px-3 py-2 text-sm transition-colors ${
+                className={`flex-1 rounded-md border px-3 py-2 text-sm transition-all duration-150 ${
                   runType === value
                     ? "border-primary bg-primary/10 text-primary font-medium"
                     : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
@@ -153,7 +161,7 @@ export default function RunLogger() {
                 key={value}
                 type="button"
                 onClick={() => setCategory(value)}
-                className={`rounded-md border px-3 py-2 text-sm transition-colors ${
+                className={`rounded-md border px-3 py-2 text-sm transition-all duration-150 ${
                   category === value
                     ? "border-primary bg-primary/10 text-primary font-medium"
                     : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
@@ -176,9 +184,9 @@ export default function RunLogger() {
                 key={level}
                 type="button"
                 onClick={() => setPerceivedEffort(level)}
-                className={`flex-1 flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 text-xs transition-colors ${
+                className={`flex-1 flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 text-xs transition-all duration-150 ${
                   perceivedEffort === level
-                    ? "border-primary bg-primary/10 text-primary font-medium"
+                    ? `${EFFORT_COLORS[level]} font-medium`
                     : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
                 }`}
               >
@@ -199,7 +207,7 @@ export default function RunLogger() {
             placeholder="How did it feel?"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-foreground/30 resize-none"
           />
         </div>
 

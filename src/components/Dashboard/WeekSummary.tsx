@@ -3,7 +3,6 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 
 function getMonday(date: Date): Date {
   const d = new Date(date);
@@ -12,6 +11,69 @@ function getMonday(date: Date): Date {
   d.setDate(diff);
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+function WorkoutRing({ count, target }: { count: number; target: number }) {
+  const size = 60;
+  const strokeWidth = 5;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = Math.min(count / target, 1);
+  const offset = circumference * (1 - progress);
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="oklch(0.3 0 0)"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="oklch(0.85 0 0)"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-all duration-700 ease-out"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-xs font-bold text-foreground">
+          {count}/{target}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function WeekDots({ completedCount }: { completedCount: number }) {
+  const today = new Date().getDay();
+  const todayIndex = today === 0 ? 4 : today - 1;
+
+  return (
+    <div className="flex gap-1.5 justify-center mt-2">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className={`h-2 w-2 rounded-full transition-all ${
+            i < completedCount
+              ? "bg-foreground"
+              : i === todayIndex
+                ? "bg-muted-foreground animate-pulse"
+                : "bg-muted-foreground/30"
+          }`}
+        />
+      ))}
+    </div>
+  );
 }
 
 export default function WeekSummary() {
@@ -28,20 +90,13 @@ export default function WeekSummary() {
 
   const count = weekWorkouts?.length ?? 0;
   const target = 5;
-  const percent = Math.min((count / target) * 100, 100);
 
   return (
     <Card>
-      <CardContent className="pt-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-foreground">
-            This Week: {count}/{target} workouts
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {percent.toFixed(0)}%
-          </span>
-        </div>
-        <Progress value={percent} className="h-2" />
+      <CardContent className="pt-4 flex flex-col items-center">
+        <WorkoutRing count={count} target={target} />
+        <WeekDots completedCount={count} />
+        <p className="text-xs text-muted-foreground mt-2">This Week</p>
       </CardContent>
     </Card>
   );

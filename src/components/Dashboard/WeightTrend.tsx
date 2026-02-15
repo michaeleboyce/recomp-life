@@ -5,6 +5,7 @@ import { db } from "@/db/local";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -76,10 +77,10 @@ export default function WeightTrend() {
   return (
     <Card className="border-0 bg-transparent shadow-none py-2 gap-2">
       <CardContent className="px-0">
-        <h2 className="text-xl font-semibold text-foreground">
+        <h2 className="text-base text-muted-foreground">
           {greeting}, {name}
         </h2>
-        <div className="mt-2 flex items-center justify-between">
+        <div className="mt-3 mb-1 flex items-center justify-between">
           <div>
             {currentWeight !== null ? (
               <div className="flex items-baseline gap-2">
@@ -111,6 +112,21 @@ export default function WeightTrend() {
               <p className="text-xs text-muted-foreground mt-1">
                 7-day avg: {avg7Day.toFixed(1)} lbs
               </p>
+            )}
+            {allRecentWeights && allRecentWeights.length >= 2 && (
+              <div className="w-20 h-8 mt-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={allRecentWeights.map(w => ({ weight: w.weight }))}>
+                    <Line
+                      type="monotone"
+                      dataKey="weight"
+                      stroke="oklch(0.6 0.1 260)"
+                      strokeWidth={1.5}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </div>
           <Link href="/weigh-in">

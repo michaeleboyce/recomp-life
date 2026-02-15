@@ -29,39 +29,54 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-4">
-      {/* Header */}
-      <header className="flex items-center justify-between mb-4">
-        <h1 className="text-lg font-bold text-foreground">ReComp Life</h1>
-        <Link
-          href="/settings"
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Settings className="h-5 w-5" />
-        </Link>
-      </header>
+      {/* Header with ambient gradient */}
+      <div className="relative mb-4">
+        <div className="absolute inset-0 -mx-4 -mt-4 h-48 bg-gradient-to-b from-indigo-950/30 via-slate-950/20 to-transparent pointer-events-none" />
+        <div className="relative">
+          <header className="flex items-center justify-between mb-4">
+            <h1 className="text-lg font-bold text-foreground">ReComp Life</h1>
+            <Link
+              href="/settings"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Settings className="h-5 w-5" />
+            </Link>
+          </header>
+          <WeightTrend />
+        </div>
+      </div>
 
       {/* Dashboard sections */}
       <div className="space-y-4">
-        {/* Greeting + Weight */}
-        <WeightTrend />
-
         {/* Active Pain Banner */}
-        <ActivePainBanner />
+        <div className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both" style={{ animationDelay: "0ms", animationDuration: "300ms" }}>
+          <ActivePainBanner />
+        </div>
 
         {/* Recovery Status */}
-        <RecoveryStatusBars />
+        <div className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both" style={{ animationDelay: "60ms", animationDuration: "300ms" }}>
+          <RecoveryStatusBars />
+        </div>
 
         {/* Week Summary */}
-        <WeekSummary />
+        <div className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both" style={{ animationDelay: "120ms", animationDuration: "300ms" }}>
+          <WeekSummary />
+        </div>
 
         {/* Next Workout */}
-        <NextWorkoutCard />
+        <div className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both" style={{ animationDelay: "180ms", animationDuration: "300ms" }}>
+          <NextWorkoutCard />
+        </div>
 
         {/* E1RM Summary */}
-        <E1RMSummary />
+        <div className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both" style={{ animationDelay: "240ms", animationDuration: "300ms" }}>
+          <E1RMSummary />
+        </div>
 
         {/* Last Workout Recap */}
-        <GymDebtBanner />
+        <div className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both" style={{ animationDelay: "300ms", animationDuration: "300ms" }}>
+          <GymDebtBanner />
+        </div>
       </div>
     </div>
   );

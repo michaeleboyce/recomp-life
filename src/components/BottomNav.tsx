@@ -23,7 +23,7 @@ export default function BottomNav() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center gap-1 px-3 py-2 text-xs transition-colors ${
+              className={`flex flex-col items-center gap-1 px-3 py-2 text-xs transition-all active:scale-110 ${
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
