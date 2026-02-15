@@ -293,6 +293,66 @@ export const EXERCISES: Record<string, Exercise> = {
     secondaryMuscles: ["left_hamstring", "right_hamstring"],
     painSensitiveRegions: [],
   },
+
+  hammer_curls: {
+    id: "hammer_curls",
+    name: "Hammer Curls",
+    type: "dumbbell",
+    muscleGroup: "pull",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["left_elbow", "right_elbow"],
+    secondaryMuscles: [],
+    painSensitiveRegions: [],
+  },
+
+  front_raises: {
+    id: "front_raises",
+    name: "Front Raises",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["left_shoulder", "right_shoulder"],
+    secondaryMuscles: [],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
+  reverse_fly: {
+    id: "reverse_fly",
+    name: "Reverse Fly",
+    type: "dumbbell",
+    muscleGroup: "pull",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["left_shoulder", "right_shoulder", "upper_back"],
+    secondaryMuscles: [],
+    painSensitiveRegions: [],
+  },
+
+  arnold_press: {
+    id: "arnold_press",
+    name: "Arnold Press",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["left_shoulder", "right_shoulder"],
+    secondaryMuscles: ["chest"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
+  db_skull_crushers: {
+    id: "db_skull_crushers",
+    name: "DB Skull Crushers",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["left_elbow", "right_elbow"],
+    secondaryMuscles: [],
+    painSensitiveRegions: ["left_elbow", "right_elbow"],
+  },
 };
 
 /** Single source of truth for which exercises are accessories. */
@@ -300,6 +360,7 @@ export const ACCESSORY_IDS: string[] = [
   "face_pulls", "lateral_raises", "bicep_curls", "tricep_pushdowns",
   "oh_tricep_ext", "incline_db_fly", "leg_curls", "leg_extensions",
   "calf_raises", "ab_rollout", "back_extensions", "hip_thrust",
+  "hammer_curls", "front_raises", "reverse_fly", "arnold_press", "db_skull_crushers",
 ];
 
 /**

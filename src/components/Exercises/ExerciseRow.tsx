@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { isPreferenceEditable } from "@/lib/exerciseCategories";
 import { getPreference } from "@/lib/exercisePreferences";
 import { getExercise } from "@/lib/exercises";
+import { calculateE1RM } from "@/lib/e1rm";
 import { formatRegion } from "@/lib/painModifications";
 import type { Exercise, ExercisePreference, ExercisePreferences } from "@/types";
 
@@ -142,6 +143,7 @@ export default function ExerciseRow({
           {exercise.grip && (
             <DetailRow label="Grip" value={formatGrip(exercise.grip)} />
           )}
+          <InlineE1RMCalc exerciseName={exercise.name} />
         </div>
       )}
     </div>
@@ -163,4 +165,59 @@ function capitalize(s: string): string {
 
 function formatGrip(grip: string): string {
   return grip.split("_").map(capitalize).join(" ");
+}
+
+function InlineE1RMCalc({ exerciseName }: { exerciseName: string }) {
+  const [weight, setWeight] = useState("");
+  const [reps, setReps] = useState("");
+
+  const weightNum = parseFloat(weight);
+  const repsNum = parseInt(reps, 10);
+  const e1rm =
+    !isNaN(weightNum) && weightNum > 0 && !isNaN(repsNum) && repsNum >= 2
+      ? calculateE1RM(weightNum, repsNum)
+      : null;
+
+  return (
+    <div className="mt-2 pt-2 border-t border-border/50">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+        Quick 1RM Estimate
+      </p>
+      <div className="flex items-end gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex-1">
+          <label className="text-[10px] text-muted-foreground block mb-0.5">
+            Weight
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            placeholder="lbs"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+            className="w-full rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
+          />
+        </div>
+        <div className="flex-1">
+          <label className="text-[10px] text-muted-foreground block mb-0.5">
+            Reps
+          </label>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="reps"
+            value={reps}
+            onChange={(e) => setReps(e.target.value)}
+            className="w-full rounded border border-input bg-background px-2 py-1 text-xs text-foreground"
+          />
+        </div>
+        <div className="flex-1 text-right">
+          {e1rm !== null ? (
+            <p className="text-sm font-bold text-primary">{e1rm} lbs</p>
+          ) : (
+            <p className="text-[10px] text-muted-foreground">2+ reps</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }

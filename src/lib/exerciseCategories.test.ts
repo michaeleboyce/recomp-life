@@ -44,10 +44,10 @@ describe("getGroupedExercises", () => {
     ]);
   });
 
-  it("Accessories contains all 12 accessory exercises", () => {
+  it("Accessories contains all 17 accessory exercises", () => {
     const groups = getGroupedExercises();
     const accessories = groups.find((g) => g.label === "Accessories")!;
-    expect(accessories.exercises).toHaveLength(12);
+    expect(accessories.exercises).toHaveLength(17);
     expect(accessories.exercises.map((e) => e.id)).toEqual(ACCESSORY_IDS);
   });
 
