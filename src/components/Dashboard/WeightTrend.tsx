@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -84,9 +85,7 @@ export default function WeightTrend() {
           <div>
             {currentWeight !== null ? (
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-foreground">
-                  {currentWeight}
-                </span>
+                <AnimatedNumber value={currentWeight} className="text-3xl font-bold text-foreground" />
                 <span className="text-sm text-muted-foreground">lbs</span>
                 {trend && trend.symbol && (
                   <span
