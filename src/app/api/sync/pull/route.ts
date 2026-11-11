@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { neonSql } from '@/db/drizzle';
+import { isSyncAuthorized } from '@/lib/syncGuard';
 
 const TABLES = [
   { name: 'workouts', pgName: 'workouts' },
@@ -68,7 +69,11 @@ function toCamelCase(pgTableName: string, row: Record<string, unknown>): Record<
   return result;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  if (!isSyncAuthorized(request.headers.get('authorization'), process.env.SYNC_SECRET)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const result: Record<string, unknown[]> = {};
 

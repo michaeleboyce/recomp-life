@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import EquipmentProfileEditor from "@/components/Equipment/EquipmentProfileEditor";
 import ExercisePreferencesEditor from "@/components/Settings/ExercisePreferencesEditor";
 import { SkeletonCard } from "@/components/ui/skeleton";
+import { getSyncKey, setSyncKey } from "@/lib/syncKey";
 
 function formatHeight(totalInches: number): string {
   const feet = Math.floor(totalInches / 12);
@@ -415,6 +416,9 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Cloud Sync Section */}
+        <SyncKeyCard />
+
         {/* Data Section */}
         <Card>
           <CardContent>
@@ -593,5 +597,72 @@ function NumberField({
         {value} {suffix}
       </button>
     </div>
+  );
+}
+
+function SyncKeyCard() {
+  const [draft, setDraft] = useState("");
+  // Only rendered after the local database is ready (client-side), so reading
+  // localStorage during the first render cannot cause a hydration mismatch.
+  const [hasKey, setHasKey] = useState(() => getSyncKey() !== null);
+  const [saved, setSaved] = useState(false);
+
+  const save = (value: string) => {
+    setSyncKey(value);
+    setHasKey(getSyncKey() !== null);
+    setDraft("");
+    setSaved(true);
+    window.dispatchEvent(new Event("recomp-sync-key-changed"));
+  };
+
+  return (
+    <Card>
+      <CardContent>
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+          Cloud Sync
+        </h2>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Status</span>
+            <span className="text-sm font-medium">
+              {hasKey ? "Passphrase saved" : "Off (local only)"}
+            </span>
+          </div>
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (draft.trim()) save(draft);
+            }}
+          >
+            <input
+              type="password"
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                setSaved(false);
+              }}
+              placeholder={hasKey ? "Replace passphrase" : "Sync passphrase"}
+              autoComplete="off"
+              aria-label="Sync passphrase"
+              className="min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+            />
+            <Button type="submit" variant="outline" disabled={!draft.trim()}>
+              Save
+            </Button>
+          </form>
+          {hasKey && (
+            <Button variant="ghost" className="w-full" onClick={() => save("")}>
+              Remove passphrase from this device
+            </Button>
+          )}
+          <p className="text-xs text-muted-foreground pt-1">
+            {saved && hasKey
+              ? "Saved. Syncing now."
+              : "Must match the SYNC_SECRET set on the server. Stored on this device only."}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

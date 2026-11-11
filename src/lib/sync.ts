@@ -1,5 +1,8 @@
 import { db } from '@/db/local';
 import type { Table } from 'dexie';
+import { syncAuthHeaders } from '@/lib/syncKey';
+
+export const SYNC_UNAUTHORIZED = 'Sync passphrase missing or rejected';
 
 export interface SyncResult {
   pushed: number;
@@ -33,7 +36,7 @@ export async function pushUnsynced(): Promise<number> {
 
     const response = await fetch('/api/sync/push', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...syncAuthHeaders() },
       body: JSON.stringify({ table: name, rows: unsynced }),
     });
 
@@ -44,6 +47,9 @@ export async function pushUnsynced(): Promise<number> {
         .anyOf(unsynced.map((r: Record<string, unknown>) => r[primaryKey] as string))
         .modify({ synced: true });
       totalPushed += unsynced.length;
+    } else if (response.status === 401) {
+      // Every table would fail the same way — stop instead of retrying each one.
+      throw new Error(SYNC_UNAUTHORIZED);
     } else {
       const err = await response.json().catch(() => ({ error: 'Unknown' }));
       console.error(`Push failed for ${name}:`, err);
@@ -54,7 +60,10 @@ export async function pushUnsynced(): Promise<number> {
 }
 
 export async function pullFromServer(): Promise<number> {
-  const response = await fetch('/api/sync/pull');
+  const response = await fetch('/api/sync/pull', { headers: syncAuthHeaders() });
+  if (response.status === 401) {
+    throw new Error(SYNC_UNAUTHORIZED);
+  }
   if (!response.ok) {
     throw new Error(`Pull failed: ${response.status}`);
   }

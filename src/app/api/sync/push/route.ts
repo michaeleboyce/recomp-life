@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { neonSql } from '@/db/drizzle';
+import {
+  isSyncAuthorized,
+  findUnknownColumns,
+  SYNC_ALLOWED_COLUMNS,
+  type SyncTableName,
+} from '@/lib/syncGuard';
 
 // Map camelCase client keys to snake_case Postgres column names per table
 const COLUMN_MAPS: Record<string, Record<string, string>> = {
@@ -72,6 +78,10 @@ function toSnakeCase(tableName: string, row: Record<string, unknown>): Record<st
 }
 
 export async function POST(request: NextRequest) {
+  if (!isSyncAuthorized(request.headers.get('authorization'), process.env.SYNC_SECRET)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { table, rows } = await request.json() as {
       table: string;
@@ -88,9 +98,21 @@ export async function POST(request: NextRequest) {
 
     const pgTableName = PG_TABLE_NAMES[table];
     const pk = PK_COLUMNS[table];
+    const allowedColumns = SYNC_ALLOWED_COLUMNS[table as SyncTableName];
 
-    for (const row of rows) {
-      const mapped = toSnakeCase(table, row);
+    // Column names are interpolated into the SQL below, so every one must be a
+    // known schema column. Validate all rows before writing any of them.
+    const mappedRows = rows.map((row) => toSnakeCase(table, row));
+    for (const mapped of mappedRows) {
+      if (findUnknownColumns(Object.keys(mapped), allowedColumns).length > 0) {
+        return NextResponse.json(
+          { error: `Unknown column in rows for table: ${table}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    for (const mapped of mappedRows) {
       const columns = Object.keys(mapped);
       const values = Object.values(mapped);
 
