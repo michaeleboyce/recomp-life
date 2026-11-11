@@ -6,11 +6,12 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import { getGroupedExercises } from "@/lib/exerciseCategories";
+import { getGroupedExercises, filterGroupsByMuscle } from "@/lib/exerciseCategories";
 import ExerciseRow from "@/components/Exercises/ExerciseRow";
+import { MuscleFilter } from "@/components/Exercises/MuscleFilter";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SkeletonCard } from "@/components/ui/skeleton";
-import type { ExercisePreference, ExercisePreferences, MuscleGroup } from "@/types";
+import type { ExercisePreference, ExercisePreferences, MuscleGroup, MuscleId } from "@/types";
 
 type FilterTab = "all" | "push" | "pull" | "legs" | "core";
 
@@ -25,6 +26,7 @@ const FILTER_TABS: { value: FilterTab; label: string }[] = [
 export default function ExercisesPage() {
   const [dbReady, setDbReady] = useState(false);
   const [filter, setFilter] = useState<FilterTab>("all");
+  const [muscle, setMuscle] = useState<MuscleId | null>(null);
 
   useEffect(() => {
     initializeDatabase().then(() => setDbReady(true));
@@ -38,8 +40,9 @@ export default function ExercisesPage() {
 
   const preferences = profile?.settings.exercisePreferences ?? {};
 
-  const groups = getGroupedExercises(
-    filter === "all" ? undefined : (filter as MuscleGroup)
+  const groups = filterGroupsByMuscle(
+    getGroupedExercises(filter === "all" ? undefined : (filter as MuscleGroup)),
+    muscle
   );
 
   const handlePreferenceChange = useCallback(
@@ -93,6 +96,14 @@ export default function ExercisesPage() {
         options={FILTER_TABS.map((tab) => ({ value: tab.value, label: tab.label }))}
         className="mb-4"
       />
+
+      <MuscleFilter value={muscle} onChange={setMuscle} />
+
+      {groups.length === 0 && (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          No exercises match this filter.
+        </p>
+      )}
 
       {/* Grouped sections */}
       <div className="space-y-6">

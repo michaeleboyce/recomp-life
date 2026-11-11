@@ -8,7 +8,7 @@ import type {
   WorkoutSession,
 } from "@/types";
 import { EXERCISES } from "./exercises";
-import { MUSCLE_IDS } from "./muscles";
+import { MUSCLE_IDS, MUSCLE_VIEW } from "./muscles";
 import { calculateRecoveryStatus } from "./recovery";
 import { calculateMuscleGroupVolume, getCountedExercise } from "./volumeTracking";
 
@@ -76,6 +76,38 @@ export function calculateMuscleLoad(sets: SetLog[]): MuscleValues {
     load[muscle as MuscleId] = v.totalFractional;
   }
   return load;
+}
+
+/**
+ * Fractional sets per muscle from per-exercise set counts (primary 1.0,
+ * secondary 0.5). For work that is not yet a list of logged sets: the
+ * session in progress, or a planned workout.
+ */
+export function loadFromSetCounts(
+  items: { exerciseId: string; sets: number }[]
+): MuscleValues {
+  const load: MuscleValues = {};
+  for (const { exerciseId, sets } of items) {
+    const exercise = EXERCISES[exerciseId];
+    if (!exercise || sets <= 0) continue;
+    for (const m of exercise.primaryMuscles) load[m] = (load[m] ?? 0) + sets;
+    for (const m of exercise.secondaryMuscles) load[m] = (load[m] ?? 0) + sets * 0.5;
+  }
+  return load;
+}
+
+/** The side of the body that shows an exercise's primary muscles best. */
+export function bestViewForExercise(exerciseId: string): "front" | "back" {
+  const exercise = EXERCISES[exerciseId];
+  if (!exercise) return "front";
+  let front = 0;
+  let back = 0;
+  for (const m of exercise.primaryMuscles) {
+    const view = MUSCLE_VIEW[m];
+    if (view === "front") front += 1;
+    else if (view === "back") back += 1;
+  }
+  return back > front ? "back" : "front";
 }
 
 /** Fractional sets per muscle across completed workouts in a Mon-Sun week. */

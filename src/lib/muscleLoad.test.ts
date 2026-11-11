@@ -11,6 +11,8 @@ import {
   getMuscleLastTrained,
   getMuscleRecovery,
   exercisesForMuscle,
+  loadFromSetCounts,
+  bestViewForExercise,
 } from "./muscleLoad";
 import { MUSCLE_IDS } from "./muscles";
 import type { SetLog, TrainingPhase, WorkoutSession } from "@/types";
@@ -239,6 +241,49 @@ describe("getMuscleRecovery (R3)", () => {
   it("treats never-trained muscles as detraining", () => {
     const r = getMuscleRecovery(workouts, hoursAfter(trainedAt, 1), maintaining);
     expect(r.biceps).toBe("detraining");
+  });
+});
+
+describe("loadFromSetCounts (R12)", () => {
+  it("weights each exercise by its set count", () => {
+    const load = loadFromSetCounts([
+      { exerciseId: "bench", sets: 3 },
+      { exerciseId: "tricep_pushdowns", sets: 2 },
+    ]);
+    expect(load.chest).toBe(3);
+    // bench secondary 3 * 0.5 + pushdowns primary 2 * 1.0
+    expect(load.triceps).toBe(3.5);
+  });
+
+  it("ignores zero counts and unknown exercises", () => {
+    expect(
+      loadFromSetCounts([
+        { exerciseId: "bench", sets: 0 },
+        { exerciseId: "nope", sets: 4 },
+      ])
+    ).toEqual({});
+  });
+
+  it("agrees with calculateMuscleLoad for the same work", () => {
+    const fromSets = calculateMuscleLoad([
+      makeSet({ exerciseId: "squat", id: "a" }),
+      makeSet({ exerciseId: "squat", id: "b" }),
+    ]);
+    expect(loadFromSetCounts([{ exerciseId: "squat", sets: 2 }])).toEqual(fromSets);
+  });
+});
+
+describe("bestViewForExercise", () => {
+  it("picks the side that shows the primary muscles", () => {
+    expect(bestViewForExercise("bench")).toBe("front");
+    expect(bestViewForExercise("lat_pulldown")).toBe("back");
+    expect(bestViewForExercise("deadlift")).toBe("back");
+    expect(bestViewForExercise("bicep_curls")).toBe("front");
+    expect(bestViewForExercise("tricep_pushdowns")).toBe("back");
+  });
+
+  it("defaults to front for an unknown exercise", () => {
+    expect(bestViewForExercise("nope")).toBe("front");
   });
 });
 

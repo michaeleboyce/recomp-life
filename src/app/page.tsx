@@ -14,6 +14,7 @@ import ActivePainBanner from "@/components/Dashboard/ActivePainBanner";
 import RecoveryStatusBars from "@/components/Dashboard/RecoveryStatusBars";
 import WeekSummary from "@/components/Dashboard/WeekSummary";
 import NextWorkoutCard from "@/components/Dashboard/NextWorkoutCard";
+import MuscleHeatCard from "@/components/Dashboard/MuscleHeatCard";
 import E1RMSummary from "@/components/Dashboard/E1RMSummary";
 import GymDebtBanner from "@/components/Dashboard/GymDebtBanner";
 import type { PainSorenessEntry } from "@/types";
@@ -113,6 +114,11 @@ export default function DashboardPage() {
         {/* Next Workout */}
         <div className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both" style={{ animationDelay: "150ms", animationDuration: "300ms" }}>
           <NextWorkoutCard />
+        </div>
+
+        {/* Muscles This Week */}
+        <div className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both" style={{ animationDelay: "175ms", animationDuration: "300ms" }}>
+          <MuscleHeatCard />
         </div>
 
         {/* E1RM Summary */}

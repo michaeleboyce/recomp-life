@@ -2,6 +2,7 @@
 
 import { getExercise } from "@/lib/exercises";
 import { Badge } from "@/components/ui/badge";
+import { SessionMuscleFigure } from "@/components/Anatomy/SessionMuscleFigure";
 import {
   Sheet,
   SheetContent,
@@ -48,6 +49,14 @@ export function WorkoutOverviewSheet({
         <SheetHeader>
           <SheetTitle>Workout Overview</SheetTitle>
         </SheetHeader>
+
+        <SessionMuscleFigure
+          className="px-4 pb-2"
+          exercises={mainExercises.map(({ exercise }) => ({
+            exerciseId: exercise.substituteExerciseId || exercise.exerciseId,
+            completedSets: exercise.completedSets,
+          }))}
+        />
 
         <div className="overflow-y-auto flex-1 py-2 space-y-1">
           {mainExercises.map(({ exercise, originalIndex }, idx) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Dumbbell, Calculator, ChevronRight } from "lucide-react";
+import { Dumbbell, Calculator, ChevronRight, PersonStanding } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const TOOLS = [
@@ -10,6 +10,12 @@ const TOOLS = [
     label: "Exercise Browser",
     description: "Browse all exercises, muscles, equipment, and preferences",
     icon: Dumbbell,
+  },
+  {
+    href: "/muscles",
+    label: "Muscle Explorer",
+    description: "See weekly volume, recovery, and pain on the body",
+    icon: PersonStanding,
   },
   {
     href: "/1rm-calculator",
