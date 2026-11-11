@@ -533,21 +533,21 @@ function ConfigureWorkoutContent() {
           </div>
         )}
 
-        {runAdvisory && !runAdvisoryDismissed && runAdvisory.level === "strong_rest" && (
+        {runAdvisory && !runAdvisoryDismissed && runAdvisory.level === "strong" && (
           <div className="rounded-xl border border-red-700 bg-red-900/30 p-4 space-y-3">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-red-400">Strong Rest Recommended</p>
+                <p className="text-sm font-semibold text-red-400">Legs may still be fatigued</p>
                 <p className="text-sm text-muted-foreground">{runAdvisory.message}</p>
               </div>
             </div>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
-                Proceed anyway
+                Proceed
               </Button>
-              <Button size="sm" variant="destructive" onClick={() => router.push("/")}>
-                Rest today
+              <Button size="sm" variant="outline" onClick={() => router.push("/")}>
+                Skip today
               </Button>
             </div>
           </div>
