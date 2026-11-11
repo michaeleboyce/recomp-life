@@ -386,7 +386,7 @@ export interface FatigueAlert {
 export interface InactivityAlert {
   level: InactivityAlertLevel;
   message: string;
-  prescription: "normal_workout" | "ramp_up_85";
+  prescription: "normal_workout" | "ease_back_in";
 }
 
 export interface StallAlert {
@@ -405,4 +405,104 @@ export interface T2AutoRegResult {
   reducedWeight?: number;
   message?: string;
   progressionEffect?: T2ProgressionEffect;
+}
+
+// Evidence / Research Types
+//
+// The evidence registry (src/lib/evidence) is the single source of truth for
+// every coaching rule: what the app does, why, the research behind it, where
+// it is implemented and where it is shown. See docs/research/ADDING_RESEARCH.md.
+
+/**
+ * How well research supports a rule.
+ * - strong: a position stand or agreeing meta-analyses directly on the rule
+ * - moderate: one meta-analysis or several trials, or strong evidence applied indirectly
+ * - limited: small or untrained-only studies, or the exact number is a judgment call
+ * - heuristic: no direct research; a coaching convention
+ * - program: defined by the GZCLP program itself
+ */
+export type EvidenceStrength =
+  | "strong"
+  | "moderate"
+  | "limited"
+  | "heuristic"
+  | "program";
+
+export type StudyDesign =
+  | "position-stand"
+  | "meta-analysis"
+  | "systematic-review"
+  | "review"
+  | "rct"
+  | "trial";
+
+export type EvidenceArea =
+  | "progression"
+  | "effort"
+  | "rest"
+  | "recovery"
+  | "running"
+  | "volume"
+  | "nutrition"
+  | "pain"
+  | "equipment";
+
+/** active = shown in the UI; planned = logic exists in src/lib but is not connected. */
+export type RuleStatus = "active" | "planned";
+
+export interface EvidenceSource {
+  /** Short label used in inline citations, e.g. "Singer 2024". */
+  short: string;
+  authors: string;
+  year: number;
+  title: string;
+  journal: string;
+  design: StudyDesign;
+  /** Who or what was studied, e.g. "9 studies" or "55 untrained adults". */
+  population: string;
+  /** One plain-language sentence stating what the source found. */
+  finding: string;
+  /** Canonical link to the paper (DOI link preferred). */
+  url: string;
+  doi?: string;
+  pmid?: string;
+  /** Free full text, when one exists and differs from `url`. */
+  fullTextUrl?: string;
+}
+
+export interface EvidenceRule<SourceKey extends string = string> {
+  area: EvidenceArea;
+  status: RuleStatus;
+  /** Heading of the detail sheet, phrased as the user's question. */
+  title: string;
+  /** Inline one-liner shown under a suggestion. Max 80 characters. */
+  summary: string;
+  /** What the app does, with live values interpolated from lib constants. */
+  appBehavior: string;
+  /** Why, in plain language. */
+  rationale: string;
+  /** Limits of the evidence or of the rule. */
+  caveat?: string;
+  strength: EvidenceStrength;
+  sources: readonly SourceKey[];
+  /** YYYY-MM of the last time the evidence for this rule was reviewed. */
+  reviewedOn: string;
+  /** Code locations as "path#symbol". Each file carries an `@evidence <rule-id>` tag. */
+  implementedIn: readonly string[];
+  /** Component files that render an EvidenceLine for this rule. Empty for planned rules. */
+  surfaces: readonly string[];
+  /** For planned rules: what must change before the rule is switched on. */
+  activationNotes?: string;
+}
+
+export interface EvidenceChange<
+  RuleKey extends string = string,
+  SourceKey extends string = string,
+> {
+  /** YYYY-MM-DD */
+  date: string;
+  ruleId: RuleKey;
+  /** What changed in the app, in one sentence. */
+  change: string;
+  sources: readonly SourceKey[];
 }

@@ -85,7 +85,7 @@ describe("calculateRecoveryStatus", () => {
       );
     });
 
-    it("returns 'ready' when lift trained 120-168h ago (past peak but not detraining)", () => {
+    it("returns 'ready' when lift trained 120h ago or more (past peak)", () => {
       const lastT1 = hoursAgo(140, NOW);
       expect(calculateRecoveryStatus(lastT1, null, NOW, maintainingPhase)).toBe(
         "ready"
@@ -99,15 +99,31 @@ describe("calculateRecoveryStatus", () => {
       );
     });
 
-    it("returns 'detraining' when lift not trained in 7+ days (168h+)", () => {
-      const lastT1 = hoursAgo(200, NOW);
+    it("stays 'ready' after a week off: 7 days is not a long break", () => {
+      expect(
+        calculateRecoveryStatus(hoursAgo(168, NOW), null, NOW, maintainingPhase)
+      ).toBe("ready");
+      expect(
+        calculateRecoveryStatus(hoursAgo(200, NOW), null, NOW, maintainingPhase)
+      ).toBe("ready");
+    });
+
+    it("stays 'ready' just under 21 days", () => {
+      const lastT1 = hoursAgo(21 * 24 - 1, NOW);
+      expect(calculateRecoveryStatus(lastT1, null, NOW, maintainingPhase)).toBe(
+        "ready"
+      );
+    });
+
+    it("returns 'detraining' (long break) at exactly 21 days", () => {
+      const lastT1 = daysAgo(21, NOW);
       expect(calculateRecoveryStatus(lastT1, null, NOW, maintainingPhase)).toBe(
         "detraining"
       );
     });
 
-    it("returns 'detraining' at exactly 168h", () => {
-      const lastT1 = hoursAgo(168, NOW);
+    it("returns 'detraining' (long break) well past 21 days", () => {
+      const lastT1 = daysAgo(40, NOW);
       expect(calculateRecoveryStatus(lastT1, null, NOW, maintainingPhase)).toBe(
         "detraining"
       );
@@ -120,7 +136,7 @@ describe("calculateRecoveryStatus", () => {
     });
   });
 
-  describe("cutting phase (+12h bonus to all thresholds)", () => {
+  describe("cutting phase (+12h bonus to the short-term thresholds)", () => {
     it("returns 'recovering' when <60h in cutting (48+12)", () => {
       const lastT1 = hoursAgo(55, NOW);
       expect(calculateRecoveryStatus(lastT1, null, NOW, cuttingPhase)).toBe(
@@ -149,11 +165,20 @@ describe("calculateRecoveryStatus", () => {
       );
     });
 
-    it("returns 'detraining' at 180h in cutting (168+12)", () => {
+    it("stays 'ready' at 180h in cutting", () => {
       const lastT1 = hoursAgo(180, NOW);
       expect(calculateRecoveryStatus(lastT1, null, NOW, cuttingPhase)).toBe(
-        "detraining"
+        "ready"
       );
+    });
+
+    it("uses the same 21-day long-break threshold as other phases (no bonus)", () => {
+      expect(
+        calculateRecoveryStatus(hoursAgo(21 * 24 - 1, NOW), null, NOW, cuttingPhase)
+      ).toBe("ready");
+      expect(
+        calculateRecoveryStatus(daysAgo(21, NOW), null, NOW, cuttingPhase)
+      ).toBe("detraining");
     });
 
     it("still returns 'recovering' at 48h when cutting (would be 'ready' in maintaining)", () => {
@@ -235,18 +260,19 @@ describe("getRecoveryState", () => {
 });
 
 describe("shouldSuggestRampUp", () => {
-  it("returns true when lift not trained in 14+ days", () => {
-    expect(shouldSuggestRampUp(14)).toBe(true);
+  it("returns true when lift not trained in 21+ days", () => {
     expect(shouldSuggestRampUp(21)).toBe(true);
+    expect(shouldSuggestRampUp(45)).toBe(true);
   });
 
-  it("returns false when lift trained within 14 days", () => {
+  it("returns false for breaks shorter than 21 days", () => {
     expect(shouldSuggestRampUp(10)).toBe(false);
-    expect(shouldSuggestRampUp(13)).toBe(false);
+    expect(shouldSuggestRampUp(14)).toBe(false);
+    expect(shouldSuggestRampUp(20)).toBe(false);
   });
 
-  it("returns true at exactly 14 days", () => {
-    expect(shouldSuggestRampUp(14)).toBe(true);
+  it("returns true at exactly 21 days", () => {
+    expect(shouldSuggestRampUp(21)).toBe(true);
   });
 });
 
