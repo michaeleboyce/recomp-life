@@ -8,15 +8,32 @@ interface AMRAPIndicatorProps {
   trainingPhase: TrainingPhase;
 }
 
-export function AMRAPIndicator({ tier, trainingPhase }: AMRAPIndicatorProps) {
+/**
+ * How hard to push the last "as many reps as possible" set.
+ *
+ * Heavy T1 sets stop about one rep short of failure in every phase: strength
+ * gains do not depend on reaching failure, and failure slows recovery.
+ * Lighter T3 sets are pushed close to failure, where muscle growth benefits.
+ *
+ * @evidence amrap-effort
+ */
+export function getAMRAPGuidance(tier: Tier): string | null {
+  if (tier === "T1") return "Stop with about 1 rep left (RPE 9)";
+  if (tier === "T3") return "Push close to failure (0-2 reps left)";
+  return null;
+}
+
+export function AMRAPIndicator({ tier }: AMRAPIndicatorProps) {
+  const guidance = getAMRAPGuidance(tier);
+
   return (
     <Alert className="mx-4 border-amber-500/50 bg-amber-500/10">
       <AlertTitle className="font-semibold text-amber-400">
         AMRAP Set -- As Many Reps As Possible
       </AlertTitle>
-      {tier === "T1" && trainingPhase.mode === "cutting" && (
+      {guidance && (
         <AlertDescription className="text-amber-300/80 text-xs mt-1">
-          Cutting mode: aim for RPE 9 (1 rep in reserve)
+          {guidance}
         </AlertDescription>
       )}
     </Alert>
