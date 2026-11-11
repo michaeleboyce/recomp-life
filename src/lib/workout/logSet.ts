@@ -1,12 +1,9 @@
 import type { SetLog } from "@/types";
 import type { CreateSetLogInput, NextStep, WorkoutExerciseState, WorkoutPlan } from "./types";
 
-const NOT_IMPLEMENTED = "not implemented: src/lib/workout contract stub";
-
 /** True when the next set of this entry is its AMRAP set (the last set of an AMRAP entry). */
 export function isNextSetAMRAP(exercise: WorkoutExerciseState): boolean {
-  void exercise;
-  throw new Error(NOT_IMPLEMENTED);
+  return exercise.isAMRAP && exercise.completedSets + 1 === exercise.targetSets;
 }
 
 /**
@@ -15,8 +12,33 @@ export function isNextSetAMRAP(exercise: WorkoutExerciseState): boolean {
  * `synced` is false and `restAfterSeconds` is 0.
  */
 export function createSetLog(input: CreateSetLogInput): SetLog {
-  void input;
-  throw new Error(NOT_IMPLEMENTED);
+  const { exercise, actualReps, rpe, location, autoRegulated, now, id, clientId } = input;
+
+  return {
+    id,
+    clientId,
+    exerciseId: exercise.exerciseId,
+    tier: exercise.tier,
+    setNumber: exercise.completedSets + 1,
+    targetReps: exercise.targetReps,
+    actualReps,
+    weight: exercise.weight,
+    isAMRAP: isNextSetAMRAP(exercise),
+    completedAt: now,
+    restAfterSeconds: 0,
+    status:
+      autoRegulated && exercise.tier === "T2"
+        ? "autoregulated_load_drop"
+        : actualReps >= exercise.targetReps
+          ? "completed"
+          : "failed",
+    originalWeight: exercise.originalWeight,
+    isSubstituted: !!exercise.substituteExerciseId,
+    substituteExerciseId: exercise.substituteExerciseId,
+    rpe: rpe ?? undefined,
+    location,
+    synced: false,
+  };
 }
 
 /**
@@ -26,7 +48,11 @@ export function createSetLog(input: CreateSetLogInput): SetLog {
  * ("done").
  */
 export function nextStep(plan: WorkoutPlan, index: number): NextStep {
-  void plan;
-  void index;
-  throw new Error(NOT_IMPLEMENTED);
+  const entry = plan[index];
+  if (!entry) return "done";
+
+  const isLastSetOfEntry = entry.completedSets + 1 >= entry.targetSets;
+  if (!isLastSetOfEntry) return "rest";
+
+  return index >= plan.length - 1 ? "done" : "next-exercise";
 }
