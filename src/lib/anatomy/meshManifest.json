@@ -1,0 +1,2197 @@
+[
+ {
+  "name": "Abdominal Part Of Pectoralis Major",
+  "muscle": "chest",
+  "side": "L"
+ },
+ {
+  "name": "Abdominal Part Of Pectoralis Major",
+  "muscle": "chest",
+  "side": "R"
+ },
+ {
+  "name": "Abductor Digiti Minimi Of Hand",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Abductor Digiti Minimi Of Hand",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Abductor Pollicis Brevis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Abductor Pollicis Brevis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Abductor Pollicis Longus",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Abductor Pollicis Longus",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Acromial Part Of Deltoid",
+  "muscle": "side_delts",
+  "side": "L"
+ },
+ {
+  "name": "Acromial Part Of Deltoid",
+  "muscle": "side_delts",
+  "side": "R"
+ },
+ {
+  "name": "Adductor Brevis",
+  "muscle": "adductors",
+  "side": "L"
+ },
+ {
+  "name": "Adductor Brevis",
+  "muscle": "adductors",
+  "side": "R"
+ },
+ {
+  "name": "Adductor Longus",
+  "muscle": "adductors",
+  "side": "L"
+ },
+ {
+  "name": "Adductor Longus",
+  "muscle": "adductors",
+  "side": "R"
+ },
+ {
+  "name": "Adductor Magnus",
+  "muscle": "adductors",
+  "side": "L"
+ },
+ {
+  "name": "Adductor Magnus",
+  "muscle": "adductors",
+  "side": "R"
+ },
+ {
+  "name": "Anconeus",
+  "muscle": "triceps",
+  "side": "L"
+ },
+ {
+  "name": "Anconeus",
+  "muscle": "triceps",
+  "side": "R"
+ },
+ {
+  "name": "Anterior Belly Of Digastric",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Anterior Belly Of Digastric",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Ary-Epiglottic Part Of Oblique Arytenoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Ary-Epiglottic Part Of Oblique Arytenoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Ascending Part Of Trapezius",
+  "muscle": "mid_back",
+  "side": "L"
+ },
+ {
+  "name": "Ascending Part Of Trapezius",
+  "muscle": "mid_back",
+  "side": "R"
+ },
+ {
+  "name": "Brachialis",
+  "muscle": "biceps",
+  "side": "L"
+ },
+ {
+  "name": "Brachialis",
+  "muscle": "biceps",
+  "side": "R"
+ },
+ {
+  "name": "Brachioradialis",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Brachioradialis",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Bucinator",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Bucinator",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Clavicular Head Of Pectoralis Major",
+  "muscle": "chest",
+  "side": "L"
+ },
+ {
+  "name": "Clavicular Head Of Pectoralis Major",
+  "muscle": "chest",
+  "side": "R"
+ },
+ {
+  "name": "Clavicular Part Of Deltoid",
+  "muscle": "front_delts",
+  "side": "L"
+ },
+ {
+  "name": "Clavicular Part Of Deltoid",
+  "muscle": "front_delts",
+  "side": "R"
+ },
+ {
+  "name": "Common Tendinous Ring",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Common Tendinous Ring",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Coracobrachialis",
+  "muscle": "biceps",
+  "side": "L"
+ },
+ {
+  "name": "Coracobrachialis",
+  "muscle": "biceps",
+  "side": "R"
+ },
+ {
+  "name": "Corrugator Supercilii",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Corrugator Supercilii",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Deep Head Of Flexor Pollicis Brevis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Deep Head Of Flexor Pollicis Brevis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Deep Head Of Pronator Teres",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Deep Head Of Pronator Teres",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Deep Part Of Masseter",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Deep Part Of Masseter",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Depressor Anguli Oris",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Depressor Anguli Oris",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Depressor Labii Inferioris",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Depressor Labii Inferioris",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Depressor Septi Nasi",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Depressor Septi Nasi",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Descending Part Of Trapezius",
+  "muscle": "upper_traps",
+  "side": "L"
+ },
+ {
+  "name": "Descending Part Of Trapezius",
+  "muscle": "upper_traps",
+  "side": "R"
+ },
+ {
+  "name": "Diaphragm",
+  "muscle": null,
+  "side": "C"
+ },
+ {
+  "name": "Dorsal Interossei Muscles Of Hand",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Dorsal Interossei Muscles Of Hand",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Dorsal Parts Of Lateral Intertransversarii Lumborum Muscles",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Dorsal Parts Of Lateral Intertransversarii Lumborum Muscles",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Epicranial Aponeurosis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Epicranial Aponeurosis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Extensor Carpi Radialis Brevis",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Extensor Carpi Radialis Brevis",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Extensor Carpi Radialis Longus",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Extensor Carpi Radialis Longus",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Extensor Digiti Minimi",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Extensor Digiti Minimi",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Extensor Digitorum Longus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Extensor Digitorum Longus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Extensor Digitorum",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Extensor Digitorum",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Extensor Hallucis Longus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Extensor Hallucis Longus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Extensor Indicis",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Extensor Indicis",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Extensor Pollicis Brevis",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Extensor Pollicis Brevis",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Extensor Pollicis Longus",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Extensor Pollicis Longus",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "External Abdominal Oblique",
+  "muscle": "obliques",
+  "side": "L"
+ },
+ {
+  "name": "External Abdominal Oblique",
+  "muscle": "obliques",
+  "side": "R"
+ },
+ {
+  "name": "External Intercostal Muscles",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "External Intercostal Muscles",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "External Part Of Thyro-Arytenoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "External Part Of Thyro-Arytenoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Fibularis Brevis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Fibularis Brevis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Fibularis Longus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Fibularis Longus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Fibularis Tertius",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Fibularis Tertius",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Flexor Carpi Radialis",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Flexor Carpi Radialis",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Flexor Digiti Minimi Of Hand",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Flexor Digiti Minimi Of Hand",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Flexor Digitorum Longus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Flexor Digitorum Longus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Flexor Digitorum Profundus",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Flexor Digitorum Profundus",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Flexor Hallucis Longus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Flexor Hallucis Longus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Flexor Pollicis Longus",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Flexor Pollicis Longus",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Frontalis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Frontalis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Genioglossus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Genioglossus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Geniohyoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Geniohyoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Gluteus Maximus",
+  "muscle": "glutes",
+  "side": "L"
+ },
+ {
+  "name": "Gluteus Maximus",
+  "muscle": "glutes",
+  "side": "R"
+ },
+ {
+  "name": "Gluteus Medius",
+  "muscle": "glutes",
+  "side": "L"
+ },
+ {
+  "name": "Gluteus Medius",
+  "muscle": "glutes",
+  "side": "R"
+ },
+ {
+  "name": "Gluteus Minimus",
+  "muscle": "glutes",
+  "side": "L"
+ },
+ {
+  "name": "Gluteus Minimus",
+  "muscle": "glutes",
+  "side": "R"
+ },
+ {
+  "name": "Gracilis",
+  "muscle": "adductors",
+  "side": "L"
+ },
+ {
+  "name": "Gracilis",
+  "muscle": "adductors",
+  "side": "R"
+ },
+ {
+  "name": "Humeral Head Of Extensor Carpi Ulnaris",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Humeral Head Of Extensor Carpi Ulnaris",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Humeral Head Of Flexor Carpi Ulnaris",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Humeral Head Of Flexor Carpi Ulnaris",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Humero-Ulnar Head Of Flexor Digitorum Superficialis",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Humero-Ulnar Head Of Flexor Digitorum Superficialis",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Hyoglossus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Hyoglossus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Iliacus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Iliacus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Iliocostalis Colli",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Iliocostalis Colli",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Iliocostalis Lumborum",
+  "muscle": "lower_back",
+  "side": "L"
+ },
+ {
+  "name": "Iliocostalis Lumborum",
+  "muscle": "lower_back",
+  "side": "R"
+ },
+ {
+  "name": "Iliocostalis Thoracis",
+  "muscle": "lower_back",
+  "side": "L"
+ },
+ {
+  "name": "Iliocostalis Thoracis",
+  "muscle": "lower_back",
+  "side": "R"
+ },
+ {
+  "name": "Inferior Gemellus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Inferior Gemellus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Inferior Head Of Lateral Pterygoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Inferior Head Of Lateral Pterygoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Inferior Oblique",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Inferior Oblique",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Inferior Pharyngeal Constrictor",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Inferior Pharyngeal Constrictor",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Inferior Rectus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Inferior Rectus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Inferior Tarsus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Inferior Tarsus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Infraspinatus",
+  "muscle": "rotator_cuff",
+  "side": "L"
+ },
+ {
+  "name": "Infraspinatus",
+  "muscle": "rotator_cuff",
+  "side": "R"
+ },
+ {
+  "name": "Innermost Intercostal Muscles",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Innermost Intercostal Muscles",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Intermediate Tendon Of Digastric",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Intermediate Tendon Of Digastric",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Internal Abdominal Oblique",
+  "muscle": "obliques",
+  "side": "L"
+ },
+ {
+  "name": "Internal Abdominal Oblique",
+  "muscle": "obliques",
+  "side": "R"
+ },
+ {
+  "name": "Internal Intercostal Muscles",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Internal Intercostal Muscles",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Interspinales Colli Muscles",
+  "muscle": null,
+  "side": "C"
+ },
+ {
+  "name": "Interspinales Colli Muscles",
+  "muscle": null,
+  "side": "C"
+ },
+ {
+  "name": "Interspinales Lumborum Muscles",
+  "muscle": null,
+  "side": "C"
+ },
+ {
+  "name": "Interspinales Lumborum Muscles",
+  "muscle": null,
+  "side": "C"
+ },
+ {
+  "name": "Interspinales Thoracis Muscles",
+  "muscle": null,
+  "side": "C"
+ },
+ {
+  "name": "Interspinales Thoracis Muscles",
+  "muscle": null,
+  "side": "C"
+ },
+ {
+  "name": "Lateral Crico-Arytenoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Lateral Crico-Arytenoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Lateral Head Of Flexor Hallucis Brevis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Lateral Head Of Flexor Hallucis Brevis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Lateral Head Of Gastrocnemius",
+  "muscle": "calves",
+  "side": "L"
+ },
+ {
+  "name": "Lateral Head Of Gastrocnemius",
+  "muscle": "calves",
+  "side": "R"
+ },
+ {
+  "name": "Lateral Head Of Triceps Brachii",
+  "muscle": "triceps",
+  "side": "L"
+ },
+ {
+  "name": "Lateral Head Of Triceps Brachii",
+  "muscle": "triceps",
+  "side": "R"
+ },
+ {
+  "name": "Lateral Rectus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Lateral Rectus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Latissimus Dorsi",
+  "muscle": "lats",
+  "side": "L"
+ },
+ {
+  "name": "Latissimus Dorsi",
+  "muscle": "lats",
+  "side": "R"
+ },
+ {
+  "name": "Levator Anguli Oris",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Levator Anguli Oris",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Levator Labii Superioris",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Levator Labii Superioris",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Levator Nasolabialis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Levator Nasolabialis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Levator Palpebrae Superioris",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Levator Palpebrae Superioris",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Levator Scapulae",
+  "muscle": "upper_traps",
+  "side": "L"
+ },
+ {
+  "name": "Levator Scapulae",
+  "muscle": "upper_traps",
+  "side": "R"
+ },
+ {
+  "name": "Levatores Breves Costarum",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Levatores Breves Costarum",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Levatores Longi Costarum",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Levatores Longi Costarum",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Linea Alba",
+  "muscle": null,
+  "side": "C"
+ },
+ {
+  "name": "Long Head Of Biceps Brachii",
+  "muscle": "biceps",
+  "side": "L"
+ },
+ {
+  "name": "Long Head Of Biceps Brachii",
+  "muscle": "biceps",
+  "side": "R"
+ },
+ {
+  "name": "Long Head Of Biceps Femoris",
+  "muscle": "hamstrings",
+  "side": "L"
+ },
+ {
+  "name": "Long Head Of Biceps Femoris",
+  "muscle": "hamstrings",
+  "side": "R"
+ },
+ {
+  "name": "Long Head Of Triceps Brachii",
+  "muscle": "triceps",
+  "side": "L"
+ },
+ {
+  "name": "Long Head Of Triceps Brachii",
+  "muscle": "triceps",
+  "side": "R"
+ },
+ {
+  "name": "Longissimus Capitis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Longissimus Capitis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Longissimus Colli",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Longissimus Colli",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Longissimus Thoracis",
+  "muscle": "lower_back",
+  "side": "L"
+ },
+ {
+  "name": "Longissimus Thoracis",
+  "muscle": "lower_back",
+  "side": "R"
+ },
+ {
+  "name": "Longus Capitis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Longus Capitis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Longus Colli",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Longus Colli",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Lumbrical Muscles Of Hand",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Lumbrical Muscles Of Hand",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Medial Head Of Flexor Hallucis Brevis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Medial Head Of Flexor Hallucis Brevis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Medial Head Of Gastrocnemius",
+  "muscle": "calves",
+  "side": "L"
+ },
+ {
+  "name": "Medial Head Of Gastrocnemius",
+  "muscle": "calves",
+  "side": "R"
+ },
+ {
+  "name": "Medial Head Of Triceps Brachii",
+  "muscle": "triceps",
+  "side": "L"
+ },
+ {
+  "name": "Medial Head Of Triceps Brachii",
+  "muscle": "triceps",
+  "side": "R"
+ },
+ {
+  "name": "Medial Pterygoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Medial Pterygoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Medial Rectus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Medial Rectus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Mentalis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Mentalis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Middle Pharyngeal Constrictor",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Middle Pharyngeal Constrictor",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Multifidus Colli",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Multifidus Colli",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Multifidus Lumborum",
+  "muscle": "lower_back",
+  "side": "L"
+ },
+ {
+  "name": "Multifidus Lumborum",
+  "muscle": "lower_back",
+  "side": "R"
+ },
+ {
+  "name": "Multifidus Thoracis",
+  "muscle": "lower_back",
+  "side": "L"
+ },
+ {
+  "name": "Multifidus Thoracis",
+  "muscle": "lower_back",
+  "side": "R"
+ },
+ {
+  "name": "Mylohyoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Mylohyoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Nasalis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Nasalis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Oblique Head Of Adductor Hallucis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Oblique Head Of Adductor Hallucis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Oblique Head Of Adductor Pollicis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Oblique Head Of Adductor Pollicis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Oblique Part Of Cricothyroid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Oblique Part Of Cricothyroid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Obliquus Inferior Capitis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Obliquus Inferior Capitis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Obliquus Superior Capitis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Obliquus Superior Capitis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Obturator Externus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Obturator Externus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Obturator Internus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Obturator Internus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Occipitalis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Occipitalis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Omohyoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Omohyoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Opponens Digiti Minimi Muscle Of Hand",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Opponens Digiti Minimi Muscle Of Hand",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Opponens Pollicis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Opponens Pollicis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Orbicularis Oris",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Orbicularis Oris",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Orbital Part Of Orbicularis Oculi",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Orbital Part Of Orbicularis Oculi",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Palatopharyngeus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Palatopharyngeus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Palmar Interossei Muscles",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Palmar Interossei Muscles",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Palmaris Longus",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Palmaris Longus",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Palpebral Part Of Orbicularis Oculi",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Palpebral Part Of Orbicularis Oculi",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Pectineus",
+  "muscle": "adductors",
+  "side": "L"
+ },
+ {
+  "name": "Pectineus",
+  "muscle": "adductors",
+  "side": "R"
+ },
+ {
+  "name": "Pectoralis Minor",
+  "muscle": "chest",
+  "side": "L"
+ },
+ {
+  "name": "Pectoralis Minor",
+  "muscle": "chest",
+  "side": "R"
+ },
+ {
+  "name": "Piriformis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Piriformis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Plantaris",
+  "muscle": "calves",
+  "side": "L"
+ },
+ {
+  "name": "Plantaris",
+  "muscle": "calves",
+  "side": "R"
+ },
+ {
+  "name": "Platysma",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Platysma",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Popliteus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Popliteus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Posterior Belly Of Digastric",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Posterior Belly Of Digastric",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Posterior Crico-Arytenoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Posterior Crico-Arytenoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Procerus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Procerus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Pronator Quadratus",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Pronator Quadratus",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Psoas Major",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Psoas Major",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Pyramidalis",
+  "muscle": "abs",
+  "side": "L"
+ },
+ {
+  "name": "Pyramidalis",
+  "muscle": "abs",
+  "side": "R"
+ },
+ {
+  "name": "Quadratus Femoris",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Quadratus Femoris",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Quadratus Lumborum",
+  "muscle": "lower_back",
+  "side": "L"
+ },
+ {
+  "name": "Quadratus Lumborum",
+  "muscle": "lower_back",
+  "side": "R"
+ },
+ {
+  "name": "Radial Head Of Flexor Digitorum Superficialis",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Radial Head Of Flexor Digitorum Superficialis",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Rectus Abdominis",
+  "muscle": "abs",
+  "side": "L"
+ },
+ {
+  "name": "Rectus Abdominis",
+  "muscle": "abs",
+  "side": "R"
+ },
+ {
+  "name": "Rectus Anterior Capitis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Rectus Anterior Capitis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Rectus Femoris",
+  "muscle": "quads",
+  "side": "L"
+ },
+ {
+  "name": "Rectus Femoris",
+  "muscle": "quads",
+  "side": "R"
+ },
+ {
+  "name": "Rectus Lateralis Capitis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Rectus Lateralis Capitis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Rectus Posterior Major Capitis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Rectus Posterior Major Capitis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Rectus Posterior Minor Capitis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Rectus Posterior Minor Capitis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Rhomboid Major",
+  "muscle": "mid_back",
+  "side": "L"
+ },
+ {
+  "name": "Rhomboid Major",
+  "muscle": "mid_back",
+  "side": "R"
+ },
+ {
+  "name": "Rhomboid Minor",
+  "muscle": "mid_back",
+  "side": "L"
+ },
+ {
+  "name": "Rhomboid Minor",
+  "muscle": "mid_back",
+  "side": "R"
+ },
+ {
+  "name": "Risorius",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Risorius",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Rotatores",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Rotatores",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Sartorius",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Sartorius",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Scalenus Anterior",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Scalenus Anterior",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Scalenus Medius",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Scalenus Medius",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Scalenus Posterior",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Scalenus Posterior",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Scapular Spinal Part Of Deltoid",
+  "muscle": "rear_delts",
+  "side": "L"
+ },
+ {
+  "name": "Scapular Spinal Part Of Deltoid",
+  "muscle": "rear_delts",
+  "side": "R"
+ },
+ {
+  "name": "Semimembranosus",
+  "muscle": "hamstrings",
+  "side": "L"
+ },
+ {
+  "name": "Semimembranosus",
+  "muscle": "hamstrings",
+  "side": "R"
+ },
+ {
+  "name": "Semispinalis Colli",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Semispinalis Colli",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Semispinalis Thoracis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Semispinalis Thoracis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Semitendinosus",
+  "muscle": "hamstrings",
+  "side": "L"
+ },
+ {
+  "name": "Semitendinosus",
+  "muscle": "hamstrings",
+  "side": "R"
+ },
+ {
+  "name": "Serratus Anterior",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Serratus Anterior",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Serratus Posterior Inferior",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Serratus Posterior Inferior",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Serratus Posterior Superior",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Serratus Posterior Superior",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Short Head Of Biceps Brachii",
+  "muscle": "biceps",
+  "side": "L"
+ },
+ {
+  "name": "Short Head Of Biceps Brachii",
+  "muscle": "biceps",
+  "side": "R"
+ },
+ {
+  "name": "Short Head Of Biceps Femoris",
+  "muscle": "hamstrings",
+  "side": "L"
+ },
+ {
+  "name": "Short Head Of Biceps Femoris",
+  "muscle": "hamstrings",
+  "side": "R"
+ },
+ {
+  "name": "Soleus",
+  "muscle": "calves",
+  "side": "L"
+ },
+ {
+  "name": "Soleus",
+  "muscle": "calves",
+  "side": "R"
+ },
+ {
+  "name": "Spinalis Capitis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Spinalis Capitis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Spinalis Colli",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Spinalis Colli",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Spinalis Thoracis",
+  "muscle": "lower_back",
+  "side": "L"
+ },
+ {
+  "name": "Spinalis Thoracis",
+  "muscle": "lower_back",
+  "side": "R"
+ },
+ {
+  "name": "Splenius Capitis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Splenius Capitis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Splenius Colli",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Splenius Colli",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Sternocleidomastoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Sternocleidomastoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Sternocostal Head Of Pectoralis Major",
+  "muscle": "chest",
+  "side": "L"
+ },
+ {
+  "name": "Sternocostal Head Of Pectoralis Major",
+  "muscle": "chest",
+  "side": "R"
+ },
+ {
+  "name": "Sternohyoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Sternohyoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Sternothyroid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Sternothyroid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Straight Part Of Cricothyroid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Straight Part Of Cricothyroid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Stylohyoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Stylohyoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Stylopharyngeus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Stylopharyngeus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Subclavius",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Subclavius",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Subscapularis",
+  "muscle": "rotator_cuff",
+  "side": "L"
+ },
+ {
+  "name": "Subscapularis",
+  "muscle": "rotator_cuff",
+  "side": "R"
+ },
+ {
+  "name": "Superficial Head Of Flexor Pollicis Brevis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Superficial Head Of Flexor Pollicis Brevis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Superficial Head Of Pronator Teres",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Superficial Head Of Pronator Teres",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Superficial Part Of Masseter",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Superficial Part Of Masseter",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Superior Gemellus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Superior Gemellus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Superior Head Of Lateral Pterygoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Superior Head Of Lateral Pterygoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Superior Oblique",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Superior Oblique",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Superior Pharyngeal Constrictor",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Superior Pharyngeal Constrictor",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Superior Rectus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Superior Rectus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Superior Tarsus",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Superior Tarsus",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Supinator",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Supinator",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Supraspinatus",
+  "muscle": "rotator_cuff",
+  "side": "L"
+ },
+ {
+  "name": "Supraspinatus",
+  "muscle": "rotator_cuff",
+  "side": "R"
+ },
+ {
+  "name": "Temporalis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Temporalis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Temporoparietalis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Temporoparietalis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Teres Major",
+  "muscle": "lats",
+  "side": "L"
+ },
+ {
+  "name": "Teres Major",
+  "muscle": "lats",
+  "side": "R"
+ },
+ {
+  "name": "Teres Minor",
+  "muscle": "rotator_cuff",
+  "side": "L"
+ },
+ {
+  "name": "Teres Minor",
+  "muscle": "rotator_cuff",
+  "side": "R"
+ },
+ {
+  "name": "Thyro-Epiglottic Part Of Thyro-Arytenoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Thyro-Epiglottic Part Of Thyro-Arytenoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Thyrohyoid",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Thyrohyoid",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Tibialis Anterior",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Tibialis Anterior",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Tibialis Posterior",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Tibialis Posterior",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Transverse Arytenoid",
+  "muscle": null,
+  "side": "C"
+ },
+ {
+  "name": "Transverse Head Of Adductor Hallucis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Transverse Head Of Adductor Hallucis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Transverse Head Of Adductor Pollicis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Transverse Head Of Adductor Pollicis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Transverse Part Of Trapezius",
+  "muscle": "mid_back",
+  "side": "L"
+ },
+ {
+  "name": "Transverse Part Of Trapezius",
+  "muscle": "mid_back",
+  "side": "R"
+ },
+ {
+  "name": "Transversus Abdominis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Transversus Abdominis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Transversus Thoracis",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Transversus Thoracis",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Trochlea Of Superior Oblique",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Trochlea Of Superior Oblique",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Ulnar Head Of Extensor Carpi Ulnaris",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Ulnar Head Of Extensor Carpi Ulnaris",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Ulnar Head Of Flexor Carpi Ulnaris",
+  "muscle": "forearms",
+  "side": "L"
+ },
+ {
+  "name": "Ulnar Head Of Flexor Carpi Ulnaris",
+  "muscle": "forearms",
+  "side": "R"
+ },
+ {
+  "name": "Vastus Intermedius",
+  "muscle": "quads",
+  "side": "L"
+ },
+ {
+  "name": "Vastus Intermedius",
+  "muscle": "quads",
+  "side": "R"
+ },
+ {
+  "name": "Vastus Lateralis",
+  "muscle": "quads",
+  "side": "L"
+ },
+ {
+  "name": "Vastus Lateralis",
+  "muscle": "quads",
+  "side": "R"
+ },
+ {
+  "name": "Vastus Medialis",
+  "muscle": "quads",
+  "side": "L"
+ },
+ {
+  "name": "Vastus Medialis",
+  "muscle": "quads",
+  "side": "R"
+ },
+ {
+  "name": "Ventral Parts Of Lateral Intertransversarii Lumborum Muscles",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Ventral Parts Of Lateral Intertransversarii Lumborum Muscles",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Zygomaticus Major",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Zygomaticus Major",
+  "muscle": null,
+  "side": "R"
+ },
+ {
+  "name": "Zygomaticus Minor",
+  "muscle": null,
+  "side": "L"
+ },
+ {
+  "name": "Zygomaticus Minor",
+  "muscle": null,
+  "side": "R"
+ }
+]
