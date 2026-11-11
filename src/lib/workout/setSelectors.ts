@@ -1,11 +1,8 @@
 import type { SetLog, Tier } from "@/types";
 
-const NOT_IMPLEMENTED = "not implemented: src/lib/workout contract stub";
-
 /** True for sets logged as warm-ups (tier "warmup"). */
 export function isWarmUpSet(set: SetLog): boolean {
-  void set;
-  throw new Error(NOT_IMPLEMENTED);
+  return set.tier === "warmup";
 }
 
 /**
@@ -15,14 +12,10 @@ export function isWarmUpSet(set: SetLog): boolean {
  * picks up its own warm-up sets.
  */
 export function workingSetsFor(sets: SetLog[], exerciseId: string, tier: Tier): SetLog[] {
-  void sets;
-  void exerciseId;
-  void tier;
-  throw new Error(NOT_IMPLEMENTED);
+  return sets.filter((set) => set.exerciseId === exerciseId && set.tier === tier);
 }
 
 /** All sets except warm-ups. */
 export function excludeWarmUps(sets: SetLog[]): SetLog[] {
-  void sets;
-  throw new Error(NOT_IMPLEMENTED);
+  return sets.filter((set) => !isWarmUpSet(set));
 }

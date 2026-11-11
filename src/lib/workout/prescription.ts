@@ -1,8 +1,6 @@
 import type { LiftState, T1Stage, T2Stage, WorkoutTemplateExercise } from "@/types";
 import type { Prescription } from "./types";
 
-const NOT_IMPLEMENTED = "not implemented: src/lib/workout contract stub";
-
 /** Sets and reps for each T1 stage. The single source for these numbers. */
 export const T1_STAGE_SCHEME: Record<T1Stage, { sets: number; reps: number }> = {
   "5x3": { sets: 5, reps: 3 },
@@ -26,7 +24,18 @@ export function getPrescription(
   templateExercise: WorkoutTemplateExercise,
   liftState: LiftState | undefined
 ): Prescription {
-  void templateExercise;
-  void liftState;
-  throw new Error(NOT_IMPLEMENTED);
+  if (liftState && templateExercise.tier === "T1") {
+    return { weight: liftState.t1Weight, ...T1_STAGE_SCHEME[liftState.t1Stage] };
+  }
+  if (liftState && templateExercise.tier === "T2") {
+    return { weight: liftState.t2Weight, ...T2_STAGE_SCHEME[liftState.t2Stage] };
+  }
+  if (liftState && templateExercise.tier === "T3") {
+    return {
+      weight: liftState.t3Weight,
+      sets: templateExercise.sets,
+      reps: templateExercise.reps,
+    };
+  }
+  return { weight: 0, sets: templateExercise.sets, reps: templateExercise.reps };
 }

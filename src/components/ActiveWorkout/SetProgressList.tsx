@@ -3,6 +3,7 @@
 import type { SetLog, WorkoutLocation } from "@/types";
 import type { WorkoutExerciseState } from "@/stores/workoutStore";
 import { getExercise } from "@/lib/exercises";
+import { workingSetsFor } from "@/lib/workout/setSelectors";
 
 interface SetProgressListProps {
   exercise: WorkoutExerciseState;
@@ -17,11 +18,13 @@ export function SetProgressList({
   const exerciseId = exercise.substituteExerciseId || exercise.exerciseId;
   const exerciseInfo = getExercise(exerciseId);
 
-  // Filter completed sets for THIS exercise
-  const exerciseSets = completedSets.filter((s) => {
-    const matchId = s.substituteExerciseId || s.exerciseId;
-    return matchId === exerciseId || s.exerciseId === exerciseId;
-  });
+  // Sets logged for THIS plan entry: same template exercise and same tier, so a
+  // T1 row never shows the exercise's warm-up sets.
+  const exerciseSets = workingSetsFor(
+    completedSets,
+    exercise.exerciseId,
+    exercise.tier
+  );
 
   const currentSetNumber = exercise.completedSets + 1;
   const isDumbbell = exerciseInfo.grip === "per_hand";
@@ -53,7 +56,7 @@ export function SetProgressList({
             {/* Status indicator */}
             <span className="w-5 text-center shrink-0">
               {isCompleted && (
-                <span className="text-green-500 font-medium">&#10003;</span>
+                <span className="text-success font-medium">&#10003;</span>
               )}
               {isCurrent && (
                 <span className="text-accent-primary font-bold">&rarr;</span>
@@ -74,7 +77,7 @@ export function SetProgressList({
                 <>
                   {formatWeight(loggedSet.weight)} &times; {loggedSet.actualReps}
                   {loggedSet.isAMRAP && (
-                    <span className="text-amber-400 ml-1 text-xs">AMRAP</span>
+                    <span className="text-warning ml-1 text-xs">AMRAP</span>
                   )}
                 </>
               ) : (

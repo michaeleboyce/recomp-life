@@ -49,7 +49,6 @@ export const PALETTE_ALLOWLIST: string[] = [
   "src/components/ActiveWorkout/ExerciseBlock.tsx",
   "src/components/ActiveWorkout/RestTimer.tsx",
   "src/components/ActiveWorkout/RPESelector.tsx",
-  "src/components/ActiveWorkout/SetProgressList.tsx",
   "src/components/ActiveWorkout/WorkoutMiniMap.tsx",
   "src/components/ActiveWorkout/WorkoutOverviewSheet.tsx",
   "src/components/BodyMap/PainHistory.tsx",
