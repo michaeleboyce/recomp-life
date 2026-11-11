@@ -13,7 +13,7 @@ import type { EvidenceSource } from "@/types";
 export const SOURCES = {
   acsm2026: {
     short: "ACSM 2026",
-    authors: "American College of Sports Medicine",
+    authors: "American College of Sports Medicine (Currier et al.)",
     year: 2026,
     title:
       "American College of Sports Medicine Position Stand. Resistance Training Prescription for Muscle Function, Hypertrophy, and Physical Performance in Healthy Adults: An Overview of Reviews",
@@ -282,7 +282,9 @@ export const SOURCES = {
     population: "7 trials, 385 people with chronic musculoskeletal pain",
     finding:
       "Exercise programs that allowed some pain gave a small short-term benefit over pain-free exercise, with no difference in the medium or long term.",
-    url: "https://eprints.nottingham.ac.uk/41764",
+    url: "https://doi.org/10.1136/bjsports-2016-097383",
+    doi: "10.1136/bjsports-2016-097383",
+    fullTextUrl: "https://eprints.nottingham.ac.uk/41764",
   },
   craven2022: {
     short: "Craven 2022",

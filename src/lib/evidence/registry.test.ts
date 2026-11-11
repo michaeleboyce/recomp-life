@@ -47,6 +47,20 @@ describe("sources", () => {
     }
   });
 
+  it("every source has a DOI or PubMed id, so `npm run check:links` can verify it", () => {
+    for (const s of sources) {
+      expect(Boolean(s.doi || s.pmid), s.id).toBe(true);
+    }
+  });
+
+  it("a PubMed link in `url` matches the `pmid` field", () => {
+    for (const s of sources) {
+      if (s.url.startsWith("https://pubmed.ncbi.nlm.nih.gov/")) {
+        expect(s.url, s.id).toBe(`https://pubmed.ncbi.nlm.nih.gov/${s.pmid}/`);
+      }
+    }
+  });
+
   it("a DOI link in `url` matches the `doi` field", () => {
     for (const s of sources) {
       if (s.url.startsWith("https://doi.org/")) {
