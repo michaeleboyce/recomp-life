@@ -10,7 +10,8 @@ import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { getExercise, EXERCISES, DEFAULT_ACCESSORY_WEIGHTS } from "@/lib/exercises";
 import { generateWarmUpSets } from "@/lib/warmups";
 import { barbellToDumbbell, barbellToBothHands } from "@/lib/dbConversion";
-import { calculateE1RM } from "@/lib/e1rm";
+import { calculateE1RM, isE1RMEligibleSet, toRecentE1RMSeries } from "@/lib/e1rm";
+import { getRestSeconds } from "@/lib/restTimes";
 import {
   evaluateT1Progression,
   evaluateT2Progression,
@@ -50,27 +51,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// Rest time defaults per tier
-function getDefaultRestTime(
-  tier: Tier,
-  trainingPhase: TrainingPhase
-): number {
-  const isCutting = trainingPhase.mode === "cutting";
-  switch (tier) {
-    case "T1":
-      return isCutting ? 210 : 180;
-    case "T2":
-      return isCutting ? 150 : 120;
-    case "T3":
-      return 60;
-    case "accessory":
-      return 60;
-    case "warmup":
-      return 60;
-    default:
-      return 60;
-  }
-}
 
 function getLiftType(exerciseId: string): "upper" | "lower" {
   const exercise = getExercise(exerciseId);
@@ -112,6 +92,8 @@ function ActiveWorkoutContent() {
   const [selectedReps, setSelectedReps] = useState<number | null>(null);
   const [selectedRPE, setSelectedRPE] = useState<number | null>(null);
   const [e1rmDisplay, setE1rmDisplay] = useState<number | null>(null);
+  // Tier of the set the current rest follows (the exercise may have advanced)
+  const [restTier, setRestTier] = useState<Tier | null>(null);
   const [t2AutoRegBanner, setT2AutoRegBanner] = useState<{
     message: string;
     reducedWeight: number;
@@ -413,9 +395,10 @@ function ActiveWorkoutContent() {
       console.error("Failed to save set to Dexie:", err);
     }
 
-    // Show e1RM for AMRAP sets
-    if (isAMRAP && selectedReps >= 2) {
-      const e1rm = calculateE1RM(currentExercise.weight, selectedReps);
+    // Show and record e1RM for heavy T1 AMRAP sets only (not high-rep T3 sets),
+    // adjusted for reps left in reserve when an RPE was logged.
+    if (isE1RMEligibleSet(currentExercise.tier, isAMRAP, selectedReps)) {
+      const e1rm = calculateE1RM(currentExercise.weight, selectedReps, selectedRPE);
       if (e1rm) {
         setE1rmDisplay(e1rm);
         setTimeout(() => setE1rmDisplay(null), 3000);
@@ -478,7 +461,8 @@ function ActiveWorkoutContent() {
       advanceSet();
     } else {
       // Start rest timer
-      const restTime = getDefaultRestTime(currentExercise.tier, trainingPhase);
+      const restTime = getRestSeconds(currentExercise.tier, trainingPhase);
+      setRestTier(currentExercise.tier);
       startRestTimer(restTime);
       advanceSet();
     }
@@ -648,10 +632,11 @@ function ActiveWorkoutContent() {
             // Populate tracking arrays (keep last 5)
 
             // 1. recentE1RMs: query estimated1RMs table for this exercise
-            const recentE1RMEntriesT1 = await db.estimated1RMs
+            const e1rmEntriesT1 = await db.estimated1RMs
               .where("exerciseId").equals(templateEx.exerciseId)
-              .reverse().sortBy("date");
-            newState.recentE1RMs = recentE1RMEntriesT1.slice(0, 5).map(e => e.estimated1RM);
+              .toArray();
+            // Chronological (oldest first), as getE1RMTrend expects
+            newState.recentE1RMs = toRecentE1RMSeries(e1rmEntriesT1);
 
             // 2. recentAvgRPEs: calculate avg RPE from this session's sets
             const rpeValuesT1 = exerciseSets.filter(s => s.rpe != null).map(s => s.rpe!);
@@ -685,10 +670,11 @@ function ActiveWorkoutContent() {
             // Populate tracking arrays (keep last 5)
 
             // 1. recentE1RMs: query estimated1RMs table for this exercise
-            const recentE1RMEntriesT2 = await db.estimated1RMs
+            const e1rmEntriesT2 = await db.estimated1RMs
               .where("exerciseId").equals(templateEx.exerciseId)
-              .reverse().sortBy("date");
-            newState.recentE1RMs = recentE1RMEntriesT2.slice(0, 5).map(e => e.estimated1RM);
+              .toArray();
+            // Chronological (oldest first), as getE1RMTrend expects
+            newState.recentE1RMs = toRecentE1RMSeries(e1rmEntriesT2);
 
             // 2. recentAvgRPEs: calculate avg RPE from this session's sets
             const rpeValuesT2 = exerciseSets.filter(s => s.rpe != null).map(s => s.rpe!);
@@ -946,6 +932,8 @@ function ActiveWorkoutContent() {
           <RestTimer
             audioEnabled={settings.restTimerAudio}
             vibrationEnabled={settings.restTimerVibration}
+            tier={restTier ?? undefined}
+            trainingPhase={trainingPhase}
           />
         </div>
 

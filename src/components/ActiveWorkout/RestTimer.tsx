@@ -6,32 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { TimerWorkerManager } from "@/lib/timerWorker";
 import { playTimerChime, vibrateTimer, sendTimerNotification } from "@/lib/audio";
+import { hasCuttingRestBonus, formatRestDuration } from "@/lib/restTimes";
 import type { Tier, TrainingPhase } from "@/types";
-
-/** Base rest durations per tier (seconds) before phase adjustments */
-const BASE_REST_SECONDS: Record<Tier, number> = {
-  T1: 180,
-  T2: 120,
-  T3: 60,
-  accessory: 60,
-  warmup: 60,
-};
-
-/** Tiers that receive +30s during a cutting phase */
-const CUTTING_BONUS_TIERS: Set<Tier> = new Set(["T1", "T2"]);
-const CUTTING_BONUS_SECONDS = 30;
-
-/**
- * Compute the default rest duration for a tier, adding +30s for T1/T2
- * when the user is in a cutting phase.
- */
-export function getPhaseAdjustedRest(tier: Tier, phase?: TrainingPhase): number {
-  const base = BASE_REST_SECONDS[tier] ?? 60;
-  if (phase?.mode === "cutting" && CUTTING_BONUS_TIERS.has(tier)) {
-    return base + CUTTING_BONUS_SECONDS;
-  }
-  return base;
-}
 
 interface RestTimerProps {
   audioEnabled?: boolean;
@@ -152,9 +128,7 @@ export function RestTimer({
 
   // Show cutting bonus indicator when +30s was added
   const hasCuttingBonus =
-    trainingPhase?.mode === "cutting" &&
-    tier !== undefined &&
-    CUTTING_BONUS_TIERS.has(tier);
+    tier !== undefined && hasCuttingRestBonus(tier, trainingPhase);
 
   return (
     <div
@@ -179,8 +153,7 @@ export function RestTimer({
           {isOvertime ? "+" : ""}
           {timeStr}{" "}
           <span className="text-sm text-muted-foreground font-normal">
-            / {Math.floor(restTimerDuration / 60)}:
-            {(restTimerDuration % 60).toString().padStart(2, "0")}
+            / {formatRestDuration(restTimerDuration)}
           </span>
         </span>
       </div>

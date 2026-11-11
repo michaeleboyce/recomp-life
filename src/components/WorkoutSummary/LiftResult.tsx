@@ -2,7 +2,7 @@
 
 import { EXERCISES } from "@/lib/exercises";
 import { dumbbellToBarbell } from "@/lib/dbConversion";
-import { calculateE1RM } from "@/lib/e1rm";
+import { calculateE1RM, isE1RMEligibleSet } from "@/lib/e1rm";
 import type { SetLog, Tier, WorkoutModification } from "@/types";
 
 interface LiftResultProps {
@@ -62,10 +62,11 @@ export default function LiftResult({
   const amrapSet = sets.find((s) => s.isAMRAP);
   const amrapReps = amrapSet?.actualReps ?? null;
 
-  // Calculate e1RM from AMRAP set (T1 only)
+  // Calculate e1RM from the AMRAP set, using the same rule as the stored
+  // value (T1 only, 10 reps or fewer, adjusted for logged RPE)
   const e1rm =
-    tier === "T1" && amrapSet
-      ? calculateE1RM(amrapSet.weight, amrapSet.actualReps)
+    amrapSet && isE1RMEligibleSet(tier, true, amrapSet.actualReps)
+      ? calculateE1RM(amrapSet.weight, amrapSet.actualReps, amrapSet.rpe)
       : null;
 
   const e1rmDelta =
