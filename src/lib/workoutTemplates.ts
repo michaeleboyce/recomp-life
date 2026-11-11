@@ -1,5 +1,11 @@
 import type { WorkoutTemplate, WorkoutTemplateExercise } from "@/types";
 
+/**
+ * The four GZCLP workouts. Each starts with a heavy T1 lift, then a moderate
+ * T2 lift, then lighter T3 work.
+ *
+ * @evidence tier-structure
+ */
 export const WORKOUT_TEMPLATES: Record<string, WorkoutTemplate> = {
   A1: {
     id: "A1",

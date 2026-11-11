@@ -29,6 +29,8 @@ function emptyVolume(): MuscleGroupVolume {
  * Primary muscles get full credit (1.0 per set).
  * Secondary muscles get half credit (0.5 per set).
  * Stabilisers get no volume credit.
+ *
+ * @evidence weekly-volume
  */
 export function calculateMuscleGroupVolume(
   completedSets: SetLog[]

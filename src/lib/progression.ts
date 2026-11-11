@@ -8,6 +8,8 @@
  * - T2 Auto-regulation: RPE-based load drops per training phase
  *
  * All functions are pure — they take state in and return new state out.
+ *
+ * @evidence gzclp-progression
  */
 
 import type {
@@ -21,6 +23,26 @@ import type {
   T2Stage,
   T2AutoRegResult,
 } from "@/types";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Fraction of the failed weight a lift restarts at after its last stage. */
+export const RESET_FACTOR = 0.85;
+
+/**
+ * RPE of the first T2 set at or above which a lighter load is suggested for
+ * the remaining sets, by training phase. The per-phase split is a heuristic.
+ */
+export const T2_AUTOREG_RPE_THRESHOLD: Record<TrainingPhase["mode"], number> = {
+  cutting: 9.0,
+  maintaining: 9.5,
+  bulking: 10.0,
+};
+
+/** Suggested T2 load drop: `max` after an RPE 10 set, `standard` otherwise. */
+export const T2_AUTOREG_DROP = { standard: 0.05, max: 0.1 } as const;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -172,7 +194,7 @@ export function evaluateT1Progression(
   const next = T1_NEXT_STAGE[stage];
 
   if (next === "reset") {
-    const resetWeight = roundToNearest5(liftState.t1Weight * 0.85);
+    const resetWeight = roundToNearest5(liftState.t1Weight * RESET_FACTOR);
     return {
       ...liftState,
       t1Weight: resetWeight,
@@ -264,7 +286,7 @@ export function evaluateT2Progression(
   const next = T2_NEXT_STAGE[stage];
 
   if (next === "reset") {
-    const resetWeight = roundToNearest5(liftState.t2Weight * 0.85);
+    const resetWeight = roundToNearest5(liftState.t2Weight * RESET_FACTOR);
     return {
       ...liftState,
       t2Weight: resetWeight,
@@ -303,6 +325,10 @@ export interface T3ProgressionResult {
  * Phase-adjusted behavior:
  * - Cutting: only AMRAP trigger (last set >= 25)
  * - Maintaining/Bulking: either trigger works
+ *
+ * Not connected to the UI yet: T3 weight only changes when edited by hand.
+ *
+ * @evidence t3-progression
  */
 export function evaluateT3Progression(
   totalReps: number,
@@ -344,13 +370,15 @@ export function evaluateT3Progression(
  * Evaluate whether to suggest a load drop for T2 sets 2-3 based on
  * the RPE of set 1.
  *
- * Per spec section 5.3.1:
- * - Cutting threshold: RPE >= 9.0
- * - Maintaining threshold: RPE >= 9.5
- * - Bulking threshold: RPE >= 10.0
+ * Thresholds by phase are in T2_AUTOREG_RPE_THRESHOLD.
  *
- * If RPE >= 10: suggest 10% drop
- * If RPE >= threshold (but < 10): suggest 5% drop
+ * If RPE >= 10: suggest the max drop (10%)
+ * If RPE >= threshold (but < 10): suggest the standard drop (5%)
+ *
+ * Accepting the drop freezes T2 progression for the session; it is neither
+ * a pass nor a failure.
+ *
+ * @evidence t2-autoregulation
  */
 export function evaluateT2AutoRegulation(
   set1RPE: number | null,
@@ -361,15 +389,11 @@ export function evaluateT2AutoRegulation(
     return { action: "continue" };
   }
 
-  const threshold =
-    phase.mode === "cutting"
-      ? 9.0
-      : phase.mode === "maintaining"
-        ? 9.5
-        : 10.0;
+  const threshold = T2_AUTOREG_RPE_THRESHOLD[phase.mode];
 
   if (set1RPE >= threshold) {
-    const dropPercent = set1RPE >= 10 ? 0.1 : 0.05;
+    const dropPercent =
+      set1RPE >= 10 ? T2_AUTOREG_DROP.max : T2_AUTOREG_DROP.standard;
     const reducedWeight = roundToNearest5(
       prescribedWeight * (1 - dropPercent)
     );
@@ -378,6 +402,7 @@ export function evaluateT2AutoRegulation(
       reducedWeight,
       message: `Set 1 felt very hard (RPE ${set1RPE}). Suggest dropping to ${reducedWeight} lbs for Sets 2-3.`,
       progressionEffect: "freeze",
+      evidenceId: "t2-autoregulation",
     };
   }
 

@@ -16,6 +16,7 @@
 import { roundToNearest5 } from "./progression";
 import { LONG_BREAK_DAYS } from "./recovery";
 import type { TrainingPhase, LiftState } from "@/types";
+import type { RuleId } from "./evidence/rules";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -38,6 +39,8 @@ export interface ExerciseDecaySuggestion {
   daysSinceLastWorkout: number;
   decayTier: DecayTier;
   message: string;
+  /** Evidence rule explaining the suggestion. */
+  evidenceId: RuleId;
 }
 
 // ---------------------------------------------------------------------------
@@ -145,6 +148,7 @@ export function getExerciseDecaySuggestions(
       daysSinceLastWorkout: daysSince,
       decayTier: result.tier,
       message: result.message,
+      evidenceId: "time-off",
     });
   }
 

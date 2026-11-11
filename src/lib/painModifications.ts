@@ -31,7 +31,7 @@ export function formatRegion(region: BodyRegion): string {
 }
 
 /**
- * Lower back substitution suggestions per spec section 6.4.
+ * Lower back substitution suggestions.
  */
 const LOWER_BACK_SUBSTITUTIONS: Record<string, string[]> = {
   squat: ["goblet_squat", "box_squat"],
@@ -42,7 +42,11 @@ const LOWER_BACK_SUBSTITUTIONS: Record<string, string[]> = {
 /**
  * Generate workout modifications based on active pain entries and planned exercises.
  *
- * Rules (spec section 6.3):
+ * Not connected to the UI: pain is displayed but never changes a workout.
+ *
+ * @evidence pain-load-changes
+ *
+ * Rules:
  * - Only "pain" entries generate modifications; "soreness" entries generate ZERO.
  * - Severity 1: informational only, no modification.
  * - Severity 2: reduce weight by 10%.
@@ -107,7 +111,7 @@ export function generateModifications(
         userAccepted: false, // user must accept
       };
 
-      // Lower back specific substitution suggestions (spec section 6.4)
+      // Lower back specific substitution suggestions
       if (
         entry.region === "lower_back" &&
         entry.severity >= 3 &&
@@ -134,7 +138,9 @@ export interface RedFlagDismissal {
 /**
  * Determine whether to show a red flag safety warning.
  *
- * Per spec section 6.3.1:
+ * @evidence training-with-pain
+ *
+ * Rules:
  * - Severity 5: always show red flag screen.
  * - Severity 4 first time for this region: show red flag.
  * - Don't show again for same region within 30 days if dismissed.

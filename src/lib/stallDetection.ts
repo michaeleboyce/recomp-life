@@ -3,6 +3,10 @@ import type { TrainingPhase, StallAlert } from "@/types";
 /**
  * Detect a fat loss stall by comparing 7-day rolling averages.
  * Only runs during cutting phase. Needs 14+ entries.
+ *
+ * Used by BodyweightChart, which is not mounted on any screen yet.
+ *
+ * @evidence fat-loss-stall
  */
 export function detectFatLossStall(
   sortedWeights: { date: Date; weight: number }[],

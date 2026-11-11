@@ -16,6 +16,11 @@ function getRPEColor(rpe: number): string {
   return "text-red-400";
 }
 
+/**
+ * Optional effort rating for a set (RPE 6-10).
+ *
+ * @evidence rpe-logging
+ */
 export function RPESelector({ selectedRPE, onSelectRPE }: RPESelectorProps) {
   return (
     <div className="px-4 space-y-2">

@@ -1,11 +1,14 @@
 import type { RunLog, TrainingPhase } from '@/types';
 import { WORKOUT_TEMPLATES } from '@/lib/workoutTemplates';
 import { EXERCISES } from '@/lib/exercises';
+import type { RuleId } from '@/lib/evidence/rules';
 
 export interface RunAdvisory {
   level: 'none' | 'advisory' | 'strong';
   message: string;
   suggestedAction?: 'proceed' | 'extra_warmups' | 'reduce_10';
+  /** Evidence rule explaining the advisory (set when level is not 'none'). */
+  evidenceId?: RuleId;
 }
 
 /**
@@ -88,7 +91,12 @@ export function evaluateRunImpact(
     ) {
       message += ' Consider extra carbs before your session (glycogen depletion on a cut).';
     }
-    return { level: 'strong', message, suggestedAction: 'reduce_10' };
+    return {
+      level: 'strong',
+      message,
+      suggestedAction: 'reduce_10',
+      evidenceId: 'run-interference',
+    };
   }
 
   // Standard advisory
@@ -98,6 +106,7 @@ export function evaluateRunImpact(
       level: 'advisory',
       message: `${mostRecent.category} run ${Math.round(hoursSince)}h ago (effort ${mostRecent.perceivedEffort}/5). Options: proceed, add extra warm-ups, or reduce T1 by 10%.`,
       suggestedAction: 'extra_warmups',
+      evidenceId: 'run-interference',
     };
   }
 

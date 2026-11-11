@@ -14,6 +14,12 @@ interface ReadinessCheckProps {
   onSkip?: () => void;
 }
 
+/**
+ * Pre-workout sleep and stress check. Suggests skipping accessories when
+ * sleep was under 5 hours and energy is low.
+ *
+ * @evidence readiness
+ */
 export function ReadinessCheck({
   sleepHours,
   stressLevel,

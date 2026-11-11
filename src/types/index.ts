@@ -1,3 +1,5 @@
+import type { RuleId } from "@/lib/evidence/rules";
+
 // Core User Types
 
 export interface TrainingPhase {
@@ -405,6 +407,8 @@ export interface T2AutoRegResult {
   reducedWeight?: number;
   message?: string;
   progressionEffect?: T2ProgressionEffect;
+  /** Evidence rule explaining the suggestion (set when action is "suggest_drop"). */
+  evidenceId?: RuleId;
 }
 
 // Evidence / Research Types
