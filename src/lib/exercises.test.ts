@@ -6,6 +6,7 @@ import {
   getNextWorkoutId,
   ACCESSORY_RECOMMENDATIONS,
 } from "./workoutTemplates";
+import { isMuscleId } from "./muscles";
 import type { Exercise } from "@/types";
 
 describe("Exercise Registry", () => {
@@ -21,6 +22,46 @@ describe("Exercise Registry", () => {
       expect(Array.isArray(exercise.secondaryMuscles)).toBe(true);
       expect(Array.isArray(exercise.painSensitiveRegions)).toBe(true);
     }
+  });
+
+  it("muscle fields use valid MuscleIds only (R1)", () => {
+    for (const exercise of Object.values(EXERCISES)) {
+      expect(Array.isArray(exercise.stabilizerMuscles)).toBe(true);
+      const all = [
+        ...exercise.primaryMuscles,
+        ...exercise.secondaryMuscles,
+        ...exercise.stabilizerMuscles,
+      ];
+      for (const muscle of all) {
+        expect(isMuscleId(muscle), `${exercise.id}: ${muscle}`).toBe(true);
+      }
+    }
+  });
+
+  it("no muscle appears in two levels of one exercise (R1)", () => {
+    for (const exercise of Object.values(EXERCISES)) {
+      const all = [
+        ...exercise.primaryMuscles,
+        ...exercise.secondaryMuscles,
+        ...exercise.stabilizerMuscles,
+      ];
+      expect(new Set(all).size, exercise.id).toBe(all.length);
+    }
+  });
+
+  it("isolation lifts name the muscle, not the joint (R1)", () => {
+    expect(EXERCISES.bicep_curls.primaryMuscles).toEqual(["biceps"]);
+    expect(EXERCISES.tricep_pushdowns.primaryMuscles).toEqual(["triceps"]);
+    expect(EXERCISES.calf_raises.primaryMuscles).toEqual(["calves"]);
+    expect(EXERCISES.hip_thrust.primaryMuscles).toEqual(["glutes"]);
+  });
+
+  it("pain-sensitive regions are still BodyRegions (R1)", () => {
+    expect(EXERCISES.squat.painSensitiveRegions).toEqual([
+      "lower_back",
+      "left_knee",
+      "right_knee",
+    ]);
   });
 
   it("substitution links are bidirectional", () => {

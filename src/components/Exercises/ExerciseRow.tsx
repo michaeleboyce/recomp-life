@@ -8,6 +8,7 @@ import { getPreference } from "@/lib/exercisePreferences";
 import { getExercise } from "@/lib/exercises";
 import { calculateE1RM } from "@/lib/e1rm";
 import { formatRegion } from "@/lib/painModifications";
+import { formatMuscle } from "@/lib/muscles";
 import type { Exercise, ExercisePreference, ExercisePreferences } from "@/types";
 
 const EQUIPMENT_LABELS: Record<string, string> = {
@@ -114,12 +115,18 @@ export default function ExerciseRow({
           <DetailRow label="Muscle group" value={capitalize(exercise.muscleGroup)} />
           <DetailRow
             label="Primary"
-            value={exercise.primaryMuscles.map(formatRegion).join(", ")}
+            value={exercise.primaryMuscles.map(formatMuscle).join(", ")}
           />
           {exercise.secondaryMuscles.length > 0 && (
             <DetailRow
               label="Secondary"
-              value={exercise.secondaryMuscles.map(formatRegion).join(", ")}
+              value={exercise.secondaryMuscles.map(formatMuscle).join(", ")}
+            />
+          )}
+          {exercise.stabilizerMuscles.length > 0 && (
+            <DetailRow
+              label="Stabilisers"
+              value={exercise.stabilizerMuscles.map(formatMuscle).join(", ")}
             />
           )}
           {exercise.painSensitiveRegions.length > 0 && (

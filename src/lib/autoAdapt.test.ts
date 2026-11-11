@@ -28,6 +28,7 @@ const barbellBench: Exercise = {
   dumbbellAlternative: 'db_bench',
   primaryMuscles: ['chest'],
   secondaryMuscles: [],
+  stabilizerMuscles: [],
   painSensitiveRegions: [],
 };
 
@@ -41,6 +42,7 @@ const dbBench: Exercise = {
   grip: 'per_hand',
   primaryMuscles: ['chest'],
   secondaryMuscles: [],
+  stabilizerMuscles: [],
   painSensitiveRegions: [],
 };
 
@@ -51,8 +53,9 @@ const barbellSquat: Exercise = {
   muscleGroup: 'legs',
   requiresGym: true,
   dumbbellAlternative: 'goblet_squat',
-  primaryMuscles: ['left_quad', 'right_quad'],
+  primaryMuscles: ['quads'],
   secondaryMuscles: [],
+  stabilizerMuscles: [],
   painSensitiveRegions: [],
 };
 
@@ -64,8 +67,9 @@ const gobletSquat: Exercise = {
   requiresGym: false,
   barbellEquivalent: 'barbell_squat',
   grip: 'both_hands',
-  primaryMuscles: ['left_quad', 'right_quad'],
+  primaryMuscles: ['quads'],
   secondaryMuscles: [],
+  stabilizerMuscles: [],
   painSensitiveRegions: [],
 };
 
@@ -76,8 +80,9 @@ const barbellDeadlift: Exercise = {
   muscleGroup: 'pull',
   requiresGym: true,
   dumbbellAlternative: 'db_rdl',
-  primaryMuscles: ['lower_back', 'left_hamstring', 'right_hamstring'],
+  primaryMuscles: ['lower_back', 'hamstrings'],
   secondaryMuscles: [],
+  stabilizerMuscles: [],
   painSensitiveRegions: [],
 };
 
@@ -89,8 +94,9 @@ const dbRdl: Exercise = {
   requiresGym: false,
   barbellEquivalent: 'barbell_deadlift',
   grip: 'per_hand',
-  primaryMuscles: ['lower_back', 'left_hamstring', 'right_hamstring'],
+  primaryMuscles: ['lower_back', 'hamstrings'],
   secondaryMuscles: [],
+  stabilizerMuscles: [],
   painSensitiveRegions: [],
 };
 
@@ -101,8 +107,9 @@ const barbellOHP: Exercise = {
   muscleGroup: 'push',
   requiresGym: true,
   dumbbellAlternative: 'db_shoulder_press',
-  primaryMuscles: ['left_shoulder', 'right_shoulder'],
+  primaryMuscles: ['front_delts'],
   secondaryMuscles: [],
+  stabilizerMuscles: [],
   painSensitiveRegions: [],
 };
 
@@ -114,8 +121,9 @@ const dbShoulderPress: Exercise = {
   requiresGym: false,
   barbellEquivalent: 'barbell_ohp',
   grip: 'per_hand',
-  primaryMuscles: ['left_shoulder', 'right_shoulder'],
+  primaryMuscles: ['front_delts'],
   secondaryMuscles: [],
+  stabilizerMuscles: [],
   painSensitiveRegions: [],
 };
 
@@ -125,8 +133,9 @@ const pullUp: Exercise = {
   type: 'bodyweight',
   muscleGroup: 'pull',
   requiresGym: false,
-  primaryMuscles: ['upper_back'],
+  primaryMuscles: ['lats'],
   secondaryMuscles: [],
+  stabilizerMuscles: [],
   painSensitiveRegions: [],
 };
 
@@ -137,8 +146,9 @@ const cableRow: Exercise = {
   muscleGroup: 'pull',
   requiresGym: true,
   // no dumbbell alternative
-  primaryMuscles: ['upper_back'],
+  primaryMuscles: ['lats'],
   secondaryMuscles: [],
+  stabilizerMuscles: [],
   painSensitiveRegions: [],
 };
 
@@ -149,8 +159,9 @@ const barbellRow: Exercise = {
   muscleGroup: 'pull',
   requiresGym: true,
   dumbbellAlternative: 'db_row',
-  primaryMuscles: ['upper_back'],
+  primaryMuscles: ['lats'],
   secondaryMuscles: [],
+  stabilizerMuscles: [],
   painSensitiveRegions: [],
 };
 
@@ -162,8 +173,9 @@ const dbRow: Exercise = {
   requiresGym: false,
   barbellEquivalent: 'barbell_row',
   grip: 'per_hand',
-  primaryMuscles: ['upper_back'],
+  primaryMuscles: ['lats'],
   secondaryMuscles: [],
+  stabilizerMuscles: [],
   painSensitiveRegions: [],
 };
 

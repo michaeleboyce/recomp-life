@@ -64,6 +64,20 @@ export type SensationType = "soreness" | "pain";
 export type ExercisePreference = "blocked" | "normal" | "preferred";
 export type ExercisePreferences = Record<string, ExercisePreference>;
 
+// Muscle Types
+//
+// MuscleId describes what an exercise trains. It is bilateral (no left/right).
+// BodyRegion (above) is for pain tracking and stays side-specific.
+
+export type MuscleId =
+  | "chest" | "front_delts" | "side_delts" | "rear_delts" | "rotator_cuff"
+  | "biceps" | "triceps" | "forearms"
+  | "upper_traps" | "mid_back" | "lats" | "lower_back"
+  | "abs" | "obliques"
+  | "glutes" | "quads" | "hamstrings" | "adductors" | "calves";
+
+export type ActivationLevel = "primary" | "secondary" | "stabilizer";
+
 // Exercise Types
 
 export type MuscleGroup = "push" | "pull" | "legs" | "core" | "full_body";
@@ -80,8 +94,9 @@ export interface Exercise {
   dumbbellAlternative?: string;
   barbellEquivalent?: string;
   grip?: DumbbellGrip;
-  primaryMuscles: BodyRegion[];
-  secondaryMuscles: BodyRegion[];
+  primaryMuscles: MuscleId[];
+  secondaryMuscles: MuscleId[];
+  stabilizerMuscles: MuscleId[];
   painSensitiveRegions: BodyRegion[];
 }
 
