@@ -6,6 +6,7 @@ import { db } from "@/db/local";
 import { calculateRecoveryStatus, getMostRecent } from "@/lib/recovery";
 import { EXERCISES } from "@/lib/exercises";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Footprints, Grip, ArrowUpFromLine, CircleDot } from "lucide-react";
 import type { RecoveryStatus, TrainingPhase } from "@/types";
 
@@ -25,7 +26,7 @@ const STATUS_CONFIG: Record<
   recovering: { color: "text-red-400", label: "Recovering", icon: "" },
   ready: { color: "text-yellow-400", label: "Ready", icon: "" },
   primed: { color: "text-green-400", label: "Primed", icon: "\u2605" },
-  detraining: { color: "text-zinc-500", label: "Detraining", icon: "" },
+  detraining: { color: "text-zinc-500", label: "Long break", icon: "" },
 };
 
 const STATUS_GRADIENT: Record<RecoveryStatus, string> = {
@@ -86,7 +87,10 @@ export default function RecoveryStatusBars() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Recovery Status</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">
+          Recovery Status
+          <EvidenceLine ruleId="recovery-windows" variant="icon" />
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {MAIN_LIFTS.map((liftId) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 
 interface RPESelectorProps {
   selectedRPE: number | null;
@@ -25,8 +26,9 @@ export function RPESelector({ selectedRPE, onSelectRPE }: RPESelectorProps) {
   return (
     <div className="px-4 space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">
+        <p className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
           RPE (optional):
+          <EvidenceLine ruleId="rpe-logging" variant="icon" hideLibraryLink />
         </p>
         {selectedRPE !== null && (
           <Button

@@ -31,6 +31,7 @@ import { WorkoutHeader } from "@/components/ActiveWorkout/WorkoutHeader";
 import { ExerciseBlock } from "@/components/ActiveWorkout/ExerciseBlock";
 import { SetLogger } from "@/components/ActiveWorkout/SetLogger";
 import { RPESelector } from "@/components/ActiveWorkout/RPESelector";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { RestTimer } from "@/components/ActiveWorkout/RestTimer";
 import { SetProgressList } from "@/components/ActiveWorkout/SetProgressList";
 import { WorkoutMiniMap } from "@/components/ActiveWorkout/WorkoutMiniMap";
@@ -900,6 +901,7 @@ function ActiveWorkoutContent() {
                 That set was RPE {t2AutoRegBanner.rpe}. Suggest dropping to{" "}
                 {t2AutoRegBanner.reducedWeight} lbs for remaining sets.
               </p>
+              <EvidenceLine ruleId="t2-autoregulation" hideLibraryLink />
             </div>
             <div className="flex gap-2">
               <Button

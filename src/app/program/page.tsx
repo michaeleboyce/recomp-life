@@ -19,6 +19,7 @@ import RPETrendChart from "@/components/Charts/RPETrendChart";
 import VolumeBars from "@/components/Charts/VolumeBars";
 import { MuscleMap } from "@/components/Anatomy/MuscleMap";
 import { combinedActivationHeat } from "@/lib/muscleLoad";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import type { LiftState, RecoveryStatus, TrainingPhase } from "@/types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -47,7 +48,7 @@ const RECOVERY_CONFIG: Record<
   detraining: {
     color: "text-zinc-500",
     bgColor: "bg-zinc-500/10",
-    label: "Detraining",
+    label: "Long break",
   },
 };
 
@@ -403,6 +404,7 @@ export default function ProgramPage() {
       <div className="mx-auto max-w-lg px-5 pt-5 pb-28 space-y-4">
         {/* Header */}
         <h1 className="text-xl font-bold text-foreground">Program</h1>
+        <EvidenceLine ruleId="tier-structure" />
 
         {/* Current Rotation */}
         <div

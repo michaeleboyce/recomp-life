@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Moon, Minus, Sun, Circle } from "lucide-react";
 import type { SleepHours, StressLevel } from "@/types";
 
@@ -33,7 +34,10 @@ export function ReadinessCheck({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold">How are you feeling?</h2>
+        <h2 className="flex items-center gap-1.5 text-lg font-semibold">
+          How are you feeling?
+          <EvidenceLine ruleId="readiness" variant="icon" />
+        </h2>
       </div>
 
       <div className="space-y-2">

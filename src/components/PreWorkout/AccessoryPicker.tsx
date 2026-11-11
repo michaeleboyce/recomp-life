@@ -5,6 +5,7 @@ import { EXERCISES } from "@/lib/exercises";
 import { HOME_ACCESSORY_ALTERNATIVES } from "@/lib/workoutTemplates";
 import { getPreference } from "@/lib/exercisePreferences";
 import { getPhaseAccessoryCap } from "@/lib/accessories";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import type { ExercisePreferences, TrainingPhase, WorkoutLocation } from "@/types";
 
 interface AccessoryPickerProps {
@@ -76,8 +77,11 @@ export function AccessoryPicker({
     <div className="space-y-3">
       <div className="space-y-1">
         <h3 className="text-sm font-semibold">Add Accessories?</h3>
-        <p className="text-xs text-muted-foreground">
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           ({getPhaseLabel(trainingPhase)})
+          {trainingPhase.mode === "cutting" && (
+            <EvidenceLine ruleId="accessories-in-cut" variant="icon" />
+          )}
         </p>
       </div>
 

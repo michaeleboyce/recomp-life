@@ -4,6 +4,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { db } from "@/db/local";
 import { Button } from "@/components/ui/button";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import type { PainSorenessEntry, BodyRegion } from "@/types";
 
 const REGION_LABELS: Record<BodyRegion, string> = {
@@ -100,6 +101,7 @@ export default function ActivePainBanner() {
           </div>
         </div>
       ))}
+      <EvidenceLine ruleId="training-with-pain" className="px-1" />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { EXERCISES } from "@/lib/exercises";
 import { dumbbellToBarbell } from "@/lib/dbConversion";
 import { calculateE1RM, isE1RMEligibleSet } from "@/lib/e1rm";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import type { SetLog, Tier, WorkoutModification } from "@/types";
 
 interface LiftResultProps {
@@ -180,8 +181,13 @@ export default function LiftResult({
       )}
 
       {/* Status line */}
-      <p className={`text-sm ${statusColor}`}>
-        {statusIcon} {statusLabel}
+      <p className={`flex items-center gap-1.5 text-sm ${statusColor}`}>
+        <span>
+          {statusIcon} {statusLabel}
+        </span>
+        {(tier === "T1" || tier === "T2") && !isSkipped && (
+          <EvidenceLine ruleId="gzclp-progression" variant="icon" />
+        )}
       </p>
 
       {/* Pain modification info */}

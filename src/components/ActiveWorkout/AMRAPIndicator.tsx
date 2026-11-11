@@ -1,6 +1,7 @@
 "use client";
 
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { getAMRAPGuidance } from "@/lib/amrap";
 import type { TrainingPhase, Tier } from "@/types";
 
@@ -21,6 +22,11 @@ export function AMRAPIndicator({ tier }: AMRAPIndicatorProps) {
         <AlertDescription className="text-amber-300/80 text-xs mt-1">
           {guidance}
         </AlertDescription>
+      )}
+      {guidance && (
+        <div className="col-start-2">
+          <EvidenceLine ruleId="amrap-effort" hideLibraryLink />
+        </div>
       )}
     </Alert>
   );

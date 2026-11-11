@@ -3,10 +3,15 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { TimerWorkerManager } from "@/lib/timerWorker";
 import { playTimerChime, vibrateTimer, sendTimerNotification } from "@/lib/audio";
-import { hasCuttingRestBonus, formatRestDuration } from "@/lib/restTimes";
+import {
+  hasCuttingRestBonus,
+  formatRestDuration,
+  getRestEvidenceId,
+} from "@/lib/restTimes";
 import type { Tier, TrainingPhase } from "@/types";
 
 interface RestTimerProps {
@@ -126,6 +131,9 @@ export function RestTimer({
       ? Math.min(100, Math.max(0, (elapsed / restTimerDuration) * 100))
       : 100;
 
+  // Why the rest is this long (heavy vs lighter sets); none for warm-ups
+  const restEvidenceId = tier !== undefined ? getRestEvidenceId(tier) : null;
+
   // Show cutting bonus indicator when +30s was added
   const hasCuttingBonus =
     tier !== undefined && hasCuttingRestBonus(tier, trainingPhase);
@@ -142,7 +150,10 @@ export function RestTimer({
         <span className="text-sm font-medium text-muted-foreground">
           {isOvertime ? "REST COMPLETE" : "REST"}
           {hasCuttingBonus && (
-            <span className="ml-2 text-xs text-blue-400">+30s cut</span>
+            <span className="ml-2 inline-flex items-center gap-1 text-xs text-blue-400">
+              +30s cut
+              <EvidenceLine ruleId="rest-cut-bonus" variant="icon" hideLibraryLink />
+            </span>
           )}
         </span>
         <span
@@ -159,6 +170,10 @@ export function RestTimer({
       </div>
 
       <Progress value={progressPercent} className="h-2" />
+
+      {restEvidenceId && (
+        <EvidenceLine ruleId={restEvidenceId} hideLibraryLink />
+      )}
 
       <div className="flex items-center justify-end gap-2">
         <Button variant="outline" size="sm" onClick={() => handleAddTime(30)}>
