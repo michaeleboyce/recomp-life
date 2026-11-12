@@ -28,6 +28,8 @@ export const PROJECTION_COEFFICIENTS = {
    * (and the screen warns about recovery instead).
    */
   weeklySetsCeiling: 20,
+  /** placeholder; set by projection-research */
+  relatedSetTransfer: 0.5,
   /** How fast the range widens: residual SD x (1 + bandGrowth x sqrt(weeks ahead)). */
   bandGrowth: 0.5,
   /** Width of the range in residual standard deviations (about a 68% band at 1). */
