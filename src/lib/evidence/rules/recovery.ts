@@ -10,6 +10,10 @@ import {
   DECAY_PHASE_MULTIPLIERS,
   MAX_DECAY,
 } from "@/lib/weightDecay";
+import {
+  ACTIVITY_NOTE_WINDOW_HOURS,
+  ACTIVITY_HARD_EFFORT,
+} from "@/lib/activities";
 
 const pct = (fraction: number) => `${Math.round(fraction * 100)}%`;
 
@@ -103,6 +107,22 @@ export const RECOVERY_RULES = {
     surfaces: [],
     activationNotes:
       "Change the prescription to cut sets (by a third to a half) and keep the load, shorten it, and make it optional.",
+  },
+  "activity-fatigue": {
+    area: "recovery",
+    status: "active",
+    title: "Why does a hard yoga class or ride matter?",
+    summary: "A hard session in the last day can leave you a little short",
+    appBehavior: `Before a workout, the app checks the yoga, cycling, hiking, walking and other sessions you logged in the last ${ACTIVITY_NOTE_WINDOW_HOURS} hours. If one was rated effort ${ACTIVITY_HARD_EFFORT} or more out of 5, it shows a note suggesting you judge the day by your warm-ups. Cycling, hiking and walking are only mentioned before a lower-body T1 lift. The note never changes your weights, and these sessions never affect progression.`,
+    rationale:
+      "A hard session of any kind leaves some fatigue, and it is better to have it in mind than to be surprised by a slow warm-up. Easy and moderate sessions are not flagged.",
+    caveat:
+      "How much a yoga class, ride or hike takes out of the next day's lifting has not been studied directly. The effort threshold and the time window are coaching conventions. The style of a yoga class is recorded but not used: your effort rating decides.",
+    strength: "heuristic",
+    sources: [],
+    reviewedOn: "2026-11",
+    implementedIn: ["src/lib/activities.ts#evaluateActivityImpact"],
+    surfaces: ["src/app/workout/configure/page.tsx"],
   },
   "fatigue-detection": {
     area: "recovery",

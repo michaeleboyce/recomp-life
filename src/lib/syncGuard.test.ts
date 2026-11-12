@@ -41,10 +41,10 @@ describe('isSyncAuthorized', () => {
 });
 
 describe('SYNC_ALLOWED_COLUMNS', () => {
-  it('covers all nine synced tables', () => {
+  it('covers all ten synced tables', () => {
     expect(Object.keys(SYNC_ALLOWED_COLUMNS).sort()).toEqual(
       [
-        'bodyweight', 'estimated1RMs', 'liftStates', 'painEntries',
+        'activities', 'bodyweight', 'estimated1RMs', 'liftStates', 'painEntries',
         'readinessLogs', 'runs', 'sets', 'userProfile', 'workouts',
       ].sort()
     );
@@ -130,5 +130,18 @@ describe('toPostgresRow', () => {
       expect(findUnknownColumns(Object.keys(row), SYNC_ALLOWED_COLUMNS.liftStates)).toEqual([]);
       expect(row.recent_e1rms).toBe('[]');
     }
+  });
+});
+
+describe('activities', () => {
+  it('a logged activity maps onto known columns only', () => {
+    const row = toPostgresRow('activities', {
+      id: 'a1', clientId: 'a1', date: '2026-11-11T10:00:00.000Z', kind: 'yoga',
+      durationMinutes: 45, style: 'power', distanceMiles: null, notes: '',
+      perceivedEffort: 4, synced: false,
+    });
+    expect(row.duration_minutes).toBe(45);
+    expect(row.perceived_effort).toBe(4);
+    expect(findUnknownColumns(Object.keys(row), SYNC_ALLOWED_COLUMNS.activities)).toEqual([]);
   });
 });
