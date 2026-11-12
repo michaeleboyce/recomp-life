@@ -213,7 +213,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/e1rm.ts` (`calculateE1RM`)
-- **Shown in:** `src/components/Dashboard/E1RMSummary.tsx`, `src/app/1rm-calculator/page.tsx`, `src/components/Lift/PrLine.tsx`
+- **Shown in:** `src/app/1rm-calculator/page.tsx`, `src/components/Lift/PrLine.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Estimated from your heavy AMRAP set; best read as a trend
@@ -299,7 +299,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/recovery.ts` (`calculateRecoveryStatus`), `src/lib/muscleLoad.ts` (`getMuscleRecovery`)
-- **Shown in:** `src/components/Dashboard/RecoveryStatusBars.tsx`, `src/app/workout/configure/page.tsx`, `src/components/Progress/StrengthSections.tsx`
+- **Shown in:** `src/app/workout/configure/page.tsx`, `src/components/Progress/StrengthSections.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Hard sets take 1–3 days to recover from; stress can slow that

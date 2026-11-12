@@ -50,7 +50,6 @@ export const RECOVERY_RULES = {
       "src/lib/muscleLoad.ts#getMuscleRecovery",
     ],
     surfaces: [
-      "src/components/Dashboard/RecoveryStatusBars.tsx",
       "src/app/workout/configure/page.tsx",
       "src/components/Progress/StrengthSections.tsx",
     ],

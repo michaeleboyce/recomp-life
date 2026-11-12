@@ -70,7 +70,6 @@ export const EFFORT_RULES = {
     reviewedOn: "2026-11",
     implementedIn: ["src/lib/e1rm.ts#calculateE1RM"],
     surfaces: [
-      "src/components/Dashboard/E1RMSummary.tsx",
       "src/app/1rm-calculator/page.tsx",
       "src/components/Lift/PrLine.tsx",
     ],

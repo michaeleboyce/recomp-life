@@ -7,6 +7,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: [],
     passWithNoTests: true,
+    // Database-backed component tests can take several seconds on a busy machine;
+    // the 5 s default produced false timeouts.
+    testTimeout: 30000,
     // Other git worktrees live under .claude/worktrees; their tests belong to
     // their own checkouts and must not run (or write files) from this one.
     exclude: [...configDefaults.exclude, '.claude/**'],

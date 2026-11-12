@@ -9,9 +9,6 @@ export const DB_IMPORT_ALLOWLIST: string[] = [
   "src/app/workout/summary/page.tsx",
   "src/components/Charts/E1RMChart.tsx",
   "src/components/Dashboard/ActivePainBanner.tsx",
-  "src/components/Dashboard/E1RMSummary.tsx",
-  "src/components/Dashboard/InactivityBanner.tsx",
-  "src/components/Dashboard/RecoveryStatusBars.tsx",
   // Added by the interactive-anatomy branch; migrate to src/hooks once that work has landed.
   "src/components/Dashboard/MuscleHeatCard.tsx",
 ];
@@ -20,9 +17,6 @@ export const DB_IMPORT_ALLOWLIST: string[] = [
 export const PALETTE_ALLOWLIST: string[] = [
   "src/app/workout/summary/page.tsx",
   "src/components/Dashboard/ActivePainBanner.tsx",
-  "src/components/Dashboard/E1RMSummary.tsx",
-  "src/components/Dashboard/InactivityBanner.tsx",
-  "src/components/Dashboard/RecoveryStatusBars.tsx",
   "src/components/Exercises/ExerciseRow.tsx",
   "src/components/WorkoutSummary/LiftResult.tsx",
 ];
