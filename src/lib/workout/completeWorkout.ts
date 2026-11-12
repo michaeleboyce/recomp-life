@@ -14,10 +14,22 @@ import type { CompletionInput, CompletionResult } from "./types";
 /** How many entries each tracking array keeps. */
 const TRACKING_WINDOW = 5;
 
-/** What differs between the T1 and T2 halves of a lift state. */
+/**
+ * What differs between the T1 and T2 halves of a lift state. Only T1 sessions feed the
+ * effort history (`recentAvgRPEs`, `recentAMRAPReps`): mixing heavy and light days in
+ * one array would make its trend meaningless.
+ */
 const PROGRESSING_TIERS = {
-  T1: { lastWorkoutDate: "t1LastWorkoutDate", evaluate: evaluateT1Progression },
-  T2: { lastWorkoutDate: "t2LastWorkoutDate", evaluate: evaluateT2Progression },
+  T1: {
+    lastWorkoutDate: "t1LastWorkoutDate",
+    evaluate: evaluateT1Progression,
+    tracksEffort: true,
+  },
+  T2: {
+    lastWorkoutDate: "t2LastWorkoutDate",
+    evaluate: evaluateT2Progression,
+    tracksEffort: false,
+  },
 } as const;
 
 function isProgressingTier(tier: string): tier is keyof typeof PROGRESSING_TIERS {
@@ -112,14 +124,15 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
         recentE1RMs:
           recentE1RMsByExercise[templateEx.exerciseId] ?? liftState.recentE1RMs ?? [],
         recentAvgRPEs:
-          rpes.length > 0
+          tier.tracksEffort && rpes.length > 0
             ? [...previousRPEs, rpes.reduce((a, b) => a + b, 0) / rpes.length].slice(
                 -TRACKING_WINDOW
               )
             : previousRPEs,
-        recentAMRAPReps: amrapSet
-          ? [...previousAMRAPReps, amrapSet.actualReps].slice(-TRACKING_WINDOW)
-          : previousAMRAPReps,
+        recentAMRAPReps:
+          tier.tracksEffort && amrapSet
+            ? [...previousAMRAPReps, amrapSet.actualReps].slice(-TRACKING_WINDOW)
+            : previousAMRAPReps,
         synced: false,
       };
     }
