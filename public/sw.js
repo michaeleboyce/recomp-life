@@ -1,4 +1,4 @@
-const CACHE_NAME = "recomp-life-v1";
+const CACHE_NAME = "recomp-life-v2";
 const PRECACHE_URLS = ["/", "/workout/configure", "/history", "/program", "/tools"];
 
 self.addEventListener("install", (event) => {
@@ -19,6 +19,28 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+});
+
+// The page sends a list of URLs (3D model, exercise photos, exercise pages)
+// to fetch ahead of time so they are available on the first offline visit.
+// Already-cached URLs are skipped; failures are ignored and retried next time.
+self.addEventListener("message", (event) => {
+  const data = event.data;
+  if (!data || data.type !== "WARM_CACHE" || !Array.isArray(data.urls)) return;
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(async (cache) => {
+      for (const url of data.urls) {
+        if (typeof url !== "string" || !url.startsWith("/")) continue;
+        try {
+          if (await cache.match(url)) continue;
+          const response = await fetch(url);
+          if (response.ok) await cache.put(url, response);
+        } catch {
+          // Offline or failed: leave it for the next warm-up.
+        }
+      }
+    })
+  );
 });
 
 self.addEventListener("fetch", (event) => {

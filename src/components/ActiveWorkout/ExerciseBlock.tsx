@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { AMRAPGlow } from "@/components/ui/amrap-glow";
 import { ExerciseMuscleThumb } from "@/components/Anatomy/ExerciseMuscleThumb";
+import { FormSheetButton } from "@/components/ExerciseDemo/FormSheetButton";
 import { getExercise } from "@/lib/exercises";
 import { dumbbellToBarbell } from "@/lib/dbConversion";
 import type { WorkoutExerciseState } from "@/stores/workoutStore";
@@ -73,6 +74,7 @@ export function ExerciseBlock({ exercise, location, isAMRAPSet }: ExerciseBlockP
           </Badge>
           <h2 className="text-lg font-semibold">{exerciseInfo.name}</h2>
         </div>
+        <FormSheetButton exerciseId={exerciseInfo.id} />
 
         <div className="text-muted-foreground text-sm space-y-0.5">
           <p className="font-mono tabular-nums">
