@@ -199,6 +199,18 @@ function stanceLegs(t: Torso, x: number, toeOut: number, ankleZ = ANKLE_Z): [Leg
   ];
 }
 
+const SEAT_TOP = 0.45;
+
+/** Upright torso sitting on a seat at SEAT_TOP, feet flat in front. */
+function seated(pitch = 0, neck = 0): { t: Torso; legs: [LegSol, LegSol] } {
+  const t = torso({ pelvis: [0, SEAT_TOP + RIG.backDepth, 0], pitch, neck });
+  const legs: [LegSol, LegSol] = [
+    leg(t.hipL, flatFoot(0.17, 0.4, 6), [0.1, 1, 0.5]),
+    leg(t.hipR, flatFoot(-0.17, 0.4, -6), [-0.1, 1, 0.5]),
+  ];
+  return { t, legs };
+}
+
 /** Arms hanging straight down holding something at the sides. */
 function hangingArms(t: Torso, out = 0.05): [ArmSol, ArmSol] {
   return symArms(t, add(t.shoulderL, [out, -0.615, 0.02]), [0.2, 0, -1]);
@@ -350,7 +362,7 @@ export function split(p: { rear: "box" | "step" }): Motion {
 
 export function supine(p: {
   surface: "bench" | "floor" | "incline";
-  mode: "press" | "fly" | "skull";
+  mode: "press" | "fly" | "skull" | "pullover";
   implement: "barbell" | "dumbbells";
 }): Motion {
   const incline = p.surface === "incline" ? 35 : 0;
@@ -371,14 +383,25 @@ export function supine(p: {
   }
   return {
     planted: { L: "flat", R: "flat" },
-    grips: p.implement === "barbell" ? { L: 0, R: 0 } : { L: 0, R: 1 },
+    grips: p.implement === "barbell" || p.mode === "pullover" ? { L: 0, R: 0 } : { L: 0, R: 1 },
     frame(s) {
       let arms: [ArmSol, ArmSol];
       let axis: Vec3 = [1, 0, 0];
+      if (p.mode === "pullover") {
+        // One dumbbell held in both hands sweeps from above the chest to behind the head.
+        const a = lerpN(2, 96, s);
+        const dir: Vec3 = [0, cosD(a), -sinD(a)];
+        const c = add(t.sc, scale(dir, 0.585));
+        arms = [
+          arm(t.shoulderL, add(c, [0.025, 0, 0]), [0.6, 0.5, 0.6]),
+          arm(t.shoulderR, add(c, [-0.025, 0, 0]), [-0.6, 0.5, 0.6]),
+        ];
+        return { pose: assemble(t, arms, legs), props: [dumbbell(c, dir), ...furniture] };
+      }
       if (p.mode === "press") {
         // s = 0 locked out above the shoulders, s = 1 at the chest (or upper arms on the floor).
         const wide = p.implement === "barbell" ? [0.36, 0.36] : [0.24, 0.35];
-        const bottomY = p.surface === "floor" ? 0.31 : 0.15;
+        const bottomY = p.surface === "floor" ? 0.31 : p.surface === "incline" ? 0.1 : 0.15;
         const hand: Vec3 = [lerpN(wide[0], wide[1], s), t.sc[1] + lerpN(0.6, bottomY, s), t.sc[2] + lerpN(0, 0.11, s)];
         arms = symArms(t, hand, [0.7, -1, 0.3]);
       } else if (p.mode === "fly") {
@@ -407,15 +430,22 @@ export function supine(p: {
 
 // ─── 5. Overhead press ───────────────────────────────────────────────────────
 
-export function overhead(p: { mode: "barbell" | "dumbbell" | "arnold" }): Motion {
+export function overhead(p: { mode: "barbell" | "dumbbell" | "arnold"; seated?: boolean }): Motion {
   return {
     planted: { L: "flat", R: "flat" },
     grips: p.mode === "barbell" ? { L: 0, R: 0 } : { L: 0, R: 1 },
     frame(s) {
       // Slight lean back at the bottom so the bar clears the chin.
       const pitch = p.mode === "barbell" ? lerpN(-5, 0, s) : 0;
-      const t = torso({ pelvis: [0, STAND_Y, 0], pitch, neck: -pitch });
-      const legs = stanceLegs(t, 0.17, 12);
+      let t = torso({ pelvis: [0, STAND_Y, 0], pitch, neck: -pitch });
+      let legs = stanceLegs(t, 0.17, 12);
+      const furniture: Prop[] = [];
+      if (p.seated) {
+        // Seat with a near-vertical backrest.
+        ({ t, legs } = seated(-5, 5));
+        const back = add(local(t.pelvis, t.lo, [0, 0.36, 0]), scale(t.lo.front, -(RIG.backDepth + 0.02)));
+        furniture.push(bench([0, SEAT_TOP, 0.06], 0.46), bench(back, 0.8, 85));
+      }
       let arms: [ArmSol, ArmSol];
       if (p.mode === "barbell") {
         // Bar starts on the front of the shoulders and finishes over the mid-foot.
@@ -436,7 +466,7 @@ export function overhead(p: { mode: "barbell" | "dumbbell" | "arnold" }): Motion
         arms = symArms(t, hand, lerp([0.1, -1, 0.5], [1, -0.7, 0.1], smooth(s * 1.4)));
       }
       const props = [dumbbell(arms[0].hand, [1, 0, 0]), dumbbell(arms[1].hand, [1, 0, 0])];
-      return { pose: assemble(t, arms, legs), props };
+      return { pose: assemble(t, arms, legs), props: [...props, ...furniture] };
     },
   };
 }
@@ -523,7 +553,7 @@ export function curl(p: { grip: "supinated" | "hammer" }): Motion {
 
 // ─── 9. Raise ────────────────────────────────────────────────────────────────
 
-export function raise(p: { direction: "lateral" | "front" | "reverse" }): Motion {
+export function raise(p: { direction: "lateral" | "front" | "reverse"; seated?: boolean }): Motion {
   const r = ARM_REACH - 0.02;
   return {
     planted: { L: "flat", R: "flat" },
@@ -532,8 +562,9 @@ export function raise(p: { direction: "lateral" | "front" | "reverse" }): Motion
       let t: Torso;
       let arms: [ArmSol, ArmSol];
       let axis: Vec3;
+      const sit = p.seated ? seated() : null;
       if (p.direction === "lateral") {
-        t = torso({ pelvis: [0, STAND_Y, 0] });
+        t = sit ? sit.t : torso({ pelvis: [0, STAND_Y, 0] });
         const a = lerpN(7, 86, s);
         arms = symArms(t, add(t.shoulderL, [r * sinD(a), -r * cosD(a), 0.07 * sinD(a)]), [0, 0.3, -1]);
         axis = [0, 0, 1];
@@ -549,11 +580,11 @@ export function raise(p: { direction: "lateral" | "front" | "reverse" }): Motion
         arms = symArms(t, add(t.shoulderL, [r * sinD(a), -r * cosD(a), 0]), [0, 1, -0.4]);
         axis = [0, 0, 1];
       }
-      const legs = stanceLegs(t, 0.15, 10);
-      return {
-        pose: assemble(t, arms, legs),
-        props: [dumbbell(arms[0].hand, axis), dumbbell(arms[1].hand, axis)],
-      };
+      const legs = sit ? sit.legs : stanceLegs(t, 0.15, 10);
+      const props = [dumbbell(arms[0].hand, axis), dumbbell(arms[1].hand, axis)];
+      // Seated: on the end of a flat bench running back behind the lifter.
+      if (sit) props.push(bench([0, SEAT_TOP, -0.38], 1.1));
+      return { pose: assemble(t, arms, legs), props };
     },
   };
 }
@@ -744,14 +775,14 @@ export function backExtension(): Motion {
 
 // ─── 15. Hip thrust ──────────────────────────────────────────────────────────
 
-export function hipThrust(): Motion {
+export function hipThrust(p: { machine?: boolean } = {}): Motion {
   const benchTop = 0.42;
   // The upper back pivots on the bench edge.
   const pivot: Vec3 = [0, benchTop + RIG.backDepth, 0];
   const chestUp = RIG.pelvisToSpine + RIG.spineToChest;
   return {
     planted: { L: "flat", R: "flat" },
-    grips: { L: 0, R: 0 },
+    grips: p.machine ? {} : { L: 0, R: 0 },
     frame(s) {
       const pitch = lerpN(-40, -88, s);
       const b = basis(pitch);
@@ -761,6 +792,20 @@ export function hipThrust(): Motion {
         leg(t.hipR, flatFoot(-0.18, 0.86, -8), [-0.1, 1, 0.2]),
       ];
       const db = add(t.pelvis, scale(b.front, 0.14));
+      if (p.machine) {
+        // Glute drive machine: pivoting back pad, padded bar across the hips, foot plate.
+        const arms = symArms(t, add(db, [0.3, 0, 0]), [1, -0.3, 0]);
+        const backPad = add(local(t.spine, t.hi, [0, 0.16, 0]), scale(t.hi.front, -(RIG.backDepth + 0.05)));
+        return {
+          pose: assemble(t, arms, legs),
+          props: [
+            box(db, [0.7, 0.1, 0.12]),
+            box(backPad, [0.46, 0.12, 0.34]),
+            box([0, (pivot[1] - 0.2) / 2, -0.2], [0.3, pivot[1] - 0.2, 0.1]),
+            box([0, 0.005, 0.93], [0.6, 0.01, 0.42]),
+          ],
+        };
+      }
       const arms = symArms(t, add(db, [0.09, 0, 0]), [1, -0.3, 0]);
       return {
         pose: assemble(t, arms, legs),
@@ -790,6 +835,35 @@ export function facePull(): Motion {
         props: [
           { kind: "cable", from: anchor, to: arms[0].hand },
           { kind: "cable", from: anchor, to: arms[1].hand },
+        ],
+      };
+    },
+  };
+}
+
+// ─── 17. Pendulum squat ──────────────────────────────────────────────────────
+
+export function pendulumSquat(): Motion {
+  // Feet forward on the plate, back against a pad that swings down and slightly back.
+  const ankleZ = 0.05;
+  return {
+    planted: { L: "flat", R: "flat" },
+    grips: {},
+    frame(s) {
+      const pitch = lerpN(-10, 6, s);
+      const pelvis: Vec3 = [0, lerpN(0.93, 0.43, s), lerpN(-0.1, -0.22, s) - 0.04 * Math.sin(Math.PI * s)];
+      const t = torso({ pelvis, pitch, neck: -pitch * 0.5 });
+      const legs = stanceLegs(t, 0.2, 18, ankleZ);
+      // Hands on the handles beside the shoulder pads.
+      const arms = symArms(t, local(t.chest, t.hi, [0.25, 0.1, 0.14]), [0.4, -1, 0.2]);
+      const backPad = local(t.spine, t.hi, [0, 0.1, -(RIG.backDepth + 0.05)]);
+      return {
+        pose: assemble(t, arms, legs),
+        props: [
+          box(backPad, [0.42, 0.6, 0.1]),
+          box(local(t.chest, t.hi, [0.19, 0.16, 0.02]), [0.14, 0.08, 0.24]),
+          box(local(t.chest, t.hi, [-0.19, 0.16, 0.02]), [0.14, 0.08, 0.24]),
+          box([0, 0.005, ankleZ + 0.07], [0.62, 0.01, 0.46]),
         ],
       };
     },

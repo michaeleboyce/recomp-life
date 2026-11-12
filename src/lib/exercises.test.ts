@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { EXERCISES, getExercise, HOME_SUBSTITUTE_CHAINS } from "./exercises";
+import {
+  EXERCISES,
+  getExercise,
+  HOME_SUBSTITUTE_CHAINS,
+  ACCESSORY_IDS,
+  DEFAULT_ACCESSORY_WEIGHTS,
+} from "./exercises";
 import {
   WORKOUT_TEMPLATES,
   WORKOUT_ROTATION,
@@ -54,6 +60,36 @@ describe("Exercise Registry", () => {
     expect(EXERCISES.tricep_pushdowns.primaryMuscles).toEqual(["triceps"]);
     expect(EXERCISES.calf_raises.primaryMuscles).toEqual(["calves"]);
     expect(EXERCISES.hip_thrust.primaryMuscles).toEqual(["glutes"]);
+  });
+
+  it("includes the machine favourites with real muscles", () => {
+    const pendulum = EXERCISES.pendulum_squat;
+    expect(pendulum.name).toBe("Pendulum Squat");
+    expect(pendulum.type).toBe("machine");
+    expect(pendulum.requiresGym).toBe(true);
+    expect(pendulum.primaryMuscles).toEqual(["quads"]);
+    expect(pendulum.secondaryMuscles).toContain("glutes");
+
+    const drive = EXERCISES.glute_drive;
+    expect(drive.name).toBe("Glute Drive");
+    expect(drive.type).toBe("machine");
+    expect(drive.requiresGym).toBe(true);
+    expect(drive.primaryMuscles).toEqual(["glutes"]);
+    expect(drive.secondaryMuscles).toContain("hamstrings");
+  });
+
+  it("machine favourites are selectable accessories with a starting weight", () => {
+    for (const id of [
+      "pendulum_squat",
+      "glute_drive",
+      "db_pullover",
+      "seated_db_shoulder_press",
+      "seated_lateral_raises",
+      "incline_db_press",
+    ]) {
+      expect(ACCESSORY_IDS).toContain(id);
+      expect(DEFAULT_ACCESSORY_WEIGHTS[id]).toBeGreaterThan(0);
+    }
   });
 
   it("pain-sensitive regions are still BodyRegions (R1)", () => {
@@ -136,7 +172,7 @@ describe("Exercise Registry", () => {
   });
 
   it("all exercises have valid type values", () => {
-    const validTypes = ["barbell", "dumbbell", "cable", "bodyweight"];
+    const validTypes = ["barbell", "dumbbell", "cable", "bodyweight", "machine"];
     for (const exercise of Object.values(EXERCISES)) {
       expect(validTypes).toContain(exercise.type);
     }

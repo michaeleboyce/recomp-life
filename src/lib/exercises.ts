@@ -237,7 +237,7 @@ export const EXERCISES: Record<string, Exercise> = {
 
   lateral_raises: {
     id: "lateral_raises",
-    name: "Lateral Raises",
+    name: "Standing Lateral Raises",
     type: "dumbbell",
     muscleGroup: "push",
     requiresGym: false,
@@ -373,6 +373,82 @@ export const EXERCISES: Record<string, Exercise> = {
     painSensitiveRegions: [],
   },
 
+  pendulum_squat: {
+    id: "pendulum_squat",
+    name: "Pendulum Squat",
+    type: "machine",
+    muscleGroup: "legs",
+    requiresGym: true,
+    primaryMuscles: ["quads"],
+    secondaryMuscles: ["glutes", "adductors"],
+    stabilizerMuscles: ["calves"],
+    painSensitiveRegions: ["left_knee", "right_knee"],
+  },
+
+  glute_drive: {
+    id: "glute_drive",
+    name: "Glute Drive",
+    type: "machine",
+    muscleGroup: "legs",
+    requiresGym: true,
+    primaryMuscles: ["glutes"],
+    secondaryMuscles: ["hamstrings"],
+    stabilizerMuscles: ["quads", "adductors"],
+    painSensitiveRegions: ["lower_back"],
+  },
+
+  db_pullover: {
+    id: "db_pullover",
+    name: "DB Pullover",
+    type: "dumbbell",
+    muscleGroup: "pull",
+    requiresGym: false,
+    grip: "both_hands",
+    primaryMuscles: ["lats"],
+    secondaryMuscles: ["chest"],
+    stabilizerMuscles: ["triceps", "abs"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
+  seated_db_shoulder_press: {
+    id: "seated_db_shoulder_press",
+    name: "Seated DB Shoulder Press",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["front_delts"],
+    secondaryMuscles: ["side_delts", "triceps", "upper_traps"],
+    stabilizerMuscles: ["rotator_cuff"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
+  seated_lateral_raises: {
+    id: "seated_lateral_raises",
+    name: "Seated Lateral Raises",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["side_delts"],
+    secondaryMuscles: ["upper_traps"],
+    stabilizerMuscles: ["forearms"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
+  incline_db_press: {
+    id: "incline_db_press",
+    name: "Incline DB Press",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["chest"],
+    secondaryMuscles: ["front_delts", "triceps"],
+    stabilizerMuscles: ["rotator_cuff"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder", "left_elbow", "right_elbow"],
+  },
+
   hammer_curls: {
     id: "hammer_curls",
     name: "Hammer Curls",
@@ -445,6 +521,8 @@ export const ACCESSORY_IDS: string[] = [
   "oh_tricep_ext", "incline_db_fly", "leg_curls", "leg_extensions",
   "calf_raises", "ab_rollout", "back_extensions", "hip_thrust",
   "hammer_curls", "front_raises", "reverse_fly", "arnold_press", "db_skull_crushers",
+  "pendulum_squat", "glute_drive", "db_pullover",
+  "seated_db_shoulder_press", "seated_lateral_raises", "incline_db_press",
 ];
 
 /**
@@ -469,6 +547,13 @@ export const DEFAULT_ACCESSORY_WEIGHTS: Record<string, number> = {
   reverse_fly: 12,
   arnold_press: 25,
   db_skull_crushers: 15,
+  // Plate-loaded machines: weight added to the machine, not counting its arm.
+  pendulum_squat: 90,
+  glute_drive: 90,
+  db_pullover: 30,
+  seated_db_shoulder_press: 30,
+  seated_lateral_raises: 12,
+  incline_db_press: 35,
 };
 
 /**

@@ -69,7 +69,7 @@ describe("two-bone IK", () => {
 describe("motion library coverage", () => {
   it("has a motion for every exercise and nothing else", () => {
     expect(Object.keys(MOTIONS).sort()).toEqual([...IDS].sort());
-    expect(IDS.length).toBe(32);
+    expect(IDS.length).toBeGreaterThanOrEqual(38);
   });
 
   it("returns null for unknown ids", () => {

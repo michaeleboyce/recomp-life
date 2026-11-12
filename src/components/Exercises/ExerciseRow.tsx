@@ -19,6 +19,7 @@ const EQUIPMENT_LABELS: Record<string, string> = {
   dumbbell: "Dumbbell",
   cable: "Cable",
   bodyweight: "Bodyweight",
+  machine: "Machine",
 };
 
 const PREFERENCE_OPTIONS: { value: ExercisePreference; label: string }[] = [

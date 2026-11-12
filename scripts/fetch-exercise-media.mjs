@@ -49,6 +49,14 @@ export const SOURCES = {
   reverse_fly: "Reverse_Flyes",
   arnold_press: "Arnold_Dumbbell_Press",
   db_skull_crushers: "Lying_Dumbbell_Tricep_Extension",
+  db_pullover: "Bent-Arm_Dumbbell_Pullover",
+  seated_db_shoulder_press: "Seated_Dumbbell_Press",
+  seated_lateral_raises: "Seated_Side_Lateral_Raise",
+  incline_db_press: "Incline_Dumbbell_Press",
+  // No pendulum squat or glute drive machine in the dataset (a hack squat
+  // and a barbell hip thrust are different equipment).
+  pendulum_squat: null,
+  glute_drive: null,
 };
 
 const UA = { "User-Agent": "exercise-media-fetch" };

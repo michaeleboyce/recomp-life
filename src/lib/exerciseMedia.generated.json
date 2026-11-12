@@ -438,5 +438,68 @@
       "At that point, while keeping the elbows in and the upper arms stationary, use the triceps to bring the weight back up to the starting position as you breathe out.",
       "Repeat for the recommended amount of repetitions."
     ]
+  },
+  "db_pullover": {
+    "sourceId": "Bent-Arm_Dumbbell_Pullover",
+    "sourceName": "Bent-Arm Dumbbell Pullover",
+    "frames": [
+      "/exercise-media/db_pullover/0.jpg",
+      "/exercise-media/db_pullover/1.jpg"
+    ],
+    "instructions": [
+      "Place a dumbbell standing up on a flat bench.",
+      "Ensuring that the dumbbell stays securely placed at the top of the bench, lie perpendicular to the bench (torso across it as in forming a cross) with only your shoulders lying on the surface. Hips should be below the bench and legs bent with feet firmly on the floor. The head will be off the bench as well.",
+      "Grasp the dumbbell with both hands and hold it straight over your chest with a bend in your arms. Both palms should be pressing against the underside one of the sides of the dumbbell. This will be your starting position. Caution: Always ensure that the dumbbell used for this exercise is secure. Using a dumbbell with loose plates can result in the dumbbell falling apart and falling on your face.",
+      "While keeping your arms locked in the bent arm position, lower the weight slowly in an arc behind your head while breathing in until you feel a stretch on the chest.",
+      "At that point, bring the dumbbell back to the starting position using the arc through which the weight was lowered and exhale as you perform this movement.",
+      "Hold the weight on the initial position for a second and repeat the motion for the prescribed number of repetitions."
+    ]
+  },
+  "seated_db_shoulder_press": {
+    "sourceId": "Seated_Dumbbell_Press",
+    "sourceName": "Seated Dumbbell Press",
+    "frames": [
+      "/exercise-media/seated_db_shoulder_press/0.jpg",
+      "/exercise-media/seated_db_shoulder_press/1.jpg"
+    ],
+    "instructions": [
+      "Grab a couple of dumbbells and sit on a military press bench or a utility bench that has a back support on it as you place the dumbbells upright on top of your thighs.",
+      "Clean the dumbbells up one at a time by using your thighs to bring the dumbbells up to shoulder height at each side.",
+      "Rotate the wrists so that the palms of your hands are facing forward. This is your starting position.",
+      "As you exhale, push the dumbbells up until they touch at the top.",
+      "After a second pause, slowly come down back to the starting position as you inhale.",
+      "Repeat for the recommended amount of repetitions."
+    ]
+  },
+  "seated_lateral_raises": {
+    "sourceId": "Seated_Side_Lateral_Raise",
+    "sourceName": "Seated Side Lateral Raise",
+    "frames": [
+      "/exercise-media/seated_lateral_raises/0.jpg",
+      "/exercise-media/seated_lateral_raises/1.jpg"
+    ],
+    "instructions": [
+      "Pick a couple of dumbbells and sit at the end of a flat bench with your feet firmly on the floor. Hold the dumbbells with your palms facing in and your arms straight down at your sides at arms' length. This will be your starting position.",
+      "While maintaining the torso stationary (no swinging), lift the dumbbells to your side with a slight bend on the elbow and the hands slightly tilted forward as if pouring water in a glass. Continue to go up until you arms are parallel to the floor. Exhale as you execute this movement and pause for a second at the top.",
+      "Lower the dumbbells back down slowly to the starting position as you inhale.",
+      "Repeat for the recommended amount of repetitions."
+    ]
+  },
+  "incline_db_press": {
+    "sourceId": "Incline_Dumbbell_Press",
+    "sourceName": "Incline Dumbbell Press",
+    "frames": [
+      "/exercise-media/incline_db_press/0.jpg",
+      "/exercise-media/incline_db_press/1.jpg"
+    ],
+    "instructions": [
+      "Lie back on an incline bench with a dumbbell in each hand atop your thighs. The palms of your hands will be facing each other.",
+      "Then, using your thighs to help push the dumbbells up, lift the dumbbells one at a time so that you can hold them at shoulder width.",
+      "Once you have the dumbbells raised to shoulder width, rotate your wrists forward so that the palms of your hands are facing away from you. This will be your starting position.",
+      "Be sure to keep full control of the dumbbells at all times. Then breathe out and push the dumbbells up with your chest.",
+      "Lock your arms at the top, hold for a second, and then start slowly lowering the weight. Tip Ideally, lowering the weights should take about twice as long as raising them.",
+      "Repeat the movement for the prescribed amount of repetitions.",
+      "When you are done, place the dumbbells back on your thighs and then on the floor. This is the safest manner to release the dumbbells."
+    ]
   }
 }

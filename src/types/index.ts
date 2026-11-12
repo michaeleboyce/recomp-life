@@ -83,7 +83,7 @@ export type ActivationLevel = "primary" | "secondary" | "stabilizer";
 // Exercise Types
 
 export type MuscleGroup = "push" | "pull" | "legs" | "core" | "full_body";
-export type ExerciseType = "barbell" | "dumbbell" | "cable" | "bodyweight";
+export type ExerciseType = "barbell" | "dumbbell" | "cable" | "bodyweight" | "machine";
 
 export type DumbbellGrip = "per_hand" | "single" | "both_hands";
 

@@ -1,7 +1,7 @@
 import type { Motion } from "./archetypes";
 import {
   backExtension, calfRaise, curl, facePull, hinge, hipThrust, legMachine, overhead,
-  pulldown, raise, rollout, row, split, squat, supine, triceps,
+  pendulumSquat, pulldown, raise, rollout, row, split, squat, supine, triceps,
 } from "./archetypes";
 import type { MotionInfo } from "./sample";
 
@@ -14,6 +14,9 @@ export interface MotionSpec {
   eccentricFirst: boolean;
   motion: Motion;
 }
+
+/** Same movement run the other way: starts at the original end pose. */
+const reversed = (m: Motion): Motion => ({ ...m, frame: (s) => m.frame(1 - s) });
 
 const arnold: MotionSpec = {
   info: {
@@ -62,6 +65,26 @@ export const MOTIONS: Record<string, MotionSpec> = {
     info: { repSeconds: 3.6, view: "side", trace: "handL", caption: "Upper arms stay still; bend the elbows to lower the dumbbells beside the head, then extend." },
     eccentricFirst: true,
     motion: supine({ surface: "bench", mode: "skull", implement: "dumbbells" }),
+  },
+  db_pullover: {
+    info: { repSeconds: 4.2, view: "side", trace: "handL", caption: "Lying on the bench, lower one dumbbell in an arc behind the head with soft elbows, then pull it back over the chest." },
+    eccentricFirst: true,
+    motion: supine({ surface: "bench", mode: "pullover", implement: "dumbbells" }),
+  },
+  incline_db_press: {
+    info: { repSeconds: 3.6, view: "threeQuarter", trace: "handL", caption: "On an incline bench, press the dumbbells from beside the upper chest to straight arms over the shoulders, lower under control." },
+    eccentricFirst: false,
+    motion: reversed(supine({ surface: "incline", mode: "press", implement: "dumbbells" })),
+  },
+  seated_db_shoulder_press: {
+    info: { repSeconds: 3.4, view: "front", trace: "handL", caption: "Seated against the backrest, press the dumbbells from shoulder height to overhead, then lower with forearms vertical." },
+    eccentricFirst: false,
+    motion: overhead({ mode: "dumbbell", seated: true }),
+  },
+  seated_lateral_raises: {
+    info: { repSeconds: 3.2, view: "front", trace: "handL", caption: "Seated upright, raise the dumbbells out to the sides to shoulder height with a soft elbow, lower slowly." },
+    eccentricFirst: false,
+    motion: raise({ direction: "lateral", seated: true }),
   },
   deadlift: {
     info: { repSeconds: 4, view: "side", trace: "barCenter", caption: "Push the floor away and stand tall with the bar close to the legs, then hinge back down under control." },
@@ -179,5 +202,15 @@ export const MOTIONS: Record<string, MotionSpec> = {
     info: { repSeconds: 3.2, view: "side", caption: "Upper back on the bench, drive the hips up until the torso is level with the knees, pause, lower." },
     eccentricFirst: false,
     motion: hipThrust(),
+  },
+  glute_drive: {
+    info: { repSeconds: 3.4, view: "side", caption: "Back against the pivoting pad, drive the hips up under the belt until thighs and torso are in line, pause, lower." },
+    eccentricFirst: false,
+    motion: hipThrust({ machine: true }),
+  },
+  pendulum_squat: {
+    info: { repSeconds: 4.2, view: "side", trace: "handL", caption: "Back on the pad, sink deep as the pad swings down and back and the knees travel forward, then drive up." },
+    eccentricFirst: true,
+    motion: pendulumSquat(),
   },
 };

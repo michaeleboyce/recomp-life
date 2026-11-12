@@ -39,7 +39,7 @@ Prop order inside a frame is stable for a given exercise.
 ## Files
 
 - `vec.ts` vector helpers. `ik.ts` two-bone IK. `rig.ts` joints, bones, segment lengths, prop types.
-- `archetypes.ts` the 16 parametric generators (squat, hinge, split, supine, overhead,
+- `archetypes.ts` the 17 parametric generators (squat, pendulumSquat, hinge, split, supine, overhead,
   row, pulldown, curl, raise, triceps, legMachine, calfRaise, rollout, backExtension,
   hipThrust, facePull) and the body builder they share.
 - `motions.ts` `MOTIONS`: one `MotionSpec` per exercise id (archetype + parameters, caption, view, trace).
