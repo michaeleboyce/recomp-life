@@ -30,7 +30,7 @@ Commit this file and the design.
 |---|---|---|---|---|
 | plan-edits | opus | `src/lib/workout/planEdits.ts`, `src/lib/workout/buildPlan.ts`, `src/lib/swapCandidates.ts` and their tests | `applyPlanEdits`, `editsFromSession`, `pinSnapshot`, `prescribedFor`; `edits` in the builder with the swap/overrides precedence in its doc comment; `swapCandidates` | R1, R3 |
 | credit | opus | `src/lib/workout/credit.ts`, `src/lib/workout/completeWorkout.ts`, `src/lib/evidence/**`, `docs/coaching-rules.md` (generated) and their tests | `classifyEntry`, `countsForRotation`, per-entry `computeCompletion`; the `describeNextWorkout` filter is handed to plan-edits as a named task; evidence rule, changelog, `npm run docs:evidence`; the R6 test | R4, R6, R8 |
-| storage | sonnet | `src/db/**`, `src/lib/sync.ts`, `src/lib/syncGuard.ts`, `src/app/api/sync/**`, `src/lib/data/records.ts`, `src/hooks/useRecords.ts`, `src/hooks/index.ts`, the export block of `src/app/settings/page.tsx`, and their tests | `favoriteWorkouts` table end to end, soft delete, the four workout columns | R2, R7 |
+| storage | sonnet | `src/db/**`, `src/lib/sync.ts`, `src/lib/syncGuard.ts`, `src/app/api/sync/**`, `src/lib/data/records.ts`, `src/hooks/useRecords.ts`, `src/hooks/index.ts`, the export block of `src/app/settings/page.tsx`, and their tests | `favoriteWorkouts` table end to end, soft delete with numeric `updatedAt` / `deletedAt`, the four workout columns. Sync goes through `src/lib/sync/registry.ts` if the edit/rebuild contracts are on main (one entry), see the design's "Storage and sync" | R2, R7 |
 | favorites-lib | sonnet | `src/lib/favorites.ts` and its test | `favoriteFromSetup`, `favoriteFromSession`, `resolveFavorite` | R2, R3 |
 
 Merge order: plan-edits, credit, favorites-lib, storage. Full test run after each merge.
@@ -41,7 +41,7 @@ Merge order: plan-edits, credit, favorites-lib, storage. Full test run after eac
 |---|---|---|---|---|
 | pre-workout | sonnet | `src/components/PreWorkout/**`, `src/components/ActiveWorkout/useActiveWorkout.ts`, `src/lib/data/workouts.ts`, `src/lib/glossary.ts` (one entry) | Day selector, edit sheet, impact lines with `EvidenceLine`, save as favourite, favourites picker; store `planEdits`, `prescribed`, `favoriteId` at start; pass edits and `dueTemplateId` through | R1, R3, R5 |
 | favourites-screen | sonnet | `src/app/favorites/**`, `src/components/Favorites/**`, `src/components/nav/QuickAddSheet.tsx`, `src/components/nav/TabBar.tsx`, the More list | Screen, quick-add row, More row, tab prefix | R7 |
-| stars | haiku | `src/app/log/page.tsx`, `src/app/workout/summary/**`, `src/components/WorkoutSummary/**` | Star toggle on the summary and Log entry | R2 |
+| stars | haiku | `src/components/Favorites/FavoriteStar.tsx` and its test | Self-contained star (session id in). Mounted on the Log rows and workout detail by the edit/rebuild work, which owns `src/app/log/**`, `src/app/workout/summary/page.tsx` and `src/components/WorkoutSummary/**` | R2 |
 
 ## Step 4: review and verification
 

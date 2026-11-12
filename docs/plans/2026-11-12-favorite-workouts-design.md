@@ -26,6 +26,7 @@ Upcoming workouts (the forecast, its screen and the "Coming up" line on Today) a
 Evaluated per plan entry, from the session's stored `prescribed` list and its logged sets only. Never from how an edit was made, the database or the clock, so the replay of past sessions gives the same answer.
 
 1. **Program entry.** The exercise is a T1/T2/T3 lift of the session's base day, at the prescribed tier and sets × reps, at a weight no lower than prescribed. Evaluated exactly as today (pass, fail, stage change, partial freeze). A home equipment substitute (`overrides`) is still a program entry: DB-adapted workouts at home count as passes.
+   The weight compared is `set.originalWeight ?? set.weight`, over every working set that is not an autoregulated load drop. So a home substitute (dumbbell weight in `weight`, barbell prescription in `originalWeight`) and an accepted T2 load drop are both program entries, and the lift is "lighter" only when all of those sets are below the prescription, so one mistyped set does not flip it.
 2. **Heavier than prescribed.** Still a program entry. The next weight is computed from the prescribed weight, not the heavier one.
 3. **Lighter, or a different scheme.** Logged only. No lift-state change at all: not a pass, not a failure, not a freeze trigger.
 4. **Removed program lift.** No lift-state change.
@@ -90,10 +91,11 @@ export interface FavoriteWorkout {
   snapshot: FavoriteSnapshotEntry[];
   sourceSessionId?: string;
   createdAt: Date;
-  updatedAt: Date;
   lastUsedAt?: Date;
-  /** Soft delete: a hard delete would be re-created by the next sync pull. */
-  deletedAt?: Date;
+  /** Epoch ms, the edit/rebuild work's `Stamped` convention: last write wins by number. */
+  updatedAt: number;
+  /** Soft delete (epoch ms): a hard delete would be re-created by the next sync pull. */
+  deletedAt: number | null;
   synced: boolean;
 }
 ```
@@ -122,13 +124,14 @@ One mechanism: a session is a base day plus optional edits, and the existing bui
 
 ## Storage and sync
 
-New table `favoriteWorkouts`, following the `activities` pattern (commit de248f6): Dexie store `'id, clientId, synced'`, Drizzle `favorite_workouts`, `SYNC_TABLES` and column maps in `src/lib/sync.ts` and `src/lib/syncGuard.ts`, both sync routes, Settings export/clear/restore, writers in `src/lib/data/records.ts`, a `useFavoriteWorkouts` hook that hides rows with `deletedAt`.
+New table `favoriteWorkouts`: Dexie store `'id, clientId, synced'`, Drizzle `favorite_workouts` (`updated_at bigint`, `deleted_at bigint`), Settings export/clear/restore, writers in `src/lib/data/records.ts`, a `useFavoriteWorkouts` hook that hides rows with `deletedAt`.
 
 New columns on `workouts`: `plan_edits` (jsonb), `prescribed` (jsonb), `favorite_id`, `counts_for_rotation`.
 
-Constraints agreed with the other sessions:
-- The Dexie version number is assigned at merge time; whoever merges later rebases.
-- The Postgres columns go in the same migration as the planned soft-delete/updatedAt change. Nothing is pushed to the real database without Michael. If the migration is not agreed by merge time, the new workout fields go in `DEVICE_ONLY_FIELDS` until it is.
+Sync wiring depends on the edit/rebuild work (branch `feat/edit-rebuild`), which replaces the per-table lists with one registry, `src/lib/sync/registry.ts`, read by the client, the guard and both routes, and resets local Dexie to a single-version schema:
+- If that registry is on main when the storage task starts: one registry entry plus the Drizzle table. Do not copy the old three-list `activities` pattern.
+- The Dexie store goes into the fresh single-version schema if this lands before that work's deploy checkpoint D1, or one additive version after.
+- The Postgres table and the four workout columns go into that work's single script if `schema.ts` here is on main before D1, otherwise a small additive script after. Michael approves the database step either way; nothing is pushed without him.
 
 ## UI
 
@@ -136,7 +139,7 @@ Built from the existing kit: `ui/sheet`, `ui/list-row`, `ui/section-header`, `ui
 
 - **Pre-workout (`src/components/PreWorkout/**`).** A day selector (the due day is marked). "Edit workout" opens a bottom sheet: per entry, swap, remove, sets × reps and weight controls, plus "Add exercise". Each edited entry carries "counts toward progression" or "logged only" and `<EvidenceLine ruleId="off-program-credit" />`. "Save as favourite" asks for a name. A "Favourites" control opens a sheet listing favourites, each with "Today's weights" and "Exactly as saved".
 - **Favourites screen (`src/app/favorites/page.tsx`).** List with last used date, start (both modes), rename, delete. Linked from More and from a "Start a favourite" row in `nav/QuickAddSheet.tsx`. `/favorites` is added to the More prefixes in `nav/TabBar.tsx`.
-- **Stars.** A star on the workout summary and on each `WorkoutEntry` in `src/app/log/page.tsx` saves that session as a favourite, or removes it.
+- **Stars.** A self-contained `FavoriteStar` component (`src/components/Favorites/FavoriteStar.tsx`, session id in) saves that session as a favourite or removes it. The Log list and the workout detail/summary pages belong to the edit/rebuild work, which mounts the star there; this work does not edit those files.
 
 Pages and components reach data only through `src/hooks` and `src/lib/data` (`src/architecture.test.ts`).
 
