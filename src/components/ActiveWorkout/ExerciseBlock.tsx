@@ -5,10 +5,13 @@ import { ExerciseMuscleThumb } from "@/components/Anatomy/ExerciseMuscleThumb";
 import { FormSheetButton } from "@/components/ExerciseDemo/FormSheetButton";
 import { getExercise } from "@/lib/exercises";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
+import type { WorkoutLocation } from "@/types";
 import { AMRAPIndicator } from "./AMRAPIndicator";
 
 interface ExerciseBlockProps {
   exercise: WorkoutExerciseState;
+  /** Where the workout is happening: the Form sheet's preference control starts there. */
+  location: WorkoutLocation;
   isAMRAPSet?: boolean;
 }
 
@@ -16,7 +19,7 @@ interface ExerciseBlockProps {
  * What is being done right now: tier, exercise (the substitute when there is one),
  * the muscles it works, a way to check form, and one line of context for the set.
  */
-export function ExerciseBlock({ exercise, isAMRAPSet = false }: ExerciseBlockProps) {
+export function ExerciseBlock({ exercise, location, isAMRAPSet = false }: ExerciseBlockProps) {
   const exerciseInfo = getExercise(exercise.substituteExerciseId || exercise.exerciseId);
   const currentSet = Math.min(exercise.completedSets + 1, exercise.targetSets);
 
@@ -32,6 +35,7 @@ export function ExerciseBlock({ exercise, isAMRAPSet = false }: ExerciseBlockPro
         <h1 className="min-w-0 truncate text-xl font-bold">{exerciseInfo.name}</h1>
         <FormSheetButton
           exerciseId={exerciseInfo.id}
+          location={location}
           className="shrink-0 border-0 px-1 py-3 text-[13px] font-semibold text-accent-primary"
         />
       </div>

@@ -104,7 +104,7 @@ export default function MusclesPage() {
     <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       <header className="flex items-center gap-3 mb-5">
         <Link
-          href="/tools"
+          href="/more"
           aria-label="Back to tools"
           className="text-muted-foreground hover:text-foreground transition-colors"
         >

@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
-import { Dumbbell, Home, Footprints, Camera } from "lucide-react";
+import { Dumbbell, Home, Activity, Camera } from "lucide-react";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import type { WorkoutLocation, EquipmentProfile } from "@/types";
@@ -217,9 +217,9 @@ export default function NextWorkoutCard() {
 
         {/* Secondary buttons */}
         <div className="flex gap-2">
-          <Link href="/run" className="flex-1">
+          <Link href="/activity" className="flex-1">
             <Button variant="outline" size="sm" className="w-full">
-              <Footprints className="h-4 w-4" /> Log a Run
+              <Activity className="h-4 w-4" /> Log Activity
             </Button>
           </Link>
           <Link href="/body-check" className="flex-1">

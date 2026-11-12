@@ -52,6 +52,7 @@ export const SOURCES = {
       "More weekly sets produced more muscle growth with diminishing returns. Strength gains levelled off much sooner and responded to training frequency. Sets that train a muscle indirectly were counted as half a set.",
     url: "https://doi.org/10.1007/s40279-025-02344-w",
     doi: "10.1007/s40279-025-02344-w",
+    pmid: "41343037",
   },
   singer2024: {
     short: "Singer 2024",
@@ -372,6 +373,113 @@ export const SOURCES = {
       "Limbs given reduced-volume deload weeks gained as much muscle and strength-endurance as limbs trained continuously.",
     url: "https://www.nature.com/articles/s41598-026-40612-5",
     doi: "10.1038/s41598-026-40612-5",
+  },
+  grgic2018frequency: {
+    short: "Grgic 2018b",
+    authors: "Grgic et al.",
+    year: 2018,
+    title:
+      "Effect of Resistance Training Frequency on Gains in Muscular Strength: A Systematic Review and Meta-Analysis",
+    journal: "Sports Medicine",
+    design: "meta-analysis",
+    population: "22 studies",
+    finding:
+      "Strength gains grew with weekly training frequency, but in studies that kept weekly volume equal the effect of frequency was not significant.",
+    url: "https://doi.org/10.1007/s40279-018-0872-x",
+    doi: "10.1007/s40279-018-0872-x",
+    pmid: "29470825",
+  },
+  helms2023: {
+    short: "Helms 2023",
+    authors: "Helms et al.",
+    year: 2023,
+    title:
+      "Effect of Small and Large Energy Surpluses on Strength, Muscle, and Skinfold Thickness in Resistance-Trained Individuals: A Parallel Groups Design",
+    journal: "Sports Medicine - Open",
+    design: "rct",
+    population: "17 trained lifters who finished, 8 weeks",
+    finding:
+      "Eating 5% or 15% above maintenance did not improve squat 1RM or muscle thickness over maintenance, and faster bodyweight gain mainly added fat.",
+    url: "https://doi.org/10.1186/s40798-023-00651-y",
+    doi: "10.1186/s40798-023-00651-y",
+    pmid: "37914977",
+    fullTextUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10620361",
+  },
+  steele2023: {
+    short: "Steele 2023",
+    authors: "Steele et al.",
+    year: 2023,
+    title:
+      "Long-Term Time-Course of Strength Adaptation to Minimal Dose Resistance Training Through Retrospective Longitudinal Growth Modeling",
+    journal: "Research Quarterly for Exercise and Sport",
+    design: "observational",
+    population: "14,690 adults' training records, up to 6.8 years",
+    finding:
+      "Strength rose quickly at first and then ever more slowly, following a log-shaped curve that had practically levelled off after 1–2 years.",
+    url: "https://doi.org/10.1080/02701367.2022.2070592",
+    doi: "10.1080/02701367.2022.2070592",
+    pmid: "35591809",
+  },
+  latella2020: {
+    short: "Latella 2020",
+    authors: "Latella et al.",
+    year: 2020,
+    title: "Long-Term Strength Adaptation: A 15-Year Analysis of Powerlifting Athletes",
+    journal: "Journal of Strength and Conditioning Research",
+    design: "observational",
+    population: "1,897 powerlifters' competition records, 15 years",
+    finding:
+      "The strongest men gained strength about half as fast as the least strong (0.10 vs 0.21 kg a day).",
+    url: "https://doi.org/10.1519/JSC.0000000000003657",
+    doi: "10.1519/JSC.0000000000003657",
+    pmid: "32865942",
+    fullTextUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7448836",
+  },
+  grgic2020: {
+    short: "Grgic 2020",
+    authors: "Grgic et al.",
+    year: 2020,
+    title:
+      "Test-Retest Reliability of the One-Repetition Maximum (1RM) Strength Assessment: a Systematic Review",
+    journal: "Sports Medicine - Open",
+    design: "systematic-review",
+    population: "32 studies, 1,595 people",
+    finding:
+      "A tested 1RM is highly repeatable, but still varies between sessions by a median of 4.2% (range 0.5–12.1%).",
+    url: "https://doi.org/10.1186/s40798-020-00260-z",
+    doi: "10.1186/s40798-020-00260-z",
+    pmid: "32681399",
+    fullTextUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7367986",
+  },
+  saeterbakken2025: {
+    short: "Saeterbakken 2025",
+    authors: "Saeterbakken et al.",
+    year: 2025,
+    title:
+      "Task Specificity of Dynamic Resistance Training and Its Transferability to Non-trained Isometric Muscle Strength: A Systematic Review with Meta-analysis",
+    journal: "Sports Medicine",
+    design: "meta-analysis",
+    population: "43 studies, 1,660 people",
+    finding:
+      "Strength in the trained lifting task improved about twice as much (effect size 0.98) as strength in an untrained test of the same muscles (0.42).",
+    url: "https://doi.org/10.1007/s40279-025-02225-2",
+    doi: "10.1007/s40279-025-02225-2",
+    pmid: "40314751",
+    fullTextUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC12296774",
+  },
+  mattocks2017: {
+    short: "Mattocks 2017",
+    authors: "Mattocks et al.",
+    year: 2017,
+    title: "Practicing the Test Produces Strength Equivalent to Higher Volume Training",
+    journal: "Medicine & Science in Sports & Exercise",
+    design: "rct",
+    population: "38 untrained adults, 8 weeks",
+    finding:
+      "Just practising 1RM attempts raised 1RM as much as four sets to failure did, even though the high-volume group grew more muscle.",
+    url: "https://doi.org/10.1249/MSS.0000000000001300",
+    doi: "10.1249/MSS.0000000000001300",
+    pmid: "28463902",
   },
 } as const satisfies Record<string, EvidenceSource>;
 

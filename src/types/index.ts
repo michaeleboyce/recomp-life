@@ -30,7 +30,10 @@ export interface UserSettings {
   trainingPhase: TrainingPhase;
   equipment: EquipmentProfile;
   defaultLocation?: WorkoutLocation;
+  /** Preferences that apply everywhere. */
   exercisePreferences?: ExercisePreferences;
+  /** Per-location overrides; an entry here wins over the overall preference. */
+  exercisePreferencesByLocation?: LocationExercisePreferences;
 }
 
 export interface UserProfile {
@@ -65,6 +68,10 @@ export type SensationType = "soreness" | "pain";
 
 export type ExercisePreference = "blocked" | "normal" | "preferred";
 export type ExercisePreferences = Record<string, ExercisePreference>;
+/** Overrides of the overall preferences for one location. */
+export type LocationExercisePreferences = Partial<Record<"gym" | "home", ExercisePreferences>>;
+/** Where a preference applies: everywhere, or one location only. */
+export type PreferenceScope = "all" | "gym" | "home";
 
 // Muscle Types
 //
@@ -218,6 +225,25 @@ export interface RunLog {
   distanceMiles: number | null;
   type: RunType;
   category: RunCategory;
+  notes: string;
+  perceivedEffort: 1 | 2 | 3 | 4 | 5;
+  synced: boolean;
+}
+
+// Activity Log: sessions other than lifting and running (yoga, cycling, hiking, walking)
+
+export type ActivityKind = "yoga" | "cycling" | "hiking" | "walking" | "other";
+export type YogaStyle = "restorative" | "flow" | "power";
+
+export interface ActivityLog {
+  id: string;
+  clientId: string;
+  date: Date;
+  kind: ActivityKind;
+  durationMinutes: number;
+  /** Yoga only; null for every other kind. */
+  style: YogaStyle | null;
+  distanceMiles: number | null;
   notes: string;
   perceivedEffort: 1 | 2 | 3 | 4 | 5;
   synced: boolean;
@@ -438,7 +464,8 @@ export type StudyDesign =
   | "systematic-review"
   | "review"
   | "rct"
-  | "trial";
+  | "trial"
+  | "observational";
 
 export type EvidenceArea =
   | "progression"
@@ -448,6 +475,7 @@ export type EvidenceArea =
   | "running"
   | "volume"
   | "nutrition"
+  | "projection"
   | "pain"
   | "equipment";
 

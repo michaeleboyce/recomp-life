@@ -13,6 +13,7 @@ import { RECOVERY_RULES } from "./recovery";
 import { RUNNING_RULES } from "./running";
 import { VOLUME_RULES } from "./volume";
 import { NUTRITION_RULES } from "./nutrition";
+import { PROJECTION_RULES } from "./projection";
 import { PAIN_RULES } from "./pain";
 import { EQUIPMENT_RULES } from "./equipment";
 
@@ -25,6 +26,7 @@ export const RULE_GROUPS = [
   RUNNING_RULES,
   VOLUME_RULES,
   NUTRITION_RULES,
+  PROJECTION_RULES,
   PAIN_RULES,
   EQUIPMENT_RULES,
 ] as const;
@@ -37,6 +39,7 @@ export const EVIDENCE_RULES = {
   ...RUNNING_RULES,
   ...VOLUME_RULES,
   ...NUTRITION_RULES,
+  ...PROJECTION_RULES,
   ...PAIN_RULES,
   ...EQUIPMENT_RULES,
 };

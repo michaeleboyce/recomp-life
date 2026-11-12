@@ -47,7 +47,7 @@ export default function OneRMCalculatorPage() {
     <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       <header className="flex items-center gap-3 mb-6">
         <Link
-          href="/tools"
+          href="/more"
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />

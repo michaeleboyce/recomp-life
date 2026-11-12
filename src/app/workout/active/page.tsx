@@ -151,7 +151,11 @@ function ActiveWorkoutContent() {
         onOpenOverview={() => setOverviewOpen(true)}
       />
 
-      <ExerciseBlock exercise={entry} isAMRAPSet={workout.isAMRAPSet} />
+      <ExerciseBlock
+        exercise={entry}
+        location={session.location}
+        isAMRAPSet={workout.isAMRAPSet}
+      />
 
       <WeightDisplay
         exercise={entry}

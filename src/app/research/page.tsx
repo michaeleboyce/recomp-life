@@ -233,7 +233,7 @@ export default function ResearchPage() {
     <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       <header className="mb-4 flex items-center gap-3">
         <Link
-          href="/tools"
+          href="/more"
           aria-label="Back to Tools"
           className="text-muted-foreground transition-colors hover:text-foreground"
         >

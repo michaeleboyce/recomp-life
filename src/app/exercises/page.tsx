@@ -11,7 +11,20 @@ import ExerciseRow from "@/components/Exercises/ExerciseRow";
 import { MuscleFilter } from "@/components/Exercises/MuscleFilter";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SkeletonCard } from "@/components/ui/skeleton";
-import type { ExercisePreference, ExercisePreferences, MuscleGroup, MuscleId } from "@/types";
+import { resolvePreferences, setScopedPreference } from "@/lib/exercisePreferences";
+import type {
+  ExercisePreference,
+  ExercisePreferences,
+  MuscleGroup,
+  MuscleId,
+  PreferenceScope,
+} from "@/types";
+
+const SCOPE_OPTIONS: { value: PreferenceScope; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "gym", label: "Gym" },
+  { value: "home", label: "Home" },
+];
 
 type FilterTab = "all" | "push" | "pull" | "legs" | "core";
 
@@ -27,6 +40,7 @@ export default function ExercisesPage() {
   const [dbReady, setDbReady] = useState(false);
   const [filter, setFilter] = useState<FilterTab>("all");
   const [muscle, setMuscle] = useState<MuscleId | null>(null);
+  const [scope, setScope] = useState<PreferenceScope>("all");
 
   useEffect(() => {
     initializeDatabase().then(() => setDbReady(true));
@@ -38,7 +52,13 @@ export default function ExercisesPage() {
     undefined
   );
 
-  const preferences = profile?.settings.exercisePreferences ?? {};
+  // Rows show and edit the preference for the chosen scope. For Gym or Home
+  // that is the value in effect there (the overall one unless overridden).
+  const overall = profile?.settings.exercisePreferences;
+  const byLocation = profile?.settings.exercisePreferencesByLocation;
+  const preferences: ExercisePreferences =
+    scope === "all" ? (overall ?? {}) : resolvePreferences(overall, byLocation, scope);
+  const overrideIds = new Set(scope === "all" ? [] : Object.keys(byLocation?.[scope] ?? {}));
 
   const groups = filterGroupsByMuscle(
     getGroupedExercises(filter === "all" ? undefined : (filter as MuscleGroup)),
@@ -48,20 +68,23 @@ export default function ExercisesPage() {
   const handlePreferenceChange = useCallback(
     async (exerciseId: string, pref: ExercisePreference) => {
       if (!profile) return;
-      const updated: ExercisePreferences = {
-        ...profile.settings.exercisePreferences,
-      };
-      if (pref === "normal") {
-        delete updated[exerciseId];
-      } else {
-        updated[exerciseId] = pref;
-      }
+      const next = setScopedPreference(
+        profile.settings.exercisePreferences,
+        profile.settings.exercisePreferencesByLocation,
+        scope,
+        exerciseId,
+        pref
+      );
       await db.userProfile.update(profile.id, {
-        settings: { ...profile.settings, exercisePreferences: updated },
+        settings: {
+          ...profile.settings,
+          exercisePreferences: next.overall,
+          exercisePreferencesByLocation: next.byLocation,
+        },
         synced: false,
       });
     },
-    [profile]
+    [profile, scope]
   );
 
   if (!dbReady || !profile) {
@@ -81,7 +104,7 @@ export default function ExercisesPage() {
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
         <Link
-          href="/tools"
+          href="/more"
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -98,6 +121,23 @@ export default function ExercisesPage() {
       />
 
       <MuscleFilter value={muscle} onChange={setMuscle} />
+
+      <div className="mb-4">
+        <div className="flex items-center gap-3">
+          <span className="shrink-0 text-xs text-muted-foreground">Preferences for</span>
+          <SegmentedControl
+            value={scope}
+            onChange={setScope}
+            options={SCOPE_OPTIONS}
+            className="flex-1"
+          />
+        </div>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          {scope === "all"
+            ? "Applies everywhere unless Gym or Home has its own setting."
+            : `Changes here apply to ${scope === "gym" ? "Gym" : "Home"} workouts only.`}
+        </p>
+      </div>
 
       {groups.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">
@@ -123,6 +163,13 @@ export default function ExercisesPage() {
                   key={exercise.id}
                   exercise={exercise}
                   preferences={preferences}
+                  overrideLabel={
+                    overrideIds.has(exercise.id)
+                      ? scope === "gym"
+                        ? "Gym only"
+                        : "Home only"
+                      : undefined
+                  }
                   onPreferenceChange={handlePreferenceChange}
                 />
               ))}

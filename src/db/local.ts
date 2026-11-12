@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import { v4 as uuidv4 } from 'uuid';
 import type {
-  WorkoutSession, SetLog, RunLog, BodyweightLog,
+  WorkoutSession, SetLog, RunLog, ActivityLog, BodyweightLog,
   PainSorenessEntry, Estimated1RM, LiftState, UserProfile, ReadinessLog
 } from '@/types';
 
@@ -9,6 +9,7 @@ export class RecompDatabase extends Dexie {
   workouts!: Table<WorkoutSession>;
   sets!: Table<SetLog>;
   runs!: Table<RunLog>;
+  activities!: Table<ActivityLog>;
   bodyweight!: Table<BodyweightLog>;
   painEntries!: Table<PainSorenessEntry>;
   estimated1RMs!: Table<Estimated1RM>;
@@ -88,6 +89,11 @@ export class RecompDatabase extends Dexie {
           if (row.synced === undefined) row.synced = false;
         })
       );
+    });
+
+    // Yoga, cycling, hiking and other non-running sessions. Runs stay in `runs`.
+    this.version(5).stores({
+      activities: 'id, clientId, date, synced',
     });
   }
 }

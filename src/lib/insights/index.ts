@@ -1,46 +1,30 @@
 // Insights: one ranked list of things worth the user's attention, computed by pure
-// rules from plain records. Contract stub; the `insights` package implements it and
-// may split rules into files under src/lib/insights/, keeping these exports.
-import type { RuleId } from "@/lib/evidence";
-import type { MetricSource } from "@/lib/metrics/types";
-import type { WorkoutSession } from "@/types";
+// rules from plain records. Each rule is a thin adapter from the context to an existing
+// coaching function in src/lib (one file per kind under ./rules).
+//
+// "volume-balance" is part of the kind union but has no rule yet: with real GZCLP rep
+// counts, calculateSessionVolumeRatio's thresholds flag nearly every cutting session that
+// has a T3 and any accessory (its own tests note this), so wiring it would only nag.
+import { KIND_ORDER, SEVERITY_ORDER, type Insight, type InsightContext } from "./types";
+import { unfinishedWorkoutInsights } from "./rules/unfinishedWorkout";
+import { weighInDueInsights } from "./rules/weighInDue";
+import { inactivityInsights } from "./rules/inactivity";
+import { deloadInsights } from "./rules/deload";
+import { strengthStallInsights } from "./rules/strengthStall";
+import { lossRateInsights } from "./rules/lossRate";
+import { fatLossStallInsights } from "./rules/fatLossStall";
+import { painCheckInsights } from "./rules/painCheck";
+import { newPrInsights } from "./rules/newPr";
 
-export type InsightKind =
-  | "unfinished-workout"
-  | "weigh-in-due"
-  | "inactivity"
-  | "deload"
-  | "strength-stall"
-  | "loss-rate"
-  | "fat-loss-stall"
-  | "volume-balance"
-  | "pain-check"
-  | "new-pr";
+export type { InsightKind, InsightSeverity, Insight, InsightContext } from "./types";
 
-/** "action": do something now. "warning": something is off. "info": worth knowing. "positive": good news. */
-export type InsightSeverity = "action" | "warning" | "info" | "positive";
-
-export interface Insight {
-  /** Stable across recomputation for the same underlying fact, e.g. "deload:squat". */
-  id: string;
-  kind: InsightKind;
-  severity: InsightSeverity;
-  /** A short headline, sentence case, no trailing full stop. */
-  title: string;
-  /** One or two plain sentences with the numbers that triggered it. */
-  body: string;
-  /** The coaching rule that explains it, when one exists in the evidence registry. */
-  evidenceId?: RuleId;
-  action?: { label: string; href: string };
+function compareInsights(a: Insight, b: Insight): number {
+  return (
+    SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity) ||
+    KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) ||
+    (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+  );
 }
-
-export interface InsightContext extends MetricSource {
-  /** The most recent unfinished workout started in the last 24 hours, if any. */
-  unfinishedWorkout: WorkoutSession | null;
-  now: Date;
-}
-
-const NOT_IMPLEMENTED = "not implemented: src/lib/insights contract stub";
 
 /**
  * Every insight that currently applies, most important first: by severity
@@ -48,6 +32,20 @@ const NOT_IMPLEMENTED = "not implemented: src/lib/insights contract stub";
  * Deterministic for a given context.
  */
 export function computeInsights(context: InsightContext): Insight[] {
-  void context;
-  throw new Error(NOT_IMPLEMENTED);
+  const deload = deloadInsights(context);
+  const stall = fatLossStallInsights(context);
+
+  const all: Insight[] = [
+    ...unfinishedWorkoutInsights(context),
+    ...weighInDueInsights(context),
+    ...inactivityInsights(context),
+    ...deload.insights,
+    ...strengthStallInsights(context, deload.covered),
+    // A stall wins over any loss-rate reading for the same weigh-ins.
+    ...(stall.length > 0 ? [] : lossRateInsights(context)),
+    ...stall,
+    ...painCheckInsights(context),
+    ...newPrInsights(context),
+  ];
+  return all.sort(compareInsights);
 }

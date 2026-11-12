@@ -205,7 +205,7 @@ describe("RPESelector", () => {
 
 describe("ExerciseBlock", () => {
   it("names the set, the exercise and keeps the anatomy slots", () => {
-    render(<ExerciseBlock exercise={entry({ completedSets: 2 })} />);
+    render(<ExerciseBlock exercise={entry({ completedSets: 2 })} location="gym" />);
     expect(screen.getByRole("heading", { name: "Barbell Deadlift" })).toBeInTheDocument();
     expect(screen.getByText("Set 3 of 5")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Form" })).toBeInTheDocument();
@@ -217,6 +217,7 @@ describe("ExerciseBlock", () => {
     const { container } = render(
       <ExerciseBlock
         exercise={entry({ substituteExerciseId: "db_rdl", completedSets: 4 })}
+        location="home"
         isAMRAPSet
       />
     );
