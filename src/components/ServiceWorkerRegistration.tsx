@@ -8,9 +8,20 @@ async function warmOfflineCache() {
   if (!navigator.onLine) return;
   const registration = await navigator.serviceWorker.ready;
   registration.active?.postMessage({ type: "WARM_CACHE", urls: getOfflineWarmList() });
-  // Fetching the 3D viewer's code here lets the service worker cache its
-  // build-hashed files too, which cannot be listed by URL.
-  void import("@/components/Anatomy/Anatomy3DScene").catch(() => {});
+  // The 3D viewer's code is split into build-hashed files that cannot be
+  // listed ahead of time. Load it once, then tell the worker every script and
+  // style this page has fetched so far so those are cached as well.
+  try {
+    await import("@/components/Anatomy/Anatomy3DScene");
+  } catch {
+    return;
+  }
+  const loaded = performance
+    .getEntriesByType("resource")
+    .map((entry) => new URL(entry.name, location.href))
+    .filter((url) => url.origin === location.origin && url.pathname.startsWith("/_next/static/"))
+    .map((url) => url.pathname + url.search);
+  registration.active?.postMessage({ type: "WARM_CACHE", urls: [...new Set(loaded)] });
 }
 
 export function ServiceWorkerRegistration() {

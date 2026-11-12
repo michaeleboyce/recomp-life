@@ -8,9 +8,11 @@ import { Anatomy3D } from "@/components/Anatomy/Anatomy3D";
 import { MuscleLegend } from "@/components/Anatomy/MuscleLegend";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { cn } from "@/lib/utils";
+import { hasMotion } from "@/lib/motion/sample";
 import { ExercisePhotos } from "./ExercisePhotos";
+import { Mannequin } from "./Mannequin";
 
-type Tab = "muscles" | "photos";
+type Tab = "demo" | "muscles" | "photos";
 
 interface ExerciseViewerProps {
   exerciseId: string;
@@ -30,20 +32,28 @@ export function ExerciseViewer({
   className,
 }: ExerciseViewerProps) {
   const photos = hasExercisePhotos(exerciseId);
+  const demo = hasMotion(exerciseId);
   const tabs = useMemo(() => {
-    const list: { value: Tab; label: string }[] = [{ value: "muscles", label: "Muscles" }];
+    const list: { value: Tab; label: string }[] = [];
+    if (demo) list.push({ value: "demo", label: "3D Demo" });
+    list.push({ value: "muscles", label: "Muscles" });
     if (photos) list.push({ value: "photos", label: "Photos" });
     return list;
-  }, [photos]);
+  }, [demo, photos]);
 
-  const [tab, setTab] = useState<Tab>("muscles");
-  const active = tabs.some((t) => t.value === tab) ? tab : "muscles";
+  const [tab, setTab] = useState<Tab>(demo ? "demo" : "muscles");
+  const active = tabs.some((t) => t.value === tab) ? tab : tabs[0].value;
   const heat = useMemo(() => activationHeatLevels(exerciseId), [exerciseId]);
   const name = EXERCISES[exerciseId]?.name ?? "exercise";
 
   return (
     <div className={cn("space-y-3", className)}>
       {tabs.length > 1 && <SegmentedControl value={active} onChange={setTab} options={tabs} />}
+
+      {active === "demo" && (
+        // Taller than the other tabs: the controls sit under the figure.
+        <Mannequin exerciseId={exerciseId} className={cn(heightClassName, "min-h-[22rem]")} />
+      )}
 
       {active === "muscles" && (
         <div>

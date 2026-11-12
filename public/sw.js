@@ -1,4 +1,4 @@
-const CACHE_NAME = "recomp-life-v2";
+const CACHE_NAME = "recomp-life-v3";
 const PRECACHE_URLS = ["/", "/workout/configure", "/history", "/program", "/tools"];
 
 self.addEventListener("install", (event) => {
@@ -29,12 +29,31 @@ self.addEventListener("message", (event) => {
   if (!data || data.type !== "WARM_CACHE" || !Array.isArray(data.urls)) return;
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
+      const cacheOne = async (url) => {
+        const hit = await cache.match(url);
+        if (hit) return hit;
+        const response = await fetch(url);
+        if (response.ok) await cache.put(url, response.clone());
+        return response;
+      };
+
       for (const url of data.urls) {
         if (typeof url !== "string" || !url.startsWith("/")) continue;
         try {
-          if (await cache.match(url)) continue;
-          const response = await fetch(url);
-          if (response.ok) await cache.put(url, response);
+          const response = await cacheOne(url);
+          // A page is useless offline without its scripts and styles, and
+          // those have build-hashed names, so read them out of the HTML.
+          const type = response.headers.get("content-type") || "";
+          if (!response.ok || !type.includes("text/html")) continue;
+          const html = await response.clone().text();
+          const assets = new Set(html.match(/\/_next\/static\/[^"'\\\s)<>]+/g) || []);
+          for (const asset of assets) {
+            try {
+              await cacheOne(asset);
+            } catch {
+              // Skip; retried on the next warm-up.
+            }
+          }
         } catch {
           // Offline or failed: leave it for the next warm-up.
         }
