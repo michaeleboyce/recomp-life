@@ -43,6 +43,7 @@ export const AREA_ORDER: readonly EvidenceArea[] = [
   "running",
   "volume",
   "nutrition",
+  "projection",
   "pain",
   "equipment",
 ];
@@ -55,6 +56,7 @@ export const AREA_LABELS: Record<EvidenceArea, string> = {
   running: "Running",
   volume: "Training volume",
   nutrition: "Fat loss",
+  projection: "Strength projections",
   pain: "Pain",
   equipment: "Equipment",
 };
@@ -94,6 +96,7 @@ export const DESIGN_LABELS: Record<StudyDesign, string> = {
   review: "review",
   rct: "randomised trial",
   trial: "trial",
+  observational: "observational study",
 };
 
 // ---------------------------------------------------------------------------
