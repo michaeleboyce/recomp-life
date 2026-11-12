@@ -6,7 +6,7 @@
 export const DB_IMPORT_ALLOWLIST: string[] = [
   "src/app/exercises/page.tsx",
   "src/app/page.tsx",
-  "src/app/program/page.tsx",
+  "src/app/progress/page.tsx",
   "src/app/settings/page.tsx",
   "src/app/workout/active/page.tsx",
   "src/app/workout/configure/page.tsx",
@@ -28,7 +28,7 @@ export const DB_IMPORT_ALLOWLIST: string[] = [
 /** Rule R9: pages and components must use theme tokens, not raw palette classes. */
 export const PALETTE_ALLOWLIST: string[] = [
   "src/app/page.tsx",
-  "src/app/program/page.tsx",
+  "src/app/progress/page.tsx",
   "src/app/workout/active/page.tsx",
   "src/app/workout/configure/page.tsx",
   "src/app/workout/summary/page.tsx",
