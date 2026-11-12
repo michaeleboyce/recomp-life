@@ -25,6 +25,12 @@ import type { PainSorenessEntry, RunLog } from "@/types";
 
 const HOUR = 60 * 60 * 1000;
 
+/**
+ * A date as rows synced before the date fix hold it: an ISO string. IndexedDB orders
+ * every Date before every string, so an index on such a field is not chronological.
+ */
+const iso = (date: string | number) => new Date(date).toISOString() as unknown as Date;
+
 beforeEach(clearDb);
 
 /** Waits until the hook has finished its first query (left `undefined`). */
@@ -103,6 +109,33 @@ describe("useCompletedWorkouts", () => {
     const r = await loaded(() => useCompletedWorkouts());
     expect(r.result.current!.map((w) => w.id)).toEqual(["new", "old"]);
   });
+
+  it("orders by time when some rows hold ISO strings", async () => {
+    await db.workouts.bulkPut([
+      makeWorkout({ id: "string-old", startedAt: iso("2026-11-01"), completedAt: iso("2026-11-01") }),
+      makeWorkout({ id: "date-new", startedAt: new Date("2026-11-08"), completedAt: new Date("2026-11-08") }),
+      makeWorkout({ id: "string-mid", startedAt: iso("2026-11-05"), completedAt: iso("2026-11-05") }),
+      makeWorkout({ id: "date-older", startedAt: new Date("2026-11-03"), completedAt: new Date("2026-11-03") }),
+    ]);
+    const r = await loaded(() => useCompletedWorkouts());
+    expect(r.result.current!.map((w) => w.id)).toEqual([
+      "date-new",
+      "string-mid",
+      "date-older",
+      "string-old",
+    ]);
+  });
+
+  it("treats a missing completedAt like null: not completed", async () => {
+    const noField = makeWorkout({ id: "no-field", startedAt: new Date("2026-11-09") });
+    delete (noField as { completedAt?: unknown }).completedAt;
+    await db.workouts.bulkPut([
+      noField,
+      makeWorkout({ id: "done", startedAt: new Date("2026-11-08"), completedAt: new Date("2026-11-08") }),
+    ]);
+    const r = await loaded(() => useCompletedWorkouts());
+    expect(r.result.current!.map((w) => w.id)).toEqual(["done"]);
+  });
 });
 
 describe("useUnfinishedWorkout", () => {
@@ -123,6 +156,31 @@ describe("useUnfinishedWorkout", () => {
     expect(r.result.current!.id).toBe("recent");
   });
 
+  it("picks the most recent by time when some rows hold ISO strings", async () => {
+    const now = Date.now();
+    await db.workouts.bulkPut([
+      makeWorkout({ id: "string-older", startedAt: iso(now - 5 * HOUR), completedAt: null }),
+      makeWorkout({ id: "date-recent", startedAt: new Date(now - 1 * HOUR), completedAt: null }),
+    ]);
+    expect((await loaded(() => useUnfinishedWorkout())).result.current!.id).toBe("date-recent");
+
+    await db.workouts.put(
+      makeWorkout({ id: "string-newest", startedAt: iso(now - 0.5 * HOUR), completedAt: null })
+    );
+    await db.workouts.put(
+      makeWorkout({ id: "date-middle", startedAt: new Date(now - 0.75 * HOUR), completedAt: null })
+    );
+    const r = renderHook(() => useUnfinishedWorkout());
+    await waitFor(() => expect(r.result.current?.id).toBe("string-newest"));
+  });
+
+  it("treats a missing completedAt as unfinished", async () => {
+    const noField = makeWorkout({ id: "no-field", startedAt: new Date(Date.now() - HOUR) });
+    delete (noField as { completedAt?: unknown }).completedAt;
+    await db.workouts.put(noField);
+    expect((await loaded(() => useUnfinishedWorkout())).result.current!.id).toBe("no-field");
+  });
+
   it("ignores stale sessions and does not delete them", async () => {
     await db.workouts.put(
       makeWorkout({ id: "stale", startedAt: new Date(Date.now() - 25 * HOUR), completedAt: null })
@@ -141,6 +199,17 @@ describe("useBodyweightLog", () => {
     const r = await loaded(() => useBodyweightLog());
     expect(r.result.current!.map((b) => b.id)).toEqual(["b1", "b2"]);
   });
+
+  it("orders by time when some rows hold ISO strings", async () => {
+    await db.bodyweight.bulkPut([
+      { id: "s1", clientId: "s1", date: iso("2026-11-01"), weight: 226, timeOfDay: "morning", synced: true },
+      { id: "d2", clientId: "d2", date: new Date("2026-11-02"), weight: 225, timeOfDay: "morning", synced: false },
+      { id: "s3", clientId: "s3", date: iso("2026-11-03"), weight: 224, timeOfDay: "morning", synced: true },
+      { id: "d4", clientId: "d4", date: new Date("2026-11-04"), weight: 223, timeOfDay: "morning", synced: false },
+    ]);
+    const r = await loaded(() => useBodyweightLog());
+    expect(r.result.current!.map((b) => b.id)).toEqual(["s1", "d2", "s3", "d4"]);
+  });
 });
 
 describe("usePainEntries", () => {
@@ -151,6 +220,19 @@ describe("usePainEntries", () => {
     await db.painEntries.bulkPut([entry("p1", "2026-11-01"), entry("p2", "2026-11-05")]);
     const r = await loaded(() => usePainEntries());
     expect(r.result.current!.map((p) => p.id)).toEqual(["p2", "p1"]);
+  });
+
+  it("orders by time when some rows hold ISO strings", async () => {
+    const entry = (id: string, date: Date): PainSorenessEntry => ({
+      id, clientId: id, date, region: "neck", sensation: "pain", severity: 2, synced: false,
+    });
+    await db.painEntries.bulkPut([
+      entry("s1", iso("2026-11-01")),
+      entry("d2", new Date("2026-11-02")),
+      entry("s3", iso("2026-11-03")),
+    ]);
+    const r = await loaded(() => usePainEntries());
+    expect(r.result.current!.map((p) => p.id)).toEqual(["s3", "d2", "s1"]);
   });
 });
 
@@ -172,6 +254,18 @@ describe("useE1RMs", () => {
     const r = await loaded(() => useE1RMs("squat"));
     expect(r.result.current!.map((e) => e.id)).toEqual(["s1", "s2"]);
   });
+
+  it("orders by time when some rows hold ISO strings", async () => {
+    await db.estimated1RMs.bulkPut([
+      makeE1RM({ id: "s0", exerciseId: "squat", date: iso("2026-10-30") }),
+      makeE1RM({ id: "s1b", exerciseId: "squat", date: iso("2026-11-02") }),
+      makeE1RM({ id: "b0", exerciseId: "bench", date: iso("2026-11-04") }),
+    ]);
+    const all = await loaded(() => useE1RMs());
+    expect(all.result.current!.map((e) => e.id)).toEqual(["s0", "s1", "s1b", "b1", "b0", "s2"]);
+    const squat = await loaded(() => useE1RMs("squat"));
+    expect(squat.result.current!.map((e) => e.id)).toEqual(["s0", "s1", "s1b", "s2"]);
+  });
 });
 
 describe("useRuns", () => {
@@ -183,5 +277,19 @@ describe("useRuns", () => {
     await db.runs.bulkPut([run("r1", "2026-11-01"), run("r2", "2026-11-04")]);
     const r = await loaded(() => useRuns());
     expect(r.result.current!.map((x) => x.id)).toEqual(["r2", "r1"]);
+  });
+
+  it("orders by time when some rows hold ISO strings", async () => {
+    const run = (id: string, date: Date): RunLog => ({
+      id, clientId: id, date, durationMinutes: 20, distanceMiles: null,
+      type: "outdoor", category: "easy", notes: "", perceivedEffort: 2, synced: false,
+    });
+    await db.runs.bulkPut([
+      run("s1", iso("2026-11-01")),
+      run("d2", new Date("2026-11-02")),
+      run("s3", iso("2026-11-03")),
+    ]);
+    const r = await loaded(() => useRuns());
+    expect(r.result.current!.map((x) => x.id)).toEqual(["s3", "d2", "s1"]);
   });
 });
