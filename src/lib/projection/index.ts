@@ -37,3 +37,6 @@ export {
   summarizeScenario,
 } from "./summary";
 export { relatedExerciseIds } from "./related";
+
+export type { ProjectionTeaser } from "./teaser";
+export { projectionTeaser } from "./teaser";
