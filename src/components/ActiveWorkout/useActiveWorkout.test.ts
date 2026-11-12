@@ -9,7 +9,7 @@ import { evaluateT1Progression, evaluateT2Progression } from "@/lib/progression"
 import { substituteModification } from "@/lib/workout";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import type { LiftState } from "@/types";
-import { useActiveWorkout } from "./useActiveWorkout";
+import { LOG_TAP_GUARD_MS, useActiveWorkout } from "./useActiveWorkout";
 
 const describePrOpportunity = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/projection", () => ({ describePrOpportunity }));
@@ -33,7 +33,7 @@ async function start(overrides: Partial<StartWorkoutInput> = {}): Promise<string
 }
 
 async function mount(sessionId: string) {
-  const hook = renderHook(() => useActiveWorkout(sessionId));
+  const hook = renderHook(() => useActiveWorkout(sessionId, { tapGuardMs: 0 }));
   await waitFor(() => expect(hook.result.current.status).toBe("active"));
   return hook;
 }
@@ -398,7 +398,7 @@ describe("resume", () => {
   it("reports a finished workout instead of letting it be logged again", async () => {
     const sessionId = await start({ includeWarmUps: false });
     await db.workouts.update(sessionId, { completedAt: new Date() });
-    const hook = renderHook(() => useActiveWorkout(sessionId));
+    const hook = renderHook(() => useActiveWorkout(sessionId, { tapGuardMs: 0 }));
     await waitFor(() => expect(hook.result.current.status).toBe("finished"));
   });
 
@@ -578,3 +578,29 @@ describe("jumping, ending early and discarding", () => {
     await waitFor(() => expect(hook.result.current.status).toBe("missing"));
   });
 });
+
+describe("useActiveWorkout: double tap", () => {
+  it("ignores a second log tap that lands right after the first", async () => {
+    const sessionId = await startWorkout({
+      templateId: "A1",
+      location: "gym",
+      includeWarmUps: true,
+      selectedAccessories: [],
+    });
+    // The page's guard.
+    const hook = renderHook(() => useActiveWorkout(sessionId, { tapGuardMs: LOG_TAP_GUARD_MS }));
+    await waitFor(() => expect(hook.result.current.status).toBe("active"));
+
+    // A warm-up is a one-set entry: without the guard the second tap would log
+    // the first set of the next entry at its target.
+    await act(() => hook.result.current.logSet());
+    await waitFor(() => expect(hook.result.current.sets.length).toBe(1));
+    await waitFor(() => expect(hook.result.current.isSaving).toBe(false));
+    await act(() => hook.result.current.logSet());
+
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(hook.result.current.sets.length).toBe(1);
+    expect(await db.sets.count()).toBe(1);
+  });
+});
+

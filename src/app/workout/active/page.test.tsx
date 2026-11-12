@@ -7,6 +7,7 @@ import { initializeDatabase } from "@/db/init";
 import { clearDb, makeE1RM } from "@/lib/data/testUtils";
 import { startWorkout, type StartWorkoutInput } from "@/lib/data/workouts";
 import { useWorkoutStore } from "@/stores/workoutStore";
+import { logTapGuard } from "@/components/ActiveWorkout/useActiveWorkout";
 import ActiveWorkoutPage from "./page";
 
 const nav = vi.hoisted(() => ({
@@ -23,6 +24,8 @@ const describePrOpportunity = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/projection", () => ({ describePrOpportunity }));
 
 beforeEach(async () => {
+  // These tests tap through sets faster than a person can; the guard has its own test.
+  logTapGuard.ms = 0;
   cleanup();
   await clearDb();
   await initializeDatabase();

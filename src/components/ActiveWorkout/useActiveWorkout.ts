@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useE1RMs, useLiftStates, useSettings, useWorkout } from "@/hooks";
 import {
@@ -52,7 +52,22 @@ export type ActiveWorkoutStatus =
  * truth: the plan is rebuilt from it and progress is rehydrated from its logged
  * sets on every render, so a reload resumes at the same set.
  */
-export function useActiveWorkout(sessionId: string | null) {
+/**
+ * How long after a set is logged further log taps are ignored. Without it, a double
+ * tap on the last set of an entry (every warm-up is one) logs the first set of the
+ * next entry at its target, and there is no per-set undo.
+ */
+export const LOG_TAP_GUARD_MS = 700;
+
+/** The guard in effect when a caller passes none. Tests that tap in quick succession set `ms` to 0. */
+export const logTapGuard = { ms: LOG_TAP_GUARD_MS };
+
+export function useActiveWorkout(
+  sessionId: string | null,
+  options: { tapGuardMs?: number } = {}
+) {
+  const tapGuardMs = options.tapGuardMs ?? logTapGuard.ms;
+  const lastLogAt = useRef(0);
   const session = useWorkout(sessionId);
   const settings = useSettings();
   const liftStates = useLiftStates();
@@ -161,6 +176,8 @@ export function useActiveWorkout(sessionId: string | null) {
 
   const logSet = useCallback(async () => {
     if (!session || !entry || !baseEntry || isSaving) return;
+    if (Date.now() - lastLogAt.current < tapGuardMs) return;
+    lastLogAt.current = Date.now();
     setError(null);
 
     // An accepted drop records what the weight was dropped from.
@@ -205,6 +222,8 @@ export function useActiveWorkout(sessionId: string | null) {
     } catch (err) {
       console.error("Failed to save set:", err);
       setAwaitingSetId(null);
+      // A failed save must not block the retry.
+      lastLogAt.current = 0;
       setError("That set could not be saved. Try again.");
       return;
     }
@@ -227,6 +246,7 @@ export function useActiveWorkout(sessionId: string | null) {
       store.viewEntry(entryAfter(after, activeIndex));
     }
   }, [
+    tapGuardMs,
     session,
     entry,
     baseEntry,

@@ -174,6 +174,19 @@ describe("discardWorkout", () => {
 });
 
 describe("finishWorkout", () => {
+  it("keeps a set that was appended after the completion was computed", async () => {
+    const first = makeSet({ id: "s1" });
+    const late = makeSet({ id: "s2" });
+    await db.workouts.put(makeWorkout({ id: "w1", sets: [first, late] }));
+
+    await finishWorkout("w1", {
+      liftStateUpdates: [],
+      sessionPatch: { completedAt: new Date("2026-11-10T10:30:00Z"), totalDurationSeconds: 60, sets: [first] },
+    });
+
+    expect((await db.workouts.get("w1"))!.sets.map((s) => s.id)).toEqual(["s1", "s2"]);
+  });
+
   it("writes every lift state update and patches the workout as unsynced", async () => {
     const sets = [makeSet({ id: "s1" })];
     await db.workouts.put(makeWorkout({ id: "w1", synced: true }));

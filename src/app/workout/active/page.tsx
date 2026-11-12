@@ -93,7 +93,13 @@ function ActiveWorkoutContent() {
     setLeaving(true);
     setShowEndDialog(false);
     setShowDiscardDialog(false);
-    await workout.discard();
+    try {
+      await workout.discard();
+    } catch (err) {
+      console.error("Failed to discard workout:", err);
+      setLeaving(false);
+      return;
+    }
     router.push("/");
   };
 

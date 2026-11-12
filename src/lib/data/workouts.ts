@@ -144,7 +144,16 @@ export async function finishWorkout(
     for (const state of result.liftStateUpdates) {
       await db.liftStates.put(state);
     }
-    await db.workouts.update(workoutId, { ...result.sessionPatch, synced: false });
+    // A set appended after the completion was computed (a second tab, or a tap that
+    // landed just before Finish) must not be dropped from the workout row.
+    const current = await db.workouts.get(workoutId);
+    const known = new Set(result.sessionPatch.sets.map((s) => s.id));
+    const late = (current?.sets ?? []).filter((s) => !known.has(s.id));
+    await db.workouts.update(workoutId, {
+      ...result.sessionPatch,
+      sets: [...result.sessionPatch.sets, ...late],
+      synced: false,
+    });
   });
 }
 
