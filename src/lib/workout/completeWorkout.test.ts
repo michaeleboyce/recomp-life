@@ -77,7 +77,7 @@ describe("computeCompletion: pass", () => {
     const result = computeCompletion(
       completion({
         sets,
-        recentE1RMsByExercise: { squat: [222, 220, 218, 216, 214, 212], bench: [130] },
+        recentE1RMsByExercise: { squat: [214, 216, 218, 220, 222], bench: [130] },
       })
     );
 
@@ -89,7 +89,7 @@ describe("computeCompletion: pass", () => {
       t1Weight: 200,
       t1FailCount: 0,
       t1LastWorkoutDate: NOW,
-      recentE1RMs: [222, 220, 218, 216, 214],
+      recentE1RMs: [214, 216, 218, 220, 222],
       recentAvgRPEs: [8],
       recentAMRAPReps: [5],
       synced: false,

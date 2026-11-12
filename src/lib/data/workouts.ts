@@ -2,6 +2,7 @@
 // outside src/db and src/lib/sync.ts that may import the Dexie database.
 import { v4 as uuidv4 } from "uuid";
 import { db } from "@/db/local";
+import { toRecentE1RMSeries } from "@/lib/e1rm";
 import type {
   Estimated1RM,
   LiftState,
@@ -135,12 +136,11 @@ export async function saveLiftState(state: LiftState): Promise<void> {
   await db.liftStates.put({ ...state, synced: false });
 }
 
-/** Stored e1RM values for one exercise, most recent first, at most `limit`. */
-export async function getRecentE1RMs(exerciseId: string, limit: number): Promise<number[]> {
-  const entries = await db.estimated1RMs
-    .where("exerciseId")
-    .equals(exerciseId)
-    .reverse()
-    .sortBy("date");
-  return entries.slice(0, limit).map((e) => e.estimated1RM);
+/**
+ * The recent e1RM series for one exercise (oldest first), ready to pass to
+ * `computeCompletion` as `recentE1RMsByExercise[exerciseId]`.
+ */
+export async function getRecentE1RMSeries(exerciseId: string): Promise<number[]> {
+  const entries = await db.estimated1RMs.where("exerciseId").equals(exerciseId).toArray();
+  return toRecentE1RMSeries(entries);
 }

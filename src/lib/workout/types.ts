@@ -74,7 +74,11 @@ export interface CompletionInput {
   sets: SetLog[];
   liftStates: LiftState[];
   settings: UserSettings;
-  /** Stored e1RM values per exerciseId, most recent first. */
+  /**
+   * The recent e1RM series to store per exerciseId, exactly as `toRecentE1RMSeries`
+   * (src/lib/e1rm.ts) builds it: oldest first. An exercise with no entry keeps the
+   * series already on its lift state.
+   */
   recentE1RMsByExercise: Record<string, number[]>;
   currentExerciseIndex: number;
   workoutStartTime: Date | null;

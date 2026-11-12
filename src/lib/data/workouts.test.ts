@@ -5,7 +5,7 @@ import {
   appendSet,
   discardWorkout,
   finishWorkout,
-  getRecentE1RMs,
+  getRecentE1RMSeries,
   saveLiftState,
   startWorkout,
 } from "./workouts";
@@ -221,16 +221,15 @@ describe("saveLiftState", () => {
   });
 });
 
-describe("getRecentE1RMs", () => {
-  it("returns that exercise's values, most recent first, at most limit", async () => {
+describe("getRecentE1RMSeries", () => {
+  it("returns that exercise's values oldest first, as toRecentE1RMSeries builds them", async () => {
     await db.estimated1RMs.bulkPut([
       makeE1RM({ exerciseId: "squat", date: new Date("2026-11-01"), estimated1RM: 200 }),
       makeE1RM({ exerciseId: "squat", date: new Date("2026-11-08"), estimated1RM: 215 }),
       makeE1RM({ exerciseId: "squat", date: new Date("2026-11-04"), estimated1RM: 210 }),
       makeE1RM({ exerciseId: "bench", date: new Date("2026-11-09"), estimated1RM: 160 }),
     ]);
-    expect(await getRecentE1RMs("squat", 5)).toEqual([215, 210, 200]);
-    expect(await getRecentE1RMs("squat", 2)).toEqual([215, 210]);
-    expect(await getRecentE1RMs("deadlift", 5)).toEqual([]);
+    expect(await getRecentE1RMSeries("squat")).toEqual([200, 210, 215]);
+    expect(await getRecentE1RMSeries("deadlift")).toEqual([]);
   });
 });
