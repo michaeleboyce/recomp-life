@@ -1,6 +1,8 @@
 "use client";
 
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
+import { getAMRAPGuidance } from "@/lib/amrap";
 import type { TrainingPhase, Tier } from "@/types";
 
 interface AMRAPIndicatorProps {
@@ -8,16 +10,23 @@ interface AMRAPIndicatorProps {
   trainingPhase: TrainingPhase;
 }
 
-export function AMRAPIndicator({ tier, trainingPhase }: AMRAPIndicatorProps) {
+export function AMRAPIndicator({ tier }: AMRAPIndicatorProps) {
+  const guidance = getAMRAPGuidance(tier);
+
   return (
     <Alert className="mx-4 border-amber-500/50 bg-amber-500/10">
       <AlertTitle className="font-semibold text-amber-400">
         AMRAP Set -- As Many Reps As Possible
       </AlertTitle>
-      {tier === "T1" && trainingPhase.mode === "cutting" && (
+      {guidance && (
         <AlertDescription className="text-amber-300/80 text-xs mt-1">
-          Cutting mode: aim for RPE 9 (1 rep in reserve)
+          {guidance}
         </AlertDescription>
+      )}
+      {guidance && (
+        <div className="col-start-2">
+          <EvidenceLine ruleId="amrap-effort" hideLibraryLink />
+        </div>
       )}
     </Alert>
   );

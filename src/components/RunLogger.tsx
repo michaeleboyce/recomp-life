@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { v4 as uuidv4 } from "uuid";
-import { db } from "@/db/local";
+import { logRun } from "@/lib/data/records";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { RunType, RunCategory, RunLog } from "@/types";
+import type { RunType, RunCategory } from "@/types";
 
 const RUN_TYPES: { value: RunType; label: string }[] = [
   { value: "outdoor", label: "Outdoor" },
@@ -31,11 +30,11 @@ const EFFORT_LABELS: Record<number, string> = {
 };
 
 const EFFORT_COLORS: Record<number, string> = {
-  1: "border-blue-500 bg-blue-500/10 text-blue-400",
-  2: "border-sky-400 bg-sky-400/10 text-sky-300",
-  3: "border-zinc-400 bg-zinc-400/10 text-zinc-300",
-  4: "border-amber-500 bg-amber-500/10 text-amber-400",
-  5: "border-red-500 bg-red-500/10 text-red-400",
+  1: "border-tier-warmup bg-tier-warmup-soft text-tier-warmup",
+  2: "border-info bg-info/10 text-info",
+  3: "border-muted-foreground bg-muted-foreground/10 text-foreground",
+  4: "border-warning bg-warning/10 text-warning",
+  5: "border-destructive bg-destructive/10 text-destructive",
 };
 
 export default function RunLogger() {
@@ -70,10 +69,7 @@ export default function RunLogger() {
     setSaving(true);
 
     try {
-      const id = uuidv4();
-      const run: RunLog = {
-        id,
-        clientId: id,
+      await logRun({
         date: new Date(),
         durationMinutes: duration,
         distanceMiles: distance,
@@ -81,10 +77,7 @@ export default function RunLogger() {
         category,
         notes: notes.trim(),
         perceivedEffort,
-        synced: false,
-      };
-
-      await db.runs.add(run);
+      });
       router.push("/?runSaved=1");
     } catch (err) {
       setError("Failed to save run. Please try again.");

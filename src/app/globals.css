@@ -45,6 +45,27 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-info: var(--info);
+  --color-success-soft: var(--success-soft);
+  --color-warning-soft: var(--warning-soft);
+  --color-info-soft: var(--info-soft);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-tier-t1: var(--tier-t1);
+  --color-tier-t1-soft: var(--tier-t1-soft);
+  --color-tier-t2: var(--tier-t2);
+  --color-tier-t2-soft: var(--tier-t2-soft);
+  --color-tier-t3: var(--tier-t3);
+  --color-tier-t3-soft: var(--tier-t3-soft);
+  --color-tier-accessory: var(--tier-accessory);
+  --color-tier-accessory-soft: var(--tier-accessory-soft);
+  --color-tier-warmup: var(--tier-warmup);
+  --color-tier-warmup-soft: var(--tier-warmup-soft);
+  --color-plate-45: var(--plate-45);
+  --color-plate-35: var(--plate-35);
+  --color-plate-25: var(--plate-25);
+  --color-plate-10: var(--plate-10);
+  --color-plate-5: var(--plate-5);
+  --color-plate-2p5: var(--plate-2p5);
+  --color-plate-other: var(--plate-other);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -59,6 +80,14 @@
 }
 
 :root {
+  /* Weight plates keep their real-world colours in both themes. */
+  --plate-45: oklch(0.546 0.245 262.881);
+  --plate-35: oklch(0.795 0.184 86.047);
+  --plate-25: oklch(0.627 0.194 149.214);
+  --plate-10: oklch(1 0 0 / 90%);
+  --plate-5: oklch(0.577 0.245 27.325);
+  --plate-2p5: oklch(0.707 0.022 261.325);
+  --plate-other: oklch(0.551 0.027 264.364);
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -98,6 +127,22 @@
   --success: oklch(0.50 0.15 145);
   --warning: oklch(0.60 0.15 85);
   --info: oklch(0.50 0.10 250);
+  --success-soft: oklch(0.50 0.15 145 / 10%);
+  --warning-soft: oklch(0.60 0.15 85 / 12%);
+  --info-soft: oklch(0.50 0.10 250 / 10%);
+  --destructive-soft: oklch(0.577 0.245 27.325 / 10%);
+
+  /* Workout tiers */
+  --tier-t1: oklch(0.52 0.18 25);
+  --tier-t1-soft: oklch(0.52 0.18 25 / 10%);
+  --tier-t2: oklch(0.54 0.14 50);
+  --tier-t2-soft: oklch(0.54 0.14 50 / 11%);
+  --tier-t3: oklch(0.50 0.14 250);
+  --tier-t3-soft: oklch(0.50 0.14 250 / 10%);
+  --tier-accessory: oklch(0.50 0.14 300);
+  --tier-accessory-soft: oklch(0.50 0.14 300 / 10%);
+  --tier-warmup: oklch(0.48 0.03 250);
+  --tier-warmup-soft: oklch(0.48 0.03 250 / 12%);
 }
 
 .dark {
@@ -143,15 +188,29 @@
   --success: oklch(0.65 0.15 145);
   --warning: oklch(0.75 0.15 85);
   --info: oklch(0.60 0.10 250);
+  --success-soft: oklch(0.65 0.15 145 / 15%);
+  --warning-soft: oklch(0.75 0.15 85 / 15%);
+  --info-soft: oklch(0.60 0.10 250 / 15%);
+  --destructive-soft: oklch(0.65 0.20 25 / 15%);
+
+  /* Workout tiers */
+  --tier-t1: oklch(0.72 0.15 25);
+  --tier-t1-soft: oklch(0.72 0.15 25 / 18%);
+  --tier-t2: oklch(0.76 0.13 60);
+  --tier-t2-soft: oklch(0.76 0.13 60 / 18%);
+  --tier-t3: oklch(0.72 0.11 250);
+  --tier-t3-soft: oklch(0.72 0.11 250 / 18%);
+  --tier-accessory: oklch(0.74 0.10 300);
+  --tier-accessory-soft: oklch(0.74 0.10 300 / 18%);
+  --tier-warmup: oklch(0.72 0.03 250);
+  --tier-warmup-soft: oklch(0.72 0.03 250 / 18%);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
     @apply bg-background text-foreground;
   }
 }

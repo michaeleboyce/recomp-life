@@ -9,6 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "docs:evidence": "UPDATE_EVIDENCE_DOCS=1 vitest run src/lib/evidence/docs.test.ts",
+    "check:links": "CHECK_LINKS=1 vitest run src/lib/evidence/links.test.ts",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio"
@@ -48,6 +50,7 @@
     "draco3dgltf": "^1.5.9",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "fake-indexeddb": "^6.2.8",
     "jsdom": "^28.0.0",
     "react-muscle-highlighter": "1.2.0",
     "shadcn": "^3.8.4",

@@ -1,5 +1,9 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Coaching rules and research
+
+Every coaching rule, the research behind it and where it lives in the code is documented in [docs/coaching-rules.md](docs/coaching-rules.md) (generated from `src/lib/evidence/`). The same content is in the app under Tools > How the App Coaches. To add or change research, follow [docs/research/ADDING_RESEARCH.md](docs/research/ADDING_RESEARCH.md).
+
 ## Getting Started
 
 First, run the development server:

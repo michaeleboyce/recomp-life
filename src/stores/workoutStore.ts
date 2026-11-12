@@ -1,18 +1,9 @@
 import { create } from "zustand";
-import type { SetLog, Tier, WorkoutLocation } from "@/types";
+import type { SetLog, WorkoutLocation } from "@/types";
+import type { WorkoutExerciseState } from "@/lib/workout/types";
 
-export interface WorkoutExerciseState {
-  exerciseId: string;
-  substituteExerciseId?: string;
-  tier: Tier;
-  targetSets: number;
-  targetReps: number;
-  weight: number;
-  originalWeight?: number;
-  isAMRAP: boolean;
-  isWarmUp: boolean;
-  completedSets: number;
-}
+// The type lives with the pure workout domain; re-exported for existing imports.
+export type { WorkoutExerciseState };
 
 interface WorkoutStore {
   sessionId: string | null;

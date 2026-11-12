@@ -24,18 +24,43 @@ function roundToNearest5(value: number): number {
 }
 
 /**
+ * Hours since a lift was last trained at which each status begins
+ * (maintaining or bulking). The 72-120h "primed" window is a coaching
+ * heuristic, not a research finding.
+ */
+export const RECOVERY_HOURS = {
+  ready: 48,
+  primed: 72,
+  pastPeak: 120,
+} as const;
+
+/** Extra hours added to the short-term thresholds while cutting. A heuristic. */
+export const CUTTING_RECOVERY_BONUS_HOURS = 12;
+
+/**
+ * Days without training a lift before the app treats it as a long break.
+ * Shorter gaps cost little or no strength, so nothing is adjusted before this.
+ * Shared by the recovery status, weight-decay and inactivity rules.
+ */
+export const LONG_BREAK_DAYS = 21;
+
+/**
  * Calculates recovery status based on when the exercise was last trained.
  *
  * Thresholds (standard / maintaining or bulking):
- *   < 48h          -> recovering
- *   48h to < 72h   -> ready
- *   72h to < 120h  -> primed
- *   120h to < 168h -> ready (past peak but not detraining)
- *   >= 168h        -> detraining
+ *   < 48h               -> recovering
+ *   48h to < 72h        -> ready
+ *   72h to < 120h       -> primed
+ *   120h to < 21 days   -> ready
+ *   >= 21 days          -> detraining (shown to the user as "Long break")
  *
- * Cutting phase adds +12h to all thresholds to account for slower recovery.
+ * Cutting phase adds +12h to the three short-term thresholds. The long-break
+ * threshold is the same in every phase.
  *
  * Uses the most recent of the T1 and T2 dates.
+ *
+ * @evidence recovery-windows
+ * @evidence time-off
  */
 export function calculateRecoveryStatus(
   lastT1Date: Date | null,
@@ -50,12 +75,12 @@ export function calculateRecoveryStatus(
   const hoursSince =
     (now.getTime() - lastTrained.getTime()) / (1000 * 60 * 60);
 
-  const bonus = phase.mode === "cutting" ? 12 : 0;
+  const bonus = phase.mode === "cutting" ? CUTTING_RECOVERY_BONUS_HOURS : 0;
 
-  if (hoursSince < 48 + bonus) return "recovering";
-  if (hoursSince < 72 + bonus) return "ready";
-  if (hoursSince < 120 + bonus) return "primed";
-  if (hoursSince < 168 + bonus) return "ready";
+  if (hoursSince < RECOVERY_HOURS.ready + bonus) return "recovering";
+  if (hoursSince < RECOVERY_HOURS.primed + bonus) return "ready";
+  if (hoursSince < RECOVERY_HOURS.pastPeak + bonus) return "primed";
+  if (hoursSince < LONG_BREAK_DAYS * 24) return "ready";
   return "detraining";
 }
 
@@ -97,16 +122,16 @@ export function getRecoveryState(
 }
 
 /**
- * Returns true if the lift hasn't been trained in 14+ days,
- * suggesting a ramp-up protocol at 85% working weight.
+ * Returns true if the lift hasn't been trained for a long break
+ * (LONG_BREAK_DAYS or more), when easing back in is worth suggesting.
  */
 export function shouldSuggestRampUp(daysSinceLastSession: number): boolean {
-  return daysSinceLastSession >= 14;
+  return daysSinceLastSession >= LONG_BREAK_DAYS;
 }
 
 /**
  * Generates a ramp-up suggestion with weight rounded to the nearest 5 lbs.
- * Used when a lift hasn't been trained in 14+ days.
+ * Not connected to the UI; the live time-off rule is in weightDecay.ts.
  */
 export function generateRampUpSuggestion(lastWorkingWeight: number): {
   rampUpWeight: number;

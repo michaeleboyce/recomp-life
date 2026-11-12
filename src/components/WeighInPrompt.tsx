@@ -1,7 +1,7 @@
 "use client";
 
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/db/local";
+import { useMemo } from "react";
+import { useBodyweightLog } from "@/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -13,23 +13,20 @@ function startOfDay(date: Date): Date {
 }
 
 export default function WeighInPrompt() {
-  const latestWeight = useLiveQuery(async () => {
-    const all = await db.bodyweight.orderBy("date").reverse().limit(1).toArray();
-    return all[0] ?? null;
-  });
+  const log = useBodyweightLog();
 
-  const loggedToday = useLiveQuery(async () => {
+  const latestWeight = log && log.length > 0 ? log[log.length - 1] : null;
+
+  const loggedToday = useMemo(() => {
     const todayStart = startOfDay(new Date());
     const tomorrowStart = new Date(todayStart);
     tomorrowStart.setDate(tomorrowStart.getDate() + 1);
 
-    const count = await db.bodyweight
-      .where("date")
-      .between(todayStart, tomorrowStart)
-      .count();
-
-    return count > 0;
-  });
+    return (log ?? []).some((e) => {
+      const t = new Date(e.date).getTime();
+      return t >= todayStart.getTime() && t < tomorrowStart.getTime();
+    });
+  }, [log]);
 
   // Don't render if already logged today
   if (loggedToday) return null;

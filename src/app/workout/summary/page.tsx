@@ -7,6 +7,7 @@ import { db } from "@/db/local";
 import { EXERCISES } from "@/lib/exercises";
 import { WORKOUT_TEMPLATES, getNextWorkoutId } from "@/lib/workoutTemplates";
 import { getConfidenceLevel } from "@/lib/autoAdapt";
+import { getPerformedStage, NEXT_STAGE_LABEL } from "@/lib/progression";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -163,17 +164,17 @@ function WorkoutSummaryContent() {
         s.status === "autoregulated_load_drop"
     );
 
-    // Check for partial completion (fewer sets than expected for the stage)
-    if (tier === "T1" || tier === "T2") {
-      const stageConfigs: Record<string, number> = {
-        "5x3": 5, "6x2": 6, "10x1": 10,
-        "3x10": 3, "3x8": 3, "3x6": 3,
-      };
-      const stage = tier === "T1" ? state.t1Stage : state.t2Stage;
-      const expectedSets = stageConfigs[stage] ?? sets.length;
-      if (sets.length < expectedSets) {
-        return { passed: null, nextWeight: null, stageChange: null };
-      }
+    // The stage this session was performed at comes from the sets themselves:
+    // the lift state has already advanced to the next stage by now.
+    const performed =
+      tier === "T1" || tier === "T2"
+        ? getPerformedStage(tier, sets[0]?.targetReps ?? 0)
+        : null;
+
+    // Partial completion (fewer sets than the stage calls for) is neither
+    // a pass nor a fail.
+    if (performed && sets.length < performed.sets) {
+      return { passed: null, nextWeight: null, stageChange: null };
     }
 
     const allCompleted = sets.every(
@@ -196,12 +197,7 @@ function WorkoutSummaryContent() {
       return {
         passed: false,
         nextWeight: null,
-        stageChange:
-          state.t1Stage === "5x3"
-            ? "6x2"
-            : state.t1Stage === "6x2"
-              ? "10x1"
-              : "reset to 85%",
+        stageChange: performed ? NEXT_STAGE_LABEL[performed.stage] : null,
       };
     }
 
@@ -216,12 +212,7 @@ function WorkoutSummaryContent() {
       return {
         passed: false,
         nextWeight: null,
-        stageChange:
-          state.t2Stage === "3x10"
-            ? "3x8"
-            : state.t2Stage === "3x8"
-              ? "3x6"
-              : "reset to 85%",
+        stageChange: performed ? NEXT_STAGE_LABEL[performed.stage] : null,
       };
     }
 

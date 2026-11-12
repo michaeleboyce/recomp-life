@@ -1,7 +1,7 @@
 "use client";
 
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/db/local";
+import { useMemo } from "react";
+import { useBodyweightLog } from "@/hooks";
 import { detectFatLossStall } from "@/lib/stallDetection";
 import type { TrainingPhase } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,17 +28,13 @@ function calculate7DayAverage(data: { date: string; weight: number }[]): { date:
 }
 
 export default function BodyweightChart({ trainingPhase }: BodyweightChartProps) {
-  const weightData = useLiveQuery(async () => {
+  const log = useBodyweightLog();
+  const weightData = useMemo(() => {
+    if (!log) return undefined;
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const entries = await db.bodyweight
-      .where("date")
-      .aboveOrEqual(thirtyDaysAgo)
-      .sortBy("date");
-
-    return entries;
-  });
+    return log.filter((w) => new Date(w.date) >= thirtyDaysAgo);
+  }, [log]);
 
   if (!weightData || weightData.length < 3) return null;
 
@@ -114,8 +110,8 @@ export default function BodyweightChart({ trainingPhase }: BodyweightChartProps)
         </div>
 
         {stallAlert && (
-          <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-2">
-            <p className="text-xs font-semibold text-amber-400 mb-1">Weight Loss Stall Detected</p>
+          <div className="mt-3 rounded-md border border-warning/30 bg-warning-soft p-2">
+            <p className="text-xs font-semibold text-warning mb-1">Weight Loss Stall Detected</p>
             <p className="text-xs text-muted-foreground">{stallAlert.message}</p>
             <ul className="text-xs text-muted-foreground/70 mt-1 space-y-0.5">
               {stallAlert.suggestions.map((s, i) => (

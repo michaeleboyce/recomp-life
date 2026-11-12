@@ -3,35 +3,16 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { TimerWorkerManager } from "@/lib/timerWorker";
 import { playTimerChime, vibrateTimer, sendTimerNotification } from "@/lib/audio";
+import {
+  hasCuttingRestBonus,
+  formatRestDuration,
+  getRestEvidenceId,
+} from "@/lib/restTimes";
 import type { Tier, TrainingPhase } from "@/types";
-
-/** Base rest durations per tier (seconds) before phase adjustments */
-const BASE_REST_SECONDS: Record<Tier, number> = {
-  T1: 180,
-  T2: 120,
-  T3: 60,
-  accessory: 60,
-  warmup: 60,
-};
-
-/** Tiers that receive +30s during a cutting phase */
-const CUTTING_BONUS_TIERS: Set<Tier> = new Set(["T1", "T2"]);
-const CUTTING_BONUS_SECONDS = 30;
-
-/**
- * Compute the default rest duration for a tier, adding +30s for T1/T2
- * when the user is in a cutting phase.
- */
-export function getPhaseAdjustedRest(tier: Tier, phase?: TrainingPhase): number {
-  const base = BASE_REST_SECONDS[tier] ?? 60;
-  if (phase?.mode === "cutting" && CUTTING_BONUS_TIERS.has(tier)) {
-    return base + CUTTING_BONUS_SECONDS;
-  }
-  return base;
-}
 
 interface RestTimerProps {
   audioEnabled?: boolean;
@@ -150,11 +131,12 @@ export function RestTimer({
       ? Math.min(100, Math.max(0, (elapsed / restTimerDuration) * 100))
       : 100;
 
+  // Why the rest is this long (heavy vs lighter sets); none for warm-ups
+  const restEvidenceId = tier !== undefined ? getRestEvidenceId(tier) : null;
+
   // Show cutting bonus indicator when +30s was added
   const hasCuttingBonus =
-    trainingPhase?.mode === "cutting" &&
-    tier !== undefined &&
-    CUTTING_BONUS_TIERS.has(tier);
+    tier !== undefined && hasCuttingRestBonus(tier, trainingPhase);
 
   return (
     <div
@@ -168,7 +150,10 @@ export function RestTimer({
         <span className="text-sm font-medium text-muted-foreground">
           {isOvertime ? "REST COMPLETE" : "REST"}
           {hasCuttingBonus && (
-            <span className="ml-2 text-xs text-blue-400">+30s cut</span>
+            <span className="ml-2 inline-flex items-center gap-1 text-xs text-blue-400">
+              +30s cut
+              <EvidenceLine ruleId="rest-cut-bonus" variant="icon" hideLibraryLink />
+            </span>
           )}
         </span>
         <span
@@ -179,13 +164,16 @@ export function RestTimer({
           {isOvertime ? "+" : ""}
           {timeStr}{" "}
           <span className="text-sm text-muted-foreground font-normal">
-            / {Math.floor(restTimerDuration / 60)}:
-            {(restTimerDuration % 60).toString().padStart(2, "0")}
+            / {formatRestDuration(restTimerDuration)}
           </span>
         </span>
       </div>
 
       <Progress value={progressPercent} className="h-2" />
+
+      {restEvidenceId && (
+        <EvidenceLine ruleId={restEvidenceId} hideLibraryLink />
+      )}
 
       <div className="flex items-center justify-end gap-2">
         <Button variant="outline" size="sm" onClick={() => handleAddTime(30)}>

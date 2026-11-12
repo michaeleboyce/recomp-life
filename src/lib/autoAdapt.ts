@@ -3,7 +3,9 @@
  *
  * Converts barbell exercises to dumbbell equivalents for home workouts,
  * evaluating whether the user's available equipment can handle the adapted weight.
- * Provides confidence levels and warning messages per spec sections 2.5 and 12.2.
+ * Provides confidence levels and warning messages.
+ *
+ * @evidence dumbbell-conversion
  */
 
 import type {
@@ -67,7 +69,7 @@ function buildWarningMessage(
 /**
  * Adapts a single exercise for home use based on available equipment.
  *
- * Decision logic (spec section 2.5):
+ * Decision logic:
  * 1. If the exercise does not require a gym, return as-is with "fits" / "high".
  * 2. If the exercise requires a gym AND has a dumbbell alternative:
  *    - Calculate the dumbbell equivalent weight.

@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowLeft } from "lucide-react";
-import { v4 } from "uuid";
-import { db } from "@/db/local";
-import { initializeDatabase } from "@/db/init";
-import type { TimeOfDay, BodyweightLog } from "@/types";
+import { useBodyweightLog } from "@/hooks";
+import { logBodyweight, updateBodyweight } from "@/lib/data/records";
+import type { TimeOfDay } from "@/types";
+import { PageShell } from "@/components/ui/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -38,26 +37,17 @@ function startOfDay(date: Date): Date {
 
 export default function WeighInPage() {
   const router = useRouter();
-  const [dbReady, setDbReady] = useState(false);
   const [weight, setWeight] = useState("");
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(getDefaultTimeOfDay());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    initializeDatabase().then(() => setDbReady(true));
-  }, []);
+  const bodyweightLog = useBodyweightLog();
 
-  // Fetch last 14 entries for trend calculation (need 14 for two 7-day windows)
-  const recentEntries = useLiveQuery(
-    () =>
-      db.bodyweight
-        .orderBy("date")
-        .reverse()
-        .limit(14)
-        .toArray(),
-    [],
-    []
+  // Last 14 entries, newest first, for trend calculation (need 14 for two 7-day windows)
+  const recentEntries = useMemo(
+    () => (bodyweightLog ?? []).slice(-14).reverse(),
+    [bodyweightLog]
   );
 
   // The last 5 for display
@@ -71,18 +61,19 @@ export default function WeighInPage() {
   }, [recentEntries, weight]);
 
   // Check if already logged today
-  const todayEntry = useLiveQuery(async () => {
+  const todayEntry = useMemo(() => {
     const todayStart = startOfDay(new Date());
     const tomorrowStart = new Date(todayStart);
     tomorrowStart.setDate(tomorrowStart.getDate() + 1);
 
-    const entries = await db.bodyweight
-      .where("date")
-      .between(todayStart, tomorrowStart)
-      .toArray();
-
-    return entries.length > 0 ? entries[0] : null;
-  }, []);
+    // The log is oldest first, so the first match is the earliest entry today.
+    return (
+      (bodyweightLog ?? []).find((e) => {
+        const t = new Date(e.date).getTime();
+        return t >= todayStart.getTime() && t < tomorrowStart.getTime();
+      }) ?? null
+    );
+  }, [bodyweightLog]);
 
   // Calculate 7-day average (from first 7 entries)
   const avg7Day =
@@ -120,23 +111,17 @@ export default function WeighInPage() {
     try {
       if (todayEntry) {
         // Update existing entry for today
-        await db.bodyweight.update(todayEntry.id, {
+        await updateBodyweight(todayEntry.id, {
           weight: parsedWeight,
           timeOfDay,
-          synced: false,
         });
       } else {
         // Create new entry
-        const id = v4();
-        const entry: BodyweightLog = {
-          id,
-          clientId: id,
+        await logBodyweight({
           date: startOfDay(new Date()),
           weight: parsedWeight,
           timeOfDay,
-          synced: false,
-        };
-        await db.bodyweight.add(entry);
+        });
       }
       router.push("/");
     } catch {
@@ -145,7 +130,7 @@ export default function WeighInPage() {
     }
   }, [weight, timeOfDay, todayEntry, router]);
 
-  if (!dbReady) {
+  if (bodyweightLog === undefined) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-6 w-40 rounded bg-muted animate-pulse" />
@@ -154,7 +139,7 @@ export default function WeighInPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
+    <PageShell>
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
         <Link
@@ -281,9 +266,9 @@ export default function WeighInPage() {
                     <span
                       className={`font-medium ${
                         trendPerWeek < -0.1
-                          ? "text-green-400"
+                          ? "text-success"
                           : trendPerWeek > 0.1
-                            ? "text-orange-400"
+                            ? "text-warning"
                             : "text-foreground"
                       }`}
                     >
@@ -306,6 +291,6 @@ export default function WeighInPage() {
           {saving ? "Saving..." : "Save Weight"}
         </Button>
       </div>
-    </div>
+    </PageShell>
   );
 }

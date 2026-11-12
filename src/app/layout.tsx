@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import BottomNav from "@/components/BottomNav";
+import { AppChrome } from "@/components/AppChrome";
+import { DbProvider } from "@/components/DbProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { SyncProvider } from "@/components/SyncProvider";
 
@@ -50,10 +51,9 @@ export default function RootLayout({
       <body
         className={`${plusJakarta.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        <div className="min-h-screen pb-28">
-          {children}
-        </div>
-        <BottomNav />
+        <AppChrome>
+          <DbProvider>{children}</DbProvider>
+        </AppChrome>
         <ServiceWorkerRegistration />
         <SyncProvider />
       </body>

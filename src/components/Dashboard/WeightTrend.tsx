@@ -1,7 +1,7 @@
 "use client";
 
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/db/local";
+import { useMemo } from "react";
+import { useBodyweightLog, useProfile } from "@/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -38,31 +38,24 @@ function getTrendIndicator(
 }
 
 export default function WeightTrend() {
-  const profile = useLiveQuery(() => db.userProfile.toCollection().first());
+  const profile = useProfile();
+  // Oldest first, so the latest entry is last.
+  const log = useBodyweightLog();
 
-  const recentWeights = useLiveQuery(async () => {
+  const { recentWeights, latestWeight, allRecentWeights } = useMemo(() => {
+    if (!log) {
+      return { recentWeights: undefined, latestWeight: undefined, allRecentWeights: undefined };
+    }
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    return db.bodyweight
-      .where("date")
-      .aboveOrEqual(sevenDaysAgo)
-      .reverse()
-      .sortBy("date");
-  });
-
-  const latestWeight = useLiveQuery(async () => {
-    const all = await db.bodyweight.orderBy("date").reverse().limit(1).toArray();
-    return all[0] ?? null;
-  });
-
-  const allRecentWeights = useLiveQuery(async () => {
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-    return db.bodyweight
-      .where("date")
-      .aboveOrEqual(fourteenDaysAgo)
-      .sortBy("date");
-  });
+    return {
+      recentWeights: log.filter((w) => new Date(w.date) >= sevenDaysAgo),
+      latestWeight: log[log.length - 1] ?? null,
+      allRecentWeights: log.filter((w) => new Date(w.date) >= fourteenDaysAgo),
+    };
+  }, [log]);
 
   const greeting = getGreeting();
   const name = profile?.name ?? "there";
@@ -91,9 +84,9 @@ export default function WeightTrend() {
                   <span
                     className={`text-lg animate-in fade-in fill-mode-both ${
                       trend.label === "losing"
-                        ? "text-green-400 slide-in-from-top-1"
+                        ? "text-success slide-in-from-top-1"
                         : trend.label === "gaining"
-                          ? "text-orange-400 slide-in-from-bottom-1"
+                          ? "text-warning slide-in-from-bottom-1"
                           : "text-muted-foreground slide-in-from-left-1"
                     }`}
                     style={{ animationDuration: "200ms" }}

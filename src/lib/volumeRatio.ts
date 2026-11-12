@@ -1,7 +1,7 @@
 import type { TrainingPhase, VolumeRatioCheck } from "@/types";
 import { getAccessoryRepRange } from "./accessories";
 
-// ─── Session Volume Ratio (spec §5.9.1) ───────────────────────────────────────
+// ─── Session Volume Ratio ─────────────────────────────────────────────────────
 
 /**
  * Calculates the session volume ratio and checks whether accessory volume
@@ -18,6 +18,10 @@ import { getAccessoryRepRange } from "./accessories";
  *
  * When the ratio exceeds the phase maximum, a warning is returned with
  * guidance on how many accessories to drop.
+ *
+ * Not connected to the UI.
+ *
+ * @evidence volume-ratio
  */
 export function calculateSessionVolumeRatio(
   t1Reps: number,

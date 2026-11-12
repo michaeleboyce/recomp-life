@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Dumbbell, Calculator, ChevronRight, PersonStanding } from "lucide-react";
+import { Dumbbell, Calculator, ChevronRight, PersonStanding, FlaskConical } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const TOOLS = [
@@ -22,6 +22,12 @@ const TOOLS = [
     label: "1RM Calculator",
     description: "Estimate your one-rep max from a recent working set",
     icon: Calculator,
+  },
+  {
+    href: "/research",
+    label: "How the App Coaches",
+    description: "Every coaching rule, why it exists, and the research behind it",
+    icon: FlaskConical,
   },
 ] as const;
 

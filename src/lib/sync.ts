@@ -27,9 +27,11 @@ export async function pushUnsynced(): Promise<number> {
 
   for (const { name, table } of SYNC_TABLES) {
     const dexieTable = table() as Table;
+    // Rows are written with the boolean `synced: false`, and booleans are not valid
+    // IndexedDB keys, so unsynced rows never appear in the `synced` index. Filter the
+    // rows themselves instead of querying that index.
     const unsynced = await dexieTable
-      .where('synced')
-      .equals(0) // Dexie stores booleans as 0/1 in indexes
+      .filter((row: { synced?: unknown }) => !row.synced)
       .toArray();
 
     if (unsynced.length === 0) continue;
@@ -92,11 +94,13 @@ export async function pullFromServer(): Promise<number> {
         continue;
       }
 
-      // Insert new row from server
-      row.synced = true;
+      // Insert new row from server. JSON has no date type, so timestamps arrive as
+      // ISO strings; local rows hold Date objects and sort by them.
+      const local = reviveDates(row) as Record<string, unknown>;
+      local.synced = true;
       try {
         const primaryKey = name === 'liftStates' ? 'exerciseId' : 'id';
-        await dexieTable.put(row, row[primaryKey] as string);
+        await dexieTable.put(local, local[primaryKey] as string);
         totalPulled++;
       } catch (err) {
         console.error(`Pull insert failed for ${name}:`, err);
@@ -136,4 +140,20 @@ export async function checkConnectivity(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
+/** Deep copy of a pulled value with every ISO timestamp string turned into a Date. */
+export function reviveDates(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return ISO_TIMESTAMP.test(value) ? new Date(value) : value;
+  }
+  if (Array.isArray(value)) return value.map(reviveDates);
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, reviveDates(v)])
+    );
+  }
+  return value;
 }

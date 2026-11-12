@@ -130,6 +130,8 @@ export function getWeeklyMuscleLoad(
 /**
  * Heat level for a weekly set count. 10 sets is the weekly target used by the
  * volume chart, so 10+ is the top level.
+ *
+ * @evidence weekly-volume
  */
 export function weeklyHeatLevel(sets: number): HeatLevel {
   if (sets <= 0) return 0;
@@ -187,6 +189,8 @@ export function getMuscleLastTrained(
 /**
  * Recovery status for every muscle, using the same thresholds as the lift
  * recovery bars (including the cutting-phase bonus).
+ *
+ * @evidence recovery-windows
  */
 export function getMuscleRecovery(
   workouts: WorkoutSession[],

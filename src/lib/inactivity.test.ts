@@ -40,18 +40,29 @@ describe("checkInactivity", () => {
     expect(result?.level).toBe("urgent");
   });
 
-  it("returns detraining alert for 10+ days", () => {
-    const result = checkInactivity(10);
-    expect(result?.level).toBe("detraining");
-    expect(result?.prescription).toBe("ramp_up_85");
+  it("stays urgent, with a normal workout, at 10 and 20 days", () => {
+    expect(checkInactivity(10)?.level).toBe("urgent");
+    expect(checkInactivity(10)?.prescription).toBe("normal_workout");
+    expect(checkInactivity(20.9)?.level).toBe("urgent");
   });
 
-  it("returns detraining alert for very long inactivity", () => {
-    const result = checkInactivity(30);
+  it("returns the long-break alert at 21+ days", () => {
+    const result = checkInactivity(21);
+    expect(result?.level).toBe("detraining");
+    expect(result?.prescription).toBe("ease_back_in");
+  });
+
+  it("does not claim a fixed percentage or an injury risk", () => {
+    const message = checkInactivity(30)?.message ?? "";
+    expect(message).not.toMatch(/85%|injury/i);
+  });
+
+  it("returns the long-break alert for very long inactivity", () => {
+    const result = checkInactivity(60);
     expect(result?.level).toBe("detraining");
   });
 
-  it("returns detraining for Infinity (no previous workout)", () => {
+  it("returns the long-break alert for Infinity (no previous workout)", () => {
     const result = checkInactivity(Infinity);
     expect(result?.level).toBe("detraining");
   });

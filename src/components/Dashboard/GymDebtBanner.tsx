@@ -1,7 +1,6 @@
 "use client";
 
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/db/local";
+import { useLiftStates, useProfile } from "@/hooks";
 import { EXERCISES } from "@/lib/exercises";
 import { barbellToDumbbell } from "@/lib/dbConversion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,10 +13,8 @@ interface GymDebtItem {
 }
 
 export default function GymDebtBanner() {
-  const userProfile = useLiveQuery(() =>
-    db.userProfile.toCollection().first()
-  );
-  const liftStates = useLiveQuery(() => db.liftStates.toArray());
+  const userProfile = useProfile();
+  const liftStates = useLiftStates();
 
   if (!userProfile || !liftStates) return null;
 

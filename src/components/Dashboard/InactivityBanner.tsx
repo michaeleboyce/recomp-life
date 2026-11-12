@@ -52,9 +52,9 @@ export default function InactivityBanner() {
           {alert.level === "gentle" ? "Reminder" : alert.level === "urgent" ? "Heads Up" : "Extended Break"}
         </p>
         <p className="text-sm text-muted-foreground">{alert.message}</p>
-        {alert.prescription === "ramp_up_85" && (
+        {alert.prescription === "ease_back_in" && (
           <p className="text-xs text-muted-foreground/70 mt-1">
-            Ramp-up protocol: Start at 85% of your last working weights.
+            The workout setup screen will suggest lighter starting weights.
           </p>
         )}
       </CardContent>
