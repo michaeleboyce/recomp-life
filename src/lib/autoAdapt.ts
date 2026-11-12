@@ -147,33 +147,9 @@ export function adaptExerciseForHome(
     };
   }
 
-  // Primary exceeds or is borderline -- try fallback chain
-  const chain = HOME_SUBSTITUTE_CHAINS[exercise.id];
-
-  // No fallback chain for this exercise (e.g. test fixtures with non-matching IDs)
-  if (!chain) {
-    const confidenceLevel = getConfidenceLevel(substituteExercise.id, primaryStatus);
-    const warningMessage = buildWarningMessage(
-      exercise.name,
-      prescribedWeight,
-      substituteExercise.name,
-      dbEquiv,
-      equipment.maxDumbbellWeight,
-      primaryStatus,
-      isBothHands
-    );
-
-    return {
-      originalExercise: exercise,
-      originalWeight: prescribedWeight,
-      adaptedExercise: substituteExercise,
-      adaptedWeight: dbEquiv,
-      adaptationStatus: primaryStatus,
-      confidenceLevel,
-      warningMessage,
-      alternatives: [],
-    };
-  }
+  // Primary exceeds or is borderline -- try the fallback chain. An exercise without
+  // one (lat pulldown, for example) has nothing else to try and is capped below.
+  const chain = HOME_SUBSTITUTE_CHAINS[exercise.id] ?? [];
 
   // Build alternatives from the full chain and find the first one that fits
   const alternatives: AdaptationOption[] = [];

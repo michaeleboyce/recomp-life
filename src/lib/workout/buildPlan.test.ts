@@ -351,9 +351,9 @@ describe("buildWorkoutPlan at home (D5: same adaptation as Configure)", () => {
       });
     });
 
-    it('"exceeds" with no fallback chain: the substitute at its uncapped converted weight', () => {
+    it('"exceeds" with no fallback chain: the substitute capped at the max dumbbell weight', () => {
       // lat_pulldown has no HOME_SUBSTITUTE_CHAINS entry, so adaptExerciseForHome
-      // returns db_row at the full converted weight even above the max.
+      // returns db_row capped at the max (the converted weight would be 100).
       const liftStates = seedLiftStates().map((ls) =>
         ls.exerciseId === "lat_pulldown" ? { ...ls, t3Weight: 250 } : ls
       );
@@ -364,7 +364,7 @@ describe("buildWorkoutPlan at home (D5: same adaptation as Configure)", () => {
       expect(plan[2]).toMatchObject({
         exerciseId: "lat_pulldown",
         substituteExerciseId: "db_row",
-        weight: 100,
+        weight: 80,
         originalWeight: 250,
       });
     });

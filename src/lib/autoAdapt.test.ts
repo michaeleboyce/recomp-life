@@ -257,9 +257,10 @@ describe('adaptExerciseForHome', () => {
       const equipment = makeEquipment({ maxDumbbellWeight: 80 });
       const result = adaptExerciseForHome(barbellDeadlift, 220, equipment, dbRdl);
 
-      // 220 * 0.80 = 176, / 2 = 88, round to 90
+      // 220 * 0.80 = 176, / 2 = 88, round to 90: more than the dumbbells go to,
+      // so the prescription is capped at the heaviest pair and the warning says why.
       expect(result.adaptationStatus).toBe('exceeds');
-      expect(result.adaptedWeight).toBe(90);
+      expect(result.adaptedWeight).toBe(80);
       expect(result.confidenceLevel).toBe('low');
       expect(result.warningMessage).toContain('90');
       expect(result.warningMessage).toContain('80');
@@ -274,7 +275,8 @@ describe('adaptExerciseForHome', () => {
       const result = adaptExerciseForHome(barbellBench, 210, equipment, dbBench);
 
       expect(result.adaptationStatus).toBe('borderline');
-      expect(result.adaptedWeight).toBe(85);
+      expect(result.adaptedWeight).toBe(80);
+      expect(result.warningMessage).toContain('85');
       expect(result.warningMessage).toContain('Close to limit');
     });
 
@@ -346,7 +348,8 @@ describe('adaptExerciseForHome', () => {
       // any chain key, so no fallback is triggered
       const result = adaptExerciseForHome(barbellSquat, 135, equipment, gobletSquat);
 
-      expect(result.adaptedWeight).toBe(110);
+      expect(result.adaptedWeight).toBe(80);
+      expect(result.warningMessage).toContain('110');
       expect(result.adaptationStatus).toBe('exceeds');
     });
 
@@ -454,6 +457,34 @@ describe('adaptExerciseForHome', () => {
       expect(result.adaptationStatus).toBe('exceeds');
       expect(result.adaptedWeight).toBe(30); // capped at max
       expect(result.alternatives.length).toBeGreaterThan(0);
+    });
+
+    it('caps at max when the exercise has no fallback chain, like the chained case', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
+      // Lat pulldown has a substitute (db_row) but no chain. 250 * 0.80 / 2 = 100 per hand.
+      const result = adaptExerciseForHome(
+        EXERCISES.lat_pulldown, 250, equipment, EXERCISES.db_row
+      );
+
+      expect(result.adaptedExercise).toBe(EXERCISES.db_row);
+      expect(result.adaptedWeight).toBe(80);
+      expect(result.adaptationStatus).toBe('exceeds');
+      expect(result.confidenceLevel).toBe('low');
+      expect(result.warningMessage).toContain('needs 100 lb DBs');
+      expect(result.warningMessage).toContain('Your max is 80');
+      expect(result.alternatives).toEqual([]);
+    });
+
+    it('a no-chain exercise within 10 lbs of the limit is capped and stays borderline', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
+      // 210 * 0.80 / 2 = 84 -> 85 per hand.
+      const result = adaptExerciseForHome(
+        EXERCISES.lat_pulldown, 210, equipment, EXERCISES.db_row
+      );
+
+      expect(result.adaptedWeight).toBe(80);
+      expect(result.adaptationStatus).toBe('borderline');
+      expect(result.confidenceLevel).toBe('high');
     });
 
     it('still returns borderline correctly when primary is borderline (no fallback needed)', () => {
