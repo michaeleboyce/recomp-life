@@ -6,6 +6,7 @@ const TABLES = [
   { name: 'workouts', pgName: 'workouts' },
   { name: 'sets', pgName: 'sets' },
   { name: 'runs', pgName: 'runs' },
+  { name: 'activities', pgName: 'activities' },
   { name: 'bodyweight', pgName: 'bodyweight' },
   { name: 'painEntries', pgName: 'pain_entries' },
   { name: 'estimated1RMs', pgName: 'estimated_1rms' },
@@ -30,6 +31,10 @@ const REVERSE_COLUMN_MAPS: Record<string, Record<string, string>> = {
     substitute_exercise_id: 'substituteExerciseId',
   },
   runs: {
+    client_id: 'clientId', duration_minutes: 'durationMinutes',
+    distance_miles: 'distanceMiles', perceived_effort: 'perceivedEffort',
+  },
+  activities: {
     client_id: 'clientId', duration_minutes: 'durationMinutes',
     distance_miles: 'distanceMiles', perceived_effort: 'perceivedEffort',
   },

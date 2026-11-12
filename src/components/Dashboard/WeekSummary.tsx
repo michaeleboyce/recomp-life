@@ -5,6 +5,7 @@ import { db } from "@/db/local";
 import { Card, CardContent } from "@/components/ui/card";
 import { calculateConsistencyStreak } from "@/lib/streaks";
 import { getMonday } from "@/lib/dates";
+import { summariseOtherSessions } from "@/lib/activities";
 
 function WorkoutRing({ count, target }: { count: number; target: number }) {
   const size = 60;
@@ -82,6 +83,19 @@ export default function WeekSummary() {
     return workouts.filter((w) => w.completedAt !== null);
   });
 
+  // Runs, yoga and other non-lifting sessions this week. Shown for context only:
+  // they do not count toward the workout ring or the streak.
+  const otherSessions = useLiveQuery(async () => {
+    const monday = getMonday(new Date());
+    const sunday = new Date(monday);
+    sunday.setDate(sunday.getDate() + 7);
+    const [runs, activities] = await Promise.all([
+      db.runs.where("date").between(monday, sunday).toArray(),
+      db.activities.where("date").between(monday, sunday).toArray(),
+    ]);
+    return summariseOtherSessions(runs, activities);
+  });
+
   const allWorkoutDates = useLiveQuery(async () => {
     const workouts = await db.workouts.toArray();
     return workouts
@@ -99,6 +113,9 @@ export default function WeekSummary() {
         <WorkoutRing count={count} target={target} />
         <WeekDots completedCount={count} />
         <p className="text-xs text-muted-foreground mt-2">This Week</p>
+        {otherSessions && (
+          <p className="text-xs text-muted-foreground mt-1">+ {otherSessions}</p>
+        )}
         {streak > 0 && (
           <p className="text-xs font-medium text-foreground mt-1">
             {streak} week streak

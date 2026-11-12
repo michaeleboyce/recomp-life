@@ -1,6 +1,6 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
-import type { BodyweightLog, Estimated1RM, PainSorenessEntry, RunLog } from "@/types";
+import type { ActivityLog, BodyweightLog, Estimated1RM, PainSorenessEntry, RunLog } from "@/types";
 
 /** Bodyweight entries, oldest first. */
 export function useBodyweightLog(): BodyweightLog[] | undefined {
@@ -26,4 +26,9 @@ export function useE1RMs(exerciseId?: string): Estimated1RM[] | undefined {
 /** Runs, newest first. */
 export function useRuns(): RunLog[] | undefined {
   return useLiveQuery(() => db.runs.orderBy("date").reverse().toArray(), []);
+}
+
+/** Non-running activities (yoga, cycling, hiking...), newest first. */
+export function useActivities(): ActivityLog[] | undefined {
+  return useLiveQuery(() => db.activities.orderBy("date").reverse().toArray(), []);
 }

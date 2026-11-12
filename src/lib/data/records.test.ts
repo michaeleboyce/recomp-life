@@ -6,6 +6,7 @@ import {
   deletePainEntry,
   logBodyweight,
   logRun,
+  logActivity,
   savePainEntry,
   updateBodyweight,
   updatePainEntry,
@@ -147,13 +148,35 @@ describe("logRun", () => {
   });
 });
 
+describe("logActivity", () => {
+  it("adds an activity with id === clientId, unsynced, and returns the id", async () => {
+    const activity = {
+      date: new Date(),
+      kind: "yoga" as const,
+      durationMinutes: 45,
+      style: "flow" as const,
+      distanceMiles: null,
+      notes: "",
+      perceivedEffort: 2 as const,
+    };
+    const id = await logActivity(activity);
+    expect(id).toMatch(UUID);
+    expect(await db.activities.get(id)).toEqual({ ...activity, id, clientId: id, synced: false });
+    expect(await db.runs.count()).toBe(0);
+  });
+});
+
 describe("clearAllData", () => {
-  it("empties all nine tables and does not re-seed", async () => {
+  it("empties all ten tables and does not re-seed", async () => {
     await db.workouts.put(makeWorkout());
     await db.sets.put(makeSet());
     await db.runs.put({
       id: "r", clientId: "r", date: new Date(), durationMinutes: 1, distanceMiles: null,
       type: "outdoor", category: "easy", notes: "", perceivedEffort: 1, synced: false,
+    });
+    await db.activities.put({
+      id: "a", clientId: "a", date: new Date(), kind: "yoga", durationMinutes: 1, style: null,
+      distanceMiles: null, notes: "", perceivedEffort: 1, synced: false,
     });
     await db.bodyweight.put({ id: "b", clientId: "b", date: new Date(), weight: 200, timeOfDay: "morning", synced: false });
     await savePainEntry({ date: new Date(), region: "neck", sensation: "soreness", severity: 1 });
@@ -167,7 +190,7 @@ describe("clearAllData", () => {
 
     await clearAllData();
 
-    expect(db.tables).toHaveLength(9);
+    expect(db.tables).toHaveLength(10);
     for (const table of db.tables) {
       expect(await table.count()).toBe(0);
     }

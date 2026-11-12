@@ -14,6 +14,7 @@ const SYNC_TABLES = [
   { name: 'workouts', table: () => db.workouts },
   { name: 'sets', table: () => db.sets },
   { name: 'runs', table: () => db.runs },
+  { name: 'activities', table: () => db.activities },
   { name: 'bodyweight', table: () => db.bodyweight },
   { name: 'painEntries', table: () => db.painEntries },
   { name: 'estimated1RMs', table: () => db.estimated1RMs },

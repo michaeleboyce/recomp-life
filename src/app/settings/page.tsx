@@ -114,6 +114,7 @@ export default function SettingsPage() {
         workouts: await db.workouts.toArray(),
         sets: await db.sets.toArray(),
         runs: await db.runs.toArray(),
+        activities: await db.activities.toArray(),
         bodyweight: await db.bodyweight.toArray(),
         painEntries: await db.painEntries.toArray(),
         estimated1RMs: await db.estimated1RMs.toArray(),
@@ -158,13 +159,14 @@ export default function SettingsPage() {
         }
 
         await db.transaction("rw",
-          [db.workouts, db.sets, db.runs, db.bodyweight,
+          [db.workouts, db.sets, db.runs, db.activities, db.bodyweight,
           db.painEntries, db.estimated1RMs, db.liftStates,
           db.userProfile, db.readinessLogs],
           async () => {
             await db.workouts.clear();
             await db.sets.clear();
             await db.runs.clear();
+            await db.activities.clear();
             await db.bodyweight.clear();
             await db.painEntries.clear();
             await db.estimated1RMs.clear();
@@ -175,6 +177,7 @@ export default function SettingsPage() {
             if (data.workouts?.length) await db.workouts.bulkAdd(data.workouts);
             if (data.sets?.length) await db.sets.bulkAdd(data.sets);
             if (data.runs?.length) await db.runs.bulkAdd(data.runs);
+            if (data.activities?.length) await db.activities.bulkAdd(data.activities);
             if (data.bodyweight?.length) await db.bodyweight.bulkAdd(data.bodyweight);
             if (data.painEntries?.length) await db.painEntries.bulkAdd(data.painEntries);
             if (data.estimated1RMs?.length) await db.estimated1RMs.bulkAdd(data.estimated1RMs);
