@@ -145,7 +145,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Shown in:** `src/components/ActiveWorkout/AMRAPIndicator.tsx`
 - **Reviewed:** November 2026
 
-**In one line.** Stopping 1 rep short builds the same strength and recovers faster
+**In one line.** Heavy sets: stop 1 rep short. Lighter sets: go close to failure
 
 **What the app does.** On the last T1 set the app asks you to stop with about 1 rep left (RPE 9). On the last T3 set it asks you to push close to failure.
 

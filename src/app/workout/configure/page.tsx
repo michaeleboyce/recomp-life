@@ -494,7 +494,7 @@ function ConfigureWorkoutContent() {
   const templateName = `${templateId} \u2014 ${getTemplateFriendlyName(templateId)}`;
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-24">
       <div className="mx-auto max-w-lg px-5 pt-5 space-y-4">
         {/* Header */}
         <div>
@@ -844,8 +844,8 @@ function ConfigureWorkoutContent() {
         <TimeEstimate accessoryCount={selectedAccessories.length} />
       </div>
 
-      {/* Sticky START button */}
-      <div className="fixed bottom-0 inset-x-0 p-4 bg-background/95 backdrop-blur border-t border-border safe-bottom">
+      {/* Sticky START button, sitting above the bottom navigation bar (h-16) */}
+      <div className="fixed bottom-16 inset-x-0 z-40 p-4 bg-background/95 backdrop-blur border-t border-border">
         <div className="mx-auto max-w-lg">
           <Button
             className="w-full h-14 text-lg font-bold"
