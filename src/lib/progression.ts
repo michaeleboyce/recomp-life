@@ -408,3 +408,35 @@ export function evaluateT2AutoRegulation(
 
   return { action: "continue" };
 }
+
+// ---------------------------------------------------------------------------
+// Stage performed in a session
+// ---------------------------------------------------------------------------
+
+/** What a failed session moves to, by the stage that was performed. */
+export const NEXT_STAGE_LABEL: Record<T1Stage | T2Stage, string> = {
+  "5x3": "6x2",
+  "6x2": "10x1",
+  "10x1": `reset to ${Math.round(RESET_FACTOR * 100)}%`,
+  "3x10": "3x8",
+  "3x8": "3x6",
+  "3x6": `reset to ${Math.round(RESET_FACTOR * 100)}%`,
+};
+
+/**
+ * The stage a session was performed at, worked out from the target reps of
+ * its sets. Use this (not the lift state) when describing a finished session:
+ * the lift state has already moved on to the next stage by then.
+ */
+export function getPerformedStage(
+  tier: "T1" | "T2",
+  targetReps: number
+): { stage: T1Stage | T2Stage; sets: number } | null {
+  const stages = tier === "T1" ? T1_STAGE_CONFIG : T2_STAGE_CONFIG;
+  for (const [stage, config] of Object.entries(stages)) {
+    if (config.reps === targetReps) {
+      return { stage: stage as T1Stage | T2Stage, sets: config.sets };
+    }
+  }
+  return null;
+}

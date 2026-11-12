@@ -562,3 +562,30 @@ describe("evaluateT2AutoRegulation", () => {
     expect(result.reducedWeight).toBe(180);
   });
 });
+
+import { getPerformedStage, NEXT_STAGE_LABEL } from "./progression";
+
+describe("getPerformedStage", () => {
+  it("identifies the T1 stage from the target reps", () => {
+    expect(getPerformedStage("T1", 3)).toEqual({ stage: "5x3", sets: 5 });
+    expect(getPerformedStage("T1", 2)).toEqual({ stage: "6x2", sets: 6 });
+    expect(getPerformedStage("T1", 1)).toEqual({ stage: "10x1", sets: 10 });
+  });
+
+  it("identifies the T2 stage from the target reps", () => {
+    expect(getPerformedStage("T2", 10)).toEqual({ stage: "3x10", sets: 3 });
+    expect(getPerformedStage("T2", 8)).toEqual({ stage: "3x8", sets: 3 });
+    expect(getPerformedStage("T2", 6)).toEqual({ stage: "3x6", sets: 3 });
+  });
+
+  it("returns null for reps that match no stage", () => {
+    expect(getPerformedStage("T1", 7)).toBeNull();
+  });
+
+  it("a failed stage moves to the next one in the cascade", () => {
+    expect(NEXT_STAGE_LABEL["5x3"]).toBe("6x2");
+    expect(NEXT_STAGE_LABEL["3x10"]).toBe("3x8");
+    expect(NEXT_STAGE_LABEL["10x1"]).toBe("reset to 85%");
+    expect(NEXT_STAGE_LABEL["3x6"]).toBe("reset to 85%");
+  });
+});
