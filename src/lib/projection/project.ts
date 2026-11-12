@@ -34,10 +34,17 @@ export interface ProjectedPoint {
 export interface Projection {
   /**
    * "insufficient-data" when the history has fewer than four recent points;
-   * "flat-trend" when the fitted slope is zero or negative, so there is no personal
-   * rate to scale: the points are level and the scenario has no effect.
+   * "flat-trend" when the points are level because there is nothing to scale (see
+   * `flatReason`).
    */
   status: "ok" | "insufficient-data" | "flat-trend";
+  /**
+   * Why a "flat-trend" projection is level, null for any other status.
+   * "not-rising": the fitted slope is zero or negative, so there is no personal rate
+   * and the scenario has no effect. "no-dose": the scenario removes the lift (no
+   * sets of it and no sessions of it), so the personal rate has nothing to act on.
+   */
+  flatReason: "not-rising" | "no-dose" | null;
   /** One point per week from now to the horizon, starting at week 0. */
   points: ProjectedPoint[];
   /** lbs per week at the start of the projection, after scenario scaling. */
@@ -341,9 +348,28 @@ function relatedTrends(relatedHistory: Record<string, Point[]>, nowMs: number): 
     });
 }
 
+/**
+ * True when the scenario takes a lift the lifter does train down to nothing: zero
+ * sets of the lift AND zero sessions of it. Zero on only one of the two is still a
+ * dose (sessions with a substitute exercise, say) and keeps the dose clamp. A
+ * baseline that already has neither cannot be scaled at all, so it is left to the
+ * existing "nothing to scale from" handling and the current trend is shown.
+ */
+function removesTheLift(baseline: ProjectionBaseline, scenario: ProjectionScenario): boolean {
+  const baseDirect = nonNegative(baseline.directWeeklySets);
+  const baseSessions = nonNegative(baseline.sessionsPerWeek);
+  if (baseDirect <= 0 && baseSessions <= 0) return false;
+  const direct =
+    scenario.directWeeklySets === undefined ? baseDirect : nonNegative(scenario.directWeeklySets);
+  const sessions =
+    scenario.sessionsPerWeek === undefined ? baseSessions : nonNegative(scenario.sessionsPerWeek);
+  return direct <= 0 && sessions <= 0;
+}
+
 function insufficientData(): Projection {
   return {
     status: "insufficient-data",
+    flatReason: null,
     points: [],
     startingRatePerWeek: 0,
     gain: { v: 0, low: 0, high: 0 },
@@ -380,6 +406,11 @@ function insufficientData(): Projection {
  *   phase = phaseMultiplier[scenario] / phaseMultiplier[baseline].
  *   A field left out, or equal to the baseline, multiplies by exactly 1. A baseline
  *   dose of zero cannot be scaled, so a change to it is ignored (and said so).
+ * - No dose: a scenario with zero sets of the lift AND zero sessions of it (from a
+ *   baseline that has some) is not clamped to minDoseMultiplier: with nothing left
+ *   to scale it gets the flat-trend behaviour (level points, the rest of the
+ *   scenario ignored), `flatReason` "no-dose" and an assumption saying so. Any
+ *   non-zero dose keeps the clamp.
  * - Start: the trend is never extrapolated across the gap between the last result
  *   and `now`. Week 0 (drawn at `now`) is the fitted value at the time of the most
  *   recent result. When that result is more than STALE_HISTORY_WEEKS old, week 0 is
@@ -437,7 +468,9 @@ export function projectE1RM(input: {
 
   // A flat or falling trend has no personal rate to scale: hold it level and ignore
   // the scenario, so the current trend and any alternative are the same line.
-  const flat = fit.slopePerWeek <= 0;
+  const notRising = fit.slopePerWeek <= 0;
+  const noDose = !notRising && removesTheLift(baseline, scenario);
+  const flat = notRising || noDose;
   const m = flat
     ? { ...NO_CHANGE, scenarioPhase: baseline.phase }
     : scenarioMultipliers(baseline, scenario);
@@ -481,7 +514,11 @@ export function projectE1RM(input: {
   const spanText = weeksPhrase(fit.spanWeeks);
   const fitted = `fitted to ${fit.pointsUsed} results over about ${spanText}`;
   const reliableHorizonNote = `The trend is fitted to ${fit.pointsUsed} results over about ${spanText}, and a line through a stretch that short says little about a longer one, so the projection is only shown ${weeksPhrase(reliableWeeks)} ahead. More results over more weeks extend it.`;
-  if (flat) {
+  if (noDose) {
+    assumptions.push(
+      `With no sets of the lift, the model has nothing to scale: it works by scaling your own recent rate (${fmt(fit.slopePerWeek)} lbs per week, ${fitted}) by how much of the lift you do, and this alternative has no sets and no sessions of it. It holds today's estimate level; in practice a lift that is not trained usually slips, which this model does not estimate.`
+    );
+  } else if (flat) {
     assumptions.push(
       `Your recent estimates are not rising (${fmt(fit.slopePerWeek)} lbs per week, ${fitted}), so the model has no personal rate of gain to scale. It holds today's estimate level instead of projecting a decline, and changing sessions, sets or phase cannot move a rate of zero.`,
       "A few more sessions of data, with the estimate moving up, would give it a rate to work from and let it compare alternatives."
@@ -528,6 +565,7 @@ export function projectE1RM(input: {
 
   return {
     status: flat ? "flat-trend" : "ok",
+    flatReason: noDose ? "no-dose" : notRising ? "not-rising" : null,
     points,
     startingRatePerWeek,
     gain: {
