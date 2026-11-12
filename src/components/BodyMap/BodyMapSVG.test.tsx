@@ -32,9 +32,13 @@ function view(container: HTMLElement, name: "Front" | "Back"): Element {
 
 describe("BodyMapSVG (R5)", () => {
   it("makes all 19 body regions tappable", () => {
-    const { onRegionTap } = setup();
+    const { container, onRegionTap } = setup();
     for (const region of ALL_BODY_REGIONS) {
-      const buttons = screen.getAllByRole("button", { name: `${formatRegion(region)} region` });
+      // Attribute selector rather than getAllByRole: role queries walk the
+      // whole SVG each time and made this loop slow enough to time out.
+      const buttons = container.querySelectorAll(
+        `[role="button"][aria-label="${formatRegion(region)} region"]`
+      );
       expect(buttons.length, region).toBeGreaterThan(0);
       fireEvent.click(buttons[0]);
       expect(onRegionTap, region).toHaveBeenLastCalledWith(region);

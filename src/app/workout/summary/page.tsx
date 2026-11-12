@@ -16,6 +16,7 @@ import { SkeletonCard } from "@/components/ui/skeleton";
 import LiftResult from "@/components/WorkoutSummary/LiftResult";
 import EquipmentAdaptedResult from "@/components/WorkoutSummary/EquipmentAdaptedResult";
 import PostWorkoutBodyCheck from "@/components/WorkoutSummary/PostWorkoutBodyCheck";
+import MusclesWorkedCard from "@/components/WorkoutSummary/MusclesWorkedCard";
 import type { SetLog, Tier } from "@/types";
 
 /**
@@ -426,6 +427,8 @@ function WorkoutSummaryContent() {
             })}
           </div>
         )}
+
+        <MusclesWorkedCard sets={session.sets} />
 
         <Separator />
 

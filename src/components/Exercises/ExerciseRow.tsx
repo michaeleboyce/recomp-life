@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Dumbbell } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, ChevronRight, Dumbbell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { isPreferenceEditable } from "@/lib/exerciseCategories";
 import { getPreference } from "@/lib/exercisePreferences";
@@ -18,6 +19,7 @@ const EQUIPMENT_LABELS: Record<string, string> = {
   dumbbell: "Dumbbell",
   cable: "Cable",
   bodyweight: "Bodyweight",
+  machine: "Machine",
 };
 
 const PREFERENCE_OPTIONS: { value: ExercisePreference; label: string }[] = [
@@ -38,12 +40,15 @@ interface ExerciseRowProps {
   exercise: Exercise;
   preferences: ExercisePreferences;
   onPreferenceChange: (exerciseId: string, pref: ExercisePreference) => void;
+  /** Shown when this row's setting applies to one location only, e.g. "Gym only". */
+  overrideLabel?: string;
 }
 
 export default function ExerciseRow({
   exercise,
   preferences,
   onPreferenceChange,
+  overrideLabel,
 }: ExerciseRowProps) {
   const [expanded, setExpanded] = useState(false);
   const pref = getPreference(preferences, exercise.id);
@@ -69,6 +74,11 @@ export default function ExerciseRow({
         <div className="min-w-0 flex-1">
           <span className="block text-sm font-medium text-foreground truncate">
             {exercise.name}
+            {overrideLabel && (
+              <span className="ml-2 align-middle text-[10px] font-normal text-primary">
+                {overrideLabel}
+              </span>
+            )}
           </span>
           <div className="mt-1 flex items-center gap-2">
           <Badge variant="secondary" className="text-[10px]">
@@ -125,6 +135,13 @@ export default function ExerciseRow({
           <div className="pb-1">
             <ExerciseMuscleThumb exerciseId={exercise.id} className="h-36" />
             <MuscleLegend variant="activation" className="mt-2" />
+            <Link
+              href={`/exercises/${exercise.id}`}
+              className="mt-3 flex items-center justify-center gap-1 rounded-md border border-border py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent/50"
+            >
+              3D view, photos and how-to
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
           <DetailRow label="Muscle group" value={capitalize(exercise.muscleGroup)} />
           <DetailRow

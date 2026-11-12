@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { MuscleGroupVolume, MuscleId, RecoveryStatus } from "@/types";
 import { formatDaysAgo } from "@/lib/dates";
 import { exercisesForMuscle } from "@/lib/muscleLoad";
@@ -100,18 +101,19 @@ export function MuscleInfoSheet({
                 </h3>
                 <ul className="space-y-1">
                   {exercises.map(({ exercise, level }) => (
-                    <li
-                      key={exercise.id}
-                      data-exercise-id={exercise.id}
-                      className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2"
-                    >
-                      <span className="text-sm">{exercise.name}</span>
-                      <Badge
-                        variant={level === "primary" ? "default" : "secondary"}
-                        className="text-[10px]"
+                    <li key={exercise.id} data-exercise-id={exercise.id}>
+                      <Link
+                        href={`/exercises/${exercise.id}`}
+                        className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 transition-colors hover:bg-muted/70"
                       >
-                        {level === "primary" ? "Primary" : "Secondary"}
-                      </Badge>
+                        <span className="text-sm">{exercise.name}</span>
+                        <Badge
+                          variant={level === "primary" ? "default" : "secondary"}
+                          className="text-[10px]"
+                        >
+                          {level === "primary" ? "Primary" : "Secondary"}
+                        </Badge>
+                      </Link>
                     </li>
                   ))}
                 </ul>

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import EquipmentProfileEditor from "@/components/Equipment/EquipmentProfileEditor";
 import ExercisePreferencesEditor from "@/components/Settings/ExercisePreferencesEditor";
+import AnatomySettings from "@/components/Settings/AnatomySettings";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { getSyncKey, setSyncKey } from "@/lib/syncKey";
 
@@ -441,6 +442,8 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <AnatomySettings />
 
         {/* Version Footer */}
         <div className="text-center text-xs text-muted-foreground py-4">

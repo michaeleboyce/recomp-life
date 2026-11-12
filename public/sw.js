@@ -1,4 +1,4 @@
-const CACHE_NAME = "recomp-life-v1";
+const CACHE_NAME = "recomp-life-v4";
 const PRECACHE_URLS = ["/", "/workout/configure", "/history", "/program", "/tools"];
 
 self.addEventListener("install", (event) => {
@@ -19,6 +19,60 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+});
+
+// The page sends a list of URLs (3D model, exercise photos, exercise pages)
+// to fetch ahead of time so they are available on the first offline visit.
+// Already-cached URLs are skipped; failures are ignored and retried next time.
+self.addEventListener("message", (event) => {
+  const data = event.data;
+  if (!data || data.type !== "WARM_CACHE" || !Array.isArray(data.urls)) return;
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cacheOne = async (url) => {
+        const hit = await cache.match(url);
+        if (hit) return hit;
+        const response = await fetch(url);
+        if (response.ok) await cache.put(url, response.clone());
+        return response;
+      };
+
+      // A page is useless offline without its scripts and styles, and those
+      // have build-hashed names. Pages name some in their HTML; scripts name
+      // the lazily loaded ones (the 3D viewers) inside their own source. So
+      // follow both, breadth first, until nothing new turns up.
+      const queue = data.urls.filter((u) => typeof u === "string" && u.startsWith("/"));
+      const seen = new Set(queue);
+      const enqueue = (url) => {
+        if (!seen.has(url) && seen.size < 600) {
+          seen.add(url);
+          queue.push(url);
+        }
+      };
+
+      while (queue.length > 0) {
+        const url = queue.shift();
+        try {
+          const response = await cacheOne(url);
+          if (!response.ok) continue;
+          const type = response.headers.get("content-type") || "";
+          if (type.includes("text/html")) {
+            const html = await response.clone().text();
+            for (const asset of html.match(/\/_next\/static\/[^"'\\\s)<>]+/g) || []) {
+              enqueue(asset);
+            }
+          } else if (url.startsWith("/_next/static/") && type.includes("javascript")) {
+            const source = await response.clone().text();
+            for (const ref of source.match(/static\/(?:chunks|css|media)\/[\w.~-]+\.(?:js|css)/g) || []) {
+              enqueue("/_next/" + ref);
+            }
+          }
+        } catch {
+          // Offline or failed: leave it for the next warm-up.
+        }
+      }
+    })
+  );
 });
 
 self.addEventListener("fetch", (event) => {
