@@ -72,6 +72,7 @@ export const EFFORT_RULES = {
     surfaces: [
       "src/components/Dashboard/E1RMSummary.tsx",
       "src/app/1rm-calculator/page.tsx",
+      "src/components/Lift/PrLine.tsx",
     ],
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;
