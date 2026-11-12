@@ -5,7 +5,6 @@
 /** Rule R8: pages and components must not import the Dexie database directly. */
 export const DB_IMPORT_ALLOWLIST: string[] = [
   "src/app/exercises/page.tsx",
-  "src/app/page.tsx",
   "src/app/progress/page.tsx",
   "src/app/settings/page.tsx",
   "src/app/workout/active/page.tsx",
@@ -17,9 +16,7 @@ export const DB_IMPORT_ALLOWLIST: string[] = [
   "src/components/Dashboard/ActivePainBanner.tsx",
   "src/components/Dashboard/E1RMSummary.tsx",
   "src/components/Dashboard/InactivityBanner.tsx",
-  "src/components/Dashboard/NextWorkoutCard.tsx",
   "src/components/Dashboard/RecoveryStatusBars.tsx",
-  "src/components/Dashboard/WeekSummary.tsx",
   // Added by the interactive-anatomy branch; migrate to src/hooks once that work has landed.
   "src/app/muscles/page.tsx",
   "src/components/Dashboard/MuscleHeatCard.tsx",
@@ -27,7 +24,6 @@ export const DB_IMPORT_ALLOWLIST: string[] = [
 
 /** Rule R9: pages and components must use theme tokens, not raw palette classes. */
 export const PALETTE_ALLOWLIST: string[] = [
-  "src/app/page.tsx",
   "src/app/progress/page.tsx",
   "src/app/workout/active/page.tsx",
   "src/app/workout/configure/page.tsx",
@@ -40,7 +36,6 @@ export const PALETTE_ALLOWLIST: string[] = [
   "src/components/Dashboard/ActivePainBanner.tsx",
   "src/components/Dashboard/E1RMSummary.tsx",
   "src/components/Dashboard/InactivityBanner.tsx",
-  "src/components/Dashboard/NextWorkoutCard.tsx",
   "src/components/Dashboard/RecoveryStatusBars.tsx",
   "src/components/Exercises/ExerciseRow.tsx",
   "src/components/PreWorkout/AccessoryPicker.tsx",
