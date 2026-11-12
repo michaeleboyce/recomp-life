@@ -121,7 +121,7 @@ export default function ExercisePreferencesEditor({
                         ? opt.value === "blocked"
                           ? "bg-destructive/10 text-destructive"
                           : opt.value === "preferred"
-                            ? "bg-green-500/10 text-green-400"
+                            ? "bg-success-soft text-success"
                             : "bg-muted text-foreground"
                         : "text-muted-foreground hover:text-foreground"
                     }`}

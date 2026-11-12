@@ -1,9 +1,10 @@
 "use client";
 
-import { useLiveQuery } from "dexie-react-hooks";
+import { useMemo } from "react";
 import type { BodyRegion, PainSorenessEntry } from "@/types";
 import { formatRegion } from "@/lib/painModifications";
-import { db } from "@/db/local";
+import { usePainEntries } from "@/hooks";
+import { deletePainEntry, updatePainEntry } from "@/lib/data/records";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -36,8 +37,8 @@ function AutoClearPrompt({
   onStillThere: (id: string) => void;
 }) {
   return (
-    <div className="mt-1 rounded-md border border-amber-500/30 bg-amber-500/10 p-2">
-      <p className="text-xs text-amber-300 mb-2">
+    <div className="mt-1 rounded-md border border-warning/30 bg-warning-soft p-2">
+      <p className="text-xs text-warning mb-2">
         This pain entry is over 7 days old. Still bothering you?
       </p>
       <div className="flex gap-2">
@@ -64,26 +65,19 @@ function AutoClearPrompt({
 
 export default function PainHistory({ region }: PainHistoryProps) {
   // Query recent entries for this region, sorted by date descending
-  const entries = useLiveQuery(
-    async () => {
-      if (!region) return [];
-      return db.painEntries
-        .where("region")
-        .equals(region)
-        .reverse()
-        .sortBy("date");
-    },
-    [region],
-    []
+  const allEntries = usePainEntries();
+  const entries = useMemo(
+    () => (region ? allEntries?.filter((e) => e.region === region) : []),
+    [allEntries, region]
   );
 
   const handleResolve = async (id: string) => {
-    await db.painEntries.delete(id);
+    await deletePainEntry(id);
   };
 
   const handleStillThere = async (id: string) => {
     // Update the date to "refresh" the entry so it doesn't prompt again right away
-    await db.painEntries.update(id, { date: new Date() });
+    await updatePainEntry(id, { date: new Date() });
   };
 
   if (!region || !entries || entries.length === 0) {
