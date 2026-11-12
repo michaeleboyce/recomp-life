@@ -21,7 +21,7 @@ export const PROGRESSION_RULES = {
     sources: ["acsm2026", "pelland2026"],
     reviewedOn: "2026-11",
     implementedIn: ["src/lib/workoutTemplates.ts#WORKOUT_TEMPLATES"],
-    surfaces: ["src/app/progress/page.tsx"],
+    surfaces: ["src/components/Lift/SessionList.tsx"],
   },
   "gzclp-progression": {
     area: "progression",

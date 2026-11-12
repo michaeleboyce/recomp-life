@@ -21,7 +21,7 @@ export const VOLUME_RULES = {
       "src/lib/volumeTracking.ts#calculateMuscleGroupVolume",
       "src/lib/muscleLoad.ts#weeklyHeatLevel",
     ],
-    surfaces: ["src/components/Charts/VolumeBars.tsx"],
+    surfaces: ["src/components/Progress/MusclesTab.tsx"],
   },
   "accessories-in-cut": {
     area: "volume",
