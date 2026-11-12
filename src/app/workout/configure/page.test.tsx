@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb } from "@/lib/data/testUtils";
+import { updateSettings } from "@/lib/data/records";
 import { overridesFromSession } from "@/lib/workout";
 import type { ActivityLog, RunLog } from "@/types";
 import ConfigureWorkoutPage from "./page";
@@ -48,6 +49,23 @@ describe("configure page", () => {
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Warm-up sets" })).toBeChecked();
     expect(screen.getByText(/Est\. time: ~40 min/)).toBeInTheDocument();
+  });
+
+  it("opens on the training location saved elsewhere (e.g. Today) and states it with a chip", async () => {
+    await updateSettings({ defaultLocation: "home" });
+    await open();
+    await waitFor(() =>
+      expect(document.querySelector("[data-slot=location-chip]")).toHaveAttribute("data-location", "home")
+    );
+    expect(rows()[1]).toMatch(/^T2DB Bench Press/);
+
+    fireEvent.click(screen.getByRole("button", { name: "Gym" }));
+    await waitFor(() =>
+      expect(document.querySelector("[data-slot=location-chip]")).toHaveAttribute("data-location", "gym")
+    );
+    await waitFor(async () =>
+      expect((await db.userProfile.toCollection().first())!.settings.defaultLocation).toBe("gym")
+    );
   });
 
   it("keeps the optional parts in collapsed expanders", async () => {

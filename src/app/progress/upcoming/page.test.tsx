@@ -1,13 +1,19 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb } from "@/lib/data/testUtils";
 import UpcomingWorkoutsPage from "./page";
 
+const nav = vi.hoisted(() => ({ params: "" }));
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(nav.params),
+}));
+
 beforeEach(async () => {
+  nav.params = "";
   cleanup();
   await clearDb();
   await initializeDatabase();
@@ -58,6 +64,27 @@ describe("upcoming workouts page", () => {
     // Previewing does not change the saved default.
     const profile = await db.userProfile.toCollection().first();
     expect(profile?.settings.defaultLocation ?? "gym").toBe("gym");
+  });
+
+  it("says when the location shown is only a preview", async () => {
+    render(<UpcomingWorkoutsPage />);
+    await waitFor(() => expect(cards()).toHaveLength(5));
+    expect(screen.queryByTestId("location-preview")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Home" }));
+    expect(screen.getByTestId("location-preview")).toHaveTextContent(
+      "Previewing Home. Your default is Gym."
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Gym" }));
+    expect(screen.queryByTestId("location-preview")).toBeNull();
+  });
+
+  it("goes back to More by default and to Today when opened from Today", async () => {
+    const { unmount } = render(<UpcomingWorkoutsPage />);
+    expect(await screen.findByRole("link", { name: "Back" })).toHaveAttribute("href", "/more");
+    unmount();
+    nav.params = "from=today";
+    render(<UpcomingWorkoutsPage />);
+    expect(await screen.findByRole("link", { name: "Back" })).toHaveAttribute("href", "/");
   });
 
   it("opens on the saved default location", async () => {

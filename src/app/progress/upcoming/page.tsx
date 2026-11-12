@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Dumbbell, Home } from "lucide-react";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -43,16 +44,30 @@ function TierKey() {
   );
 }
 
+const LOCATION_LABEL: Record<WorkoutLocation, string> = { gym: "Gym", home: "Home" };
+
+/** Back to where the page was opened from: Today (`?from=today`) or, by default, More. */
+function UpcomingHeader() {
+  const from = useSearchParams()?.get("from");
+  return (
+    <PageHeader title="Upcoming workouts" backHref={from === "today" ? "/" : "/more"} />
+  );
+}
+
 export default function UpcomingWorkoutsPage() {
   const { location: defaultLocation, isLoading } = useTrainingLocation();
   // Previewing the other location here does not change the default.
   const [choice, setChoice] = useState<WorkoutLocation | null>(null);
   const location = choice ?? defaultLocation;
   const workouts = useUpcomingWorkouts(location, 5);
+  const previewing = !isLoading && location !== defaultLocation;
 
   return (
     <PageShell className="flex flex-col gap-4">
-      <PageHeader title="Upcoming workouts" backHref="/more" />
+      {/* Suspense is required around useSearchParams. */}
+      <Suspense fallback={<PageHeader title="Upcoming workouts" backHref="/more" />}>
+        <UpcomingHeader />
+      </Suspense>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
@@ -64,6 +79,11 @@ export default function UpcomingWorkoutsPage() {
           onChange={setChoice}
           options={LOCATIONS}
         />
+        {previewing && (
+          <p data-testid="location-preview" className="text-xs text-muted-foreground">
+            Previewing {LOCATION_LABEL[location]}. Your default is {LOCATION_LABEL[defaultLocation]}.
+          </p>
+        )}
       </div>
 
       <TierKey />

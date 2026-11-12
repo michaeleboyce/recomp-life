@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LocationChip } from "@/components/ui/location-chip";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
@@ -56,7 +57,10 @@ function ConfigureWorkoutContent() {
     <PageShell className="space-y-4">
       <div>
         <p className="text-sm text-muted-foreground">Ready?</p>
-        <PageHeader title={templateTitle(setup.templateId)} />
+        <PageHeader
+          title={templateTitle(setup.templateId)}
+          action={<LocationChip location={setup.location} />}
+        />
       </div>
 
       {/* Needs attention: shown above the list, never tucked away. */}

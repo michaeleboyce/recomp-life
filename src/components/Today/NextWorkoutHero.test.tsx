@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
@@ -87,6 +87,30 @@ describe("NextWorkoutHero", () => {
     home.forEach((entry, i) => {
       expect(within(rows[i]).getByText(String(entry.weight))).toBeInTheDocument();
     });
+  });
+
+  it("states the location with a chip, and switching it saves the default", async () => {
+    await seedDemo();
+    render(<NextWorkoutHero />);
+    await screen.findAllByTestId("hero-exercise");
+    const chip = () => document.querySelector("[data-slot=location-chip]");
+    expect(chip()).toHaveAttribute("data-location", "gym");
+
+    fireEvent.click(screen.getByRole("button", { name: "Home" }));
+    await waitFor(async () =>
+      expect((await db.userProfile.toCollection().first())!.settings.defaultLocation).toBe("home")
+    );
+    await waitFor(() => expect(chip()).toHaveAttribute("data-location", "home"));
+  });
+
+  it("opens on the saved default location", async () => {
+    await seedDemo();
+    await db.userProfile.update("profile-1", {
+      settings: { ...makeProfile().settings, defaultLocation: "home" },
+    });
+    render(<NextWorkoutHero />);
+    const substitute = expectedPlan("home").plan.find((e) => e.substituteExerciseId)!;
+    expect(await screen.findByText(EXERCISES[substitute.substituteExerciseId!].name)).toBeInTheDocument();
   });
 
   it("links START WORKOUT to the configure screen", async () => {

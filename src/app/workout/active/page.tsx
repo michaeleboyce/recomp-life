@@ -131,7 +131,12 @@ function ActiveWorkoutContent() {
   if (status === "complete" || !entry) {
     return (
       <div className="mx-auto min-h-screen max-w-lg bg-background px-5 pt-4 pb-8">
-        <WorkoutHeader title={title} elapsed={elapsed} exercises={plan} />
+        <WorkoutHeader
+          title={title}
+          location={session.location}
+          elapsed={elapsed}
+          exercises={plan}
+        />
         <WorkoutFinished
           setsLogged={sets.length}
           duration={elapsed}
@@ -151,6 +156,7 @@ function ActiveWorkoutContent() {
     <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background px-5 pt-4 pb-36">
       <WorkoutHeader
         title={title}
+        location={session.location}
         elapsed={elapsed}
         exercises={plan}
         currentExerciseIndex={activeIndex}

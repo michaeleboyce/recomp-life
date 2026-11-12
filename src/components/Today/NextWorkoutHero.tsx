@@ -3,7 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Dumbbell, Home, TrendingUp } from "lucide-react";
-import { useE1RMs, useLiftStates, useNextWorkout, usePainEntries, useSettings } from "@/hooks";
+import {
+  useE1RMs,
+  useLiftStates,
+  useNextWorkout,
+  usePainEntries,
+  useSettings,
+  useTrainingLocation,
+} from "@/hooks";
 import { EXERCISES } from "@/lib/exercises";
 import { combinedActivationHeat } from "@/lib/muscleLoad";
 import { getExpiredPainEntries } from "@/lib/painAutoClear";
@@ -13,6 +20,7 @@ import { tierStyle } from "@/lib/tierStyle";
 import { cn } from "@/lib/utils";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import type { PainSorenessEntry, WorkoutLocation } from "@/types";
+import { LocationChip } from "@/components/ui/location-chip";
 import { MuscleMap } from "@/components/Anatomy/MuscleMap";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -32,15 +40,17 @@ const LOCATION_OPTIONS = [
 ];
 
 /**
- * The next workout in the rotation, its exercises at the chosen location and the
- * START button. The Gym / Home choice previews the plan here only (as the old
- * NextWorkoutCard did); Configure keeps its own location setting.
+ * The next workout in the rotation, its exercises at the training location and the
+ * START button. The location is the saved default (`useTrainingLocation`): changing
+ * it here changes it for Configure and everywhere else too.
  */
 export function NextWorkoutHero() {
   const settings = useSettings();
-  const [choice, setChoice] = useState<WorkoutLocation | null>(null);
-  const location = choice ?? settings?.defaultLocation ?? "gym";
+  const { location, setLocation } = useTrainingLocation();
   const next = useNextWorkout(location);
+  const changeLocation = (value: WorkoutLocation) => {
+    setLocation(value).catch((err) => console.error("Failed to save training location:", err));
+  };
 
   if (!next) return <NextWorkoutHeroSkeleton />;
 
@@ -59,9 +69,12 @@ export function NextWorkoutHero() {
           <span className="text-xs text-muted-foreground">
             Next up · Workout {next.templateId} · about {minutes} min
           </span>
-          <h2 id="next-workout-title" className="text-xl font-bold text-foreground">
-            {dayName}
-          </h2>
+          <div className="flex min-w-0 items-center gap-2">
+            <h2 id="next-workout-title" className="truncate text-xl font-bold text-foreground">
+              {dayName}
+            </h2>
+            <LocationChip location={location} size="sm" />
+          </div>
         </div>
         <MuscleMap
           heat={combinedActivationHeat(next.template.exercises.map((e) => e.exerciseId))}
@@ -70,7 +83,7 @@ export function NextWorkoutHero() {
         />
       </div>
 
-      <SegmentedControl value={location} onChange={setChoice} options={LOCATION_OPTIONS} />
+      <SegmentedControl value={location} onChange={changeLocation} options={LOCATION_OPTIONS} />
 
       <ul className="flex flex-col gap-2.5">
         {working.map((entry) => (
