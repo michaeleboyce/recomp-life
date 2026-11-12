@@ -6,11 +6,15 @@ import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { clearDb } from "@/lib/data/testUtils";
 import { PreferenceControl } from "./PreferenceControl";
 
+// The first query waits for the local database to open, which can take a few
+// seconds when the whole suite runs in parallel.
+const SLOW = { timeout: 10000 };
+
 async function settings() {
   return (await db.userProfile.toCollection().first())!.settings;
 }
 
-describe("PreferenceControl", () => {
+describe("PreferenceControl", { timeout: 20000 }, () => {
   beforeEach(async () => {
     await clearDb();
     await db.userProfile.add({
@@ -29,7 +33,7 @@ describe("PreferenceControl", () => {
 
   it("marks an accessory preferred everywhere", async () => {
     render(<PreferenceControl exerciseId="incline_db_press" />);
-    fireEvent.click(await screen.findByRole("button", { name: "Preferred" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Preferred" }, SLOW));
     await waitFor(async () =>
       expect((await settings()).exercisePreferences?.incline_db_press).toBe("preferred")
     );
@@ -38,7 +42,7 @@ describe("PreferenceControl", () => {
 
   it("starts on the workout's location and stores a location-only setting", async () => {
     render(<PreferenceControl exerciseId="pendulum_squat" defaultScope="gym" />);
-    fireEvent.click(await screen.findByRole("button", { name: "Preferred" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Preferred" }, SLOW));
     await waitFor(async () =>
       expect((await settings()).exercisePreferencesByLocation?.gym?.pendulum_squat).toBe(
         "preferred"
@@ -50,7 +54,7 @@ describe("PreferenceControl", () => {
 
   it("shows the current choice as pressed and marks the profile for sync", async () => {
     render(<PreferenceControl exerciseId="db_pullover" defaultScope="home" />);
-    const blocked = await screen.findByRole("button", { name: "Blocked" });
+    const blocked = await screen.findByRole("button", { name: "Blocked" }, SLOW);
     fireEvent.click(blocked);
     await waitFor(() => expect(blocked.getAttribute("aria-pressed")).toBe("true"));
     expect((await db.userProfile.toCollection().first())!.synced).toBe(false);
