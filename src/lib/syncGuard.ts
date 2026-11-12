@@ -59,3 +59,104 @@ export function findUnknownColumns(
 ): string[] {
   return columns.filter((column) => !allowed.has(column));
 }
+
+function jsonColumnNames(table: (typeof SYNC_TABLES)[SyncTableName]): ReadonlySet<string> {
+  return new Set(
+    Object.values(getTableColumns(table))
+      .filter((column) => column.columnType === 'PgJsonb')
+      .map((column) => column.name)
+  );
+}
+
+/** Postgres columns of each synced table that hold JSON. */
+export const SYNC_JSON_COLUMNS: Record<SyncTableName, ReadonlySet<string>> = {
+  workouts: jsonColumnNames(SYNC_TABLES.workouts),
+  sets: jsonColumnNames(SYNC_TABLES.sets),
+  runs: jsonColumnNames(SYNC_TABLES.runs),
+  bodyweight: jsonColumnNames(SYNC_TABLES.bodyweight),
+  painEntries: jsonColumnNames(SYNC_TABLES.painEntries),
+  estimated1RMs: jsonColumnNames(SYNC_TABLES.estimated1RMs),
+  liftStates: jsonColumnNames(SYNC_TABLES.liftStates),
+  userProfile: jsonColumnNames(SYNC_TABLES.userProfile),
+  readinessLogs: jsonColumnNames(SYNC_TABLES.readinessLogs),
+};
+
+// Map camelCase client keys to snake_case Postgres column names per table
+const COLUMN_MAPS: Record<SyncTableName, Record<string, string>> = {
+  workouts: {
+    clientId: 'client_id', templateId: 'template_id', startedAt: 'started_at',
+    completedAt: 'completed_at', totalDurationSeconds: 'total_duration_seconds',
+    includeWarmUps: 'include_warm_ups', selectedAccessories: 'selected_accessories',
+    preWorkoutPainEntries: 'pre_workout_pain_entries',
+  },
+  sets: {
+    clientId: 'client_id', exerciseId: 'exercise_id', setNumber: 'set_number',
+    targetReps: 'target_reps', actualReps: 'actual_reps', isAMRAP: 'is_amrap',
+    completedAt: 'completed_at', restAfterSeconds: 'rest_after_seconds',
+    originalWeight: 'original_weight', isSubstituted: 'is_substituted',
+    substituteExerciseId: 'substitute_exercise_id',
+  },
+  runs: {
+    clientId: 'client_id', durationMinutes: 'duration_minutes',
+    distanceMiles: 'distance_miles', perceivedEffort: 'perceived_effort',
+  },
+  bodyweight: { clientId: 'client_id', timeOfDay: 'time_of_day' },
+  painEntries: { clientId: 'client_id', associatedWorkoutId: 'associated_workout_id' },
+  estimated1RMs: {
+    clientId: 'client_id', exerciseId: 'exercise_id', workingWeight: 'working_weight',
+    repsCompleted: 'reps_completed', estimated1RM: 'estimated_1rm',
+    workoutSessionId: 'workout_session_id',
+  },
+  liftStates: {
+    exerciseId: 'exercise_id', clientId: 'client_id', t1Weight: 't1_weight',
+    t1Stage: 't1_stage', t1FailCount: 't1_fail_count', t2Weight: 't2_weight',
+    t2Stage: 't2_stage', t2FailCount: 't2_fail_count', t3Weight: 't3_weight',
+    t1LastResetWeight: 't1_last_reset_weight', t2LastResetWeight: 't2_last_reset_weight',
+    t1LastWorkoutDate: 't1_last_workout_date', t2LastWorkoutDate: 't2_last_workout_date',
+    deloadActive: 'deload_active', deloadSessionsRemaining: 'deload_sessions_remaining',
+    preDeloadT1Weight: 'pre_deload_t1_weight', preDeloadT2Weight: 'pre_deload_t2_weight',
+    t2LoadDropCount: 't2_load_drop_count', recentE1RMs: 'recent_e1rms',
+    recentAvgRPEs: 'recent_avg_rpes', recentAMRAPReps: 'recent_amrap_reps',
+  },
+  userProfile: {
+    clientId: 'client_id', heightInches: 'height_inches', createdAt: 'created_at',
+  },
+  readinessLogs: {
+    clientId: 'client_id', sessionId: 'session_id', sleepHours: 'sleep_hours',
+    stressLevel: 'stress_level',
+  },
+};
+
+/**
+ * Fields the app keeps on local rows that have no Postgres column yet. They are left
+ * out of the upload instead of failing it; anything else unknown is still rejected.
+ */
+const DEVICE_ONLY_FIELDS: Partial<Record<SyncTableName, ReadonlySet<string>>> = {
+  workouts: new Set(['endedEarly']),
+};
+
+/**
+ * Turns a row as stored on the device into the column/value pairs to upsert:
+ * camelCase keys become snake_case columns, device-only fields are dropped, JSON
+ * columns are serialised here (the driver would send a JS array as a Postgres
+ * array, which is not valid JSON), and the row is marked synced.
+ */
+export function toPostgresRow(
+  table: SyncTableName,
+  row: Record<string, unknown>
+): Record<string, unknown> {
+  const map = COLUMN_MAPS[table];
+  const deviceOnly = DEVICE_ONLY_FIELDS[table];
+  const jsonColumns = SYNC_JSON_COLUMNS[table];
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (deviceOnly?.has(key)) continue;
+    const column = map[key] || key;
+    result[column] =
+      jsonColumns.has(column) && value !== null && value !== undefined
+        ? JSON.stringify(value)
+        : value;
+  }
+  result.synced = true;
+  return result;
+}
