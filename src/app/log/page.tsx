@@ -1,23 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { useCompletedWorkouts, useE1RMs, useRuns } from "@/hooks";
+import { useActivities, useCompletedWorkouts, useE1RMs, useRuns } from "@/hooks";
 import { PageShell } from "@/components/ui/page-shell";
 import { EXERCISES } from "@/lib/exercises";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { calculateE1RM, isE1RMEligibleSet, isNewPR } from "@/lib/e1rm";
 import { dumbbellToBarbell } from "@/lib/dbConversion";
+import { describeActivity } from "@/lib/activities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
   WorkoutSession,
+  ActivityLog,
   RunLog,
   SetLog,
   Tier,
 } from "@/types";
 
-type FilterTab = "all" | "gym" | "home" | "runs";
+type FilterTab = "all" | "gym" | "home" | "activity";
 
 /**
  * Format a date as relative ("2 days ago") for recent dates,
@@ -370,17 +372,17 @@ interface RunEntryProps {
   run: RunLog;
 }
 
+const effortLabels: Record<number, string> = {
+  1: "very easy",
+  2: "easy",
+  3: "moderate",
+  4: "hard",
+  5: "very hard",
+};
+
 function RunEntry({ run }: RunEntryProps) {
   const dateStr = formatDate(run.date);
   const durationStr = formatDurationMinutes(run.durationMinutes);
-
-  const effortLabels: Record<number, string> = {
-    1: "very easy",
-    2: "easy",
-    3: "moderate",
-    4: "hard",
-    5: "very hard",
-  };
 
   return (
     <Card>
@@ -408,6 +410,32 @@ function RunEntry({ run }: RunEntryProps) {
   );
 }
 
+// ─── Activity History Entry (yoga, cycling, hiking...) ─────────────────────
+
+function ActivityEntry({ activity }: { activity: ActivityLog }) {
+  return (
+    <Card>
+      <CardContent className="py-3 space-y-1">
+        <p className="text-sm font-medium text-foreground">
+          {formatDate(activity.date)} {"\u2014"} {describeActivity(activity)}
+        </p>
+        <div className="flex gap-3 text-xs text-muted-foreground font-mono tabular-nums">
+          {activity.distanceMiles !== null && (
+            <span>{activity.distanceMiles.toFixed(1)} mi</span>
+          )}
+          <span>{formatDurationMinutes(activity.durationMinutes)}</span>
+          <span>
+            {effortLabels[activity.perceivedEffort] ?? `effort ${activity.perceivedEffort}`}
+          </span>
+        </div>
+        {activity.notes && (
+          <p className="text-xs text-muted-foreground italic">{activity.notes}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Main History Page ─────────────────────────────────────────────────────
 
 export default function LogPage() {
@@ -415,11 +443,13 @@ export default function LogPage() {
 
   const workouts = useCompletedWorkouts();
   const runs = useRuns();
+  const activities = useActivities();
   const allE1RMs = useE1RMs();
 
   if (
     workouts === undefined ||
     runs === undefined ||
+    activities === undefined ||
     allE1RMs === undefined
   ) {
     return (
@@ -431,7 +461,7 @@ export default function LogPage() {
 
   // Filter based on selected tab
   const filteredWorkouts =
-    filter === "runs"
+    filter === "activity"
       ? []
       : filter === "gym"
         ? workouts.filter((w) => w.location === "gym")
@@ -439,12 +469,15 @@ export default function LogPage() {
           ? workouts.filter((w) => w.location === "home")
           : workouts;
 
-  const filteredRuns = filter === "gym" || filter === "home" ? [] : runs;
+  const locationOnly = filter === "gym" || filter === "home";
+  const filteredRuns = locationOnly ? [] : runs;
+  const filteredActivities = locationOnly ? [] : activities;
 
   // Combine and sort by date, newest first
   type HistoryEntry =
     | { type: "workout"; date: Date; data: WorkoutSession }
-    | { type: "run"; date: Date; data: RunLog };
+    | { type: "run"; date: Date; data: RunLog }
+    | { type: "activity"; date: Date; data: ActivityLog };
 
   const entries: HistoryEntry[] = [
     ...filteredWorkouts.map(
@@ -461,6 +494,14 @@ export default function LogPage() {
           type: "run" as const,
           date: new Date(r.date),
           data: r,
+        })
+    ),
+    ...filteredActivities.map(
+      (a) =>
+        ({
+          type: "activity" as const,
+          date: new Date(a.date),
+          data: a,
         })
     ),
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -488,8 +529,8 @@ export default function LogPage() {
             <TabsTrigger value="home" className="flex-1">
               Home
             </TabsTrigger>
-            <TabsTrigger value="runs" className="flex-1">
-              Runs
+            <TabsTrigger value="activity" className="flex-1">
+              Activity
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -499,8 +540,8 @@ export default function LogPage() {
           <Card>
             <CardContent className="py-8 text-center">
               <p className="text-muted-foreground text-sm">
-                {filter === "runs"
-                  ? "No runs logged yet. Log your first run from the dashboard!"
+                {filter === "activity"
+                  ? "No runs or other activities logged yet. Log one from the dashboard."
                   : filter === "gym"
                     ? "No gym workouts yet."
                     : filter === "home"
@@ -525,6 +566,9 @@ export default function LogPage() {
                   }))}
                 />
               );
+            }
+            if (entry.type === "activity") {
+              return <ActivityEntry key={entry.data.id} activity={entry.data} />;
             }
             return <RunEntry key={entry.data.id} run={entry.data} />;
           })}

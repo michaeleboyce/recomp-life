@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-17 active rules, 12 planned rules, 32 sources. Last reviewed against the research: November 2026.
+18 active rules, 12 planned rules, 32 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -39,6 +39,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `time-off` | Recovery and time off | Active | Limited evidence | Spiering 2021, Halonen 2024, Bosquet 2013 |
 | `readiness` | Recovery and time off | Active | Moderate evidence | Craven 2022, Stults-Kolehmainen 2014 |
 | `deload` | Recovery and time off | Planned | Limited evidence | Coleman 2024, Pancar 2026, Spiering 2021 |
+| `activity-fatigue` | Recovery and time off | Active | Coaching heuristic | none |
 | `fatigue-detection` | Recovery and time off | Planned | Coaching heuristic | none |
 | `run-interference` | Running | Active | Moderate evidence | Robineau 2016, Markov 2021, Schumann 2022 |
 | `weekly-volume` | Training volume | Active | Moderate evidence | Pelland 2026, Roth 2022 |
@@ -380,6 +381,25 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - [Coleman et al. (2024). Gaining more from doing less? The effects of a one-week deload period during supervised resistance training on muscular adaptations. *PeerJ*.](https://peerj.com/articles/16777) Randomised trial; 39 trained adults, 9 weeks. A week off training at the midpoint did not improve muscle growth and led to smaller strength gains than training straight through.
 - [Pancar et al. (2026). Effects of deload periods in resistance training on muscle hypertrophy and strength endurance in untrained young men using a randomized within subject design. *Scientific Reports*.](https://www.nature.com/articles/s41598-026-40612-5) Trial; 19 untrained young men, 8 weeks. Limbs given reduced-volume deload weeks gained as much muscle and strength-endurance as limbs trained continuously.
 - [Spiering et al. (2021). Maintaining Physical Performance: The Minimal Dose of Exercise Needed to Preserve Endurance and Strength Over Time. *Journal of Strength and Conditioning Research*.](https://pubmed.ncbi.nlm.nih.gov/33629972/) Review; Narrative review. Strength can be maintained for up to 32 weeks with as little as one session a week and one set per exercise, as long as the load stays heavy.
+
+### Why does a hard yoga class or ride matter?
+
+- **Rule id:** `activity-fatigue`
+- **Status:** Active
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/activities.ts` (`evaluateActivityImpact`)
+- **Shown in:** `src/app/workout/configure/page.tsx`
+- **Reviewed:** November 2026
+
+**In one line.** A hard session in the last day can leave you a little short
+
+**What the app does.** Before a workout, the app checks the yoga, cycling, hiking, walking and other sessions you logged in the last 24 hours. If one was rated effort 4 or more out of 5, it shows a note suggesting you judge the day by your warm-ups. Cycling, hiking and walking are only mentioned before a lower-body T1 lift. The note never changes your weights, and these sessions never affect progression.
+
+**Why.** A hard session of any kind leaves some fatigue, and it is better to have it in mind than to be surprised by a slow warm-up. Easy and moderate sessions are not flagged.
+
+**Limits.** How much a yoga class, ride or hike takes out of the next day's lifting has not been studied directly. The effort threshold and the time window are coaching conventions. The style of a yoga class is recorded but not used: your effort rating decides.
+
+**Sources.** None: this is a coaching convention with no direct research.
 
 ### How would the app detect built-up fatigue?
 
@@ -735,6 +755,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **11 November 2026** — `activity-fatigue` (Why does a hard yoga class or ride matter?): Yoga, cycling, hiking and walking can now be logged. A hard one in the last 24 hours shows a note before your next workout; it never changes weights or progression. Sources: .
 - **11 November 2026** — `time-off` (Why lighter weights after a break?): A lift now counts as a long break after 21 days instead of 7, and suggested weight cuts after time off were reduced from 10–40% to 5–15%. Sources: Spiering 2021, Halonen 2024.
 - **11 November 2026** — `amrap-effort` (How hard should the last set be?): T1 AMRAP sets now ask you to stop about 1 rep short of failure in every phase, not only while cutting. Sources: Robinson 2024, Morán-Navarro 2017.
 - **11 November 2026** — `e1rm-estimate` (How is my 1RM estimated?): Estimated 1RM now accounts for logged RPE and uses only T1 sets of 10 reps or fewer. The trend arrow was also corrected: it had been reading the history backwards. Sources: Nuzzo 2024, Halperin 2022.

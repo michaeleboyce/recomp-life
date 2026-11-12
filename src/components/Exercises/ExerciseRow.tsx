@@ -40,12 +40,15 @@ interface ExerciseRowProps {
   exercise: Exercise;
   preferences: ExercisePreferences;
   onPreferenceChange: (exerciseId: string, pref: ExercisePreference) => void;
+  /** Shown when this row's setting applies to one location only, e.g. "Gym only". */
+  overrideLabel?: string;
 }
 
 export default function ExerciseRow({
   exercise,
   preferences,
   onPreferenceChange,
+  overrideLabel,
 }: ExerciseRowProps) {
   const [expanded, setExpanded] = useState(false);
   const pref = getPreference(preferences, exercise.id);
@@ -71,6 +74,11 @@ export default function ExerciseRow({
         <div className="min-w-0 flex-1">
           <span className="block text-sm font-medium text-foreground truncate">
             {exercise.name}
+            {overrideLabel && (
+              <span className="ml-2 align-middle text-[10px] font-normal text-primary">
+                {overrideLabel}
+              </span>
+            )}
           </span>
           <div className="mt-1 flex items-center gap-2">
           <Badge variant="secondary" className="text-[10px]">

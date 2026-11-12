@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import E1RMChart from "@/components/Charts/E1RMChart";
 import { ExerciseViewer } from "@/components/ExerciseDemo/ExerciseViewer";
+import { PreferenceControl } from "./PreferenceControl";
 
 const EQUIPMENT_LABELS: Record<string, string> = {
   barbell: "Barbell",
@@ -72,6 +73,8 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
       </header>
 
       <ExerciseViewer exerciseId={exerciseId} />
+
+      <PreferenceControl exerciseId={exerciseId} />
 
       <section aria-label="Muscles" className="space-y-2">
         {LEVELS.map(({ level, label, field }) => {

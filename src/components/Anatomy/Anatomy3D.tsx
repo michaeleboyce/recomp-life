@@ -34,6 +34,8 @@ interface Anatomy3DProps {
   label?: string;
 }
 
+const STALL_MS = 12000;
+
 function detectWebGL(): boolean {
   try {
     const canvas = document.createElement("canvas");
@@ -63,8 +65,8 @@ class SceneBoundary extends Component<
 }
 
 /**
- * Rotatable 3D anatomy model coloured by muscle. Shows the 2D muscle map while
- * the model loads, and keeps it if WebGL is unavailable or the model fails.
+ * Rotatable 3D anatomy model coloured by muscle. Shows a plain placeholder while
+ * the model loads, and the 2D muscle map if WebGL is unavailable or the model fails.
  */
 export function Anatomy3D({
   heat,
@@ -81,6 +83,7 @@ export function Anatomy3D({
   const [webgl, setWebgl] = useState<boolean | null>(null);
   const [ready, setReady] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
+  const [stalled, setStalled] = useState(false);
   const handle = useRef<Anatomy3DHandle>(null);
   const reducedMotion = useSyncExternalStore(
     subscribeReducedMotion,
@@ -94,6 +97,14 @@ export function Anatomy3D({
     setWebgl(detectWebGL());
   }, []);
 
+  // If the model has not appeared after a long wait (very slow or failed
+  // download), stop waiting and show the 2D figure.
+  useEffect(() => {
+    if (webgl !== true || ready) return;
+    const id = window.setTimeout(() => setStalled(true), STALL_MS);
+    return () => window.clearTimeout(id);
+  }, [webgl, ready]);
+
   const fallback = (
     <MuscleMap
       heat={heat}
@@ -105,7 +116,30 @@ export function Anatomy3D({
     />
   );
 
-  if (webgl !== true) {
+  // A quiet stand-in while the model loads. Showing the 2D figure here and then
+  // swapping it for the 3D one looks like a glitch, because the two do not
+  // line up; the 2D figure is only for when 3D cannot run at all.
+  const placeholder = (
+    <div className="absolute inset-0 flex items-center justify-center" aria-hidden>
+      <div
+        className={cn(
+          "h-[78%] w-[22%] max-w-24 rounded-full bg-muted/60",
+          !reducedMotion && "animate-pulse"
+        )}
+      />
+    </div>
+  );
+
+  // Not checked yet (first client render): reserve the space, draw nothing.
+  if (webgl === null) {
+    return (
+      <div className={cn("relative", className)} data-anatomy="loading">
+        {placeholder}
+      </div>
+    );
+  }
+
+  if (webgl === false || stalled) {
     return (
       <div className={cn("relative", className)} data-anatomy="2d">
         {fallback}
@@ -120,7 +154,7 @@ export function Anatomy3D({
       role="group"
       aria-label={label}
     >
-      {!ready && <div className="absolute inset-0">{fallback}</div>}
+      {!ready && placeholder}
       <SceneBoundary fallback={fallback}>
         <Suspense fallback={null}>
           <div

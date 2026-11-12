@@ -12,17 +12,18 @@ import {
   getNextWorkoutId,
   ACCESSORY_RECOMMENDATIONS,
 } from "@/lib/workoutTemplates";
-import { EXERCISES } from "@/lib/exercises";
-import { applyPreferences } from "@/lib/exercisePreferences";
+import { EXERCISES, ACCESSORY_IDS } from "@/lib/exercises";
+import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePreferences";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { generateWarmUpSets } from "@/lib/warmups";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
+import { evaluateActivityImpact, ACTIVITY_NOTE_WINDOW_HOURS } from "@/lib/activities";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
 import { RECOVERY_HOURS } from "@/lib/recovery";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, AlertTriangle, X, Circle } from "lucide-react";
+import { Check, AlertTriangle, Info, X, Circle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 import { LocationToggle } from "@/components/PreWorkout/LocationToggle";
@@ -193,6 +194,15 @@ function ConfigureWorkoutContent() {
       .toArray();
   }) ?? [];
 
+  // Recent yoga, cycling, hiking and other sessions for the activity note
+  const recentActivities = useLiveQuery(() => {
+    const windowStart = new Date(Date.now() - ACTIVITY_NOTE_WINDOW_HOURS * 60 * 60 * 1000);
+    return db.activities
+      .where("date")
+      .above(windowStart)
+      .toArray();
+  }) ?? [];
+
   // ─── Determine the template ───────────────────────────────────────────
 
   const templateId = useMemo(() => {
@@ -239,6 +249,7 @@ function ConfigureWorkoutContent() {
   const [stressLevel, setStressLevel] = useState<StressLevel | null>(null);
   const [selectedAccessories, setSelectedAccessories] = useState<string[]>([]);
   const [runAdvisoryDismissed, setRunAdvisoryDismissed] = useState(false);
+  const [activityNoteDismissed, setActivityNoteDismissed] = useState(false);
   const [recoveryChoice, setRecoveryChoice] = useState<"proceed" | "reduce" | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [exerciseOverrides, setExerciseOverrides] = useState<Record<string, string>>({});
@@ -279,7 +290,13 @@ function ConfigureWorkoutContent() {
 
   const t1Type = template ? getT1ExerciseType(template) : null;
 
-  const exercisePreferences = userProfile?.settings?.exercisePreferences;
+  // Preferences in effect at the chosen location (overall, plus that location's overrides).
+  const overallPreferences = userProfile?.settings?.exercisePreferences;
+  const locationPreferences = userProfile?.settings?.exercisePreferencesByLocation;
+  const exercisePreferences = useMemo(
+    () => resolvePreferences(overallPreferences, locationPreferences, location),
+    [overallPreferences, locationPreferences, location]
+  );
 
   const runAdvisory = useMemo(() => {
     if (!template || recentRuns.length === 0) return null;
@@ -288,6 +305,11 @@ function ConfigureWorkoutContent() {
     if (advisory.level === "none") return null;
     return advisory;
   }, [template, recentRuns, templateId, trainingPhase]);
+
+  const activityNote = useMemo(() => {
+    if (!template || recentActivities.length === 0) return null;
+    return evaluateActivityImpact(recentActivities, workoutHasLowerBody(templateId), new Date());
+  }, [template, recentActivities, templateId]);
 
   const recoveryWarnings = useMemo(() => {
     if (!template || liftStates.length === 0) return [];
@@ -321,7 +343,12 @@ function ConfigureWorkoutContent() {
   }, [template, liftStates]);
 
   const accessoryRecommendations = useMemo(
-    () => applyPreferences(ACCESSORY_RECOMMENDATIONS[templateId] ?? [], exercisePreferences),
+    () =>
+      withPreferredAccessories(
+        ACCESSORY_RECOMMENDATIONS[templateId] ?? [],
+        exercisePreferences,
+        ACCESSORY_IDS
+      ),
     [templateId, exercisePreferences]
   );
 
@@ -558,6 +585,19 @@ function ConfigureWorkoutContent() {
                 Skip today
               </Button>
             </div>
+          </div>
+        )}
+
+        {activityNote && !activityNoteDismissed && (
+          <div className="rounded-xl border border-info/40 bg-info-soft p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-info mt-0.5 shrink-0" />
+              <p className="text-sm text-muted-foreground">{activityNote.message}</p>
+            </div>
+            <EvidenceLine ruleId="activity-fatigue" />
+            <Button size="sm" variant="outline" onClick={() => setActivityNoteDismissed(true)}>
+              Got it
+            </Button>
           </div>
         )}
 

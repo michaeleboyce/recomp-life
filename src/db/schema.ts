@@ -53,6 +53,20 @@ export const runs = pgTable('runs', {
   synced: boolean('synced').notNull().default(true),
 });
 
+// Activities (yoga, cycling, hiking, walking; runs have their own table)
+export const activities = pgTable('activities', {
+  id: text('id').primaryKey(),
+  clientId: text('client_id').unique().notNull(),
+  date: timestamp('date').notNull(),
+  kind: text('kind').notNull(),
+  durationMinutes: real('duration_minutes').notNull(),
+  style: text('style'),
+  distanceMiles: real('distance_miles'),
+  notes: text('notes').notNull(),
+  perceivedEffort: integer('perceived_effort').notNull(),
+  synced: boolean('synced').notNull().default(true),
+});
+
 // Bodyweight
 export const bodyweight = pgTable('bodyweight', {
   id: text('id').primaryKey(),

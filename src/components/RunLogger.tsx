@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { logRun } from "@/lib/data/records";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EffortPicker, type Effort } from "@/components/Activity/EffortPicker";
 import type { RunType, RunCategory } from "@/types";
 
 const RUN_TYPES: { value: RunType; label: string }[] = [
@@ -21,22 +22,6 @@ const RUN_CATEGORIES: { value: RunCategory; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-const EFFORT_LABELS: Record<number, string> = {
-  1: "Easy",
-  2: "Light",
-  3: "Moderate",
-  4: "Hard",
-  5: "All-out",
-};
-
-const EFFORT_COLORS: Record<number, string> = {
-  1: "border-tier-warmup bg-tier-warmup-soft text-tier-warmup",
-  2: "border-info bg-info/10 text-info",
-  3: "border-muted-foreground bg-muted-foreground/10 text-foreground",
-  4: "border-warning bg-warning/10 text-warning",
-  5: "border-destructive bg-destructive/10 text-destructive",
-};
-
 export default function RunLogger() {
   const router = useRouter();
 
@@ -44,7 +29,7 @@ export default function RunLogger() {
   const [distanceMiles, setDistanceMiles] = useState<string>("");
   const [runType, setRunType] = useState<RunType>("outdoor");
   const [category, setCategory] = useState<RunCategory>("easy");
-  const [perceivedEffort, setPerceivedEffort] = useState<1 | 2 | 3 | 4 | 5>(3);
+  const [perceivedEffort, setPerceivedEffort] = useState<Effort>(3);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,30 +152,7 @@ export default function RunLogger() {
         </div>
 
         {/* Perceived Effort */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">
-            Perceived Effort
-          </label>
-          <div className="flex gap-2">
-            {([1, 2, 3, 4, 5] as const).map((level) => (
-              <button
-                key={level}
-                type="button"
-                onClick={() => setPerceivedEffort(level)}
-                className={`flex-1 flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 text-xs transition-all duration-150 ${
-                  perceivedEffort === level
-                    ? `${EFFORT_COLORS[level]} font-medium`
-                    : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                }`}
-              >
-                <span className="text-sm font-semibold">{level}</span>
-                <span className="text-[10px] leading-tight">
-                  {EFFORT_LABELS[level]}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <EffortPicker value={perceivedEffort} onChange={setPerceivedEffort} />
 
         {/* Notes */}
         <div className="space-y-1.5">
