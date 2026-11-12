@@ -49,6 +49,12 @@ export interface Projection {
   /** Plain-language assumptions to print under the chart. */
   assumptions: string[];
   /**
+   * Weeks between the most recent result and `now` (0 with no data). Above
+   * STALE_HISTORY_WEEKS the projection starts from that last result as it was and
+   * says so in the assumptions.
+   */
+  lastResultWeeksAgo: number;
+  /**
    * Present only when `relatedHistory` was passed: the fitted slope of each related
    * exercise that has enough recent points. Informational; it does not feed the
    * projected numbers.
@@ -71,7 +77,10 @@ export const MAX_ADHERENCE_MULTIPLIER = 1.5;
  */
 export const MAX_SCENARIO_WIDENING = 2;
 
-/** A last data point older than this many weeks earns a caveat in the assumptions. */
+/**
+ * A last result older than this many weeks is stale: the projection starts from that
+ * result as it was (not from the trend line) and the assumptions say how old it is.
+ */
 export const STALE_HISTORY_WEEKS = 4;
 
 /** The registry rules the projection's coefficients come from. */
@@ -232,21 +241,30 @@ export function scenarioWidening(total: number): number {
 }
 
 /** The history points up to `nowMs` within TREND_WINDOW_WEEKS of the latest one. */
-function recentWindow(history: Point[], nowMs: number): { points: Point[]; latest: number } | null {
+function recentWindow(
+  history: Point[],
+  nowMs: number
+): { points: Point[]; latest: number; latestValue: number } | null {
   const past = history.filter(
     (p) => Number.isFinite(p.t) && Number.isFinite(p.v) && p.t <= nowMs
   );
   if (past.length === 0) return null;
   const latest = Math.max(...past.map((p) => p.t));
   const windowStart = latest - TREND_WINDOW_WEEKS * MS_PER_WEEK;
-  return { points: past.filter((p) => p.t >= windowStart), latest };
+  // Several results can share the latest timestamp: use their mean.
+  const atLatest = past.filter((p) => p.t === latest);
+  const latestValue = atLatest.reduce((sum, p) => sum + p.v, 0) / atLatest.length;
+  return { points: past.filter((p) => p.t >= windowStart), latest, latestValue };
 }
 
 /** The fit over the points up to `nowMs` within TREND_WINDOW_WEEKS of the latest one. */
-function fitRecent(history: Point[], nowMs: number): { fit: TrendFit; latest: number } | null {
+function fitRecent(
+  history: Point[],
+  nowMs: number
+): { fit: TrendFit; latest: number; latestValue: number } | null {
   const recent = recentWindow(history, nowMs);
   const fit = recent ? fitTrend(recent.points) : null;
-  return recent && fit ? { fit, latest: recent.latest } : null;
+  return recent && fit ? { fit, latest: recent.latest, latestValue: recent.latestValue } : null;
 }
 
 /**
@@ -280,6 +298,7 @@ function insufficientData(): Projection {
     assumptions: [
       "Not enough data: a projection needs at least four recent estimated-1RM results.",
     ],
+    lastResultWeeksAgo: 0,
   };
 }
 
@@ -304,8 +323,14 @@ function insufficientData(): Projection {
  *   phase = phaseMultiplier[scenario] / phaseMultiplier[baseline].
  *   A field left out, or equal to the baseline, multiplies by exactly 1. A baseline
  *   dose of zero cannot be scaled, so a change to it is ignored (and said so).
- * - Path: the value starts at the fitted value at `now` (not the last raw point)
- *   and gains startingRate x weeklyRateRetention^k during week k+1.
+ * - Start: the trend is never extrapolated across the gap between the last result
+ *   and `now`. Week 0 (drawn at `now`) is the fitted value at the time of the most
+ *   recent result. When that result is more than STALE_HISTORY_WEEKS old, week 0 is
+ *   the last actual result instead, and an assumption says how old it is and that
+ *   time off usually costs some strength. Detraining is NOT modelled: no research
+ *   number for it is in the registry, so the projection only warns.
+ * - Path: from the start value the projection gains
+ *   startingRate x weeklyRateRetention^k during week k+1.
  * - Range: value -/+ bandWidthSd x sd x (1 + bandGrowth x sqrt(week)) x widening,
  *   where sd = max(residualSd, minResidualSdFraction x the value now) (an exactly
  *   linear history still gets a range) and widening = scenarioWidening(dose x
@@ -340,7 +365,9 @@ export function projectE1RM(input: {
 
   const recent = fitRecent(history, nowMs);
   if (!recent) return { ...insufficientData(), ...related };
-  const { fit, latest } = recent;
+  const { fit, latest, latestValue } = recent;
+  const lastResultWeeksAgo = Math.max(0, (nowMs - latest) / MS_PER_WEEK);
+  const stale = lastResultWeeksAgo > STALE_HISTORY_WEEKS;
 
   // A flat or falling trend has no personal rate to scale: hold it level and ignore
   // the scenario, so the current trend and any alternative are the same line.
@@ -352,7 +379,7 @@ export function projectE1RM(input: {
   const startingRatePerWeek = flat ? 0 : fit.slopePerWeek * total;
   const widening = scenarioWidening(total);
 
-  const startValue = fit.valueAt(nowMs);
+  const startValue = stale ? latestValue : fit.valueAt(latest);
   const floorSd = C.minResidualSdFraction * Math.max(0, startValue);
   const rangeSd = Math.max(fit.residualSd, floorSd);
   const points: ProjectedPoint[] = [];
@@ -415,10 +442,9 @@ export function projectE1RM(input: {
       `This alternative is further from what you do now, so its range is ${pct(widening - 1)} wider: how much a change in training helps is itself uncertain.`
     );
   }
-  const staleWeeks = (nowMs - latest) / MS_PER_WEEK;
-  if (staleWeeks > STALE_HISTORY_WEEKS) {
+  if (stale) {
     assumptions.push(
-      `Your last result is ${Math.round(staleWeeks)} weeks old, so today's starting value is itself an extrapolation.`
+      `This estimate is ${Math.round(lastResultWeeksAgo)} weeks old: the projection starts from your last result (${fmt(latestValue, 0)} lbs) as if no time had passed. Time off usually costs some strength, so the projection may be optimistic until you log a new result.`
     );
   }
 
@@ -433,6 +459,7 @@ export function projectE1RM(input: {
     },
     evidenceIds: [...PROJECTION_EVIDENCE_IDS],
     assumptions,
+    lastResultWeeksAgo,
     ...related,
   };
 }
