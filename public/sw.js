@@ -1,4 +1,4 @@
-const CACHE_NAME = "recomp-life-v3";
+const CACHE_NAME = "recomp-life-v4";
 const PRECACHE_URLS = ["/", "/workout/configure", "/history", "/program", "/tools"];
 
 self.addEventListener("install", (event) => {
@@ -37,21 +37,34 @@ self.addEventListener("message", (event) => {
         return response;
       };
 
-      for (const url of data.urls) {
-        if (typeof url !== "string" || !url.startsWith("/")) continue;
+      // A page is useless offline without its scripts and styles, and those
+      // have build-hashed names. Pages name some in their HTML; scripts name
+      // the lazily loaded ones (the 3D viewers) inside their own source. So
+      // follow both, breadth first, until nothing new turns up.
+      const queue = data.urls.filter((u) => typeof u === "string" && u.startsWith("/"));
+      const seen = new Set(queue);
+      const enqueue = (url) => {
+        if (!seen.has(url) && seen.size < 600) {
+          seen.add(url);
+          queue.push(url);
+        }
+      };
+
+      while (queue.length > 0) {
+        const url = queue.shift();
         try {
           const response = await cacheOne(url);
-          // A page is useless offline without its scripts and styles, and
-          // those have build-hashed names, so read them out of the HTML.
+          if (!response.ok) continue;
           const type = response.headers.get("content-type") || "";
-          if (!response.ok || !type.includes("text/html")) continue;
-          const html = await response.clone().text();
-          const assets = new Set(html.match(/\/_next\/static\/[^"'\\\s)<>]+/g) || []);
-          for (const asset of assets) {
-            try {
-              await cacheOne(asset);
-            } catch {
-              // Skip; retried on the next warm-up.
+          if (type.includes("text/html")) {
+            const html = await response.clone().text();
+            for (const asset of html.match(/\/_next\/static\/[^"'\\\s)<>]+/g) || []) {
+              enqueue(asset);
+            }
+          } else if (url.startsWith("/_next/static/") && type.includes("javascript")) {
+            const source = await response.clone().text();
+            for (const ref of source.match(/static\/(?:chunks|css|media)\/[\w.~-]+\.(?:js|css)/g) || []) {
+              enqueue("/_next/" + ref);
             }
           }
         } catch {
