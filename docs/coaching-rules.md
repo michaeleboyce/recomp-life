@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-18 active rules, 12 planned rules, 32 sources. Last reviewed against the research: November 2026.
+19 active rules, 11 planned rules, 32 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -45,7 +45,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `weekly-volume` | Training volume | Active | Moderate evidence | Pelland 2026, Roth 2022 |
 | `accessories-in-cut` | Training volume | Active | Limited evidence | Roth 2022, Murphy & Koehler 2022 |
 | `volume-ratio` | Training volume | Planned | Coaching heuristic | none |
-| `rate-of-loss` | Fat loss | Planned | Moderate evidence | Helms 2014 |
+| `rate-of-loss` | Fat loss | Active | Moderate evidence | Helms 2014 |
 | `fat-loss-stall` | Fat loss | Planned | Limited evidence | Peos 2021 |
 | `projection-dose-response` | Strength projections | Planned | Limited evidence | Pelland 2026, Grgic 2018b, ACSM 2026 |
 | `projection-specificity` | Strength projections | Planned | Limited evidence | Pelland 2026, Saeterbakken 2025, Mattocks 2017 |
@@ -513,18 +513,17 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How fast should I lose weight?
 
 - **Rule id:** `rate-of-loss`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Moderate evidence
 - **Implemented in:** `src/lib/rateOfLoss.ts` (`calculateWeeklyRateOfLoss`)
+- **Shown in:** `src/components/Progress/BodyTab.tsx`, `src/components/Progress/body/BodyDetail.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Losing 0.5–1% of bodyweight a week protects muscle
 
-**What the app does.** Rule in code: a weekly loss of 0.5–1.0% of bodyweight is green, 0.25–0.5% or 1.0–1.5% yellow, above 1.5% red, and a change of less than 0.25% either way a stall. A gain of 0.25% or more is reported as weight going up, not as a stall. Several weigh-ins on one day count as one day (their average). It is not connected to a screen yet.
+**What the app does.** While cutting, a weekly loss of 0.5–1.0% of bodyweight is on pace, 0.25–0.5% or 1.0–1.5% yellow, above 1.5% red, and a change of less than 0.25% either way a stall. A gain of 0.25% or more is reported as weight going up, not as a stall. Several weigh-ins on one day count as one day (their average). The Body tab labels your rate of change on pace, slow or fast, and the bodyweight page shades the target band on the weekly rate chart.
 
 **Why.** A review for physique athletes recommends losing 0.5–1% of bodyweight per week to retain muscle while dieting.
-
-**Before this is switched on.** Ready to connect to the bodyweight trend.
 
 **Sources**
 

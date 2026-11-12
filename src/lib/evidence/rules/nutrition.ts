@@ -5,18 +5,20 @@ import { STALL_BAND_PERCENT } from "@/lib/rateOfLoss";
 export const NUTRITION_RULES = {
   "rate-of-loss": {
     area: "nutrition",
-    status: "planned",
+    status: "active",
     title: "How fast should I lose weight?",
     summary: "Losing 0.5–1% of bodyweight a week protects muscle",
-    appBehavior: `Rule in code: a weekly loss of 0.5–1.0% of bodyweight is green, 0.25–0.5% or 1.0–1.5% yellow, above 1.5% red, and a change of less than ${STALL_BAND_PERCENT}% either way a stall. A gain of ${STALL_BAND_PERCENT}% or more is reported as weight going up, not as a stall. Several weigh-ins on one day count as one day (their average). It is not connected to a screen yet.`,
+    appBehavior: `While cutting, a weekly loss of 0.5–1.0% of bodyweight is on pace, 0.25–0.5% or 1.0–1.5% yellow, above 1.5% red, and a change of less than ${STALL_BAND_PERCENT}% either way a stall. A gain of ${STALL_BAND_PERCENT}% or more is reported as weight going up, not as a stall. Several weigh-ins on one day count as one day (their average). The Body tab labels your rate of change on pace, slow or fast, and the bodyweight page shades the target band on the weekly rate chart.`,
     rationale:
       "A review for physique athletes recommends losing 0.5–1% of bodyweight per week to retain muscle while dieting.",
     strength: "moderate",
     sources: ["helms2014"],
     reviewedOn: "2026-11",
     implementedIn: ["src/lib/rateOfLoss.ts#calculateWeeklyRateOfLoss"],
-    surfaces: [],
-    activationNotes: "Ready to connect to the bodyweight trend.",
+    surfaces: [
+      "src/components/Progress/BodyTab.tsx",
+      "src/components/Progress/body/BodyDetail.tsx",
+    ],
   },
   "fat-loss-stall": {
     area: "nutrition",
