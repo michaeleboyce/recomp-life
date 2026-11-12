@@ -2,8 +2,19 @@ import { describe, it, expect } from "vitest";
 import { getDaysSinceLastWorkout, checkInactivity } from "./inactivity";
 
 describe("getDaysSinceLastWorkout", () => {
-  it("returns Infinity when no last workout date", () => {
-    expect(getDaysSinceLastWorkout(null, new Date())).toBe(Infinity);
+  it("returns null, not a number of days, when there has never been a workout", () => {
+    expect(getDaysSinceLastWorkout(null, new Date())).toBeNull();
+  });
+
+  it("returns null for an unreadable date", () => {
+    expect(getDaysSinceLastWorkout(new Date("nope"), new Date())).toBeNull();
+  });
+
+  it("accepts an ISO string from a synced row", () => {
+    const now = new Date("2026-02-14T12:00:00Z");
+    expect(
+      getDaysSinceLastWorkout("2026-02-11T12:00:00.000Z" as unknown as Date, now)
+    ).toBe(3);
   });
 
   it("returns correct days since last workout", () => {
@@ -62,8 +73,12 @@ describe("checkInactivity", () => {
     expect(result?.level).toBe("detraining");
   });
 
-  it("returns the long-break alert for Infinity (no previous workout)", () => {
-    const result = checkInactivity(Infinity);
-    expect(result?.level).toBe("detraining");
+  it("returns no alert for someone who has never trained", () => {
+    expect(checkInactivity(null)).toBeNull();
+    expect(checkInactivity(getDaysSinceLastWorkout(null, new Date()))).toBeNull();
+  });
+
+  it("returns no alert for a value that is not a number of days", () => {
+    expect(checkInactivity(NaN)).toBeNull();
   });
 });

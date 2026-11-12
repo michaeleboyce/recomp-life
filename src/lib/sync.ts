@@ -62,6 +62,12 @@ export async function pushUnsynced(): Promise<number> {
   return totalPushed;
 }
 
+/**
+ * Tables the app reads as one row. Each device seeds its own profile with its own id,
+ * so the server can hold several; a pull must never leave more than one locally.
+ */
+const SINGLE_ROW_TABLES: ReadonlySet<string> = new Set(['userProfile']);
+
 export async function pullFromServer(): Promise<number> {
   const response = await fetch('/api/sync/pull', { headers: syncAuthHeaders() });
   if (response.status === 401) {
@@ -94,6 +100,9 @@ export async function pullFromServer(): Promise<number> {
         // Skip if local copy exists (local is authoritative for unsynced)
         continue;
       }
+
+      // The local profile stays the profile: another device's is not added beside it.
+      if (SINGLE_ROW_TABLES.has(name) && (await dexieTable.count()) > 0) continue;
 
       // Insert new row from server. JSON has no date type, so timestamps arrive as
       // ISO strings; local rows hold Date objects and sort by them.

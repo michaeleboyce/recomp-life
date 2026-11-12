@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { calculateWeeklyRateOfLoss, getStallProtocolSuggestion } from "./rateOfLoss";
+import {
+  calculateWeeklyRateOfLoss,
+  collapseToDailyMeans,
+  getStallProtocolSuggestion,
+} from "./rateOfLoss";
 
 /**
  * Helper: generate daily weigh-in entries starting from a base date,
@@ -78,13 +82,51 @@ describe("calculateWeeklyRateOfLoss", () => {
     expect(result!.lbsPerWeek).toBe(0);
   });
 
-  it("classifies weight gain as stall", () => {
+  it("classifies a clear weight gain as gaining, not a stall", () => {
     const entries = makeEntries(200, 202, 14);
     const result = calculateWeeklyRateOfLoss(entries);
     expect(result).not.toBeNull();
-    expect(result!.zone).toBe("stall");
+    expect(result!.zone).toBe("gaining");
     // Negative lbs/week means gaining
     expect(result!.lbsPerWeek).toBeLessThan(0);
+    expect(result!.percentPerWeek).toBeLessThanOrEqual(-0.25);
+  });
+
+  it("a gain under 0.25% a week is still within the stall band", () => {
+    // +0.4 lb over 14 days on 200 lb: about +0.1% a week.
+    const result = calculateWeeklyRateOfLoss(makeEntries(200, 200.4, 14));
+    expect(result!.zone).toBe("stall");
+    expect(result!.lbsPerWeek).toBeLessThan(0);
+  });
+
+  it("a fast gain is gaining, never yellow, green or red", () => {
+    expect(calculateWeeklyRateOfLoss(makeEntries(200, 203, 14))!.zone).toBe("gaining");
+    expect(calculateWeeklyRateOfLoss(makeEntries(200, 208, 14))!.zone).toBe("gaining");
+  });
+
+  it("treats two weigh-ins on one day as one day (their mean)", () => {
+    const daily = makeEntries(200, 197.2, 14);
+    // A second, heavier evening weigh-in on four of the early days. Counted as
+    // separate days they would push later days into the first half.
+    const withRepeats = [...daily];
+    for (const i of [0, 1, 2, 3]) {
+      const evening = new Date(daily[i].date);
+      evening.setHours(21);
+      withRepeats.push({ date: evening, weight: daily[i].weight + 2 });
+    }
+    const expected = daily.map((e, i) => (i <= 3 ? { ...e, weight: e.weight + 1 } : e));
+    expect(calculateWeeklyRateOfLoss(withRepeats)).toEqual(calculateWeeklyRateOfLoss(expected));
+  });
+
+  it("needs 7 separate days, not 7 entries", () => {
+    const fourDays = makeEntries(200, 199, 4);
+    const doubled = fourDays.flatMap((e) => {
+      const evening = new Date(e.date);
+      evening.setHours(20);
+      return [e, { date: evening, weight: e.weight }];
+    });
+    expect(doubled).toHaveLength(8);
+    expect(calculateWeeklyRateOfLoss(doubled)).toBeNull();
   });
 
   it("returns lbsPerWeek and percentPerWeek as numbers", () => {
@@ -141,5 +183,38 @@ describe("getStallProtocolSuggestion", () => {
     const result = getStallProtocolSuggestion(0.0, 0.0, 8);
     expect(result).not.toBeNull();
     expect(result).toContain("reducing daily intake");
+  });
+});
+
+describe("collapseToDailyMeans", () => {
+  it("returns one entry per local day, oldest first, with the day's mean", () => {
+    const out = collapseToDailyMeans([
+      { date: new Date(2026, 0, 2, 7), weight: 200 },
+      { date: new Date(2026, 0, 1, 7), weight: 201 },
+      { date: new Date(2026, 0, 2, 22), weight: 202 },
+      { date: new Date(2026, 0, 1, 23, 59), weight: 203 },
+    ]);
+    expect(out).toEqual([
+      { date: new Date(2026, 0, 1), weight: 202 },
+      { date: new Date(2026, 0, 2), weight: 201 },
+    ]);
+  });
+
+  it("accepts ISO strings from synced rows and drops invalid dates", () => {
+    const out = collapseToDailyMeans([
+      { date: new Date(2026, 0, 3, 8).toISOString() as unknown as Date, weight: 199 },
+      { date: new Date("nope"), weight: 150 },
+    ]);
+    expect(out).toEqual([{ date: new Date(2026, 0, 3), weight: 199 }]);
+  });
+
+  it("does not mutate its input", () => {
+    const input = [
+      { date: new Date(2026, 0, 2), weight: 200 },
+      { date: new Date(2026, 0, 1), weight: 201 },
+    ];
+    const copy = structuredClone(input);
+    collapseToDailyMeans(input);
+    expect(input).toEqual(copy);
   });
 });

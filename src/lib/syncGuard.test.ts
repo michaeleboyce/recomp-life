@@ -4,6 +4,7 @@ import {
   isSyncAuthorized,
   findUnknownColumns,
   toPostgresRow,
+  buildUpsert,
   SYNC_ALLOWED_COLUMNS,
   SYNC_JSON_COLUMNS,
 } from './syncGuard';
@@ -143,5 +144,66 @@ describe('activities', () => {
     expect(row.duration_minutes).toBe(45);
     expect(row.perceived_effort).toBe(4);
     expect(findUnknownColumns(Object.keys(row), SYNC_ALLOWED_COLUMNS.activities)).toEqual([]);
+  });
+});
+
+describe('buildUpsert', () => {
+  it('builds a parameterised upsert keyed on client_id', () => {
+    const row = toPostgresRow('bodyweight', {
+      id: 'b1', clientId: 'c1', date: '2026-11-11T07:00:00.000Z', weight: 226,
+      timeOfDay: 'morning', synced: false,
+    });
+    expect(buildUpsert('bodyweight', row)).toEqual({
+      text:
+        'INSERT INTO "bodyweight" ("id", "client_id", "date", "weight", "time_of_day", "synced") ' +
+        'VALUES ($1, $2, $3, $4, $5, $6) ' +
+        'ON CONFLICT ("client_id") DO UPDATE SET ' +
+        '"date" = EXCLUDED."date", "weight" = EXCLUDED."weight", ' +
+        '"time_of_day" = EXCLUDED."time_of_day", "synced" = EXCLUDED."synced"',
+      values: ['b1', 'c1', '2026-11-11T07:00:00.000Z', 226, 'morning', true],
+    });
+  });
+
+  it('uses the Postgres table name, not the client one', () => {
+    const pain = buildUpsert('painEntries', toPostgresRow('painEntries', { id: 'p1', clientId: 'c1' }));
+    expect(pain.text.startsWith('INSERT INTO "pain_entries" (')).toBe(true);
+    const e1rm = buildUpsert('estimated1RMs', toPostgresRow('estimated1RMs', { id: 'e1', clientId: 'c1' }));
+    expect(e1rm.text.startsWith('INSERT INTO "estimated_1rms" (')).toBe(true);
+  });
+
+  it('never puts a value into the SQL text', () => {
+    const row = toPostgresRow('runs', { id: "r1'; DROP TABLE runs; --", clientId: 'c1', notes: '"x"' });
+    const { text, values } = buildUpsert('runs', row);
+    expect(text).not.toContain('DROP');
+    expect(values).toContain("r1'; DROP TABLE runs; --");
+    expect(text.match(/\$\d+/g)).toHaveLength(values.length);
+  });
+
+  it('refuses a column that is not in the schema, since names are interpolated', () => {
+    expect(() => buildUpsert('runs', { id: 'r1', client_id: 'c1', 'id") --': 1 })).toThrow(
+      /Unknown column/
+    );
+  });
+
+  it('does nothing on conflict when there is no column left to update', () => {
+    expect(buildUpsert('runs', { id: 'r1', client_id: 'c1' }).text).toBe(
+      'INSERT INTO "runs" ("id", "client_id") VALUES ($1, $2) ON CONFLICT ("client_id") DO NOTHING'
+    );
+  });
+
+  it('lift states: never rewrites the primary key or the client id of an existing row', () => {
+    // lift_states is keyed by exercise_id, and each device seeds its own rows with
+    // fresh client ids. Conflicting on exercise_id (and taking the new client_id)
+    // would let a freshly seeded device overwrite the stored progression with its
+    // seed values, so the conflict target deliberately stays client_id for now.
+    const row = toPostgresRow('liftStates', { ...INITIAL_LIFT_STATES.squat, clientId: 'device-b' });
+    const { text, values } = buildUpsert('liftStates', row);
+    expect(text).toContain('INSERT INTO "lift_states" (');
+    expect(text).toContain('ON CONFLICT ("client_id") DO UPDATE SET ');
+    const updates = text.split(' DO UPDATE SET ')[1];
+    expect(updates).not.toContain('"exercise_id" =');
+    expect(updates).not.toContain('"client_id" =');
+    expect(updates).toContain('"t1_weight" = EXCLUDED."t1_weight"');
+    expect(values).toContain('device-b');
   });
 });

@@ -103,16 +103,16 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `t3-progression`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Program rule
-- **Implemented in:** `src/lib/progression.ts` (`evaluateT3Progression`)
+- **Implemented in:** `src/lib/progression.ts` (`evaluateT3Progression`), `src/lib/workout/completeWorkout.ts` (`computeCompletion`)
 - **Reviewed:** November 2026
 
-**In one line.** T3 weight would go up when the last set reaches 25 reps
+**In one line.** T3 weight goes up when the last set reaches 25 reps
 
-**What the app does.** Rule in code: add 5 lb when the last AMRAP set reaches 25 reps (or, outside a cut, when the three sets total 50 reps). It is not connected, so T3 weight only changes when you edit it.
+**What the app does.** When you finish every set of a T3 exercise, the app adds 5 lb for next time if the last AMRAP set reached 25 reps (or, outside a cut, if the three sets totalled 50 reps). Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. The app does not yet tell you on screen when this happens.
 
 **Why.** Muscle growth improves as sets end closer to failure. Under this rule the first two sets of 15 can be about 10 reps short of failure, and people judge reps left least accurately in high-rep sets.
 
-**Before this is switched on.** Decide between the stock GZCLP rule and a double progression (every set near the top of a rep range), which fits the evidence better.
+**Before this is switched on.** The rule now runs when a workout is finished (computeCompletion), but no screen shows it. Show the T3 result with its citation on the workout summary, then mark the rule active. Still open: keep the stock GZCLP rule or move to a double progression (every set near the top of a rep range), which fits the evidence better.
 
 **Sources**
 
@@ -520,7 +520,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** Losing 0.5–1% of bodyweight a week protects muscle
 
-**What the app does.** Rule in code: a weekly loss of 0.5–1.0% of bodyweight is green, 0.25–0.5% or 1.0–1.5% yellow, above 1.5% red, and below 0.25% a stall. It is not connected to a screen yet.
+**What the app does.** Rule in code: a weekly loss of 0.5–1.0% of bodyweight is green, 0.25–0.5% or 1.0–1.5% yellow, above 1.5% red, and a change of less than 0.25% either way a stall. A gain of 0.25% or more is reported as weight going up, not as a stall. Several weigh-ins on one day count as one day (their average). It is not connected to a screen yet.
 
 **Why.** A review for physique athletes recommends losing 0.5–1% of bodyweight per week to retain muscle while dieting.
 
@@ -540,7 +540,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** Wait about three weeks before treating a slow patch as a stall
 
-**What the app does.** Rule in code: flag a stall when this week's 7-day average is less than 0.3 lb below last week's, and suggest re-checking intake, adding cardio or taking a diet break. The chart that would show it is not on any screen.
+**What the app does.** Rule in code: flag a stall when this week's 7-day average is less than 0.3 lb below last week's, and suggest re-checking intake, adding cardio or taking a diet break. Several weigh-ins on one day count as one day (their average). The chart that would show it is not on any screen.
 
 **Why.** Week-to-week weight is noisy. In a 12-week trial with resistance-trained adults, week-long diet breaks did not improve fat loss or muscle retention, so a diet break is a comfort choice rather than a fix.
 
@@ -756,6 +756,9 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 Changes made to the app because of research, newest first.
 
 - **11 November 2026** — `activity-fatigue` (Why does a hard yoga class or ride matter?): Yoga, cycling, hiking and walking can now be logged. A hard one in the last 24 hours shows a note before your next workout; it never changes weights or progression. Sources: .
+- **11 November 2026** — `rate-of-loss` (How fast should I lose weight?): Gaining 0.25% of bodyweight or more a week is now reported as weight going up instead of as a stall, and several weigh-ins on one day now count as one day. Sources: .
+- **11 November 2026** — `fat-loss-stall` (What should I do when weight loss stalls?): The stall check now averages several weigh-ins on one day into one, so a second weigh-in no longer shifts the weekly comparison. Sources: .
+- **11 November 2026** — `t3-progression` (When does T3 weight go up?): T3 weight now goes up by 5 lb after a fully completed T3 exercise whose last set reached 25 reps. The rule existed but was never applied, so T3 weight only changed when edited by hand. Sources: .
 - **11 November 2026** — `time-off` (Why lighter weights after a break?): A lift now counts as a long break after 21 days instead of 7, and suggested weight cuts after time off were reduced from 10–40% to 5–15%. Sources: Spiering 2021, Halonen 2024.
 - **11 November 2026** — `amrap-effort` (How hard should the last set be?): T1 AMRAP sets now ask you to stop about 1 rep short of failure in every phase, not only while cutting. Sources: Robinson 2024, Morán-Navarro 2017.
 - **11 November 2026** — `e1rm-estimate` (How is my 1RM estimated?): Estimated 1RM now accounts for logged RPE and uses only T1 sets of 10 reps or fewer. The trend arrow was also corrected: it had been reading the history backwards. Sources: Nuzzo 2024, Halperin 2022.

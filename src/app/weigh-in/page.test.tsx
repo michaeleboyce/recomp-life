@@ -42,4 +42,46 @@ describe("WeighInPage", () => {
     expect(await screen.findByDisplayValue("190")).toBeInTheDocument();
     expect(screen.getByText("Last 1 Entries")).toBeInTheDocument();
   });
+
+  it("typing over the pre-filled weight saves what was typed", async () => {
+    await db.bodyweight.add({
+      id: "b1",
+      clientId: "b1",
+      date: new Date("2026-11-01T00:00:00"),
+      weight: 190,
+      timeOfDay: "morning",
+      synced: true,
+    });
+    render(<WeighInPage />);
+    const input = await screen.findByDisplayValue("190");
+    fireEvent.change(input, { target: { value: "188.4" } });
+    expect(input).toHaveValue(188.4);
+    fireEvent.click(screen.getByRole("button", { name: "Save Weight" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
+    const rows = await db.bodyweight.toArray();
+    expect(rows.map((r) => r.weight).sort()).toEqual([188.4, 190]);
+  });
+
+  it("an emptied field goes back to the latest entry, as before", async () => {
+    await db.bodyweight.add({
+      id: "b1",
+      clientId: "b1",
+      date: new Date("2026-11-01T00:00:00"),
+      weight: 190,
+      timeOfDay: "morning",
+      synced: true,
+    });
+    render(<WeighInPage />);
+    const input = await screen.findByDisplayValue("190");
+    fireEvent.change(input, { target: { value: "" } });
+    await waitFor(() => expect(input).toHaveValue(190));
+  });
+
+  it("with no entries the field starts empty and Save is disabled", async () => {
+    render(<WeighInPage />);
+    const input = await screen.findByPlaceholderText("0.0");
+    expect(input).toHaveValue(null);
+    expect(screen.getByRole("button", { name: "Save Weight" })).toBeDisabled();
+  });
 });

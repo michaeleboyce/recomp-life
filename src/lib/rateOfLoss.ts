@@ -9,12 +9,44 @@
  * @evidence rate-of-loss
  */
 
-export type RateZone = "green" | "yellow" | "red" | "stall";
+import { calendarDaysBetween } from "./dates";
+
+/**
+ * "gaining" is weight going up by more than the stall band: off target during a cut,
+ * but not a stall. A change of less than STALL_BAND_PERCENT either way is a "stall".
+ */
+export type RateZone = "green" | "yellow" | "red" | "stall" | "gaining";
+
+/** Weekly change (% of bodyweight, either direction) below which weight counts as flat. */
+export const STALL_BAND_PERCENT = 0.25;
 
 export interface WeeklyRateResult {
   lbsPerWeek: number;
   percentPerWeek: number;
   zone: RateZone;
+}
+
+/**
+ * One entry per local calendar day (the mean of that day's weigh-ins, dated at local
+ * midnight), oldest first. Entries with an invalid date are dropped. Dates may be ISO
+ * strings on rows synced from another device, so each is wrapped with `new Date`.
+ */
+export function collapseToDailyMeans(
+  entries: ReadonlyArray<{ date: Date; weight: number }>
+): { date: Date; weight: number }[] {
+  const byDay = new Map<number, { sum: number; count: number }>();
+  for (const entry of entries) {
+    const date = new Date(entry.date);
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    if (!Number.isFinite(day)) continue;
+    const bucket = byDay.get(day) ?? { sum: 0, count: 0 };
+    bucket.sum += entry.weight;
+    bucket.count += 1;
+    byDay.set(day, bucket);
+  }
+  return [...byDay.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([day, { sum, count }]) => ({ date: new Date(day), weight: sum / count }));
 }
 
 /**
@@ -24,24 +56,24 @@ export interface WeeklyRateResult {
  * of the window to the average of the second half, then annualize to
  * a per-week figure.
  *
- * @returns null if fewer than 7 entries are provided.
+ * Several weigh-ins on one day count as one day (their mean).
  *
- * Zone thresholds (by %BW/week):
- *   green:  0.5–1.0%
- *   yellow: 0.25–0.5% OR 1.0–1.5%
- *   red:    >1.5%
- *   stall:  <0.25%
+ * @returns null if fewer than 7 days have a weigh-in.
+ *
+ * Zone thresholds (by %BW/week lost):
+ *   green:   0.5–1.0%
+ *   yellow:  0.25–0.5% OR 1.0–1.5%
+ *   red:     >1.5%
+ *   stall:   between a 0.25% gain and a 0.25% loss
+ *   gaining: a gain of 0.25% or more
  */
 export function calculateWeeklyRateOfLoss(
   weightEntries: { date: Date; weight: number }[],
   windowDays: number = 14
 ): WeeklyRateResult | null {
-  if (weightEntries.length < 7) return null;
-
-  // Sort entries by date ascending
-  const sorted = [...weightEntries].sort(
-    (a, b) => a.date.getTime() - b.date.getTime()
-  );
+  // One value per day, sorted by date ascending
+  const sorted = collapseToDailyMeans(weightEntries);
+  if (sorted.length < 7) return null;
 
   // Take only the most recent `windowDays` worth of entries
   const cutoffDate = new Date(sorted[sorted.length - 1].date);
@@ -66,8 +98,9 @@ export function calculateWeeklyRateOfLoss(
   // Calculate the actual time span in days between the midpoints of each half
   const firstMidDate = firstHalf[Math.floor(firstHalf.length / 2)].date;
   const secondMidDate = secondHalf[Math.floor(secondHalf.length / 2)].date;
-  const spanDays =
-    (secondMidDate.getTime() - firstMidDate.getTime()) / (1000 * 60 * 60 * 24);
+  // Whole calendar days: both dates are local midnights, which are 23 or 25 hours
+  // apart across a clock change.
+  const spanDays = calendarDaysBetween(firstMidDate, secondMidDate);
 
   // Avoid division by zero
   if (spanDays <= 0) return null;
@@ -85,13 +118,13 @@ export function calculateWeeklyRateOfLoss(
 }
 
 function classifyZone(percentPerWeek: number): RateZone {
-  const abs = Math.abs(percentPerWeek);
-
-  // Weight gain or negligible loss
-  if (percentPerWeek < 0.25) return "stall";
-  if (abs >= 0.25 && abs < 0.5) return "yellow";
-  if (abs >= 0.5 && abs <= 1.0) return "green";
-  if (abs > 1.0 && abs <= 1.5) return "yellow";
+  // Going up: off target while cutting, but not a stall
+  if (percentPerWeek <= -STALL_BAND_PERCENT) return "gaining";
+  // Negligible change either way
+  if (percentPerWeek < STALL_BAND_PERCENT) return "stall";
+  if (percentPerWeek < 0.5) return "yellow";
+  if (percentPerWeek <= 1.0) return "green";
+  if (percentPerWeek <= 1.5) return "yellow";
   // >1.5%
   return "red";
 }

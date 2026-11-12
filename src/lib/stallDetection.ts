@@ -1,22 +1,26 @@
 import type { TrainingPhase, StallAlert } from "@/types";
+import { collapseToDailyMeans } from "./rateOfLoss";
 
 /**
  * Detect a fat loss stall by comparing 7-day rolling averages.
- * Only runs during cutting phase. Needs 14+ entries.
+ * Only runs during cutting phase. Needs weigh-ins on 14+ days: the entries may be in
+ * any order, and several on one day count as one day (their mean).
  *
  * Used by BodyweightChart, which is not mounted on any screen yet.
  *
  * @evidence fat-loss-stall
  */
 export function detectFatLossStall(
-  sortedWeights: { date: Date; weight: number }[],
+  weights: { date: Date; weight: number }[],
   phase: TrainingPhase
 ): StallAlert | null {
   if (phase.mode !== "cutting") return null;
-  if (sortedWeights.length < 14) return null;
 
-  // Get last 14 entries (sorted by date ascending)
-  const recent = sortedWeights.slice(-14);
+  const daily = collapseToDailyMeans(weights);
+  if (daily.length < 14) return null;
+
+  // The last 14 days with a weigh-in, oldest first
+  const recent = daily.slice(-14);
 
   const previousWeek = recent.slice(0, 7);
   const currentWeek = recent.slice(7);

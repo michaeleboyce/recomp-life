@@ -62,7 +62,21 @@ function squatT1(amrapReps = 5, overrides: Partial<SetLog> = {}): SetLog[] {
 
 const benchT2 = (overrides: Partial<SetLog> = {}) =>
   makeSets("bench", "T2", 3, 10, { weight: 100, ...overrides });
-const latT3 = () => makeSets("lat_pulldown", "T3", 3, 15, { weight: 90 });
+/** Lat pulldown T3 3x15 @90 with the last set AMRAP. */
+function latT3(amrapReps = 15, overrides: Partial<SetLog> = {}): SetLog[] {
+  return [
+    ...makeSets("lat_pulldown", "T3", 2, 15, { weight: 90, ...overrides }),
+    makeSet("lat_pulldown", "T3", {
+      setNumber: 3,
+      targetReps: 15,
+      actualReps: amrapReps,
+      weight: 90,
+      isAMRAP: true,
+      status: amrapReps >= 15 ? "completed" : "failed",
+      ...overrides,
+    }),
+  ];
+}
 
 const byId = (updates: LiftState[], id: string) => updates.find((u) => u.exerciseId === id);
 
@@ -94,25 +108,26 @@ describe("computeCompletion: pass", () => {
       recentAMRAPReps: [5],
       synced: false,
     });
-    // Gym, upper body: the 5 lb barbell increment. T2 has no AMRAP set.
+    // Gym, upper body: the 5 lb barbell increment. A T2 day adds nothing to the
+    // effort history, which holds T1 sessions only.
     expect(byId(result.liftStateUpdates, "bench")).toEqual({
       ...seeded.find((s) => s.exerciseId === "bench"),
       t2Weight: 105,
       t2FailCount: 0,
       t2LastWorkoutDate: NOW,
       recentE1RMs: [130],
-      recentAvgRPEs: [7],
+      recentAvgRPEs: [],
       recentAMRAPReps: [],
       synced: false,
     });
   });
 
-  it("T3 and accessories never change lift state", () => {
+  it("accessories never change lift state, nor does a T3 that stayed under 25 reps", () => {
     const session = makeSession({ selectedAccessories: ["face_pulls"] });
     const result = computeCompletion(
       completion({
         session,
-        sets: [...latT3(), ...makeSets("face_pulls", "accessory", 3, 15)],
+        sets: [...latT3(), ...makeSets("face_pulls", "accessory", 3, 30)],
       })
     );
     expect(result.liftStateUpdates).toEqual([]);
@@ -141,6 +156,52 @@ describe("computeCompletion: pass", () => {
     const squat = byId(computeCompletion(completion({ sets, liftStates })).liftStateUpdates, "squat")!;
     expect(squat.recentAvgRPEs).toEqual([6.5, 7, 7.5, 8, 8]);
     expect(squat.recentAMRAPReps).toEqual([4, 5, 6, 7, 4]);
+  });
+});
+
+describe("computeCompletion: effort history is T1-only", () => {
+  it("a T2 day leaves recentAvgRPEs and recentAMRAPReps exactly as stored", () => {
+    const liftStates = seedLiftStates().map((ls) =>
+      ls.exerciseId === "bench"
+        ? { ...ls, recentAvgRPEs: [8, 8.5], recentAMRAPReps: [5, 4] }
+        : ls
+    );
+    // Even a T2 set flagged AMRAP (no real template has one) is not recorded.
+    const sets = benchT2({ rpe: 6 });
+    sets[2] = { ...sets[2], isAMRAP: true, actualReps: 14 };
+    const bench = byId(computeCompletion(completion({ sets, liftStates })).liftStateUpdates, "bench")!;
+    expect(bench).toMatchObject({
+      t2Weight: 105,
+      t2LastWorkoutDate: NOW,
+      recentAvgRPEs: [8, 8.5],
+      recentAMRAPReps: [5, 4],
+    });
+  });
+
+  it("a T2 day still stores the e1RM series the caller looked up (it is built from T1 sets only)", () => {
+    const bench = byId(
+      computeCompletion(
+        completion({ sets: benchT2({ rpe: 6 }), recentE1RMsByExercise: { bench: [160, 162] } })
+      ).liftStateUpdates,
+      "bench"
+    )!;
+    expect(bench.recentE1RMs).toEqual([160, 162]);
+  });
+
+  it("a T2 day tolerates a lift state stored without tracking arrays", () => {
+    const liftStates = seedLiftStates().map((ls) => {
+      if (ls.exerciseId !== "bench") return ls;
+      const legacy = { ...ls } as Partial<LiftState>;
+      delete legacy.recentAvgRPEs;
+      delete legacy.recentAMRAPReps;
+      return legacy as LiftState;
+    });
+    const bench = byId(
+      computeCompletion(completion({ sets: benchT2({ rpe: 6 }), liftStates })).liftStateUpdates,
+      "bench"
+    )!;
+    expect(bench.recentAvgRPEs).toEqual([]);
+    expect(bench.recentAMRAPReps).toEqual([]);
   });
 });
 
@@ -253,7 +314,7 @@ describe("computeCompletion: fail", () => {
     });
   });
 
-  it("an accepted T2 load drop freezes the T2 weight but still records the date and arrays", () => {
+  it("an accepted T2 load drop freezes the T2 weight but still records the date", () => {
     const sets = benchT2({ status: "autoregulated_load_drop", rpe: 9 });
     const bench = byId(computeCompletion(completion({ sets })).liftStateUpdates, "bench")!;
     expect(bench).toMatchObject({
@@ -261,7 +322,7 @@ describe("computeCompletion: fail", () => {
       t2Stage: "3x10",
       t2FailCount: 0,
       t2LastWorkoutDate: NOW,
-      recentAvgRPEs: [9],
+      recentAvgRPEs: [],
       synced: false,
     });
   });
@@ -402,6 +463,78 @@ describe("computeCompletion: home-adapted workout", () => {
   });
 });
 
+describe("computeCompletion: T3 progression", () => {
+  const maintaining = { ...SETTINGS, trainingPhase: { ...SETTINGS.trainingPhase, mode: "maintaining" as const } };
+
+  it("adds 5 lb when the last set reaches 25 reps, and changes nothing else", () => {
+    const seeded = seedLiftStates();
+    const result = computeCompletion(completion({ sets: latT3(25) }));
+    expect(result.liftStateUpdates).toEqual([
+      { ...seeded.find((s) => s.exerciseId === "lat_pulldown"), t3Weight: 95, synced: false },
+    ]);
+  });
+
+  it("24 reps on the last set is not enough", () => {
+    expect(computeCompletion(completion({ sets: latT3(24) })).liftStateUpdates).toEqual([]);
+  });
+
+  it("while cutting, 50 total reps without a 25-rep last set does not progress", () => {
+    expect(SETTINGS.trainingPhase.mode).toBe("cutting");
+    expect(computeCompletion(completion({ sets: latT3(20) })).liftStateUpdates).toEqual([]);
+  });
+
+  it("outside a cut, 50 total reps is enough", () => {
+    const result = computeCompletion(completion({ sets: latT3(20), settings: maintaining }));
+    expect(byId(result.liftStateUpdates, "lat_pulldown")!.t3Weight).toBe(95);
+  });
+
+  it("uses the last set logged, not the best set", () => {
+    const sets = latT3(15);
+    sets[0] = { ...sets[0], actualReps: 25 };
+    expect(computeCompletion(completion({ sets })).liftStateUpdates).toEqual([]);
+  });
+
+  it("a partially completed T3 changes nothing, whatever the reps", () => {
+    const sets = makeSets("lat_pulldown", "T3", 2, 30, { weight: 90 });
+    expect(
+      computeCompletion(completion({ sets, settings: maintaining })).liftStateUpdates
+    ).toEqual([]);
+  });
+
+  it.each(["skipped_pain", "reduced_run_fatigue", "reduced_equipment"] as const)(
+    "a %s set freezes T3 progression",
+    (status) => {
+      const sets = latT3(25);
+      sets[1] = { ...sets[1], status };
+      expect(computeCompletion(completion({ sets })).liftStateUpdates).toEqual([]);
+    }
+  );
+
+  it("a home-substituted T3 counts as a pass", () => {
+    const session = makeSession({ location: "home" });
+    const sets = latT3(25, {
+      location: "home",
+      isSubstituted: true,
+      substituteExerciseId: "db_row",
+      weight: 35,
+      originalWeight: 90,
+    });
+    const result = computeCompletion(completion({ session, sets }));
+    expect(byId(result.liftStateUpdates, "lat_pulldown")!.t3Weight).toBe(95);
+  });
+
+  it("progresses alongside T1 and T2, after them in the update order", () => {
+    const result = computeCompletion(
+      completion({ sets: [...squatT1(), ...benchT2(), ...latT3(26)] })
+    );
+    expect(result.liftStateUpdates.map((u) => u.exerciseId)).toEqual([
+      "squat",
+      "bench",
+      "lat_pulldown",
+    ]);
+  });
+});
+
 describe("computeCompletion: guards", () => {
   it("skips template exercises with no lift state", () => {
     const liftStates = seedLiftStates().filter((ls) => ls.exerciseId !== "squat");
@@ -459,7 +592,7 @@ describe("computeCompletion: one exercise as both T1 and T2", () => {
       t2Weight: 145,
       t1LastWorkoutDate: NOW,
       t2LastWorkoutDate: NOW,
-      recentAvgRPEs: [8, 6],
+      recentAvgRPEs: [8],
       recentAMRAPReps: [5],
       synced: false,
     });

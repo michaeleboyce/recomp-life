@@ -2,25 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { neonSql } from '@/db/drizzle';
 import {
   isSyncAuthorized,
+  isSyncTableName,
   findUnknownColumns,
   toPostgresRow,
+  buildUpsert,
   SYNC_ALLOWED_COLUMNS,
-  type SyncTableName,
 } from '@/lib/syncGuard';
-
-const PG_TABLE_NAMES: Record<string, string> = {
-  workouts: 'workouts', sets: 'sets', runs: 'runs', activities: 'activities', bodyweight: 'bodyweight',
-  painEntries: 'pain_entries', estimated1RMs: 'estimated_1rms',
-  liftStates: 'lift_states', userProfile: 'user_profile', readinessLogs: 'readiness_logs',
-};
-
-const PK_COLUMNS: Record<string, string> = {
-  workouts: 'id', sets: 'id', runs: 'id', activities: 'id', bodyweight: 'id',
-  painEntries: 'id', estimated1RMs: 'id', liftStates: 'exercise_id',
-  userProfile: 'id', readinessLogs: 'id',
-};
-
-const VALID_TABLES = new Set(Object.keys(PG_TABLE_NAMES));
 
 export async function POST(request: NextRequest) {
   if (!isSyncAuthorized(request.headers.get('authorization'), process.env.SYNC_SECRET)) {
@@ -33,7 +20,7 @@ export async function POST(request: NextRequest) {
       rows: Record<string, unknown>[];
     };
 
-    if (!VALID_TABLES.has(table)) {
+    if (!isSyncTableName(table)) {
       return NextResponse.json({ error: `Unknown table: ${table}` }, { status: 400 });
     }
 
@@ -41,13 +28,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, count: 0 });
     }
 
-    const pgTableName = PG_TABLE_NAMES[table];
-    const pk = PK_COLUMNS[table];
-    const allowedColumns = SYNC_ALLOWED_COLUMNS[table as SyncTableName];
+    const allowedColumns = SYNC_ALLOWED_COLUMNS[table];
 
-    // Column names are interpolated into the SQL below, so every one must be a
-    // known schema column. Validate all rows before writing any of them.
-    const mappedRows = rows.map((row) => toPostgresRow(table as SyncTableName, row));
+    // Column names are interpolated into the SQL, so every one must be a known
+    // schema column. Validate all rows before writing any of them.
+    const mappedRows = rows.map((row) => toPostgresRow(table, row));
     for (const mapped of mappedRows) {
       if (findUnknownColumns(Object.keys(mapped), allowedColumns).length > 0) {
         return NextResponse.json(
@@ -58,20 +43,8 @@ export async function POST(request: NextRequest) {
     }
 
     for (const mapped of mappedRows) {
-      const columns = Object.keys(mapped);
-      const values = Object.values(mapped);
-
-      const colList = columns.map(c => `"${c}"`).join(', ');
-      const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
-      const updateSet = columns
-        .filter(c => c !== 'client_id' && c !== pk)
-        .map(c => `"${c}" = EXCLUDED."${c}"`)
-        .join(', ');
-
-      await neonSql.query(
-        `INSERT INTO "${pgTableName}" (${colList}) VALUES (${placeholders}) ON CONFLICT ("client_id") DO UPDATE SET ${updateSet}`,
-        values
-      );
+      const { text, values } = buildUpsert(table, mapped);
+      await neonSql.query(text, values);
     }
 
     return NextResponse.json({ success: true, count: rows.length });

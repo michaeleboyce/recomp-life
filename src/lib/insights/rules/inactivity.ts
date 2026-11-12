@@ -12,7 +12,7 @@ const BODY: Record<InactivityAlertLevel, string> = {
 
 /**
  * Days since the last completed workout, as InactivityBanner computes it. A user with
- * no completed workout at all gets nothing (the banner would call that "3+ weeks").
+ * no completed workout at all gets nothing.
  */
 export function inactivityInsights(ctx: InsightContext): Insight[] {
   let last: Date | null = null;
@@ -21,11 +21,10 @@ export function inactivityInsights(ctx: InsightContext): Insight[] {
     const d = toDate(w.completedAt);
     if (isValidDate(d) && (!last || d.getTime() > last.getTime())) last = d;
   }
-  if (!last) return [];
 
   const days = getDaysSinceLastWorkout(last, ctx.now);
   const alert = checkInactivity(days);
-  if (!alert) return [];
+  if (days === null || !alert) return [];
 
   return [
     {
