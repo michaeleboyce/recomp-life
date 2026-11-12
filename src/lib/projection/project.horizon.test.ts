@@ -173,3 +173,19 @@ describe("projection horizon gate", () => {
     expect(p.reliableHorizonNote).toBe("");
   });
 });
+
+describe("fitWindowWeeks", () => {
+  it("is the span of the results the trend was actually fitted to", () => {
+    expect(project(FOUR_STEADY).fitWindowWeeks).toBeCloseTo(3, 9);
+    expect(project(TEN_NOISY).fitWindowWeeks).toBeCloseTo(9, 9);
+  });
+
+  it("leaves out results older than the trend window", () => {
+    const old = weekly([150, 160, 170]).map((p) => ({ ...p, t: p.t - 40 * MS_PER_WEEK }));
+    expect(project([...old, ...TEN_NOISY]).fitWindowWeeks).toBeCloseTo(9, 9);
+  });
+
+  it("is 0 without enough data", () => {
+    expect(project(weekly([200, 205, 210])).fitWindowWeeks).toBe(0);
+  });
+});

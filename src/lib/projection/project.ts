@@ -49,6 +49,11 @@ export interface Projection {
   /** Plain-language assumptions to print under the chart. */
   assumptions: string[];
   /**
+   * Weeks from the earliest to the latest result the trend was fitted to (0 without
+   * a fit): what "built from about N weeks of your own data" should quote.
+   */
+  fitWindowWeeks: number;
+  /**
    * How many weeks ahead the history supports looking (`maxReliableWeeks` of the
    * fitted points); 0 without a fit. The points are still computed past it.
    */
@@ -346,6 +351,7 @@ function insufficientData(): Projection {
     assumptions: [
       "Not enough data: a projection needs at least four recent estimated-1RM results.",
     ],
+    fitWindowWeeks: 0,
     maxReliableWeeks: 0,
     beyondReliableHorizon: false,
     reliableHorizonNote: "",
@@ -531,6 +537,7 @@ export function projectE1RM(input: {
     },
     evidenceIds: [...PROJECTION_EVIDENCE_IDS],
     assumptions,
+    fitWindowWeeks: fit.spanWeeks,
     maxReliableWeeks: reliableWeeks,
     beyondReliableHorizon,
     reliableHorizonNote,
