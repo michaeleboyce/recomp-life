@@ -66,6 +66,18 @@
   --color-plate-5: var(--plate-5);
   --color-plate-2p5: var(--plate-2p5);
   --color-plate-other: var(--plate-other);
+  --color-chart-line: var(--chart-line);
+  --color-chart-area: var(--chart-area);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-axis: var(--chart-axis);
+  --color-chart-point-ring: var(--chart-point-ring);
+  --color-chart-inspect: var(--chart-inspect);
+  --color-chart-series-2: var(--chart-series-2);
+  --color-chart-series-3: var(--chart-series-3);
+  --color-chart-series-4: var(--chart-series-4);
+  --color-chart-band: var(--chart-band);
+  --color-chart-good: var(--chart-good);
+  --color-chart-warn: var(--chart-warn);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -143,6 +155,23 @@
   --tier-accessory-soft: oklch(0.50 0.14 300 / 10%);
   --tier-warmup: oklch(0.48 0.03 250);
   --tier-warmup-soft: oklch(0.48 0.03 250 / 12%);
+
+  /* Chart kit (src/components/chart-kit). Series colours were checked with the
+     dataviz palette validator against the page background: lightness band, chroma,
+     colour-blind separation (all pairs) and 3:1 contrast. Each step differs in
+     lightness as well as hue; overlay lines also differ in dash pattern. */
+  --chart-line: oklch(0.52 0.11 160);
+  --chart-area: oklch(0.52 0.11 160 / 12%);
+  --chart-grid: oklch(0 0 0 / 8%);
+  --chart-axis: oklch(0.50 0.01 260); /* 6.0:1 on the background */
+  --chart-point-ring: var(--background);
+  --chart-inspect: oklch(0.20 0 0);
+  --chart-series-2: oklch(0.44 0.15 255);
+  --chart-series-3: oklch(0.66 0.16 50);
+  --chart-series-4: oklch(0.58 0.18 300);
+  --chart-band: oklch(0.50 0.01 260 / 10%);
+  --chart-good: oklch(0.55 0.15 145);
+  --chart-warn: oklch(0.62 0.15 70);
 }
 
 .dark {
@@ -204,6 +233,20 @@
   --tier-accessory-soft: oklch(0.74 0.10 300 / 18%);
   --tier-warmup: oklch(0.72 0.03 250);
   --tier-warmup-soft: oklch(0.72 0.03 250 / 18%);
+
+  /* Chart kit */
+  --chart-line: oklch(0.67 0.13 160);
+  --chart-area: oklch(0.67 0.13 160 / 14%);
+  --chart-grid: oklch(1 0 0 / 7%);
+  --chart-axis: oklch(0.70 0.01 260); /* 7.5:1 on the background, 7.0:1 on a card */
+  --chart-point-ring: var(--background);
+  --chart-inspect: oklch(0.97 0 0);
+  --chart-series-2: oklch(0.51 0.15 252);
+  --chart-series-3: oklch(0.60 0.16 45);
+  --chart-series-4: oklch(0.65 0.15 305);
+  --chart-band: oklch(0.80 0.01 260 / 10%);
+  --chart-good: oklch(0.72 0.15 150);
+  --chart-warn: oklch(0.80 0.14 80);
 }
 
 @layer base {
