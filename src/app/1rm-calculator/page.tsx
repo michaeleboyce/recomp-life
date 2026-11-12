@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { EXERCISES } from "@/lib/exercises";
 import { calculateE1RM } from "@/lib/e1rm";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 
 const MAIN_EXERCISE_IDS = ["squat", "bench", "deadlift", "ohp"];
 
@@ -128,6 +129,8 @@ export default function OneRMCalculatorPage() {
                   Based on {weight} lbs x {reps} reps (Epley formula)
                 </p>
               </div>
+
+              <EvidenceLine ruleId="e1rm-estimate" />
 
               {/* Percentage table */}
               <div>

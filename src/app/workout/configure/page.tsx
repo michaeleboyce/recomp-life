@@ -18,6 +18,7 @@ import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { generateWarmUpSets } from "@/lib/warmups";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
+import { RECOVERY_HOURS } from "@/lib/recovery";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,7 @@ import { ReadinessCheck } from "@/components/PreWorkout/ReadinessCheck";
 import { TechniqueChecklist } from "@/components/PreWorkout/TechniqueChecklist";
 import { AccessoryPicker } from "@/components/PreWorkout/AccessoryPicker";
 import { TimeEstimate } from "@/components/PreWorkout/TimeEstimate";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 
 import type {
   WorkoutLocation,
@@ -307,7 +309,7 @@ function ConfigureWorkoutContent() {
       }
 
       const hoursSince = (now.getTime() - mostRecent.getTime()) / (1000 * 60 * 60);
-      if (hoursSince < 48) {
+      if (hoursSince < RECOVERY_HOURS.ready) {
         const exercise = EXERCISES[tmplEx.exerciseId];
         warnings.push({
           exerciseName: exercise?.name ?? tmplEx.exerciseId,
@@ -519,6 +521,9 @@ function ConfigureWorkoutContent() {
                 <p className="text-sm text-muted-foreground">{runAdvisory.message}</p>
               </div>
             </div>
+            {runAdvisory.evidenceId && (
+              <EvidenceLine ruleId={runAdvisory.evidenceId} />
+            )}
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
                 Proceed
@@ -533,21 +538,24 @@ function ConfigureWorkoutContent() {
           </div>
         )}
 
-        {runAdvisory && !runAdvisoryDismissed && runAdvisory.level === "strong_rest" && (
+        {runAdvisory && !runAdvisoryDismissed && runAdvisory.level === "strong" && (
           <div className="rounded-xl border border-red-700 bg-red-900/30 p-4 space-y-3">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-red-400">Strong Rest Recommended</p>
+                <p className="text-sm font-semibold text-red-400">Legs may still be fatigued</p>
                 <p className="text-sm text-muted-foreground">{runAdvisory.message}</p>
               </div>
             </div>
+            {runAdvisory.evidenceId && (
+              <EvidenceLine ruleId={runAdvisory.evidenceId} />
+            )}
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => setRunAdvisoryDismissed(true)}>
-                Proceed anyway
+                Proceed
               </Button>
-              <Button size="sm" variant="destructive" onClick={() => router.push("/")}>
-                Rest today
+              <Button size="sm" variant="outline" onClick={() => router.push("/")}>
+                Skip today
               </Button>
             </div>
           </div>
@@ -565,6 +573,7 @@ function ConfigureWorkoutContent() {
                 ))}
               </div>
             </div>
+            <EvidenceLine ruleId="recovery-windows" />
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
                 <input
@@ -677,6 +686,7 @@ function ConfigureWorkoutContent() {
                     <span className="font-mono tabular-nums">{suggestion.currentWeight}</span> to{" "}
                     <span className="font-mono tabular-nums">{suggestion.suggestedWeight} lbs</span>.
                   </p>
+                  <EvidenceLine ruleId={suggestion.evidenceId} />
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -753,6 +763,7 @@ function ConfigureWorkoutContent() {
                           <ConfidenceBadge
                             level={adaptation.confidenceLevel}
                           />
+                          <EvidenceLine ruleId="dumbbell-conversion" variant="icon" />
                         </div>
                         {/* Alternative picker */}
                         {adaptation.alternatives.length > 1 && (

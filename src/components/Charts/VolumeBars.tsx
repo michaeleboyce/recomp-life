@@ -5,6 +5,7 @@ import { db } from "@/db/local";
 import { calculateGroupVolume } from "@/lib/volumeTracking";
 import { MUSCLE_GROUP_ORDER } from "@/lib/muscles";
 import { getMonday } from "@/lib/dates";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import {
   BarChart,
   Bar,
@@ -69,8 +70,9 @@ export default function VolumeBars({ weekStartDate }: VolumeBarsProps) {
 
   return (
     <div>
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+      <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
         Weekly Volume (Sets per Muscle Group)
+        <EvidenceLine ruleId="weekly-volume" variant="icon" />
       </h4>
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">

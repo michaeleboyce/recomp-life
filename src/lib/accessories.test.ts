@@ -133,9 +133,15 @@ describe("roundToNearest5", () => {
 });
 
 describe("getPhaseAccessoryCap", () => {
-  it("returns 2 for cutting phase", () => {
+  it("returns 3 for cutting phase (volume is not reduced in a deficit)", () => {
     const phase: TrainingPhase = { mode: "cutting" };
-    expect(getPhaseAccessoryCap(phase)).toBe(2);
+    expect(getPhaseAccessoryCap(phase)).toBe(3);
+  });
+
+  it("never caps cutting below maintaining", () => {
+    expect(getPhaseAccessoryCap({ mode: "cutting" })).toBeGreaterThanOrEqual(
+      getPhaseAccessoryCap({ mode: "maintaining" })
+    );
   });
 
   it("returns 3 for maintaining phase", () => {

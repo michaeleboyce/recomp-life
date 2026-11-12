@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import { EXERCISES } from "@/lib/exercises";
 import { HOME_ACCESSORY_ALTERNATIVES } from "@/lib/workoutTemplates";
 import { getPreference } from "@/lib/exercisePreferences";
+import { getPhaseAccessoryCap } from "@/lib/accessories";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import type { ExercisePreferences, TrainingPhase, WorkoutLocation } from "@/types";
 
 interface AccessoryPickerProps {
@@ -15,25 +17,15 @@ interface AccessoryPickerProps {
   exercisePreferences?: ExercisePreferences;
 }
 
-function getMaxAccessories(phase: TrainingPhase): number {
-  switch (phase.mode) {
-    case "cutting":
-      return 2;
-    case "maintaining":
-      return 3;
-    case "bulking":
-      return 4;
-  }
-}
-
 function getPhaseLabel(phase: TrainingPhase): string {
+  const max = getPhaseAccessoryCap(phase);
   switch (phase.mode) {
     case "cutting":
-      return "Cutting mode: max 2 recommended";
+      return `Cutting: keep your usual volume, max ${max} recommended`;
     case "maintaining":
-      return "Maintaining: max 3 recommended";
+      return `Maintaining: max ${max} recommended`;
     case "bulking":
-      return "Bulking: max 4 recommended";
+      return `Bulking: max ${max} recommended`;
   }
 }
 
@@ -45,7 +37,7 @@ export function AccessoryPicker({
   location = "gym",
   exercisePreferences,
 }: AccessoryPickerProps) {
-  const maxAccessories = getMaxAccessories(trainingPhase);
+  const maxAccessories = getPhaseAccessoryCap(trainingPhase);
   const atMax = selectedAccessories.length >= maxAccessories;
 
   // Filter gym-only accessories at home, replacing with home alternatives.
@@ -85,8 +77,11 @@ export function AccessoryPicker({
     <div className="space-y-3">
       <div className="space-y-1">
         <h3 className="text-sm font-semibold">Add Accessories?</h3>
-        <p className="text-xs text-muted-foreground">
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           ({getPhaseLabel(trainingPhase)})
+          {trainingPhase.mode === "cutting" && (
+            <EvidenceLine ruleId="accessories-in-cut" variant="icon" />
+          )}
         </p>
       </div>
 

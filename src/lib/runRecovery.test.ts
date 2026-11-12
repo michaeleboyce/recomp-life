@@ -78,18 +78,39 @@ describe('evaluateRunImpact', () => {
   it('includes glycogen depletion note for long run >=45min while cutting', () => {
     const now = new Date();
     const run = makeRun({
-      date: hoursAgo(6, now),
+      date: hoursAgo(5, now),
       category: 'long',
       durationMinutes: 50,
       perceivedEffort: 4,
     });
 
     const result = evaluateRunImpact([run], true, now, cuttingPhase);
-    expect(result.level).toBe('strong_rest');
+    expect(result.level).toBe('strong');
     expect(result.message).toContain('glycogen');
   });
 
-  it('returns strong_rest advisory for run <12h ago with effort >=4', () => {
+  it('returns strong advisory for a hard run within 6h, suggesting a load reduction', () => {
+    const now = new Date();
+    const run = makeRun({
+      date: hoursAgo(4, now),
+      perceivedEffort: 4,
+    });
+
+    const result = evaluateRunImpact([run], true, now, defaultPhase);
+    expect(result.level).toBe('strong');
+    expect(result.suggestedAction).toBe('reduce_10');
+  });
+
+  it('never tells the lifter to rest or skip', () => {
+    const now = new Date();
+    const run = makeRun({ date: hoursAgo(1, now), perceivedEffort: 5, durationMinutes: 90, category: 'long' });
+
+    const result = evaluateRunImpact([run], true, now, defaultPhase);
+    expect(result.level).toBe('strong');
+    expect(result.message).not.toMatch(/\brest\b|skip/i);
+  });
+
+  it('downgrades a hard run 8h ago to the standard advisory (6h gap is enough)', () => {
     const now = new Date();
     const run = makeRun({
       date: hoursAgo(8, now),
@@ -97,8 +118,42 @@ describe('evaluateRunImpact', () => {
     });
 
     const result = evaluateRunImpact([run], true, now, defaultPhase);
-    expect(result.level).toBe('strong_rest');
-    expect(result.suggestedAction).toBe('rest');
+    expect(result.level).toBe('advisory');
+  });
+
+  it('treats a 45+ minute tempo run within 6h as hard even at moderate effort', () => {
+    const now = new Date();
+    const run = makeRun({
+      date: hoursAgo(3, now),
+      category: 'tempo',
+      durationMinutes: 50,
+      perceivedEffort: 3,
+    });
+
+    const result = evaluateRunImpact([run], true, now, defaultPhase);
+    expect(result.level).toBe('strong');
+  });
+
+  it('gives no advisory for a long easy run at low effort, even 3h ago', () => {
+    const now = new Date();
+    const run = makeRun({
+      date: hoursAgo(3, now),
+      category: 'easy',
+      durationMinutes: 60,
+      perceivedEffort: 2,
+    });
+
+    const result = evaluateRunImpact([run], true, now, defaultPhase);
+    expect(result.level).toBe('none');
+  });
+
+  it('uses the most recent run when several are in the window', () => {
+    const now = new Date();
+    const hardOlder = makeRun({ id: 'a', date: hoursAgo(20, now), perceivedEffort: 5 });
+    const easyRecent = makeRun({ id: 'b', date: hoursAgo(2, now), category: 'easy', perceivedEffort: 1 });
+
+    const result = evaluateRunImpact([hardOlder, easyRecent], true, now, defaultPhase);
+    expect(result.level).toBe('none');
   });
 
   it('returns no advisory for run <24h before UPPER body day', () => {

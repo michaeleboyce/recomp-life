@@ -5,6 +5,7 @@ import { db } from "@/db/local";
 import { getE1RMTrend, type E1RMTrend } from "@/lib/e1rm";
 import { EXERCISES } from "@/lib/exercises";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 
 const MAIN_LIFTS = ["squat", "bench", "deadlift", "ohp"] as const;
 
@@ -38,7 +39,10 @@ export default function E1RMSummary() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Estimated 1RMs</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">
+          Estimated 1RMs
+          <EvidenceLine ruleId="e1rm-estimate" variant="icon" />
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {!hasAnyE1RM ? (

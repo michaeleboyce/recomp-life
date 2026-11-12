@@ -1,4 +1,5 @@
 import type { InactivityAlert } from "@/types";
+import { LONG_BREAK_DAYS } from "./recovery";
 
 export function getDaysSinceLastWorkout(
   lastCompletedWorkoutDate: Date | null,
@@ -8,6 +9,15 @@ export function getDaysSinceLastWorkout(
   return (now.getTime() - lastCompletedWorkoutDate.getTime()) / (1000 * 60 * 60 * 24);
 }
 
+/**
+ * Reminder levels by days since the last completed workout.
+ *
+ * A week or two off costs little or no strength, so the first two levels only
+ * nudge. Easing back in is suggested from LONG_BREAK_DAYS, the same threshold
+ * the weight-decay rule uses.
+ *
+ * @evidence time-off
+ */
 export function checkInactivity(daysSinceLastWorkout: number): InactivityAlert | null {
   if (daysSinceLastWorkout < 5) return null;
 
@@ -19,7 +29,7 @@ export function checkInactivity(daysSinceLastWorkout: number): InactivityAlert |
     };
   }
 
-  if (daysSinceLastWorkout < 10) {
+  if (daysSinceLastWorkout < LONG_BREAK_DAYS) {
     return {
       level: "urgent",
       message: "It's been over a week. Your consistency streak is at risk!",
@@ -29,7 +39,7 @@ export function checkInactivity(daysSinceLastWorkout: number): InactivityAlert |
 
   return {
     level: "detraining",
-    message: "It's been 10+ days. Start back at 85% to avoid injury.",
-    prescription: "ramp_up_85",
+    message: "It's been 3+ weeks. Ease back in with slightly lighter weights and build back up.",
+    prescription: "ease_back_in",
   };
 }

@@ -154,6 +154,11 @@ function detectSignals(
  * - 2+ signals across any lifts -> "systemic" alert
  * - 1 signal -> "watch" level (informational)
  * - 0 signals -> null
+ *
+ * Not connected to the UI. Before connecting, see the activation notes on
+ * the rule: RPE and AMRAP signals must be compared at equal load.
+ *
+ * @evidence fatigue-detection
  */
 export function checkSystemicFatigue(
   liftStates: LiftState[],
@@ -194,6 +199,10 @@ export function checkSystemicFatigue(
  * - Cutting: -15% weight, half T3 volume, drop all accessories, RPE 6-7
  * - Maintaining: -10% weight, -25% T3 volume, max 1 accessory, RPE 6-7
  * - Bulking: -10% weight, keep T3 volume, max 1 accessory, RPE 6-7
+ *
+ * Not connected to the UI.
+ *
+ * @evidence deload
  */
 export function generateDeloadPrescription(
   phase: TrainingPhase

@@ -5,7 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
 import { EXERCISES } from "@/lib/exercises";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import { calculateE1RM, isNewPR } from "@/lib/e1rm";
+import { calculateE1RM, isE1RMEligibleSet, isNewPR } from "@/lib/e1rm";
 import { dumbbellToBarbell } from "@/lib/dbConversion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -171,8 +171,8 @@ function WorkoutEntry({ session, allE1RMs }: WorkoutEntryProps) {
   const amrapSet = t1Sets?.sets.find((s) => s.isAMRAP);
   const amrapReps = amrapSet?.actualReps ?? null;
   const e1rm =
-    amrapSet
-      ? calculateE1RM(amrapSet.weight, amrapSet.actualReps)
+    amrapSet && isE1RMEligibleSet("T1", true, amrapSet.actualReps)
+      ? calculateE1RM(amrapSet.weight, amrapSet.actualReps, amrapSet.rpe)
       : null;
 
   // Check if it's a PR

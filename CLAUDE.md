@@ -30,12 +30,27 @@ A mobile-first Next.js PWA (with Capacitor for native iOS/Android) for tracking 
 - All durations are in **seconds** internally
 - Every record gets a `clientId` (UUID) for sync deduplication
 - Dark mode is the default theme
+- Use `src/lib/evidence/` for the research behind coaching rules (see Evidence Convention)
 
 ## Testing
 - TDD approach: write failing test → implement → verify
 - All `src/lib/` functions must have corresponding test files
 - Run tests: `npx vitest run`
 - Watch mode: `npx vitest`
+- Regenerate the rules reference: `npm run docs:evidence`
+- Check research links (needs network): `npm run check:links`
+
+## Evidence Convention
+`src/lib/evidence/` is the single source of truth for every coaching rule: what the app does, why, how strong the research is, linked sources, where it is implemented and where it is shown. The in-app citations, the `/research` page and `docs/coaching-rules.md` are generated from it.
+
+- Every coaching threshold or suggestion has a rule in `src/lib/evidence/rules/<area>.ts`
+- Changing a threshold requires a cited source or an explicit `heuristic` grade, plus an entry in `changelog.ts`
+- Rule text reads its numbers from exported lib constants; do not hard-code values in rule descriptions
+- Code that implements a rule carries an `@evidence <rule-id>` doc-comment tag
+- UI that acts on a rule shows `<EvidenceLine ruleId="..." />` (`hideLibraryLink` during an active workout)
+- Never cite a paper for a claim it does not make; grade weak support as `limited` and say why in `caveat`
+- `docs/coaching-rules.md` is generated; never edit it by hand
+- Full procedure: `docs/research/ADDING_RESEARCH.md`
 
 ## GZCLP Program Rules (Critical)
 - Rotation: A1 → B1 → A2 → B2 → repeat (never changes based on location)

@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: Home, alsoActive: [] as string[] },
   { href: "/history", label: "History", icon: Clock, alsoActive: [] as string[] },
   { href: "/program", label: "Program", icon: BookOpen, alsoActive: [] as string[] },
-  { href: "/tools", label: "Tools", icon: Wrench, alsoActive: ["/exercises", "/1rm-calculator", "/muscles"] },
+  { href: "/tools", label: "Tools", icon: Wrench, alsoActive: ["/exercises", "/1rm-calculator", "/muscles", "/research"] },
 ] as const;
 
 export default function BottomNav() {

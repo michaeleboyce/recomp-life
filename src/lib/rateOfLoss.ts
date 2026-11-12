@@ -3,6 +3,10 @@
  *
  * Calculates weekly rate of weight loss from a window of daily weigh-ins
  * and provides stall-protocol suggestions when progress plateaus.
+ *
+ * Not connected to the UI yet.
+ *
+ * @evidence rate-of-loss
  */
 
 export type RateZone = "green" | "yellow" | "red" | "stall";

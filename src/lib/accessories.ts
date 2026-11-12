@@ -52,7 +52,7 @@ export function getAccessoryRepRange(exerciseId: string): AccessoryRepRange {
   return { min: 12, max: 15, sets: 3 };
 }
 
-// ─── Accessory Progression (Double Progression, spec §4.4) ────────────────────
+// ─── Accessory Progression (Double Progression) ───────────────────────────────
 
 /**
  * Evaluates whether an accessory exercise should increase weight, maintain,
@@ -63,6 +63,10 @@ export function getAccessoryRepRange(exerciseId: string): AccessoryRepRange {
  * 2. If stuck for 3+ consecutive sessions at the same weight without hitting
  *    the top of the range, deload to 90% (rounded to nearest 5 lbs).
  * 3. Otherwise, maintain the current weight.
+ *
+ * Not connected to the UI yet.
+ *
+ * @evidence accessory-progression
  */
 export function evaluateAccessoryProgression(
   state: AccessoryState,
@@ -105,22 +109,26 @@ export function evaluateAccessoryProgression(
 // ─── Phase Accessory Cap ──────────────────────────────────────────────────────
 
 /**
- * Returns the maximum number of accessory exercises allowed for a given
+ * Maximum number of accessory exercises suggested per session, by phase.
+ *
+ * Cutting uses the same cap as maintaining: research on dieting lifters does
+ * not support reducing training volume in a deficit, and keeping volume up may
+ * help retain muscle. Bulking allows one more.
+ */
+export const PHASE_ACCESSORY_CAP: Record<TrainingPhase["mode"], number> = {
+  cutting: 3,
+  maintaining: 3,
+  bulking: 4,
+};
+
+/**
+ * Returns the maximum number of accessory exercises suggested for a given
  * training phase.
  *
- * - Cutting: 2 (minimize junk volume, protect recovery)
- * - Maintaining: 3
- * - Bulking: 4 (surplus supports more volume)
+ * @evidence accessories-in-cut
  */
 export function getPhaseAccessoryCap(phase: TrainingPhase): number {
-  switch (phase.mode) {
-    case "cutting":
-      return 2;
-    case "maintaining":
-      return 3;
-    case "bulking":
-      return 4;
-  }
+  return PHASE_ACCESSORY_CAP[phase.mode];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

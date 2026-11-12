@@ -23,7 +23,7 @@ const ITEMS: Record<LegendVariant, { color: string; label: string }[]> = {
     { color: RECOVERY_COLORS.recovering, label: "Recovering" },
     { color: RECOVERY_COLORS.ready, label: "Ready" },
     { color: RECOVERY_COLORS.primed, label: "Primed" },
-    { color: RECOVERY_COLORS.detraining, label: "Detraining" },
+    { color: RECOVERY_COLORS.detraining, label: "Long break" },
   ],
 };
 
