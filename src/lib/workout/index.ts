@@ -5,3 +5,4 @@ export * from "./buildPlan";
 export * from "./rehydrate";
 export * from "./logSet";
 export * from "./completeWorkout";
+export * from "./upcoming";

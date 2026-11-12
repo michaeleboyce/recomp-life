@@ -37,7 +37,8 @@ export const PROGRESSION_RULES = {
     sources: [],
     reviewedOn: "2026-11",
     implementedIn: ["src/lib/progression.ts#evaluateT1Progression"],
-    surfaces: ["src/components/WorkoutSummary/LiftResult.tsx"],
+    surfaces: [
+      "src/app/progress/upcoming/page.tsx","src/components/WorkoutSummary/LiftResult.tsx"],
   },
   "t3-progression": {
     area: "progression",

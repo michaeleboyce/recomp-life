@@ -85,7 +85,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Program rule
 - **Implemented in:** `src/lib/progression.ts` (`evaluateT1Progression`)
-- **Shown in:** `src/components/WorkoutSummary/LiftResult.tsx`
+- **Shown in:** `src/app/progress/upcoming/page.tsx`, `src/components/WorkoutSummary/LiftResult.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Complete every set and the weight goes up; miss and the scheme changes
