@@ -33,6 +33,9 @@ function proj(end: number, weeks = 12, status: Projection["status"] = "ok"): Pro
     gain: { v: end - 240, low: 0, high: 0 },
     evidenceIds: [],
     assumptions: [],
+    maxReliableWeeks: 12,
+    beyondReliableHorizon: false,
+    reliableHorizonNote: "",
     lastResultWeeksAgo: 0,
   };
 }

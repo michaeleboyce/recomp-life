@@ -11,6 +11,7 @@ import {
   type ProjectionScenario,
 } from "./index";
 import {
+  accumulatedWeeks,
   effectiveWeeklySets,
   MAX_ADHERENCE_MULTIPLIER,
   PROJECTION_EVIDENCE_IDS,
@@ -263,7 +264,11 @@ describe("projectE1RM", () => {
     const w = 4;
     // The scatter, or the minimum range when the scatter is smaller.
     const sd = Math.max(fit.residualSd, C.minResidualSdFraction * p.points[0].v);
-    const half = C.bandWidthSd * sd * (1 + C.bandGrowth * Math.sqrt(w));
+    // Updated when the range gained the rate term: the slope's standard error over
+    // the weeks the central line accumulates, in quadrature with the level term.
+    const level = sd * (1 + C.bandGrowth * Math.sqrt(w));
+    const rate = (sd / Math.sqrt(fit.timeSumSquares)) * accumulatedWeeks(w);
+    const half = C.bandWidthSd * Math.hypot(level, rate);
     expect(p.points[w].high - p.points[w].v).toBeCloseTo(half, 6);
     expect(p.points[w].v - p.points[w].low).toBeCloseTo(half, 6);
     expect(p.gain.high - p.gain.low).toBeCloseTo(p.points[WEEKS].high - p.points[WEEKS].low, 6);

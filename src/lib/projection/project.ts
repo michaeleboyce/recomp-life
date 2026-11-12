@@ -49,6 +49,19 @@ export interface Projection {
   /** Plain-language assumptions to print under the chart. */
   assumptions: string[];
   /**
+   * How many weeks ahead the history supports looking (`maxReliableWeeks` of the
+   * fitted points); 0 without a fit. The points are still computed past it.
+   */
+  maxReliableWeeks: number;
+  /** True when the horizon asked for is further ahead than `maxReliableWeeks`. */
+  beyondReliableHorizon: boolean;
+  /**
+   * One sentence saying what the limit is and why, for the screen to show beside a
+   * disabled horizon ("" without a fit). Also among `assumptions` when
+   * `beyondReliableHorizon` is true.
+   */
+  reliableHorizonNote: string;
+  /**
    * Weeks between the most recent result and `now` (0 with no data). Above
    * STALE_HISTORY_WEEKS the projection starts from that last result as it was and
    * says so in the assumptions.
@@ -83,6 +96,36 @@ export const MAX_SCENARIO_WIDENING = 2;
  */
 export const STALE_HISTORY_WEEKS = 4;
 
+/** However short the history, a fitted trend is shown at least this far ahead. */
+export const MIN_RELIABLE_WEEKS = 4;
+
+/**
+ * How many weeks ahead a trend fitted to `pointsUsed` results spanning `spanWeeks`
+ * can reasonably be projected. Rule: no further ahead than the span of history the
+ * trend was fitted to (to the nearest week), and never less than MIN_RELIABLE_WEEKS;
+ * 0 with fewer than MIN_TREND_POINTS results, which cannot be fitted at all.
+ *
+ * So four weekly results (a 3-week span) support 4 weeks, and 12 weeks needs results
+ * across the whole TREND_WINDOW_WEEKS window. This is a rule of thumb, not a research
+ * finding: a line through a short stretch says little about a longer one.
+ */
+export function maxReliableWeeks(pointsUsed: number, spanWeeks: number): number {
+  if (!(pointsUsed >= MIN_TREND_POINTS)) return 0;
+  const span = Number.isFinite(spanWeeks) ? Math.round(spanWeeks) : 0;
+  return Math.max(MIN_RELIABLE_WEEKS, span);
+}
+
+/**
+ * Weeks of gain at the starting rate that `week` weeks of decaying gains add up to:
+ * 1 + r + r^2 + ... (`week` terms, r = weeklyRateRetention). The central line is
+ * start + startingRate x accumulatedWeeks(week).
+ */
+export function accumulatedWeeks(week: number): number {
+  let total = 0;
+  for (let k = 0; k < week; k++) total += Math.pow(C.weeklyRateRetention, k);
+  return total;
+}
+
 /** The registry rules the projection's coefficients come from. */
 export const PROJECTION_EVIDENCE_IDS: RuleId[] = [
   "projection-dose-response",
@@ -104,6 +147,11 @@ function nonNegative(value: number): number {
 const fmt = (value: number, digits = 1) => value.toFixed(digits);
 const pct = (share: number) => `${Math.round(share * 100)}%`;
 const times = (multiplier: number) => `x${multiplier.toFixed(2)}`;
+/** "1 week", "3 weeks" (to the nearest whole week, at least 1). */
+function weeksPhrase(weeks: number): string {
+  const n = Math.max(1, Math.round(weeks));
+  return `${n} week${n === 1 ? "" : "s"}`;
+}
 
 /**
  * Weekly sets as the volume term sees them: sets of the lift itself plus sets from
@@ -298,6 +346,9 @@ function insufficientData(): Projection {
     assumptions: [
       "Not enough data: a projection needs at least four recent estimated-1RM results.",
     ],
+    maxReliableWeeks: 0,
+    beyondReliableHorizon: false,
+    reliableHorizonNote: "",
     lastResultWeeksAgo: 0,
   };
 }
@@ -331,12 +382,21 @@ function insufficientData(): Projection {
  *   number for it is in the registry, so the projection only warns.
  * - Path: from the start value the projection gains
  *   startingRate x weeklyRateRetention^k during week k+1.
- * - Range: value -/+ bandWidthSd x sd x (1 + bandGrowth x sqrt(week)) x widening,
- *   where sd = max(residualSd, minResidualSdFraction x the value now) (an exactly
+ * - Range: value -/+ bandWidthSd x sqrt(level^2 + rate^2) x widening, where
+ *   level = sd x (1 + bandGrowth x sqrt(week)) is the scatter of the results,
+ *   rate = slopeSe x accumulatedWeeks(week) is the uncertainty of the fitted rate
+ *   carried over the same weeks the central line accumulates (slopeSe = sd /
+ *   sqrt(timeSumSquares), the standard error of the least-squares slope: large for
+ *   few or closely spaced results),
+ *   sd = max(residualSd, minResidualSdFraction x the start value) (an exactly
  *   linear history still gets a range) and widening = scenarioWidening(dose x
  *   adherence x phase) (exactly 1 for an unchanged scenario, wider the further the
  *   scenario is from the baseline); never narrower than the week before, low end
  *   not below 0.
+ * - Horizon: `maxReliableWeeks` says how far ahead the history supports looking
+ *   (see the function). Points beyond it are still returned, with
+ *   `beyondReliableHorizon` set and the reason among the assumptions, so the screen
+ *   can disable those horizons.
  * - `gain`: horizon minus week 0; its low/high are the horizon's low/high minus the
  *   week-0 value.
  * - `weeks` is floored to a whole number; anything invalid counts as 0.
@@ -382,6 +442,10 @@ export function projectE1RM(input: {
   const startValue = stale ? latestValue : fit.valueAt(latest);
   const floorSd = C.minResidualSdFraction * Math.max(0, startValue);
   const rangeSd = Math.max(fit.residualSd, floorSd);
+  // The slope's standard error, from the same (floored) scatter as the level term.
+  const slopeSe = rangeSd / Math.sqrt(fit.timeSumSquares);
+  const reliableWeeks = maxReliableWeeks(fit.pointsUsed, fit.spanWeeks);
+  const beyondReliableHorizon = horizon > reliableWeeks;
   const points: ProjectedPoint[] = [];
   let value = startValue;
   let halfWidth = 0;
@@ -389,9 +453,11 @@ export function projectE1RM(input: {
     if (week > 0) {
       value += startingRatePerWeek * Math.pow(C.weeklyRateRetention, week - 1);
     }
+    const levelTerm = rangeSd * (1 + C.bandGrowth * Math.sqrt(week));
+    const rateTerm = slopeSe * accumulatedWeeks(week);
     halfWidth = Math.max(
       halfWidth,
-      C.bandWidthSd * rangeSd * (1 + C.bandGrowth * Math.sqrt(week)) * widening
+      C.bandWidthSd * Math.hypot(levelTerm, rateTerm) * widening
     );
     points.push({
       t: nowMs + week * MS_PER_WEEK,
@@ -406,7 +472,9 @@ export function projectE1RM(input: {
 
   // ── Assumptions, written from the actual inputs ──
   const assumptions: string[] = [];
-  const fitted = `fitted to ${fit.pointsUsed} results from the last ${TREND_WINDOW_WEEKS} weeks of history`;
+  const spanText = weeksPhrase(fit.spanWeeks);
+  const fitted = `fitted to ${fit.pointsUsed} results over about ${spanText}`;
+  const reliableHorizonNote = `The trend is fitted to ${fit.pointsUsed} results over about ${spanText}, and a line through a stretch that short says little about a longer one, so the projection is only shown ${weeksPhrase(reliableWeeks)} ahead. More results over more weeks extend it.`;
   if (flat) {
     assumptions.push(
       `Your recent estimates are not rising (${fmt(fit.slopePerWeek)} lbs per week, ${fitted}), so the model has no personal rate of gain to scale. It holds today's estimate level instead of projecting a decline, and changing sessions, sets or phase cannot move a rate of zero.`,
@@ -437,6 +505,10 @@ export function projectE1RM(input: {
       `The range reflects how much your past results scattered around the trend (about ${fmt(C.bandWidthSd * rangeSd)} lbs either side today) and widens the further ahead it looks.`
     );
   }
+  assumptions.push(
+    `The range also allows for the rate itself being uncertain (about ${fmt(C.bandWidthSd * slopeSe)} lbs per week either way): the fewer results behind the trend, the wider it gets with time.`
+  );
+  if (beyondReliableHorizon) assumptions.push(reliableHorizonNote);
   if (widening > 1) {
     assumptions.push(
       `This alternative is further from what you do now, so its range is ${pct(widening - 1)} wider: how much a change in training helps is itself uncertain.`
@@ -459,6 +531,9 @@ export function projectE1RM(input: {
     },
     evidenceIds: [...PROJECTION_EVIDENCE_IDS],
     assumptions,
+    maxReliableWeeks: reliableWeeks,
+    beyondReliableHorizon,
+    reliableHorizonNote,
     lastResultWeeksAgo,
     ...related,
   };

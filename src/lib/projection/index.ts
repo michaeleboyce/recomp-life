@@ -20,6 +20,8 @@ export type {
 } from "./project";
 export {
   projectE1RM,
+  maxReliableWeeks,
+  MIN_RELIABLE_WEEKS,
   MAX_SCENARIO_WIDENING,
   PROJECTION_EVIDENCE_IDS,
   resultsNeeded,
