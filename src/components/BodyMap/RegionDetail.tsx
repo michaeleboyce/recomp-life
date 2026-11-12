@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { v4 as uuidv4 } from "uuid";
 import { Info } from "lucide-react";
 import type { BodyRegion, SensationType, PainSorenessEntry } from "@/types";
 import { formatRegion } from "@/lib/painModifications";
-import { db } from "@/db/local";
+import { savePainEntry } from "@/lib/data/records";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -46,19 +45,16 @@ export default function RegionDetail({
   const handleSave = async () => {
     if (!region) return;
 
-    const entry: PainSorenessEntry = {
-      id: uuidv4(),
-      clientId: uuidv4(),
+    const fields = {
       date: new Date(),
       region,
       sensation,
       severity: severity as 1 | 2 | 3 | 4 | 5,
       notes: notes.trim() || undefined,
-      synced: false,
     };
 
-    await db.painEntries.put(entry);
-    onSave(entry);
+    const id = await savePainEntry(fields);
+    onSave({ ...fields, id, clientId: id, synced: false });
 
     // Check if red flag should be triggered (pain only)
     if (sensation === "pain" && severity >= 4) {

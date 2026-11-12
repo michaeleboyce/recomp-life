@@ -1,31 +1,12 @@
 "use client";
 
+import { tierStyle } from "@/lib/tierStyle";
 import type { WorkoutExerciseState } from "@/stores/workoutStore";
 
 interface WorkoutMiniMapProps {
   exercises: WorkoutExerciseState[];
   currentExerciseIndex: number;
   onTap: () => void;
-}
-
-function getTierFillColor(tier: string): string {
-  switch (tier) {
-    case "T1": return "bg-red-500";
-    case "T2": return "bg-orange-500";
-    case "T3": return "bg-blue-500";
-    case "accessory": return "bg-green-500";
-    default: return "bg-muted-foreground";
-  }
-}
-
-function getTierEmptyColor(tier: string): string {
-  switch (tier) {
-    case "T1": return "bg-red-500/20";
-    case "T2": return "bg-orange-500/20";
-    case "T3": return "bg-blue-500/20";
-    case "accessory": return "bg-green-500/20";
-    default: return "bg-muted";
-  }
 }
 
 export function WorkoutMiniMap({
@@ -61,10 +42,10 @@ export function WorkoutMiniMap({
                   key={setIdx}
                   className={`h-2 flex-1 rounded-full transition-all ${
                     setDone
-                      ? getTierFillColor(exercise.tier)
+                      ? tierStyle(exercise.tier).dot
                       : isCurrentSet
-                        ? `${getTierFillColor(exercise.tier)} animate-pulse`
-                        : getTierEmptyColor(exercise.tier)
+                        ? `${tierStyle(exercise.tier).dot} animate-pulse`
+                        : tierStyle(exercise.tier).dotMuted
                   }`}
                 />
               );

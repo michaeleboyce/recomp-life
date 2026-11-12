@@ -75,7 +75,7 @@ export default function EquipmentAdaptedResult({
       </p>
 
       {/* Status */}
-      <p className={passed ? "text-sm text-green-400" : "text-sm text-red-400"}>
+      <p className={passed ? "text-sm text-success" : "text-sm text-destructive"}>
         {passed ? "\u2713" : "\u2717"}{" "}
         {passed
           ? "Passed \u2014 progression tracks barbell weight"
@@ -89,10 +89,10 @@ export default function EquipmentAdaptedResult({
             key={s.id}
             className={`text-xs px-1.5 py-0.5 rounded ${
               s.status === "completed"
-                ? "bg-green-500/10 text-green-400"
+                ? "bg-success-soft text-success"
                 : s.status === "failed"
-                  ? "bg-red-500/10 text-red-400"
-                  : "bg-yellow-500/10 text-yellow-400"
+                  ? "bg-destructive-soft text-destructive"
+                  : "bg-warning-soft text-warning"
             }`}
           >
             Set {i + 1}: {s.actualReps}
