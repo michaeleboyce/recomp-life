@@ -63,7 +63,7 @@
 - Create `src/lib/anatomy/meshMapping.ts` (+ test): `classifyMuscleMesh(name, nameDetail)`.
 
 ### Task 3.2 Model build
-- Create `scripts/build-anatomy-model.ts`; run once; commit `public/models/anatomy.glb`, `public/models/NOTICE.md`, `src/lib/anatomy/meshManifest.json`.
+- Create `scripts/build-anatomy-model.mjs`; run once; commit `public/models/anatomy.glb`, `public/models/NOTICE.md`, `src/lib/anatomy/meshManifest.json`.
 - Copy Draco decoder to `public/draco/`.
 - Test against manifest: every `MuscleId` has left and right meshes.
 

@@ -14,7 +14,8 @@
 // The output is a modified copy of a CC BY-SA 4.0 work and stays under that
 // licence; see public/models/NOTICE.md.
 //
-// Run (Node 24+): node scripts/build-anatomy-model.ts
+// Run (Node 24+, which can import the .ts mapping file directly):
+//   node scripts/build-anatomy-model.mjs
 
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, statSync } from "node:fs";
@@ -35,8 +36,8 @@ const cacheFile = join(root, ".playwright-mcp/model-src/body.glb");
 const outFile = join(root, "public/models/anatomy.glb");
 const manifestFile = join(root, "src/lib/anatomy/meshManifest.json");
 
-async function loadSource(): Promise<Uint8Array> {
-  let bytes: Uint8Array;
+async function loadSource() {
+  let bytes;
   if (existsSync(cacheFile)) {
     bytes = readFileSync(cacheFile);
   } else {
@@ -60,17 +61,13 @@ const io = new NodeIO()
 
 const doc = await io.readBinary(await loadSource());
 
-interface ManifestEntry {
-  name: string;
-  muscle: string | null;
-  side: "L" | "R" | "C";
-}
-const manifest: ManifestEntry[] = [];
+/** @type {{ name: string, muscle: string | null, side: "L" | "R" | "C" }[]} */
+const manifest = [];
 let bones = 0;
 let dropped = 0;
 
 for (const node of doc.getRoot().listNodes()) {
-  const extras = node.getExtras() as Record<string, unknown>;
+  const extras = node.getExtras();
   const mesh = node.getMesh();
   const type = extras.type;
 

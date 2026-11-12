@@ -18,7 +18,7 @@ import {
 import { getWeeklyVolumeSummary } from "@/lib/volumeTracking";
 import { MUSCLE_GROUPS, MUSCLE_GROUP_ORDER, formatMuscle } from "@/lib/muscles";
 import { HEAT_COLORS, RECOVERY_COLORS } from "@/lib/anatomy/palette";
-import { MuscleMap } from "@/components/Anatomy/MuscleMap";
+import { Anatomy3D } from "@/components/Anatomy/Anatomy3D";
 import { MuscleLegend } from "@/components/Anatomy/MuscleLegend";
 import { MuscleInfoSheet } from "@/components/Anatomy/MuscleInfoSheet";
 import BodyMapSVG from "@/components/BodyMap/BodyMapSVG";
@@ -140,12 +140,13 @@ export default function MusclesPage() {
         </section>
       ) : (
         <>
-          <MuscleMap
+          <Anatomy3D
             heat={mode === "volume" ? data.weekHeat : undefined}
             colors={mode === "recovery" ? data.recoveryColors : undefined}
             selected={selected}
             onMusclePress={setSelected}
-            className="h-[340px] max-h-[52vh]"
+            orbit="free"
+            className="h-[380px] max-h-[56vh]"
             label={
               mode === "volume"
                 ? "Training load this week by muscle"

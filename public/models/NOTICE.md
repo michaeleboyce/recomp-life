@@ -9,7 +9,7 @@ from the [Z-Anatomy](https://www.z-anatomy.com/) dataset.
 (CC BY-SA 4.0), <https://creativecommons.org/licenses/by-sa/4.0/>. This
 modified file is distributed under the same licence.
 
-**Changes made** (by `scripts/build-anatomy-model.ts`):
+**Changes made** (by `scripts/build-anatomy-model.mjs`):
 
 - removed the descriptive text and links stored on each node
 - removed bursae and other meshes that are neither muscle nor bone

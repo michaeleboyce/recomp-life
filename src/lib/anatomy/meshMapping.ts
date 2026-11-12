@@ -2,7 +2,7 @@ import type { MuscleId } from "../../types/index.ts";
 
 /**
  * Maps the anatomical names in the 3D model (Z-Anatomy naming) to the app's
- * muscles. Used by scripts/build-anatomy-model.ts to tag each mesh; the
+ * muscles. Used by scripts/build-anatomy-model.mjs to tag each mesh; the
  * viewer then reads the tag.
  *
  * `name` is the muscle's common name in the model's metadata and `detail`
