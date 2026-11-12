@@ -62,7 +62,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Strong evidence
 - **Implemented in:** `src/lib/workoutTemplates.ts` (`WORKOUT_TEMPLATES`)
-- **Shown in:** `src/app/program/page.tsx`
+- **Shown in:** `src/app/progress/page.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Heavy sets first and 2+ sessions a week build strength best
