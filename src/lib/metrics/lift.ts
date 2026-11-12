@@ -71,8 +71,8 @@ export const e1rm = defineMetric(
 );
 
 /**
- * Per workout, the heaviest weight among the lift's T1 sets, or among its T2 sets on
- * a day it was not trained as T1. Workouts where it was neither are skipped.
+ * Per workout in which the lift was trained as T1, the heaviest weight among those
+ * sets. Days it was trained light (T2) or not at all are skipped.
  */
 export const workingWeight = defineMetric(
   {
@@ -85,16 +85,13 @@ export const workingWeight = defineMetric(
   },
   (source, params) =>
     perWorkout(source, params, (sets, exerciseId) => {
-      let tier: "T1" | "T2" = "T1";
-      let working = workingSetsFor(sets, exerciseId, "T1");
-      if (working.length === 0) {
-        tier = "T2";
-        working = workingSetsFor(sets, exerciseId, "T2");
-      }
+      // T1 days only: each lift is also trained light as a T2 on another day, and
+      // mixing the two would zigzag and report the light day as the latest weight.
+      const working = workingSetsFor(sets, exerciseId, "T1");
       if (working.length === 0) return null;
       return {
         v: Math.max(...working.map(plottedWeight)),
-        label: `${tier} ${working.length} x ${working[0].targetReps}`,
+        label: `T1 ${working.length} x ${working[0].targetReps}`,
       };
     })
 );

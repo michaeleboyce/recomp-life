@@ -287,20 +287,22 @@ describe("e1rm", () => {
 });
 
 describe("workingWeight", () => {
-  it("uses the T1 weight, falls back to T2, and plots a substitute's original weight", () => {
+  it("uses the T1 weight only, and plots a substitute's original weight", () => {
+    // The same lift is trained heavy (T1) one day and light (T2) another; mixing the
+    // two in one series would zigzag and make the latest value the light day's.
     const s = computeMetric("workingWeight", training, { exerciseId: "squat" });
-    expect(values(s)).toEqual([190, 135, 195]);
-    expect(times(s)).toEqual([MON_OCT_5.getTime(), THU_OCT_8.getTime(), MON_OCT_19.getTime()]);
-    expect(s.points.map((p) => p.refId)).toEqual(["w1", "w2", "w3"]);
-    expect(s.points.map((p) => p.label)).toEqual(["T1 5 x 3", "T2 3 x 10", "T1 5 x 3"]);
+    expect(values(s)).toEqual([190, 195]);
+    expect(times(s)).toEqual([MON_OCT_5.getTime(), MON_OCT_19.getTime()]);
+    expect(s.points.map((p) => p.refId)).toEqual(["w1", "w3"]);
+    expect(s.points.map((p) => p.label)).toEqual(["T1 5 x 3", "T1 5 x 3"]);
   });
 
   it("ignores originalWeight on a set that was not substituted (a load drop)", () => {
-    const w = workout("drop", MON_OCT_5, sets("bench", "T2", 90, [10, 10, 10], { originalWeight: 100 }));
+    const w = workout("drop", MON_OCT_5, sets("bench", "T1", 90, [3, 3, 3], { originalWeight: 100 }));
     expect(values(computeMetric("workingWeight", source({ workouts: [w] }), { exerciseId: "bench" }))).toEqual([90]);
   });
 
-  it("skips workouts where the lift was only T3 or absent", () => {
+  it("skips workouts where the lift was not trained as T1", () => {
     expect(computeMetric("workingWeight", training, { exerciseId: "lat_pulldown" }).points).toEqual([]);
   });
 });
@@ -716,7 +718,7 @@ describe("every metric over the demo data", () => {
 
   it("the lift series have the expected sizes", () => {
     expect(computeMetric("e1rm", src, { exerciseId: "squat" }).points).toHaveLength(6);
-    expect(computeMetric("workingWeight", src, { exerciseId: "squat" }).points).toHaveLength(12);
+    expect(computeMetric("workingWeight", src, { exerciseId: "squat" }).points).toHaveLength(6);
     expect(computeMetric("amrapReps", src, { exerciseId: "squat" }).points).toHaveLength(6);
     // Home sessions plot at the barbell-equivalent weight, so T1 squat never dips.
     const t1 = computeMetric("workingWeight", src, { exerciseId: "squat" }).points.filter((p) =>
