@@ -25,6 +25,9 @@ const MODEL_CENTER_Y = 0.9;
 const RESTING_3D = "#6b7080";
 const OTHER_3D = "#565a66";
 
+// Start downloading the model as soon as this code loads, not on first render.
+useGLTF.preload(MODEL_URL, DRACO_PATH);
+
 export interface Anatomy3DHandle {
   /** Turn the body to face the camera from the front (0) or back (PI). */
   setView: (view: "front" | "back" | "left" | "right") => void;
