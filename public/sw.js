@@ -1,6 +1,6 @@
 // v5: earlier versions cached API responses; the new name drops those caches.
 const CACHE_NAME = "recomp-life-v5";
-const PRECACHE_URLS = ["/", "/workout/configure", "/history", "/program", "/tools"];
+const PRECACHE_URLS = ["/", "/workout/configure", "/log", "/progress", "/more"];
 
 // API responses (sync data, session) are per-user and must always be live:
 // never cached, never served from cache.
