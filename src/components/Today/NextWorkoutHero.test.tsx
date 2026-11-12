@@ -7,7 +7,8 @@ import { initializeDatabase } from "@/db/init";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { describeNextWorkout } from "@/lib/workout/buildPlan";
-import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
+import { getNextWorkoutId, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
+import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
 import { EXERCISES } from "@/lib/exercises";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { WorkoutLocation } from "@/types";
@@ -111,6 +112,22 @@ describe("NextWorkoutHero", () => {
     render(<NextWorkoutHero />);
     const substitute = expectedPlan("home").plan.find((e) => e.substituteExerciseId)!;
     expect(await screen.findByText(EXERCISES[substitute.substituteExerciseId!].name)).toBeInTheDocument();
+  });
+
+  it("lists the two workouts after the next one, linking to the upcoming screen", async () => {
+    await seedDemo();
+    render(<NextWorkoutHero />);
+    const next = expectedPlan("gym").templateId;
+    const then = getNextWorkoutId(next);
+    const after = getNextWorkoutId(then);
+    const line = await screen.findByRole("link", { name: /^Coming up:/ });
+    expect(line).toHaveTextContent(
+      `Coming up: ${templateTitle(then).replace(" · ", " ")}, then ${templateTitle(after).replace(" · ", " ")}`
+    );
+    expect(line).toHaveAttribute("href", "/progress/upcoming?from=today");
+    // Below START, so it never pushes it down.
+    const start = screen.getByRole("link", { name: "START WORKOUT" });
+    expect(start.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("links START WORKOUT to the configure screen", async () => {

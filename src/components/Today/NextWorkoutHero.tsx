@@ -33,6 +33,7 @@ import {
   inSentence,
   shortLiftName,
 } from "./format";
+import { ComingUpLine } from "./ComingUpLine";
 
 const LOCATION_OPTIONS = [
   { value: "gym" as const, label: "Gym", icon: <Dumbbell className="size-3.5" aria-hidden="true" /> },
@@ -100,6 +101,9 @@ export function NextWorkoutHero() {
       >
         <Link href="/workout/configure">START WORKOUT</Link>
       </Button>
+
+      {/* Below START on purpose: it can never push the button out of view. */}
+      <ComingUpLine location={location} />
     </section>
   );
 }
