@@ -59,6 +59,13 @@
   --color-tier-accessory-soft: var(--tier-accessory-soft);
   --color-tier-warmup: var(--tier-warmup);
   --color-tier-warmup-soft: var(--tier-warmup-soft);
+  --color-plate-45: var(--plate-45);
+  --color-plate-35: var(--plate-35);
+  --color-plate-25: var(--plate-25);
+  --color-plate-10: var(--plate-10);
+  --color-plate-5: var(--plate-5);
+  --color-plate-2p5: var(--plate-2p5);
+  --color-plate-other: var(--plate-other);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -73,6 +80,14 @@
 }
 
 :root {
+  /* Weight plates keep their real-world colours in both themes. */
+  --plate-45: oklch(0.546 0.245 262.881);
+  --plate-35: oklch(0.795 0.184 86.047);
+  --plate-25: oklch(0.627 0.194 149.214);
+  --plate-10: oklch(1 0 0 / 90%);
+  --plate-5: oklch(0.577 0.245 27.325);
+  --plate-2p5: oklch(0.707 0.022 261.325);
+  --plate-other: oklch(0.551 0.027 264.364);
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);

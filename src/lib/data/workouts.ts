@@ -118,6 +118,23 @@ export async function discardWorkout(workoutId: string): Promise<void> {
   });
 }
 
+/**
+ * Discards every unfinished workout started at least `maxAgeMs` ago (with its sets
+ * and e1RM rows) and returns how many were removed.
+ */
+export async function discardStaleWorkouts(
+  maxAgeMs: number,
+  now: number = Date.now()
+): Promise<number> {
+  const stale = (await db.workouts.toArray()).filter(
+    (w) => w.completedAt == null && now - new Date(w.startedAt).getTime() >= maxAgeMs
+  );
+  for (const workout of stale) {
+    await discardWorkout(workout.id);
+  }
+  return stale.length;
+}
+
 /** Applies a computed completion: lift state rows and the session patch, in one transaction. */
 export async function finishWorkout(
   workoutId: string,

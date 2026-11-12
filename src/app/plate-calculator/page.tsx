@@ -33,12 +33,12 @@ function calculatePlatesPerSide(
 
 // Plate colors for visual display
 const PLATE_COLORS: Record<number, string> = {
-  45: "bg-info",
-  35: "bg-warning",
-  25: "bg-success",
-  10: "bg-foreground/90 text-background",
-  5: "bg-destructive",
-  2.5: "bg-muted-foreground text-background",
+  45: "bg-plate-45",
+  35: "bg-plate-35",
+  25: "bg-plate-25",
+  10: "bg-plate-10 text-black",
+  5: "bg-plate-5",
+  2.5: "bg-plate-2p5 text-black",
 };
 
 function PlateVisual({ plates }: { plates: { plate: number; count: number }[] }) {
@@ -67,7 +67,7 @@ function PlateVisual({ plates }: { plates: { plate: number; count: number }[] })
           {[...expanded].reverse().map((plate, i) => (
             <div
               key={`l-${i}`}
-              className={`rounded-sm flex items-center justify-center text-xs font-bold text-white ${PLATE_COLORS[plate] || "bg-muted-foreground"}`}
+              className={`rounded-sm flex items-center justify-center text-xs font-bold text-white ${PLATE_COLORS[plate] || "bg-plate-other"}`}
               style={{
                 width: `${Math.max(20, plate * 0.6)}px`,
                 height: `${Math.min(80, 30 + plate)}px`,
@@ -86,7 +86,7 @@ function PlateVisual({ plates }: { plates: { plate: number; count: number }[] })
           {expanded.map((plate, i) => (
             <div
               key={`r-${i}`}
-              className={`rounded-sm flex items-center justify-center text-xs font-bold text-white ${PLATE_COLORS[plate] || "bg-muted-foreground"}`}
+              className={`rounded-sm flex items-center justify-center text-xs font-bold text-white ${PLATE_COLORS[plate] || "bg-plate-other"}`}
               style={{
                 width: `${Math.max(20, plate * 0.6)}px`,
                 height: `${Math.min(80, 30 + plate)}px`,

@@ -73,10 +73,10 @@ export function SyncProvider() {
       <div
         className={`rounded-lg px-3 py-1.5 text-xs font-medium shadow-lg ${
           status === "syncing"
-            ? "bg-muted text-muted-foreground"
+            ? "bg-card border border-border text-muted-foreground"
             : status === "success"
-              ? "bg-success-soft text-success"
-              : "bg-destructive-soft text-destructive"
+              ? "bg-card border border-success/40 text-success"
+              : "bg-card border border-destructive/40 text-destructive"
         }`}
       >
         {status === "syncing" && "Syncing..."}

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/db/local";
 import {
   appendSet,
+  discardStaleWorkouts,
   discardWorkout,
   finishWorkout,
   getRecentE1RMSeries,
@@ -218,6 +219,25 @@ describe("saveLiftState", () => {
     const ls = await db.liftStates.get("squat");
     expect(ls!.t1Weight).toBe(175);
     expect(ls!.synced).toBe(false);
+  });
+});
+
+describe("discardStaleWorkouts", () => {
+  it("discards unfinished workouts older than the limit, with their sets, and nothing else", async () => {
+    const now = new Date("2026-11-11T12:00:00Z").getTime();
+    const hoursAgo = (h: number) => new Date(now - h * 60 * 60 * 1000);
+    const staleSet = makeSet({ id: "stale-set" });
+    await db.sets.add(staleSet);
+    await db.workouts.bulkAdd([
+      makeWorkout({ id: "stale", startedAt: hoursAgo(30), completedAt: null, sets: [staleSet] }),
+      makeWorkout({ id: "recent", startedAt: hoursAgo(2), completedAt: null }),
+      makeWorkout({ id: "done", startedAt: hoursAgo(50), completedAt: hoursAgo(49) }),
+    ]);
+
+    expect(await discardStaleWorkouts(24 * 60 * 60 * 1000, now)).toBe(1);
+
+    expect((await db.workouts.toArray()).map((w) => w.id).sort()).toEqual(["done", "recent"]);
+    expect(await db.sets.get("stale-set")).toBeUndefined();
   });
 });
 

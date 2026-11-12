@@ -1,13 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
 import { useRouter } from "next/navigation";
-// No hook lists stale unfinished sessions, so the clean-up below reads them directly.
-// This file therefore stays on DB_IMPORT_ALLOWLIST.
-import { db } from "@/db/local";
 import { useUnfinishedWorkout } from "@/hooks";
-import { discardWorkout } from "@/lib/data/workouts";
+import { discardStaleWorkouts, discardWorkout } from "@/lib/data/workouts";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 
@@ -17,23 +13,12 @@ export default function AbandonedWorkoutBanner() {
   const router = useRouter();
   const session = useUnfinishedWorkout();
 
-  const staleIds = useLiveQuery(async () => {
-    const all = await db.workouts.toArray();
-    const now = Date.now();
-    return all
-      .filter(
-        (w) =>
-          w.completedAt === null &&
-          now - new Date(w.startedAt).getTime() >= TWENTY_FOUR_HOURS_MS
-      )
-      .map((w) => w.id);
-  });
-
-  // Auto-delete sessions older than 24 hours
+  // Unfinished sessions older than 24 hours are no longer offered for resume: remove them.
   useEffect(() => {
-    if (!staleIds || staleIds.length === 0) return;
-    Promise.all(staleIds.map((id) => discardWorkout(id)));
-  }, [staleIds]);
+    discardStaleWorkouts(TWENTY_FOUR_HOURS_MS).catch((err) =>
+      console.error("Failed to clear stale workouts:", err)
+    );
+  }, []);
 
   if (!session) return null;
 

@@ -30,8 +30,8 @@ const EFFORT_LABELS: Record<number, string> = {
 };
 
 const EFFORT_COLORS: Record<number, string> = {
-  1: "border-info bg-info/10 text-info",
-  2: "border-info/70 bg-info/10 text-info",
+  1: "border-tier-warmup bg-tier-warmup-soft text-tier-warmup",
+  2: "border-info bg-info/10 text-info",
   3: "border-muted-foreground bg-muted-foreground/10 text-foreground",
   4: "border-warning bg-warning/10 text-warning",
   5: "border-destructive bg-destructive/10 text-destructive",

@@ -14,7 +14,6 @@ export const DB_IMPORT_ALLOWLIST: string[] = [
   "src/components/Charts/E1RMChart.tsx",
   "src/components/Charts/RPETrendChart.tsx",
   "src/components/Charts/VolumeBars.tsx",
-  "src/components/Dashboard/AbandonedWorkoutBanner.tsx",
   "src/components/Dashboard/ActivePainBanner.tsx",
   "src/components/Dashboard/E1RMSummary.tsx",
   "src/components/Dashboard/InactivityBanner.tsx",
