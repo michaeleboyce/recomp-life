@@ -12,6 +12,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { PreferenceControl } from "@/components/Exercises/PreferenceControl";
+import type { WorkoutLocation } from "@/types";
 
 // The viewer pulls in the 3D code; load it only when the sheet is opened.
 const ExerciseViewer = dynamic(
@@ -20,6 +22,8 @@ const ExerciseViewer = dynamic(
 );
 
 interface FormSheetButtonProps {
+  /** Where the workout is happening; preselects that scope for preferences. */
+  location?: WorkoutLocation;
   exerciseId: string;
   className?: string;
 }
@@ -28,7 +32,7 @@ interface FormSheetButtonProps {
  * "Form" button for the active workout: opens a bottom sheet with the
  * exercise's visuals and how-to steps without leaving the workout.
  */
-export function FormSheetButton({ exerciseId, className }: FormSheetButtonProps) {
+export function FormSheetButton({ exerciseId, location, className }: FormSheetButtonProps) {
   const [open, setOpen] = useState(false);
   const exercise = EXERCISES[exerciseId];
   if (!exercise) return null;
@@ -54,6 +58,7 @@ export function FormSheetButton({ exerciseId, className }: FormSheetButtonProps)
           </SheetHeader>
           <div className="overflow-y-auto px-4 pb-6 space-y-4">
             {open && <ExerciseViewer exerciseId={exerciseId} heightClassName="h-64" />}
+            <PreferenceControl exerciseId={exerciseId} defaultScope={location ?? "all"} />
             {media && (
               <ol className="space-y-1.5">
                 {media.instructions.map((step, i) => (

@@ -74,7 +74,7 @@ export function ExerciseBlock({ exercise, location, isAMRAPSet }: ExerciseBlockP
           </Badge>
           <h2 className="text-lg font-semibold">{exerciseInfo.name}</h2>
         </div>
-        <FormSheetButton exerciseId={exerciseInfo.id} />
+        <FormSheetButton exerciseId={exerciseInfo.id} location={location} />
 
         <div className="text-muted-foreground text-sm space-y-0.5">
           <p className="font-mono tabular-nums">
