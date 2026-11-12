@@ -111,6 +111,23 @@ describe("rehydratePlan", () => {
     expect(result.plan).not.toBe(plan);
   });
 
+  it("resumes a T2 entry at the weight of its last logged set (accepted load drop)", () => {
+    const result = rehydratePlan(a1Plan(), [
+      ...warmUps(),
+      ...makeSets("squat", "T1", 5, 3, { weight: 190 }),
+      makeSet("bench", "T2", { weight: 100, setNumber: 1 }),
+      makeSet("bench", "T2", { weight: 90, setNumber: 2, status: "autoregulated_load_drop" }),
+    ]);
+    expect(result.plan[5]).toMatchObject({ exerciseId: "bench", tier: "T2", completedSets: 2, weight: 90 });
+    expect(result.currentExerciseIndex).toBe(5);
+  });
+
+  it("keeps each warm-up entry's own weight", () => {
+    const plan = a1Plan();
+    const result = rehydratePlan(plan, makeSets("squat", "warmup", 4, 5, { weight: 45 }));
+    expect(result.plan.slice(0, 4).map((e) => e.weight)).toEqual(plan.slice(0, 4).map((e) => e.weight));
+  });
+
   it("an empty plan gives index 0", () => {
     expect(rehydratePlan([], makeSets("squat", "T1", 2, 3))).toEqual({
       plan: [],

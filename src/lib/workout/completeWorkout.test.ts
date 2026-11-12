@@ -166,12 +166,28 @@ describe("computeCompletion: no RPE logged, no AMRAP set", () => {
     expect(squat.recentAMRAPReps).toEqual([6, 5]);
   });
 
-  it("defaults recentE1RMs to [] when nothing is stored for the exercise", () => {
+  it("sets recentE1RMs to [] when the caller reports nothing stored for the exercise", () => {
     const liftStates = seedLiftStates().map((ls) =>
       ls.exerciseId === "squat" ? { ...ls, recentE1RMs: [200] } : ls
     );
-    const squat = byId(computeCompletion(completion({ sets: squatT1(), liftStates })).liftStateUpdates, "squat")!;
+    const squat = byId(
+      computeCompletion(
+        completion({ sets: squatT1(), liftStates, recentE1RMsByExercise: { squat: [] } })
+      ).liftStateUpdates,
+      "squat"
+    )!;
     expect(squat.recentE1RMs).toEqual([]);
+  });
+
+  it("keeps the stored recentE1RMs when the caller did not look the exercise up", () => {
+    const liftStates = seedLiftStates().map((ls) =>
+      ls.exerciseId === "squat" ? { ...ls, recentE1RMs: [200] } : ls
+    );
+    const squat = byId(
+      computeCompletion(completion({ sets: squatT1(), liftStates })).liftStateUpdates,
+      "squat"
+    )!;
+    expect(squat.recentE1RMs).toEqual([200]);
   });
 
   it("tolerates lift states stored without tracking arrays", () => {

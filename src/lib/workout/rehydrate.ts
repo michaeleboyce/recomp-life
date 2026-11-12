@@ -5,14 +5,18 @@ import type { RehydratedPlan, WorkoutPlan } from "./types";
  * Rebuilds in-progress state from the sets already logged on a workout, so a reloaded
  * page resumes where it left off. Sets are matched to plan entries by template
  * exerciseId and tier; several warm-up entries for one exercise are filled in order.
- * Never returns completedSets above targetSets.
+ * Never returns completedSets above targetSets. A working entry with logged sets
+ * resumes at the weight of its most recent set, so a load drop accepted before the
+ * reload is not undone; warm-up entries keep their own planned weights.
  */
 export function rehydratePlan(plan: WorkoutPlan, loggedSets: SetLog[]): RehydratedPlan {
   // Logged sets not yet assigned to an entry, per exerciseId + tier.
   const unassigned = new Map<string, number>();
+  const lastWeight = new Map<string, number>();
   for (const set of loggedSets) {
     const key = entryKey(set.exerciseId, set.tier);
     unassigned.set(key, (unassigned.get(key) ?? 0) + 1);
+    lastWeight.set(key, set.weight);
   }
 
   const rehydrated = plan.map((entry) => {
@@ -20,7 +24,9 @@ export function rehydratePlan(plan: WorkoutPlan, loggedSets: SetLog[]): Rehydrat
     const available = unassigned.get(key) ?? 0;
     const completedSets = Math.min(available, Math.max(entry.targetSets, 0));
     unassigned.set(key, available - completedSets);
-    return { ...entry, completedSets };
+    const weight =
+      completedSets > 0 && !entry.isWarmUp ? (lastWeight.get(key) ?? entry.weight) : entry.weight;
+    return { ...entry, completedSets, weight };
   });
 
   const firstIncomplete = rehydrated.findIndex(

@@ -68,10 +68,13 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
       next = {
         ...tier.evaluate(liftState, exerciseSets, session.location, settings.equipment, liftType),
         [tier.lastWorkoutDate]: now,
-        recentE1RMs: (recentE1RMsByExercise[templateEx.exerciseId] ?? []).slice(
-          0,
-          TRACKING_WINDOW
-        ),
+        // No entry means the caller did not look this exercise up: keep what is stored
+        // instead of wiping it. An explicit empty array still clears it.
+        recentE1RMs: (
+          recentE1RMsByExercise[templateEx.exerciseId] ??
+          liftState.recentE1RMs ??
+          []
+        ).slice(0, TRACKING_WINDOW),
         recentAvgRPEs:
           rpes.length > 0
             ? [...previousRPEs, rpes.reduce((a, b) => a + b, 0) / rpes.length].slice(
