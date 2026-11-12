@@ -160,3 +160,58 @@ export function toPostgresRow(
   result.synced = true;
   return result;
 }
+
+/** Postgres table behind each synced table. */
+export const SYNC_PG_TABLE_NAMES: Record<SyncTableName, string> = {
+  workouts: 'workouts', sets: 'sets', runs: 'runs', bodyweight: 'bodyweight',
+  painEntries: 'pain_entries', estimated1RMs: 'estimated_1rms',
+  liftStates: 'lift_states', userProfile: 'user_profile', readinessLogs: 'readiness_logs',
+};
+
+/** Primary key column of each synced table. */
+const PK_COLUMNS: Record<SyncTableName, string> = {
+  workouts: 'id', sets: 'id', runs: 'id', bodyweight: 'id',
+  painEntries: 'id', estimated1RMs: 'id', liftStates: 'exercise_id',
+  userProfile: 'id', readinessLogs: 'id',
+};
+
+export function isSyncTableName(table: string): table is SyncTableName {
+  return Object.prototype.hasOwnProperty.call(SYNC_PG_TABLE_NAMES, table);
+}
+
+/**
+ * The upsert for one row already mapped by `toPostgresRow`: insert, or on a
+ * `client_id` conflict update every column except the primary key and `client_id`.
+ * Values are passed as parameters; column names are interpolated, so a column that is
+ * not in the table's schema throws.
+ *
+ * Every table conflicts on `client_id`, including `lift_states`, whose primary key is
+ * `exercise_id`. A second device seeds its own lift states with new client ids, so its
+ * first push of that table fails on the primary key. Conflicting on `exercise_id`
+ * instead would let that freshly seeded device overwrite the stored progression with
+ * seed values, so that is not done here.
+ */
+export function buildUpsert(
+  table: SyncTableName,
+  row: Record<string, unknown>
+): { text: string; values: unknown[] } {
+  const columns = Object.keys(row);
+  const unknown = findUnknownColumns(columns, SYNC_ALLOWED_COLUMNS[table]);
+  if (unknown.length > 0) {
+    throw new Error(`Unknown column in rows for table: ${table}`);
+  }
+
+  const pk = PK_COLUMNS[table];
+  const colList = columns.map((c) => `"${c}"`).join(', ');
+  const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
+  const updateSet = columns
+    .filter((c) => c !== 'client_id' && c !== pk)
+    .map((c) => `"${c}" = EXCLUDED."${c}"`)
+    .join(', ');
+  const onConflict = updateSet ? `DO UPDATE SET ${updateSet}` : 'DO NOTHING';
+
+  return {
+    text: `INSERT INTO "${SYNC_PG_TABLE_NAMES[table]}" (${colList}) VALUES (${placeholders}) ON CONFLICT ("client_id") ${onConflict}`,
+    values: Object.values(row),
+  };
+}

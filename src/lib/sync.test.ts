@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/db/local";
-import { clearDb, makeSet, makeWorkout } from "@/lib/data/testUtils";
+import { clearDb, makeProfile, makeSet, makeWorkout } from "@/lib/data/testUtils";
 import { pullFromServer, pushUnsynced } from "./sync";
 
 describe("pushUnsynced", () => {
@@ -84,5 +84,61 @@ describe("pullFromServer", () => {
     );
     await pullFromServer();
     expect((await db.workouts.get("w8"))?.templateId).toBe("A1");
+  });
+});
+
+describe("pullFromServer: the profile is a single row", () => {
+  beforeEach(async () => {
+    await clearDb();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const stubPull = (data: Record<string, unknown[]>) =>
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify(data), { status: 200 }))
+    );
+
+  it("does not add another device's profile next to the local one", async () => {
+    const mine = makeProfile();
+    await db.userProfile.put(mine);
+    stubPull({
+      userProfile: [{ ...makeProfile(), id: "other-id", clientId: "other-client", name: "Other device" }],
+    });
+
+    expect(await pullFromServer()).toBe(0);
+
+    expect(await db.userProfile.toArray()).toEqual([mine]);
+  });
+
+  it("takes one profile from the server when there is none locally, and only one", async () => {
+    stubPull({
+      userProfile: [
+        { ...makeProfile(), id: "p-a", clientId: "c-a", name: "A", createdAt: "2026-11-01T08:00:00.000Z" },
+        { ...makeProfile(), id: "p-b", clientId: "c-b", name: "B", createdAt: "2026-11-02T08:00:00.000Z" },
+      ],
+    });
+
+    expect(await pullFromServer()).toBe(1);
+
+    const profiles = await db.userProfile.toArray();
+    expect(profiles.map((p) => p.id)).toEqual(["p-a"]);
+    expect(profiles[0].createdAt).toBeInstanceOf(Date);
+    expect(profiles[0].synced).toBe(true);
+  });
+
+  it("still pulls other tables in the same response", async () => {
+    await db.userProfile.put(makeProfile());
+    stubPull({
+      userProfile: [{ ...makeProfile(), id: "other-id", clientId: "other-client" }],
+      workouts: [makeWorkout({ id: "w7", clientId: "c-w7" })],
+    });
+
+    expect(await pullFromServer()).toBe(1);
+    expect(await db.workouts.get("w7")).toBeDefined();
+    expect(await db.userProfile.count()).toBe(1);
   });
 });
