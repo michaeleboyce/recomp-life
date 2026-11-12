@@ -1,4 +1,10 @@
-import type { ExercisePreference, ExercisePreferences } from "@/types";
+import type {
+  ExercisePreference,
+  ExercisePreferences,
+  LocationExercisePreferences,
+  PreferenceScope,
+  WorkoutLocation,
+} from "@/types";
 
 /** Returns the preference for an exercise, defaulting to "normal". */
 export function getPreference(
@@ -6,6 +12,78 @@ export function getPreference(
   exerciseId: string
 ): ExercisePreference {
   return preferences?.[exerciseId] ?? "normal";
+}
+
+// ─── Scoped preferences ──────────────────────────────────────────────────────
+//
+// A preference (blocked / normal / preferred) can be set overall, or for the
+// gym or home only. A location entry overrides the overall one, including an
+// explicit "normal" that switches an overall preference off at that location.
+
+/** The preferences in effect at a location: overall, with that location's overrides applied. */
+export function resolvePreferences(
+  overall: ExercisePreferences | undefined,
+  byLocation: LocationExercisePreferences | undefined,
+  location: WorkoutLocation
+): ExercisePreferences {
+  return { ...(overall ?? {}), ...(byLocation?.[location] ?? {}) };
+}
+
+/** The preference shown for a scope: the overall one for "all", else the one in effect there. */
+export function getScopedPreference(
+  overall: ExercisePreferences | undefined,
+  byLocation: LocationExercisePreferences | undefined,
+  scope: PreferenceScope,
+  exerciseId: string
+): ExercisePreference {
+  if (scope === "all") return getPreference(overall, exerciseId);
+  return getPreference(resolvePreferences(overall, byLocation, scope), exerciseId);
+}
+
+/** True when a location has its own setting for the exercise. */
+export function isLocationOverride(
+  byLocation: LocationExercisePreferences | undefined,
+  location: WorkoutLocation,
+  exerciseId: string
+): boolean {
+  return byLocation?.[location]?.[exerciseId] !== undefined;
+}
+
+/**
+ * Set a preference in a scope. Returns new objects; inputs are not modified.
+ *
+ * - Scope "all" edits the overall set ("normal" is stored as absence).
+ * - A location scope stores an override, unless the chosen value is what the
+ *   overall preference already gives, in which case any override is removed.
+ */
+export function setScopedPreference(
+  overall: ExercisePreferences | undefined,
+  byLocation: LocationExercisePreferences | undefined,
+  scope: PreferenceScope,
+  exerciseId: string,
+  preference: ExercisePreference
+): { overall: ExercisePreferences; byLocation: LocationExercisePreferences } {
+  const nextOverall: ExercisePreferences = { ...(overall ?? {}) };
+  const nextByLocation: LocationExercisePreferences = {
+    ...(byLocation?.gym ? { gym: { ...byLocation.gym } } : {}),
+    ...(byLocation?.home ? { home: { ...byLocation.home } } : {}),
+  };
+
+  if (scope === "all") {
+    if (preference === "normal") delete nextOverall[exerciseId];
+    else nextOverall[exerciseId] = preference;
+    return { overall: nextOverall, byLocation: nextByLocation };
+  }
+
+  const forLocation: ExercisePreferences = { ...(nextByLocation[scope] ?? {}) };
+  if (preference === getPreference(nextOverall, exerciseId)) {
+    delete forLocation[exerciseId];
+  } else {
+    forLocation[exerciseId] = preference;
+  }
+  if (Object.keys(forLocation).length > 0) nextByLocation[scope] = forLocation;
+  else delete nextByLocation[scope];
+  return { overall: nextOverall, byLocation: nextByLocation };
 }
 
 /**

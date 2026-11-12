@@ -13,7 +13,7 @@ import {
   ACCESSORY_RECOMMENDATIONS,
 } from "@/lib/workoutTemplates";
 import { EXERCISES, ACCESSORY_IDS } from "@/lib/exercises";
-import { withPreferredAccessories } from "@/lib/exercisePreferences";
+import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePreferences";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { generateWarmUpSets } from "@/lib/warmups";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
@@ -279,7 +279,13 @@ function ConfigureWorkoutContent() {
 
   const t1Type = template ? getT1ExerciseType(template) : null;
 
-  const exercisePreferences = userProfile?.settings?.exercisePreferences;
+  // Preferences in effect at the chosen location (overall, plus that location's overrides).
+  const overallPreferences = userProfile?.settings?.exercisePreferences;
+  const locationPreferences = userProfile?.settings?.exercisePreferencesByLocation;
+  const exercisePreferences = useMemo(
+    () => resolvePreferences(overallPreferences, locationPreferences, location),
+    [overallPreferences, locationPreferences, location]
+  );
 
   const runAdvisory = useMemo(() => {
     if (!template || recentRuns.length === 0) return null;

@@ -30,7 +30,10 @@ export interface UserSettings {
   trainingPhase: TrainingPhase;
   equipment: EquipmentProfile;
   defaultLocation?: WorkoutLocation;
+  /** Preferences that apply everywhere. */
   exercisePreferences?: ExercisePreferences;
+  /** Per-location overrides; an entry here wins over the overall preference. */
+  exercisePreferencesByLocation?: LocationExercisePreferences;
 }
 
 export interface UserProfile {
@@ -65,6 +68,10 @@ export type SensationType = "soreness" | "pain";
 
 export type ExercisePreference = "blocked" | "normal" | "preferred";
 export type ExercisePreferences = Record<string, ExercisePreference>;
+/** Overrides of the overall preferences for one location. */
+export type LocationExercisePreferences = Partial<Record<"gym" | "home", ExercisePreferences>>;
+/** Where a preference applies: everywhere, or one location only. */
+export type PreferenceScope = "all" | "gym" | "home";
 
 // Muscle Types
 //
