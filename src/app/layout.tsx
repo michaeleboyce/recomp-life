@@ -1,21 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { AppChrome } from "@/components/AppChrome";
 import { DbProvider } from "@/components/DbProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { SyncProvider } from "@/components/SyncProvider";
 
-const plusJakarta = Plus_Jakarta_Sans({
+// The fonts are bundled with the app (variable woff2 files, SIL Open Font License,
+// see ./fonts) instead of being fetched from Google Fonts at build time: a change in
+// Google's font URLs broke every production build, and the PWA should not depend on
+// a third party to render text.
+const plusJakarta = localFont({
+  src: "./fonts/plus-jakarta-sans-latin-wght-normal.woff2",
   variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: "200 800",
+  display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = localFont({
+  src: "./fonts/jetbrains-mono-latin-wght-normal.woff2",
   variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: "100 800",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
