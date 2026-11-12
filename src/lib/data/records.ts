@@ -5,6 +5,7 @@ import type {
   BodyweightLog,
   PainSorenessEntry,
   RunLog,
+  ActivityLog,
   UserProfile,
   UserSettings,
 } from "@/types";
@@ -83,6 +84,13 @@ export async function deletePainEntry(id: string): Promise<void> {
 export async function logRun(run: NewRecord<RunLog>): Promise<string> {
   const id = uuidv4();
   await db.runs.add({ ...run, id, clientId: id, synced: false });
+  return id;
+}
+
+/** Adds a non-running activity (yoga, cycling, hiking...) and returns its id. */
+export async function logActivity(activity: NewRecord<ActivityLog>): Promise<string> {
+  const id = uuidv4();
+  await db.activities.add({ ...activity, id, clientId: id, synced: false });
   return id;
 }
 

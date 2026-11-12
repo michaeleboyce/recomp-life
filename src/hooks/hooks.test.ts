@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import {
+  useActivities,
   useBodyweightLog,
   useCompletedWorkouts,
   useE1RMs,
@@ -21,7 +22,7 @@ import {
   makeProfile,
   makeWorkout,
 } from "@/lib/data/testUtils";
-import type { PainSorenessEntry, RunLog } from "@/types";
+import type { ActivityLog, PainSorenessEntry, RunLog } from "@/types";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -183,5 +184,17 @@ describe("useRuns", () => {
     await db.runs.bulkPut([run("r1", "2026-11-01"), run("r2", "2026-11-04")]);
     const r = await loaded(() => useRuns());
     expect(r.result.current!.map((x) => x.id)).toEqual(["r2", "r1"]);
+  });
+});
+
+describe("useActivities", () => {
+  it("returns activities newest first", async () => {
+    const activity = (id: string, date: string): ActivityLog => ({
+      id, clientId: id, date: new Date(date), kind: "yoga", durationMinutes: 30, style: "flow",
+      distanceMiles: null, notes: "", perceivedEffort: 2, synced: false,
+    });
+    await db.activities.bulkPut([activity("a1", "2026-11-01"), activity("a2", "2026-11-04")]);
+    const r = await loaded(() => useActivities());
+    expect(r.result.current!.map((x) => x.id)).toEqual(["a2", "a1"]);
   });
 });

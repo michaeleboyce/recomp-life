@@ -17,12 +17,13 @@ import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePref
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { generateWarmUpSets } from "@/lib/warmups";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
+import { evaluateActivityImpact, ACTIVITY_NOTE_WINDOW_HOURS } from "@/lib/activities";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
 import { RECOVERY_HOURS } from "@/lib/recovery";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, AlertTriangle, X, Circle } from "lucide-react";
+import { Check, AlertTriangle, Info, X, Circle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 import { LocationToggle } from "@/components/PreWorkout/LocationToggle";
@@ -193,6 +194,15 @@ function ConfigureWorkoutContent() {
       .toArray();
   }) ?? [];
 
+  // Recent yoga, cycling, hiking and other sessions for the activity note
+  const recentActivities = useLiveQuery(() => {
+    const windowStart = new Date(Date.now() - ACTIVITY_NOTE_WINDOW_HOURS * 60 * 60 * 1000);
+    return db.activities
+      .where("date")
+      .above(windowStart)
+      .toArray();
+  }) ?? [];
+
   // ─── Determine the template ───────────────────────────────────────────
 
   const templateId = useMemo(() => {
@@ -239,6 +249,7 @@ function ConfigureWorkoutContent() {
   const [stressLevel, setStressLevel] = useState<StressLevel | null>(null);
   const [selectedAccessories, setSelectedAccessories] = useState<string[]>([]);
   const [runAdvisoryDismissed, setRunAdvisoryDismissed] = useState(false);
+  const [activityNoteDismissed, setActivityNoteDismissed] = useState(false);
   const [recoveryChoice, setRecoveryChoice] = useState<"proceed" | "reduce" | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [exerciseOverrides, setExerciseOverrides] = useState<Record<string, string>>({});
@@ -294,6 +305,11 @@ function ConfigureWorkoutContent() {
     if (advisory.level === "none") return null;
     return advisory;
   }, [template, recentRuns, templateId, trainingPhase]);
+
+  const activityNote = useMemo(() => {
+    if (!template || recentActivities.length === 0) return null;
+    return evaluateActivityImpact(recentActivities, workoutHasLowerBody(templateId), new Date());
+  }, [template, recentActivities, templateId]);
 
   const recoveryWarnings = useMemo(() => {
     if (!template || liftStates.length === 0) return [];
@@ -569,6 +585,19 @@ function ConfigureWorkoutContent() {
                 Skip today
               </Button>
             </div>
+          </div>
+        )}
+
+        {activityNote && !activityNoteDismissed && (
+          <div className="rounded-xl border border-info/40 bg-info-soft p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-info mt-0.5 shrink-0" />
+              <p className="text-sm text-muted-foreground">{activityNote.message}</p>
+            </div>
+            <EvidenceLine ruleId="activity-fatigue" />
+            <Button size="sm" variant="outline" onClick={() => setActivityNoteDismissed(true)}>
+              Got it
+            </Button>
           </div>
         )}
 

@@ -9,13 +9,13 @@ import {
 } from '@/lib/syncGuard';
 
 const PG_TABLE_NAMES: Record<string, string> = {
-  workouts: 'workouts', sets: 'sets', runs: 'runs', bodyweight: 'bodyweight',
+  workouts: 'workouts', sets: 'sets', runs: 'runs', activities: 'activities', bodyweight: 'bodyweight',
   painEntries: 'pain_entries', estimated1RMs: 'estimated_1rms',
   liftStates: 'lift_states', userProfile: 'user_profile', readinessLogs: 'readiness_logs',
 };
 
 const PK_COLUMNS: Record<string, string> = {
-  workouts: 'id', sets: 'id', runs: 'id', bodyweight: 'id',
+  workouts: 'id', sets: 'id', runs: 'id', activities: 'id', bodyweight: 'id',
   painEntries: 'id', estimated1RMs: 'id', liftStates: 'exercise_id',
   userProfile: 'id', readinessLogs: 'id',
 };

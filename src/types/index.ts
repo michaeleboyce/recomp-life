@@ -230,6 +230,25 @@ export interface RunLog {
   synced: boolean;
 }
 
+// Activity Log: sessions other than lifting and running (yoga, cycling, hiking, walking)
+
+export type ActivityKind = "yoga" | "cycling" | "hiking" | "walking" | "other";
+export type YogaStyle = "restorative" | "flow" | "power";
+
+export interface ActivityLog {
+  id: string;
+  clientId: string;
+  date: Date;
+  kind: ActivityKind;
+  durationMinutes: number;
+  /** Yoga only; null for every other kind. */
+  style: YogaStyle | null;
+  distanceMiles: number | null;
+  notes: string;
+  perceivedEffort: 1 | 2 | 3 | 4 | 5;
+  synced: boolean;
+}
+
 // Bodyweight Log
 
 export type TimeOfDay = "morning" | "evening" | "other";
