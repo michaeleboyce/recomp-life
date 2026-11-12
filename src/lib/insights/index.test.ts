@@ -458,6 +458,30 @@ describe("loss-rate", () => {
     expect(i.title).toBe("Weight loss slower than target");
   });
 
+  it("warns when weight is going up during a cut", () => {
+    // 7 days at 199 then 7 days at 201: up 2 lbs a week.
+    const entries = [
+      ...Array.from({ length: 7 }, (_, i) => bw(daysAgo(13 - i), 199, i)),
+      ...Array.from({ length: 7 }, (_, i) => bw(daysAgo(6 - i), 201, 7 + i)),
+    ];
+    expect(computeInsights(ctx({ settings: CUTTING, bodyweight: entries }))).toEqual([
+      {
+        id: "loss-rate",
+        kind: "loss-rate",
+        severity: "warning",
+        title: "Weight is going up",
+        body: "Gaining 2.0 lbs a week (1.01% of bodyweight). The target while cutting is to lose 0.5 to 1% a week.",
+        evidenceId: "rate-of-loss",
+      },
+    ]);
+  });
+
+  it("three weeks of gaining is reported as gaining, not as a stall", () => {
+    expect(kinds(ctx({ settings: CUTTING, bodyweight: bwSeries(200, 206, 21) }))).toEqual([
+      "loss-rate",
+    ]);
+  });
+
   it("is absent when not cutting, with too few or stale entries", () => {
     expect(kinds(ctx({ bodyweight: bwSeries(200, 197.2, 14) }))).toEqual([]);
     expect(kinds(ctx({ settings: CUTTING, bodyweight: bwSeries(200, 199, 5) }))).toEqual([]);

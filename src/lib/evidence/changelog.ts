@@ -12,6 +12,20 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-11",
+    ruleId: "rate-of-loss",
+    change:
+      "Gaining 0.25% of bodyweight or more a week is now reported as weight going up instead of as a stall, and several weigh-ins on one day now count as one day.",
+    sources: [],
+  },
+  {
+    date: "2026-11-11",
+    ruleId: "fat-loss-stall",
+    change:
+      "The stall check now averages several weigh-ins on one day into one, so a second weigh-in no longer shifts the weekly comparison.",
+    sources: [],
+  },
+  {
+    date: "2026-11-11",
     ruleId: "t3-progression",
     change:
       "T3 weight now goes up by 5 lb after a fully completed T3 exercise whose last set reached 25 reps. The rule existed but was never applied, so T3 weight only changed when edited by hand.",

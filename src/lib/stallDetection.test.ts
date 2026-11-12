@@ -51,4 +51,46 @@ describe("detectFatLossStall", () => {
     const weights = makeWeights([...prev, ...curr]);
     expect(detectFatLossStall(weights, cuttingPhase)).toBeNull();
   });
+
+  it("sorts its input: the same entries in any order give the same answer", () => {
+    // Losing a pound a week; newest first would read as a gain if taken as given.
+    const weights = makeWeights([...Array(7).fill(200), ...Array(7).fill(199)]);
+    expect(detectFatLossStall([...weights].reverse(), cuttingPhase)).toBeNull();
+
+    const flat = makeWeights([...Array(7).fill(200), ...Array(7).fill(200)]);
+    expect(detectFatLossStall([...flat].reverse(), cuttingPhase)).toEqual(
+      detectFatLossStall(flat, cuttingPhase)
+    );
+  });
+
+  it("does not mutate its input", () => {
+    const weights = makeWeights(Array(14).fill(200)).reverse();
+    const first = weights[0].date;
+    detectFatLossStall(weights, cuttingPhase);
+    expect(weights[0].date).toBe(first);
+  });
+
+  it("counts two weigh-ins on one day as one day", () => {
+    // 14 days losing 1 lb a week, plus a second weigh-in on each of the last 7 days.
+    // Taken as 21 separate entries, the "last 14" would be the last week twice over
+    // and look flat.
+    const weights = makeWeights([...Array(7).fill(200), ...Array(7).fill(199)]);
+    const repeats = weights.slice(7).map((w) => {
+      const evening = new Date(w.date);
+      evening.setHours(21);
+      return { date: evening, weight: w.weight };
+    });
+    expect(detectFatLossStall([...weights, ...repeats], cuttingPhase)).toBeNull();
+  });
+
+  it("needs 14 separate days, not 14 entries", () => {
+    const sevenDays = makeWeights(Array(7).fill(200));
+    const doubled = sevenDays.flatMap((w) => {
+      const evening = new Date(w.date);
+      evening.setHours(21);
+      return [w, { date: evening, weight: w.weight }];
+    });
+    expect(doubled).toHaveLength(14);
+    expect(detectFatLossStall(doubled, cuttingPhase)).toBeNull();
+  });
 });
