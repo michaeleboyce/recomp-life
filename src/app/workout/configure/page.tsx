@@ -12,8 +12,8 @@ import {
   getNextWorkoutId,
   ACCESSORY_RECOMMENDATIONS,
 } from "@/lib/workoutTemplates";
-import { EXERCISES } from "@/lib/exercises";
-import { applyPreferences } from "@/lib/exercisePreferences";
+import { EXERCISES, ACCESSORY_IDS } from "@/lib/exercises";
+import { withPreferredAccessories } from "@/lib/exercisePreferences";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { generateWarmUpSets } from "@/lib/warmups";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
@@ -321,7 +321,12 @@ function ConfigureWorkoutContent() {
   }, [template, liftStates]);
 
   const accessoryRecommendations = useMemo(
-    () => applyPreferences(ACCESSORY_RECOMMENDATIONS[templateId] ?? [], exercisePreferences),
+    () =>
+      withPreferredAccessories(
+        ACCESSORY_RECOMMENDATIONS[templateId] ?? [],
+        exercisePreferences,
+        ACCESSORY_IDS
+      ),
     [templateId, exercisePreferences]
   );
 

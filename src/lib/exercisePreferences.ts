@@ -32,3 +32,33 @@ export function applyPreferences(
     return aPref - bPref;
   });
 }
+
+/**
+ * The accessories offered for a workout: every accessory marked "preferred"
+ * (whether or not it is on the day's recommended list), followed by the rest
+ * of the day's recommendations. Blocked exercises are dropped.
+ *
+ * Without this, an accessory that is not one of a day's fixed recommendations
+ * could never be added to a workout.
+ */
+export function withPreferredAccessories(
+  recommendationIds: string[],
+  preferences: ExercisePreferences | undefined,
+  accessoryIds: string[]
+): string[] {
+  if (!preferences) return recommendationIds;
+
+  const onDay = new Set(recommendationIds);
+  const preferred = [
+    // Preferred recommendations keep the day's order; extras follow in
+    // catalogue order.
+    ...recommendationIds.filter((id) => getPreference(preferences, id) === "preferred"),
+    ...accessoryIds.filter(
+      (id) => !onDay.has(id) && getPreference(preferences, id) === "preferred"
+    ),
+  ];
+  const rest = recommendationIds.filter(
+    (id) => getPreference(preferences, id) === "normal"
+  );
+  return [...preferred, ...rest];
+}
