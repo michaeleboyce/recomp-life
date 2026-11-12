@@ -62,7 +62,21 @@ function squatT1(amrapReps = 5, overrides: Partial<SetLog> = {}): SetLog[] {
 
 const benchT2 = (overrides: Partial<SetLog> = {}) =>
   makeSets("bench", "T2", 3, 10, { weight: 100, ...overrides });
-const latT3 = () => makeSets("lat_pulldown", "T3", 3, 15, { weight: 90 });
+/** Lat pulldown T3 3x15 @90 with the last set AMRAP. */
+function latT3(amrapReps = 15, overrides: Partial<SetLog> = {}): SetLog[] {
+  return [
+    ...makeSets("lat_pulldown", "T3", 2, 15, { weight: 90, ...overrides }),
+    makeSet("lat_pulldown", "T3", {
+      setNumber: 3,
+      targetReps: 15,
+      actualReps: amrapReps,
+      weight: 90,
+      isAMRAP: true,
+      status: amrapReps >= 15 ? "completed" : "failed",
+      ...overrides,
+    }),
+  ];
+}
 
 const byId = (updates: LiftState[], id: string) => updates.find((u) => u.exerciseId === id);
 
@@ -107,12 +121,12 @@ describe("computeCompletion: pass", () => {
     });
   });
 
-  it("T3 and accessories never change lift state", () => {
+  it("accessories never change lift state, nor does a T3 that stayed under 25 reps", () => {
     const session = makeSession({ selectedAccessories: ["face_pulls"] });
     const result = computeCompletion(
       completion({
         session,
-        sets: [...latT3(), ...makeSets("face_pulls", "accessory", 3, 15)],
+        sets: [...latT3(), ...makeSets("face_pulls", "accessory", 3, 30)],
       })
     );
     expect(result.liftStateUpdates).toEqual([]);
@@ -399,6 +413,78 @@ describe("computeCompletion: home-adapted workout", () => {
       t2Weight: 105,
       t2LastWorkoutDate: NOW,
     });
+  });
+});
+
+describe("computeCompletion: T3 progression", () => {
+  const maintaining = { ...SETTINGS, trainingPhase: { ...SETTINGS.trainingPhase, mode: "maintaining" as const } };
+
+  it("adds 5 lb when the last set reaches 25 reps, and changes nothing else", () => {
+    const seeded = seedLiftStates();
+    const result = computeCompletion(completion({ sets: latT3(25) }));
+    expect(result.liftStateUpdates).toEqual([
+      { ...seeded.find((s) => s.exerciseId === "lat_pulldown"), t3Weight: 95, synced: false },
+    ]);
+  });
+
+  it("24 reps on the last set is not enough", () => {
+    expect(computeCompletion(completion({ sets: latT3(24) })).liftStateUpdates).toEqual([]);
+  });
+
+  it("while cutting, 50 total reps without a 25-rep last set does not progress", () => {
+    expect(SETTINGS.trainingPhase.mode).toBe("cutting");
+    expect(computeCompletion(completion({ sets: latT3(20) })).liftStateUpdates).toEqual([]);
+  });
+
+  it("outside a cut, 50 total reps is enough", () => {
+    const result = computeCompletion(completion({ sets: latT3(20), settings: maintaining }));
+    expect(byId(result.liftStateUpdates, "lat_pulldown")!.t3Weight).toBe(95);
+  });
+
+  it("uses the last set logged, not the best set", () => {
+    const sets = latT3(15);
+    sets[0] = { ...sets[0], actualReps: 25 };
+    expect(computeCompletion(completion({ sets })).liftStateUpdates).toEqual([]);
+  });
+
+  it("a partially completed T3 changes nothing, whatever the reps", () => {
+    const sets = makeSets("lat_pulldown", "T3", 2, 30, { weight: 90 });
+    expect(
+      computeCompletion(completion({ sets, settings: maintaining })).liftStateUpdates
+    ).toEqual([]);
+  });
+
+  it.each(["skipped_pain", "reduced_run_fatigue", "reduced_equipment"] as const)(
+    "a %s set freezes T3 progression",
+    (status) => {
+      const sets = latT3(25);
+      sets[1] = { ...sets[1], status };
+      expect(computeCompletion(completion({ sets })).liftStateUpdates).toEqual([]);
+    }
+  );
+
+  it("a home-substituted T3 counts as a pass", () => {
+    const session = makeSession({ location: "home" });
+    const sets = latT3(25, {
+      location: "home",
+      isSubstituted: true,
+      substituteExerciseId: "db_row",
+      weight: 35,
+      originalWeight: 90,
+    });
+    const result = computeCompletion(completion({ session, sets }));
+    expect(byId(result.liftStateUpdates, "lat_pulldown")!.t3Weight).toBe(95);
+  });
+
+  it("progresses alongside T1 and T2, after them in the update order", () => {
+    const result = computeCompletion(
+      completion({ sets: [...squatT1(), ...benchT2(), ...latT3(26)] })
+    );
+    expect(result.liftStateUpdates.map((u) => u.exerciseId)).toEqual([
+      "squat",
+      "bench",
+      "lat_pulldown",
+    ]);
   });
 });
 

@@ -106,7 +106,7 @@ const FREEZE_STATUSES: ReadonlySet<SetStatus> = new Set([
  * Returns true if *any* set in the workout carries a status that should
  * freeze progression (pain, run fatigue, equipment limitation).
  */
-function hasFreezeStatus(sets: SetLog[]): boolean {
+export function hasFreezeStatus(sets: SetLog[]): boolean {
   return sets.some((s) => FREEZE_STATUSES.has(s.status));
 }
 
@@ -326,7 +326,8 @@ export interface T3ProgressionResult {
  * - Cutting: only AMRAP trigger (last set >= 25)
  * - Maintaining/Bulking: either trigger works
  *
- * Not connected to the UI yet: T3 weight only changes when edited by hand.
+ * Applied by `computeCompletion` when a T3 exercise was fully completed. The
+ * result is not explained on any screen yet.
  *
  * @evidence t3-progression
  */

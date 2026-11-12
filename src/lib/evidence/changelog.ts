@@ -12,6 +12,13 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-11",
+    ruleId: "t3-progression",
+    change:
+      "T3 weight now goes up by 5 lb after a fully completed T3 exercise whose last set reached 25 reps. The rule existed but was never applied, so T3 weight only changed when edited by hand.",
+    sources: [],
+  },
+  {
+    date: "2026-11-11",
     ruleId: "time-off",
     change:
       "A lift now counts as a long break after 21 days instead of 7, and suggested weight cuts after time off were reduced from 10–40% to 5–15%.",

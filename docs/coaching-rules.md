@@ -98,16 +98,16 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `t3-progression`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Program rule
-- **Implemented in:** `src/lib/progression.ts` (`evaluateT3Progression`)
+- **Implemented in:** `src/lib/progression.ts` (`evaluateT3Progression`), `src/lib/workout/completeWorkout.ts` (`computeCompletion`)
 - **Reviewed:** November 2026
 
-**In one line.** T3 weight would go up when the last set reaches 25 reps
+**In one line.** T3 weight goes up when the last set reaches 25 reps
 
-**What the app does.** Rule in code: add 5 lb when the last AMRAP set reaches 25 reps (or, outside a cut, when the three sets total 50 reps). It is not connected, so T3 weight only changes when you edit it.
+**What the app does.** When you finish every set of a T3 exercise, the app adds 5 lb for next time if the last AMRAP set reached 25 reps (or, outside a cut, if the three sets totalled 50 reps). Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. The app does not yet tell you on screen when this happens.
 
 **Why.** Muscle growth improves as sets end closer to failure. Under this rule the first two sets of 15 can be about 10 reps short of failure, and people judge reps left least accurately in high-rep sets.
 
-**Before this is switched on.** Decide between the stock GZCLP rule and a double progression (every set near the top of a rep range), which fits the evidence better.
+**Before this is switched on.** The rule now runs when a workout is finished (computeCompletion), but no screen shows it. Show the T3 result with its citation on the workout summary, then mark the rule active. Still open: keep the stock GZCLP rule or move to a double progression (every set near the top of a rep range), which fits the evidence better.
 
 **Sources**
 
@@ -626,6 +626,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **11 November 2026** — `t3-progression` (When does T3 weight go up?): T3 weight now goes up by 5 lb after a fully completed T3 exercise whose last set reached 25 reps. The rule existed but was never applied, so T3 weight only changed when edited by hand. Sources: .
 - **11 November 2026** — `time-off` (Why lighter weights after a break?): A lift now counts as a long break after 21 days instead of 7, and suggested weight cuts after time off were reduced from 10–40% to 5–15%. Sources: Spiering 2021, Halonen 2024.
 - **11 November 2026** — `amrap-effort` (How hard should the last set be?): T1 AMRAP sets now ask you to stop about 1 rep short of failure in every phase, not only while cutting. Sources: Robinson 2024, Morán-Navarro 2017.
 - **11 November 2026** — `e1rm-estimate` (How is my 1RM estimated?): Estimated 1RM now accounts for logged RPE and uses only T1 sets of 10 reps or fewer. The trend arrow was also corrected: it had been reading the history backwards. Sources: Nuzzo 2024, Halperin 2022.

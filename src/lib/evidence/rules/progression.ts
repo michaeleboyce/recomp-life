@@ -43,18 +43,21 @@ export const PROGRESSION_RULES = {
     area: "progression",
     status: "planned",
     title: "When does T3 weight go up?",
-    summary: "T3 weight would go up when the last set reaches 25 reps",
+    summary: "T3 weight goes up when the last set reaches 25 reps",
     appBehavior:
-      "Rule in code: add 5 lb when the last AMRAP set reaches 25 reps (or, outside a cut, when the three sets total 50 reps). It is not connected, so T3 weight only changes when you edit it.",
+      "When you finish every set of a T3 exercise, the app adds 5 lb for next time if the last AMRAP set reached 25 reps (or, outside a cut, if the three sets totalled 50 reps). Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. The app does not yet tell you on screen when this happens.",
     rationale:
       "Muscle growth improves as sets end closer to failure. Under this rule the first two sets of 15 can be about 10 reps short of failure, and people judge reps left least accurately in high-rep sets.",
     strength: "program",
     sources: ["robinson2024", "halperin2022"],
     reviewedOn: "2026-11",
-    implementedIn: ["src/lib/progression.ts#evaluateT3Progression"],
+    implementedIn: [
+      "src/lib/progression.ts#evaluateT3Progression",
+      "src/lib/workout/completeWorkout.ts#computeCompletion",
+    ],
     surfaces: [],
     activationNotes:
-      "Decide between the stock GZCLP rule and a double progression (every set near the top of a rep range), which fits the evidence better.",
+      "The rule now runs when a workout is finished (computeCompletion), but no screen shows it. Show the T3 result with its citation on the workout summary, then mark the rule active. Still open: keep the stock GZCLP rule or move to a double progression (every set near the top of a rep range), which fits the evidence better.",
   },
   "accessory-progression": {
     area: "progression",
