@@ -1,5 +1,7 @@
 "use client";
 
+import { Clock } from "lucide-react";
+
 interface TimeEstimateProps {
   accessoryCount: number;
 }
@@ -12,11 +14,17 @@ export function TimeEstimate({ accessoryCount }: TimeEstimateProps) {
   const total = BASE_TIME_MINUTES + accessoryTime;
 
   return (
-    <div className="text-sm text-muted-foreground text-center py-2">
-      Est. time: ~{total} min
-      {accessoryCount > 0 && (
-        <span> ({BASE_TIME_MINUTES} base + {accessoryTime} accessories)</span>
-      )}
-    </div>
+    <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+      <Clock className="size-4" aria-hidden="true" />
+      <span>
+        Est. time: ~{total} min
+        {accessoryCount > 0 && (
+          <span>
+            {" "}
+            ({BASE_TIME_MINUTES} base + {accessoryTime} accessories)
+          </span>
+        )}
+      </span>
+    </p>
   );
 }

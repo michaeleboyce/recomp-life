@@ -347,14 +347,6 @@ describe("PR opportunity", () => {
       recentAMRAPReps: [5, 4, 6],
     });
   });
-
-  it("is null when the projection function throws", async () => {
-    describePrOpportunity.mockImplementation(() => {
-      throw new Error("not implemented");
-    });
-    const hook = await mount(await start({ includeWarmUps: false }));
-    expect(hook.result.current.prOpportunity).toBeNull();
-  });
 });
 
 describe("resume", () => {

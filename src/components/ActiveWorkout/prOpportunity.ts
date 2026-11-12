@@ -13,14 +13,9 @@ export interface PrOpportunityInput {
   recentAMRAPReps: number[];
 }
 
-/** The PR opportunity for a set, or null when there is none or it cannot be worked out. */
+/** The PR opportunity for a set, or null when there is none. */
 export function getPrOpportunity(input: PrOpportunityInput): PrOpportunity | null {
-  try {
-    return describePrOpportunity(input);
-  } catch {
-    // The line is a bonus; a failure here must never block logging a set.
-    return null;
-  }
+  return describePrOpportunity(input);
 }
 
 const CHANCE_LABEL: Record<PrOpportunity["chance"], string | null> = {

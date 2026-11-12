@@ -76,8 +76,7 @@ export function AccessoryPicker({
   return (
     <div className="space-y-3">
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold">Add Accessories?</h3>
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
           ({getPhaseLabel(trainingPhase)})
           {trainingPhase.mode === "cutting" && (
             <EvidenceLine ruleId="accessories-in-cut" variant="icon" />
@@ -102,7 +101,7 @@ export function AccessoryPicker({
             return (
               <label
                 key={exerciseId}
-                className={`flex items-center gap-3 cursor-pointer ${
+                className={`flex min-h-9 items-center gap-3 cursor-pointer ${
                   isDisabled ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
@@ -115,7 +114,7 @@ export function AccessoryPicker({
                 />
                 <span className="text-sm">{exercise.name}</span>
                 {isPreferred && (
-                  <span className="rounded-full bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium text-green-400">
+                  <span className="rounded-full bg-success-soft px-1.5 py-0.5 text-[10px] font-medium text-success">
                     Preferred
                   </span>
                 )}

@@ -1,38 +1,25 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Dumbbell, Home } from "lucide-react";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import type { WorkoutLocation } from "@/types";
 
 interface LocationToggleProps {
   location: WorkoutLocation;
   onChange: (location: WorkoutLocation) => void;
+  className?: string;
 }
 
-export function LocationToggle({ location, onChange }: LocationToggleProps) {
+export function LocationToggle({ location, onChange, className }: LocationToggleProps) {
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-muted-foreground">
-        Location
-      </label>
-      <div className="flex gap-2">
-        <Button
-          variant={location === "gym" ? "default" : "outline"}
-          className="flex-1"
-          onClick={() => onChange("gym")}
-        >
-          <Dumbbell className="h-4 w-4 mr-1" />
-          Gym
-        </Button>
-        <Button
-          variant={location === "home" ? "default" : "outline"}
-          className="flex-1"
-          onClick={() => onChange("home")}
-        >
-          <Home className="h-4 w-4 mr-1" />
-          Home
-        </Button>
-      </div>
-    </div>
+    <SegmentedControl<WorkoutLocation>
+      value={location}
+      onChange={onChange}
+      className={className}
+      options={[
+        { value: "gym", label: "Gym", icon: <Dumbbell className="size-4" aria-hidden="true" /> },
+        { value: "home", label: "Home", icon: <Home className="size-4" aria-hidden="true" /> },
+      ]}
+    />
   );
 }

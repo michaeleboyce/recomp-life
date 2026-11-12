@@ -3,17 +3,19 @@
 import { useCallback, useMemo, useState } from "react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import {
+  useActivities,
   useLiftStates,
   useNextWorkout,
   usePainEntries,
   useRuns,
   useSettings,
 } from "@/hooks";
+import { ACTIVITY_NOTE_WINDOW_HOURS, evaluateActivityImpact } from "@/lib/activities";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { updateSettings } from "@/lib/data/records";
 import { saveLiftState, startWorkout } from "@/lib/data/workouts";
-import { EXERCISES } from "@/lib/exercises";
-import { applyPreferences } from "@/lib/exercisePreferences";
+import { ACCESSORY_IDS, EXERCISES } from "@/lib/exercises";
+import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePreferences";
 import { RECOVERY_HOURS } from "@/lib/recovery";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
@@ -32,6 +34,7 @@ import type {
 const HOUR_MS = 60 * 60 * 1000;
 const PAIN_WINDOW_MS = 7 * 24 * HOUR_MS;
 const RUN_WINDOW_MS = 24 * HOUR_MS;
+const ACTIVITY_WINDOW_MS = ACTIVITY_NOTE_WINDOW_HOURS * HOUR_MS;
 const NO_LIFT_STATES: LiftState[] = [];
 
 export interface RecoveryWarning {
@@ -88,10 +91,11 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
   const nextWorkout = useNextWorkout();
   const painEntries = usePainEntries();
   const runs = useRuns();
+  const activities = useActivities();
 
   const settings = loadedSettings ?? DEFAULT_USER_PROFILE.settings;
   const liftStates = loadedLiftStates ?? NO_LIFT_STATES;
-  const { equipment, trainingPhase, exercisePreferences } = settings;
+  const { equipment, trainingPhase } = settings;
 
   const templateId =
     requestedTemplateId && WORKOUT_TEMPLATES[requestedTemplateId]
@@ -105,11 +109,20 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
   const location = locationChoice ?? settings.defaultLocation ?? "gym";
   const warmUps = warmUpsChoice ?? settings.showWarmUps ?? true;
 
+  // Preferences in effect at the chosen location (overall, plus that location's overrides).
+  const overallPreferences = settings.exercisePreferences;
+  const locationPreferences = settings.exercisePreferencesByLocation;
+  const exercisePreferences = useMemo(
+    () => resolvePreferences(overallPreferences, locationPreferences, location),
+    [overallPreferences, locationPreferences, location]
+  );
+
   const [sleepHours, setSleepHours] = useState<SleepHours | null>(null);
   const [stressLevel, setStressLevel] = useState<StressLevel | null>(null);
   const [selectedAccessories, setSelectedAccessories] = useState<string[]>([]);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [runAdvisoryDismissed, setRunAdvisoryDismissed] = useState(false);
+  const [activityNoteDismissed, setActivityNoteDismissed] = useState(false);
   const [recoveryChoice, setRecoveryChoice] = useState<"proceed" | "reduce" | null>(null);
   const [dismissedDecays, setDismissedDecays] = useState<ReadonlySet<string>>(new Set());
   const [isStarting, setIsStarting] = useState(false);
@@ -185,6 +198,18 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
 
   const dismissRunAdvisory = useCallback(() => setRunAdvisoryDismissed(true), []);
 
+  // A hard yoga, cycling, hiking or other session shortly before this workout.
+  const activityNote = useMemo(() => {
+    if (!templateId || !activities || activityNoteDismissed) return null;
+    const now = new Date();
+    const recent = activities.filter(
+      (a) => now.getTime() - new Date(a.date).getTime() < ACTIVITY_WINDOW_MS
+    );
+    if (recent.length === 0) return null;
+    return evaluateActivityImpact(recent, workoutHasLowerBody(templateId), now);
+  }, [templateId, activities, activityNoteDismissed]);
+  const dismissActivityNote = useCallback(() => setActivityNoteDismissed(true), []);
+
   const recoveryWarnings = useMemo(
     () => (template ? recoveryWarningsFor(template.exercises, liftStates, new Date()) : []),
     [template, liftStates]
@@ -220,15 +245,17 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
   );
 
   const recentPainEntries = useMemo(() => {
-    const cutoff = Date.now() - PAIN_WINDOW_MS;
+    const cutoff = new Date().getTime() - PAIN_WINDOW_MS;
     return (painEntries ?? []).filter((entry) => new Date(entry.date).getTime() > cutoff);
   }, [painEntries]);
 
+  // Every preferred accessory is offered, then the rest of the day's recommendations.
   const accessoryRecommendations = useMemo(
     () =>
-      applyPreferences(
+      withPreferredAccessories(
         templateId ? (ACCESSORY_RECOMMENDATIONS[templateId] ?? []) : [],
-        exercisePreferences
+        exercisePreferences,
+        ACCESSORY_IDS
       ),
     [templateId, exercisePreferences]
   );
@@ -310,6 +337,8 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
     chooseSubstitute,
     runAdvisory,
     dismissRunAdvisory,
+    activityNote,
+    dismissActivityNote,
     recoveryWarnings,
     recoveryChoice,
     setRecoveryChoice,

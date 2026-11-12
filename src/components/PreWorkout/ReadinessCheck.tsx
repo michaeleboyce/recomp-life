@@ -32,13 +32,11 @@ export function ReadinessCheck({
   const showSuggestion = sleepHours === "<5" && stressLevel === "low";
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h2 className="flex items-center gap-1.5 text-lg font-semibold">
-          How are you feeling?
-          <EvidenceLine ruleId="readiness" variant="icon" />
-        </h2>
-      </div>
+    <div className="space-y-4">
+      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        Sleep and energy are saved with the workout.
+        <EvidenceLine ruleId="readiness" variant="icon" />
+      </p>
 
       <div className="space-y-2">
         <label className="text-sm font-medium text-muted-foreground">
@@ -79,21 +77,21 @@ export function ReadinessCheck({
             className="flex-1"
             onClick={() => onStressChange("low")}
           >
-            <Circle className="h-3 w-3 fill-red-400 text-red-400" /> Low
+            <Circle className="h-3 w-3 fill-destructive text-destructive" /> Low
           </Button>
           <Button
             variant={stressLevel === "normal" ? "default" : "outline"}
             className="flex-1"
             onClick={() => onStressChange("normal")}
           >
-            <Circle className="h-3 w-3 fill-yellow-400 text-yellow-400" /> Normal
+            <Circle className="h-3 w-3 fill-warning text-warning" /> Normal
           </Button>
           <Button
             variant={stressLevel === "good" ? "default" : "outline"}
             className="flex-1"
             onClick={() => onStressChange("good")}
           >
-            <Circle className="h-3 w-3 fill-green-400 text-green-400" /> Good
+            <Circle className="h-3 w-3 fill-success text-success" /> Good
           </Button>
         </div>
       </div>
