@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -37,7 +37,8 @@ function startOfDay(date: Date): Date {
 
 export default function WeighInPage() {
   const router = useRouter();
-  const [weight, setWeight] = useState("");
+  // What the user has typed; empty until they do.
+  const [typedWeight, setWeight] = useState("");
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(getDefaultTimeOfDay());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,12 +54,11 @@ export default function WeighInPage() {
   // The last 5 for display
   const last5 = recentEntries.slice(0, 5);
 
-  // Pre-fill weight from last entry
-  useEffect(() => {
-    if (recentEntries.length > 0 && weight === "") {
-      setWeight(String(recentEntries[0].weight));
-    }
-  }, [recentEntries, weight]);
+  // Pre-filled from the last entry whenever nothing is typed
+  const weight =
+    typedWeight !== "" || recentEntries.length === 0
+      ? typedWeight
+      : String(recentEntries[0].weight);
 
   // Check if already logged today
   const todayEntry = useMemo(() => {
