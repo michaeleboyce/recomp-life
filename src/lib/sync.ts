@@ -27,9 +27,11 @@ export async function pushUnsynced(): Promise<number> {
 
   for (const { name, table } of SYNC_TABLES) {
     const dexieTable = table() as Table;
+    // Rows are written with the boolean `synced: false`, and booleans are not valid
+    // IndexedDB keys, so unsynced rows never appear in the `synced` index. Filter the
+    // rows themselves instead of querying that index.
     const unsynced = await dexieTable
-      .where('synced')
-      .equals(0) // Dexie stores booleans as 0/1 in indexes
+      .filter((row: { synced?: unknown }) => !row.synced)
       .toArray();
 
     if (unsynced.length === 0) continue;
