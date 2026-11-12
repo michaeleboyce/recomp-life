@@ -1,75 +1,104 @@
 "use client";
 
-import Link from "next/link";
-import { Dumbbell, Calculator, ChevronRight, PersonStanding, FlaskConical, Settings, Disc } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  BookOpen,
+  Calculator,
+  CalendarClock,
+  Cloud,
+  Disc,
+  Dumbbell,
+  FlaskConical,
+  PersonStanding,
+  Settings,
+} from "lucide-react";
+import { PageHeader, PageShell } from "@/components/ui/page-shell";
+import { MoreGroup, MoreRow } from "@/components/More/MoreGroup";
+import { TrainingLocationRow } from "@/components/More/TrainingLocationRow";
+import { useHasSyncKey } from "@/components/More/useHasSyncKey";
+import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
+import { useNextWorkout, useSettings } from "@/hooks";
+import packageJson from "../../../package.json";
 
-const TOOLS = [
-  {
-    href: "/exercises",
-    label: "Exercise Browser",
-    description: "Browse all exercises, muscles, equipment, and preferences",
-    icon: Dumbbell,
-  },
-  {
-    href: "/muscles",
-    label: "Muscle Explorer",
-    description: "See weekly volume, recovery, and pain on the body",
-    icon: PersonStanding,
-  },
-  {
-    href: "/1rm-calculator",
-    label: "1RM Calculator",
-    description: "Estimate your one-rep max from a recent working set",
-    icon: Calculator,
-  },
-  {
-    href: "/plate-calculator",
-    label: "Plate Calculator",
-    description: "Work out which plates to load for a target weight",
-    icon: Disc,
-  },
-  {
-    href: "/research",
-    label: "How the App Coaches",
-    description: "Every coaching rule, why it exists, and the research behind it",
-    icon: FlaskConical,
-  },
-  {
-    href: "/settings",
-    label: "Settings",
-    description: "Profile, equipment, training phase, and data",
-    icon: Settings,
-  },
-] as const;
+const PHASE_LABEL = { cutting: "Cutting", maintaining: "Maintaining", bulking: "Bulking" } as const;
 
 export default function MorePage() {
-  return (
-    <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
-      <header className="mb-6">
-        <h1 className="text-lg font-bold text-foreground">More</h1>
-      </header>
+  const next = useNextWorkout();
+  const settings = useSettings();
+  const hasSyncKey = useHasSyncKey();
+  const phase = settings?.trainingPhase.mode;
 
-      <div className="space-y-3">
-        {TOOLS.map(({ href, label, description, icon: Icon }) => (
-          <Link key={href} href={href}>
-            <Card className="transition-colors hover:bg-accent/50 active:scale-[0.98]">
-              <CardContent className="flex items-center gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <Icon className="h-5 w-5 text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground">
-                    {label}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{description}</p>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
-    </div>
+  return (
+    <PageShell className="flex flex-col gap-6">
+      <PageHeader title="More" />
+
+      <MoreGroup title="Training">
+        <MoreRow
+          icon={CalendarClock}
+          title="Upcoming workouts"
+          subtitle={next ? `Next: ${templateTitle(next.templateId)}` : "The next workouts in your rotation"}
+          href="/progress/upcoming"
+        />
+        <MoreRow
+          icon={Dumbbell}
+          title="Exercises"
+          subtitle="Browse exercises and set your preferences"
+          href="/exercises"
+        />
+        <MoreRow
+          icon={PersonStanding}
+          title="Muscles"
+          subtitle="Weekly volume, recovery and pain on the body"
+          href="/muscles"
+        />
+      </MoreGroup>
+
+      <MoreGroup title="Tools">
+        <MoreRow
+          icon={Disc}
+          title="Plate calculator"
+          subtitle="Which plates to load for a target weight"
+          href="/plate-calculator"
+        />
+        <MoreRow
+          icon={Calculator}
+          title="1RM calculator"
+          subtitle="Estimate your one-rep max from a recent set"
+          href="/1rm-calculator"
+        />
+      </MoreGroup>
+
+      <MoreGroup title="Learn">
+        <MoreRow
+          icon={BookOpen}
+          title="Glossary"
+          subtitle="What AMRAP, T1, RPE and the rest mean"
+          href="/more/glossary"
+        />
+        <MoreRow
+          icon={FlaskConical}
+          title="How the app coaches"
+          subtitle="Every coaching rule and the research behind it"
+          href="/research"
+        />
+      </MoreGroup>
+
+      <MoreGroup title="You">
+        <TrainingLocationRow />
+        <MoreRow
+          icon={Settings}
+          title="Settings"
+          subtitle={phase ? `${PHASE_LABEL[phase]} · profile, equipment, data` : "Profile, equipment, training phase, data"}
+          href="/settings"
+        />
+        <MoreRow
+          icon={Cloud}
+          title="Cloud sync"
+          subtitle={hasSyncKey ? "On this device" : "Off"}
+          href="/settings#sync"
+        />
+      </MoreGroup>
+
+      <p className="text-center text-xs text-muted-foreground">Version {packageJson.version}</p>
+    </PageShell>
   );
 }
