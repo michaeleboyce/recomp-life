@@ -1,180 +1,94 @@
 import { create } from "zustand";
-import type { SetLog, WorkoutLocation } from "@/types";
+import type { Tier } from "@/types";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 
 // The type lives with the pure workout domain; re-exported for existing imports.
 export type { WorkoutExerciseState };
 
+/**
+ * Transient UI state for the active workout. Nothing here is the record of what
+ * was done: logged sets live on the workout row (see `useWorkout`) and the plan is
+ * rebuilt from it, so losing this store (reload, app eviction) loses no progress.
+ */
 interface WorkoutStore {
+  /** The workout this state belongs to. */
   sessionId: string | null;
-  templateId: string;
-  location: WorkoutLocation;
-  currentExerciseIndex: number;
-  currentSetIndex: number;
-  exercises: WorkoutExerciseState[];
+  workoutStartTime: Date | null;
+  /** Plan entry the user jumped to from the overview; null follows the plan order. */
+  viewedEntryIndex: number | null;
+  /** A T2 load drop the user accepted that no logged set reflects yet. */
+  pendingDrop: { entryIndex: number; weight: number } | null;
+  /** Plan entry whose T2 load-drop suggestion the user declined. */
+  dismissedDropEntryIndex: number | null;
+
   isRestTimerActive: boolean;
   restTimeRemaining: number;
   restTimerDuration: number;
-  workoutStartTime: Date | null;
-  completedSets: SetLog[];
+  /** Tier of the set the current rest follows. */
+  restTier: Tier | null;
 
-  // Actions
-  startWorkout: (
-    sessionId: string,
-    templateId: string,
-    location: WorkoutLocation,
-    exercises: WorkoutExerciseState[]
-  ) => void;
-  logSet: (set: SetLog) => void;
-  skipSet: () => void;
-  nextExercise: () => void;
-  startRestTimer: (seconds: number) => void;
-  tickTimer: () => void;
+  /** Starts tracking a workout; a different id clears everything else first. */
+  beginSession: (sessionId: string, startedAt: Date) => void;
+  viewEntry: (index: number | null) => void;
+  acceptDrop: (entryIndex: number, weight: number) => void;
+  clearPendingDrop: () => void;
+  dismissDrop: (entryIndex: number) => void;
+  startRestTimer: (seconds: number, tier: Tier) => void;
   skipRest: () => void;
   addRestTime: (seconds: number) => void;
-  advanceSet: () => void;
-  goToExercise: (exerciseIndex: number) => void;
-  updateExerciseWeight: (exerciseIndex: number, newWeight: number) => void;
   reset: () => void;
 }
 
 const initialState = {
-  sessionId: null,
-  templateId: "",
-  location: "gym" as WorkoutLocation,
-  currentExerciseIndex: 0,
-  currentSetIndex: 0,
-  exercises: [] as WorkoutExerciseState[],
+  sessionId: null as string | null,
+  workoutStartTime: null as Date | null,
+  viewedEntryIndex: null as number | null,
+  pendingDrop: null as { entryIndex: number; weight: number } | null,
+  dismissedDropEntryIndex: null as number | null,
   isRestTimerActive: false,
   restTimeRemaining: 0,
   restTimerDuration: 0,
-  workoutStartTime: null as Date | null,
-  completedSets: [] as SetLog[],
+  restTier: null as Tier | null,
+};
+
+const restCleared = {
+  isRestTimerActive: false,
+  restTimeRemaining: 0,
+  restTimerDuration: 0,
+  restTier: null,
 };
 
 export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
   ...initialState,
 
-  startWorkout: (sessionId, templateId, location, exercises) => {
-    set({
-      sessionId,
-      templateId,
-      location,
-      exercises,
-      currentExerciseIndex: 0,
-      currentSetIndex: 0,
-      workoutStartTime: new Date(),
-      completedSets: [],
-      isRestTimerActive: false,
-      restTimeRemaining: 0,
-      restTimerDuration: 0,
-    });
+  beginSession: (sessionId, startedAt) => {
+    if (get().sessionId === sessionId) return;
+    set({ ...initialState, sessionId, workoutStartTime: startedAt });
   },
 
-  logSet: (setLog: SetLog) => {
-    const state = get();
-    const exercises = [...state.exercises];
-    const currentExercise = { ...exercises[state.currentExerciseIndex] };
-    currentExercise.completedSets += 1;
-    exercises[state.currentExerciseIndex] = currentExercise;
+  viewEntry: (index) => set({ viewedEntryIndex: index }),
 
-    set({
-      exercises,
-      completedSets: [...state.completedSets, setLog],
-    });
-  },
+  acceptDrop: (entryIndex, weight) => set({ pendingDrop: { entryIndex, weight } }),
 
-  skipSet: () => {
-    const state = get();
-    const exercises = [...state.exercises];
-    const currentExercise = { ...exercises[state.currentExerciseIndex] };
-    currentExercise.completedSets += 1;
-    exercises[state.currentExerciseIndex] = currentExercise;
+  clearPendingDrop: () => set({ pendingDrop: null }),
 
-    set({ exercises });
-  },
+  dismissDrop: (entryIndex) => set({ dismissedDropEntryIndex: entryIndex }),
 
-  advanceSet: () => {
-    const state = get();
-    const currentExercise = state.exercises[state.currentExerciseIndex];
-
-    if (currentExercise.completedSets >= currentExercise.targetSets) {
-      // Move to next exercise
-      const nextIndex = state.currentExerciseIndex + 1;
-      set({
-        currentExerciseIndex: nextIndex,
-        currentSetIndex: 0,
-      });
-    } else {
-      set({
-        currentSetIndex: state.currentSetIndex + 1,
-      });
-    }
-  },
-
-  nextExercise: () => {
-    const state = get();
-    const nextIndex = state.currentExerciseIndex + 1;
-    set({
-      currentExerciseIndex: nextIndex,
-      currentSetIndex: 0,
-    });
-  },
-
-  startRestTimer: (seconds: number) => {
+  startRestTimer: (seconds, tier) =>
     set({
       isRestTimerActive: true,
       restTimeRemaining: seconds,
       restTimerDuration: seconds,
-    });
-  },
+      restTier: tier,
+    }),
 
-  tickTimer: () => {
-    const state = get();
-    if (state.isRestTimerActive) {
-      set({ restTimeRemaining: state.restTimeRemaining - 1 });
-    }
-  },
+  skipRest: () => set(restCleared),
 
-  skipRest: () => {
-    set({
-      isRestTimerActive: false,
-      restTimeRemaining: 0,
-      restTimerDuration: 0,
-    });
-  },
-
-  addRestTime: (seconds: number) => {
+  addRestTime: (seconds) =>
     set((state) => ({
       restTimeRemaining: state.restTimeRemaining + seconds,
       restTimerDuration: state.restTimerDuration + seconds,
-    }));
-  },
+    })),
 
-  goToExercise: (exerciseIndex: number) => {
-    const state = get();
-    if (exerciseIndex < 0 || exerciseIndex >= state.exercises.length) return;
-    set({
-      currentExerciseIndex: exerciseIndex,
-      currentSetIndex: state.exercises[exerciseIndex].completedSets,
-      isRestTimerActive: false,
-      restTimeRemaining: 0,
-      restTimerDuration: 0,
-    });
-  },
-
-  updateExerciseWeight: (exerciseIndex: number, newWeight: number) => {
-    set((state) => {
-      const exercises = [...state.exercises];
-      exercises[exerciseIndex] = {
-        ...exercises[exerciseIndex],
-        weight: newWeight,
-      };
-      return { exercises };
-    });
-  },
-
-  reset: () => {
-    set(initialState);
-  },
+  reset: () => set(initialState),
 }));

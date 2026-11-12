@@ -1,61 +1,65 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { tierStyle } from "@/lib/tierStyle";
-import type { WorkoutExerciseState } from "@/stores/workoutStore";
+import type { WorkoutExerciseState } from "@/lib/workout/types";
 
 interface WorkoutMiniMapProps {
   exercises: WorkoutExerciseState[];
   currentExerciseIndex: number;
-  onTap: () => void;
+  className?: string;
 }
 
+/**
+ * The workout as a strip: one segment per working set, grouped by exercise and
+ * tinted by tier. Done sets are solid, the set on screen is bright, the rest muted.
+ * Warm-ups are not drawn.
+ */
 export function WorkoutMiniMap({
   exercises,
   currentExerciseIndex,
-  onTap,
+  className,
 }: WorkoutMiniMapProps) {
-  // Filter out warm-ups, track original indices
-  const mainExerciseIndices = exercises
-    .map((e, i) => ({ exercise: e, index: i }))
+  const groups = exercises
+    .map((exercise, index) => ({ exercise, index }))
     .filter((item) => !item.exercise.isWarmUp);
 
+  const total = groups.reduce((sum, g) => sum + g.exercise.targetSets, 0);
+  const done = groups.reduce(
+    (sum, g) => sum + Math.min(g.exercise.completedSets, g.exercise.targetSets),
+    0
+  );
+
   return (
-    <button
-      onClick={onTap}
-      className="w-full px-4 py-2 flex items-center gap-2 active:bg-muted/30 transition-colors"
-      aria-label="Open workout overview"
+    <div
+      role="img"
+      aria-label={`${done} of ${total} sets done`}
+      className={cn("flex gap-1.5", className)}
     >
-      {mainExerciseIndices.map(({ exercise, index }, groupIdx) => {
-        return (
-          <div
-            key={`${exercise.exerciseId}-${exercise.tier}-${groupIdx}`}
-            className="flex gap-0.5 flex-1"
-          >
-            {Array.from({ length: exercise.targetSets }, (_, setIdx) => {
-              const setDone = setIdx < exercise.completedSets;
-              const isCurrent = index === currentExerciseIndex;
-              const isCurrentSet =
-                isCurrent && setIdx === exercise.completedSets;
-
-              return (
-                <div
-                  key={setIdx}
-                  className={`h-2 flex-1 rounded-full transition-all ${
-                    setDone
-                      ? tierStyle(exercise.tier).dot
-                      : isCurrentSet
-                        ? `${tierStyle(exercise.tier).dot} animate-pulse`
-                        : tierStyle(exercise.tier).dotMuted
-                  }`}
-                />
-              );
-            })}
-          </div>
-        );
-      })}
-
-      {/* Chevron indicator */}
-      <span className="text-muted-foreground text-xs ml-1 shrink-0">&#9660;</span>
-    </button>
+      {groups.map(({ exercise, index }, groupIdx) => (
+        <div
+          key={`${exercise.exerciseId}-${exercise.tier}-${groupIdx}`}
+          className="flex gap-[3px]"
+          style={{ flexGrow: exercise.targetSets, flexBasis: 0 }}
+        >
+          {Array.from({ length: exercise.targetSets }, (_, setIdx) => {
+            const isDone = setIdx < exercise.completedSets;
+            const isCurrent =
+              index === currentExerciseIndex && setIdx === exercise.completedSets;
+            const style = tierStyle(exercise.tier);
+            return (
+              <span
+                key={setIdx}
+                data-state={isDone ? "done" : isCurrent ? "current" : "todo"}
+                className={cn(
+                  "h-1 flex-1 rounded-full transition-colors",
+                  isDone ? style.dot : isCurrent ? "bg-foreground" : style.dotMuted
+                )}
+              />
+            );
+          })}
+        </div>
+      ))}
+    </div>
   );
 }

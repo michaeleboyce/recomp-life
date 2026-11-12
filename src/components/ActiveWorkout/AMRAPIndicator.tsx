@@ -1,33 +1,29 @@
 "use client";
 
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { getAMRAPGuidance } from "@/lib/amrap";
-import type { TrainingPhase, Tier } from "@/types";
+import type { Tier } from "@/types";
 
 interface AMRAPIndicatorProps {
   tier: Tier;
-  trainingPhase: TrainingPhase;
 }
 
+/**
+ * The context for an AMRAP set, written to sit on the "Set 5 of 5" line: what
+ * AMRAP means, how hard to push for this tier, and why.
+ */
 export function AMRAPIndicator({ tier }: AMRAPIndicatorProps) {
   const guidance = getAMRAPGuidance(tier);
 
   return (
-    <Alert className="mx-4 border-amber-500/50 bg-amber-500/10">
-      <AlertTitle className="font-semibold text-amber-400">
-        AMRAP Set -- As Many Reps As Possible
-      </AlertTitle>
-      {guidance && (
-        <AlertDescription className="text-amber-300/80 text-xs mt-1">
-          {guidance}
-        </AlertDescription>
-      )}
-      {guidance && (
-        <div className="col-start-2">
-          <EvidenceLine ruleId="amrap-effort" hideLibraryLink />
-        </div>
-      )}
-    </Alert>
+    <span className="inline-flex items-center gap-1 text-warning">
+      <span>
+        <abbr title="As many reps as possible" className="font-semibold no-underline">
+          AMRAP
+        </abbr>
+        {guidance ? `: ${guidance.charAt(0).toLowerCase()}${guidance.slice(1)}` : ": as many reps as you can"}
+      </span>
+      {guidance && <EvidenceLine ruleId="amrap-effort" variant="icon" hideLibraryLink />}
+    </span>
   );
 }
