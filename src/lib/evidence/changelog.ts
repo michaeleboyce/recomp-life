@@ -11,6 +11,20 @@ import type { SourceId } from "./sources";
 
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
+    date: "2026-11-12",
+    ruleId: "projection-dose-response",
+    change:
+      "New projection screen for each lift: see where your estimated 1RM is heading and try alternatives (sessions, sets, other work for the same muscles, sessions passed, phase). Alternatives further from what you do now get a wider range.",
+    sources: ["pelland2026", "grgic2018frequency"],
+  },
+  {
+    date: "2026-11-12",
+    ruleId: "projection-rate-of-gain",
+    change:
+      "The projection range now never assumes less scatter than about 2% of your estimate, so a very steady history no longer shows a range of zero.",
+    sources: ["grgic2020", "nuzzo2024"],
+  },
+  {
     date: "2026-11-11",
     ruleId: "activity-fatigue",
     change:

@@ -7,7 +7,7 @@ import type { Point } from "@/lib/metrics/types";
 import type { TrainingPhase } from "@/types";
 import type { ProjectionBaseline } from "./baseline";
 import { PROJECTION_COEFFICIENTS } from "./coefficients";
-import { fitTrend, MS_PER_WEEK, type TrendFit } from "./trend";
+import { fitTrend, MIN_TREND_POINTS, MS_PER_WEEK, type TrendFit } from "./trend";
 
 /** Any field left out keeps the baseline value. */
 export type ProjectionScenario = Partial<
@@ -32,8 +32,12 @@ export interface ProjectedPoint {
 }
 
 export interface Projection {
-  /** "insufficient-data" when the history has fewer than four points. */
-  status: "ok" | "insufficient-data";
+  /**
+   * "insufficient-data" when the history has fewer than four recent points;
+   * "flat-trend" when the fitted slope is zero or negative, so there is no personal
+   * rate to scale: the points are level and the scenario has no effect.
+   */
+  status: "ok" | "insufficient-data" | "flat-trend";
   /** One point per week from now to the horizon, starting at week 0. */
   points: ProjectedPoint[];
   /** lbs per week at the start of the projection, after scenario scaling. */
@@ -60,6 +64,12 @@ export const TREND_WINDOW_WEEKS = 12;
 
 /** Passing more sessions can raise the rate by at most this factor. */
 export const MAX_ADHERENCE_MULTIPLIER = 1.5;
+
+/**
+ * The most the scenario-distance factor may widen the range (a guard for a total
+ * multiplier at or near zero, where |ln| has no bound).
+ */
+export const MAX_SCENARIO_WIDENING = 2;
 
 /** A last data point older than this many weeks earns a caveat in the assumptions. */
 export const STALE_HISTORY_WEEKS = 4;
@@ -106,6 +116,8 @@ interface Multipliers {
   notes: string[];
   scenarioPhase: TrainingPhase["mode"];
 }
+
+const NO_CHANGE = { dose: 1, adherence: 1, phase: 1, notes: [] as string[] };
 
 function scenarioMultipliers(
   baseline: ProjectionBaseline,
@@ -204,16 +216,49 @@ function scenarioMultipliers(
   return { dose, adherence, phase, notes, scenarioPhase };
 }
 
-/** The fit over the points up to `nowMs` within TREND_WINDOW_WEEKS of the latest one. */
-function fitRecent(history: Point[], nowMs: number): { fit: TrendFit; latest: number } | null {
+/**
+ * Factor by which the range widens for a scenario whose total rate multiplier is
+ * `total`: 1 + scenarioUncertainty x |ln total|, exactly 1 when `total` is 1, at most
+ * MAX_SCENARIO_WIDENING (also for a total of zero or an invalid one). The
+ * coefficient and its evidence tag live in coefficients.ts.
+ */
+export function scenarioWidening(total: number): number {
+  if (total === 1) return 1;
+  if (!Number.isFinite(total) || total <= 0) return MAX_SCENARIO_WIDENING;
+  return Math.min(
+    MAX_SCENARIO_WIDENING,
+    1 + C.scenarioUncertainty * Math.abs(Math.log(total))
+  );
+}
+
+/** The history points up to `nowMs` within TREND_WINDOW_WEEKS of the latest one. */
+function recentWindow(history: Point[], nowMs: number): { points: Point[]; latest: number } | null {
   const past = history.filter(
     (p) => Number.isFinite(p.t) && Number.isFinite(p.v) && p.t <= nowMs
   );
   if (past.length === 0) return null;
   const latest = Math.max(...past.map((p) => p.t));
   const windowStart = latest - TREND_WINDOW_WEEKS * MS_PER_WEEK;
-  const fit = fitTrend(past.filter((p) => p.t >= windowStart));
-  return fit ? { fit, latest } : null;
+  return { points: past.filter((p) => p.t >= windowStart), latest };
+}
+
+/** The fit over the points up to `nowMs` within TREND_WINDOW_WEEKS of the latest one. */
+function fitRecent(history: Point[], nowMs: number): { fit: TrendFit; latest: number } | null {
+  const recent = recentWindow(history, nowMs);
+  const fit = recent ? fitTrend(recent.points) : null;
+  return recent && fit ? { fit, latest: recent.latest } : null;
+}
+
+/**
+ * How many more results (estimated-1RM points) the history needs before a trend can
+ * be fitted: 0 when it already can, at least 1 when it cannot (for example when every
+ * recent point shares one timestamp).
+ */
+export function resultsNeeded(history: Point[], now: Date): number {
+  const nowMs = now.getTime();
+  if (fitRecent(history, nowMs)) return 0;
+  const have = recentWindow(history, nowMs)?.points.length ?? 0;
+  return Math.max(1, MIN_TREND_POINTS - have);
 }
 
 function relatedTrends(relatedHistory: Record<string, Point[]>, nowMs: number): RelatedTrend[] {
@@ -246,7 +291,9 @@ function insufficientData(): Projection {
  * Model:
  * - Trend: `fitTrend` over the history points (up to `now`) within
  *   TREND_WINDOW_WEEKS of the most recent one. No fit -> "insufficient-data".
- * - Base rate: the fitted slope, floored at 0. A falling trend projects flat.
+ * - Base rate: the fitted slope. A slope of zero or below gives status
+ *   "flat-trend": the points are level, the scenario is ignored entirely (there is
+ *   no personal rate to scale) and the assumptions say so and what would change it.
  * - Scenario: rate x dose x adherence x phase, where
  *   dose = clamp((effective sets / baseline effective sets) ^ volumeExponent
  *                x (sessions / baseline sessions) ^ frequencyExponent),
@@ -259,8 +306,12 @@ function insufficientData(): Projection {
  *   dose of zero cannot be scaled, so a change to it is ignored (and said so).
  * - Path: the value starts at the fitted value at `now` (not the last raw point)
  *   and gains startingRate x weeklyRateRetention^k during week k+1.
- * - Range: value -/+ bandWidthSd x residualSd x (1 + bandGrowth x sqrt(week)),
- *   never narrower than the week before, low end not below 0.
+ * - Range: value -/+ bandWidthSd x sd x (1 + bandGrowth x sqrt(week)) x widening,
+ *   where sd = max(residualSd, minResidualSdFraction x the value now) (an exactly
+ *   linear history still gets a range) and widening = scenarioWidening(dose x
+ *   adherence x phase) (exactly 1 for an unchanged scenario, wider the further the
+ *   scenario is from the baseline); never narrower than the week before, low end
+ *   not below 0.
  * - `gain`: horizon minus week 0; its low/high are the horizon's low/high minus the
  *   week-0 value.
  * - `weeks` is floored to a whole number; anything invalid counts as 0.
@@ -291,11 +342,19 @@ export function projectE1RM(input: {
   if (!recent) return { ...insufficientData(), ...related };
   const { fit, latest } = recent;
 
-  const baseRate = Math.max(0, fit.slopePerWeek);
-  const m = scenarioMultipliers(baseline, scenario);
-  const startingRatePerWeek = baseRate * m.dose * m.adherence * m.phase;
+  // A flat or falling trend has no personal rate to scale: hold it level and ignore
+  // the scenario, so the current trend and any alternative are the same line.
+  const flat = fit.slopePerWeek <= 0;
+  const m = flat
+    ? { ...NO_CHANGE, scenarioPhase: baseline.phase }
+    : scenarioMultipliers(baseline, scenario);
+  const total = m.dose * m.adherence * m.phase;
+  const startingRatePerWeek = flat ? 0 : fit.slopePerWeek * total;
+  const widening = scenarioWidening(total);
 
   const startValue = fit.valueAt(nowMs);
+  const floorSd = C.minResidualSdFraction * Math.max(0, startValue);
+  const rangeSd = Math.max(fit.residualSd, floorSd);
   const points: ProjectedPoint[] = [];
   let value = startValue;
   let halfWidth = 0;
@@ -305,7 +364,7 @@ export function projectE1RM(input: {
     }
     halfWidth = Math.max(
       halfWidth,
-      C.bandWidthSd * fit.residualSd * (1 + C.bandGrowth * Math.sqrt(week))
+      C.bandWidthSd * rangeSd * (1 + C.bandGrowth * Math.sqrt(week)) * widening
     );
     points.push({
       t: nowMs + week * MS_PER_WEEK,
@@ -321,9 +380,10 @@ export function projectE1RM(input: {
   // ── Assumptions, written from the actual inputs ──
   const assumptions: string[] = [];
   const fitted = `fitted to ${fit.pointsUsed} results from the last ${TREND_WINDOW_WEEKS} weeks of history`;
-  if (fit.slopePerWeek <= 0) {
+  if (flat) {
     assumptions.push(
-      `Your recent trend is flat or falling (${fmt(fit.slopePerWeek)} lbs per week, ${fitted}), so the projection holds today's estimate level instead of projecting a decline; scenario changes cannot raise a rate of zero.`
+      `Your recent estimates are not rising (${fmt(fit.slopePerWeek)} lbs per week, ${fitted}), so the model has no personal rate of gain to scale. It holds today's estimate level instead of projecting a decline, and changing sessions, sets or phase cannot move a rate of zero.`,
+      "A few more sessions of data, with the estimate moving up, would give it a rate to work from and let it compare alternatives."
     );
   } else if (m.notes.length === 0) {
     assumptions.push(
@@ -341,9 +401,20 @@ export function projectE1RM(input: {
   assumptions.push(
     `Gains are assumed to slow: each week adds ${pct(C.weeklyRateRetention)} of what the week before added.`
   );
-  assumptions.push(
-    `The range reflects how much your past results scattered around the trend (about ${fmt(C.bandWidthSd * fit.residualSd)} lbs either side today) and widens the further ahead it looks.`
-  );
+  if (rangeSd > fit.residualSd) {
+    assumptions.push(
+      `Your past results sit closer to the trend than a single 1RM test is repeatable, so the range assumes a scatter of at least ${fmt(C.minResidualSdFraction * 100)}% of today's estimate (about ${fmt(C.bandWidthSd * rangeSd)} lbs either side today) and widens the further ahead it looks.`
+    );
+  } else {
+    assumptions.push(
+      `The range reflects how much your past results scattered around the trend (about ${fmt(C.bandWidthSd * rangeSd)} lbs either side today) and widens the further ahead it looks.`
+    );
+  }
+  if (widening > 1) {
+    assumptions.push(
+      `This alternative is further from what you do now, so its range is ${pct(widening - 1)} wider: how much a change in training helps is itself uncertain.`
+    );
+  }
   const staleWeeks = (nowMs - latest) / MS_PER_WEEK;
   if (staleWeeks > STALE_HISTORY_WEEKS) {
     assumptions.push(
@@ -352,7 +423,7 @@ export function projectE1RM(input: {
   }
 
   return {
-    status: "ok",
+    status: flat ? "flat-trend" : "ok",
     points,
     startingRatePerWeek,
     gain: {

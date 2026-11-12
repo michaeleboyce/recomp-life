@@ -133,6 +133,36 @@ export const PROJECTION_COEFFICIENTS = {
    * @evidence projection-rate-of-gain
    */
   bandWidthSd: 1.28,
+  /**
+   * The smallest scatter the range assumes, as a fraction of today's estimated 1RM:
+   * the SD behind the range is max(residual SD, minResidualSdFraction x e1RM now).
+   * Without it an exactly linear history (common early in GZCLP, when the weight goes
+   * up every session) would give a zero-width range.
+   *
+   * Source: Grgic et al. (2020) found a tested 1RM varies between sessions by a median
+   * of 4.2% (coefficient of variation; range 0.5-12.1%), and Nuzzo et al. (2024) show
+   * estimates from rep sets carry extra error on top. The trend's level rests on at
+   * least four results (MIN_TREND_POINTS), and the error of an average of four
+   * measurements is half that of one: 4.2% / sqrt(4) = 2.1%. Judgment: using the median
+   * single-test figure and the minimum point count is ours; the floor only binds when
+   * the lifter's own results scatter less than that.
+   * @evidence projection-rate-of-gain
+   */
+  minResidualSdFraction: 0.021,
+  /**
+   * How much wider the range gets as a scenario moves away from what the lifter does:
+   * half-width x (1 + scenarioUncertainty x |ln(total rate multiplier)|), exactly 1
+   * for an unchanged scenario.
+   *
+   * Source: none. No research gives this number. The research note (limits) says the
+   * multipliers themselves are uncertain, e.g. the frequency exponent could be anywhere
+   * from 0 to about 0.4, so a scenario far from the baseline is less certain than the
+   * current trend. Judgment value, kept modest: 0.5 widens the range by about 3% for
+   * 2 sessions a week instead of 1.5, about 9% for cutting instead of maintaining, and
+   * at most about 45% for the largest increase the other bounds allow.
+   * @evidence projection-dose-response
+   */
+  scenarioUncertainty: 0.5,
 } as const;
 
 export type ProjectionCoefficients = typeof PROJECTION_COEFFICIENTS;

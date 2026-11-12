@@ -261,7 +261,9 @@ describe("projectE1RM", () => {
     const fit = fitTrend(history())!;
     const p = project();
     const w = 4;
-    const half = C.bandWidthSd * fit.residualSd * (1 + C.bandGrowth * Math.sqrt(w));
+    // The scatter, or the minimum range when the scatter is smaller.
+    const sd = Math.max(fit.residualSd, C.minResidualSdFraction * p.points[0].v);
+    const half = C.bandWidthSd * sd * (1 + C.bandGrowth * Math.sqrt(w));
     expect(p.points[w].high - p.points[w].v).toBeCloseTo(half, 6);
     expect(p.points[w].v - p.points[w].low).toBeCloseTo(half, 6);
     expect(p.gain.high - p.gain.low).toBeCloseTo(p.points[WEEKS].high - p.points[WEEKS].low, 6);
@@ -280,7 +282,7 @@ describe("projectE1RM", () => {
 
   it("projects a declining trend flat and says so", () => {
     const p = project({ directWeeklySets: STEP * 2 }, { history: history(-2) });
-    expect(p.status).toBe("ok");
+    expect(p.status).toBe("flat-trend");
     expect(p.startingRatePerWeek).toBe(0);
     expect(p.gain.v).toBe(0);
     for (const point of p.points) expect(point.v).toBe(p.points[0].v);

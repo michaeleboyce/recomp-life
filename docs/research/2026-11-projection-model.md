@@ -195,4 +195,39 @@ measured for lift-to-lift transfer. Recorded as its own rule, `projection-specif
   the conservative exponents allow for this.
 - **The uncertainty in the multipliers themselves is not in the range.** The band grows
   with the horizon but does not widen more for scenarios far from the baseline, even though
-  the frequency exponent could plausibly be anywhere from 0 to ~0.4.
+  the frequency exponent could plausibly be anywhere from 0 to ~0.4. (Addressed in part by
+  `scenarioUncertainty`, below.)
+
+## Addendum (November 2026, projection screen): two range coefficients
+
+Added when the projection screen was built. Both shape only the width of the range, never
+the projected value.
+
+| Key | Value | Source | Grade | How much is judgment |
+|---|---|---|---|---|
+| `minResidualSdFraction` | 0.021 | Grgic 2020, Nuzzo 2024 (question (e)) | limited | The choice of the median CV and of the minimum point count |
+| `scenarioUncertainty` | 0.5 | none direct | limited | Entirely judgment |
+
+**`minResidualSdFraction` = 0.021.** An exactly linear e1RM history (common early in
+GZCLP, when the weight rises every session at the same reps) gives a residual SD of 0 and
+a zero-width range, which claims a certainty no estimate has. The SD behind the range is
+now max(residual SD, 0.021 × current e1RM). From (e): a tested 1RM varies between
+sessions by a median CV of **4.2%** (Grgic 2020), and estimates from rep sets add error on
+top (Nuzzo 2024). The trend's level rests on at least four results (`MIN_TREND_POINTS`), and
+the error of a mean of four measurements is half that of one: 4.2% / √4 = **2.1%**. Using
+the single-test median rather than an e1RM-specific figure (none was found) under-states
+the floor a little, so it binds only when the lifter's own results are steadier than a
+tested 1RM. With the demo squat (residual SD about 1.5% of its e1RM) the floor binds.
+Tagged `projection-rate-of-gain`. **Leap: moderate.**
+
+**`scenarioUncertainty` = 0.5.** The range is multiplied by
+1 + 0.5 × |ln(total rate multiplier)|, exactly 1 for an unchanged scenario (and capped at
+2 by a code guard for a multiplier near zero). No research gives this number. It encodes
+the limit above: the exponents could be about half to double their values, so the further a
+scenario moves the rate, the less sure the result. 0.5 keeps it modest: about +3% width for
+2 sessions a week instead of 1.5, +9% for cutting instead of maintaining, and at most about
++45% for the largest increase the other bounds allow. Tagged `projection-dose-response`.
+**Leap: the number is judgment.**
+
+The known limits of the curve shape (power law instead of a plateau) and the single
+retention rate are unchanged, and the projection screen states both in plain words.
