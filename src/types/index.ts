@@ -438,7 +438,8 @@ export type StudyDesign =
   | "systematic-review"
   | "review"
   | "rct"
-  | "trial";
+  | "trial"
+  | "observational";
 
 export type EvidenceArea =
   | "progression"
@@ -448,6 +449,7 @@ export type EvidenceArea =
   | "running"
   | "volume"
   | "nutrition"
+  | "projection"
   | "pain"
   | "equipment";
 

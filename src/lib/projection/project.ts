@@ -64,19 +64,13 @@ export const MAX_ADHERENCE_MULTIPLIER = 1.5;
 /** A last data point older than this many weeks earns a caveat in the assumptions. */
 export const STALE_HISTORY_WEEKS = 4;
 
-const EVIDENCE_ID_STRINGS: string[] = [
+/** The registry rules the projection's coefficients come from. */
+export const PROJECTION_EVIDENCE_IDS: RuleId[] = [
   "projection-dose-response",
+  "projection-specificity",
   "projection-rate-of-gain",
   "projection-energy-deficit",
 ];
-
-/**
- * The rules the coefficients come from. They are being added to the registry by the
- * `projection-research` package; until that is merged they are not in the `RuleId`
- * union, hence the cast. Once it is merged, type the array as `RuleId[]` directly
- * and delete the cast.
- */
-export const PROJECTION_EVIDENCE_IDS = EVIDENCE_ID_STRINGS as unknown as RuleId[];
 
 const C = PROJECTION_COEFFICIENTS;
 

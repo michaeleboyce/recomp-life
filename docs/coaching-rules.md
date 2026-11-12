@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-17 active rules, 8 planned rules, 25 sources. Last reviewed against the research: November 2026.
+17 active rules, 12 planned rules, 32 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -46,6 +46,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `volume-ratio` | Training volume | Planned | Coaching heuristic | none |
 | `rate-of-loss` | Fat loss | Planned | Moderate evidence | Helms 2014 |
 | `fat-loss-stall` | Fat loss | Planned | Limited evidence | Peos 2021 |
+| `projection-dose-response` | Strength projections | Planned | Limited evidence | Pelland 2026, Grgic 2018b, ACSM 2026 |
+| `projection-specificity` | Strength projections | Planned | Limited evidence | Pelland 2026, Saeterbakken 2025, Mattocks 2017 |
+| `projection-rate-of-gain` | Strength projections | Planned | Limited evidence | Steele 2023, Latella 2020, Grgic 2020, Nuzzo 2024 |
+| `projection-energy-deficit` | Strength projections | Planned | Limited evidence | Murphy & Koehler 2022, Helms 2023 |
 | `training-with-pain` | Pain | Active | Limited evidence | Smith 2017 |
 | `pain-load-changes` | Pain | Planned | Limited evidence | Smith 2017 |
 | `dumbbell-conversion` | Equipment | Active | Moderate evidence | Saeterbakken 2011 |
@@ -526,6 +530,104 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 - [Peos et al. (2021). Continuous versus Intermittent Dieting for Fat Loss and Fat-Free Mass Retention in Resistance-trained Adults: The ICECAP Trial. *Medicine & Science in Sports & Exercise*.](https://pubmed.ncbi.nlm.nih.gov/33587549/) Randomised trial; 61 resistance-trained adults, 12 weeks. Week-long diet breaks did not improve fat loss or lean-mass retention compared with continuous dieting.
 
+## Strength projections
+
+### How much would more sets or sessions speed up my lift?
+
+- **Rule id:** `projection-dose-response`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Limited evidence
+- **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`)
+- **Reviewed:** November 2026
+
+**In one line.** More sessions help strength a little; extra sets help even less
+
+**What the app does.** The projection scales your own measured rate of gain. At equal weekly sets, the rate is multiplied by (new sessions ÷ current sessions) ^ 0.2, so doubling sessions adds about 15%. Weekly sets for the lift's main muscles scale it by (new ÷ current) ^ 0.1, so doubling sets adds about 7%, and sets beyond 20 a week add nothing. The combined effect is held between ×0.5 and ×1.3.
+
+**Why.** The largest analysis of training dose found strength rises with weekly sets but levels off quickly, with no clear extra gain beyond about 4–5 sets a week, while training a lift more often kept adding strength with diminishing returns even when total sets were accounted for.
+
+**Limits.** The research gives the shape, not these numbers: the exponents are our conversion of meta-regression slopes, and the frequency one is halved because an earlier meta-analysis found no effect of frequency when weekly volume was equal. Most studies were short and used novel test lifts, where practice alone makes people stronger.
+
+**Before this is switched on.** Becomes active when the projection screen (src/app/progress/lift/[id]/projection) shows an EvidenceLine for it.
+
+**Sources**
+
+- [Pelland et al. (2026). The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gains. *Sports Medicine*.](https://doi.org/10.1007/s40279-025-02344-w) Meta-analysis; 67 studies, 2,058 participants. More weekly sets produced more muscle growth with diminishing returns. Strength gains levelled off much sooner and responded to training frequency. Sets that train a muscle indirectly were counted as half a set.
+- [Grgic et al. (2018). Effect of Resistance Training Frequency on Gains in Muscular Strength: A Systematic Review and Meta-Analysis. *Sports Medicine*.](https://doi.org/10.1007/s40279-018-0872-x) Meta-analysis; 22 studies. Strength gains grew with weekly training frequency, but in studies that kept weekly volume equal the effect of frequency was not significant.
+- [American College of Sports Medicine (Currier et al.) (2026). American College of Sports Medicine Position Stand. Resistance Training Prescription for Muscle Function, Hypertrophy, and Physical Performance in Healthy Adults: An Overview of Reviews. *Medicine & Science in Sports & Exercise*.](https://pubmed.ncbi.nlm.nih.gov/41843416/) Position stand; 137 systematic reviews, more than 30,000 adults. Strength gains were higher with loads of 80% of 1RM or more, 2–3 sets, lifting early in the session and at least 2 sessions a week. Training to failure did not consistently change outcomes.
+
+### Do other exercises for the same muscles count toward this lift?
+
+- **Rule id:** `projection-specificity`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Limited evidence
+- **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`)
+- **Reviewed:** November 2026
+
+**In one line.** Other exercises for the same muscles count, but less than the lift
+
+**What the app does.** When projecting a lift, each weekly set of a different exercise for its main muscles counts as 0.4 of a set of the lift itself before the volume curve is applied.
+
+**Why.** Strength is specific: gains are largest in the exercise you practise. Counting other exercises for the same muscles as half a set predicted strength gains far better than ignoring them or counting them fully, and strength in an untrained test of the same muscles improved by less than half as much as in the trained lift.
+
+**Limits.** Only whole, half and zero credit have been compared, and the transfer study measured isometric tests rather than another barbell lift, so the exact figure is a judgment rounded down to stay cautious.
+
+**Before this is switched on.** Becomes active when the projection screen (src/app/progress/lift/[id]/projection) shows an EvidenceLine for it.
+
+**Sources**
+
+- [Pelland et al. (2026). The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gains. *Sports Medicine*.](https://doi.org/10.1007/s40279-025-02344-w) Meta-analysis; 67 studies, 2,058 participants. More weekly sets produced more muscle growth with diminishing returns. Strength gains levelled off much sooner and responded to training frequency. Sets that train a muscle indirectly were counted as half a set.
+- [Saeterbakken et al. (2025). Task Specificity of Dynamic Resistance Training and Its Transferability to Non-trained Isometric Muscle Strength: A Systematic Review with Meta-analysis. *Sports Medicine*.](https://doi.org/10.1007/s40279-025-02225-2) Meta-analysis; 43 studies, 1,660 people. Strength in the trained lifting task improved about twice as much (effect size 0.98) as strength in an untrained test of the same muscles (0.42). [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC12296774).
+- [Mattocks et al. (2017). Practicing the Test Produces Strength Equivalent to Higher Volume Training. *Medicine & Science in Sports & Exercise*.](https://doi.org/10.1249/MSS.0000000000001300) Randomised trial; 38 untrained adults, 8 weeks. Just practising 1RM attempts raised 1RM as much as four sets to failure did, even though the high-volume group grew more muscle.
+
+### Why does the projection curve flatten, and why is the range so wide?
+
+- **Rule id:** `projection-rate-of-gain`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Limited evidence
+- **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`)
+- **Reviewed:** November 2026
+
+**In one line.** Strength gains slow over time, and single estimates are noisy
+
+**What the app does.** The projected weekly gain keeps 96% of the previous week's, so it halves in about 17 weeks. The range is 1.28 times the scatter of your own estimates around their trend (about an 80% range), widened by (1 + 0.5 × √weeks ahead).
+
+**Why.** In nearly 15,000 adults' training records, strength rose quickly at first and then ever more slowly, practically levelling off after one to two years, and stronger powerlifters improved more slowly than weaker ones. Even a tested 1RM varies by a few percent from day to day, and estimates from rep sets vary more, so a single projected number would look more certain than it is.
+
+**Limits.** How fast gains slow depends on how long you have trained; the app uses one rate that fits someone about four months in, so it under-promises for longer-trained lifters and may over-promise for someone in their first few months. The studies were of machine training and competition totals, not of a GZCLP lifter's estimated 1RM. The growth of the range is a judgment, not a measured value.
+
+**Before this is switched on.** Becomes active when the projection screen (src/app/progress/lift/[id]/projection) shows an EvidenceLine for it.
+
+**Sources**
+
+- [Steele et al. (2023). Long-Term Time-Course of Strength Adaptation to Minimal Dose Resistance Training Through Retrospective Longitudinal Growth Modeling. *Research Quarterly for Exercise and Sport*.](https://doi.org/10.1080/02701367.2022.2070592) Observational study; 14,690 adults' training records, up to 6.8 years. Strength rose quickly at first and then ever more slowly, following a log-shaped curve that had practically levelled off after 1–2 years.
+- [Latella et al. (2020). Long-Term Strength Adaptation: A 15-Year Analysis of Powerlifting Athletes. *Journal of Strength and Conditioning Research*.](https://doi.org/10.1519/JSC.0000000000003657) Observational study; 1,897 powerlifters' competition records, 15 years. The strongest men gained strength about half as fast as the least strong (0.10 vs 0.21 kg a day). [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC7448836).
+- [Grgic et al. (2020). Test-Retest Reliability of the One-Repetition Maximum (1RM) Strength Assessment: a Systematic Review. *Sports Medicine - Open*.](https://doi.org/10.1186/s40798-020-00260-z) Systematic review; 32 studies, 1,595 people. A tested 1RM is highly repeatable, but still varies between sessions by a median of 4.2% (range 0.5–12.1%). [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC7367986).
+- [Nuzzo et al. (2024). Maximal Number of Repetitions at Percentages of the One Repetition Maximum: A Meta-Regression and Moderator Analysis of Sex, Age, Training Status, and Exercise. *Sports Medicine*.](https://doi.org/10.1007/s40279-023-01937-7) Meta-analysis; 269 studies, 7,289 people. The number of reps possible at a given percentage of 1RM differs between exercises and between people, so any single formula is an approximation. [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC10933212).
+
+### How much does cutting slow strength gains?
+
+- **Rule id:** `projection-energy-deficit`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Limited evidence
+- **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`)
+- **Reviewed:** November 2026
+
+**In one line.** A calorie deficit slows strength gains only a little, if at all
+
+**What the app does.** The projected rate is multiplied by 0.8 while cutting and 0.95 while maintaining, relative to 1 while bulking.
+
+**Why.** A meta-analysis found training in a calorie deficit limited lean-mass gains but did not significantly reduce strength gains. In trained lifters, eating 5% or 15% above maintenance did not improve squat 1RM over eating at maintenance.
+
+**Limits.** The research supports a small or no penalty but gives no number; the deficit studies were mostly in untrained people, and the surplus trial had 17 finishers. The app keeps a modest cutting penalty, based on the negative but uncertain average effect, so it does not over-promise.
+
+**Before this is switched on.** Becomes active when the projection screen (src/app/progress/lift/[id]/projection) shows an EvidenceLine for it.
+
+**Sources**
+
+- [Murphy & Koehler (2022). Energy deficiency impairs resistance training gains in lean mass but not strength: A meta-analysis and meta-regression. *Scandinavian Journal of Medicine & Science in Sports*.](https://doi.org/10.1111/sms.14075) Meta-analysis; Mostly untrained participants. Training in a calorie deficit impaired lean-mass gains but not strength gains.
+- [Helms et al. (2023). Effect of Small and Large Energy Surpluses on Strength, Muscle, and Skinfold Thickness in Resistance-Trained Individuals: A Parallel Groups Design. *Sports Medicine - Open*.](https://doi.org/10.1186/s40798-023-00651-y) Randomised trial; 17 trained lifters who finished, 8 weeks. Eating 5% or 15% above maintenance did not improve squat 1RM or muscle thickness over maintenance, and faster bodyweight gain mainly added fat. [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC10620361).
+
 ## Pain
 
 ### Should I train with pain?
@@ -596,29 +698,36 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 ## Bibliography
 
-- [American College of Sports Medicine (Currier et al.) (2026). American College of Sports Medicine Position Stand. Resistance Training Prescription for Muscle Function, Hypertrophy, and Physical Performance in Healthy Adults: An Overview of Reviews. *Medicine & Science in Sports & Exercise*.](https://pubmed.ncbi.nlm.nih.gov/41843416/) Position stand; 137 systematic reviews, more than 30,000 adults. Strength gains were higher with loads of 80% of 1RM or more, 2–3 sets, lifting early in the session and at least 2 sessions a week. Training to failure did not consistently change outcomes. Used by: `tier-structure`, `amrap-effort`.
+- [American College of Sports Medicine (Currier et al.) (2026). American College of Sports Medicine Position Stand. Resistance Training Prescription for Muscle Function, Hypertrophy, and Physical Performance in Healthy Adults: An Overview of Reviews. *Medicine & Science in Sports & Exercise*.](https://pubmed.ncbi.nlm.nih.gov/41843416/) Position stand; 137 systematic reviews, more than 30,000 adults. Strength gains were higher with loads of 80% of 1RM or more, 2–3 sets, lifting early in the session and at least 2 sessions a week. Training to failure did not consistently change outcomes. Used by: `tier-structure`, `amrap-effort`, `projection-dose-response`.
 - [Bosquet et al. (2013). Effect of training cessation on muscular performance: A meta-analysis. *Scandinavian Journal of Medicine & Science in Sports*.](https://doi.org/10.1111/sms.12047) Meta-analysis; 103 studies. Strength declines when training stops, and the loss grows with the length of the break. Used by: `time-off`.
 - [Coleman et al. (2024). Gaining more from doing less? The effects of a one-week deload period during supervised resistance training on muscular adaptations. *PeerJ*.](https://peerj.com/articles/16777) Randomised trial; 39 trained adults, 9 weeks. A week off training at the midpoint did not improve muscle growth and led to smaller strength gains than training straight through. Used by: `deload`.
 - [Craven et al. (2022). Effects of Acute Sleep Loss on Physical Performance: A Systematic and Meta-Analytical Review. *Sports Medicine*.](https://doi.org/10.1007/s40279-022-01706-y) Meta-analysis; 69 publications. A night of lost or restricted sleep lowered physical performance by about 7.6% on average. Used by: `readiness`.
 - [Grgic et al. (2018). Effects of Rest Interval Duration in Resistance Training on Measures of Muscular Strength: A Systematic Review. *Sports Medicine*.](https://doi.org/10.1007/s40279-017-0788-x) Systematic review; 23 studies, 491 participants. Rest intervals longer than 2 minutes appear to be needed to maximise strength gains in trained lifters. 60–120 seconds seems enough for untrained lifters. Used by: `rest-heavy`.
+- [Grgic et al. (2018). Effect of Resistance Training Frequency on Gains in Muscular Strength: A Systematic Review and Meta-Analysis. *Sports Medicine*.](https://doi.org/10.1007/s40279-018-0872-x) Meta-analysis; 22 studies. Strength gains grew with weekly training frequency, but in studies that kept weekly volume equal the effect of frequency was not significant. Used by: `projection-dose-response`.
+- [Grgic et al. (2020). Test-Retest Reliability of the One-Repetition Maximum (1RM) Strength Assessment: a Systematic Review. *Sports Medicine - Open*.](https://doi.org/10.1186/s40798-020-00260-z) Systematic review; 32 studies, 1,595 people. A tested 1RM is highly repeatable, but still varies between sessions by a median of 4.2% (range 0.5–12.1%). [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC7367986). Used by: `projection-rate-of-gain`.
 - [Halonen et al. (2024). Does Taking a Break Matter—Adaptations in Muscle Strength and Size Between Continuous and Periodic Resistance Training. *Scandinavian Journal of Medicine & Science in Sports*.](https://pubmed.ncbi.nlm.nih.gov/39364857/) Randomised trial; 55 untrained adults. After a 10-week break, strength and muscle size were back to pre-break levels within about 5 weeks of retraining. Strength was better preserved than size. Used by: `time-off`.
 - [Halperin et al. (2022). Accuracy in Predicting Repetitions to Task Failure in Resistance Exercise: A Scoping Review and Exploratory Meta-analysis. *Sports Medicine*.](https://pubmed.ncbi.nlm.nih.gov/34542869/) Meta-analysis; 12 studies, 414 participants. People underestimated the reps they had left by about one. Estimates were more accurate close to failure, in sets of 12 reps or fewer, and in later sets. Used by: `t3-progression`, `rpe-logging`, `t2-autoregulation`, `e1rm-estimate`.
 - [Helms et al. (2014). Evidence-based recommendations for natural bodybuilding contest preparation: nutrition and supplementation. *Journal of the International Society of Sports Nutrition*.](https://pmc.ncbi.nlm.nih.gov/articles/PMC4033492) Review; Review for physique athletes. Losing 0.5–1% of bodyweight per week is recommended to retain muscle while dieting. Used by: `rate-of-loss`.
+- [Helms et al. (2023). Effect of Small and Large Energy Surpluses on Strength, Muscle, and Skinfold Thickness in Resistance-Trained Individuals: A Parallel Groups Design. *Sports Medicine - Open*.](https://doi.org/10.1186/s40798-023-00651-y) Randomised trial; 17 trained lifters who finished, 8 weeks. Eating 5% or 15% above maintenance did not improve squat 1RM or muscle thickness over maintenance, and faster bodyweight gain mainly added fat. [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC10620361). Used by: `projection-energy-deficit`.
+- [Latella et al. (2020). Long-Term Strength Adaptation: A 15-Year Analysis of Powerlifting Athletes. *Journal of Strength and Conditioning Research*.](https://doi.org/10.1519/JSC.0000000000003657) Observational study; 1,897 powerlifters' competition records, 15 years. The strongest men gained strength about half as fast as the least strong (0.10 vs 0.21 kg a day). [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC7448836). Used by: `projection-rate-of-gain`.
 - [Markov et al. (2021). Acute Effects of Aerobic Exercise on Muscle Strength and Power in Trained Male Individuals: A Systematic Review with Meta-analysis. *Sports Medicine*.](https://doi.org/10.1007/s40279-021-01615-6) Meta-analysis; 15 studies in trained men. Aerobic exercise reduced strength immediately afterwards, more after sessions longer than 30 minutes or at higher intensity, and less after running than cycling. [Free full text](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9124655/). Used by: `run-interference`.
+- [Mattocks et al. (2017). Practicing the Test Produces Strength Equivalent to Higher Volume Training. *Medicine & Science in Sports & Exercise*.](https://doi.org/10.1249/MSS.0000000000001300) Randomised trial; 38 untrained adults, 8 weeks. Just practising 1RM attempts raised 1RM as much as four sets to failure did, even though the high-volume group grew more muscle. Used by: `projection-specificity`.
 - [Morán-Navarro et al. (2017). Time course of recovery following resistance training leading or not to failure. *European Journal of Applied Physiology*.](https://doi.org/10.1007/s00421-017-3725-7) Trial; 10 resistance-trained men. Sets taken to failure slowed recovery by 24–48 hours compared with work stopped short of failure. Used by: `amrap-effort`, `recovery-windows`.
-- [Murphy & Koehler (2022). Energy deficiency impairs resistance training gains in lean mass but not strength: A meta-analysis and meta-regression. *Scandinavian Journal of Medicine & Science in Sports*.](https://doi.org/10.1111/sms.14075) Meta-analysis; Mostly untrained participants. Training in a calorie deficit impaired lean-mass gains but not strength gains. Used by: `accessories-in-cut`.
-- [Nuzzo et al. (2024). Maximal Number of Repetitions at Percentages of the One Repetition Maximum: A Meta-Regression and Moderator Analysis of Sex, Age, Training Status, and Exercise. *Sports Medicine*.](https://doi.org/10.1007/s40279-023-01937-7) Meta-analysis; 269 studies, 7,289 people. The number of reps possible at a given percentage of 1RM differs between exercises and between people, so any single formula is an approximation. [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC10933212). Used by: `e1rm-estimate`.
+- [Murphy & Koehler (2022). Energy deficiency impairs resistance training gains in lean mass but not strength: A meta-analysis and meta-regression. *Scandinavian Journal of Medicine & Science in Sports*.](https://doi.org/10.1111/sms.14075) Meta-analysis; Mostly untrained participants. Training in a calorie deficit impaired lean-mass gains but not strength gains. Used by: `accessories-in-cut`, `projection-energy-deficit`.
+- [Nuzzo et al. (2024). Maximal Number of Repetitions at Percentages of the One Repetition Maximum: A Meta-Regression and Moderator Analysis of Sex, Age, Training Status, and Exercise. *Sports Medicine*.](https://doi.org/10.1007/s40279-023-01937-7) Meta-analysis; 269 studies, 7,289 people. The number of reps possible at a given percentage of 1RM differs between exercises and between people, so any single formula is an approximation. [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC10933212). Used by: `e1rm-estimate`, `projection-rate-of-gain`.
 - [Pancar et al. (2026). Effects of deload periods in resistance training on muscle hypertrophy and strength endurance in untrained young men using a randomized within subject design. *Scientific Reports*.](https://www.nature.com/articles/s41598-026-40612-5) Trial; 19 untrained young men, 8 weeks. Limbs given reduced-volume deload weeks gained as much muscle and strength-endurance as limbs trained continuously. Used by: `deload`.
-- [Pelland et al. (2026). The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gains. *Sports Medicine*.](https://doi.org/10.1007/s40279-025-02344-w) Meta-analysis; 67 studies, 2,058 participants. More weekly sets produced more muscle growth with diminishing returns. Strength gains levelled off much sooner and responded to training frequency. Sets that train a muscle indirectly were counted as half a set. Used by: `tier-structure`, `weekly-volume`.
+- [Pelland et al. (2026). The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gains. *Sports Medicine*.](https://doi.org/10.1007/s40279-025-02344-w) Meta-analysis; 67 studies, 2,058 participants. More weekly sets produced more muscle growth with diminishing returns. Strength gains levelled off much sooner and responded to training frequency. Sets that train a muscle indirectly were counted as half a set. Used by: `tier-structure`, `weekly-volume`, `projection-dose-response`, `projection-specificity`.
 - [Peos et al. (2021). Continuous versus Intermittent Dieting for Fat Loss and Fat-Free Mass Retention in Resistance-trained Adults: The ICECAP Trial. *Medicine & Science in Sports & Exercise*.](https://pubmed.ncbi.nlm.nih.gov/33587549/) Randomised trial; 61 resistance-trained adults, 12 weeks. Week-long diet breaks did not improve fat loss or lean-mass retention compared with continuous dieting. Used by: `fat-loss-stall`.
 - [Robineau et al. (2016). Specific Training Effects of Concurrent Aerobic and Strength Exercises Depend on Recovery Duration. *Journal of Strength and Conditioning Research*.](https://pubmed.ncbi.nlm.nih.gov/25546450/) Trial; 58 amateur rugby players, 7 weeks. Strength gains were smaller when strength and aerobic sessions were done back to back, but not when they were 6 or 24 hours apart. Used by: `run-interference`.
 - [Robinson et al. (2024). Exploring the Dose–Response Relationship Between Estimated Resistance Training Proximity to Failure, Strength Gain, and Muscle Hypertrophy: A Series of Meta-Regressions. *Sports Medicine*.](https://doi.org/10.1007/s40279-024-02069-2) Meta-analysis; Meta-regressions of resistance training studies. Strength gains were similar whether sets stopped far from failure or close to it. Muscle growth increased as sets ended closer to failure. Used by: `t3-progression`, `accessory-progression`, `amrap-effort`.
 - [Roth et al. (2022). Lean mass sparing in resistance-trained athletes during caloric restriction: the role of resistance training volume. *European Journal of Applied Physiology*.](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9012799/) Systematic review; 15 studies in resistance-trained athletes. Programs with 10 or more weekly sets per muscle group showed little or no lean-mass loss during a calorie deficit, though the evidence is not conclusive. Used by: `weekly-volume`, `accessories-in-cut`.
 - [Saeterbakken et al. (2011). A comparison of muscle activity and 1-RM strength of three chest-press exercises with different stability requirements. *Journal of Sports Sciences*.](https://pubmed.ncbi.nlm.nih.gov/21225489/) Trial; Trained lifters, three bench-press variations. Dumbbell bench press 1RM was about 17% lower than barbell bench press 1RM. Used by: `dumbbell-conversion`.
+- [Saeterbakken et al. (2025). Task Specificity of Dynamic Resistance Training and Its Transferability to Non-trained Isometric Muscle Strength: A Systematic Review with Meta-analysis. *Sports Medicine*.](https://doi.org/10.1007/s40279-025-02225-2) Meta-analysis; 43 studies, 1,660 people. Strength in the trained lifting task improved about twice as much (effect size 0.98) as strength in an untrained test of the same muscles (0.42). [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC12296774). Used by: `projection-specificity`.
 - [Schumann et al. (2022). Compatibility of Concurrent Aerobic and Strength Training for Skeletal Muscle Size and Function: An Updated Systematic Review and Meta-Analysis. *Sports Medicine*.](https://doi.org/10.1007/s40279-021-01587-7) Meta-analysis; Systematic review and meta-analysis. Combining aerobic and strength training did not compromise muscle growth or maximal strength. Used by: `run-interference`.
 - [Singer et al. (2024). Give it a rest: a systematic review with Bayesian meta-analysis on the effect of inter-set rest interval duration on muscle hypertrophy. *Frontiers in Sports and Active Living*.](https://doi.org/10.3389/fspor.2024.1429789) Meta-analysis; 9 studies. Resting longer than 60 seconds between sets gave a small muscle-growth benefit. No further benefit was detectable beyond 90 seconds. [Free full text](https://www.frontiersin.org/journals/sports-and-active-living/articles/10.3389/fspor.2024.1429789/full). Used by: `rest-heavy`, `rest-light`.
 - [Smith et al. (2017). Should exercises be painful in the management of chronic musculoskeletal pain? A systematic review and meta-analysis. *British Journal of Sports Medicine*.](https://doi.org/10.1136/bjsports-2016-097383) Meta-analysis; 7 trials, 385 people with chronic musculoskeletal pain. Exercise programs that allowed some pain gave a small short-term benefit over pain-free exercise, with no difference in the medium or long term. [Free full text](https://eprints.nottingham.ac.uk/41764). Used by: `training-with-pain`, `pain-load-changes`.
 - [Spiering et al. (2021). Maintaining Physical Performance: The Minimal Dose of Exercise Needed to Preserve Endurance and Strength Over Time. *Journal of Strength and Conditioning Research*.](https://pubmed.ncbi.nlm.nih.gov/33629972/) Review; Narrative review. Strength can be maintained for up to 32 weeks with as little as one session a week and one set per exercise, as long as the load stays heavy. Used by: `time-off`, `deload`.
+- [Steele et al. (2023). Long-Term Time-Course of Strength Adaptation to Minimal Dose Resistance Training Through Retrospective Longitudinal Growth Modeling. *Research Quarterly for Exercise and Sport*.](https://doi.org/10.1080/02701367.2022.2070592) Observational study; 14,690 adults' training records, up to 6.8 years. Strength rose quickly at first and then ever more slowly, following a log-shaped curve that had practically levelled off after 1–2 years. Used by: `projection-rate-of-gain`.
 - [Stults-Kolehmainen et al. (2014). Chronic psychological stress impairs recovery of muscular function and somatic sensations over a 96-hour period. *Journal of Strength and Conditioning Research*.](https://pubmed.ncbi.nlm.nih.gov/24343323/) Trial; 31 resistance-training students. Lifters under higher life stress recovered strength more slowly over the 96 hours after a hard session. Used by: `recovery-windows`, `readiness`.
 - [Zhang et al. (2021). Auto-Regulation Method vs. Fixed-Loading Method in Maximum Strength Training for Athletes: A Systematic Review and Meta-Analysis. *Frontiers in Physiology*.](https://doi.org/10.3389/fphys.2021.651112) Meta-analysis; 8 studies, 166 athletes. Adjusting the load to how the session is going produced larger maximal-strength gains than fixed, pre-planned loads. [Free full text](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7994759/). Used by: `t2-autoregulation`.
 

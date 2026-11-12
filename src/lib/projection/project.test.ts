@@ -346,12 +346,13 @@ describe("projectE1RM", () => {
     expect(Number.isFinite(p.gain.v)).toBe(true);
   });
 
-  it("cites the three projection rules", () => {
+  it("cites the four projection rules", () => {
     expect(project().evidenceIds).toEqual(PROJECTION_EVIDENCE_IDS);
     expect([...PROJECTION_EVIDENCE_IDS].sort()).toEqual([
       "projection-dose-response",
       "projection-energy-deficit",
       "projection-rate-of-gain",
+      "projection-specificity",
     ]);
   });
 
