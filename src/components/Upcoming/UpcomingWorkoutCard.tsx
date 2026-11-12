@@ -40,9 +40,17 @@ function EntryRow({ entry }: { entry: UpcomingEntry }) {
   );
 }
 
-/** One upcoming workout: "Next" (with START) or "Then", its title and working sets. */
-export function UpcomingWorkoutCard({ workout, isNext }: { workout: UpcomingWorkout; isNext: boolean }) {
+/** Position in the sequence; deliberately not a date. */
+function sequenceLabel(index: number): string {
+  if (index === 0) return "Next";
+  if (index === 1) return "Then";
+  return "After that";
+}
+
+/** One upcoming workout: its place in the sequence, title and working sets; START on the first. */
+export function UpcomingWorkoutCard({ workout, index }: { workout: UpcomingWorkout; index: number }) {
   const title = templateTitle(workout.templateId);
+  const isNext = index === 0;
   return (
     <article
       aria-label={title}
@@ -52,7 +60,7 @@ export function UpcomingWorkoutCard({ workout, isNext }: { workout: UpcomingWork
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            {isNext ? "Next" : "Then"}
+            {sequenceLabel(index)}
           </p>
           <h2 className="truncate text-base font-bold text-foreground">{title}</h2>
         </div>

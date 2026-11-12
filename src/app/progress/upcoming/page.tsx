@@ -8,9 +8,15 @@ import { LocationChip } from "@/components/ui/location-chip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Term } from "@/components/ui/term";
 import { UpcomingWorkoutCard } from "@/components/Upcoming/UpcomingWorkoutCard";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
+import type { RuleId } from "@/lib/evidence";
 import { useTrainingLocation, useUpcomingWorkouts } from "@/hooks";
 import { tierStyle } from "@/lib/tierStyle";
 import type { WorkoutLocation } from "@/types";
+
+// The forecast applies the existing progression rule under a stated assumption.
+// Passed as a value: this page is not yet in the rule's `surfaces` list.
+const PROGRESSION_RULE: RuleId = "gzclp-progression";
 
 const LOCATIONS = [
   { value: "gym" as const, label: "Gym", icon: <Dumbbell className="size-4" aria-hidden="true" /> },
@@ -74,7 +80,7 @@ export default function UpcomingWorkoutsPage() {
             <UpcomingWorkoutCard
               key={`${workout.templateId}-${index}`}
               workout={workout}
-              isNext={index === 0}
+              index={index}
             />
           ))}
         </div>
@@ -84,6 +90,7 @@ export default function UpcomingWorkoutsPage() {
         Weights after the next workout assume you complete every set. A missed set, a skipped
         day or a deload changes them.
       </p>
+      <EvidenceLine ruleId={PROGRESSION_RULE} />
     </PageShell>
   );
 }

@@ -30,6 +30,7 @@ describe("upcoming workouts page", () => {
     ]);
     expect(within(cards()[0]).getByText("Next")).toBeInTheDocument();
     expect(within(cards()[1]).getByText("Then")).toBeInTheDocument();
+    expect(within(cards()[2]).getByText("After that")).toBeInTheDocument();
     expect(within(cards()[0]).getByRole("link", { name: "START" })).toHaveAttribute(
       "href",
       "/workout/configure"
@@ -43,6 +44,8 @@ describe("upcoming workouts page", () => {
     // The second A1 assumes the first was completed: squat goes up.
     expect(rowsOf(cards()[4])[0]).toBe("T1Barbell Squat200 lbs5×3+");
     expect(screen.getByText(/assume you complete every set/)).toBeInTheDocument();
+    expect(document.querySelector('[data-evidence="gzclp-progression"]')).not.toBeNull();
+    expect(document.querySelector('[data-evidence="t3-progression"]')).toBeNull();
     expect(screen.getByRole("button", { name: "What does AMRAP mean?" })).toBeInTheDocument();
   });
 

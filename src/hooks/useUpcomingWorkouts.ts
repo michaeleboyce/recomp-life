@@ -33,6 +33,9 @@ export function useUpcomingWorkouts(
       equipment: settings.equipment,
       includeWarmUps: settings.showWarmUps,
       count,
+      settings,
+      // Only stamps the simulated workouts' dates; nothing shown depends on it.
+      now: new Date(0),
     });
   }, [completedWorkouts, liftStates, loadedSettings, location, count]);
 }

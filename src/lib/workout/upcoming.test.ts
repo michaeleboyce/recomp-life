@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { getIncrement } from "@/lib/progression";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import { describeNextWorkout } from "./buildPlan";
-import { EQUIPMENT, makeSession, seedLiftStates } from "./testFixtures";
-import { projectUpcomingWorkouts } from "./upcoming";
+import { buildWorkoutPlan, describeNextWorkout } from "./buildPlan";
+import { computeCompletion } from "./completeWorkout";
+import { EQUIPMENT, SETTINGS, makeSession, makeSets, seedLiftStates } from "./testFixtures";
+import { projectUpcomingWorkouts, simulateCompletedWorkout } from "./upcoming";
+
+const NOW = new Date("2026-11-12T12:00:00Z");
 
 function input(overrides: Partial<Parameters<typeof projectUpcomingWorkouts>[0]> = {}) {
   return {
@@ -14,6 +17,8 @@ function input(overrides: Partial<Parameters<typeof projectUpcomingWorkouts>[0]>
     equipment: EQUIPMENT,
     includeWarmUps: true,
     count: 5,
+    settings: SETTINGS,
+    now: NOW,
     ...overrides,
   };
 }
@@ -94,5 +99,53 @@ describe("projectUpcomingWorkouts", () => {
     const copy = structuredClone(states);
     projectUpcomingWorkouts(input({ liftStates: states }));
     expect(states).toEqual(copy);
+  });
+});
+
+describe("simulateCompletedWorkout", () => {
+  it("equals computeCompletion on a hand-built all-target session, unchanged lifts included", () => {
+    const template = WORKOUT_TEMPLATES.A1;
+    const liftStates = seedLiftStates();
+    const plan = buildWorkoutPlan({
+      template,
+      liftStates,
+      location: "gym",
+      equipment: EQUIPMENT,
+      includeWarmUps: true,
+      selectedAccessories: [],
+    });
+    const squat = makeSets("squat", "T1", 5, 3);
+    squat[4] = { ...squat[4], isAMRAP: true };
+    const sets = [
+      ...squat,
+      ...makeSets("bench", "T2", 3, 10),
+      ...makeSets("lat_pulldown", "T3", 3, 15),
+    ];
+    const { liftStateUpdates } = computeCompletion({
+      session: makeSession({ templateId: "A1" }),
+      plan,
+      sets,
+      liftStates,
+      settings: SETTINGS,
+      recentE1RMsByExercise: {},
+      currentExerciseIndex: plan.length,
+      workoutStartTime: null,
+      now: NOW,
+    });
+    const expected = liftStates.map(
+      (ls) => liftStateUpdates.find((u) => u.exerciseId === ls.exerciseId) ?? ls
+    );
+
+    const simulated = simulateCompletedWorkout({
+      template,
+      plan,
+      liftStates,
+      settings: SETTINGS,
+      location: "gym",
+      now: NOW,
+    });
+    expect(simulated).toEqual(expected);
+    expect(simulated).toHaveLength(liftStates.length);
+    expect(simulated.find((ls) => ls.exerciseId === "lat_pulldown")!.t3Weight).toBe(90);
   });
 });

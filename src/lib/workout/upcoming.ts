@@ -1,17 +1,18 @@
-import { getExercise } from "@/lib/exercises";
-import { evaluateT1Progression, evaluateT2Progression } from "@/lib/progression";
 import { getNextWorkoutId } from "@/lib/workoutTemplates";
 import type {
   EquipmentProfile,
   LiftState,
   SetLog,
   Tier,
+  UserSettings,
   WorkoutLocation,
   WorkoutSession,
   WorkoutTemplate,
 } from "@/types";
 import { buildWorkoutPlan, describeNextWorkout } from "./buildPlan";
-import type { WorkoutExerciseState, WorkoutPlan } from "./types";
+import { computeCompletion } from "./completeWorkout";
+import { createSetLog } from "./logSet";
+import type { WorkoutPlan } from "./types";
 
 export interface UpcomingEntry {
   exerciseId: string;
@@ -48,60 +49,78 @@ export interface ProjectUpcomingInput {
   equipment: EquipmentProfile;
   includeWarmUps: boolean;
   count: number;
+  /** Supplies the training phase for the completion step; `equipment` above wins. */
+  settings: UserSettings;
+  /** Timestamp given to every simulated workout, so the result is deterministic. */
+  now: Date;
 }
 
-const EVALUATE = { T1: evaluateT1Progression, T2: evaluateT2Progression } as const;
-
-/** Every target set hit exactly, as `computeCompletion` would receive them. */
-function syntheticSets(entry: WorkoutExerciseState, location: WorkoutLocation): SetLog[] {
-  return Array.from({ length: entry.targetSets }, (_, i) => ({
-    id: `projected-${entry.exerciseId}-${entry.tier}-${i}`,
-    clientId: `projected-${entry.exerciseId}-${entry.tier}-${i}`,
-    exerciseId: entry.exerciseId,
-    substituteExerciseId: entry.substituteExerciseId,
-    tier: entry.tier,
-    setNumber: i + 1,
-    targetReps: entry.targetReps,
-    actualReps: entry.targetReps,
-    weight: entry.weight,
-    isAMRAP: entry.isAMRAP && i === entry.targetSets - 1,
-    completedAt: new Date(0),
-    restAfterSeconds: 0,
-    status: "completed",
-    isSubstituted: Boolean(entry.substituteExerciseId),
-    location,
-    synced: false,
-  }));
+export interface SimulateCompletedWorkoutInput {
+  template: WorkoutTemplate;
+  plan: WorkoutPlan;
+  liftStates: LiftState[];
+  settings: UserSettings;
+  location: WorkoutLocation;
+  now: Date;
 }
 
 /**
- * Lift states after completing `plan` as prescribed. T1 and T2 go through the same
- * progression functions `computeCompletion` uses. T3 is left alone: at the minimum
- * target reps the T3 rule (last AMRAP set of 25+, or 50 total when not cutting)
- * never fires.
+ * The full lift-state list after `plan` is performed with every set at exactly its
+ * target reps (AMRAP sets too: no extra reps are assumed), run through the same
+ * `computeCompletion` that finishing a real workout uses. Unchanged lifts are
+ * included. Warm-ups and accessories are not logged: neither changes lift state.
  */
-function advance(
-  plan: WorkoutPlan,
-  liftStates: Map<string, LiftState>,
-  location: WorkoutLocation,
-  equipment: EquipmentProfile,
-  advanced: Set<string>
-): void {
+export function simulateCompletedWorkout(input: SimulateCompletedWorkoutInput): LiftState[] {
+  const { template, plan, liftStates, settings, location, now } = input;
+  const sets: SetLog[] = [];
   for (const entry of plan) {
-    if (entry.isWarmUp || (entry.tier !== "T1" && entry.tier !== "T2")) continue;
-    const state = liftStates.get(entry.exerciseId);
-    if (!state) continue;
-    const liftType = getExercise(entry.exerciseId).muscleGroup === "legs" ? "lower" : "upper";
-    const next = EVALUATE[entry.tier](
-      state,
-      syntheticSets(entry, location),
-      location,
-      equipment,
-      liftType
-    );
-    liftStates.set(entry.exerciseId, next);
-    advanced.add(`${entry.exerciseId}:${entry.tier}`);
+    if (entry.isWarmUp || entry.tier === "accessory") continue;
+    for (let done = 0; done < entry.targetSets; done++) {
+      const id = `simulated-${template.id}-${entry.exerciseId}-${entry.tier}-${done + 1}`;
+      sets.push(
+        createSetLog({
+          exercise: { ...entry, completedSets: done },
+          actualReps: entry.targetReps,
+          rpe: null,
+          location,
+          autoRegulated: false,
+          now,
+          id,
+          clientId: id,
+        })
+      );
+    }
   }
+
+  const session: WorkoutSession = {
+    id: `simulated-${template.id}`,
+    clientId: `simulated-${template.id}`,
+    templateId: template.id,
+    location,
+    startedAt: now,
+    completedAt: null,
+    totalDurationSeconds: 0,
+    includeWarmUps: false,
+    selectedAccessories: [],
+    sets: [],
+    preWorkoutPainEntries: [],
+    modifications: [],
+    synced: false,
+  };
+
+  const { liftStateUpdates } = computeCompletion({
+    session,
+    plan,
+    sets,
+    liftStates,
+    settings,
+    recentE1RMsByExercise: {},
+    currentExerciseIndex: plan.length,
+    workoutStartTime: null,
+    now,
+  });
+  const updated = new Map(liftStateUpdates.map((ls) => [ls.exerciseId, ls]));
+  return liftStates.map((ls) => updated.get(ls.exerciseId) ?? ls);
 }
 
 function toEntries(plan: WorkoutPlan, advanced: Set<string>): UpcomingEntry[] {
@@ -122,12 +141,14 @@ function toEntries(plan: WorkoutPlan, advanced: Set<string>): UpcomingEntry[] {
 /**
  * The next `count` workouts in rotation order. The first is exactly
  * `describeNextWorkout`; each later one assumes every earlier one was completed
- * with every set at its target reps. Pure: the given lift states are not changed.
+ * with every set at its target reps (`simulateCompletedWorkout`). Pure: the given
+ * lift states are not changed. A sequence, not a calendar: no dates are forecast.
  */
 export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWorkout[] {
-  const { completedWorkouts, templates, location, equipment, includeWarmUps, count } = input;
+  const { completedWorkouts, templates, location, equipment, includeWarmUps, count, now } = input;
   if (count <= 0) return [];
 
+  const settings: UserSettings = { ...input.settings, equipment };
   const planOptions = { location, equipment, includeWarmUps, selectedAccessories: [] };
   const first = describeNextWorkout({
     completedWorkouts,
@@ -136,23 +157,31 @@ export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWo
     plan: planOptions,
   });
 
-  const states = new Map(input.liftStates.map((ls) => [ls.exerciseId, ls]));
   const advanced = new Set<string>();
   const result: UpcomingWorkout[] = [
     { ...first, entries: toEntries(first.plan, advanced), projected: false },
   ];
 
   let previous = first;
+  let liftStates = input.liftStates;
   while (result.length < count) {
-    advance(previous.plan, states, location, equipment, advanced);
+    liftStates = simulateCompletedWorkout({
+      template: previous.template,
+      plan: previous.plan,
+      liftStates,
+      settings,
+      location,
+      now,
+    });
+    for (const e of previous.plan) {
+      if (!e.isWarmUp && (e.tier === "T1" || e.tier === "T2")) {
+        advanced.add(`${e.exerciseId}:${e.tier}`);
+      }
+    }
     const templateId = getNextWorkoutId(previous.templateId);
     const template = templates[templateId];
     if (!template) throw new Error(`Workout template not found: ${templateId}`);
-    const plan = buildWorkoutPlan({
-      ...planOptions,
-      template,
-      liftStates: [...states.values()],
-    });
+    const plan = buildWorkoutPlan({ ...planOptions, template, liftStates });
     result.push({ templateId, template, plan, entries: toEntries(plan, advanced), projected: true });
     previous = { templateId, template, plan };
   }
