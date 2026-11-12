@@ -11,3 +11,4 @@ export {
 export { useBodyweightLog, usePainEntries, useE1RMs, useRuns, useActivities } from "./useRecords";
 export { useNextWorkout } from "./useNextWorkout";
 export { useReadinessLogs, useMetricSource, useMetric } from "./useMetric";
+export { useInsights } from "./useInsights";
