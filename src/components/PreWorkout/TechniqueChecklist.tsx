@@ -37,10 +37,10 @@ export function TechniqueChecklist({
     exerciseType === "squat" ? "Squat Day Prep" : "Deadlift Day Prep";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold">
-          {"\uD83C\uDFCB\uFE0F"} {title}
+        <h2 className="text-sm font-semibold">
+          {title}
         </h2>
         <p className="text-sm text-muted-foreground">Quick check:</p>
       </div>

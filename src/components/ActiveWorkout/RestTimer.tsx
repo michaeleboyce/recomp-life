@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
@@ -12,35 +12,37 @@ import {
   formatRestDuration,
   getRestEvidenceId,
 } from "@/lib/restTimes";
-import type { Tier, TrainingPhase } from "@/types";
+import type { TrainingPhase } from "@/types";
 
 interface RestTimerProps {
   audioEnabled?: boolean;
   vibrationEnabled?: boolean;
-  /** Current tier for the exercise being rested after */
-  tier?: Tier;
-  /** User's current training phase — used to show the cutting rest bonus indicator */
+  /** User's current training phase: shows the cutting rest bonus when it applied. */
   trainingPhase?: TrainingPhase;
+  /** What comes after the rest, e.g. "Next: set 3 at 190 lbs". */
+  nextLabel?: string;
 }
 
+/**
+ * The rest between sets, shown where the log button was. Counts down, can be
+ * extended or skipped, and hands the spot back to the log button when it ends
+ * (with the chime, vibration and notification the settings allow).
+ */
 export function RestTimer({
   audioEnabled = false,
   vibrationEnabled = false,
-  tier,
   trainingPhase,
+  nextLabel,
 }: RestTimerProps) {
-  const {
-    isRestTimerActive,
-    restTimeRemaining,
-    restTimerDuration,
-    skipRest,
-    addRestTime,
-  } = useWorkoutStore();
+  const isRestTimerActive = useWorkoutStore((s) => s.isRestTimerActive);
+  const restTimeRemaining = useWorkoutStore((s) => s.restTimeRemaining);
+  const restTimerDuration = useWorkoutStore((s) => s.restTimerDuration);
+  const tier = useWorkoutStore((s) => s.restTier);
+  const skipRest = useWorkoutStore((s) => s.skipRest);
+  const addRestTime = useWorkoutStore((s) => s.addRestTime);
 
   const managerRef = useRef<TimerWorkerManager | null>(null);
-  const hasNotifiedRef = useRef(false);
 
-  // Lazily initialize the manager
   const getManager = useCallback(() => {
     if (!managerRef.current) {
       managerRef.current = new TimerWorkerManager();
@@ -48,56 +50,31 @@ export function RestTimer({
     return managerRef.current;
   }, []);
 
-  // Reset notification flag when a new rest timer starts
+  // Start / stop the Web Worker timer when rest starts or ends.
   useEffect(() => {
-    if (isRestTimerActive && restTimeRemaining > 0) {
-      hasNotifiedRef.current = false;
-    }
-  }, [isRestTimerActive, restTimerDuration]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Start / stop the Web Worker timer when rest state changes
-  useEffect(() => {
-    if (isRestTimerActive && restTimerDuration > 0) {
-      const manager = getManager();
-
-      const onTick = (remaining: number) => {
-        // Update the store with the worker's authoritative remaining time
-        useWorkoutStore.setState({ restTimeRemaining: remaining });
-      };
-
-      const onComplete = () => {
-        // Timer hit zero — the worker keeps ticking into overtime
-        // so the UI continues to show +0:XX. No action needed here;
-        // the tick callback handles the negative remaining values.
-      };
-
-      manager.start(restTimerDuration, onTick, onComplete);
-    } else {
-      // Timer was deactivated (skip or natural stop)
+    if (!isRestTimerActive) {
       managerRef.current?.stop();
+      return;
     }
+    const duration = useWorkoutStore.getState().restTimerDuration;
+    if (duration <= 0) return;
+    getManager().start(
+      duration,
+      (remaining) => useWorkoutStore.setState({ restTimeRemaining: remaining }),
+      () => {}
+    );
+  }, [isRestTimerActive, getManager]);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRestTimerActive]);
-
-  // Fire audio/haptics/notification when the timer reaches 0
+  // Rest is over: let the user know, then give the spot back to the log button.
   useEffect(() => {
-    if (isRestTimerActive && restTimeRemaining === 0 && !hasNotifiedRef.current) {
-      hasNotifiedRef.current = true;
+    if (!isRestTimerActive || restTimeRemaining > 0) return;
+    if (audioEnabled) playTimerChime();
+    if (vibrationEnabled) vibrateTimer();
+    if (document.visibilityState === "hidden") sendTimerNotification();
+    managerRef.current?.stop();
+    skipRest();
+  }, [isRestTimerActive, restTimeRemaining, audioEnabled, vibrationEnabled, skipRest]);
 
-      if (audioEnabled) {
-        playTimerChime();
-      }
-      if (vibrationEnabled) {
-        vibrateTimer();
-      }
-      if (document.visibilityState === 'hidden') {
-        sendTimerNotification();
-      }
-    }
-  }, [isRestTimerActive, restTimeRemaining, audioEnabled, vibrationEnabled]);
-
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       managerRef.current?.stop();
@@ -119,70 +96,56 @@ export function RestTimer({
 
   if (!isRestTimerActive) return null;
 
-  const isOvertime = restTimeRemaining <= 0;
-  const displayTime = Math.abs(restTimeRemaining);
-  const minutes = Math.floor(displayTime / 60);
-  const seconds = displayTime % 60;
-  const timeStr = `${minutes}:${seconds.toString().padStart(2, "0")}`;
-
   const elapsed = restTimerDuration - restTimeRemaining;
   const progressPercent =
     restTimerDuration > 0
       ? Math.min(100, Math.max(0, (elapsed / restTimerDuration) * 100))
       : 100;
 
-  // Why the rest is this long (heavy vs lighter sets); none for warm-ups
-  const restEvidenceId = tier !== undefined ? getRestEvidenceId(tier) : null;
-
-  // Show cutting bonus indicator when +30s was added
-  const hasCuttingBonus =
-    tier !== undefined && hasCuttingRestBonus(tier, trainingPhase);
+  // Why the rest is this long (heavy vs lighter sets); none for warm-ups.
+  const restEvidenceId = tier ? getRestEvidenceId(tier) : null;
+  const hasCuttingBonus = !!tier && hasCuttingRestBonus(tier, trainingPhase);
 
   return (
     <div
-      className={`mx-4 rounded-lg border p-4 space-y-3 ${
-        isOvertime
-          ? "border-amber-500/50 bg-amber-500/10"
-          : "border-border bg-card"
-      }`}
+      role="timer"
+      aria-label="Rest timer"
+      className="flex flex-col gap-2 rounded-2xl bg-card px-4 py-3"
     >
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">
-          {isOvertime ? "REST COMPLETE" : "REST"}
-          {hasCuttingBonus && (
-            <span className="ml-2 inline-flex items-center gap-1 text-xs text-blue-400">
-              +30s cut
-              <EvidenceLine ruleId="rest-cut-bonus" variant="icon" hideLibraryLink />
-            </span>
-          )}
-        </span>
-        <span
-          className={`text-xl font-mono tabular-nums font-bold ${
-            isOvertime ? "text-amber-400" : "text-foreground"
-          }`}
-        >
-          {isOvertime ? "+" : ""}
-          {timeStr}{" "}
-          <span className="text-sm text-muted-foreground font-normal">
-            / {formatRestDuration(restTimerDuration)}
+      <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Rest
+            {restEvidenceId && (
+              <EvidenceLine ruleId={restEvidenceId} variant="icon" hideLibraryLink />
+            )}
+            {hasCuttingBonus && (
+              <span className="inline-flex items-center gap-1 normal-case tracking-normal text-info">
+                +30s cut
+                <EvidenceLine ruleId="rest-cut-bonus" variant="icon" hideLibraryLink />
+              </span>
+            )}
           </span>
-        </span>
-      </div>
-
-      <Progress value={progressPercent} className="h-2" />
-
-      {restEvidenceId && (
-        <EvidenceLine ruleId={restEvidenceId} hideLibraryLink />
-      )}
-
-      <div className="flex items-center justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={() => handleAddTime(30)}>
+          <span className="font-mono text-3xl font-bold leading-none tabular-nums">
+            {formatRestDuration(restTimeRemaining)}
+            <span className="ml-1.5 text-sm font-normal text-muted-foreground">
+              / {formatRestDuration(restTimerDuration)}
+            </span>
+          </span>
+        </div>
+        <Button variant="outline" className="h-11 px-4" onClick={() => handleAddTime(30)}>
           +30s
         </Button>
-        <Button variant="secondary" size="sm" onClick={handleSkip}>
+        <Button variant="secondary" className="h-11 px-5" onClick={handleSkip}>
           Skip
         </Button>
       </div>
+
+      <Progress value={progressPercent} className="h-1" />
+
+      {nextLabel && (
+        <p className="font-mono text-[13px] tabular-nums text-muted-foreground">{nextLabel}</p>
+      )}
     </div>
   );
 }

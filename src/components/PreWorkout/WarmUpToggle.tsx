@@ -9,14 +9,9 @@ interface WarmUpToggleProps {
 
 export function WarmUpToggle({ enabled, onChange }: WarmUpToggleProps) {
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-muted-foreground">
-        Warm-up sets?
-      </label>
-      <div className="flex items-center gap-3">
-        <Switch checked={enabled} onCheckedChange={onChange} />
-        <span className="text-sm">{enabled ? "ON" : "OFF"}</span>
-      </div>
-    </div>
+    <label className="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+      Warm-ups
+      <Switch checked={enabled} onCheckedChange={onChange} aria-label="Warm-up sets" />
+    </label>
   );
 }

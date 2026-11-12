@@ -7,29 +7,7 @@ import { useProfile } from "@/hooks";
 import { PageShell } from "@/components/ui/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-function calculatePlatesPerSide(
-  targetWeight: number,
-  barWeight: number,
-  availablePlates: number[]
-): { plate: number; count: number }[] {
-  let remaining = (targetWeight - barWeight) / 2;
-  if (remaining <= 0) return [];
-
-  const sorted = [...availablePlates].sort((a, b) => b - a);
-  const result: { plate: number; count: number }[] = [];
-
-  for (const plate of sorted) {
-    if (remaining <= 0) break;
-    const count = Math.floor(remaining / plate);
-    if (count > 0) {
-      result.push({ plate, count });
-      remaining -= plate * count;
-    }
-  }
-
-  return result;
-}
+import { calculatePlatesPerSide } from "@/lib/plates";
 
 // Plate colors for visual display
 const PLATE_COLORS: Record<number, string> = {

@@ -1,1053 +1,239 @@
 "use client";
 
-import { Suspense, useEffect, useState, useCallback, useMemo } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useLiveQuery } from "dexie-react-hooks";
-import { v4 as uuidv4 } from "uuid";
-import { db } from "@/db/local";
-import { useWorkoutStore, type WorkoutExerciseState } from "@/stores/workoutStore";
-import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import { getExercise, EXERCISES, DEFAULT_ACCESSORY_WEIGHTS } from "@/lib/exercises";
-import { generateWarmUpSets } from "@/lib/warmups";
-import { barbellToDumbbell, barbellToBothHands } from "@/lib/dbConversion";
-import { calculateE1RM, isE1RMEligibleSet, toRecentE1RMSeries } from "@/lib/e1rm";
-import { getRestSeconds } from "@/lib/restTimes";
-import {
-  evaluateT1Progression,
-  evaluateT2Progression,
-  evaluateT2AutoRegulation,
-  shouldFreezeProgression,
-} from "@/lib/progression";
-import type {
-  SetLog,
-  Tier,
-  TrainingPhase,
-  UserSettings,
-  LiftState,
-} from "@/types";
-
-import { requestNotificationPermission } from "@/lib/audio";
-import { WorkoutHeader } from "@/components/ActiveWorkout/WorkoutHeader";
-import { ExerciseBlock } from "@/components/ActiveWorkout/ExerciseBlock";
-import { SetLogger } from "@/components/ActiveWorkout/SetLogger";
-import { RPESelector } from "@/components/ActiveWorkout/RPESelector";
-import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
-import { RestTimer } from "@/components/ActiveWorkout/RestTimer";
-import { SetProgressList } from "@/components/ActiveWorkout/SetProgressList";
-import { WorkoutMiniMap } from "@/components/ActiveWorkout/WorkoutMiniMap";
-import { WorkoutOverviewSheet } from "@/components/ActiveWorkout/WorkoutOverviewSheet";
-import { AMRAPIndicator } from "@/components/ActiveWorkout/AMRAPIndicator";
-import { WarmUpSet as WarmUpSetComponent } from "@/components/ActiveWorkout/WarmUpSet";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getExercise } from "@/lib/exercises";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent } from "@/components/ui/card";
-import { WorkoutComplete } from "@/components/ui/workout-complete";
+import { Callout } from "@/components/ui/callout";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
+import { AutoRegCallout } from "@/components/ActiveWorkout/AutoRegCallout";
+import { DiscardWorkoutDialog } from "@/components/ActiveWorkout/DiscardWorkoutDialog";
 import { EndWorkoutConfirmDialog } from "@/components/ActiveWorkout/EndWorkoutConfirmDialog";
+import { ExerciseBlock } from "@/components/ActiveWorkout/ExerciseBlock";
+import { LogDock } from "@/components/ActiveWorkout/LogDock";
+import { PrOpportunityLine } from "@/components/ActiveWorkout/PrOpportunityLine";
+import { RepPicker } from "@/components/ActiveWorkout/RepPicker";
+import { RPESelector } from "@/components/ActiveWorkout/RPESelector";
+import { WeightDisplay } from "@/components/ActiveWorkout/WeightDisplay";
+import { WorkoutFinished } from "@/components/ActiveWorkout/WorkoutFinished";
+import { WorkoutHeader } from "@/components/ActiveWorkout/WorkoutHeader";
+import { WorkoutOverviewSheet } from "@/components/ActiveWorkout/WorkoutOverviewSheet";
+import { formatClock } from "@/components/ActiveWorkout/activeWorkoutLogic";
+import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
+import { useActiveWorkout } from "@/components/ActiveWorkout/useActiveWorkout";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  useElapsedSeconds,
+  useLeaveGuard,
+  useNotificationPermission,
+  useWakeLock,
+} from "@/components/ActiveWorkout/useWorkoutGuards";
 
-
-function getLiftType(exerciseId: string): "upper" | "lower" {
-  const exercise = getExercise(exerciseId);
-  return exercise.muscleGroup === "legs" ? "lower" : "upper";
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="h-6 w-40 animate-pulse rounded bg-muted" />
+    </div>
+  );
 }
 
 export default function ActiveWorkoutPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="h-6 w-40 rounded bg-muted animate-pulse" /></div>}>
+    <Suspense fallback={<LoadingScreen />}>
       <ActiveWorkoutContent />
     </Suspense>
   );
 }
 
 function ActiveWorkoutContent() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const sessionId = searchParams.get("sessionId");
+  const sessionId = useSearchParams().get("sessionId");
+  const workout = useActiveWorkout(sessionId);
+  const { status, session, settings, plan, sets, entry, activeIndex } = workout;
 
-  // Store state
-  const store = useWorkoutStore();
-  const {
-    currentExerciseIndex,
-    exercises,
-    isRestTimerActive,
-    workoutStartTime,
-    completedSets,
-    logSet: storeLogSet,
-    advanceSet,
-    startRestTimer,
-    skipRest,
-    startWorkout,
-    updateExerciseWeight,
-    goToExercise,
-    reset,
-  } = store;
-
-  // Local UI state
-  const [selectedReps, setSelectedReps] = useState<number | null>(null);
-  const [selectedRPE, setSelectedRPE] = useState<number | null>(null);
-  const [e1rmDisplay, setE1rmDisplay] = useState<number | null>(null);
-  // Tier of the set the current rest follows (the exercise may have advanced)
-  const [restTier, setRestTier] = useState<Tier | null>(null);
-  const [t2AutoRegBanner, setT2AutoRegBanner] = useState<{
-    message: string;
-    reducedWeight: number;
-    exerciseIndex: number;
-    rpe: number;
-  } | null>(null);
-  const [t2AutoRegAccepted, setT2AutoRegAccepted] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCompleting, setIsCompleting] = useState(false);
-  const [showEndDialog, setShowEndDialog] = useState(false);
   const [overviewOpen, setOverviewOpen] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showEndDialog, setShowEndDialog] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
-  // Screen Wake Lock — keeps the screen on during the active workout
+  useWakeLock();
+  useNotificationPermission();
+  const openEndDialog = useCallback(() => setShowEndDialog(true), []);
+  useLeaveGuard(status === "active" && !leaving, openEndDialog);
+  const elapsed = formatClock(useElapsedSeconds(workout.workoutStartTime));
+
+  // A workout that is already saved has nothing left to log: show its summary.
   useEffect(() => {
-    let wakeLock: WakeLockSentinel | null = null;
-
-    async function requestWakeLock() {
-      try {
-        if ("wakeLock" in navigator) {
-          wakeLock = await navigator.wakeLock.request("screen");
-        }
-      } catch {
-        // Wake Lock not supported or denied — fail silently
-      }
+    if (status === "finished" && session) {
+      router.replace(`/workout/summary?sessionId=${session.id}`);
     }
+  }, [status, session, router]);
 
-    requestWakeLock();
-
-    // Re-acquire on visibility change (required by the Wake Lock spec)
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        requestWakeLock();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    return () => {
-      wakeLock?.release();
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, []);
-
-  // Elapsed time tracker
-  const [elapsedStr, setElapsedStr] = useState("0:00");
-  useEffect(() => {
-    if (!workoutStartTime) return;
-    const interval = setInterval(() => {
-      const seconds = Math.floor((Date.now() - workoutStartTime.getTime()) / 1000);
-      const m = Math.floor(seconds / 60);
-      const s = seconds % 60;
-      setElapsedStr(`${m}:${s.toString().padStart(2, "0")}`);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [workoutStartTime]);
-
-  // Load session from Dexie
-  const session = useLiveQuery(
-    () => (sessionId ? db.workouts.get(sessionId) : undefined),
-    [sessionId]
-  );
-
-  // Load user profile for settings
-  const userProfile = useLiveQuery(() => db.userProfile.toArray(), []);
-  const settings: UserSettings | null = userProfile?.[0]?.settings ?? null;
-  const trainingPhase: TrainingPhase = settings?.trainingPhase ?? {
-    mode: "maintaining",
-  };
-
-  // Load lift states
-  const liftStates = useLiveQuery(() => db.liftStates.toArray(), []);
-
-  // Request notification permission once on mount (if not already granted)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-      requestNotificationPermission();
-    }
-  }, []);
-
-  // Initialize workout from session data
-  useEffect(() => {
-    if (!session || !liftStates || !settings || store.sessionId === session.id) {
-      if (session && store.sessionId === session.id) {
-        setIsLoading(false);
-      }
-      return;
-    }
-
-    const template = WORKOUT_TEMPLATES[session.templateId];
-    if (!template) {
-      setIsLoading(false);
-      return;
-    }
-
-    const liftStateMap = new Map<string, LiftState>();
-    for (const ls of liftStates) {
-      liftStateMap.set(ls.exerciseId, ls);
-    }
-
-    const workoutExercises: WorkoutExerciseState[] = [];
-
-    // Build exercises from template
-    for (const templateEx of template.exercises) {
-      const exercise = getExercise(templateEx.exerciseId);
-      const ls = liftStateMap.get(templateEx.exerciseId);
-
-      let weight: number;
-      let sets: number;
-      let reps: number;
-
-      if (templateEx.tier === "T1" && ls) {
-        weight = ls.t1Weight;
-        const stageConfig: Record<string, { sets: number; reps: number }> = {
-          "5x3": { sets: 5, reps: 3 },
-          "6x2": { sets: 6, reps: 2 },
-          "10x1": { sets: 10, reps: 1 },
-        };
-        const config = stageConfig[ls.t1Stage];
-        sets = config.sets;
-        reps = config.reps;
-      } else if (templateEx.tier === "T2" && ls) {
-        weight = ls.t2Weight;
-        const stageConfig: Record<string, { sets: number; reps: number }> = {
-          "3x10": { sets: 3, reps: 10 },
-          "3x8": { sets: 3, reps: 8 },
-          "3x6": { sets: 3, reps: 6 },
-        };
-        const config = stageConfig[ls.t2Stage];
-        sets = config.sets;
-        reps = config.reps;
-      } else if (templateEx.tier === "T3" && ls) {
-        weight = ls.t3Weight;
-        sets = templateEx.sets;
-        reps = templateEx.reps;
-      } else {
-        weight = 0;
-        sets = templateEx.sets;
-        reps = templateEx.reps;
-      }
-
-      // Handle home substitutions
-      let substituteExerciseId: string | undefined;
-      let adaptedWeight = weight;
-      let originalWeight: number | undefined;
-
-      if (
-        session.location === "home" &&
-        exercise.requiresGym &&
-        exercise.dumbbellAlternative
-      ) {
-        substituteExerciseId = exercise.dumbbellAlternative;
-        originalWeight = weight;
-        const substituteExercise = getExercise(exercise.dumbbellAlternative);
-        adaptedWeight = substituteExercise.grip === "both_hands"
-          ? barbellToBothHands(weight)
-          : barbellToDumbbell(weight);
-      }
-
-      // Generate warm-up sets for T1 if enabled
-      if (templateEx.tier === "T1" && session.includeWarmUps) {
-        const warmUpSets = generateWarmUpSets(
-          adaptedWeight,
-          session.location,
-          settings.equipment
-        );
-        for (let i = 0; i < warmUpSets.length; i++) {
-          workoutExercises.push({
-            exerciseId: templateEx.exerciseId,
-            substituteExerciseId,
-            tier: "warmup",
-            targetSets: 1,
-            targetReps: warmUpSets[i].reps,
-            weight: warmUpSets[i].weight,
-            originalWeight,
-            isAMRAP: false,
-            isWarmUp: true,
-            completedSets: 0,
-          });
-        }
-      }
-
-      // Add main working sets exercise
-      workoutExercises.push({
-        exerciseId: templateEx.exerciseId,
-        substituteExerciseId,
-        tier: templateEx.tier,
-        targetSets: sets,
-        targetReps: reps,
-        weight: adaptedWeight,
-        originalWeight,
-        isAMRAP: templateEx.isAMRAP,
-        isWarmUp: false,
-        completedSets: 0,
-      });
-    }
-
-    // Add selected accessories
-    if (session.selectedAccessories?.length > 0) {
-      for (const accId of session.selectedAccessories) {
-        if (EXERCISES[accId]) {
-          workoutExercises.push({
-            exerciseId: accId,
-            tier: "accessory",
-            targetSets: 3,
-            targetReps: 15,
-            weight: DEFAULT_ACCESSORY_WEIGHTS[accId] ?? 0,
-            isAMRAP: true,
-            isWarmUp: false,
-            completedSets: 0,
-          });
-        }
-      }
-    }
-
-    startWorkout(session.id, session.templateId, session.location, workoutExercises);
-    setIsLoading(false);
-  }, [session, liftStates, settings, store.sessionId, startWorkout]);
-
-  // Current exercise reference
-  const currentExercise: WorkoutExerciseState | undefined =
-    exercises[currentExerciseIndex];
-
-  // Check if workout is complete
-  const isWorkoutComplete =
-    !isLoading &&
-    exercises.length > 0 &&
-    currentExerciseIndex >= exercises.length;
-
-  // Navigation guard: prevent accidental tab close/refresh
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (exercises.length > 0 && !isWorkoutComplete) {
-        e.preventDefault();
-      }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [exercises.length, isWorkoutComplete]);
-
-  // Navigation guard: intercept browser back button
-  useEffect(() => {
-    if (exercises.length === 0 || isWorkoutComplete) return;
-    window.history.pushState(null, "", window.location.href);
-    const handler = () => {
-      window.history.pushState(null, "", window.location.href);
-      setShowEndDialog(true);
-    };
-    window.addEventListener("popstate", handler);
-    return () => window.removeEventListener("popstate", handler);
-  }, [exercises.length, isWorkoutComplete]);
-
-  // Determine if current set is AMRAP
-  const isCurrentSetAMRAP = useMemo(() => {
-    if (!currentExercise) return false;
-    if (!currentExercise.isAMRAP) return false;
-    const currentSet = currentExercise.completedSets + 1;
-    return currentSet === currentExercise.targetSets;
-  }, [currentExercise]);
-
-  // Handle logging a set
-  const handleLogSet = useCallback(async () => {
-    if (!currentExercise || selectedReps === null || !session) return;
-
-    const currentSetNumber = currentExercise.completedSets + 1;
-    const isAMRAP =
-      currentExercise.isAMRAP &&
-      currentSetNumber === currentExercise.targetSets;
-
-    const setLog: SetLog = {
-      id: uuidv4(),
-      clientId: uuidv4(),
-      exerciseId: currentExercise.exerciseId,
-      tier: currentExercise.tier,
-      setNumber: currentSetNumber,
-      targetReps: currentExercise.targetReps,
-      actualReps: selectedReps,
-      weight: currentExercise.weight,
-      isAMRAP,
-      completedAt: new Date(),
-      restAfterSeconds: 0,
-      status:
-        t2AutoRegAccepted && currentExercise.tier === "T2"
-          ? "autoregulated_load_drop"
-          : selectedReps >= currentExercise.targetReps
-            ? "completed"
-            : "failed",
-      originalWeight: currentExercise.originalWeight,
-      isSubstituted: !!currentExercise.substituteExerciseId,
-      substituteExerciseId: currentExercise.substituteExerciseId,
-      rpe: selectedRPE ?? undefined,
-      location: store.location,
-      synced: false,
-    };
-
-    // Save to Dexie immediately
-    try {
-      await db.sets.put(setLog);
-    } catch (err) {
-      console.error("Failed to save set to Dexie:", err);
-    }
-
-    // Show and record e1RM for heavy T1 AMRAP sets only (not high-rep T3 sets),
-    // adjusted for reps left in reserve when an RPE was logged.
-    if (isE1RMEligibleSet(currentExercise.tier, isAMRAP, selectedReps)) {
-      const e1rm = calculateE1RM(currentExercise.weight, selectedReps, selectedRPE);
-      if (e1rm) {
-        setE1rmDisplay(e1rm);
-        setTimeout(() => setE1rmDisplay(null), 3000);
-
-        // Save e1RM to Dexie
-        try {
-          await db.estimated1RMs.put({
-            id: uuidv4(),
-            clientId: uuidv4(),
-            date: new Date(),
-            exerciseId: currentExercise.exerciseId,
-            workingWeight: currentExercise.weight,
-            repsCompleted: selectedReps,
-            estimated1RM: e1rm,
-            workoutSessionId: session.id,
-            synced: false,
-          });
-        } catch (err) {
-          console.error("Failed to save e1RM:", err);
-        }
-      }
-    }
-
-    // T2 Auto-regulation check after Set 1
-    if (
-      currentExercise.tier === "T2" &&
-      currentSetNumber === 1 &&
-      selectedRPE !== null &&
-      settings
-    ) {
-      const result = evaluateT2AutoRegulation(
-        selectedRPE,
-        trainingPhase,
-        currentExercise.weight
-      );
-      if (result.action === "suggest_drop" && result.reducedWeight) {
-        setT2AutoRegBanner({
-          message: result.message || "",
-          reducedWeight: result.reducedWeight,
-          exerciseIndex: currentExerciseIndex,
-          rpe: selectedRPE,
-        });
-      }
-    }
-
-    // Log set in store
-    storeLogSet(setLog);
-
-    // Reset UI state
-    setSelectedReps(null);
-    setSelectedRPE(null);
-
-    // Check if this was the last set of the exercise
-    const updatedCompletedSets = currentExercise.completedSets + 1;
-    const isLastSetOfExercise =
-      updatedCompletedSets >= currentExercise.targetSets;
-
-    if (isLastSetOfExercise) {
-      // Auto-advance to next exercise (skip rest for last set)
-      advanceSet();
-    } else {
-      // Start rest timer
-      const restTime = getRestSeconds(currentExercise.tier, trainingPhase);
-      setRestTier(currentExercise.tier);
-      startRestTimer(restTime);
-      advanceSet();
-    }
-  }, [
-    currentExercise,
-    selectedReps,
-    selectedRPE,
-    session,
-    store.location,
-    currentExerciseIndex,
-    settings,
-    trainingPhase,
-    t2AutoRegAccepted,
-    storeLogSet,
-    advanceSet,
-    startRestTimer,
-  ]);
-
-  // Handle T2 auto-reg accept
-  const handleAcceptDrop = useCallback(() => {
-    if (!t2AutoRegBanner) return;
-    // Store original weight before updating, then update weight for remaining sets
-    const exerciseAtIndex = exercises[t2AutoRegBanner.exerciseIndex];
-    if (exerciseAtIndex && !exerciseAtIndex.originalWeight) {
-      // Set originalWeight so subsequent sets record it
-      const updatedExercises = [...exercises];
-      updatedExercises[t2AutoRegBanner.exerciseIndex] = {
-        ...exerciseAtIndex,
-        originalWeight: exerciseAtIndex.weight,
-      };
-      // The store update below will set the new weight
-    }
-    updateExerciseWeight(t2AutoRegBanner.exerciseIndex, t2AutoRegBanner.reducedWeight);
-    setT2AutoRegAccepted(true);
-    setT2AutoRegBanner(null);
-  }, [t2AutoRegBanner, exercises, updateExerciseWeight]);
-
-  const handleRejectDrop = useCallback(() => {
-    setT2AutoRegBanner(null);
-  }, []);
-
-  // Compute remaining exercises for end-workout dialog
-  const remainingExercises = useMemo(() => {
-    return exercises
-      .filter((e) => !e.isWarmUp && e.completedSets < e.targetSets)
-      .map((e) => {
-        const exercise = getExercise(
-          e.substituteExerciseId || e.exerciseId
-        );
-        return {
-          name: exercise.name,
+  const remainingExercises = useMemo(
+    () =>
+      plan
+        .filter((e) => !e.isWarmUp && e.completedSets < e.targetSets)
+        .map((e) => ({
+          name: getExercise(e.substituteExerciseId || e.exerciseId).name,
           tier: e.tier,
           setsCompleted: e.completedSets,
           targetSets: e.targetSets,
-        };
-      });
-  }, [exercises]);
+        })),
+    [plan]
+  );
 
-  // Handle ending workout early
-  const handleEndWorkout = useCallback(() => {
-    setShowEndDialog(false);
-    // Jump past all exercises to trigger workout complete
-    useWorkoutStore.setState({ currentExerciseIndex: exercises.length });
-  }, [exercises.length]);
-
-  // Handle exercise selection from overview sheet
-  const handleSelectExercise = useCallback((index: number) => {
-    goToExercise(index);
-    setSelectedReps(null);
-    setSelectedRPE(null);
-    setE1rmDisplay(null);
-    setT2AutoRegBanner(null);
-    setT2AutoRegAccepted(false);
-  }, [goToExercise]);
-
-  // Handle cancel workout (discard all progress)
-  const handleCancelWorkout = useCallback(async () => {
+  const handleSave = async () => {
     if (!session) return;
-    // Delete all logged sets for this session
-    const setIds = completedSets.map(s => s.id);
-    if (setIds.length > 0) {
-      await db.sets.bulkDelete(setIds);
-    }
-    // Delete any e1RMs logged during this session
-    try {
-      const sessionE1RMs = await db.estimated1RMs
-        .where("workoutSessionId")
-        .equals(session.id)
-        .toArray();
-      if (sessionE1RMs.length > 0) {
-        await db.estimated1RMs.bulkDelete(sessionE1RMs.map(e => e.id));
-      }
-    } catch {
-      // Non-critical
-    }
-    // Delete the workout record
-    await db.workouts.delete(session.id);
-    // Reset store and go home
-    reset();
-    router.push("/");
-  }, [session, completedSets, reset, router]);
-
-  // Handle workout completion
-  const handleCompleteWorkout = useCallback(async () => {
-    if (!session || !liftStates || !settings || isCompleting) return;
-    setIsCompleting(true);
-
-    try {
-      const liftStateMap = new Map<string, LiftState>();
-      for (const ls of liftStates) {
-        liftStateMap.set(ls.exerciseId, ls);
-      }
-
-      const template = WORKOUT_TEMPLATES[session.templateId];
-      if (template) {
-        for (const templateEx of template.exercises) {
-          const ls = liftStateMap.get(templateEx.exerciseId);
-          if (!ls) continue;
-
-          const exerciseSets = completedSets.filter(
-            (s) =>
-              s.exerciseId === templateEx.exerciseId &&
-              s.tier === templateEx.tier
-          );
-
-          if (exerciseSets.length === 0) continue;
-
-          // Check for partial completion — freeze progression if so
-          const matchingExercise = exercises.find(
-            (e) =>
-              e.exerciseId === templateEx.exerciseId &&
-              e.tier === templateEx.tier &&
-              !e.isWarmUp
-          );
-          const targetSets = matchingExercise?.targetSets ?? templateEx.sets;
-
-          if (shouldFreezeProgression(exerciseSets.length, targetSets)) {
-            // Partial completion — freeze progression but update lastWorkoutDate
-            if (templateEx.tier === "T1") {
-              await db.liftStates.put({
-                ...ls,
-                t1LastWorkoutDate: new Date(),
-                synced: false,
-              });
-            } else if (templateEx.tier === "T2") {
-              await db.liftStates.put({
-                ...ls,
-                t2LastWorkoutDate: new Date(),
-                synced: false,
-              });
-            }
-            continue;
-          }
-
-          const liftType = getLiftType(templateEx.exerciseId);
-
-          if (templateEx.tier === "T1") {
-            const newState = evaluateT1Progression(
-              ls,
-              exerciseSets,
-              session.location,
-              settings.equipment,
-              liftType
-            );
-            newState.t1LastWorkoutDate = new Date();
-
-            // Populate tracking arrays (keep last 5)
-
-            // 1. recentE1RMs: query estimated1RMs table for this exercise
-            const e1rmEntriesT1 = await db.estimated1RMs
-              .where("exerciseId").equals(templateEx.exerciseId)
-              .toArray();
-            // Chronological (oldest first), as getE1RMTrend expects
-            newState.recentE1RMs = toRecentE1RMSeries(e1rmEntriesT1);
-
-            // 2. recentAvgRPEs: calculate avg RPE from this session's sets
-            const rpeValuesT1 = exerciseSets.filter(s => s.rpe != null).map(s => s.rpe!);
-            if (rpeValuesT1.length > 0) {
-              const avgRPE = rpeValuesT1.reduce((a, b) => a + b, 0) / rpeValuesT1.length;
-              newState.recentAvgRPEs = [...(ls.recentAvgRPEs || []), avgRPE].slice(-5);
-            } else {
-              newState.recentAvgRPEs = ls.recentAvgRPEs || [];
-            }
-
-            // 3. recentAMRAPReps: from AMRAP set
-            const amrapSetT1 = exerciseSets.find(s => s.isAMRAP);
-            if (amrapSetT1) {
-              newState.recentAMRAPReps = [...(ls.recentAMRAPReps || []), amrapSetT1.actualReps].slice(-5);
-            } else {
-              newState.recentAMRAPReps = ls.recentAMRAPReps || [];
-            }
-
-            newState.synced = false;
-            await db.liftStates.put(newState);
-          } else if (templateEx.tier === "T2") {
-            const newState = evaluateT2Progression(
-              ls,
-              exerciseSets,
-              session.location,
-              settings.equipment,
-              liftType
-            );
-            newState.t2LastWorkoutDate = new Date();
-
-            // Populate tracking arrays (keep last 5)
-
-            // 1. recentE1RMs: query estimated1RMs table for this exercise
-            const e1rmEntriesT2 = await db.estimated1RMs
-              .where("exerciseId").equals(templateEx.exerciseId)
-              .toArray();
-            // Chronological (oldest first), as getE1RMTrend expects
-            newState.recentE1RMs = toRecentE1RMSeries(e1rmEntriesT2);
-
-            // 2. recentAvgRPEs: calculate avg RPE from this session's sets
-            const rpeValuesT2 = exerciseSets.filter(s => s.rpe != null).map(s => s.rpe!);
-            if (rpeValuesT2.length > 0) {
-              const avgRPE = rpeValuesT2.reduce((a, b) => a + b, 0) / rpeValuesT2.length;
-              newState.recentAvgRPEs = [...(ls.recentAvgRPEs || []), avgRPE].slice(-5);
-            } else {
-              newState.recentAvgRPEs = ls.recentAvgRPEs || [];
-            }
-
-            // 3. recentAMRAPReps: from AMRAP set
-            const amrapSetT2 = exerciseSets.find(s => s.isAMRAP);
-            if (amrapSetT2) {
-              newState.recentAMRAPReps = [...(ls.recentAMRAPReps || []), amrapSetT2.actualReps].slice(-5);
-            } else {
-              newState.recentAMRAPReps = ls.recentAMRAPReps || [];
-            }
-
-            newState.synced = false;
-            await db.liftStates.put(newState);
-          }
-        }
-      }
-
-      // Update session
-      const now = new Date();
-      const durationSeconds = workoutStartTime
-        ? Math.floor((now.getTime() - workoutStartTime.getTime()) / 1000)
-        : 0;
-
-      const endedEarly = currentExerciseIndex < exercises.length;
-
-      await db.workouts.update(session.id, {
-        completedAt: now,
-        totalDurationSeconds: durationSeconds,
-        sets: completedSets,
-        ...(endedEarly ? { endedEarly: true } : {}),
-      });
-
-      // Navigate to summary
+    if (await workout.finish()) {
       router.push(`/workout/summary?sessionId=${session.id}`);
-    } catch (err) {
-      console.error("Failed to complete workout:", err);
-      setIsCompleting(false);
     }
-  }, [
-    session,
-    liftStates,
-    settings,
-    isCompleting,
-    completedSets,
-    workoutStartTime,
-    currentExerciseIndex,
-    exercises,
-    router,
-  ]);
+  };
 
-  // Loading state
-  if (isLoading || !session || !settings) {
+  const handleDiscard = async () => {
+    setLeaving(true);
+    setShowEndDialog(false);
+    setShowDiscardDialog(false);
+    await workout.discard();
+    router.push("/");
+  };
+
+  const handleEndEarly = () => {
+    setShowEndDialog(false);
+    workout.endEarly();
+  };
+
+  if (status === "missing" && !leaving) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
+      <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-5 text-center">
+        <h1 className="text-xl font-bold">Workout not found</h1>
+        <p className="text-sm text-muted-foreground">
+          It may have been discarded. Start a new one from the home screen.
+        </p>
+        <Button asChild>
+          <Link href="/">Back to home</Link>
+        </Button>
       </div>
     );
   }
 
-  // No session found
-  if (!sessionId) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
-      </div>
-    );
+  if (status === "loading" || status === "finished" || leaving || !session || !settings) {
+    return <LoadingScreen />;
   }
 
-  // Workout complete screen
-  if (isWorkoutComplete) {
-    const durationSeconds = workoutStartTime
-      ? Math.floor((Date.now() - workoutStartTime.getTime()) / 1000)
-      : 0;
-    const minutes = Math.floor(durationSeconds / 60);
-    const seconds = durationSeconds % 60;
-    const durationStr = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  const title = templateTitle(session.templateId);
 
-    // If no sets logged, offer to cancel
-    if (completedSets.length === 0) {
-      return (
-        <div className="min-h-screen bg-background">
-          <WorkoutHeader
-            templateName={WORKOUT_TEMPLATES[store.templateId]?.name || store.templateId}
-            workoutStartTime={workoutStartTime}
-          />
-          <div className="px-5 pt-8 space-y-6 text-center">
-            <div className="space-y-2">
-              <h2 className="text-xl font-bold">No Sets Logged</h2>
-              <p className="text-sm text-muted-foreground">
-                You completed the workout without logging any sets.
-              </p>
-            </div>
-            <div className="space-y-3">
-              <Button
-                variant="destructive"
-                size="lg"
-                className="w-full"
-                onClick={handleCancelWorkout}
-              >
-                Discard Workout
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full"
-                onClick={handleCompleteWorkout}
-                disabled={isCompleting}
-              >
-                {isCompleting ? "Saving..." : "Save Anyway"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
+  if (status === "complete" || !entry) {
     return (
-      <div className="min-h-screen bg-background">
-        <WorkoutHeader
-          templateName={WORKOUT_TEMPLATES[store.templateId]?.name || store.templateId}
-          workoutStartTime={workoutStartTime}
+      <div className="mx-auto min-h-screen max-w-lg bg-background px-5 pt-4 pb-8">
+        <WorkoutHeader title={title} elapsed={elapsed} exercises={plan} />
+        <WorkoutFinished
+          setsLogged={sets.length}
+          duration={elapsed}
+          isSaving={workout.isCompleting}
+          onSave={handleSave}
+          onDiscard={handleDiscard}
+          error={workout.error}
         />
-        <WorkoutComplete setsCompleted={completedSets.length} duration={durationStr} />
-        <div className="px-5">
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={handleCompleteWorkout}
-            disabled={isCompleting}
-          >
-            {isCompleting ? "Saving..." : "Finish & View Summary"}
-          </Button>
-        </div>
       </div>
     );
   }
 
-  // No current exercise (shouldn't happen, but safeguard)
-  if (!currentExercise) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="h-6 w-40 rounded bg-muted animate-pulse" />
-      </div>
-    );
-  }
-
-  const templateName =
-    WORKOUT_TEMPLATES[store.templateId]?.name || store.templateId;
-  const exerciseId =
-    currentExercise.substituteExerciseId || currentExercise.exerciseId;
-
-  // Warm-up sets for current T1 exercise
-  const warmUpSetsForCurrentExercise: WorkoutExerciseState[] = [];
-  if (currentExercise.tier === "T1") {
-    // Look backwards to find associated warm-up exercises
-    for (let i = currentExerciseIndex - 1; i >= 0; i--) {
-      const ex = exercises[i];
-      if (
-        ex.isWarmUp &&
-        ex.exerciseId === currentExercise.exerciseId
-      ) {
-        warmUpSetsForCurrentExercise.unshift(ex);
-      } else {
-        break;
-      }
-    }
-  }
+  const showEffort = settings.showRPE && !entry.isWarmUp;
+  const nextSet = Math.min(entry.completedSets + 1, entry.targetSets);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background px-5 pt-4 pb-36">
       <WorkoutHeader
-        templateName={templateName}
-        workoutStartTime={workoutStartTime}
+        title={title}
+        elapsed={elapsed}
+        exercises={plan}
+        currentExerciseIndex={activeIndex}
+        onOpenOverview={() => setOverviewOpen(true)}
       />
 
-      {/* Mini-Map */}
-      <WorkoutMiniMap
-        exercises={exercises}
-        currentExerciseIndex={currentExerciseIndex}
-        onTap={() => setOverviewOpen(true)}
+      <ExerciseBlock
+        exercise={entry}
+        location={session.location}
+        isAMRAPSet={workout.isAMRAPSet}
       />
 
-      <div className="max-w-lg mx-auto">
-        {/* Exercise Block */}
-        <ExerciseBlock
-          exercise={currentExercise}
-          location={store.location}
-          isAMRAPSet={isCurrentSetAMRAP}
+      <WeightDisplay
+        exercise={entry}
+        location={session.location}
+        equipment={settings.equipment}
+        isAMRAPSet={workout.isAMRAPSet}
+      />
+
+      {workout.e1rmFlash !== null && (
+        <Callout variant="success" title={`Estimated 1RM: ${workout.e1rmFlash} lbs`} />
+      )}
+
+      {workout.dropSuggestion && (
+        <AutoRegCallout
+          rpe={workout.dropSuggestion.rpe}
+          reducedWeight={workout.dropSuggestion.reducedWeight}
+          onAccept={workout.acceptDrop}
+          onKeep={workout.keepWeight}
+          evidence={<EvidenceLine ruleId="t2-autoregulation" hideLibraryLink />}
         />
+      )}
 
-        {/* AMRAP Indicator */}
-        {isCurrentSetAMRAP && (
-          <AMRAPIndicator
-            tier={currentExercise.tier}
-            trainingPhase={trainingPhase}
-          />
-        )}
-
-        {/* e1RM Display */}
-        {e1rmDisplay !== null && (
-          <Alert className="mx-4 mt-2 border-green-500/50 bg-green-500/10">
-            <AlertTitle className="text-green-400 font-semibold">
-              Estimated 1RM: {e1rmDisplay} lbs
-            </AlertTitle>
-          </Alert>
-        )}
-
-        {/* T2 Auto-Regulation Banner */}
-        {t2AutoRegBanner && (
-          <div className="mx-4 mt-3 rounded-xl border border-amber-700 bg-amber-900/30 p-4 space-y-3">
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-amber-400">
-                {"\u26A1"} AUTO-ADJUST SUGGESTED
-              </p>
-              <p className="text-sm text-muted-foreground">
-                That set was RPE {t2AutoRegBanner.rpe}. Suggest dropping to{" "}
-                {t2AutoRegBanner.reducedWeight} lbs for remaining sets.
-              </p>
-              <EvidenceLine ruleId="t2-autoregulation" hideLibraryLink />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="default"
-                onClick={handleAcceptDrop}
-              >
-                Accept Drop
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleRejectDrop}
-              >
-                Keep Weight
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Set Progress List */}
-        <SetProgressList
-          exercise={currentExercise}
-          completedSets={completedSets}
-          location={store.location}
+      {workout.prOpportunity && (
+        <PrOpportunityLine
+          opportunity={workout.prOpportunity}
+          recentAMRAPReps={workout.recentAMRAPReps}
         />
+      )}
 
-        {/* Rest Timer */}
-        <div className="mt-3">
-          <RestTimer
-            audioEnabled={settings.restTimerAudio}
-            vibrationEnabled={settings.restTimerVibration}
-            tier={restTier ?? undefined}
-            trainingPhase={trainingPhase}
-          />
-        </div>
-
-        {/* Warm-up sets display (completed warm-ups for current T1) */}
-        {warmUpSetsForCurrentExercise.length > 0 && (
-          <div className="mt-2">
-            {warmUpSetsForCurrentExercise.map((wu, idx) => (
-              <WarmUpSetComponent
-                key={`warmup-${idx}`}
-                warmUpSet={{
-                  weight: wu.weight,
-                  reps: wu.targetReps,
-                  label: `Warm-up ${idx + 1}`,
-                }}
-                setNumber={idx + 1}
-                totalSets={warmUpSetsForCurrentExercise.length}
-                isCompleted={wu.completedSets > 0}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Set Logger */}
-        {!isRestTimerActive && (
-          <div className="mt-4 space-y-4">
-            <SetLogger
-              targetReps={currentExercise.targetReps}
-              onSelectReps={setSelectedReps}
-              selectedReps={selectedReps}
-            />
-
-            {/* RPE Selector */}
-            {settings.showRPE && !currentExercise.isWarmUp && (
-              <RPESelector
-                selectedRPE={selectedRPE}
-                onSelectRPE={setSelectedRPE}
-              />
-            )}
-
-            {/* Log Set Button */}
-            <div className="px-4">
-              <Button
-                className="w-full h-14 text-lg font-bold"
-                size="lg"
-                disabled={selectedReps === null}
-                onClick={handleLogSet}
-              >
-                LOG SET
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* End Workout / Cancel buttons */}
-        <div className="px-4 mt-6 mb-4 space-y-2">
-          <Button
-            variant="ghost"
-            className="w-full text-destructive hover:text-destructive"
-            onClick={() => setShowEndDialog(true)}
-          >
-            End Workout Early
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full text-muted-foreground hover:text-destructive"
-            onClick={() => setShowCancelDialog(true)}
-          >
-            Cancel Workout
-          </Button>
-        </div>
-      </div>
-
-      {/* End Workout Confirmation Dialog */}
-      <EndWorkoutConfirmDialog
-        open={showEndDialog}
-        onOpenChange={setShowEndDialog}
-        onConfirm={handleEndWorkout}
-        onCancel={handleCancelWorkout}
-        remainingExercises={remainingExercises}
-        setsLogged={completedSets.length}
+      <RepPicker
+        targetReps={entry.targetReps}
+        isAMRAP={workout.isAMRAPSet}
+        value={workout.selectedReps}
+        onChange={workout.setSelectedReps}
+        highlightFrom={workout.prOpportunity?.repsNeeded}
       />
 
-      {/* Cancel Confirmation Dialog */}
-      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Cancel Workout?</DialogTitle>
-            <DialogDescription>
-              {completedSets.length > 0
-                ? `You've logged ${completedSets.length} set${completedSets.length > 1 ? "s" : ""}. Canceling will discard all progress.`
-                : "This workout will be discarded entirely."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowCancelDialog(false)}>
-              Keep Going
-            </Button>
-            <Button variant="destructive" onClick={handleCancelWorkout}>
-              Discard Workout
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {showEffort && (
+        <RPESelector selectedRPE={workout.selectedRPE} onSelectRPE={workout.setSelectedRPE} />
+      )}
 
-      {/* Workout Overview Sheet */}
+      <LogDock
+        reps={workout.selectedReps}
+        onLog={workout.logSet}
+        disabled={workout.isSaving}
+        audioEnabled={settings.restTimerAudio}
+        vibrationEnabled={settings.restTimerVibration}
+        trainingPhase={workout.trainingPhase}
+        nextLabel={`Next: set ${nextSet} of ${entry.targetSets} at ${entry.weight} lbs`}
+        message={workout.error}
+      />
+
       <WorkoutOverviewSheet
         open={overviewOpen}
         onOpenChange={setOverviewOpen}
-        exercises={exercises}
-        currentExerciseIndex={currentExerciseIndex}
-        onSelectExercise={handleSelectExercise}
-        elapsedTime={elapsedStr}
+        exercises={plan}
+        sets={sets}
+        currentExerciseIndex={activeIndex}
+        onSelectExercise={workout.jumpTo}
+        elapsedTime={elapsed}
+        onEndWorkout={openEndDialog}
+        onDiscard={() => setShowDiscardDialog(true)}
+      />
+
+      <EndWorkoutConfirmDialog
+        open={showEndDialog}
+        onOpenChange={setShowEndDialog}
+        onConfirm={handleEndEarly}
+        onCancel={handleDiscard}
+        remainingExercises={remainingExercises}
+        setsLogged={sets.length}
+      />
+
+      <DiscardWorkoutDialog
+        open={showDiscardDialog}
+        onOpenChange={setShowDiscardDialog}
+        setsLogged={sets.length}
+        onDiscard={handleDiscard}
       />
     </div>
   );
