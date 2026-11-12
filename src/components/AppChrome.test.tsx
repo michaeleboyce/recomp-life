@@ -4,8 +4,8 @@ import { render, screen } from "@testing-library/react";
 
 const pathname = vi.fn<() => string>();
 vi.mock("next/navigation", () => ({ usePathname: () => pathname() }));
-vi.mock("@/components/BottomNav", () => ({
-  default: () => <nav data-testid="bottom-nav" />,
+vi.mock("@/components/nav/TabBar", () => ({
+  TabBar: () => <nav data-testid="bottom-nav" />,
 }));
 
 import { AppChrome } from "./AppChrome";
