@@ -4,15 +4,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
 import { Card, CardContent } from "@/components/ui/card";
 import { calculateConsistencyStreak } from "@/lib/streaks";
-
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+import { getMonday } from "@/lib/dates";
 
 function WorkoutRing({ count, target }: { count: number; target: number }) {
   const size = 60;

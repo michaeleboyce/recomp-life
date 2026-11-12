@@ -8,6 +8,8 @@ import {
   getNextWorkoutId,
 } from "@/lib/workoutTemplates";
 import { EXERCISES } from "@/lib/exercises";
+import { combinedActivationHeat } from "@/lib/muscleLoad";
+import { MuscleMap } from "@/components/Anatomy/MuscleMap";
 import {
   Card,
   CardContent,
@@ -103,9 +105,16 @@ export default function NextWorkoutCard() {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">Next Workout</CardTitle>
-          <Badge variant="outline" className="text-xs">
-            {template.name}
-          </Badge>
+          <div className="flex items-center gap-3">
+            <MuscleMap
+              heat={combinedActivationHeat(template.exercises.map((e) => e.exerciseId))}
+              className="h-14"
+              label={`Muscles ${template.name} targets`}
+            />
+            <Badge variant="outline" className="text-xs">
+              {template.name}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

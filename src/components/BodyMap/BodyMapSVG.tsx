@@ -1,6 +1,20 @@
 "use client";
 
+import type { KeyboardEvent } from "react";
 import type { BodyRegion, PainSorenessEntry } from "@/types";
+import type { FigureShape, FigureViewName } from "@/lib/anatomy/figureTypes";
+import {
+  ALL_BODY_REGIONS,
+  REGION_TARGETS,
+  jointPosition,
+  regionForShape,
+  type BodySide,
+  type JointName,
+} from "@/lib/anatomy/regionMapping";
+import { mixHex, painColor } from "@/lib/anatomy/palette";
+import { formatRegion } from "@/lib/painModifications";
+import { BodyFigure, type ShapeStyle } from "@/components/Anatomy/BodyFigure";
+import { useFigure } from "@/components/Anatomy/useFigure";
 
 interface BodyMapSVGProps {
   activeEntries: PainSorenessEntry[];
@@ -8,167 +22,150 @@ interface BodyMapSVGProps {
   selectedRegion: BodyRegion | null;
 }
 
-interface RegionZone {
-  region: BodyRegion;
-  label: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+/** A tappable region with nothing logged. Matches the page legend swatch. */
+const NO_ENTRY = { fill: "#374151", stroke: "#4b5563" };
+const SELECTED = { fill: "#3b82f6", stroke: "#93c5fd" };
+/** Ring around joint dots so they read as tappable markers, not muscle. */
+const JOINT_RING = "#9ca3af";
 
-// Body map zone layout -- front view with labeled rectangular touch zones
-const BODY_ZONES: RegionZone[] = [
-  // Head / Neck area
-  { region: "neck", label: "Neck", x: 125, y: 40, width: 50, height: 28 },
-  // Shoulders
-  { region: "left_shoulder", label: "L.Shldr", x: 52, y: 78, width: 60, height: 30 },
-  { region: "right_shoulder", label: "R.Shldr", x: 188, y: 78, width: 60, height: 30 },
-  // Chest
-  { region: "chest", label: "Chest", x: 112, y: 78, width: 76, height: 36 },
-  // Elbows
-  { region: "left_elbow", label: "L.Elbow", x: 28, y: 148, width: 54, height: 28 },
-  { region: "right_elbow", label: "R.Elbow", x: 218, y: 148, width: 54, height: 28 },
-  // Wrists
-  { region: "left_wrist", label: "L.Wrist", x: 12, y: 210, width: 50, height: 26 },
-  { region: "right_wrist", label: "R.Wrist", x: 238, y: 210, width: 50, height: 26 },
-  // Core
-  { region: "core", label: "Core", x: 112, y: 118, width: 76, height: 36 },
-  // Upper back
-  { region: "upper_back", label: "Upper Back", x: 112, y: 158, width: 76, height: 30 },
-  // Lower back
-  { region: "lower_back", label: "Lower Back", x: 112, y: 192, width: 76, height: 30 },
-  // Hips
-  { region: "left_hip", label: "L.Hip", x: 82, y: 226, width: 52, height: 28 },
-  { region: "right_hip", label: "R.Hip", x: 166, y: 226, width: 52, height: 28 },
-  // Quads
-  { region: "left_quad", label: "L.Quad", x: 82, y: 260, width: 52, height: 40 },
-  { region: "right_quad", label: "R.Quad", x: 166, y: 260, width: 52, height: 40 },
-  // Hamstrings
-  { region: "left_hamstring", label: "L.Ham", x: 82, y: 304, width: 52, height: 36 },
-  { region: "right_hamstring", label: "R.Ham", x: 166, y: 304, width: 52, height: 36 },
-  // Knees
-  { region: "left_knee", label: "L.Knee", x: 82, y: 344, width: 52, height: 30 },
-  { region: "right_knee", label: "R.Knee", x: 166, y: 344, width: 52, height: 30 },
+/** Joint marker sizes in view-box units (the figure is ~724 wide). */
+const JOINT_HIT_RADIUS = 62;
+const JOINT_DOT_RADIUS = 26;
+
+const VIEWS: { name: FigureViewName; caption: string }[] = [
+  { name: "front", caption: "Front" },
+  { name: "back", caption: "Back" },
 ];
 
-function getRegionColor(
-  region: BodyRegion,
-  activeEntries: PainSorenessEntry[],
-  isSelected: boolean
-): { fill: string; stroke: string } {
-  const entry = activeEntries.find((e) => e.region === region);
-
-  if (isSelected) {
-    return { fill: "#3b82f6", stroke: "#2563eb" }; // blue when selected
+/** The most recent entry for each region. */
+function latestByRegion(
+  entries: PainSorenessEntry[]
+): Partial<Record<BodyRegion, PainSorenessEntry>> {
+  const latest: Partial<Record<BodyRegion, PainSorenessEntry>> = {};
+  for (const entry of entries) {
+    const prev = latest[entry.region];
+    if (!prev || new Date(prev.date).getTime() < new Date(entry.date).getTime()) {
+      latest[entry.region] = entry;
+    }
   }
-
-  if (!entry) {
-    return { fill: "#374151", stroke: "#4b5563" }; // default gray
-  }
-
-  if (entry.sensation === "pain") {
-    // Red shades based on severity
-    const alphaMap: Record<number, string> = {
-      1: "#ef444440",
-      2: "#ef444460",
-      3: "#ef444480",
-      4: "#ef4444b0",
-      5: "#ef4444",
-    };
-    return {
-      fill: alphaMap[entry.severity] || "#ef4444",
-      stroke: "#dc2626",
-    };
-  }
-
-  // Soreness: amber/yellow shades
-  const amberMap: Record<number, string> = {
-    1: "#f59e0b40",
-    2: "#f59e0b60",
-    3: "#f59e0b80",
-    4: "#f59e0bb0",
-    5: "#f59e0b",
-  };
-  return {
-    fill: amberMap[entry.severity] || "#f59e0b",
-    stroke: "#d97706",
-  };
+  return latest;
 }
 
+function regionColors(
+  entry: PainSorenessEntry | undefined,
+  isSelected: boolean
+): { fill: string; stroke: string } {
+  if (isSelected) return SELECTED;
+  if (!entry) return NO_ENTRY;
+  const c = painColor(entry.sensation, entry.severity);
+  return { fill: mixHex(NO_ENTRY.fill, c.fill, c.opacity), stroke: c.stroke };
+}
+
+interface JointMarker {
+  region: BodyRegion;
+  joint: JointName;
+  side: BodySide;
+}
+
+function jointMarkers(view: FigureViewName): JointMarker[] {
+  const markers: JointMarker[] = [];
+  for (const region of ALL_BODY_REGIONS) {
+    for (const target of REGION_TARGETS[region]) {
+      if (target.kind === "joint" && target.view === view) {
+        markers.push({ region, joint: target.joint, side: target.side });
+      }
+    }
+  }
+  return markers;
+}
+
+/**
+ * Body map for logging pain and soreness. Muscle areas are tappable; elbows,
+ * wrists and hips, which have no area of their own, are tappable joint dots.
+ */
 export default function BodyMapSVG({
   activeEntries,
   onRegionTap,
   selectedRegion,
 }: BodyMapSVGProps) {
-  return (
-    <div className="flex justify-center">
-      <svg
-        viewBox="0 0 300 390"
-        className="w-full max-w-[300px] h-auto"
-        role="img"
-        aria-label="Body map for pain and soreness tracking"
-      >
-        {/* Body outline silhouette (simplified) */}
-        <ellipse
-          cx="150"
-          cy="20"
-          rx="22"
-          ry="22"
-          fill="#1f2937"
-          stroke="#374151"
-          strokeWidth="1"
-        />
+  const figure = useFigure();
+  const latest = latestByRegion(activeEntries);
 
-        {/* Tappable region zones */}
-        {BODY_ZONES.map((zone) => {
-          const colors = getRegionColor(
-            zone.region,
-            activeEntries,
-            selectedRegion === zone.region
-          );
-          return (
-            <g
-              key={zone.region}
-              onClick={() => onRegionTap(zone.region)}
-              className="cursor-pointer"
-              role="button"
-              tabIndex={0}
-              aria-label={`${zone.label} region`}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onRegionTap(zone.region);
-                }
+  const styleFor = (viewName: FigureViewName) => (shape: FigureShape): ShapeStyle | undefined => {
+    const region = regionForShape(viewName, shape.slug, shape.side);
+    if (!region) return undefined;
+    const isSelected = selectedRegion === region;
+    const c = regionColors(latest[region], isSelected);
+    return { fill: c.fill, stroke: c.stroke, strokeWidth: isSelected ? 1.75 : 0.75 };
+  };
+
+  const labelFor = (viewName: FigureViewName) => (shape: FigureShape) => {
+    const region = regionForShape(viewName, shape.slug, shape.side);
+    return region ? `${formatRegion(region)} region` : undefined;
+  };
+
+  return (
+    <div
+      className="flex justify-center gap-4"
+      role="group"
+      aria-label="Body map for pain and soreness tracking"
+    >
+      {VIEWS.map(({ name, caption }) => (
+        <div key={name} className="flex flex-col items-center gap-1.5">
+          <div className="h-[330px] max-h-[62vh]">
+            <BodyFigure
+              view={figure[name]}
+              label={`${caption} of body`}
+              styleFor={styleFor(name)}
+              labelFor={labelFor(name)}
+              onShapePress={(shape) => {
+                const region = regionForShape(name, shape.slug, shape.side);
+                if (region) onRegionTap(region);
               }}
             >
-              <rect
-                x={zone.x}
-                y={zone.y}
-                width={zone.width}
-                height={zone.height}
-                rx={4}
-                fill={colors.fill}
-                stroke={colors.stroke}
-                strokeWidth={selectedRegion === zone.region ? 2 : 1}
-                className="transition-all duration-150"
-              />
-              <text
-                x={zone.x + zone.width / 2}
-                y={zone.y + zone.height / 2 + 1}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fill="white"
-                fontSize={zone.label.length > 7 ? "7" : "8"}
-                fontWeight="500"
-                className="pointer-events-none select-none"
-              >
-                {zone.label}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+              {jointMarkers(name).map(({ region, joint, side }) => {
+                const p = jointPosition(figure[name], name, joint, side);
+                if (!p) return null;
+                const isSelected = selectedRegion === region;
+                const c = regionColors(latest[region], isSelected);
+                return (
+                  <g
+                    key={`${joint}-${side}`}
+                    data-joint={joint}
+                    data-side={side}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${formatRegion(region)} region`}
+                    onClick={() => onRegionTap(region)}
+                    onKeyDown={(e: KeyboardEvent<SVGGElement>) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onRegionTap(region);
+                      }
+                    }}
+                    className="cursor-pointer outline-none [&:focus-visible>circle:last-child]:stroke-ring"
+                  >
+                    <circle cx={p.x} cy={p.y} r={JOINT_HIT_RADIUS} fill="transparent" />
+                    <circle
+                      cx={p.x}
+                      cy={p.y}
+                      r={JOINT_DOT_RADIUS}
+                      fill={c.fill}
+                      stroke={isSelected ? c.stroke : JOINT_RING}
+                      strokeWidth={isSelected ? 2 : 1.5}
+                      vectorEffect="non-scaling-stroke"
+                      className="transition-[fill,stroke] duration-200"
+                    />
+                  </g>
+                );
+              })}
+            </BodyFigure>
+          </div>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {caption}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

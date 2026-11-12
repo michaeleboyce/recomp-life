@@ -17,6 +17,8 @@ import { Separator } from "@/components/ui/separator";
 import E1RMChart from "@/components/Charts/E1RMChart";
 import RPETrendChart from "@/components/Charts/RPETrendChart";
 import VolumeBars from "@/components/Charts/VolumeBars";
+import { MuscleMap } from "@/components/Anatomy/MuscleMap";
+import { combinedActivationHeat } from "@/lib/muscleLoad";
 import type { LiftState, RecoveryStatus, TrainingPhase } from "@/types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -86,17 +88,32 @@ function CurrentRotation({
           </Badge>
         </div>
 
-        {/* Rotation indicator */}
+        {/* Rotation indicator, with the muscles each workout targets */}
         <div className="flex gap-1.5 mb-4">
           {WORKOUT_ROTATION.map((id) => (
-            <div
-              key={id}
-              className={`flex-1 h-1.5 rounded-full transition-colors ${
-                id === nextTemplateId
-                  ? "bg-blue-500"
-                  : "bg-zinc-800"
-              }`}
-            />
+            <div key={id} className="flex flex-1 flex-col items-center gap-1.5">
+              <div
+                className={`w-full h-1.5 rounded-full transition-colors ${
+                  id === nextTemplateId
+                    ? "bg-blue-500"
+                    : "bg-zinc-800"
+                }`}
+              />
+              <MuscleMap
+                heat={combinedActivationHeat(
+                  WORKOUT_TEMPLATES[id]?.exercises.map((e) => e.exerciseId) ?? []
+                )}
+                className={`h-16 ${id === nextTemplateId ? "" : "opacity-60"}`}
+                label={`Muscles ${id} targets`}
+              />
+              <span
+                className={`text-[10px] font-semibold ${
+                  id === nextTemplateId ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {id}
+              </span>
+            </div>
           ))}
         </div>
 

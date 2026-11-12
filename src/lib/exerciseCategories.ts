@@ -1,4 +1,4 @@
-import type { Exercise, MuscleGroup } from "@/types";
+import type { Exercise, MuscleGroup, MuscleId } from "@/types";
 import { EXERCISES, ACCESSORY_IDS } from "./exercises";
 
 export interface ExerciseGroup {
@@ -54,6 +54,26 @@ export function getGroupedExercises(
     exercises.sort((a, b) => a.name.localeCompare(b.name));
     return { label, description, exercises };
   }).filter((group) => group.exercises.length > 0);
+}
+
+/**
+ * Narrows groups to exercises that train `muscle` as a primary or secondary
+ * muscle. Groups left empty are dropped. A null muscle means no filter.
+ */
+export function filterGroupsByMuscle(
+  groups: ExerciseGroup[],
+  muscle: MuscleId | null
+): ExerciseGroup[] {
+  if (!muscle) return groups;
+  return groups
+    .map((group) => ({
+      ...group,
+      exercises: group.exercises.filter(
+        (ex) =>
+          ex.primaryMuscles.includes(muscle) || ex.secondaryMuscles.includes(muscle)
+      ),
+    }))
+    .filter((group) => group.exercises.length > 0);
 }
 
 /**

@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { getGroupedExercises, isPreferenceEditable } from "./exerciseCategories";
-import { ACCESSORY_IDS } from "./exercises";
+import {
+  getGroupedExercises,
+  isPreferenceEditable,
+  filterGroupsByMuscle,
+} from "./exerciseCategories";
+import { ACCESSORY_IDS, EXERCISES } from "./exercises";
 
 describe("getGroupedExercises", () => {
   it("returns 4 groups when unfiltered", () => {
@@ -101,5 +105,52 @@ describe("isPreferenceEditable", () => {
     expect(isPreferenceEditable("goblet_squat")).toBe(false);
     expect(isPreferenceEditable("db_bench")).toBe(false);
     expect(isPreferenceEditable("db_rdl")).toBe(false);
+  });
+});
+
+describe("filterGroupsByMuscle (R9)", () => {
+  it("returns the groups unchanged when no muscle is selected", () => {
+    const groups = getGroupedExercises();
+    expect(filterGroupsByMuscle(groups, null)).toEqual(groups);
+  });
+
+  it("keeps exactly the exercises with the muscle as primary or secondary", () => {
+    const groups = getGroupedExercises();
+    const filtered = filterGroupsByMuscle(groups, "triceps");
+    const ids = filtered.flatMap((g) => g.exercises.map((e) => e.id)).sort();
+    // Expected: every listed exercise whose catalogue entry has triceps as
+    // primary or secondary. (The list itself omits four home-fallback
+    // exercises; that is existing behaviour and not this function's concern.)
+    const expected = groups
+      .flatMap((g) => g.exercises.map((e) => e.id))
+      .filter((id) => {
+        const e = EXERCISES[id];
+        return e.primaryMuscles.includes("triceps") || e.secondaryMuscles.includes("triceps");
+      })
+      .sort();
+    expect(ids).toEqual(expected);
+    expect(ids).toContain("bench");
+    expect(ids).toContain("tricep_pushdowns");
+    expect(ids).not.toContain("ab_rollout"); // triceps is only a stabiliser there
+  });
+
+  it("drops groups left with no exercises", () => {
+    const filtered = filterGroupsByMuscle(getGroupedExercises(), "calves");
+    expect(filtered.every((g) => g.exercises.length > 0)).toBe(true);
+    expect(filtered.map((g) => g.label)).not.toContain("Main Lifts");
+  });
+
+  it("combines with the push/pull/legs filter", () => {
+    const filtered = filterGroupsByMuscle(getGroupedExercises("pull"), "biceps");
+    const all = filtered.flatMap((g) => g.exercises);
+    expect(all.length).toBeGreaterThan(0);
+    expect(all.every((e) => e.muscleGroup === "pull")).toBe(true);
+  });
+
+  it("does not mutate the input groups", () => {
+    const groups = getGroupedExercises();
+    const before = groups.map((g) => g.exercises.length);
+    filterGroupsByMuscle(groups, "calves");
+    expect(groups.map((g) => g.exercises.length)).toEqual(before);
   });
 });

@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { AMRAPGlow } from "@/components/ui/amrap-glow";
+import { ExerciseMuscleThumb } from "@/components/Anatomy/ExerciseMuscleThumb";
 import { getExercise } from "@/lib/exercises";
 import { dumbbellToBarbell } from "@/lib/dbConversion";
 import type { WorkoutExerciseState } from "@/stores/workoutStore";
@@ -61,8 +62,12 @@ export function ExerciseBlock({ exercise, location, isAMRAPSet }: ExerciseBlockP
 
   return (
     <AMRAPGlow active={!!isAMRAPSet} className="mx-4">
-      <div className="py-4 px-4 space-y-2">
-        <div className="flex items-center gap-2">
+      <div className="relative py-4 px-4 space-y-2">
+        <ExerciseMuscleThumb
+          exerciseId={exerciseInfo.id}
+          className="absolute right-4 top-4 h-16"
+        />
+        <div className="flex items-center gap-2 pr-20">
           <Badge className={getTierColor(exercise.tier)}>
             {exercise.tier === "warmup" ? "Warm-up" : exercise.tier}
           </Badge>

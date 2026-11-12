@@ -8,6 +8,9 @@ import { getPreference } from "@/lib/exercisePreferences";
 import { getExercise } from "@/lib/exercises";
 import { calculateE1RM } from "@/lib/e1rm";
 import { formatRegion } from "@/lib/painModifications";
+import { formatMuscle } from "@/lib/muscles";
+import { ExerciseMuscleThumb } from "@/components/Anatomy/ExerciseMuscleThumb";
+import { MuscleLegend } from "@/components/Anatomy/MuscleLegend";
 import type { Exercise, ExercisePreference, ExercisePreferences } from "@/types";
 
 const EQUIPMENT_LABELS: Record<string, string> = {
@@ -55,23 +58,29 @@ export default function ExerciseRow({
         tabIndex={0}
         onClick={() => setExpanded(!expanded)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(!expanded); } }}
-        className="flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-accent/50 cursor-pointer"
+        className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-accent/50 cursor-pointer"
       >
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className="text-sm font-medium text-foreground truncate">
+        <ExerciseMuscleThumb
+          exerciseId={exercise.id}
+          views="auto"
+          className="h-11 shrink-0"
+        />
+        {/* Name on its own line so it is never squeezed out by the controls. */}
+        <div className="min-w-0 flex-1">
+          <span className="block text-sm font-medium text-foreground truncate">
             {exercise.name}
           </span>
+          <div className="mt-1 flex items-center gap-2">
           <Badge variant="secondary" className="text-[10px]">
             {EQUIPMENT_LABELS[exercise.type] ?? exercise.type}
           </Badge>
           {exercise.requiresGym && (
             <Dumbbell className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           )}
-        </div>
 
         {editable ? (
           <div
-            className="flex shrink-0 rounded-md border border-border overflow-hidden"
+            className="ml-auto flex shrink-0 rounded-md border border-border overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {PREFERENCE_OPTIONS.map((opt) => (
@@ -95,11 +104,13 @@ export default function ExerciseRow({
           </div>
         ) : (
           roleLabel && (
-            <span className="shrink-0 text-[11px] text-muted-foreground">
+            <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
               {roleLabel}
             </span>
           )
         )}
+          </div>
+        </div>
 
         <ChevronDown
           className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
@@ -111,15 +122,25 @@ export default function ExerciseRow({
       {/* Expanded details */}
       {expanded && (
         <div className="border-t border-border bg-muted/30 px-3 py-2.5 space-y-1.5">
+          <div className="pb-1">
+            <ExerciseMuscleThumb exerciseId={exercise.id} className="h-36" />
+            <MuscleLegend variant="activation" className="mt-2" />
+          </div>
           <DetailRow label="Muscle group" value={capitalize(exercise.muscleGroup)} />
           <DetailRow
             label="Primary"
-            value={exercise.primaryMuscles.map(formatRegion).join(", ")}
+            value={exercise.primaryMuscles.map(formatMuscle).join(", ")}
           />
           {exercise.secondaryMuscles.length > 0 && (
             <DetailRow
               label="Secondary"
-              value={exercise.secondaryMuscles.map(formatRegion).join(", ")}
+              value={exercise.secondaryMuscles.map(formatMuscle).join(", ")}
+            />
+          )}
+          {exercise.stabilizerMuscles.length > 0 && (
+            <DetailRow
+              label="Stabilisers"
+              value={exercise.stabilizerMuscles.map(formatMuscle).join(", ")}
             />
           )}
           {exercise.painSensitiveRegions.length > 0 && (

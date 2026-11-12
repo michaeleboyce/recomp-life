@@ -32,6 +32,9 @@ export const DB_IMPORT_ALLOWLIST: string[] = [
   "src/components/Dashboard/WeightTrend.tsx",
   "src/components/RunLogger.tsx",
   "src/components/WeighInPrompt.tsx",
+  // Added by the interactive-anatomy branch; migrate to src/hooks once that work has landed.
+  "src/app/muscles/page.tsx",
+  "src/components/Dashboard/MuscleHeatCard.tsx",
 ];
 
 /** Rule R9: pages and components must use theme tokens, not raw palette classes. */
