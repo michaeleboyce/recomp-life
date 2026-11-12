@@ -18,4 +18,20 @@ export type {
   Projection,
   RelatedTrend,
 } from "./project";
-export { projectE1RM } from "./project";
+export {
+  projectE1RM,
+  MAX_SCENARIO_WIDENING,
+  PROJECTION_EVIDENCE_IDS,
+  resultsNeeded,
+  scenarioWidening,
+} from "./project";
+
+export {
+  describeChanges,
+  describeRelatedTrend,
+  FLAT_SLOPE_LBS,
+  formatAmount,
+  liftShortName,
+  summarizeScenario,
+} from "./summary";
+export { relatedExerciseIds } from "./related";

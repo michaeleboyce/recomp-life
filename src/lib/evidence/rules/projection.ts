@@ -9,30 +9,29 @@ const doubling = (exponent: number) => pct(2 ** exponent - 1);
 const halfLifeWeeks = (retention: number) => Math.round(Math.log(0.5) / Math.log(retention));
 
 const IMPLEMENTED = ["src/lib/projection/coefficients.ts#PROJECTION_COEFFICIENTS"] as const;
-const ACTIVATION =
-  "Becomes active when the projection screen (src/app/progress/lift/[id]/projection) shows an EvidenceLine for it.";
+/** The projection screen renders one EvidenceLine per rule in `projection.evidenceIds`. */
+const SURFACES = ["src/components/Projection/HowItWorks.tsx"] as const;
 
 export const PROJECTION_RULES = {
   "projection-dose-response": {
     area: "projection",
-    status: "planned",
+    status: "active",
     title: "How much would more sets or sessions speed up my lift?",
     summary: "More sessions help strength a little; extra sets help even less",
-    appBehavior: `The projection scales your own measured rate of gain. At equal weekly sets, the rate is multiplied by (new sessions ÷ current sessions) ^ ${C.frequencyExponent}, so doubling sessions adds about ${doubling(C.frequencyExponent)}. Weekly sets for the lift's main muscles scale it by (new ÷ current) ^ ${C.volumeExponent}, so doubling sets adds about ${doubling(C.volumeExponent)}, and sets beyond ${C.weeklySetsCeiling} a week add nothing. The combined effect is held between ×${C.minDoseMultiplier} and ×${C.maxDoseMultiplier}.`,
+    appBehavior: `The projection scales your own measured rate of gain. At equal weekly sets, the rate is multiplied by (new sessions ÷ current sessions) ^ ${C.frequencyExponent}, so doubling sessions adds about ${doubling(C.frequencyExponent)}. Weekly sets for the lift's main muscles scale it by (new ÷ current) ^ ${C.volumeExponent}, so doubling sets adds about ${doubling(C.volumeExponent)}, and sets beyond ${C.weeklySetsCeiling} a week add nothing. The combined effect is held between ×${C.minDoseMultiplier} and ×${C.maxDoseMultiplier}. The further an alternative is from what you do now, the wider its range: by ${C.scenarioUncertainty} × the size of the change in rate (on a log scale).`,
     rationale:
       "The largest analysis of training dose found strength rises with weekly sets but levels off quickly, with no clear extra gain beyond about 4–5 sets a week, while training a lift more often kept adding strength with diminishing returns even when total sets were accounted for.",
     caveat:
-      "The research gives the shape, not these numbers: the exponents are our conversion of meta-regression slopes, and the frequency one is halved because an earlier meta-analysis found no effect of frequency when weekly volume was equal. Most studies were short and used novel test lifts, where practice alone makes people stronger.",
+      "The research gives the shape, not these numbers: the exponents are our conversion of meta-regression slopes, and the frequency one is halved because an earlier meta-analysis found no effect of frequency when weekly volume was equal. Most studies were short and used novel test lifts, where practice alone makes people stronger. How much wider an alternative's range gets is a judgment, not a measured value.",
     strength: "limited",
     sources: ["pelland2026", "grgic2018frequency", "acsm2026"],
     reviewedOn: "2026-11",
     implementedIn: IMPLEMENTED,
-    surfaces: [],
-    activationNotes: ACTIVATION,
+    surfaces: SURFACES,
   },
   "projection-specificity": {
     area: "projection",
-    status: "planned",
+    status: "active",
     title: "Do other exercises for the same muscles count toward this lift?",
     summary: "Other exercises for the same muscles count, but less than the lift",
     appBehavior: `When projecting a lift, each weekly set of a different exercise for its main muscles counts as ${C.relatedSetTransfer} of a set of the lift itself before the volume curve is applied.`,
@@ -44,15 +43,14 @@ export const PROJECTION_RULES = {
     sources: ["pelland2026", "saeterbakken2025", "mattocks2017"],
     reviewedOn: "2026-11",
     implementedIn: IMPLEMENTED,
-    surfaces: [],
-    activationNotes: ACTIVATION,
+    surfaces: SURFACES,
   },
   "projection-rate-of-gain": {
     area: "projection",
-    status: "planned",
+    status: "active",
     title: "Why does the projection curve flatten, and why is the range so wide?",
     summary: "Strength gains slow over time, and single estimates are noisy",
-    appBehavior: `The projected weekly gain keeps ${pct(C.weeklyRateRetention)} of the previous week's, so it halves in about ${halfLifeWeeks(C.weeklyRateRetention)} weeks. The range is ${C.bandWidthSd} times the scatter of your own estimates around their trend (about an 80% range), widened by (1 + ${C.bandGrowth} × √weeks ahead).`,
+    appBehavior: `The projected weekly gain keeps ${pct(C.weeklyRateRetention)} of the previous week's, so it halves in about ${halfLifeWeeks(C.weeklyRateRetention)} weeks. The range is ${C.bandWidthSd} times the scatter of your own estimates around their trend (about an 80% range), widened by (1 + ${C.bandGrowth} × √weeks ahead). The scatter is never taken as less than ${(C.minResidualSdFraction * 100).toFixed(1)}% of your current estimate, so a very steady history still gets a range.`,
     rationale:
       "In nearly 15,000 adults' training records, strength rose quickly at first and then ever more slowly, practically levelling off after one to two years, and stronger powerlifters improved more slowly than weaker ones. Even a tested 1RM varies by a few percent from day to day, and estimates from rep sets vary more, so a single projected number would look more certain than it is.",
     caveat:
@@ -61,12 +59,11 @@ export const PROJECTION_RULES = {
     sources: ["steele2023", "latella2020", "grgic2020", "nuzzo2024"],
     reviewedOn: "2026-11",
     implementedIn: IMPLEMENTED,
-    surfaces: [],
-    activationNotes: ACTIVATION,
+    surfaces: SURFACES,
   },
   "projection-energy-deficit": {
     area: "projection",
-    status: "planned",
+    status: "active",
     title: "How much does cutting slow strength gains?",
     summary: "A calorie deficit slows strength gains only a little, if at all",
     appBehavior: `The projected rate is multiplied by ${C.phaseMultiplier.cutting} while cutting and ${C.phaseMultiplier.maintaining} while maintaining, relative to ${C.phaseMultiplier.bulking} while bulking.`,
@@ -78,7 +75,6 @@ export const PROJECTION_RULES = {
     sources: ["murphyKoehler2022", "helms2023"],
     reviewedOn: "2026-11",
     implementedIn: IMPLEMENTED,
-    surfaces: [],
-    activationNotes: ACTIVATION,
+    surfaces: SURFACES,
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;

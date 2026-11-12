@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-18 active rules, 12 planned rules, 32 sources. Last reviewed against the research: November 2026.
+22 active rules, 8 planned rules, 32 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -47,10 +47,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `volume-ratio` | Training volume | Planned | Coaching heuristic | none |
 | `rate-of-loss` | Fat loss | Planned | Moderate evidence | Helms 2014 |
 | `fat-loss-stall` | Fat loss | Planned | Limited evidence | Peos 2021 |
-| `projection-dose-response` | Strength projections | Planned | Limited evidence | Pelland 2026, Grgic 2018b, ACSM 2026 |
-| `projection-specificity` | Strength projections | Planned | Limited evidence | Pelland 2026, Saeterbakken 2025, Mattocks 2017 |
-| `projection-rate-of-gain` | Strength projections | Planned | Limited evidence | Steele 2023, Latella 2020, Grgic 2020, Nuzzo 2024 |
-| `projection-energy-deficit` | Strength projections | Planned | Limited evidence | Murphy & Koehler 2022, Helms 2023 |
+| `projection-dose-response` | Strength projections | Active | Limited evidence | Pelland 2026, Grgic 2018b, ACSM 2026 |
+| `projection-specificity` | Strength projections | Active | Limited evidence | Pelland 2026, Saeterbakken 2025, Mattocks 2017 |
+| `projection-rate-of-gain` | Strength projections | Active | Limited evidence | Steele 2023, Latella 2020, Grgic 2020, Nuzzo 2024 |
+| `projection-energy-deficit` | Strength projections | Active | Limited evidence | Murphy & Koehler 2022, Helms 2023 |
 | `training-with-pain` | Pain | Active | Limited evidence | Smith 2017 |
 | `pain-load-changes` | Pain | Planned | Limited evidence | Smith 2017 |
 | `dumbbell-conversion` | Equipment | Active | Moderate evidence | Saeterbakken 2011 |
@@ -555,20 +555,19 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How much would more sets or sessions speed up my lift?
 
 - **Rule id:** `projection-dose-response`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`)
+- **Shown in:** `src/components/Projection/HowItWorks.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** More sessions help strength a little; extra sets help even less
 
-**What the app does.** The projection scales your own measured rate of gain. At equal weekly sets, the rate is multiplied by (new sessions ÷ current sessions) ^ 0.2, so doubling sessions adds about 15%. Weekly sets for the lift's main muscles scale it by (new ÷ current) ^ 0.1, so doubling sets adds about 7%, and sets beyond 20 a week add nothing. The combined effect is held between ×0.5 and ×1.3.
+**What the app does.** The projection scales your own measured rate of gain. At equal weekly sets, the rate is multiplied by (new sessions ÷ current sessions) ^ 0.2, so doubling sessions adds about 15%. Weekly sets for the lift's main muscles scale it by (new ÷ current) ^ 0.1, so doubling sets adds about 7%, and sets beyond 20 a week add nothing. The combined effect is held between ×0.5 and ×1.3. The further an alternative is from what you do now, the wider its range: by 0.5 × the size of the change in rate (on a log scale).
 
 **Why.** The largest analysis of training dose found strength rises with weekly sets but levels off quickly, with no clear extra gain beyond about 4–5 sets a week, while training a lift more often kept adding strength with diminishing returns even when total sets were accounted for.
 
-**Limits.** The research gives the shape, not these numbers: the exponents are our conversion of meta-regression slopes, and the frequency one is halved because an earlier meta-analysis found no effect of frequency when weekly volume was equal. Most studies were short and used novel test lifts, where practice alone makes people stronger.
-
-**Before this is switched on.** Becomes active when the projection screen (src/app/progress/lift/[id]/projection) shows an EvidenceLine for it.
+**Limits.** The research gives the shape, not these numbers: the exponents are our conversion of meta-regression slopes, and the frequency one is halved because an earlier meta-analysis found no effect of frequency when weekly volume was equal. Most studies were short and used novel test lifts, where practice alone makes people stronger. How much wider an alternative's range gets is a judgment, not a measured value.
 
 **Sources**
 
@@ -579,9 +578,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### Do other exercises for the same muscles count toward this lift?
 
 - **Rule id:** `projection-specificity`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`)
+- **Shown in:** `src/components/Projection/HowItWorks.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Other exercises for the same muscles count, but less than the lift
@@ -592,8 +592,6 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **Limits.** Only whole, half and zero credit have been compared, and the transfer study measured isometric tests rather than another barbell lift, so the exact figure is a judgment rounded down to stay cautious.
 
-**Before this is switched on.** Becomes active when the projection screen (src/app/progress/lift/[id]/projection) shows an EvidenceLine for it.
-
 **Sources**
 
 - [Pelland et al. (2026). The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gains. *Sports Medicine*.](https://doi.org/10.1007/s40279-025-02344-w) Meta-analysis; 67 studies, 2,058 participants. More weekly sets produced more muscle growth with diminishing returns. Strength gains levelled off much sooner and responded to training frequency. Sets that train a muscle indirectly were counted as half a set.
@@ -603,20 +601,19 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### Why does the projection curve flatten, and why is the range so wide?
 
 - **Rule id:** `projection-rate-of-gain`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`)
+- **Shown in:** `src/components/Projection/HowItWorks.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Strength gains slow over time, and single estimates are noisy
 
-**What the app does.** The projected weekly gain keeps 96% of the previous week's, so it halves in about 17 weeks. The range is 1.28 times the scatter of your own estimates around their trend (about an 80% range), widened by (1 + 0.5 × √weeks ahead).
+**What the app does.** The projected weekly gain keeps 96% of the previous week's, so it halves in about 17 weeks. The range is 1.28 times the scatter of your own estimates around their trend (about an 80% range), widened by (1 + 0.5 × √weeks ahead). The scatter is never taken as less than 2.1% of your current estimate, so a very steady history still gets a range.
 
 **Why.** In nearly 15,000 adults' training records, strength rose quickly at first and then ever more slowly, practically levelling off after one to two years, and stronger powerlifters improved more slowly than weaker ones. Even a tested 1RM varies by a few percent from day to day, and estimates from rep sets vary more, so a single projected number would look more certain than it is.
 
 **Limits.** How fast gains slow depends on how long you have trained; the app uses one rate that fits someone about four months in, so it under-promises for longer-trained lifters and may over-promise for someone in their first few months. The studies were of machine training and competition totals, not of a GZCLP lifter's estimated 1RM. The growth of the range is a judgment, not a measured value.
-
-**Before this is switched on.** Becomes active when the projection screen (src/app/progress/lift/[id]/projection) shows an EvidenceLine for it.
 
 **Sources**
 
@@ -628,9 +625,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How much does cutting slow strength gains?
 
 - **Rule id:** `projection-energy-deficit`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`)
+- **Shown in:** `src/components/Projection/HowItWorks.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** A calorie deficit slows strength gains only a little, if at all
@@ -640,8 +638,6 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Why.** A meta-analysis found training in a calorie deficit limited lean-mass gains but did not significantly reduce strength gains. In trained lifters, eating 5% or 15% above maintenance did not improve squat 1RM over eating at maintenance.
 
 **Limits.** The research supports a small or no penalty but gives no number; the deficit studies were mostly in untrained people, and the surplus trial had 17 finishers. The app keeps a modest cutting penalty, based on the negative but uncertain average effect, so it does not over-promise.
-
-**Before this is switched on.** Becomes active when the projection screen (src/app/progress/lift/[id]/projection) shows an EvidenceLine for it.
 
 **Sources**
 
@@ -755,6 +751,8 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **12 November 2026** — `projection-dose-response` (How much would more sets or sessions speed up my lift?): New projection screen for each lift: see where your estimated 1RM is heading and try alternatives (sessions, sets, other work for the same muscles, sessions passed, phase). Alternatives further from what you do now get a wider range. Sources: Pelland 2026, Grgic 2018b.
+- **12 November 2026** — `projection-rate-of-gain` (Why does the projection curve flatten, and why is the range so wide?): The projection range now never assumes less scatter than about 2% of your estimate, so a very steady history no longer shows a range of zero. Sources: Grgic 2020, Nuzzo 2024.
 - **11 November 2026** — `activity-fatigue` (Why does a hard yoga class or ride matter?): Yoga, cycling, hiking and walking can now be logged. A hard one in the last 24 hours shows a note before your next workout; it never changes weights or progression. Sources: .
 - **11 November 2026** — `time-off` (Why lighter weights after a break?): A lift now counts as a long break after 21 days instead of 7, and suggested weight cuts after time off were reduced from 10–40% to 5–15%. Sources: Spiering 2021, Halonen 2024.
 - **11 November 2026** — `amrap-effort` (How hard should the last set be?): T1 AMRAP sets now ask you to stop about 1 rep short of failure in every phase, not only while cutting. Sources: Robinson 2024, Morán-Navarro 2017.
