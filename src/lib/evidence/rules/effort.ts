@@ -11,7 +11,7 @@ export const EFFORT_RULES = {
     area: "effort",
     status: "active",
     title: "How hard should the last set be?",
-    summary: "Stopping 1 rep short builds the same strength and recovers faster",
+    summary: "Heavy sets: stop 1 rep short. Lighter sets: go close to failure",
     appBehavior: `On the last T1 set the app asks you to stop with about 1 rep left (RPE ${T1_AMRAP_TARGET_RPE}). On the last T3 set it asks you to push close to failure.`,
     rationale:
       "Strength gains are similar whether heavy sets stop short of failure or reach it, and sets taken to failure take a day or two longer to recover from. Muscle growth does benefit from getting close to failure, which is why the lighter T3 sets are pushed harder.",
