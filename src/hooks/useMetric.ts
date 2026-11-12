@@ -1,4 +1,9 @@
-// Contract stubs. The `metrics` package implements these.
+// Hooks that feed the metrics layer from the local database. The maths lives in
+// src/lib/metrics; these only gather the records and memoise the result.
+import { useMemo, useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/db/local";
+import { computeMetric, inRange, summarize } from "@/lib/metrics";
 import type {
   MetricId,
   MetricParams,
@@ -8,12 +13,13 @@ import type {
   SeriesSummary,
 } from "@/lib/metrics/types";
 import type { ReadinessLog } from "@/types";
-
-const NOT_IMPLEMENTED = "not implemented: src/hooks/useMetric contract stub";
+import { useSettings } from "./useProfile";
+import { useBodyweightLog, useE1RMs, usePainEntries, useRuns } from "./useRecords";
+import { useCompletedWorkouts, useLiftStates } from "./useWorkouts";
 
 /** Readiness (sleep and stress) logs, oldest first; `undefined` while loading. */
 export function useReadinessLogs(): ReadinessLog[] | undefined {
-  throw new Error(NOT_IMPLEMENTED);
+  return useLiveQuery(() => db.readinessLogs.orderBy("date").toArray(), []);
 }
 
 /**
@@ -22,7 +28,30 @@ export function useReadinessLogs(): ReadinessLog[] | undefined {
  * when no underlying data changed.
  */
 export function useMetricSource(): MetricSource | undefined {
-  throw new Error(NOT_IMPLEMENTED);
+  const workouts = useCompletedWorkouts();
+  const e1rms = useE1RMs();
+  const bodyweight = useBodyweightLog();
+  const runs = useRuns();
+  const readiness = useReadinessLogs();
+  const pain = usePainEntries();
+  const liftStates = useLiftStates();
+  const settings = useSettings();
+
+  return useMemo(() => {
+    if (
+      workouts === undefined ||
+      e1rms === undefined ||
+      bodyweight === undefined ||
+      runs === undefined ||
+      readiness === undefined ||
+      pain === undefined ||
+      liftStates === undefined ||
+      settings === undefined
+    ) {
+      return undefined;
+    }
+    return { workouts, e1rms, bodyweight, runs, readiness, pain, liftStates, settings };
+  }, [workouts, e1rms, bodyweight, runs, readiness, pain, liftStates, settings]);
 }
 
 export interface MetricResult {
@@ -37,10 +66,26 @@ export interface MetricResult {
 export function useMetric(
   id: MetricId,
   params?: MetricParams,
-  range?: RangeKey
+  range: RangeKey = "all"
 ): MetricResult | undefined {
-  void id;
-  void params;
-  void range;
-  throw new Error(NOT_IMPLEMENTED);
+  const source = useMetricSource();
+  // Taken once per mount, so the range window does not slide on every render.
+  const [now] = useState(() => Date.now());
+  // Callers usually pass a fresh params object each render; key on its contents.
+  const exerciseId = params?.exerciseId;
+  const muscleGroup = params?.muscleGroup;
+
+  const full = useMemo(() => {
+    if (!source) return undefined;
+    const stableParams: MetricParams = {};
+    if (exerciseId !== undefined) stableParams.exerciseId = exerciseId;
+    if (muscleGroup !== undefined) stableParams.muscleGroup = muscleGroup;
+    return computeMetric(id, source, stableParams);
+  }, [id, source, exerciseId, muscleGroup]);
+
+  return useMemo(() => {
+    if (!full) return undefined;
+    const series = inRange(full, range, now);
+    return { full, series, summary: summarize(series) };
+  }, [full, range, now]);
 }

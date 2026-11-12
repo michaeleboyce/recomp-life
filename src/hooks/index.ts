@@ -10,3 +10,4 @@ export {
 } from "./useWorkouts";
 export { useBodyweightLog, usePainEntries, useE1RMs, useRuns } from "./useRecords";
 export { useNextWorkout } from "./useNextWorkout";
+export { useReadinessLogs, useMetricSource, useMetric } from "./useMetric";
