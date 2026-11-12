@@ -1,5 +1,10 @@
-const CACHE_NAME = "recomp-life-v4";
+// v5: earlier versions cached API responses; the new name drops those caches.
+const CACHE_NAME = "recomp-life-v5";
 const PRECACHE_URLS = ["/", "/workout/configure", "/history", "/program", "/tools"];
+
+// API responses (sync data, session) are per-user and must always be live:
+// never cached, never served from cache.
+const isApiPath = (pathname) => pathname.startsWith("/api/");
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -41,7 +46,9 @@ self.addEventListener("message", (event) => {
       // have build-hashed names. Pages name some in their HTML; scripts name
       // the lazily loaded ones (the 3D viewers) inside their own source. So
       // follow both, breadth first, until nothing new turns up.
-      const queue = data.urls.filter((u) => typeof u === "string" && u.startsWith("/"));
+      const queue = data.urls.filter(
+        (u) => typeof u === "string" && u.startsWith("/") && !isApiPath(u)
+      );
       const seen = new Set(queue);
       const enqueue = (url) => {
         if (!seen.has(url) && seen.size < 600) {
@@ -76,10 +83,13 @@ self.addEventListener("message", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Network-first for API/data, cache-first for static assets
+  // Network-first, falling back to the cache when offline
   const url = new URL(event.request.url);
 
   if (event.request.method !== "GET") return;
+
+  // Leave API requests to the browser: straight to the network, no cache.
+  if (isApiPath(url.pathname)) return;
 
   // Skip chrome-extension and non-http requests
   if (!url.protocol.startsWith("http")) return;
