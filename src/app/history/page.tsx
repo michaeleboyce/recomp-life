@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/db/local";
+import { useCompletedWorkouts, useE1RMs, useRuns } from "@/hooks";
+import { PageShell } from "@/components/ui/page-shell";
 import { EXERCISES } from "@/lib/exercises";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { calculateE1RM, isE1RMEligibleSet, isNewPR } from "@/lib/e1rm";
@@ -68,7 +68,7 @@ function getStatusIcon(
 ): { icon: string; color: string; label: string } {
   const allSkipped = sets.every((s) => s.status === "skipped_pain");
   if (allSkipped) {
-    return { icon: "\u26D4", color: "text-red-400", label: "Skipped" };
+    return { icon: "\u26D4", color: "text-destructive", label: "Skipped" };
   }
 
   const hasFreezeStatus = sets.some(
@@ -93,7 +93,7 @@ function getStatusIcon(
       reasonLabel = " (RPE drop)";
     return {
       icon: "\uD83D\uDD04",
-      color: "text-yellow-400",
+      color: "text-warning",
       label: `Froze${reasonLabel}`,
     };
   }
@@ -102,10 +102,10 @@ function getStatusIcon(
     (s) => s.status === "failed" || s.actualReps < s.targetReps
   );
   if (hasFailed) {
-    return { icon: "\u274C", color: "text-red-400", label: "Failed" };
+    return { icon: "\u274C", color: "text-destructive", label: "Failed" };
   }
 
-  return { icon: "\u2705", color: "text-green-400", label: "+5 lbs" };
+  return { icon: "\u2705", color: "text-success", label: "+5 lbs" };
 }
 
 /**
@@ -286,7 +286,7 @@ function WorkoutEntry({ session, allE1RMs }: WorkoutEntryProps) {
                 <span>
                   e1RM: {e1rm}
                   {isPR && (
-                    <span className="text-green-400 ml-1">(PR!)</span>
+                    <span className="text-success ml-1">(PR!)</span>
                   )}
                 </span>
               )}
@@ -322,10 +322,10 @@ function WorkoutEntry({ session, allE1RMs }: WorkoutEntryProps) {
                       key={s.id}
                       className={`text-xs px-2 py-1 rounded ${
                         s.status === "completed"
-                          ? "bg-green-500/10 text-green-400"
+                          ? "bg-success/10 text-success"
                           : s.status === "failed"
-                            ? "bg-red-500/10 text-red-400"
-                            : "bg-yellow-500/10 text-yellow-400"
+                            ? "bg-destructive/10 text-destructive"
+                            : "bg-warning/10 text-warning"
                       }`}
                     >
                       <span className="font-mono tabular-nums">Set {i + 1}: {s.actualReps}
@@ -351,7 +351,7 @@ function WorkoutEntry({ session, allE1RMs }: WorkoutEntryProps) {
               {session.modifications.map((mod, i) => {
                 const exercise = EXERCISES[mod.exerciseId];
                 return (
-                  <p key={i} className="text-xs text-yellow-400">
+                  <p key={i} className="text-xs text-warning">
                     {exercise?.name ?? mod.exerciseId}: {mod.reason}
                   </p>
                 );
@@ -413,18 +413,9 @@ function RunEntry({ run }: RunEntryProps) {
 export default function HistoryPage() {
   const [filter, setFilter] = useState<FilterTab>("all");
 
-  const workouts = useLiveQuery(async () => {
-    const all = await db.workouts.orderBy("startedAt").reverse().toArray();
-    return all.filter((w) => w.completedAt !== null);
-  });
-
-  const runs = useLiveQuery(async () => {
-    return db.runs.orderBy("date").reverse().toArray();
-  });
-
-  const allE1RMs = useLiveQuery(async () => {
-    return db.estimated1RMs.toArray();
-  });
+  const workouts = useCompletedWorkouts();
+  const runs = useRuns();
+  const allE1RMs = useE1RMs();
 
   if (
     workouts === undefined ||
@@ -478,7 +469,7 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-lg px-5 pt-5 pb-28 space-y-4">
+      <PageShell className="space-y-4">
         {/* Header */}
         <h1 className="text-xl font-bold text-foreground">History</h1>
 
@@ -538,7 +529,7 @@ export default function HistoryPage() {
             return <RunEntry key={entry.data.id} run={entry.data} />;
           })}
         </div>
-      </div>
+      </PageShell>
     </div>
   );
 }

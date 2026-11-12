@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowLeft } from "lucide-react";
-import { db } from "@/db/local";
-import { initializeDatabase } from "@/db/init";
+import { useProfile } from "@/hooks";
+import { PageShell } from "@/components/ui/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -34,12 +33,12 @@ function calculatePlatesPerSide(
 
 // Plate colors for visual display
 const PLATE_COLORS: Record<number, string> = {
-  45: "bg-blue-600",
-  35: "bg-yellow-500",
-  25: "bg-green-600",
-  10: "bg-white/90 text-black",
-  5: "bg-red-600",
-  2.5: "bg-gray-400 text-black",
+  45: "bg-info",
+  35: "bg-warning",
+  25: "bg-success",
+  10: "bg-foreground/90 text-background",
+  5: "bg-destructive",
+  2.5: "bg-muted-foreground text-background",
 };
 
 function PlateVisual({ plates }: { plates: { plate: number; count: number }[] }) {
@@ -68,7 +67,7 @@ function PlateVisual({ plates }: { plates: { plate: number; count: number }[] })
           {[...expanded].reverse().map((plate, i) => (
             <div
               key={`l-${i}`}
-              className={`rounded-sm flex items-center justify-center text-xs font-bold text-white ${PLATE_COLORS[plate] || "bg-gray-500"}`}
+              className={`rounded-sm flex items-center justify-center text-xs font-bold text-white ${PLATE_COLORS[plate] || "bg-muted-foreground"}`}
               style={{
                 width: `${Math.max(20, plate * 0.6)}px`,
                 height: `${Math.min(80, 30 + plate)}px`,
@@ -87,7 +86,7 @@ function PlateVisual({ plates }: { plates: { plate: number; count: number }[] })
           {expanded.map((plate, i) => (
             <div
               key={`r-${i}`}
-              className={`rounded-sm flex items-center justify-center text-xs font-bold text-white ${PLATE_COLORS[plate] || "bg-gray-500"}`}
+              className={`rounded-sm flex items-center justify-center text-xs font-bold text-white ${PLATE_COLORS[plate] || "bg-muted-foreground"}`}
               style={{
                 width: `${Math.max(20, plate * 0.6)}px`,
                 height: `${Math.min(80, 30 + plate)}px`,
@@ -113,18 +112,9 @@ function PlateVisual({ plates }: { plates: { plate: number; count: number }[] })
 }
 
 export default function PlateCalculatorPage() {
-  const [dbReady, setDbReady] = useState(false);
   const [targetWeight, setTargetWeight] = useState(135);
 
-  useEffect(() => {
-    initializeDatabase().then(() => setDbReady(true));
-  }, []);
-
-  const profile = useLiveQuery(
-    () => db.userProfile.toCollection().first(),
-    [],
-    undefined
-  );
+  const profile = useProfile();
 
   const barWeight = profile?.settings.equipment.barWeight ?? 45;
   const availablePlates = profile?.settings.equipment.availablePlates ?? [45, 35, 25, 10, 5, 2.5];
@@ -147,7 +137,7 @@ export default function PlateCalculatorPage() {
     return barWeight + perSideWeight * 2;
   }, [plates, barWeight]);
 
-  if (!dbReady || !profile) {
+  if (!profile) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-6 w-40 rounded bg-muted animate-pulse" />
@@ -158,7 +148,7 @@ export default function PlateCalculatorPage() {
   const quickWeights = [95, 135, 185, 225, 275, 315].filter(w => w >= barWeight);
 
   return (
-    <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
+    <PageShell>
       <header className="flex items-center gap-3 mb-6">
         <Link
           href="/settings"
@@ -179,7 +169,7 @@ export default function PlateCalculatorPage() {
                 Bar: {barWeight} lbs
               </p>
               {actualWeight !== targetWeight && (
-                <p className="text-xs text-amber-400 mt-1 font-mono tabular-nums">
+                <p className="text-xs text-warning mt-1 font-mono tabular-nums">
                   Closest loadable: {actualWeight} lbs
                 </p>
               )}
@@ -219,6 +209,6 @@ export default function PlateCalculatorPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

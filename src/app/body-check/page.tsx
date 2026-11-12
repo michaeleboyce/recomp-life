@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
+import { useState, useCallback, useMemo } from "react";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { BodyRegion, PainSorenessEntry } from "@/types";
 import { shouldShowRedFlag, type RedFlagDismissal } from "@/lib/painModifications";
-import { db } from "@/db/local";
+import { usePainEntries } from "@/hooks";
+import { PageShell } from "@/components/ui/page-shell";
 import BodyMapSVG from "@/components/BodyMap/BodyMapSVG";
 import RegionDetail from "@/components/BodyMap/RegionDetail";
 import PainHistory from "@/components/BodyMap/PainHistory";
@@ -69,18 +69,13 @@ export default function BodyCheckPage() {
   const [redFlagRegion, setRedFlagRegion] = useState<BodyRegion | null>(null);
   const { dismissals, addDismissal } = useRedFlagDismissals();
 
-  // Load all active pain entries from Dexie
-  const activeEntries = useLiveQuery(
-    async () => {
-      // Get entries from the last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const all = await db.painEntries.toArray();
-      return all.filter((e) => new Date(e.date) >= thirtyDaysAgo);
-    },
-    [],
-    []
-  );
+  // Pain entries from the last 30 days
+  const painEntries = usePainEntries();
+  const activeEntries = useMemo(() => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return (painEntries ?? []).filter((e) => new Date(e.date) >= thirtyDaysAgo);
+  }, [painEntries]);
 
   const handleRegionTap = (region: BodyRegion) => {
     setSelectedRegion(region);
@@ -114,7 +109,7 @@ export default function BodyCheckPage() {
   const historyRegion = selectedRegion;
 
   return (
-    <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
+    <PageShell>
       {/* Header */}
       <header className="flex items-center gap-3 mb-4">
         <Link
@@ -145,11 +140,11 @@ export default function BodyCheckPage() {
           <span>No entry</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="h-3 w-3 rounded-sm bg-amber-500" />
+          <div className="h-3 w-3 rounded-sm bg-warning" />
           <span>Soreness</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="h-3 w-3 rounded-sm bg-red-500" />
+          <div className="h-3 w-3 rounded-sm bg-destructive" />
           <span>Pain</span>
         </div>
       </div>
@@ -214,6 +209,6 @@ export default function BodyCheckPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }
