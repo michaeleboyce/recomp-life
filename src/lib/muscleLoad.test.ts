@@ -229,7 +229,9 @@ describe("getMuscleRecovery (R3)", () => {
     expect(getMuscleRecovery(workouts, hoursAfter(trainedAt, 60), maintaining).quads).toBe("ready");
     expect(getMuscleRecovery(workouts, hoursAfter(trainedAt, 96), maintaining).quads).toBe("primed");
     expect(getMuscleRecovery(workouts, hoursAfter(trainedAt, 140), maintaining).quads).toBe("ready");
-    expect(getMuscleRecovery(workouts, hoursAfter(trainedAt, 200), maintaining).quads).toBe("detraining");
+    // A week off is not a long break; that starts at 21 days
+    expect(getMuscleRecovery(workouts, hoursAfter(trainedAt, 200), maintaining).quads).toBe("ready");
+    expect(getMuscleRecovery(workouts, hoursAfter(trainedAt, 21 * 24), maintaining).quads).toBe("detraining");
   });
 
   it("adds 12 hours when cutting", () => {

@@ -38,7 +38,7 @@ const RECOVERY_LABELS: Record<RecoveryStatus, string> = {
   recovering: "Recovering",
   ready: "Ready",
   primed: "Primed",
-  detraining: "Detraining",
+  detraining: "Long break",
 };
 
 const WEEKLY_TARGET_SETS = 10;

@@ -17,7 +17,10 @@ export const VOLUME_RULES = {
     strength: "moderate",
     sources: ["pelland2026", "roth2022"],
     reviewedOn: "2026-11",
-    implementedIn: ["src/lib/volumeTracking.ts#calculateMuscleGroupVolume"],
+    implementedIn: [
+      "src/lib/volumeTracking.ts#calculateMuscleGroupVolume",
+      "src/lib/muscleLoad.ts#weeklyHeatLevel",
+    ],
     surfaces: ["src/components/Charts/VolumeBars.tsx"],
   },
   "accessories-in-cut": {

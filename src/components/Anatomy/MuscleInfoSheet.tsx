@@ -27,7 +27,7 @@ const RECOVERY_LABELS: Record<RecoveryStatus, string> = {
   recovering: "Recovering",
   ready: "Ready",
   primed: "Primed",
-  detraining: "Detraining",
+  detraining: "Long break",
 };
 
 /** Bottom sheet with one muscle's weekly sets, recovery, and exercises. */

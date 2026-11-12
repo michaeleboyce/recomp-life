@@ -41,7 +41,10 @@ export const RECOVERY_RULES = {
     strength: "limited",
     sources: ["moranNavarro2017", "stults2014"],
     reviewedOn: "2026-11",
-    implementedIn: ["src/lib/recovery.ts#calculateRecoveryStatus"],
+    implementedIn: [
+      "src/lib/recovery.ts#calculateRecoveryStatus",
+      "src/lib/muscleLoad.ts#getMuscleRecovery",
+    ],
     surfaces: [
       "src/components/Dashboard/RecoveryStatusBars.tsx",
       "src/app/workout/configure/page.tsx",

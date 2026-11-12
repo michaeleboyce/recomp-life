@@ -293,7 +293,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `recovery-windows`
 - **Status:** Active
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/recovery.ts` (`calculateRecoveryStatus`)
+- **Implemented in:** `src/lib/recovery.ts` (`calculateRecoveryStatus`), `src/lib/muscleLoad.ts` (`getMuscleRecovery`)
 - **Shown in:** `src/components/Dashboard/RecoveryStatusBars.tsx`, `src/app/workout/configure/page.tsx`
 - **Reviewed:** November 2026
 
@@ -427,7 +427,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `weekly-volume`
 - **Status:** Active
 - **Evidence:** Moderate evidence
-- **Implemented in:** `src/lib/volumeTracking.ts` (`calculateMuscleGroupVolume`)
+- **Implemented in:** `src/lib/volumeTracking.ts` (`calculateMuscleGroupVolume`), `src/lib/muscleLoad.ts` (`weeklyHeatLevel`)
 - **Shown in:** `src/components/Charts/VolumeBars.tsx`
 - **Reviewed:** November 2026
 
