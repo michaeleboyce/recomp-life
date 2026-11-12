@@ -4,14 +4,10 @@
 
 /** Rule R8: pages and components must not import the Dexie database directly. */
 export const DB_IMPORT_ALLOWLIST: string[] = [
-  "src/app/body-check/page.tsx",
   "src/app/exercises/page.tsx",
-  "src/app/history/page.tsx",
   "src/app/page.tsx",
-  "src/app/plate-calculator/page.tsx",
   "src/app/program/page.tsx",
   "src/app/settings/page.tsx",
-  "src/app/weigh-in/page.tsx",
   "src/app/workout/active/page.tsx",
   "src/app/workout/configure/page.tsx",
   "src/app/workout/summary/page.tsx",
@@ -30,8 +26,6 @@ export const DB_IMPORT_ALLOWLIST: string[] = [
   "src/components/Dashboard/RecoveryStatusBars.tsx",
   "src/components/Dashboard/WeekSummary.tsx",
   "src/components/Dashboard/WeightTrend.tsx",
-  "src/components/RunLogger.tsx",
-  "src/components/WeighInPrompt.tsx",
   // Added by the interactive-anatomy branch; migrate to src/hooks once that work has landed.
   "src/app/muscles/page.tsx",
   "src/components/Dashboard/MuscleHeatCard.tsx",
@@ -39,12 +33,8 @@ export const DB_IMPORT_ALLOWLIST: string[] = [
 
 /** Rule R9: pages and components must use theme tokens, not raw palette classes. */
 export const PALETTE_ALLOWLIST: string[] = [
-  "src/app/body-check/page.tsx",
-  "src/app/history/page.tsx",
   "src/app/page.tsx",
-  "src/app/plate-calculator/page.tsx",
   "src/app/program/page.tsx",
-  "src/app/weigh-in/page.tsx",
   "src/app/workout/active/page.tsx",
   "src/app/workout/configure/page.tsx",
   "src/app/workout/summary/page.tsx",
@@ -66,7 +56,6 @@ export const PALETTE_ALLOWLIST: string[] = [
   "src/components/Exercises/ExerciseRow.tsx",
   "src/components/PreWorkout/AccessoryPicker.tsx",
   "src/components/PreWorkout/ReadinessCheck.tsx",
-  "src/components/RunLogger.tsx",
   "src/components/Settings/ExercisePreferencesEditor.tsx",
   "src/components/SyncProvider.tsx",
   "src/components/WorkoutSummary/EquipmentAdaptedResult.tsx",
