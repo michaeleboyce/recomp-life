@@ -15,3 +15,11 @@ export { useInsights } from "./useInsights";
 export { useProjection, type ProjectionResult } from "./useProjection";
 export { useTrainingLocation } from "./useTrainingLocation";
 export { useUpcomingWorkouts } from "./useUpcomingWorkouts";
+export {
+  useLogChangePreview,
+  useRecentlyDeleted,
+  useDerivedCheck,
+  countDifferences,
+  type DerivedCheck,
+  type DerivedCheckStatus,
+} from "./useLogEdit";
