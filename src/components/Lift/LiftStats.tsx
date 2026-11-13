@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ChevronRight, TrendingUp } from "lucide-react";
 import { Delta } from "@/components/ui/delta";
 import { Term } from "@/components/ui/term";
-import { formatCompact, TEASER_WEEKS, type LiftStats as Stats } from "./liftSeries";
+import type { ProjectionTeaser } from "@/lib/projection";
+import { formatCompact, type LiftStats as Stats } from "./liftSeries";
 
 function Stat({ label, value, sub }: { label: React.ReactNode; value: string; sub: React.ReactNode }) {
   return (
@@ -46,7 +47,13 @@ export function LiftStats({ stats }: { stats: Stats }) {
 }
 
 /** Link to the projection screen, with "On this trend: about 249 in 8 weeks" when it can be fitted. */
-export function ProjectionLink({ exerciseId, teaser }: { exerciseId: string; teaser: number | null }) {
+export function ProjectionLink({
+  exerciseId,
+  teaser,
+}: {
+  exerciseId: string;
+  teaser: ProjectionTeaser | null;
+}) {
   return (
     <Link
       href={`/progress/lift/${exerciseId}/projection`}
@@ -57,7 +64,7 @@ export function ProjectionLink({ exerciseId, teaser }: { exerciseId: string; tea
         <span className="text-sm font-bold">Projection</span>
         {teaser !== null && (
           <span className="text-xs text-muted-foreground">
-            On this trend: about {teaser} in {TEASER_WEEKS} weeks
+            On this trend: about {teaser.value} in {teaser.weeks} weeks
           </span>
         )}
       </span>

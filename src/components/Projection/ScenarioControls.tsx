@@ -87,11 +87,13 @@ export function ScenarioControls({ baseline, scenario, onChange, onReset }: Scen
         label={`${lift[0].toUpperCase()}${lift.slice(1)} sessions a week`}
         value={scenario.sessionsPerWeek ?? baseline.sessionsPerWeek}
         baseline={baseline.sessionsPerWeek}
-        min={0.5}
+        // Down to 0: with no sets of the lift either, the model has nothing to scale
+        // (flatReason "no-dose") and the summary says so.
+        min={0}
         max={3}
         step={0.5}
         format={formatAmount}
-        onChange={(v) => update("sessionsPerWeek", v, snap(baseline.sessionsPerWeek, 0.5, 3, 0.5))}
+        onChange={(v) => update("sessionsPerWeek", v, snap(baseline.sessionsPerWeek, 0, 3, 0.5))}
       />
       <ScenarioSlider
         label={`Sets of ${lift} a week`}
