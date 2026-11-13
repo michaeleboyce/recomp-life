@@ -6,6 +6,7 @@ import type { Point } from "@/lib/metrics/types";
 import { PROJECTION_COEFFICIENTS as C } from "./coefficients";
 import { fitTrend, projectE1RM, type ProjectionBaseline, type ProjectionScenario } from "./index";
 import {
+  accumulatedWeeks,
   MAX_SCENARIO_WIDENING,
   resultsNeeded,
   scenarioWidening,
@@ -63,7 +64,12 @@ describe("minimum range", () => {
     expect(p.points[0].high - p.points[0].v).toBeCloseTo(floorHalf, 6);
     expect(p.points[0].v - p.points[0].low).toBeCloseTo(floorHalf, 6);
     const last = p.points[WEEKS];
-    expect(last.high - last.v).toBeCloseTo(floorHalf * (1 + C.bandGrowth * Math.sqrt(WEEKS)), 6);
+    // Updated when the range gained the rate term: at the horizon the floor also
+    // feeds the slope's standard error, combined in quadrature with the level term.
+    const levelTerm = floorHalf * (1 + C.bandGrowth * Math.sqrt(WEEKS));
+    const rateTerm =
+      (floorHalf / Math.sqrt(fitTrend(history)!.timeSumSquares)) * accumulatedWeeks(WEEKS);
+    expect(last.high - last.v).toBeCloseTo(Math.hypot(levelTerm, rateTerm), 6);
     expect(p.gain.high).toBeGreaterThan(p.gain.v);
     expect(p.gain.low).toBeLessThan(p.gain.v);
   });

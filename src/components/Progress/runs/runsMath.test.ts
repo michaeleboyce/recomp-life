@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { formatPace } from "@/lib/metrics/runs";
 import type { ActivityLog, ReadinessLog, SetLog, WorkoutSession } from "@/types";
 import {
   activityTotals,
   describeSleepEffort,
+  paceOverall,
   formatMinutes,
   mean,
   sleepEffortComparison,
@@ -160,5 +162,53 @@ describe("sleepEffortComparison", () => {
     const { workouts, logs } = build([8, 8, 8.1], [8, 8, 8]);
     const c = sleepEffortComparison(workouts, logs)!;
     expect(describeSleepEffort(c)).toMatch(/about the same/);
+  });
+});
+
+describe("average pace", () => {
+  const runSeries = (metric: "runDistance" | "runDuration", rows: Array<[string, number, number]>): Series => ({
+    metric,
+    params: {},
+    points: rows.map(([refId, t, v]) => ({ refId, t, v })),
+    unit: metric === "runDistance" ? "miles" : "min",
+    better: "up",
+  });
+
+  it("is total minutes over total miles, not the mean of each run's pace", () => {
+    // One mile at 8:00 and ten miles at 10:00: 108 minutes over 11 miles = 9:49.
+    const distance = runSeries("runDistance", [["a", 1, 1], ["b", 2, 10]]);
+    const duration = runSeries("runDuration", [["a", 1, 8], ["b", 2, 100]]);
+    const pace = paceOverall(distance, duration);
+    expect(pace.average).toBeCloseTo(108 / 11, 9);
+    expect(formatPace(pace.average!)).toBe("9:49");
+    expect(pace.average).not.toBeCloseTo(9, 1);
+  });
+
+  it("leaves out runs with no distance, and their minutes", () => {
+    const distance = runSeries("runDistance", [["a", 1, 2], ["z", 3, 0]]);
+    const duration = runSeries("runDuration", [["a", 1, 20], ["treadmill", 2, 45], ["z", 3, 30]]);
+    expect(paceOverall(distance, duration).average).toBeCloseTo(10, 9);
+  });
+
+  it("is null with no run that has a distance", () => {
+    const duration = runSeries("runDuration", [["a", 1, 20]]);
+    expect(paceOverall(runSeries("runDistance", []), duration)).toEqual({ average: null, change: null });
+  });
+
+  it("the change compares the later half of the runs with the earlier half, each as minutes over miles", () => {
+    // Given out of order: earlier half a + b (4 mi in 36 min = 9:00), later half c + d (11 mi in 108 = 9:49).
+    const distance = runSeries("runDistance", [["c", 3, 1], ["a", 1, 3], ["d", 4, 10], ["b", 2, 1]]);
+    const duration = runSeries("runDuration", [["a", 1, 27], ["b", 2, 9], ["c", 3, 8], ["d", 4, 100]]);
+    const pace = paceOverall(distance, duration);
+    expect(pace.average).toBeCloseTo(144 / 15, 9);
+    expect(pace.change).toBeCloseTo(108 / 11 - 9, 9);
+  });
+
+  it("with an odd number of runs the middle one counts as later; one run has no change", () => {
+    const distance = runSeries("runDistance", [["a", 1, 1], ["b", 2, 1], ["c", 3, 1]]);
+    const duration = runSeries("runDuration", [["a", 1, 10], ["b", 2, 9], ["c", 3, 8]]);
+    expect(paceOverall(distance, duration).change).toBeCloseTo(8.5 - 10, 9);
+    const one = paceOverall(runSeries("runDistance", [["a", 1, 1]]), runSeries("runDuration", [["a", 1, 10]]));
+    expect(one).toEqual({ average: 10, change: null });
   });
 });

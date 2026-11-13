@@ -20,6 +20,8 @@ export type {
 } from "./project";
 export {
   projectE1RM,
+  maxReliableWeeks,
+  MIN_RELIABLE_WEEKS,
   MAX_SCENARIO_WIDENING,
   PROJECTION_EVIDENCE_IDS,
   resultsNeeded,
@@ -35,3 +37,6 @@ export {
   summarizeScenario,
 } from "./summary";
 export { relatedExerciseIds } from "./related";
+
+export type { ProjectionTeaser } from "./teaser";
+export { projectionTeaser } from "./teaser";

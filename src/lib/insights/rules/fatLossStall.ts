@@ -25,7 +25,9 @@ function consecutiveStallWeeks(weights: { date: Date; weight: number }[]): numbe
 
 /**
  * detectFatLossStall (cutting only), shown only once getStallProtocolSuggestion has a
- * suggestion, i.e. about three slow weeks, as the fat-loss-stall rule's activation notes ask.
+ * suggestion, i.e. about three slow weeks, so one slow week is never called a stall.
+ *
+ * @evidence fat-loss-stall
  */
 export function fatLossStallInsights(ctx: InsightContext): Insight[] {
   const phase = ctx.settings?.trainingPhase;
