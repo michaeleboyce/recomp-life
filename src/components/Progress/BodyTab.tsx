@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Plus, Scale } from "lucide-react";
-import { ChartFrame, RangeTabs, RANGE_LABELS, formatShortDate } from "@/components/chart-kit";
+import { ChartFrame, RangeTabs, formatShortDate } from "@/components/chart-kit";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Button } from "@/components/ui/button";
 import { Delta } from "@/components/ui/delta";
@@ -16,6 +16,7 @@ import type { RangeKey } from "@/lib/metrics/types";
 import { BodyChart } from "./body/BodyChart";
 import { formatSigned, paceStatus, type PaceWord } from "./body/bodyMath";
 import { useBodySeries } from "./body/useBodySeries";
+import { rangeSuffix } from "./rangeText";
 
 const weightFormat = getMetric("bodyweight").format;
 const rateFormat = getMetric("lossRate").format;
@@ -62,7 +63,7 @@ export function BodyTab() {
           change !== null ? (
             <>
               <Delta value={change} unit="lbs" better={better} />
-              <span className="ml-1 text-xs text-muted-foreground">in {RANGE_LABELS[range]}</span>
+              <span className="ml-1 text-xs text-muted-foreground">{rangeSuffix(body.weight.points)}</span>
             </>
           ) : undefined
         }
