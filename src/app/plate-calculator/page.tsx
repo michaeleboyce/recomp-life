@@ -45,7 +45,7 @@ function PlateVisual({ plates }: { plates: { plate: number; count: number }[] })
           {[...expanded].reverse().map((plate, i) => (
             <div
               key={`l-${i}`}
-              className={`rounded-sm flex items-center justify-center text-xs font-bold text-white ${PLATE_COLORS[plate] || "bg-plate-other"}`}
+              className={`rounded-sm border border-border flex items-center justify-center text-xs font-bold text-white ${PLATE_COLORS[plate] || "bg-plate-other"}`}
               style={{
                 width: `${Math.max(20, plate * 0.6)}px`,
                 height: `${Math.min(80, 30 + plate)}px`,
@@ -64,7 +64,7 @@ function PlateVisual({ plates }: { plates: { plate: number; count: number }[] })
           {expanded.map((plate, i) => (
             <div
               key={`r-${i}`}
-              className={`rounded-sm flex items-center justify-center text-xs font-bold text-white ${PLATE_COLORS[plate] || "bg-plate-other"}`}
+              className={`rounded-sm border border-border flex items-center justify-center text-xs font-bold text-white ${PLATE_COLORS[plate] || "bg-plate-other"}`}
               style={{
                 width: `${Math.max(20, plate * 0.6)}px`,
                 height: `${Math.min(80, 30 + plate)}px`,
