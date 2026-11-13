@@ -27,8 +27,8 @@ export const workouts = pgTable('workouts', {
   ...syncColumns(),
   templateId: text('template_id').notNull(),
   location: text('location').notNull(),
-  startedAt: timestamp('started_at').notNull(),
-  completedAt: timestamp('completed_at'),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
   totalDurationSeconds: integer('total_duration_seconds').notNull(),
   includeWarmUps: boolean('include_warm_ups').notNull(),
   selectedAccessories: jsonb('selected_accessories').notNull(),
@@ -44,7 +44,7 @@ export const workouts = pgTable('workouts', {
 export const liftAdjustments = pgTable('lift_adjustments', {
   ...syncColumns(),
   exerciseId: text('exercise_id').notNull(),
-  at: timestamp('at').notNull(),
+  at: timestamp('at', { withTimezone: true }).notNull(),
   source: text('source').notNull(),
   set: jsonb('set').notNull(),
   note: text('note'),
@@ -53,7 +53,7 @@ export const liftAdjustments = pgTable('lift_adjustments', {
 // Runs
 export const runs = pgTable('runs', {
   ...syncColumns(),
-  date: timestamp('date').notNull(),
+  date: timestamp('date', { withTimezone: true }).notNull(),
   durationMinutes: real('duration_minutes').notNull(),
   distanceMiles: real('distance_miles'),
   type: text('type').notNull(),
@@ -65,7 +65,7 @@ export const runs = pgTable('runs', {
 // Activities (yoga, cycling, hiking, walking; runs have their own table)
 export const activities = pgTable('activities', {
   ...syncColumns(),
-  date: timestamp('date').notNull(),
+  date: timestamp('date', { withTimezone: true }).notNull(),
   kind: text('kind').notNull(),
   durationMinutes: real('duration_minutes').notNull(),
   style: text('style'),
@@ -77,7 +77,7 @@ export const activities = pgTable('activities', {
 // Bodyweight
 export const bodyweight = pgTable('bodyweight', {
   ...syncColumns(),
-  date: timestamp('date').notNull(),
+  date: timestamp('date', { withTimezone: true }).notNull(),
   weight: real('weight').notNull(),
   timeOfDay: text('time_of_day').notNull(),
 });
@@ -85,7 +85,7 @@ export const bodyweight = pgTable('bodyweight', {
 // Pain Entries
 export const painEntries = pgTable('pain_entries', {
   ...syncColumns(),
-  date: timestamp('date').notNull(),
+  date: timestamp('date', { withTimezone: true }).notNull(),
   region: text('region').notNull(),
   sensation: text('sensation').notNull(),
   severity: integer('severity').notNull(),
@@ -99,7 +99,7 @@ export const readinessLogs = pgTable('readiness_logs', {
   sessionId: text('session_id').notNull(),
   sleepHours: text('sleep_hours').notNull(),
   stressLevel: text('stress_level').notNull(),
-  date: timestamp('date').notNull(),
+  date: timestamp('date', { withTimezone: true }).notNull(),
 });
 
 // User Profile (a single row with the fixed id PROFILE_ID)
@@ -108,6 +108,6 @@ export const userProfile = pgTable('user_profile', {
   name: text('name').notNull(),
   bodyweight: real('bodyweight').notNull(),
   heightInches: real('height_inches').notNull(),
-  createdAt: timestamp('created_at').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
   settings: jsonb('settings').notNull(),
 });

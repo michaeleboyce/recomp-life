@@ -14,6 +14,8 @@
 --
 -- Stamps: updated_at / deleted_at are epoch milliseconds (bigint). The newest
 -- updated_at wins a conflict; a non-null deleted_at is a soft delete.
+-- Dates are timestamp with time zone, so an ISO string with Z is stored and read back
+-- as the same instant whatever the server's time zone.
 
 BEGIN;
 
@@ -38,8 +40,8 @@ CREATE TABLE "workouts" (
   "synced" boolean NOT NULL DEFAULT true,
   "template_id" text NOT NULL,
   "location" text NOT NULL,
-  "started_at" timestamp NOT NULL,
-  "completed_at" timestamp,
+  "started_at" timestamp with time zone NOT NULL,
+  "completed_at" timestamp with time zone,
   "total_duration_seconds" integer NOT NULL,
   "include_warm_ups" boolean NOT NULL,
   "selected_accessories" jsonb NOT NULL,
@@ -59,7 +61,7 @@ CREATE TABLE "lift_adjustments" (
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
   "exercise_id" text NOT NULL,
-  "at" timestamp NOT NULL,
+  "at" timestamp with time zone NOT NULL,
   "source" text NOT NULL,
   "set" jsonb NOT NULL,
   "note" text
@@ -72,7 +74,7 @@ CREATE TABLE "runs" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
-  "date" timestamp NOT NULL,
+  "date" timestamp with time zone NOT NULL,
   "duration_minutes" real NOT NULL,
   "distance_miles" real,
   "type" text NOT NULL,
@@ -88,7 +90,7 @@ CREATE TABLE "activities" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
-  "date" timestamp NOT NULL,
+  "date" timestamp with time zone NOT NULL,
   "kind" text NOT NULL,
   "duration_minutes" real NOT NULL,
   "style" text,
@@ -104,7 +106,7 @@ CREATE TABLE "bodyweight" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
-  "date" timestamp NOT NULL,
+  "date" timestamp with time zone NOT NULL,
   "weight" real NOT NULL,
   "time_of_day" text NOT NULL
 );
@@ -116,7 +118,7 @@ CREATE TABLE "pain_entries" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
-  "date" timestamp NOT NULL,
+  "date" timestamp with time zone NOT NULL,
   "region" text NOT NULL,
   "sensation" text NOT NULL,
   "severity" integer NOT NULL,
@@ -134,7 +136,7 @@ CREATE TABLE "readiness_logs" (
   "session_id" text NOT NULL,
   "sleep_hours" text NOT NULL,
   "stress_level" text NOT NULL,
-  "date" timestamp NOT NULL
+  "date" timestamp with time zone NOT NULL
 );
 
 CREATE TABLE "user_profile" (
@@ -147,7 +149,7 @@ CREATE TABLE "user_profile" (
   "name" text NOT NULL,
   "bodyweight" real NOT NULL,
   "height_inches" real NOT NULL,
-  "created_at" timestamp NOT NULL,
+  "created_at" timestamp with time zone NOT NULL,
   "settings" jsonb NOT NULL
 );
 

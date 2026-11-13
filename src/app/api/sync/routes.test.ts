@@ -154,6 +154,28 @@ describe('GET /api/sync/pull', () => {
     for (const [text] of query.mock.calls) expect(text).not.toMatch(/WHERE/);
   });
 
+  it('a pushed date comes back from pull as the same instant', async () => {
+    const iso = '2026-11-11T07:30:15.250Z';
+    // Push: the ISO string with Z is sent to the timestamptz column unchanged.
+    query.mockResolvedValueOnce([{ client_id: 'r1' }]);
+    await POST(pushRequest({ table: 'runs', rows: [{ ...run('r1', 1), date: iso }] }));
+    const [text, values] = query.mock.calls[0];
+    const columns = [...(text as string).matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).slice(1);
+    expect(values[columns.indexOf('date')]).toBe(iso);
+
+    // Pull: the driver parses timestamptz into a Date; the response carries the same instant.
+    query.mockReset();
+    query.mockImplementation(async (sql: string) =>
+      sql.includes('"runs"')
+        ? [{ id: 'r1', client_id: 'r1', date: new Date(iso), updated_at: '1', deleted_at: null }]
+        : []
+    );
+    const body: PullResponse = await (await GET(pullRequest())).json();
+    const pulled = body.rows.runs[0].date as string;
+    expect(pulled).toBe(iso);
+    expect(new Date(pulled).getTime()).toBe(Date.parse(iso));
+  });
+
   it('a table that cannot be read goes into errors; the rest still arrive with 200', async () => {
     query.mockImplementation(async (text: string) => {
       if (text.includes('"lift_adjustments"')) throw new Error('relation "lift_adjustments" does not exist');

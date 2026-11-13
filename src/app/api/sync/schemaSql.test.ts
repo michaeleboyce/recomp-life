@@ -16,7 +16,9 @@ function parseCreateTables(sql: string): Map<string, Map<string, SqlColumn>> {
   for (const [, name, body] of sql.matchAll(createRe)) {
     const columns = new Map<string, SqlColumn>();
     for (const line of body.split('\n').map((l) => l.trim().replace(/,$/, '')).filter(Boolean)) {
-      const match = /^"([a-z0-9_]+)" ([a-z]+)(.*)$/.exec(line);
+      // The type may be several words ("timestamp with time zone"); it ends where the
+      // constraints begin.
+      const match = /^"([a-z0-9_]+)" ([a-z][a-z ]*?)((?: (?:NOT NULL|PRIMARY KEY|UNIQUE|DEFAULT \S+))*)$/.exec(line);
       if (!match) throw new Error(`Unparsed line in ${name}: ${line}`);
       const [, column, type, rest] = match;
       columns.set(column, {
@@ -51,6 +53,17 @@ describe('scripts/sql/2026-11-12-clean-schema.sql', () => {
       const drop = SQL.indexOf(`DROP TABLE IF EXISTS "${table}";`);
       expect(drop, table).toBeGreaterThan(-1);
       expect(drop, table).toBeLessThan(firstCreate);
+    }
+  });
+
+  it('stores every date as timestamp with time zone, never a bare timestamp', () => {
+    expect(SQL).not.toMatch(/" timestamp(?! with time zone)/);
+    for (const table of drizzleTables) {
+      for (const column of Object.values(getTableColumns(table))) {
+        if (column.getSQLType().startsWith('timestamp')) {
+          expect(column.getSQLType(), `${getTableName(table)}.${column.name}`).toBe('timestamp with time zone');
+        }
+      }
     }
   });
 
