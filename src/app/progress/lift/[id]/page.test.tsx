@@ -157,6 +157,8 @@ describe("Lift detail page", () => {
     const next = screen.getByRole("region", { name: "Next session" });
     fireEvent.click(within(next).getByRole("button", { name: "Adjust weight" }));
     expect(await screen.findByRole("heading", { name: "Adjust Squat" })).toBeInTheDocument();
+    // The sheet reads the lift's current weight; wait for it before stepping.
+    await waitFor(() => expect(screen.getByRole("spinbutton", { name: /^Weight/ })).toHaveValue(190));
     fireEvent.click(screen.getByRole("button", { name: "Increase weight by 5" }));
     fireEvent.click(screen.getByRole("button", { name: "Save change" }));
 
