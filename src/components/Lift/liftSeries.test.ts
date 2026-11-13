@@ -7,10 +7,13 @@ import {
   formatCompact,
   liftMetrics,
   liftStats,
+  liftTeaser,
   nextT1Opportunity,
-  projectionTeaser,
   trendOverlay,
+  zeroFilledWeeks,
 } from "./liftSeries";
+import { computeMetric } from "@/lib/metrics";
+import { measureBaseline, projectionTeaser } from "@/lib/projection";
 
 const DAY = 86_400_000;
 const WEEK = 7 * DAY;
@@ -88,10 +91,58 @@ describe("trendOverlay", () => {
   });
 });
 
-describe("projectionTeaser", () => {
-  it("projects the fitted line eight weeks past now", () => {
-    expect(projectionTeaser(line(5), 4 * WEEK)).toBe(224);
-    expect(projectionTeaser(line(3), 4 * WEEK)).toBeNull();
+describe("liftTeaser", () => {
+  const history = computeMetric("e1rm", source, { exerciseId: "squat" }).points;
+  const baseline = measureBaseline(source, "squat", now);
+
+  it("is the projection screen's figure: 8 weeks ahead, else 4, from the whole history", () => {
+    const teaser = liftTeaser(source, "squat", history, now.getTime());
+    const expected =
+      projectionTeaser({ history, baseline, now, weeks: 8 }) ??
+      projectionTeaser({ history, baseline, now, weeks: 4 });
+    expect(teaser).not.toBeNull();
+    expect(teaser).toEqual(expected);
+    // The range tab does not enter into it.
+    for (const range of ["4w", "3m", "1y", "all"] as const) {
+      const m = liftMetrics(source, "squat", range, now.getTime());
+      expect(liftTeaser(source, "squat", m.e1rm.full.points, now.getTime())).toEqual(teaser);
+    }
+  });
+
+  it("is null when nothing can be projected", () => {
+    expect(liftTeaser(source, "squat", line(3), now.getTime())).toBeNull();
+  });
+});
+
+describe("weekly volume", () => {
+  const series = (pts: Point[]) => ({ id: "liftVolume", unit: "lbs", points: pts }) as never;
+
+  it("counts the weeks in the range with no volume as 0, so they pull the mean down", () => {
+    const t = now.getTime();
+    const pts: Point[] = [
+      { t: t - 10 * WEEK, v: 900 },
+      { t: t - 3 * WEEK, v: 1000 },
+      { t: t - 1 * DAY, v: 2000 },
+    ];
+    const filled = zeroFilledWeeks(series(pts), series(pts.slice(1)), "4w", t);
+    // About five calendar weeks touch a 28-day window; only two have volume.
+    expect(filled.points.length).toBeGreaterThanOrEqual(4);
+    expect(filled.points.filter((p) => p.v > 0).map((p) => p.v)).toEqual([1000, 2000]);
+    expect(filled.points.filter((p) => p.v === 0).length).toBe(filled.points.length - 2);
+  });
+
+  it("starts at the first logged volume when that is inside the range", () => {
+    const t = now.getTime();
+    const pts: Point[] = [{ t: t - 8 * DAY, v: 500 }];
+    const filled = zeroFilledWeeks(series(pts), series(pts), "1y", t);
+    expect(filled.points.length).toBeLessThanOrEqual(3);
+    expect(filled.points[0].v).toBe(500);
+  });
+
+  it("the stat is the mean over every week of the range", () => {
+    const m = liftMetrics(source, "squat", "3m", now.getTime());
+    const weeks = m.weeklyVolume.points;
+    expect(liftStats(m).weeklyVolume).toBeCloseTo(weeks.reduce((s, p) => s + p.v, 0) / weeks.length);
   });
 });
 

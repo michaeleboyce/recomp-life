@@ -28,11 +28,17 @@ function proj(end: number, weeks = 12, status: Projection["status"] = "ok"): Pro
   }));
   return {
     status,
+    flatReason: status === "flat-trend" ? "not-rising" : null,
     points: status === "insufficient-data" ? [] : points,
     startingRatePerWeek: 1,
     gain: { v: end - 240, low: 0, high: 0 },
     evidenceIds: [],
     assumptions: [],
+    fitWindowWeeks: 12,
+    maxReliableWeeks: 12,
+    beyondReliableHorizon: false,
+    reliableHorizonNote: "",
+    lastResultWeeksAgo: 0,
   };
 }
 

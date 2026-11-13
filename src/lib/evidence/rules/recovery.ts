@@ -59,7 +59,7 @@ export const RECOVERY_RULES = {
     status: "active",
     title: "Why lighter weights after a break?",
     summary: "Short breaks cost little strength; long ones come back fast",
-    appBehavior: `Breaks of up to ${LONG_BREAK_DAYS - 1} days change nothing. After that the setup screen suggests starting lighter: ${describeDecayTiers()}. The suggestion is scaled by ${DECAY_PHASE_MULTIPLIERS.cutting} while cutting and ${DECAY_PHASE_MULTIPLIERS.bulking} while bulking, and never exceeds ${pct(MAX_DECAY)}. You can always keep your old weight.`,
+    appBehavior: `Breaks of up to ${LONG_BREAK_DAYS - 1} days change nothing. After that the setup screen suggests starting lighter: ${describeDecayTiers()}. The suggestion is scaled by ${DECAY_PHASE_MULTIPLIERS.cutting} while cutting and ${DECAY_PHASE_MULTIPLIERS.bulking} while bulking, and never exceeds ${pct(MAX_DECAY)}. You can always keep your old weight. Today mentions a break once it has been 5 days since your last workout, and from ${LONG_BREAK_DAYS} days says that setup will suggest lighter weights.`,
     rationale:
       "Strength is well preserved through breaks: one session a week maintains it for months, and after a full 10-week layoff trainees were back to their pre-break level in about 5 weeks. Losses do grow with the length of the break, so the suggestion scales with time away.",
     caveat:
@@ -72,7 +72,7 @@ export const RECOVERY_RULES = {
       "src/lib/recovery.ts#LONG_BREAK_DAYS",
       "src/lib/inactivity.ts#checkInactivity",
     ],
-    surfaces: ["src/app/workout/configure/page.tsx"],
+    surfaces: ["src/app/workout/configure/page.tsx", "src/components/Today/AttentionList.tsx"],
   },
   readiness: {
     area: "recovery",
@@ -126,19 +126,22 @@ export const RECOVERY_RULES = {
   },
   "fatigue-detection": {
     area: "recovery",
-    status: "planned",
-    title: "How would the app detect built-up fatigue?",
-    summary: "Fatigue checks from estimated 1RM, RPE and AMRAP trends",
+    status: "active",
+    title: "How does the app spot built-up fatigue?",
+    summary: "A falling estimated 1RM, several sessions running, is a fatigue sign",
     appBehavior:
-      "Rule in code: flag a lift when estimated 1RM falls, RPE rises or AMRAP reps fall for 2–4 sessions in a row (fewer while cutting). Two or more flags recommend a deload. Not connected.",
+      "Today shows a fatigue sign for a lift when its estimated 1RM has fallen 2 sessions in a row while cutting, or 3 otherwise. Two or more such lifts are reported together. Only the estimated-1RM trend is used: RPE and AMRAP reps are left out, because both move as the weight goes up every session. An easier week is optional, and one better session clears the sign. The app never changes your weights or starts a deload for this.",
     rationale:
       "Tracking performance trends is a reasonable way to spot fatigue, but no study validates these specific triggers.",
+    caveat:
+      "A drop in estimated 1RM can also come from one bad night, a missed meal or a change in how many reps you chose to do, so treat it as a prompt to check in with yourself, not a diagnosis.",
     strength: "heuristic",
     sources: [],
     reviewedOn: "2026-11",
-    implementedIn: ["src/lib/deload.ts#checkSystemicFatigue"],
-    surfaces: [],
-    activationNotes:
-      "Rising RPE and falling AMRAP reps are expected when the weight goes up every session. Compare at equal load, or use the estimated 1RM trend only, before connecting.",
+    implementedIn: [
+      "src/lib/deload.ts#checkSystemicFatigue",
+      "src/lib/insights/rules/deload.ts#deloadInsights",
+    ],
+    surfaces: ["src/components/Today/AttentionList.tsx"],
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;

@@ -14,6 +14,15 @@ export interface TrendFit {
   /** Standard deviation of the residuals, in lbs. */
   residualSd: number;
   pointsUsed: number;
+  /**
+   * Standard error of the slope, lbs per week: residualSd / sqrt(timeSumSquares).
+   * Few points, or points close together in time, make it large.
+   */
+  slopeSe: number;
+  /** Sum of squared distances of the point times from their mean, in weeks squared. */
+  timeSumSquares: number;
+  /** Weeks from the earliest point to the latest. */
+  spanWeeks: number;
 }
 
 /**
@@ -51,10 +60,16 @@ export function fitTrend(points: Point[]): TrendFit | null {
     ssr += residual * residual;
   }
 
+  const residualSd = Math.sqrt(ssr / (n - 2));
+  const times = usable.map((p) => p.t);
+
   return {
     slopePerWeek,
     valueAt,
-    residualSd: Math.sqrt(ssr / (n - 2)),
+    residualSd,
     pointsUsed: n,
+    slopeSe: residualSd / Math.sqrt(sxx),
+    timeSumSquares: sxx,
+    spanWeeks: (Math.max(...times) - Math.min(...times)) / MS_PER_WEEK,
   };
 }

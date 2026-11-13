@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, AlertTriangle, Sparkles, type LucideIcon } from "lucide-react";
+import { AlertCircle, AlertTriangle, Info, Sparkles, type LucideIcon } from "lucide-react";
 import { deletePainEntry, updatePainEntry } from "@/lib/data/records";
 import { discardStaleWorkouts, discardWorkout } from "@/lib/data/workouts";
 import type { Insight, InsightSeverity } from "@/lib/insights";
@@ -18,9 +18,32 @@ const STALE_WORKOUT_MS = 24 * 60 * 60 * 1000;
 const ICON: Partial<Record<InsightSeverity, { Icon: LucideIcon; className: string }>> = {
   action: { Icon: AlertCircle, className: "text-warning" },
   warning: { Icon: AlertTriangle, className: "text-destructive" },
+  info: { Icon: Info, className: "text-muted-foreground" },
 };
 
-const isAttention = (i: Insight) => i.severity === "action" || i.severity === "warning";
+/**
+ * Where an insight sits in the list, or null when it is not attention at all.
+ * Actions, then warnings, then the "worth knowing" ones: a T1 on its last stage or an
+ * estimated 1RM that is slipping, and last the mild nudge after a few days off.
+ * Positive insights are shown by PositiveInsightLine instead.
+ */
+function attentionRank(i: Insight): number | null {
+  if (i.severity === "action") return 0;
+  if (i.severity === "warning") return 1;
+  if (i.severity === "info") return i.kind === "inactivity" ? 3 : 2;
+  return null;
+}
+
+const isAttention = (i: Insight) => attentionRank(i) !== null;
+
+/** The attention insights in display order (stable within a rank). */
+function attentionItems(insights: Insight[]): Insight[] {
+  return insights
+    .filter(isAttention)
+    .map((insight, index) => ({ insight, index, rank: attentionRank(insight)! }))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map(({ insight }) => insight);
+}
 
 /** Whether AttentionList would render anything for these insights. */
 export const hasAttention = (insights: Insight[] | undefined): boolean =>
@@ -40,12 +63,12 @@ export function useDiscardStaleWorkouts(): void {
 }
 
 /**
- * "Needs attention": the action and warning insights, three at a time. Renders
- * nothing when there are none.
+ * "Needs attention": the action, warning and info insights, three at a time (the
+ * rest behind "N more"). Renders nothing when there are none.
  */
 export function AttentionList({ insights }: { insights: Insight[] }) {
   const [expanded, setExpanded] = useState(false);
-  const items = insights.filter(isAttention);
+  const items = attentionItems(insights);
   if (items.length === 0) return null;
 
   const shown = expanded ? items : items.slice(0, VISIBLE);
@@ -78,6 +101,7 @@ function AttentionRow({ insight }: { insight: Insight }) {
   return (
     <li
       data-testid="attention-row"
+      data-severity={insight.severity}
       className="flex gap-3 border-t border-border py-2.5 first:border-t-0"
     >
       <Icon className={cn("mt-0.5 size-[18px] shrink-0", icon.className)} aria-hidden="true" />

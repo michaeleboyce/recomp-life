@@ -5,6 +5,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb } from "@/lib/data/testUtils";
+import { updateSettings } from "@/lib/data/records";
+import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
 import { overridesFromSession } from "@/lib/workout";
 import type { ActivityLog, RunLog } from "@/types";
 import ConfigureWorkoutPage from "./page";
@@ -39,15 +41,58 @@ describe("configure page", () => {
     await open();
     expect(screen.getByText("Ready?")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "A1 · Squat day" })).toBeInTheDocument();
+    // Each row ends with the rest that follows its sets (cutting: +30s on T1 and T2).
     expect(rows()).toEqual([
-      "T1Barbell Squatwarm-up: 45×10 · 95×5 · 135×3 · 160×1190 lbs5×3+",
-      "T2Barbell Bench Press100 lbs3×10",
-      "T3Lat Pulldown90 lbs3×15+",
+      "T1Barbell Squatwarm-up: 45×10 · 95×5 · 135×3 · 160×1190 lbs5×3+ · rest 3:30",
+      "T2Barbell Bench Press100 lbs3×10 · rest 2:30",
+      "T3Lat Pulldown90 lbs3×15+ · rest 1:30",
     ]);
     expect(screen.getByRole("button", { name: "Gym" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Warm-up sets" })).toBeChecked();
-    expect(screen.getByText(/Est\. time: ~40 min/)).toBeInTheDocument();
+    // Every set plus its rest, warm-ups included: the same figure Today shows.
+    expect(screen.getByText("About 45 min, rests included")).toBeInTheDocument();
+  });
+
+  it("states the rest after each exercise from getRestSeconds, and explains the rest timer once", async () => {
+    await open();
+    const phase = (await db.userProfile.toCollection().first())!.settings.trainingPhase;
+    const rests = screen.getAllByTestId("planned-rest").map((el) => el.textContent);
+    expect(rests).toEqual(
+      (["T1", "T2", "T3"] as const).map((t) => ` · rest ${formatRestDuration(getRestSeconds(t, phase))}`)
+    );
+    const key = screen.getByTestId("tier-key");
+    expect(within(key).getAllByRole("button", { name: "What does rest mean?" })).toHaveLength(1);
+    expect(document.querySelectorAll('[data-term="rest-timer"]')).toHaveLength(1);
+  });
+
+  it("opens on the training location saved elsewhere (e.g. Today) and states it with a chip", async () => {
+    await updateSettings({ defaultLocation: "home" });
+    await open();
+    await waitFor(() =>
+      expect(document.querySelector("[data-slot=location-chip]")).toHaveAttribute("data-location", "home")
+    );
+    expect(rows()[1]).toMatch(/^T2DB Bench Press/);
+
+    fireEvent.click(screen.getByRole("button", { name: "Gym" }));
+    await waitFor(() =>
+      expect(document.querySelector("[data-slot=location-chip]")).toHaveAttribute("data-location", "gym")
+    );
+    await waitFor(async () =>
+      expect((await db.userProfile.toCollection().first())!.settings.defaultLocation).toBe("gym")
+    );
+  });
+
+  it("has a key above the list explaining the tiers, the '+' and warm-ups", async () => {
+    await open();
+    const key = screen.getByTestId("tier-key");
+    const list = screen.getByRole("list", { name: "Exercises" });
+    expect(key.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    for (const word of ["T1", "T2", "T3", "+", "AMRAP", "warm-up"]) {
+      expect(within(key).getByRole("button", { name: `What does ${word} mean?` })).toBeInTheDocument();
+    }
+    fireEvent.click(within(key).getByRole("button", { name: "What does warm-up mean?" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Warm-up sets");
   });
 
   it("keeps the optional parts in collapsed expanders", async () => {
@@ -71,7 +116,7 @@ describe("configure page", () => {
   it("switching off warm-ups and going home changes the list to what will be performed", async () => {
     await open();
     fireEvent.click(screen.getByRole("switch", { name: "Warm-up sets" }));
-    expect(rows()[0]).toBe("T1Barbell Squat190 lbs5×3+");
+    expect(rows()[0]).toBe("T1Barbell Squat190 lbs5×3+ · rest 3:30");
 
     fireEvent.click(screen.getByRole("button", { name: "Home" }));
     await waitFor(() => expect(rows()[1]).toMatch(/^T2DB Bench Pressin place of Barbell Bench Press at 100 lbs/));
@@ -159,6 +204,9 @@ describe("configure page", () => {
     const boxes = within(picker).getAllByRole("checkbox");
     fireEvent.click(boxes[0]);
     expect(rows()).toHaveLength(4);
-    expect(screen.getByText(/Est\. time: ~46 min/)).toBeInTheDocument();
+    expect(screen.queryByText("About 45 min, rests included")).toBeNull();
+    expect(screen.getByText(/^About \d+ min, rests included$/).textContent).not.toBe(
+      "About 45 min, rests included"
+    );
   });
 });

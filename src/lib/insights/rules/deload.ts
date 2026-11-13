@@ -14,6 +14,8 @@ const OPTIONAL = "If you feel run down, an easier week is optional";
  * each RPE/AMRAP value, so those arrays are blanked before the check.
  *
  * Returns the insights and the lifts they cover, so strength-stall does not repeat them.
+ *
+ * @evidence fatigue-detection
  */
 export function deloadInsights(ctx: InsightContext): { insights: Insight[]; covered: Set<string> } {
   const covered = new Set<string>();

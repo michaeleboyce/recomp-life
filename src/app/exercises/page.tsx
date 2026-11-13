@@ -9,7 +9,10 @@ import { initializeDatabase } from "@/db/init";
 import { getGroupedExercises, filterGroupsByMuscle } from "@/lib/exerciseCategories";
 import ExerciseRow from "@/components/Exercises/ExerciseRow";
 import { MuscleFilter } from "@/components/Exercises/MuscleFilter";
+import { CurrentLocationMarks } from "@/components/Exercises/PreferenceControl";
+import { LocationChip } from "@/components/ui/location-chip";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { useTrainingLocation } from "@/hooks";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { resolvePreferences, setScopedPreference } from "@/lib/exercisePreferences";
 import type {
@@ -41,6 +44,7 @@ export default function ExercisesPage() {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [muscle, setMuscle] = useState<MuscleId | null>(null);
   const [scope, setScope] = useState<PreferenceScope>("all");
+  const { location } = useTrainingLocation();
 
   useEffect(() => {
     initializeDatabase().then(() => setDbReady(true));
@@ -122,21 +126,23 @@ export default function ExercisesPage() {
 
       <MuscleFilter value={muscle} onChange={setMuscle} />
 
-      <div className="mb-4">
-        <div className="flex items-center gap-3">
-          <span className="shrink-0 text-xs text-muted-foreground">Preferences for</span>
-          <SegmentedControl
-            value={scope}
-            onChange={setScope}
-            options={SCOPE_OPTIONS}
-            className="flex-1"
-          />
-        </div>
-        <p className="mt-1.5 text-[11px] text-muted-foreground">
-          {scope === "all"
-            ? "Applies everywhere unless Gym or Home has its own setting."
-            : `Changes here apply to ${scope === "gym" ? "Gym" : "Home"} workouts only.`}
+      {/* Which preferences are being edited is a separate question from where you train. */}
+      <div className="mb-4 space-y-1.5" data-testid="preference-scope">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Training at <LocationChip location={location} size="sm" className="align-middle" />.
+          Preferences set for &lsquo;All&rsquo; apply everywhere; Gym or Home ones apply only
+          there.
         </p>
+        <div className="space-y-0.5">
+          <span className="text-xs text-muted-foreground">Editing preferences for</span>
+          <SegmentedControl value={scope} onChange={setScope} options={SCOPE_OPTIONS} />
+          <CurrentLocationMarks location={location} />
+        </div>
+        {scope !== "all" && (
+          <p className="text-[11px] text-muted-foreground">
+            Changes here apply to {scope === "gym" ? "Gym" : "Home"} workouts only.
+          </p>
+        )}
       </div>
 
       {groups.length === 0 && (

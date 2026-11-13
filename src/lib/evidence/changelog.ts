@@ -12,6 +12,34 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-12",
+    ruleId: "fatigue-detection",
+    change:
+      "Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or AMRAP reps), and an easier week is offered as optional.",
+    sources: [],
+  },
+  {
+    date: "2026-11-12",
+    ruleId: "fat-loss-stall",
+    change:
+      "Today now reports a weight-loss stall while cutting, but only after about three slow weeks, and suggests more daily steps before any cut in calories.",
+    sources: [],
+  },
+  {
+    date: "2026-11-12",
+    ruleId: "projection-rate-of-gain",
+    change:
+      "Projections are more cautious: the range now includes how uncertain your rate of gain is (much wider from only a few results), horizons longer than your history are marked unreliable, and after a break the projection starts from your last result instead of extending the trend across the gap.",
+    sources: [],
+  },
+  {
+    date: "2026-11-12",
+    ruleId: "projection-dose-response",
+    change:
+      "An alternative with no sets and no sessions of the lift no longer projects a gain.",
+    sources: [],
+  },
+  {
+    date: "2026-11-12",
     ruleId: "projection-dose-response",
     change:
       "New projection screen for each lift: see where your estimated 1RM is heading and try alternatives (sessions, sets, other work for the same muscles, sessions passed, phase). Alternatives further from what you do now get a wider range.",

@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LocationChip } from "@/components/ui/location-chip";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
@@ -19,6 +20,8 @@ import { TechniqueChecklist } from "@/components/PreWorkout/TechniqueChecklist";
 import { TimeEstimate } from "@/components/PreWorkout/TimeEstimate";
 import { WarmUpToggle } from "@/components/PreWorkout/WarmUpToggle";
 import { useWorkoutSetup } from "@/components/PreWorkout/useWorkoutSetup";
+// The same estimate as Today's "about N min", so the two screens agree.
+import { estimateWorkoutMinutes } from "@/components/Today/format";
 
 function LoadingScreen() {
   return (
@@ -56,7 +59,10 @@ function ConfigureWorkoutContent() {
     <PageShell className="space-y-4">
       <div>
         <p className="text-sm text-muted-foreground">Ready?</p>
-        <PageHeader title={templateTitle(setup.templateId)} />
+        <PageHeader
+          title={templateTitle(setup.templateId)}
+          action={<LocationChip location={setup.location} />}
+        />
       </div>
 
       {/* Needs attention: shown above the list, never tucked away. */}
@@ -81,7 +87,7 @@ function ConfigureWorkoutContent() {
       />
 
       {/* The workout exactly as the active screen will perform it. */}
-      <PlannedExerciseList plan={setup.plan} />
+      <PlannedExerciseList plan={setup.plan} trainingPhase={setup.trainingPhase} />
 
       <div className="flex items-center gap-4">
         <LocationToggle
@@ -92,7 +98,7 @@ function ConfigureWorkoutContent() {
         <WarmUpToggle enabled={setup.warmUps} onChange={setup.setWarmUps} />
       </div>
 
-      <TimeEstimate accessoryCount={setup.selectedAccessories.length} />
+      <TimeEstimate minutes={estimateWorkoutMinutes(setup.plan, setup.trainingPhase)} />
 
       {/* Everything optional. */}
       <div className="border-t border-border">

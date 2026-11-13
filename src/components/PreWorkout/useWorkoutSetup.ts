@@ -9,10 +9,10 @@ import {
   usePainEntries,
   useRuns,
   useSettings,
+  useTrainingLocation,
 } from "@/hooks";
 import { ACTIVITY_NOTE_WINDOW_HOURS, evaluateActivityImpact } from "@/lib/activities";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
-import { updateSettings } from "@/lib/data/records";
 import { saveLiftState, startWorkout } from "@/lib/data/workouts";
 import { ACCESSORY_IDS, EXERCISES } from "@/lib/exercises";
 import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePreferences";
@@ -103,10 +103,18 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
       : nextWorkout?.templateId;
   const template = templateId ? WORKOUT_TEMPLATES[templateId] : undefined;
 
-  // The profile supplies the defaults; a choice made on this screen overrides them.
-  const [locationChoice, setLocationChoice] = useState<WorkoutLocation | null>(null);
+  // The location is the saved training location, shared with Today and More.
+  // A change made here is shown at once and saved as the new default; `pending`
+  // only bridges the moment until the saved value comes back from the database.
+  const training = useTrainingLocation();
+  const saveLocation = training.setLocation;
+  const [pending, setPending] = useState<{ value: WorkoutLocation; over: WorkoutLocation } | null>(
+    null
+  );
+  const location =
+    pending && pending.over === training.location ? pending.value : training.location;
+  // The profile supplies the default; toggling warm-ups here is for this workout only.
   const [warmUpsChoice, setWarmUpsChoice] = useState<boolean | null>(null);
-  const location = locationChoice ?? settings.defaultLocation ?? "gym";
   const warmUps = warmUpsChoice ?? settings.showWarmUps ?? true;
 
   // Preferences in effect at the chosen location (overall, plus that location's overrides).
@@ -128,11 +136,14 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const setLocation = useCallback((next: WorkoutLocation) => {
-    setLocationChoice(next);
-    // Remembered as the default for next time.
-    updateSettings({ defaultLocation: next }).catch(() => {});
-  }, []);
+  const savedLocation = training.location;
+  const setLocation = useCallback(
+    (next: WorkoutLocation) => {
+      setPending({ value: next, over: savedLocation });
+      saveLocation(next).catch((err) => console.error("Failed to save training location:", err));
+    },
+    [saveLocation, savedLocation]
+  );
 
   /** Exactly what the active workout will perform. */
   const plan = useMemo(

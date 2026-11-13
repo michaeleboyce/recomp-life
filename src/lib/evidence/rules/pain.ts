@@ -8,7 +8,7 @@ export const PAIN_RULES = {
     title: "Should I train with pain?",
     summary: "Mild pain is usually something to work around, not a reason to stop",
     appBehavior:
-      "Logged pain (not soreness) is shown on the dashboard and against the exercises it could affect. Severity 4 or 5 opens a safety screen. Pain entries ask to be re-checked after 7 days. The app never changes your weights for pain on its own.",
+      "Logged pain (not soreness) is shown before a workout against the exercises it could affect. Severity 4 or 5 opens a safety screen. Once a pain entry is more than 7 days old, Today asks whether it is still there, with one tap to keep it or mark it resolved. The app never changes your weights for pain on its own.",
     rationale:
       "In people with ongoing musculoskeletal pain, exercise that allowed some discomfort did slightly better in the short term than strictly pain-free exercise, with no difference later. Adjusting training is generally a better response than stopping altogether.",
     caveat:
@@ -17,7 +17,7 @@ export const PAIN_RULES = {
     sources: ["smith2017"],
     reviewedOn: "2026-11",
     implementedIn: ["src/lib/painModifications.ts#shouldShowRedFlag"],
-    surfaces: ["src/components/Dashboard/ActivePainBanner.tsx"],
+    surfaces: ["src/components/Today/AttentionList.tsx"],
   },
   "pain-load-changes": {
     area: "pain",

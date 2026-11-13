@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-23 active rules, 7 planned rules, 32 sources. Last reviewed against the research: November 2026.
+25 active rules, 5 planned rules, 32 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -40,13 +40,13 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `readiness` | Recovery and time off | Active | Moderate evidence | Craven 2022, Stults-Kolehmainen 2014 |
 | `deload` | Recovery and time off | Planned | Limited evidence | Coleman 2024, Pancar 2026, Spiering 2021 |
 | `activity-fatigue` | Recovery and time off | Active | Coaching heuristic | none |
-| `fatigue-detection` | Recovery and time off | Planned | Coaching heuristic | none |
+| `fatigue-detection` | Recovery and time off | Active | Coaching heuristic | none |
 | `run-interference` | Running | Active | Moderate evidence | Robineau 2016, Markov 2021, Schumann 2022 |
 | `weekly-volume` | Training volume | Active | Moderate evidence | Pelland 2026, Roth 2022 |
 | `accessories-in-cut` | Training volume | Active | Limited evidence | Roth 2022, Murphy & Koehler 2022 |
 | `volume-ratio` | Training volume | Planned | Coaching heuristic | none |
 | `rate-of-loss` | Fat loss | Active | Moderate evidence | Helms 2014 |
-| `fat-loss-stall` | Fat loss | Planned | Limited evidence | Peos 2021 |
+| `fat-loss-stall` | Fat loss | Active | Limited evidence | Peos 2021 |
 | `projection-dose-response` | Strength projections | Active | Limited evidence | Pelland 2026, Grgic 2018b, ACSM 2026 |
 | `projection-specificity` | Strength projections | Active | Limited evidence | Pelland 2026, Saeterbakken 2025, Mattocks 2017 |
 | `projection-rate-of-gain` | Strength projections | Active | Limited evidence | Steele 2023, Latella 2020, Grgic 2020, Nuzzo 2024 |
@@ -85,12 +85,12 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Program rule
 - **Implemented in:** `src/lib/progression.ts` (`evaluateT1Progression`)
-- **Shown in:** `src/app/progress/upcoming/page.tsx`, `src/components/WorkoutSummary/LiftResult.tsx`
+- **Shown in:** `src/app/progress/upcoming/page.tsx`, `src/components/WorkoutSummary/LiftResult.tsx`, `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Complete every set and the weight goes up; miss and the scheme changes
 
-**What the app does.** Complete every set and the lift goes up next time: by your plate increment for upper-body lifts and double that for lower-body lifts. Miss reps and T1 moves from 5×3 to 6×2 to 10×1, and T2 from 3×10 to 3×8 to 3×6. After the last stage the weight resets to 85% and the cycle restarts. Sessions cut short by pain, a recent run or equipment limits freeze progression: they count as neither a pass nor a fail.
+**What the app does.** Complete every set and the lift goes up next time: by your plate increment for upper-body lifts and double that for lower-body lifts. Miss reps and T1 moves from 5×3 to 6×2 to 10×1, and T2 from 3×10 to 3×8 to 3×6. After the last stage the weight resets to 85% and the cycle restarts. Sessions cut short by pain, a recent run or equipment limits freeze progression: they count as neither a pass nor a fail. Today notes when a T1 lift has reached its last stage through failed sessions, and the weight it would reset to.
 
 **Why.** This is the GZCLP linear progression. Adding load whenever the work is completed is the standard way to progress a newer lifter, and the stage changes let you keep training heavy after a miss instead of stalling.
 
@@ -213,12 +213,12 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/e1rm.ts` (`calculateE1RM`)
-- **Shown in:** `src/app/1rm-calculator/page.tsx`, `src/components/Lift/PrLine.tsx`
+- **Shown in:** `src/app/1rm-calculator/page.tsx`, `src/components/Lift/PrLine.tsx`, `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Estimated from your heavy AMRAP set; best read as a trend
 
-**What the app does.** Uses the Epley formula (weight × (1 + reps ÷ 30)) on T1 AMRAP sets of 10 reps or fewer. If you log an RPE, the reps you had left are added first (up to 4). The trend arrow compares your last 3 estimates.
+**What the app does.** Uses the Epley formula (weight × (1 + reps ÷ 30)) on T1 AMRAP sets of 10 reps or fewer. If you log an RPE, the reps you had left are added first (up to 4). The trend arrow compares your last 3 estimates. Today reports a new best estimate from the last 7 days, and notes when a lift's last three estimates have fallen.
 
 **Why.** No formula fits everyone: the reps possible at a given percentage of 1RM differ between exercises and between people, and estimates get worse as reps climb. Within one lift the same formula still tracks change well, so the trend is more trustworthy than the number.
 
@@ -321,12 +321,12 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/weightDecay.ts` (`calculateWeightDecay`), `src/lib/recovery.ts` (`LONG_BREAK_DAYS`), `src/lib/inactivity.ts` (`checkInactivity`)
-- **Shown in:** `src/app/workout/configure/page.tsx`
+- **Shown in:** `src/app/workout/configure/page.tsx`, `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Short breaks cost little strength; long ones come back fast
 
-**What the app does.** Breaks of up to 20 days change nothing. After that the setup screen suggests starting lighter: 5% after 21–41 days, 10% after 42–69 days, 15% after 70 days or more. The suggestion is scaled by 1.25 while cutting and 0.75 while bulking, and never exceeds 20%. You can always keep your old weight.
+**What the app does.** Breaks of up to 20 days change nothing. After that the setup screen suggests starting lighter: 5% after 21–41 days, 10% after 42–69 days, 15% after 70 days or more. The suggestion is scaled by 1.25 while cutting and 0.75 while bulking, and never exceeds 20%. You can always keep your old weight. Today mentions a break once it has been 5 days since your last workout, and from 21 days says that setup will suggest lighter weights.
 
 **Why.** Strength is well preserved through breaks: one session a week maintains it for months, and after a full 10-week layoff trainees were back to their pre-break level in about 5 weeks. Losses do grow with the length of the break, so the suggestion scales with time away.
 
@@ -401,21 +401,22 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **Sources.** None: this is a coaching convention with no direct research.
 
-### How would the app detect built-up fatigue?
+### How does the app spot built-up fatigue?
 
 - **Rule id:** `fatigue-detection`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/deload.ts` (`checkSystemicFatigue`)
+- **Implemented in:** `src/lib/deload.ts` (`checkSystemicFatigue`), `src/lib/insights/rules/deload.ts` (`deloadInsights`)
+- **Shown in:** `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 
-**In one line.** Fatigue checks from estimated 1RM, RPE and AMRAP trends
+**In one line.** A falling estimated 1RM, several sessions running, is a fatigue sign
 
-**What the app does.** Rule in code: flag a lift when estimated 1RM falls, RPE rises or AMRAP reps fall for 2–4 sessions in a row (fewer while cutting). Two or more flags recommend a deload. Not connected.
+**What the app does.** Today shows a fatigue sign for a lift when its estimated 1RM has fallen 2 sessions in a row while cutting, or 3 otherwise. Two or more such lifts are reported together. Only the estimated-1RM trend is used: RPE and AMRAP reps are left out, because both move as the weight goes up every session. An easier week is optional, and one better session clears the sign. The app never changes your weights or starts a deload for this.
 
 **Why.** Tracking performance trends is a reasonable way to spot fatigue, but no study validates these specific triggers.
 
-**Before this is switched on.** Rising RPE and falling AMRAP reps are expected when the weight goes up every session. Compare at equal load, or use the estimated 1RM trend only, before connecting.
+**Limits.** A drop in estimated 1RM can also come from one bad night, a missed meal or a change in how many reps you chose to do, so treat it as a prompt to check in with yourself, not a diagnosis.
 
 **Sources.** None: this is a coaching convention with no direct research.
 
@@ -516,12 +517,12 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Moderate evidence
 - **Implemented in:** `src/lib/rateOfLoss.ts` (`calculateWeeklyRateOfLoss`)
-- **Shown in:** `src/components/Progress/BodyTab.tsx`, `src/components/Progress/body/BodyDetail.tsx`
+- **Shown in:** `src/components/Progress/BodyTab.tsx`, `src/components/Progress/body/BodyDetail.tsx`, `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Losing 0.5–1% of bodyweight a week protects muscle
 
-**What the app does.** While cutting, a weekly loss of 0.5–1.0% of bodyweight is on pace, 0.25–0.5% or 1.0–1.5% yellow, above 1.5% red, and a change of less than 0.25% either way a stall. A gain of 0.25% or more is reported as weight going up, not as a stall. Several weigh-ins on one day count as one day (their average). The Body tab labels your rate of change on pace, slow or fast, and the bodyweight page shades the target band on the weekly rate chart.
+**What the app does.** While cutting, a weekly loss of 0.5–1.0% of bodyweight is on pace, 0.25–0.5% or 1.0–1.5% yellow, above 1.5% red, and a change of less than 0.25% either way a stall. A gain of 0.25% or more is reported as weight going up, not as a stall. Several weigh-ins on one day count as one day (their average). The Body tab labels your rate of change on pace, slow or fast, and the bodyweight page shades the target band on the weekly rate chart. While cutting, Today says when the rate is on pace, faster or slower than the target, or when weight is going up.
 
 **Why.** A review for physique athletes recommends losing 0.5–1% of bodyweight per week to retain muscle while dieting.
 
@@ -532,18 +533,17 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### What should I do when weight loss stalls?
 
 - **Rule id:** `fat-loss-stall`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/stallDetection.ts` (`detectFatLossStall`)
+- **Implemented in:** `src/lib/stallDetection.ts` (`detectFatLossStall`), `src/lib/insights/rules/fatLossStall.ts` (`fatLossStallInsights`)
+- **Shown in:** `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Wait about three weeks before treating a slow patch as a stall
 
-**What the app does.** Rule in code: flag a stall when this week's 7-day average is less than 0.3 lb below last week's, and suggest re-checking intake, adding cardio or taking a diet break. Several weigh-ins on one day count as one day (their average). The chart that would show it is not on any screen.
+**What the app does.** While cutting, Today reports a stall only when two things hold: this week's 7-day average is less than 0.3 lb below last week's, and your weekly rate has stayed under 0.25% of bodyweight for about three weeks. It then suggests adding daily steps first, and a small cut in calories only after five weeks. Several weigh-ins on one day count as one day (their average). The app does not prescribe a diet break; taking one is your choice.
 
 **Why.** Week-to-week weight is noisy. In a 12-week trial with resistance-trained adults, week-long diet breaks did not improve fat loss or muscle retention, so a diet break is a comfort choice rather than a fix.
-
-**Before this is switched on.** Require about three slow weeks before flagging (the rule in rateOfLoss.ts already does) and present the diet break as optional.
 
 **Sources**
 
@@ -562,7 +562,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** More sessions help strength a little; extra sets help even less
 
-**What the app does.** The projection scales your own measured rate of gain. At equal weekly sets, the rate is multiplied by (new sessions ÷ current sessions) ^ 0.2, so doubling sessions adds about 15%. Weekly sets for the lift's main muscles scale it by (new ÷ current) ^ 0.1, so doubling sets adds about 7%, and sets beyond 20 a week add nothing. The combined effect is held between ×0.5 and ×1.3. The further an alternative is from what you do now, the wider its range: by 0.5 × the size of the change in rate (on a log scale).
+**What the app does.** The projection scales your own measured rate of gain. At equal weekly sets, the rate is multiplied by (new sessions ÷ current sessions) ^ 0.2, so doubling sessions adds about 15%. Weekly sets for the lift's main muscles scale it by (new ÷ current) ^ 0.1, so doubling sets adds about 7%, and sets beyond 20 a week add nothing. The combined effect is held between ×0.5 and ×1.3, except that an alternative with no sets and no sessions of the lift projects no gain at all. The further an alternative is from what you do now, the wider its range: by 0.5 × the size of the change in rate (on a log scale).
 
 **Why.** The largest analysis of training dose found strength rises with weekly sets but levels off quickly, with no clear extra gain beyond about 4–5 sets a week, while training a lift more often kept adding strength with diminishing returns even when total sets were accounted for.
 
@@ -608,11 +608,11 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** Strength gains slow over time, and single estimates are noisy
 
-**What the app does.** The projected weekly gain keeps 96% of the previous week's, so it halves in about 17 weeks. The range is 1.28 times the scatter of your own estimates around their trend (about an 80% range), widened by (1 + 0.5 × √weeks ahead). The scatter is never taken as less than 2.1% of your current estimate, so a very steady history still gets a range.
+**What the app does.** The projected weekly gain keeps 96% of the previous week's, so it halves in about 17 weeks. The range (about an 80% range, 1.28 standard deviations) combines two things: the scatter of your own estimates around their trend, widened by (1 + 0.5 × √weeks ahead), and how uncertain the fitted rate itself is, carried over the weeks ahead, which is large when the trend rests on few results. The scatter is never taken as less than 2.1% of your current estimate, so a very steady history still gets a range. A projection further ahead than the span of results behind the trend (at least 4 weeks) is marked as unreliable. The projection starts from your most recent result, not from the trend extended across a gap, and when that result is more than 4 weeks old it says the figure may be optimistic: strength lost during time off is not estimated.
 
 **Why.** In nearly 15,000 adults' training records, strength rose quickly at first and then ever more slowly, practically levelling off after one to two years, and stronger powerlifters improved more slowly than weaker ones. Even a tested 1RM varies by a few percent from day to day, and estimates from rep sets vary more, so a single projected number would look more certain than it is.
 
-**Limits.** How fast gains slow depends on how long you have trained; the app uses one rate that fits someone about four months in, so it under-promises for longer-trained lifters and may over-promise for someone in their first few months. The studies were of machine training and competition totals, not of a GZCLP lifter's estimated 1RM. The growth of the range is a judgment, not a measured value.
+**Limits.** How fast gains slow depends on how long you have trained; the app uses one rate that fits someone about four months in, so it under-promises for longer-trained lifters and may over-promise for someone in their first few months. The studies were of machine training and competition totals, not of a GZCLP lifter's estimated 1RM. The growth of the range and the limit on how far ahead to look are judgments, not measured values.
 
 **Sources**
 
@@ -651,12 +651,12 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/painModifications.ts` (`shouldShowRedFlag`)
-- **Shown in:** `src/components/Dashboard/ActivePainBanner.tsx`
+- **Shown in:** `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Mild pain is usually something to work around, not a reason to stop
 
-**What the app does.** Logged pain (not soreness) is shown on the dashboard and against the exercises it could affect. Severity 4 or 5 opens a safety screen. Pain entries ask to be re-checked after 7 days. The app never changes your weights for pain on its own.
+**What the app does.** Logged pain (not soreness) is shown before a workout against the exercises it could affect. Severity 4 or 5 opens a safety screen. Once a pain entry is more than 7 days old, Today asks whether it is still there, with one tap to keep it or mark it resolved. The app never changes your weights for pain on its own.
 
 **Why.** In people with ongoing musculoskeletal pain, exercise that allowed some discomfort did slightly better in the short term than strictly pain-free exercise, with no difference later. Adjusting training is generally a better response than stopping altogether.
 
@@ -750,6 +750,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **12 November 2026** — `fatigue-detection` (How does the app spot built-up fatigue?): Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or AMRAP reps), and an easier week is offered as optional. Sources: .
+- **12 November 2026** — `fat-loss-stall` (What should I do when weight loss stalls?): Today now reports a weight-loss stall while cutting, but only after about three slow weeks, and suggests more daily steps before any cut in calories. Sources: .
+- **12 November 2026** — `projection-rate-of-gain` (Why does the projection curve flatten, and why is the range so wide?): Projections are more cautious: the range now includes how uncertain your rate of gain is (much wider from only a few results), horizons longer than your history are marked unreliable, and after a break the projection starts from your last result instead of extending the trend across the gap. Sources: .
+- **12 November 2026** — `projection-dose-response` (How much would more sets or sessions speed up my lift?): An alternative with no sets and no sessions of the lift no longer projects a gain. Sources: .
 - **12 November 2026** — `projection-dose-response` (How much would more sets or sessions speed up my lift?): New projection screen for each lift: see where your estimated 1RM is heading and try alternatives (sessions, sets, other work for the same muscles, sessions passed, phase). Alternatives further from what you do now get a wider range. Sources: Pelland 2026, Grgic 2018b.
 - **12 November 2026** — `projection-rate-of-gain` (Why does the projection curve flatten, and why is the range so wide?): The projection range now never assumes less scatter than about 2% of your estimate, so a very steady history no longer shows a range of zero. Sources: Grgic 2020, Nuzzo 2024.
 - **11 November 2026** — `activity-fatigue` (Why does a hard yoga class or ride matter?): Yoga, cycling, hiking and walking can now be logged. A hard one in the last 24 hours shows a note before your next workout; it never changes weights or progression. Sources: .

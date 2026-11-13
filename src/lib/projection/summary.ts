@@ -94,6 +94,10 @@ export function summarizeScenario(
   }
   const weeks = projection.points.length - 1;
   const end = projection.points[weeks].v;
+  if (projection.flatReason === "no-dose") {
+    const current = comparison.points[comparison.points.length - 1]?.v ?? end;
+    return `With no ${lift} sets or sessions, the model has nothing to scale, so it holds about ${about(end)} for the next ${weeksText(weeks)} (a lift you stop training usually slips). On your current trend, about ${about(current)}.`;
+  }
   if (projection.status === "flat-trend") {
     return `Your recent ${lift} estimates are not rising, so the projection holds about ${about(end)} for the next ${weeksText(weeks)}.`;
   }

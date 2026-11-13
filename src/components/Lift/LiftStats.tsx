@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { ChevronRight, TrendingUp } from "lucide-react";
 import { Delta } from "@/components/ui/delta";
-import { formatCompact, TEASER_WEEKS, type LiftStats as Stats } from "./liftSeries";
+import { Term } from "@/components/ui/term";
+import type { ProjectionTeaser } from "@/lib/projection";
+import { formatCompact, type LiftStats as Stats } from "./liftSeries";
 
-function Stat({ label, value, sub }: { label: string; value: string; sub: React.ReactNode }) {
+function Stat({ label, value, sub }: { label: React.ReactNode; value: string; sub: React.ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <span className="text-[11px] text-muted-foreground">{label}</span>
@@ -25,8 +27,16 @@ export function LiftStats({ stats }: { stats: Stats }) {
         value={working.value === null ? "–" : String(working.value)}
         sub={working.change !== null ? <Delta value={working.change} better="up" className="text-[11px]" /> : "lbs"}
       />
-      <Stat label="Last set" value={fmt1(stats.lastSetReps)} sub="avg reps" />
-      <Stat label="Effort" value={fmt1(stats.effort)} sub="avg RPE" />
+      <Stat
+        label={<Term id="amrap" label="Last set">Last set</Term>}
+        value={fmt1(stats.lastSetReps)}
+        sub="avg reps"
+      />
+      <Stat
+        label={<Term id="rpe" label="Effort">Effort</Term>}
+        value={fmt1(stats.effort)}
+        sub="avg RPE"
+      />
       <Stat
         label="Volume"
         value={stats.weeklyVolume === null ? "–" : formatCompact(stats.weeklyVolume)}
@@ -37,7 +47,13 @@ export function LiftStats({ stats }: { stats: Stats }) {
 }
 
 /** Link to the projection screen, with "On this trend: about 249 in 8 weeks" when it can be fitted. */
-export function ProjectionLink({ exerciseId, teaser }: { exerciseId: string; teaser: number | null }) {
+export function ProjectionLink({
+  exerciseId,
+  teaser,
+}: {
+  exerciseId: string;
+  teaser: ProjectionTeaser | null;
+}) {
   return (
     <Link
       href={`/progress/lift/${exerciseId}/projection`}
@@ -48,7 +64,7 @@ export function ProjectionLink({ exerciseId, teaser }: { exerciseId: string; tea
         <span className="text-sm font-bold">Projection</span>
         {teaser !== null && (
           <span className="text-xs text-muted-foreground">
-            On this trend: about {teaser} in {TEASER_WEEKS} weeks
+            On this trend: about {teaser.value} in {teaser.weeks} weeks
           </span>
         )}
       </span>

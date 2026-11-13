@@ -44,7 +44,12 @@ describe("Today page", () => {
     await initializeDatabase();
     render(<TodayPage />);
     expect(await screen.findByText(/Workout A1/)).toBeInTheDocument();
+    // Wait until the estimates have loaded (the lift tiles say there are none), so
+    // the PR line's absence means "no PR chance", not "still loading".
+    await waitFor(() => expect(screen.getAllByText(/Finish a workout to estimate it/)).toHaveLength(2));
+    await screen.findAllByTestId("hero-exercise");
     expect(screen.queryByText(/PR chance/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "What does PR chance mean?" })).toBeNull();
   });
 
   it("with demo data shows the PR line, tiles and the muscle card", async () => {
@@ -56,7 +61,8 @@ describe("Today page", () => {
     await db.liftStates.bulkPut(demo.liftStates);
     await db.userProfile.put(makeProfile());
     render(<TodayPage />);
-    expect(await screen.findByRole("link", { name: /PR chance on/ })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /^on .*reps on the last set beats/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "What does PR chance mean?" })).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: /Weight/ })).toHaveAttribute("href", "/progress?tab=body");
     expect(screen.getByRole("link", { name: "Open the muscle explorer" })).toHaveAttribute("href", "/muscles");
   });

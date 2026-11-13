@@ -6,7 +6,12 @@ import { db } from "@/db/local";
 import { clearDb, makeProfile, makeWorkout } from "@/lib/data/testUtils";
 import type { Insight } from "@/lib/insights";
 import { useInsights } from "@/hooks";
-import { AttentionList, PositiveInsightLine, useDiscardStaleWorkouts } from "./AttentionList";
+import {
+  AttentionList,
+  hasAttention,
+  PositiveInsightLine,
+  useDiscardStaleWorkouts,
+} from "./AttentionList";
 
 function Harness() {
   useDiscardStaleWorkouts();
@@ -55,6 +60,44 @@ describe("AttentionList", () => {
     fireEvent.click(screen.getByRole("button", { name: "2 more" }));
     expect(screen.getAllByTestId("attention-row")).toHaveLength(5);
     expect(screen.getByText("Insight 5")).toBeInTheDocument();
+  });
+
+  it("shows info insights after the warnings, the mild inactivity nudge last", () => {
+    // In computeInsights order: severity first, then kind (inactivity before strength-stall).
+    render(
+      <AttentionList
+        insights={[
+          insight(1, { severity: "action", kind: "weigh-in-due" }),
+          insight(2, { severity: "warning", kind: "deload" }),
+          insight(3, { severity: "info", kind: "inactivity" }),
+          insight(4, { severity: "info", kind: "strength-stall" }),
+          insight(5, { severity: "positive", kind: "new-pr" }),
+        ]}
+      />
+    );
+    const rows = screen.getAllByTestId("attention-row");
+    expect(rows).toHaveLength(3);
+    expect(rows.map((r) => r.getAttribute("data-severity"))).toEqual(["action", "warning", "info"]);
+    expect(rows[2]).toHaveTextContent("Insight 4");
+    fireEvent.click(screen.getByRole("button", { name: "1 more" }));
+    const all = screen.getAllByTestId("attention-row");
+    expect(all).toHaveLength(4);
+    expect(all[3]).toHaveTextContent("Insight 3");
+    expect(screen.queryByText("Insight 5")).not.toBeInTheDocument();
+  });
+
+  it("shows an info insight when it is the only one", () => {
+    const stall = insight(1, { severity: "info", kind: "strength-stall", title: "Squat estimated 1RM down" });
+    render(<AttentionList insights={[stall]} />);
+    expect(screen.getByRole("heading", { name: "Needs attention" })).toBeInTheDocument();
+    expect(screen.getByText("Squat estimated 1RM down")).toBeInTheDocument();
+  });
+
+  it("hasAttention counts info but not positive insights", () => {
+    expect(hasAttention([insight(1, { severity: "info", kind: "inactivity" })])).toBe(true);
+    expect(hasAttention([insight(1, { severity: "positive", kind: "new-pr" })])).toBe(false);
+    expect(hasAttention([])).toBe(false);
+    expect(hasAttention(undefined)).toBe(false);
   });
 
   it("shows the body, the action link and the evidence icon", () => {

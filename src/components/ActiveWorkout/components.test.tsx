@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
@@ -12,8 +12,15 @@ import { RepPicker } from "./RepPicker";
 import { RPESelector } from "./RPESelector";
 import { WeightDisplay } from "./WeightDisplay";
 import { WorkoutOverviewSheet } from "./WorkoutOverviewSheet";
-import { repChips } from "./activeWorkoutLogic";
+import { repChips, restNextLabel } from "./activeWorkoutLogic";
 import { describeChance } from "./prOpportunity";
+
+const audio = vi.hoisted(() => ({
+  playTimerChime: vi.fn(),
+  vibrateTimer: vi.fn(),
+  sendTimerNotification: vi.fn(),
+}));
+vi.mock("@/lib/audio", () => audio);
 
 const EQUIPMENT = DEFAULT_USER_PROFILE.settings.equipment;
 
@@ -234,13 +241,41 @@ describe("ExerciseBlock", () => {
   });
 });
 
+describe("glossary terms mid-workout", () => {
+  it("AMRAP opens its entry, with no links away from the workout", async () => {
+    render(<AMRAPIndicator tier="T1" />);
+    expect(document.querySelector("abbr")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "What does AMRAP mean?" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("AMRAP");
+    expect(within(sheet).queryByRole("link")).toBeNull();
+  });
+
+  it("the tier badge, RPE heading and 'new best' are explained", () => {
+    render(
+      <>
+        <ExerciseBlock exercise={entry({ tier: "T2" })} location="gym" />
+        <RPESelector selectedRPE={null} onSelectRPE={vi.fn()} />
+        <PrOpportunityLine
+          opportunity={{ repsNeeded: 5, e1rmAtRepsNeeded: 286, bestE1RM: 266, chance: "likely" }}
+          recentAMRAPReps={[]}
+        />
+      </>
+    );
+    expect(screen.getByRole("button", { name: "What does T2 mean?" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Effort \(.*RPE.*, optional\)/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "What does RPE mean?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "What does new best mean?" })).toBeInTheDocument();
+  });
+});
+
 describe("LogDock", () => {
   const props = {
     onLog: vi.fn(),
     audioEnabled: false,
     vibrationEnabled: false,
     trainingPhase: { mode: "cutting" as const },
-    nextLabel: "Next: set 2 of 5 at 245 lbs",
+    nextLabel: "Next: set 2 of 5 · 245 lbs",
   };
 
   it("is one button naming the selected count", () => {
@@ -259,16 +294,29 @@ describe("LogDock", () => {
 
     expect(screen.queryByRole("button", { name: /^LOG/ })).toBeNull();
     const timer = screen.getByRole("timer");
-    expect(timer).toHaveTextContent("3:30");
-    expect(timer).toHaveTextContent("Next: set 2 of 5 at 245 lbs");
+    expect(within(timer).getByTestId("rest-label")).toHaveTextContent("Rest");
+    expect(within(timer).getByTestId("rest-remaining")).toHaveTextContent("3:30");
+    // The remaining time is the largest text in the dock.
+    expect(within(timer).getByTestId("rest-remaining")).toHaveClass("text-4xl");
+    expect(timer).toHaveTextContent("of 3:30");
+    expect(timer).toHaveTextContent("Next: set 2 of 5 · 245 lbs");
     expect(timer).toHaveTextContent("+30s cut");
     expect(timer.querySelector('[data-evidence="rest-heavy"]')).not.toBeNull();
     expect(timer.querySelector('[data-evidence="rest-cut-bonus"]')).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "+30s" }));
-    expect(useWorkoutStore.getState().restTimerDuration).toBe(240);
+    // +5s and +15s top up the remaining rest; all three controls are 44px tall.
+    expect(screen.queryByRole("button", { name: "+30s" })).toBeNull();
+    for (const name of ["+5s", "+15s", "Skip rest"]) {
+      expect(screen.getByRole("button", { name })).toHaveClass("h-11");
+    }
+    expect(screen.getByRole("button", { name: "+5s" })).toHaveClass("font-mono");
+    fireEvent.click(screen.getByRole("button", { name: "+5s" }));
+    expect(useWorkoutStore.getState().restTimeRemaining).toBe(215);
+    fireEvent.click(screen.getByRole("button", { name: "+15s" }));
+    expect(useWorkoutStore.getState().restTimeRemaining).toBe(230);
+    expect(useWorkoutStore.getState().restTimerDuration).toBe(230);
 
-    fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+    fireEvent.click(screen.getByRole("button", { name: "Skip rest" }));
     expect(screen.getByRole("button", { name: "LOG 3 REPS" })).toBeInTheDocument();
   });
 
@@ -280,6 +328,23 @@ describe("LogDock", () => {
     act(() => useWorkoutStore.setState({ restTimeRemaining: 0 }));
     expect(screen.getByRole("button", { name: "LOG 3 REPS" })).toBeInTheDocument();
     expect(useWorkoutStore.getState().isRestTimerActive).toBe(false);
+  });
+
+  it("chimes and vibrates at the end of rest only when the settings allow", () => {
+    audio.playTimerChime.mockClear();
+    audio.vibrateTimer.mockClear();
+    const { unmount } = render(<LogDock {...props} reps={3} />);
+    act(() => useWorkoutStore.getState().startRestTimer(90, "T3"));
+    act(() => useWorkoutStore.setState({ restTimeRemaining: 0 }));
+    expect(audio.playTimerChime).not.toHaveBeenCalled();
+    expect(audio.vibrateTimer).not.toHaveBeenCalled();
+    unmount();
+
+    render(<LogDock {...props} reps={3} audioEnabled vibrationEnabled />);
+    act(() => useWorkoutStore.getState().startRestTimer(90, "T3"));
+    act(() => useWorkoutStore.setState({ restTimeRemaining: 0 }));
+    expect(audio.playTimerChime).toHaveBeenCalledTimes(1);
+    expect(audio.vibrateTimer).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -317,5 +382,28 @@ describe("WorkoutOverviewSheet", () => {
     expect(onEnd).toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Discard" }));
     expect(onDiscard).toHaveBeenCalled();
+  });
+});
+
+describe("restNextLabel", () => {
+  it("names the next set and its weight, and the exercise when it changes", () => {
+    expect(restNextLabel(entry({ completedSets: 2 }), "Barbell Deadlift")).toBe(
+      "Next: set 3 of 5 · 245 lbs"
+    );
+    expect(
+      restNextLabel(
+        entry({ exerciseId: "bench", tier: "T2", targetSets: 3, weight: 100 }),
+        "Barbell Bench Press"
+      )
+    ).toBe("Next: Barbell Bench Press, set 1 of 3 · 100 lbs");
+    expect(restNextLabel(entry({ weight: 40, completedSets: 1 }), "DB Bench Press", true)).toBe(
+      "Next: set 2 of 5 · 40 lbs/hand"
+    );
+    expect(
+      restNextLabel(
+        entry({ tier: "warmup", isWarmUp: true, targetSets: 1, weight: 135 }),
+        "Barbell Squat"
+      )
+    ).toBe("Next: Barbell Squat warm-up · 135 lbs");
   });
 });

@@ -112,6 +112,28 @@ describe("RunsTab", () => {
     expect(screen.queryByText(/slept under 7 hours/)).toBeNull();
   });
 
+  it("shows sleep and energy for a lifter with check-ins but no runs or activities", async () => {
+    await db.userProfile.put(makeProfile());
+    await seedReadiness("mixed");
+    render(<RunsTab />);
+    expect(
+      await screen.findByRole("region", { name: "Sleep and energy before workouts" })
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No runs or activities yet")).toBeNull();
+    expect(screen.queryByText("Distance run")).toBeNull();
+    // The range can still be changed without the distance chart that normally carries it.
+    expect(screen.getAllByRole("radiogroup")).toHaveLength(1);
+    expect(screen.getByRole("link", { name: /Log a run or activity/ })).toHaveAttribute("href", "/run");
+  });
+
+  it("keeps a single range control when there are runs", async () => {
+    await seedRuns();
+    await seedReadiness("mixed");
+    render(<RunsTab />);
+    await screen.findByText("Distance run");
+    expect(screen.getAllByRole("radiogroup")).toHaveLength(1);
+  });
+
   it("shows an empty state with the log action when nothing is logged", async () => {
     await db.userProfile.put(makeProfile());
     render(<RunsTab />);

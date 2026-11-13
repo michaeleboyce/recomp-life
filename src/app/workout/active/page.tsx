@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getExercise } from "@/lib/exercises";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { Term } from "@/components/ui/term";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { AutoRegCallout } from "@/components/ActiveWorkout/AutoRegCallout";
 import { DiscardWorkoutDialog } from "@/components/ActiveWorkout/DiscardWorkoutDialog";
@@ -19,7 +20,7 @@ import { WeightDisplay } from "@/components/ActiveWorkout/WeightDisplay";
 import { WorkoutFinished } from "@/components/ActiveWorkout/WorkoutFinished";
 import { WorkoutHeader } from "@/components/ActiveWorkout/WorkoutHeader";
 import { WorkoutOverviewSheet } from "@/components/ActiveWorkout/WorkoutOverviewSheet";
-import { formatClock } from "@/components/ActiveWorkout/activeWorkoutLogic";
+import { formatClock, restNextLabel } from "@/components/ActiveWorkout/activeWorkoutLogic";
 import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
 import { useActiveWorkout } from "@/components/ActiveWorkout/useActiveWorkout";
 import {
@@ -131,7 +132,12 @@ function ActiveWorkoutContent() {
   if (status === "complete" || !entry) {
     return (
       <div className="mx-auto min-h-screen max-w-lg bg-background px-5 pt-4 pb-8">
-        <WorkoutHeader title={title} elapsed={elapsed} exercises={plan} />
+        <WorkoutHeader
+          title={title}
+          location={session.location}
+          elapsed={elapsed}
+          exercises={plan}
+        />
         <WorkoutFinished
           setsLogged={sets.length}
           duration={elapsed}
@@ -145,12 +151,18 @@ function ActiveWorkoutContent() {
   }
 
   const showEffort = settings.showRPE && !entry.isWarmUp;
-  const nextSet = Math.min(entry.completedSets + 1, entry.targetSets);
+  const shown = getExercise(entry.substituteExerciseId || entry.exerciseId);
+  const nextLabel = restNextLabel(
+    entry,
+    shown.name,
+    !!entry.substituteExerciseId && shown.grip === "per_hand"
+  );
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background px-5 pt-4 pb-36">
       <WorkoutHeader
         title={title}
+        location={session.location}
         elapsed={elapsed}
         exercises={plan}
         currentExerciseIndex={activeIndex}
@@ -171,7 +183,17 @@ function ActiveWorkoutContent() {
       />
 
       {workout.e1rmFlash !== null && (
-        <Callout variant="success" title={`Estimated 1RM: ${workout.e1rmFlash} lbs`} />
+        <Callout
+          variant="success"
+          title={
+            <>
+              <Term id="e1rm" hideLinks>
+                Estimated 1RM
+              </Term>
+              : {workout.e1rmFlash} lbs
+            </>
+          }
+        />
       )}
 
       {workout.dropSuggestion && (
@@ -210,7 +232,7 @@ function ActiveWorkoutContent() {
         audioEnabled={settings.restTimerAudio}
         vibrationEnabled={settings.restTimerVibration}
         trainingPhase={workout.trainingPhase}
-        nextLabel={`Next: set ${nextSet} of ${entry.targetSets} at ${entry.weight} lbs`}
+        nextLabel={nextLabel}
         message={workout.error}
       />
 

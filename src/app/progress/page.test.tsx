@@ -48,7 +48,7 @@ describe("Progress hub tabs", () => {
     render(<ProgressPage />);
     expect(screen.getByRole("heading", { name: "Progress" })).toBeInTheDocument();
     expect(await screen.findByRole("tabpanel", { name: "Strength" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Runs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cardio" }));
     expect(replace).toHaveBeenCalledWith("/progress?tab=runs", { scroll: false });
   });
 
@@ -95,7 +95,12 @@ describe("Strength tab", () => {
       .sort((a, b) => +a.date - +b.date)
       .at(-1)!.estimated1RM;
     expect(links[0]).toHaveTextContent(String(Math.round(latest)));
-    expect(screen.getByText("Total of four lifts, est. 1RM")).toBeInTheDocument();
+    const total = screen.getByRole("region", { name: "Strength total" });
+    expect(within(total).getByRole("heading")).toHaveTextContent("Total of four lifts, est. 1RM");
+    expect(within(total).getByRole("button", { name: "What does est. 1RM mean?" })).toHaveAttribute(
+      "data-term",
+      "e1rm"
+    );
     expect(screen.getByRole("region", { name: "Recovery" })).toBeInTheDocument();
   });
 

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cloneElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
-import { clearDb, makeProfile } from "@/lib/data/testUtils";
+import { clearDb, makeE1RM, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { PROJECTION_EVIDENCE_IDS } from "@/lib/projection";
 
@@ -73,9 +73,13 @@ describe("projection screen", () => {
   it("renders the demo squat: title, summary, chart with the current trend, controls", async () => {
     await seedDemo();
     await renderLoaded();
-    expect(screen.getByRole("heading", { level: 1, name: "Squat projection" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Squat projection");
+    for (const word of ["projection", "Weekly sets", "Fail and reset", "Training phase"]) {
+      expect(screen.getByRole("button", { name: `What does ${word} mean?` })).toBeInTheDocument();
+    }
     expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/progress/lift/squat");
-    expect(summary()).toMatch(/^On your current trend, about \d+ in 12 weeks\.$/);
+    // The longest horizon the demo's history supports.
+    expect(summary()).toMatch(/^On your current trend, about \d+ in \d+ weeks\.$/);
     expect(chart().getAttribute("aria-label")).toMatch(/current trend \d+, range \d+ to \d+/);
     expect(chart().getAttribute("aria-label")).not.toMatch(/alternative/);
     expect(screen.getByText(/^Current trend, range \d+ to \d+$/)).toBeInTheDocument();
@@ -165,6 +169,67 @@ describe("projection screen", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/no personal rate of gain/);
     expect(screen.queryByRole("slider")).toBeNull();
     expect(chart()).toBeInTheDocument();
+  });
+
+  const WEEK = 7 * 86_400_000;
+  const squatRows = () => demo.estimated1RMs.filter((r) => r.exerciseId === "squat");
+
+  it("a short history disables the longer horizons, says why, and opens on the longest allowed", async () => {
+    // The demo's recent squat results span under eight weeks.
+    await seedDemo();
+    await renderLoaded();
+    const enabled = ["4w", "8w", "12w"].filter((name) => !screen.getByRole("radio", { name }).hasAttribute("disabled"));
+    expect(enabled.length).toBeLessThan(3);
+    expect(enabled).toContain("4w");
+    const longest = enabled[enabled.length - 1];
+    expect(screen.getByRole("radio", { name: longest })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "12w" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("radio", { name: "12w" }));
+    expect(screen.getByRole("radio", { name: longest })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByTestId("horizon-note")).toHaveTextContent(/only shown .* ahead/);
+    expect(summary()).toMatch(new RegExp(`in ${parseInt(longest, 10)} weeks\\.$`));
+    // "Built from" uses the weeks the trend was fitted to (under eight here).
+    const built = screen.getByText(/The estimate is built from about \d+ weeks?/).textContent!;
+    expect(Number(built.match(/about (\d+) week/)![1])).toBeLessThan(8);
+  });
+
+  it("twelve weeks of results allow every horizon and show no note", async () => {
+    const rows = Array.from({ length: 13 }, (_, i) =>
+      makeE1RM({
+        exerciseId: "squat",
+        date: new Date(NOW.getTime() - (12 - i) * WEEK - 3_600_000),
+        estimated1RM: 220 + 2 * i + (i % 2),
+      })
+    );
+    await db.estimated1RMs.bulkPut(rows);
+    await db.userProfile.put(makeProfile());
+    await renderLoaded();
+    for (const name of ["4w", "8w", "12w"]) {
+      expect(screen.getByRole("radio", { name })).toBeEnabled();
+    }
+    expect(screen.getByRole("radio", { name: "12w" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByTestId("horizon-note")).toBeNull();
+    expect(screen.getByText(/The estimate is built from about 12 weeks/)).toBeInTheDocument();
+  });
+
+  it("an old last result: says how old, above the chart", async () => {
+    await db.estimated1RMs.bulkPut(
+      squatRows().map((r) => ({ ...r, date: new Date(new Date(r.date).getTime() - 8 * WEEK) }))
+    );
+    await db.userProfile.put(makeProfile());
+    await renderLoaded();
+    const callout = screen.getByText(/Your last squat estimate is \d+ weeks old/);
+    expect(Number(callout.textContent!.match(/is (\d+) weeks/)![1])).toBeGreaterThanOrEqual(8);
+    expect(callout.compareDocumentPosition(chart()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("no sessions and no sets of the lift: its own message, not the flat-trend text", async () => {
+    await seedDemo();
+    await renderLoaded();
+    fireEvent.change(screen.getByLabelText("Squat sessions a week"), { target: { value: "0" } });
+    fireEvent.change(screen.getByLabelText("Sets of squat a week"), { target: { value: "0" } });
+    await waitFor(() => expect(summary()).toMatch(/^With no squat sets or sessions/));
+    expect(summary()).not.toMatch(/estimates are not rising/);
   });
 
   it("unknown lift: an empty state with a link back", async () => {

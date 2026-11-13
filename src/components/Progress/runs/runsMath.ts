@@ -15,6 +15,50 @@ export function mean(series: Series): number | null {
   return series.points.length === 0 ? null : sum(series) / series.points.length;
 }
 
+export interface PaceOverall {
+  /** Minutes per mile over every run with a distance: total minutes / total miles. */
+  average: number | null;
+  /**
+   * The same figure for the later half of those runs minus the earlier half (an odd
+   * middle run counts as later); null with fewer than two. Negative is faster.
+   */
+  change: number | null;
+}
+
+/**
+ * Average pace for a set of runs, from the per-run distance and duration series
+ * (joined on `refId`, the run's id). A mean of per-run paces would let a one-mile
+ * run count as much as a ten-mile one; this is what a watch would show for the lot.
+ * Runs without a distance, or with a distance of zero, are left out along with their
+ * minutes.
+ */
+export function paceOverall(distance: Series, duration: Series): PaceOverall {
+  const minutesByRun = new Map<string, number>();
+  for (const p of duration.points) if (p.refId !== undefined) minutesByRun.set(p.refId, p.v);
+
+  const runs = distance.points
+    .flatMap((p) => {
+      const minutes = p.refId === undefined ? undefined : minutesByRun.get(p.refId);
+      return p.v > 0 && minutes !== undefined && Number.isFinite(minutes)
+        ? [{ t: p.t, miles: p.v, minutes }]
+        : [];
+    })
+    .sort((a, b) => a.t - b.t);
+
+  const pace = (part: typeof runs): number | null => {
+    const miles = part.reduce((total, r) => total + r.miles, 0);
+    return miles > 0 ? part.reduce((total, r) => total + r.minutes, 0) / miles : null;
+  };
+
+  const half = Math.floor(runs.length / 2);
+  const earlier = pace(runs.slice(0, half));
+  const later = pace(runs.slice(half));
+  return {
+    average: pace(runs),
+    change: earlier !== null && later !== null ? later - earlier : null,
+  };
+}
+
 /** "45 min", "1 h", "1 h 35 min". */
 export function formatMinutes(minutes: number): string {
   const total = Math.round(minutes);

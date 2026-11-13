@@ -1,13 +1,14 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { describeNextWorkout } from "@/lib/workout/buildPlan";
-import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
+import { getNextWorkoutId, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
+import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
 import { EXERCISES } from "@/lib/exercises";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { WorkoutLocation } from "@/types";
@@ -89,6 +90,46 @@ describe("NextWorkoutHero", () => {
     });
   });
 
+  it("states the location with a chip, and switching it saves the default", async () => {
+    await seedDemo();
+    render(<NextWorkoutHero />);
+    await screen.findAllByTestId("hero-exercise");
+    const chip = () => document.querySelector("[data-slot=location-chip]");
+    expect(chip()).toHaveAttribute("data-location", "gym");
+
+    fireEvent.click(screen.getByRole("button", { name: "Home" }));
+    await waitFor(async () =>
+      expect((await db.userProfile.toCollection().first())!.settings.defaultLocation).toBe("home")
+    );
+    await waitFor(() => expect(chip()).toHaveAttribute("data-location", "home"));
+  });
+
+  it("opens on the saved default location", async () => {
+    await seedDemo();
+    await db.userProfile.update("profile-1", {
+      settings: { ...makeProfile().settings, defaultLocation: "home" },
+    });
+    render(<NextWorkoutHero />);
+    const substitute = expectedPlan("home").plan.find((e) => e.substituteExerciseId)!;
+    expect(await screen.findByText(EXERCISES[substitute.substituteExerciseId!].name)).toBeInTheDocument();
+  });
+
+  it("lists the two workouts after the next one, linking to the upcoming screen", async () => {
+    await seedDemo();
+    render(<NextWorkoutHero />);
+    const next = expectedPlan("gym").templateId;
+    const then = getNextWorkoutId(next);
+    const after = getNextWorkoutId(then);
+    const line = await screen.findByRole("link", { name: /^Coming up:/ });
+    expect(line).toHaveTextContent(
+      `Coming up: ${templateTitle(then).replace(" · ", " ")}, then ${templateTitle(after).replace(" · ", " ")}`
+    );
+    expect(line).toHaveAttribute("href", "/progress/upcoming?from=today");
+    // Below START, so it never pushes it down.
+    const start = screen.getByRole("link", { name: "START WORKOUT" });
+    expect(start.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("links START WORKOUT to the configure screen", async () => {
     await seedDemo();
     render(<NextWorkoutHero />);
@@ -100,9 +141,25 @@ describe("NextWorkoutHero", () => {
     await seedDemo();
     render(<NextWorkoutHero />);
     const t1 = expectedPlan("gym").plan.find((e) => e.tier === "T1")!;
-    const line = await screen.findByRole("link", { name: /PR chance on/ });
+    const line = await screen.findByRole("link", { name: /^on .*reps on the last set beats/ });
     expect(line).toHaveAttribute("href", `/progress/lift/${t1.exerciseId}`);
     expect(line.textContent).toMatch(/\d+\+ reps on the last set beats \d+/);
+  });
+
+  it("explains the first tier label, the first '+' and PR chance, once each", async () => {
+    await seedDemo();
+    render(<NextWorkoutHero />);
+    await screen.findByRole("button", { name: "What does PR chance mean?" });
+    const rows = screen.getAllByTestId("hero-exercise");
+    expect(within(rows[0]).getByRole("button", { name: "What does T1 mean?" })).toBeInTheDocument();
+    const scheme = within(rows[0]).getByRole("button", { name: /^What does \d+×\d+\+ mean\?$/ });
+    expect(scheme).toHaveAttribute("data-term", "amrap-plus");
+    // Later rows keep plain labels.
+    expect(within(rows[1]).queryByRole("button")).toBeNull();
+    expect(document.querySelectorAll('[data-term="amrap-plus"]')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "What does PR chance mean?" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("PR chance");
   });
 
   it("shows the first workout from the seeded lift states for a new user, with no PR line", async () => {

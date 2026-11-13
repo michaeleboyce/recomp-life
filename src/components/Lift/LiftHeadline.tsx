@@ -2,6 +2,7 @@
 
 import { LazyTrendChart, RangeTabs } from "@/components/chart-kit";
 import { Delta } from "@/components/ui/delta";
+import { Term } from "@/components/ui/term";
 import type { RangeKey } from "@/lib/metrics/types";
 import { rangeSuffix } from "@/components/Progress/rangeText";
 import { trendOverlay, type RangedMetric } from "./liftSeries";
@@ -24,7 +25,9 @@ export function LiftHeadline({
     <section className="flex flex-col gap-1.5" aria-label="Estimated 1RM">
       <div className="flex items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col">
-          <h2 className="text-xs font-normal text-muted-foreground">Estimated 1RM</h2>
+          <h2 className="text-xs font-normal text-muted-foreground">
+            <Term id="e1rm">Estimated 1RM</Term>
+          </h2>
           <div className="flex items-baseline gap-2">
             <span
               data-testid="e1rm-latest"

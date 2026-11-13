@@ -9,7 +9,9 @@ import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { describeNextWorkout } from "@/lib/workout/buildPlan";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
-import { GlanceTiles } from "./GlanceTiles";
+import { getMonday } from "@/lib/dates";
+import { rangeSuffix } from "@/components/Progress/rangeText";
+import { GlanceTiles, STALE_WEIGH_IN_DAYS } from "./GlanceTiles";
 
 vi.mock("next/link", () => ({
   default: ({
@@ -59,11 +61,22 @@ describe("GlanceTiles", () => {
     expect(weight).toHaveAttribute("href", "/progress?tab=body");
     const latest = [...demo.bodyweight].sort((a, b) => +new Date(a.date) - +new Date(b.date)).at(-1)!;
     expect(within(weight).getByText(latest.weight.toFixed(1))).toBeInTheDocument();
-    expect(within(weight).getByText(/lb\/wk/)).toBeInTheDocument();
+    // The demo lifter is cutting and losing: the rate reads as a loss.
+    const rate = within(weight).getByText(/lb\/wk/);
+    expect(rate.textContent).toMatch(/^−\d+\.\d lb\/wk$/);
+    expect(rate).toHaveAttribute("aria-label", expect.stringMatching(/^down /));
+    // Coloured by the Body tab's pace zones, not "any loss is good".
+    const pace = rate.getAttribute("data-pace");
+    expect(["on pace", "slow", "fast", "gaining"]).toContain(pace);
+    expect(rate).toHaveClass(pace === "on pace" ? "text-success" : "text-warning");
 
     const week = screen.getByRole("link", { name: /This week/ });
     expect(week).toHaveAttribute("href", "/log");
-    expect(within(week).getByText(/\/ 5/)).toBeInTheDocument();
+    const monday = getMonday(new Date()).getTime();
+    const thisWeek = demo.workouts.filter(
+      (w) => w.completedAt && new Date(w.startedAt).getTime() >= monday
+    ).length;
+    expect(within(week).getByText(`${thisWeek} / 5`)).toBeInTheDocument();
 
     for (const id of nextLifts()) {
       const tile = await waitFor(() => {
@@ -78,7 +91,28 @@ describe("GlanceTiles", () => {
         .sort((a, b) => +new Date(a.date) - +new Date(b.date))
         .at(-1)!;
       expect(within(tile!).getByText(String(Math.round(best.estimated1RM)))).toBeInTheDocument();
+      // "in N wk" is the real span of the points shown, not a nominal "3 mo".
+      const shown = demo.estimated1RMs
+        .filter((r) => r.exerciseId === id && Date.now() - new Date(r.date).getTime() <= 91 * 86_400_000)
+        .map((r) => ({ t: new Date(r.date).getTime(), v: r.estimated1RM }))
+        .sort((a, b) => a.t - b.t);
+      expect(tile).toHaveTextContent(rangeSuffix(shown));
+      expect(tile).not.toHaveTextContent("3 mo");
     }
+  });
+
+  it("hides the rate when the latest weigh-in is over two weeks old", async () => {
+    await seedDemo();
+    const old = demo.bodyweight.map((b) => ({
+      ...b,
+      date: new Date(new Date(b.date).getTime() - (STALE_WEIGH_IN_DAYS + 3) * 86_400_000),
+    }));
+    await db.bodyweight.clear();
+    await db.bodyweight.bulkPut(old);
+    render(<GlanceTiles />);
+    const weight = await screen.findByRole("link", { name: /Weight/ });
+    await waitFor(() => expect(within(weight).getByText(/\d+\.\d/)).toBeInTheDocument());
+    expect(within(weight).queryByText(/lb\/wk/)).toBeNull();
   });
 
   it("shows dashes and hints instead of zeros for a new user", async () => {

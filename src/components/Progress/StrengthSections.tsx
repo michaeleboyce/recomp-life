@@ -68,7 +68,7 @@ export function GymDebtSection({
           value={<span className="text-sm text-warning">+{item.overage} lbs over</span>}
           valueSub={
             <span className="font-mono text-muted-foreground">
-              DB equiv {item.dbEquivalent} lbs/hand
+              DB equiv {item.dbLabel}
             </span>
           }
         />

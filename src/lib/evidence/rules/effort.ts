@@ -61,7 +61,7 @@ export const EFFORT_RULES = {
     status: "active",
     title: "How is my 1RM estimated?",
     summary: "Estimated from your heavy AMRAP set; best read as a trend",
-    appBehavior: `Uses the Epley formula (weight × (1 + reps ÷ 30)) on T1 AMRAP sets of ${E1RM_MAX_REPS} reps or fewer. If you log an RPE, the reps you had left are added first (up to ${E1RM_MAX_REPS_IN_RESERVE}). The trend arrow compares your last 3 estimates.`,
+    appBehavior: `Uses the Epley formula (weight × (1 + reps ÷ 30)) on T1 AMRAP sets of ${E1RM_MAX_REPS} reps or fewer. If you log an RPE, the reps you had left are added first (up to ${E1RM_MAX_REPS_IN_RESERVE}). The trend arrow compares your last 3 estimates. Today reports a new best estimate from the last 7 days, and notes when a lift's last three estimates have fallen.`,
     rationale:
       "No formula fits everyone: the reps possible at a given percentage of 1RM differ between exercises and between people, and estimates get worse as reps climb. Within one lift the same formula still tracks change well, so the trend is more trustworthy than the number.",
     caveat: "Treat the figure as an estimate, not a tested max.",
@@ -72,6 +72,7 @@ export const EFFORT_RULES = {
     surfaces: [
       "src/app/1rm-calculator/page.tsx",
       "src/components/Lift/PrLine.tsx",
+      "src/components/Today/AttentionList.tsx",
     ],
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;
