@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import {
   useActivities,
+  useCompletedWorkouts,
   useLiftStates,
   useNextWorkout,
   usePainEntries,
@@ -16,6 +17,7 @@ import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { saveLiftState, startWorkout } from "@/lib/data/workouts";
 import { ACCESSORY_IDS, EXERCISES } from "@/lib/exercises";
 import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePreferences";
+import { lastLoggedWeights, type ResolvedFavorite } from "@/lib/favorites";
 import { RECOVERY_HOURS } from "@/lib/recovery";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
@@ -96,14 +98,22 @@ function recoveryWarningsFor(
  *
  * `requestedTemplateId` (from the URL) wins when it names a real template; otherwise
  * the next workout in the rotation, counting completed workouts only.
+ *
+ * `favorite` (a favourite resolved for one of its two modes) fills in the day, the
+ * choices and the edits once, when it first arrives; the user can change any of them
+ * afterwards. Its location becomes the training location.
  */
-export function useWorkoutSetup(requestedTemplateId?: string | null) {
+export function useWorkoutSetup(
+  requestedTemplateId?: string | null,
+  favorite?: ResolvedFavorite | null
+) {
   const loadedSettings = useSettings();
   const loadedLiftStates = useLiftStates();
   const nextWorkout = useNextWorkout();
   const painEntries = usePainEntries();
   const runs = useRuns();
   const activities = useActivities();
+  const completedWorkouts = useCompletedWorkouts();
 
   const settings = loadedSettings ?? DEFAULT_USER_PROFILE.settings;
   const liftStates = loadedLiftStates ?? NO_LIFT_STATES;
@@ -136,10 +146,16 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
       })),
     [templateId]
   );
+  // An exercise the program does not prescribe starts at the last weight logged for it.
+  const lastWeights = useMemo(() => lastLoggedWeights(completedWorkouts ?? []), [completedWorkouts]);
   const swapExercise = useCallback(
     (exerciseId: string, tier: Tier, replacementId: string) =>
-      changeEdits((list) => swapEdit(list, exerciseId, tier, replacementId)),
-    [changeEdits]
+      changeEdits((list) => {
+        const swapped = swapEdit(list, exerciseId, tier, replacementId);
+        const last = lastWeights[replacementId];
+        return last == null ? swapped : weightEdit(swapped, replacementId, tier, last);
+      }),
+    [changeEdits, lastWeights]
   );
   const removeExercise = useCallback(
     (exerciseId: string, tier: Tier) => changeEdits((list) => removeEdit(list, exerciseId, tier)),
@@ -147,8 +163,13 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
   );
   const addExercise = useCallback(
     (exerciseId: string, accessory: { sets: number; reps: number; weight: number; isAMRAP: boolean }) =>
-      changeEdits((list) => addEdit(list, exerciseId, accessory)),
-    [changeEdits]
+      changeEdits((list) =>
+        addEdit(list, exerciseId, {
+          ...accessory,
+          weight: lastWeights[exerciseId] ?? accessory.weight,
+        })
+      ),
+    [changeEdits, lastWeights]
   );
   const setScheme = useCallback(
     (exerciseId: string, tier: Tier, sets: number, reps: number) =>
@@ -194,6 +215,19 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
   const [dismissedDecays, setDismissedDecays] = useState<ReadonlySet<string>>(new Set());
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fill the setup from a favourite, once per favourite and mode (state adjusted
+  // during render, so the first plan shown is already the favourite's).
+  const [seededFrom, setSeededFrom] = useState<ResolvedFavorite | null>(null);
+  if (favorite && favorite !== seededFrom && WORKOUT_TEMPLATES[favorite.templateId]) {
+    setSeededFrom(favorite);
+    setChosenTemplateId(favorite.templateId);
+    setWarmUpsChoice(favorite.includeWarmUps);
+    setSelectedAccessories(favorite.selectedAccessories);
+    setOverrides(favorite.overrides);
+    setEditState({ templateId: favorite.templateId, edits: favorite.planEdits });
+  }
+  const favoriteId = seededFrom?.favoriteId;
 
   const savedLocation = training.location;
   const setLocation = useCallback(
@@ -256,6 +290,13 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
       ];
     });
   }, [template, location, liftStates, equipment, plan]);
+
+  const favoriteLocation = seededFrom?.location;
+  useEffect(() => {
+    if (favoriteLocation) setLocation(favoriteLocation);
+    // Only when a favourite is applied: the user may change the location afterwards.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seededFrom]);
 
   const chooseSubstitute = useCallback((templateExerciseId: string, substituteId: string) => {
     setOverrides((prev) => ({ ...prev, [templateExerciseId]: substituteId }));
@@ -404,6 +445,8 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
     edits,
     prescribed,
     impact,
+    favoriteId,
+    lastWeights,
     swapExercise,
     removeExercise,
     addExercise,

@@ -10,6 +10,7 @@ import {
   favoriteForSession,
   favoriteFromSession,
   favoriteFromSetup,
+  lastLoggedWeights,
   listFavorites,
   resolveFavorite,
 } from "./favorites";
@@ -212,5 +213,36 @@ describe("listing", () => {
     ];
     expect(favoriteForSession(favorites, "s1")?.id).toBe("b");
     expect(favoriteForSession(favorites, "s3")).toBeUndefined();
+  });
+});
+
+describe("lastLoggedWeights", () => {
+  it("takes the latest weight per performed exercise, without warm-ups", () => {
+    const older = makeSession({
+      startedAt: new Date("2026-11-01T09:00:00Z"),
+      sets: [
+        ...makeSets("squat", "T1", 2, 3, { weight: 180 }),
+        ...makeSets("incline_db_press", "T2", 1, 10, { weight: 40 }),
+      ],
+    });
+    const newer = makeSession({
+      startedAt: new Date("2026-11-05T09:00:00Z"),
+      sets: [
+        ...makeSets("squat", "warmup", 1, 5, { weight: 95 }),
+        ...makeSets("squat", "T1", 2, 3, { weight: 190 }),
+        ...makeSets("bench", "T2", 1, 10, {
+          weight: 35,
+          originalWeight: 100,
+          isSubstituted: true,
+          substituteExerciseId: "db_bench",
+        }),
+      ],
+    });
+    expect(lastLoggedWeights([newer, older])).toEqual({
+      squat: 190,
+      incline_db_press: 40,
+      db_bench: 35,
+    });
+    expect(lastLoggedWeights([])).toEqual({});
   });
 });

@@ -12,6 +12,7 @@ import {
   snapshotOfSets,
   structuralEdits,
 } from "@/lib/workout/planEdits";
+import { excludeWarmUps } from "@/lib/workout/setSelectors";
 import type { WorkoutPlan } from "@/lib/workout/types";
 
 /** How a favourite is started: the frozen copy, or the same structure at today's numbers. */
@@ -169,4 +170,24 @@ export function favoriteForSession(
 export function listFavorites(favorites: FavoriteWorkout[]): FavoriteWorkout[] {
   const when = (f: FavoriteWorkout) => new Date(f.lastUsedAt ?? f.createdAt).getTime();
   return favorites.filter((f) => f.deletedAt == null).sort((a, b) => when(b) - when(a));
+}
+
+/**
+ * The last weight logged for each exercise across the given workouts, keyed by the
+ * exercise actually performed (the substitute when there was one). Warm-ups are left
+ * out. Used to suggest a weight for an exercise the program does not prescribe.
+ */
+export function lastLoggedWeights(
+  workouts: Pick<WorkoutSession, "startedAt" | "sets">[]
+): Record<string, number> {
+  const ordered = [...workouts].sort(
+    (a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime()
+  );
+  const weights: Record<string, number> = {};
+  for (const workout of ordered) {
+    for (const set of excludeWarmUps(workout.sets ?? [])) {
+      weights[set.substituteExerciseId ?? set.exerciseId] = set.weight;
+    }
+  }
+  return weights;
 }

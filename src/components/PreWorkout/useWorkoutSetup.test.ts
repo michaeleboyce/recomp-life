@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import { clearDb, makeWorkout } from "@/lib/data/testUtils";
+import { clearDb, makeSet, makeWorkout } from "@/lib/data/testUtils";
+import type { ResolvedFavorite } from "@/lib/favorites";
 import { useActiveWorkout } from "@/components/ActiveWorkout/useActiveWorkout";
 import { ACCESSORY_IDS } from "@/lib/exercises";
 import { buildWorkoutPlan, overridesFromSession } from "@/lib/workout";
@@ -463,5 +464,75 @@ describe("choosing the day", () => {
     const hook = await mount("A1");
     act(() => hook.result.current.setTemplateId("nonsense"));
     expect(hook.result.current.templateId).toBe("A1");
+  });
+});
+
+describe("starting from a favourite", () => {
+  const favorite: ResolvedFavorite = {
+    favoriteId: "fav-1",
+    templateId: "B1",
+    location: "gym",
+    includeWarmUps: false,
+    selectedAccessories: ["face_pulls"],
+    overrides: {},
+    planEdits: [
+      { kind: "swap", exerciseId: "db_row", tier: "T3", replacementId: "bicep_curls" },
+      { kind: "weight", exerciseId: "bicep_curls", tier: "T3", weight: 25 },
+    ],
+  };
+
+  it("fills in the day, the choices and the edits, and they can still be changed", async () => {
+    const hook = renderHook(() => useWorkoutSetup(null, favorite));
+    await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
+
+    expect(hook.result.current.templateId).toBe("B1");
+    expect(hook.result.current.favoriteId).toBe("fav-1");
+    expect(hook.result.current.warmUps).toBe(false);
+    expect(hook.result.current.selectedAccessories).toEqual(["face_pulls"]);
+    expect(hook.result.current.edits).toEqual(favorite.planEdits);
+    expect(describePlan(hook.result.current.plan)).toEqual([
+      "T1:ohp",
+      "T2:deadlift",
+      "T3:bicep_curls",
+      "accessory:face_pulls",
+    ]);
+    expect(hook.result.current.plan.find((e) => e.exerciseId === "bicep_curls")!.weight).toBe(25);
+
+    act(() => hook.result.current.setWarmUps(true));
+    act(() => hook.result.current.resetEdits());
+    expect(hook.result.current.warmUps).toBe(true);
+    expect(hook.result.current.edits).toEqual([]);
+  });
+
+  it("takes the favourite's location as the training location", async () => {
+    await patchSettings({ defaultLocation: "home" });
+    const hook = renderHook(() => useWorkoutSetup(null, favorite));
+    await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
+    await waitFor(() => expect(hook.result.current.location).toBe("gym"));
+  });
+});
+
+describe("weights for exercises the program does not prescribe", () => {
+  it("start a swapped-in or added exercise at the last weight logged for it", async () => {
+    await db.workouts.put(
+      makeWorkout({
+        startedAt: new Date(Date.now() - 3 * DAY),
+        completedAt: new Date(Date.now() - 3 * DAY + HOUR),
+        sets: [
+          makeSet({ exerciseId: "face_pulls", tier: "accessory", weight: 35 }),
+          makeSet({ exerciseId: "bicep_curls", tier: "accessory", weight: 22.5 }),
+        ],
+      })
+    );
+    const hook = await mount("B1");
+    await waitFor(() => expect(hook.result.current.lastWeights.face_pulls).toBe(35));
+
+    act(() => hook.result.current.swapExercise("db_row", "T3", "face_pulls"));
+    act(() =>
+      hook.result.current.addExercise("bicep_curls", { sets: 3, reps: 12, weight: 10, isAMRAP: false })
+    );
+    const weightOf = (id: string) => hook.result.current.plan.find((e) => e.exerciseId === id)!.weight;
+    expect(weightOf("face_pulls")).toBe(35);
+    expect(weightOf("bicep_curls")).toBe(22.5);
   });
 });
