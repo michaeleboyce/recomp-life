@@ -1,4 +1,5 @@
-import type { LiftState, UserProfile } from '@/types';
+import { PROFILE_ID } from '@/lib/sync/registry';
+import type { AdjustableField, LiftAdjustment, LiftState, UserProfile } from '@/types';
 
 const SEED_LIFT_DEFAULTS = {
   clientId: 'seed', synced: false,
@@ -9,6 +10,10 @@ const SEED_LIFT_DEFAULTS = {
   t2LoadDropCount: 0, recentE1RMs: [] as number[], recentAvgRPEs: [] as number[], recentAMRAPReps: [] as number[],
 } as const;
 
+/**
+ * The starting weights and stages. They reach the database as `start` adjustments (see
+ * `startAdjustments`); the lift-state rows themselves are rebuilt from the log.
+ */
 export const INITIAL_LIFT_STATES: Record<string, LiftState> = {
   squat: {
     exerciseId: "squat", ...SEED_LIFT_DEFAULTS,
@@ -42,8 +47,42 @@ export const INITIAL_LIFT_STATES: Record<string, LiftState> = {
   },
 };
 
+const START_FIELDS: readonly AdjustableField[] = [
+  't1Weight', 't1Stage', 't1FailCount', 't1LastResetWeight',
+  't2Weight', 't2Stage', 't2FailCount', 't2LastResetWeight',
+  't3Weight',
+];
+
+/** The id (and clientId) of a lift's `start` adjustment: the same on every device. */
+export function startAdjustmentId(exerciseId: string): string {
+  return `start:${exerciseId}`;
+}
+
+/** The stamp of a seeded row: older than any real write, so a default never wins a sync conflict. */
+export const SEED_STAMP = 1;
+
+/** One `start` adjustment per lift, dated before everything, holding its starting weights and stages. */
+export function startAdjustments(): LiftAdjustment[] {
+  return Object.values(INITIAL_LIFT_STATES).map((state) => {
+    const id = startAdjustmentId(state.exerciseId);
+    const set: Record<string, unknown> = {};
+    for (const field of START_FIELDS) set[field] = state[field];
+    return {
+      id,
+      clientId: id,
+      exerciseId: state.exerciseId,
+      at: new Date(0),
+      source: 'start' as const,
+      set: set as LiftAdjustment['set'],
+      updatedAt: SEED_STAMP,
+      deletedAt: null,
+      synced: false,
+    };
+  });
+}
+
 export const DEFAULT_USER_PROFILE: Omit<UserProfile, 'id' | 'createdAt'> = {
-  clientId: 'seed',
+  clientId: PROFILE_ID,
   synced: false,
   name: "Michael",
   bodyweight: 226,

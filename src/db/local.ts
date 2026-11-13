@@ -1,108 +1,66 @@
 import Dexie, { type Table } from 'dexie';
-import { v4 as uuidv4 } from 'uuid';
 import type {
-  WorkoutSession, SetLog, RunLog, ActivityLog, BodyweightLog,
+  WorkoutSession, RunLog, ActivityLog, BodyweightLog,
   PainSorenessEntry, Estimated1RM, LiftState, UserProfile, ReadinessLog, LiftAdjustment
 } from '@/types';
 
+/** The current database. A fresh name: the schema started clean on 12 Nov 2026. */
+export const DATABASE_NAME = 'recomp-life-2';
+/** The database used before the clean schema. Its data was dropped on purpose. */
+export const LEGACY_DATABASE_NAME = 'recomp-life';
+
 export class RecompDatabase extends Dexie {
+  // The log: the only truth. A workout holds its own sets.
   workouts!: Table<WorkoutSession>;
-  sets!: Table<SetLog>;
+  liftAdjustments!: Table<LiftAdjustment>;
   runs!: Table<RunLog>;
   activities!: Table<ActivityLog>;
   bodyweight!: Table<BodyweightLog>;
   painEntries!: Table<PainSorenessEntry>;
-  estimated1RMs!: Table<Estimated1RM>;
-  liftStates!: Table<LiftState>;
-  userProfile!: Table<UserProfile>;
   readinessLogs!: Table<ReadinessLog>;
-  liftAdjustments!: Table<LiftAdjustment>;
+  userProfile!: Table<UserProfile>;
+  // Projections of the log: written only by applyRebuild (src/lib/data/derived.ts).
+  liftStates!: Table<LiftState>;
+  estimated1RMs!: Table<Estimated1RM>;
 
   constructor() {
-    super('recomp-life');
+    super(DATABASE_NAME);
+    // `synced` is a boolean and booleans cannot be indexed, so no table indexes it.
     this.version(1).stores({
-      workouts: 'id, clientId, startedAt, templateId, synced',
-      sets: 'id, clientId, exerciseId, completedAt, synced',
-      runs: 'id, clientId, date, synced',
-      bodyweight: 'id, clientId, date, synced',
-      painEntries: 'id, date, region',
-      estimated1RMs: 'id, exerciseId, date',
-      liftStates: 'exerciseId',
-      userProfile: 'id',
-      readinessLogs: 'id, sessionId, date',
-    });
-
-    this.version(2).stores({
-      workouts: 'id, clientId, startedAt, templateId, synced',
-      sets: 'id, clientId, exerciseId, completedAt, synced',
-      runs: 'id, clientId, date, synced',
-      bodyweight: 'id, clientId, date, synced',
-      painEntries: 'id, date, region',
-      estimated1RMs: 'id, exerciseId, date',
-      liftStates: 'exerciseId',
-      userProfile: 'id',
-      readinessLogs: 'id, sessionId, date',
-    }).upgrade((tx) => {
-      return tx.table('userProfile').toCollection().modify((profile) => {
-        if (!profile.settings.exercisePreferences) {
-          profile.settings.exercisePreferences = {};
-        }
-      });
-    });
-
-    this.version(3).stores({
-      workouts: 'id, clientId, startedAt, templateId, synced',
-      sets: 'id, clientId, exerciseId, completedAt, synced',
-      runs: 'id, clientId, date, synced',
-      bodyweight: 'id, clientId, date, synced',
-      painEntries: 'id, date, region',
-      estimated1RMs: 'id, exerciseId, date',
-      liftStates: 'exerciseId',
-      userProfile: 'id',
-      readinessLogs: 'id, sessionId, date',
-    }).upgrade((tx) => {
-      return tx.table('liftStates').toCollection().modify((state) => {
-        if (state.t3Weight === undefined) {
-          state.t3Weight = 0;
-        }
-      });
-    });
-
-    this.version(4).stores({
-      workouts: 'id, clientId, startedAt, templateId, synced',
-      sets: 'id, clientId, exerciseId, completedAt, synced',
-      runs: 'id, clientId, date, synced',
-      bodyweight: 'id, clientId, date, synced',
-      painEntries: 'id, clientId, date, region, synced',
-      estimated1RMs: 'id, clientId, exerciseId, date, synced',
-      liftStates: 'exerciseId, clientId, synced',
-      userProfile: 'id, clientId, synced',
-      readinessLogs: 'id, clientId, sessionId, date, synced',
-    }).upgrade((tx) => {
-      const tables = ['painEntries', 'estimated1RMs', 'liftStates', 'userProfile', 'readinessLogs'];
-      return Promise.all(tables.map(tableName =>
-        tx.table(tableName).toCollection().modify((row) => {
-          if (!row.clientId) row.clientId = uuidv4();
-          if (row.synced === undefined) row.synced = false;
-        })
-      )).then(() =>
-        tx.table('sets').toCollection().modify((row) => {
-          if (row.synced === undefined) row.synced = false;
-        })
-      );
-    });
-
-    // Yoga, cycling, hiking and other non-running sessions. Runs stay in `runs`.
-    this.version(5).stores({
-      activities: 'id, clientId, date, synced',
-    });
-
-    // Dated changes to a lift made outside a workout. Interim version: the data-edits
-    // package replaces this file with one fresh database and a single version.
-    this.version(6).stores({
+      workouts: 'id, clientId, startedAt, templateId',
+      runs: 'id, clientId, date',
+      activities: 'id, clientId, date',
+      bodyweight: 'id, clientId, date',
+      painEntries: 'id, clientId, date',
+      readinessLogs: 'id, clientId, sessionId, date',
+      userProfile: 'id, clientId',
       liftAdjustments: 'id, clientId, exerciseId, at',
+      liftStates: 'exerciseId',
+      estimated1RMs: 'id, exerciseId, date, workoutSessionId',
     });
   }
 }
 
 export const db = new RecompDatabase();
+
+const LEGACY_DROPPED_KEY = 'recomp-legacy-db-dropped';
+let legacyDropStarted = false;
+
+/**
+ * Deletes the pre-reset database so its data does not linger on the device. Best
+ * effort: it runs at most once per page load, remembers a success so later loads skip
+ * it, and never rejects. A failure (private mode, another tab holding the old database
+ * open) is retried on a later load.
+ */
+export async function dropLegacyDatabase(): Promise<void> {
+  if (legacyDropStarted) return;
+  legacyDropStarted = true;
+  try {
+    if (typeof indexedDB === 'undefined') return;
+    if (typeof localStorage !== 'undefined' && localStorage.getItem(LEGACY_DROPPED_KEY)) return;
+    await Dexie.delete(LEGACY_DATABASE_NAME);
+    if (typeof localStorage !== 'undefined') localStorage.setItem(LEGACY_DROPPED_KEY, '1');
+  } catch {
+    // Nothing depends on the old database; leave it and carry on.
+  }
+}
