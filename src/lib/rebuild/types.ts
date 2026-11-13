@@ -87,6 +87,11 @@ export interface ChangePreview {
 
 export interface DerivedDiff {
   liftStatesToPut: LiftState[];
+  /**
+   * Stored lift-state rows (by exerciseId) the rebuild no longer produces, e.g. a
+   * non-program lift whose only adjustment was deleted. Usually empty.
+   */
+  liftStateIdsToDelete: string[];
   e1rmsToPut: Estimated1RM[];
   e1rmIdsToDelete: string[];
   /** True when the stored derived rows already equal the rebuilt ones. */

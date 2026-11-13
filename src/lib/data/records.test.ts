@@ -167,7 +167,7 @@ describe("logActivity", () => {
 });
 
 describe("clearAllData", () => {
-  it("empties all ten tables and does not re-seed", async () => {
+  it("empties every table and does not re-seed", async () => {
     await db.workouts.put(makeWorkout());
     await db.sets.put(makeSet());
     await db.runs.put({
@@ -190,7 +190,7 @@ describe("clearAllData", () => {
 
     await clearAllData();
 
-    expect(db.tables).toHaveLength(10);
+    expect(db.tables).toHaveLength(11);
     for (const table of db.tables) {
       expect(await table.count()).toBe(0);
     }

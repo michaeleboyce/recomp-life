@@ -2,7 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import { v4 as uuidv4 } from 'uuid';
 import type {
   WorkoutSession, SetLog, RunLog, ActivityLog, BodyweightLog,
-  PainSorenessEntry, Estimated1RM, LiftState, UserProfile, ReadinessLog
+  PainSorenessEntry, Estimated1RM, LiftState, UserProfile, ReadinessLog, LiftAdjustment
 } from '@/types';
 
 export class RecompDatabase extends Dexie {
@@ -16,6 +16,7 @@ export class RecompDatabase extends Dexie {
   liftStates!: Table<LiftState>;
   userProfile!: Table<UserProfile>;
   readinessLogs!: Table<ReadinessLog>;
+  liftAdjustments!: Table<LiftAdjustment>;
 
   constructor() {
     super('recomp-life');
@@ -94,6 +95,12 @@ export class RecompDatabase extends Dexie {
     // Yoga, cycling, hiking and other non-running sessions. Runs stay in `runs`.
     this.version(5).stores({
       activities: 'id, clientId, date, synced',
+    });
+
+    // Dated changes to a lift made outside a workout. Interim version: the data-edits
+    // package replaces this file with one fresh database and a single version.
+    this.version(6).stores({
+      liftAdjustments: 'id, clientId, exerciseId, at',
     });
   }
 }
