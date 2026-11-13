@@ -25,7 +25,7 @@ function Change({ from, to }: { from: string; to: string }) {
   );
 }
 
-const e1rmText = (value: number | null) => (value === null ? "none" : formatLbs(value));
+const e1rmText = (value: number | null) => (value === null ? "no estimate" : formatLbs(value));
 
 /** The plain-words list of what a change does; also used outside the sheet. */
 export function ChangePreviewList({ preview }: { preview: ChangePreview }) {

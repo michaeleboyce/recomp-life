@@ -37,8 +37,9 @@ interface Pending {
 export function savedMessage(message: string, preview: ChangePreview): string {
   const pr = preview.prChanges[0];
   if (pr) {
-    const now = pr.after === null ? "none" : `${formatLbs(pr.after)} lbs`;
-    return `${message}. ${liftName(pr.exerciseId)} best estimated 1RM is now ${now}`;
+    return pr.after === null
+      ? `${message}. ${liftName(pr.exerciseId)} has no estimated 1RM now`
+      : `${message}. ${liftName(pr.exerciseId)} best estimated 1RM is now ${formatLbs(pr.after)} lbs`;
   }
   if (preview.e1rmChanges > 0) {
     const n = preview.e1rmChanges;
