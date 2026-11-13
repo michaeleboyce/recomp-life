@@ -265,16 +265,17 @@ describe('buildUpsert', () => {
     }, NOW);
     expect(buildUpsert('bodyweight', row)).toEqual({
       text:
-        'INSERT INTO "bodyweight" ("id", "client_id", "date", "weight", "time_of_day", "updated_at", "deleted_at", "synced", "external_id") ' +
-        'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ' +
+        'INSERT INTO "bodyweight" ("id", "client_id", "date", "weight", "time_of_day", "updated_at", "deleted_at", "synced", "external_id", "source", "source_name") ' +
+        'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ' +
         'ON CONFLICT ("client_id") DO UPDATE SET ' +
         '"date" = EXCLUDED."date", "weight" = EXCLUDED."weight", ' +
         '"time_of_day" = EXCLUDED."time_of_day", "updated_at" = EXCLUDED."updated_at", ' +
         '"deleted_at" = EXCLUDED."deleted_at", "synced" = EXCLUDED."synced", ' +
-        '"external_id" = EXCLUDED."external_id" ' +
+        '"external_id" = EXCLUDED."external_id", "source" = EXCLUDED."source", ' +
+        '"source_name" = EXCLUDED."source_name" ' +
         'WHERE COALESCE(EXCLUDED."updated_at", 0) >= COALESCE("bodyweight"."updated_at", 0) ' +
         'RETURNING "client_id"',
-      values: ['b1', 'c1', '2026-11-11T07:00:00.000Z', 226, 'morning', NOW, null, true, null],
+      values: ['b1', 'c1', '2026-11-11T07:00:00.000Z', 226, 'morning', NOW, null, true, null, null, null],
     });
   });
 

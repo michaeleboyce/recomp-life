@@ -32,6 +32,10 @@ export const NULL_MEANS_ABSENT: ReadonlySet<string> = new Set([
   "note",
   "notes",
   "associatedWorkoutId",
+  "source",
+  "sourceName",
+  "health",
+  "sleepSource",
 ]);
 
 /** A pulled row as it is stored locally: dates revived, absent optionals removed, synced. */

@@ -30,6 +30,7 @@ DROP TABLE IF EXISTS "lift_states";
 DROP TABLE IF EXISTS "user_profile";
 DROP TABLE IF EXISTS "readiness_logs";
 DROP TABLE IF EXISTS "lift_adjustments";
+DROP TABLE IF EXISTS "health_daily";
 
 CREATE TABLE "workouts" (
   "id" text PRIMARY KEY,
@@ -50,7 +51,8 @@ CREATE TABLE "workouts" (
   "modifications" jsonb NOT NULL,
   "ended_early" boolean,
   "prescribed" jsonb,
-  "completion_context" jsonb
+  "completion_context" jsonb,
+  "health" jsonb
 );
 
 CREATE TABLE "lift_adjustments" (
@@ -80,7 +82,9 @@ CREATE TABLE "runs" (
   "type" text NOT NULL,
   "category" text NOT NULL,
   "notes" text NOT NULL,
-  "perceived_effort" integer
+  "perceived_effort" integer,
+  "source" text,
+  "source_name" text
 );
 
 CREATE TABLE "activities" (
@@ -96,7 +100,9 @@ CREATE TABLE "activities" (
   "style" text,
   "distance_miles" real,
   "notes" text NOT NULL,
-  "perceived_effort" integer
+  "perceived_effort" integer,
+  "source" text,
+  "source_name" text
 );
 
 CREATE TABLE "bodyweight" (
@@ -108,7 +114,9 @@ CREATE TABLE "bodyweight" (
   "synced" boolean NOT NULL DEFAULT true,
   "date" timestamp with time zone NOT NULL,
   "weight" real NOT NULL,
-  "time_of_day" text NOT NULL
+  "time_of_day" text NOT NULL,
+  "source" text,
+  "source_name" text
 );
 
 CREATE TABLE "pain_entries" (
@@ -136,7 +144,9 @@ CREATE TABLE "readiness_logs" (
   "session_id" text NOT NULL,
   "sleep_hours" text NOT NULL,
   "stress_level" text NOT NULL,
-  "date" timestamp with time zone NOT NULL
+  "date" timestamp with time zone NOT NULL,
+  "sleep_minutes" real,
+  "sleep_source" text
 );
 
 CREATE TABLE "user_profile" (
@@ -151,6 +161,29 @@ CREATE TABLE "user_profile" (
   "height_inches" real NOT NULL,
   "created_at" timestamp with time zone NOT NULL,
   "settings" jsonb NOT NULL
+);
+
+CREATE TABLE "health_daily" (
+  "id" text PRIMARY KEY,
+  "client_id" text NOT NULL UNIQUE,
+  "updated_at" bigint NOT NULL,
+  "deleted_at" bigint,
+  "external_id" text,
+  "synced" boolean NOT NULL DEFAULT true,
+  "day" text NOT NULL,
+  "sleep_minutes" real,
+  "sleep_deep_minutes" real,
+  "sleep_rem_minutes" real,
+  "steps" real,
+  "resting_hr" real,
+  "hrv_ms" real,
+  "active_energy_kcal" real,
+  "exercise_minutes" real,
+  "vo2_max" real,
+  "body_fat_pct" real,
+  "lean_mass_lbs" real,
+  "dietary_kcal" real,
+  "protein_g" real
 );
 
 COMMIT;

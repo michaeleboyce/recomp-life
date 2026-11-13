@@ -48,7 +48,7 @@ describe('scripts/sql/2026-11-12-clean-schema.sql', () => {
     const firstCreate = SQL.indexOf('CREATE TABLE');
     for (const table of [
       'workouts', 'sets', 'runs', 'activities', 'bodyweight', 'pain_entries', 'estimated_1rms',
-      'lift_states', 'user_profile', 'readiness_logs', 'lift_adjustments',
+      'lift_states', 'user_profile', 'readiness_logs', 'lift_adjustments', 'health_daily',
     ]) {
       const drop = SQL.indexOf(`DROP TABLE IF EXISTS "${table}";`);
       expect(drop, table).toBeGreaterThan(-1);

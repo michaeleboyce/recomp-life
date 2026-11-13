@@ -34,6 +34,7 @@ describe("the local database", () => {
       painEntries: "id, clientId, date",
       readinessLogs: "id, clientId, sessionId, date",
       userProfile: "id, clientId",
+      healthDaily: "id, clientId, day",
       liftAdjustments: "id, clientId, exerciseId, at",
       liftStates: "exerciseId",
       estimated1RMs: "id, exerciseId, date, workoutSessionId",

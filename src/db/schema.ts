@@ -38,6 +38,7 @@ export const workouts = pgTable('workouts', {
   endedEarly: boolean('ended_early'),
   prescribed: jsonb('prescribed'),
   completionContext: jsonb('completion_context'),
+  health: jsonb('health'),
 });
 
 // Lift adjustments: dated, append-only changes to a lift made outside a workout
@@ -60,6 +61,8 @@ export const runs = pgTable('runs', {
   category: text('category').notNull(),
   notes: text('notes').notNull(),
   perceivedEffort: integer('perceived_effort'),
+  source: text('source'),
+  sourceName: text('source_name'),
 });
 
 // Activities (yoga, cycling, hiking, walking; runs have their own table)
@@ -72,6 +75,8 @@ export const activities = pgTable('activities', {
   distanceMiles: real('distance_miles'),
   notes: text('notes').notNull(),
   perceivedEffort: integer('perceived_effort'),
+  source: text('source'),
+  sourceName: text('source_name'),
 });
 
 // Bodyweight
@@ -80,6 +85,8 @@ export const bodyweight = pgTable('bodyweight', {
   date: timestamp('date', { withTimezone: true }).notNull(),
   weight: real('weight').notNull(),
   timeOfDay: text('time_of_day').notNull(),
+  source: text('source'),
+  sourceName: text('source_name'),
 });
 
 // Pain Entries
@@ -100,6 +107,8 @@ export const readinessLogs = pgTable('readiness_logs', {
   sleepHours: text('sleep_hours').notNull(),
   stressLevel: text('stress_level').notNull(),
   date: timestamp('date', { withTimezone: true }).notNull(),
+  sleepMinutes: real('sleep_minutes'),
+  sleepSource: text('sleep_source'),
 });
 
 // User Profile (a single row with the fixed id PROFILE_ID)
@@ -110,4 +119,23 @@ export const userProfile = pgTable('user_profile', {
   heightInches: real('height_inches').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
   settings: jsonb('settings').notNull(),
+});
+
+// Health Daily: one row per calendar day of values imported from Apple Health
+export const healthDaily = pgTable('health_daily', {
+  ...syncColumns(),
+  day: text('day').notNull(),
+  sleepMinutes: real('sleep_minutes'),
+  sleepDeepMinutes: real('sleep_deep_minutes'),
+  sleepRemMinutes: real('sleep_rem_minutes'),
+  steps: real('steps'),
+  restingHr: real('resting_hr'),
+  hrvMs: real('hrv_ms'),
+  activeEnergyKcal: real('active_energy_kcal'),
+  exerciseMinutes: real('exercise_minutes'),
+  vo2Max: real('vo2_max'),
+  bodyFatPct: real('body_fat_pct'),
+  leanMassLbs: real('lean_mass_lbs'),
+  dietaryKcal: real('dietary_kcal'),
+  proteinG: real('protein_g'),
 });

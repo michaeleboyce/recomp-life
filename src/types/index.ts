@@ -48,6 +48,20 @@ export interface Stamped {
   externalId?: string;
 }
 
+/** Where a log row came from. Absent means the user entered it by hand. */
+export type RecordSource = "manual" | "apple_health";
+
+/** Heart rate and energy from the watch workout recorded during a lifting session. */
+export interface WorkoutHealth {
+  /** Identifier of the workout in the system it came from. */
+  externalId: string;
+  sourceName: string | null;
+  avgHeartRate: number | null;
+  maxHeartRate: number | null;
+  activeEnergyKcal: number | null;
+  durationSeconds: number;
+}
+
 export interface UserProfile extends Stamped {
   id: string;
   clientId: string;
@@ -209,6 +223,8 @@ export interface WorkoutSession extends Stamped {
   prescribed?: PrescribedEntry[];
   /** The settings progression depended on when the session was finished. */
   completionContext?: CompletionContext;
+  /** The watch workout recorded during this session, when one was found. */
+  health?: WorkoutHealth;
   synced: boolean;
 }
 
@@ -282,6 +298,10 @@ export interface RunLog extends Stamped {
   category: RunCategory;
   notes: string;
   perceivedEffort: 1 | 2 | 3 | 4 | 5;
+  /** Where the row came from; absent means entered by hand. */
+  source?: RecordSource;
+  /** The app or device that recorded an imported row, e.g. "Apple Watch". */
+  sourceName?: string;
   synced: boolean;
 }
 
@@ -301,6 +321,10 @@ export interface ActivityLog extends Stamped {
   distanceMiles: number | null;
   notes: string;
   perceivedEffort: 1 | 2 | 3 | 4 | 5;
+  /** Where the row came from; absent means entered by hand. */
+  source?: RecordSource;
+  /** The app or device that recorded an imported row, e.g. "Apple Watch". */
+  sourceName?: string;
   synced: boolean;
 }
 
@@ -314,6 +338,10 @@ export interface BodyweightLog extends Stamped {
   date: Date;
   weight: number;
   timeOfDay: TimeOfDay;
+  /** Where the row came from; absent means entered by hand. */
+  source?: RecordSource;
+  /** The app or device that recorded an imported row, e.g. "Apple Watch". */
+  sourceName?: string;
   synced: boolean;
 }
 
@@ -328,7 +356,38 @@ export interface ReadinessLog extends Stamped {
   sessionId: string;
   sleepHours: SleepHours;
   stressLevel: StressLevel;
+  /**
+   * Minutes asleep the night before, when the answer was prefilled from a health
+   * source. A row pulled from the server carries null when there was none.
+   */
+  sleepMinutes?: number | null;
+  sleepSource?: RecordSource;
   date: Date;
+  synced: boolean;
+}
+
+// Health Daily: one row per calendar day of values imported from a health source.
+// Display only: no coaching rule reads these. Null means "no data that day".
+
+export interface HealthDailyLog extends Stamped {
+  /** "hd:<day>", so a day has exactly one row on every device. */
+  id: string;
+  clientId: string;
+  /** Local calendar day, "YYYY-MM-DD". Sleep counts toward the day of waking. */
+  day: string;
+  sleepMinutes: number | null;
+  sleepDeepMinutes: number | null;
+  sleepRemMinutes: number | null;
+  steps: number | null;
+  restingHr: number | null;
+  hrvMs: number | null;
+  activeEnergyKcal: number | null;
+  exerciseMinutes: number | null;
+  vo2Max: number | null;
+  bodyFatPct: number | null;
+  leanMassLbs: number | null;
+  dietaryKcal: number | null;
+  proteinG: number | null;
   synced: boolean;
 }
 

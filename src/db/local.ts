@@ -1,7 +1,8 @@
 import Dexie, { type Table } from 'dexie';
 import type {
   WorkoutSession, RunLog, ActivityLog, BodyweightLog,
-  PainSorenessEntry, Estimated1RM, LiftState, UserProfile, ReadinessLog, LiftAdjustment
+  PainSorenessEntry, Estimated1RM, LiftState, UserProfile, ReadinessLog, LiftAdjustment,
+  HealthDailyLog
 } from '@/types';
 
 /** The current database. A fresh name: the schema started clean on 12 Nov 2026. */
@@ -19,6 +20,8 @@ export class RecompDatabase extends Dexie {
   painEntries!: Table<PainSorenessEntry>;
   readinessLogs!: Table<ReadinessLog>;
   userProfile!: Table<UserProfile>;
+  /** Daily values imported from Apple Health; display only. */
+  healthDaily!: Table<HealthDailyLog>;
   // Projections of the log: written only by applyRebuild (src/lib/data/derived.ts).
   liftStates!: Table<LiftState>;
   estimated1RMs!: Table<Estimated1RM>;
@@ -34,6 +37,7 @@ export class RecompDatabase extends Dexie {
       painEntries: 'id, clientId, date',
       readinessLogs: 'id, clientId, sessionId, date',
       userProfile: 'id, clientId',
+      healthDaily: 'id, clientId, day',
       liftAdjustments: 'id, clientId, exerciseId, at',
       liftStates: 'exerciseId',
       estimated1RMs: 'id, exerciseId, date, workoutSessionId',
