@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
+import { liveRows } from "./liveRows";
 import { computeMetric, inRange, summarize } from "@/lib/metrics";
 import type {
   MetricId,
@@ -19,7 +20,7 @@ import { useCompletedWorkouts, useLiftStates } from "./useWorkouts";
 
 /** Readiness (sleep and stress) logs, oldest first; `undefined` while loading. */
 export function useReadinessLogs(): ReadinessLog[] | undefined {
-  return useLiveQuery(() => db.readinessLogs.orderBy("date").toArray(), []);
+  return useLiveQuery(async () => liveRows(await db.readinessLogs.orderBy("date").toArray()), []);
 }
 
 /**

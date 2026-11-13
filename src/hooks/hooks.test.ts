@@ -306,3 +306,38 @@ describe("useActivities", () => {
     expect(r.result.current!.map((x) => x.id)).toEqual(["a2", "a1"]);
   });
 });
+
+describe("soft-deleted rows", () => {
+  it("are hidden by every log hook", async () => {
+    const deletedAt = Date.now();
+    await db.workouts.bulkPut([
+      makeWorkout({ id: "live", completedAt: new Date() }),
+      makeWorkout({ id: "gone", completedAt: new Date(), deletedAt }),
+    ]);
+    await db.runs.bulkPut([
+      { id: "r-live", clientId: "r-live", date: new Date(), durationMinutes: 20, distanceMiles: null,
+        type: "outdoor", category: "easy", notes: "", perceivedEffort: 2, synced: false },
+      { id: "r-gone", clientId: "r-gone", date: new Date(), durationMinutes: 20, distanceMiles: null,
+        type: "outdoor", category: "easy", notes: "", perceivedEffort: 2, synced: false, deletedAt },
+    ]);
+    await db.bodyweight.bulkPut([
+      { id: "b-live", clientId: "b-live", date: new Date(), weight: 200, timeOfDay: "morning", synced: false },
+      { id: "b-gone", clientId: "b-gone", date: new Date(), weight: 201, timeOfDay: "morning", synced: false, deletedAt },
+    ]);
+
+    const workouts = await loaded(() => useCompletedWorkouts());
+    expect(workouts.result.current!.map((w) => w.id)).toEqual(["live"]);
+    const gone = await loaded(() => useWorkout("gone"));
+    expect(gone.result.current).toBeNull();
+    const runs = await loaded(() => useRuns());
+    expect(runs.result.current!.map((r) => r.id)).toEqual(["r-live"]);
+    const weights = await loaded(() => useBodyweightLog());
+    expect(weights.result.current!.map((b) => b.id)).toEqual(["b-live"]);
+  });
+
+  it("a row whose deletedAt is cleared is visible again", async () => {
+    await db.workouts.put(makeWorkout({ id: "w", completedAt: new Date(), deletedAt: null }));
+    const workouts = await loaded(() => useCompletedWorkouts());
+    expect(workouts.result.current!.map((w) => w.id)).toEqual(["w"]);
+  });
+});
