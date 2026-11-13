@@ -1,6 +1,7 @@
 "use client";
 
 import { TrendingUp } from "lucide-react";
+import { Term } from "@/components/ui/term";
 import { describeChance, type PrOpportunity } from "./prOpportunity";
 
 interface PrOpportunityLineProps {
@@ -20,7 +21,11 @@ export function PrOpportunityLine({ opportunity, recentAMRAPReps }: PrOpportunit
       <TrendingUp className="size-4 shrink-0 text-success" aria-hidden="true" />
       <span>
         <b className="font-mono">{opportunity.repsNeeded}</b>{" "}
-        {opportunity.repsNeeded === 1 ? "rep" : "reps"} = new best, est.{" "}
+        {opportunity.repsNeeded === 1 ? "rep" : "reps"} ={" "}
+        <Term id="pr" hideLinks>
+          new best
+        </Term>
+        , est.{" "}
         <b className="font-mono">{opportunity.e1rmAtRepsNeeded}</b> (now{" "}
         <span className="font-mono">{opportunity.bestE1RM}</span>).
         {chance && ` ${chance}`}

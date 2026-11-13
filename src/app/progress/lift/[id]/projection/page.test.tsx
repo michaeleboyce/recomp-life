@@ -73,7 +73,10 @@ describe("projection screen", () => {
   it("renders the demo squat: title, summary, chart with the current trend, controls", async () => {
     await seedDemo();
     await renderLoaded();
-    expect(screen.getByRole("heading", { level: 1, name: "Squat projection" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Squat projection");
+    for (const word of ["projection", "Weekly sets", "Fail and reset", "Training phase"]) {
+      expect(screen.getByRole("button", { name: `What does ${word} mean?` })).toBeInTheDocument();
+    }
     expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/progress/lift/squat");
     expect(summary()).toMatch(/^On your current trend, about \d+ in 12 weeks\.$/);
     expect(chart().getAttribute("aria-label")).toMatch(/current trend \d+, range \d+ to \d+/);

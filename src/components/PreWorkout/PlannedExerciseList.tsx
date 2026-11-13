@@ -1,6 +1,7 @@
 "use client";
 
 import { TierBadge } from "@/components/ui/tier-badge";
+import { TierKey } from "@/components/Upcoming/TierKey";
 import { getExercise } from "@/lib/exercises";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
 
@@ -36,7 +37,10 @@ function weightLabel(entry: WorkoutExerciseState): string {
 
 /** The workout exactly as it will be performed: tier, exercise, weight, sets x reps. */
 export function PlannedExerciseList({ plan }: PlannedExerciseListProps) {
+  const hasWarmUps = plan.some((entry) => entry.isWarmUp);
   return (
+    <div className="flex flex-col gap-1.5">
+    <TierKey warmUp={hasWarmUps} />
     <ul className="divide-y divide-border" aria-label="Exercises">
       {toRows(plan).map(({ entry, warmUps }, index) => {
         const info = getExercise(entry.substituteExerciseId || entry.exerciseId);
@@ -75,5 +79,6 @@ export function PlannedExerciseList({ plan }: PlannedExerciseListProps) {
         );
       })}
     </ul>
+    </div>
   );
 }

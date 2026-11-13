@@ -7,12 +7,11 @@ import { PageHeader, PageShell } from "@/components/ui/page-shell";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { LocationChip } from "@/components/ui/location-chip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Term } from "@/components/ui/term";
+import { TierKey } from "@/components/Upcoming/TierKey";
 import { UpcomingWorkoutCard } from "@/components/Upcoming/UpcomingWorkoutCard";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import type { RuleId } from "@/lib/evidence";
 import { useTrainingLocation, useUpcomingWorkouts } from "@/hooks";
-import { tierStyle } from "@/lib/tierStyle";
 import type { WorkoutLocation } from "@/types";
 
 // The forecast applies the existing progression rule under a stated assumption.
@@ -23,26 +22,6 @@ const LOCATIONS = [
   { value: "gym" as const, label: "Gym", icon: <Dumbbell className="size-4" aria-hidden="true" /> },
   { value: "home" as const, label: "Home", icon: <Home className="size-4" aria-hidden="true" /> },
 ];
-
-/** What the tier badges and the "+" mean, each word opening its glossary entry. */
-function TierKey() {
-  return (
-    <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-      <span>
-        <Term id="t1" className={tierStyle("T1").text}>T1</Term> heavy
-      </span>
-      <span>
-        <Term id="t2" className={tierStyle("T2").text}>T2</Term> moderate
-      </span>
-      <span>
-        <Term id="t3" className={tierStyle("T3").text}>T3</Term> light
-      </span>
-      <span>
-        <Term id="amrap-plus" label="+">+</Term> last set is <Term id="amrap">AMRAP</Term>
-      </span>
-    </p>
-  );
-}
 
 const LOCATION_LABEL: Record<WorkoutLocation, string> = { gym: "Gym", home: "Home" };
 

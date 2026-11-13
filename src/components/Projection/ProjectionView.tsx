@@ -8,6 +8,7 @@ import { Callout } from "@/components/ui/callout";
 import { ChipGroup } from "@/components/ui/chip-group";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-shell";
+import { Term } from "@/components/ui/term";
 import { useProjection } from "@/hooks";
 import { liftShortName, type ProjectionScenario } from "@/lib/projection";
 import { HowItWorks } from "./HowItWorks";
@@ -30,7 +31,11 @@ export function ProjectionView({ exerciseId }: { exerciseId: string }) {
 
   const header = (
     <PageHeader
-      title={`${title} projection`}
+      title={
+        <>
+          {title} <Term id="projection">projection</Term>
+        </>
+      }
       backHref={backHref}
       action={
         <ChipGroup

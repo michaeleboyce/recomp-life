@@ -141,9 +141,25 @@ describe("NextWorkoutHero", () => {
     await seedDemo();
     render(<NextWorkoutHero />);
     const t1 = expectedPlan("gym").plan.find((e) => e.tier === "T1")!;
-    const line = await screen.findByRole("link", { name: /PR chance on/ });
+    const line = await screen.findByRole("link", { name: /^on .*reps on the last set beats/ });
     expect(line).toHaveAttribute("href", `/progress/lift/${t1.exerciseId}`);
     expect(line.textContent).toMatch(/\d+\+ reps on the last set beats \d+/);
+  });
+
+  it("explains the first tier label, the first '+' and PR chance, once each", async () => {
+    await seedDemo();
+    render(<NextWorkoutHero />);
+    await screen.findByRole("button", { name: "What does PR chance mean?" });
+    const rows = screen.getAllByTestId("hero-exercise");
+    expect(within(rows[0]).getByRole("button", { name: "What does T1 mean?" })).toBeInTheDocument();
+    const scheme = within(rows[0]).getByRole("button", { name: /^What does \d+×\d+\+ mean\?$/ });
+    expect(scheme).toHaveAttribute("data-term", "amrap-plus");
+    // Later rows keep plain labels.
+    expect(within(rows[1]).queryByRole("button")).toBeNull();
+    expect(document.querySelectorAll('[data-term="amrap-plus"]')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "What does PR chance mean?" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("PR chance");
   });
 
   it("shows the first workout from the seeded lift states for a new user, with no PR line", async () => {

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getExercise } from "@/lib/exercises";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { Term } from "@/components/ui/term";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { AutoRegCallout } from "@/components/ActiveWorkout/AutoRegCallout";
 import { DiscardWorkoutDialog } from "@/components/ActiveWorkout/DiscardWorkoutDialog";
@@ -177,7 +178,17 @@ function ActiveWorkoutContent() {
       />
 
       {workout.e1rmFlash !== null && (
-        <Callout variant="success" title={`Estimated 1RM: ${workout.e1rmFlash} lbs`} />
+        <Callout
+          variant="success"
+          title={
+            <>
+              <Term id="e1rm" hideLinks>
+                Estimated 1RM
+              </Term>
+              : {workout.e1rmFlash} lbs
+            </>
+          }
+        />
       )}
 
       {workout.dropSuggestion && (

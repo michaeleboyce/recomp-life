@@ -1,6 +1,7 @@
 "use client";
 
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
+import { Term } from "@/components/ui/term";
 import { cn } from "@/lib/utils";
 
 interface RPESelectorProps {
@@ -27,7 +28,13 @@ export function RPESelector({ selectedRPE, onSelectRPE }: RPESelectorProps) {
   return (
     <section className="flex flex-col gap-2" aria-label="Effort">
       <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Effort (RPE, optional)
+        <span>
+          Effort (
+          <Term id="rpe" hideLinks>
+            RPE
+          </Term>
+          , optional)
+        </span>
         <EvidenceLine ruleId="rpe-logging" variant="icon" hideLibraryLink />
       </h2>
 

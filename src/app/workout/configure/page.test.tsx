@@ -68,6 +68,18 @@ describe("configure page", () => {
     );
   });
 
+  it("has a key above the list explaining the tiers, the '+' and warm-ups", async () => {
+    await open();
+    const key = screen.getByTestId("tier-key");
+    const list = screen.getByRole("list", { name: "Exercises" });
+    expect(key.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    for (const word of ["T1", "T2", "T3", "+", "AMRAP", "warm-up"]) {
+      expect(within(key).getByRole("button", { name: `What does ${word} mean?` })).toBeInTheDocument();
+    }
+    fireEvent.click(within(key).getByRole("button", { name: "What does warm-up mean?" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Warm-up sets");
+  });
+
   it("keeps the optional parts in collapsed expanders", async () => {
     await open();
     for (const title of [
