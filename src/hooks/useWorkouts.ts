@@ -1,6 +1,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
 import type { LiftState, WorkoutSession } from "@/types";
+import { liveRow, liveRows } from "./liveRows";
 
 /** Unfinished sessions older than this are not offered for resume. */
 const UNFINISHED_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -15,9 +16,9 @@ function time(value: Date | string | null | undefined): number {
   return Number.isFinite(ms) ? ms : 0;
 }
 
-/** Every workout, most recently started first. */
+/** Every workout that is not deleted, most recently started first. */
 async function workoutsNewestFirst(): Promise<WorkoutSession[]> {
-  const all = await db.workouts.toArray();
+  const all = liveRows(await db.workouts.toArray());
   return all.sort((a, b) => time(b.startedAt) - time(a.startedAt));
 }
 
@@ -25,10 +26,10 @@ export function useLiftStates(): LiftState[] | undefined {
   return useLiveQuery(() => db.liftStates.toArray(), []);
 }
 
-/** One workout by id; `null` once loaded if it does not exist or no id was given. */
+/** One workout by id; `null` once loaded if it is missing, deleted or no id was given. */
 export function useWorkout(id: string | null | undefined): WorkoutSession | null | undefined {
   return useLiveQuery(
-    async () => (id ? ((await db.workouts.get(id)) ?? null) : null),
+    async () => (id ? liveRow(await db.workouts.get(id)) : null),
     [id]
   );
 }

@@ -36,7 +36,19 @@ export interface UserSettings {
   exercisePreferencesByLocation?: LocationExercisePreferences;
 }
 
-export interface UserProfile {
+/**
+ * Sync stamps carried by every synced row. `updatedAt` and `deletedAt` are epoch
+ * milliseconds: the newest `updatedAt` wins a sync conflict, and a row with `deletedAt`
+ * set is a soft delete (hidden by the read hooks, kept so the delete can sync and be
+ * undone). `externalId` identifies a row imported from another system.
+ */
+export interface Stamped {
+  updatedAt?: number;
+  deletedAt?: number | null;
+  externalId?: string;
+}
+
+export interface UserProfile extends Stamped {
   id: string;
   clientId: string;
   name: string;
@@ -179,7 +191,7 @@ export interface WorkoutModification {
   userAccepted: boolean;
 }
 
-export interface WorkoutSession {
+export interface WorkoutSession extends Stamped {
   id: string;
   clientId: string;
   templateId: string;
@@ -193,6 +205,49 @@ export interface WorkoutSession {
   preWorkoutPainEntries: PainSorenessEntry[];
   modifications: WorkoutModification[];
   endedEarly?: boolean;
+  /** What the program prescribed for each program lift when the session started. */
+  prescribed?: PrescribedEntry[];
+  /** The settings progression depended on when the session was finished. */
+  completionContext?: CompletionContext;
+  synced: boolean;
+}
+
+/** What the program prescribed for one program lift when the session started, before edits. */
+export interface PrescribedEntry {
+  exerciseId: string;
+  tier: Tier;
+  weight: number;
+  sets: number;
+  reps: number;
+  stage?: T1Stage | T2Stage;
+}
+
+/** Settings read by progression, stored on a finished workout so a rebuild reuses them. */
+export interface CompletionContext {
+  phaseMode: TrainingPhase["mode"];
+  gymBarbellIncrementLbs: number;
+  dumbbellIncrementLbs: number;
+}
+
+/** Lift-state fields an adjustment may set. Everything else is derived from the log. */
+export type AdjustableField =
+  | "t1Weight" | "t1Stage" | "t1FailCount" | "t1LastResetWeight"
+  | "t2Weight" | "t2Stage" | "t2FailCount" | "t2LastResetWeight"
+  | "t3Weight";
+
+/**
+ * A dated change to a lift made outside a workout: the starting weights, a manual
+ * change, or an accepted time-off reduction. Append-only; the rebuild applies them in
+ * date order between workouts.
+ */
+export interface LiftAdjustment extends Stamped {
+  id: string;
+  clientId: string;
+  exerciseId: string;
+  at: Date;
+  source: "start" | "manual" | "decay" | "import";
+  set: Partial<Pick<LiftState, AdjustableField>>;
+  note?: string;
   synced: boolean;
 }
 
@@ -217,7 +272,7 @@ export interface WorkoutTemplate {
 export type RunType = "outdoor" | "treadmill" | "trail";
 export type RunCategory = "easy" | "tempo" | "intervals" | "long" | "other";
 
-export interface RunLog {
+export interface RunLog extends Stamped {
   id: string;
   clientId: string;
   date: Date;
@@ -235,7 +290,7 @@ export interface RunLog {
 export type ActivityKind = "yoga" | "cycling" | "hiking" | "walking" | "other";
 export type YogaStyle = "restorative" | "flow" | "power";
 
-export interface ActivityLog {
+export interface ActivityLog extends Stamped {
   id: string;
   clientId: string;
   date: Date;
@@ -253,7 +308,7 @@ export interface ActivityLog {
 
 export type TimeOfDay = "morning" | "evening" | "other";
 
-export interface BodyweightLog {
+export interface BodyweightLog extends Stamped {
   id: string;
   clientId: string;
   date: Date;
@@ -267,7 +322,7 @@ export interface BodyweightLog {
 export type SleepHours = "<5" | "5-7" | "7+";
 export type StressLevel = "low" | "normal" | "good";
 
-export interface ReadinessLog {
+export interface ReadinessLog extends Stamped {
   id: string;
   clientId: string;
   sessionId: string;
@@ -279,7 +334,7 @@ export interface ReadinessLog {
 
 // Pain/Soreness
 
-export interface PainSorenessEntry {
+export interface PainSorenessEntry extends Stamped {
   id: string;
   clientId: string;
   date: Date;
@@ -302,6 +357,8 @@ export interface Estimated1RM {
   repsCompleted: number;
   estimated1RM: number;
   workoutSessionId: string;
+  /** The set this estimate was computed from (rows written by the rebuild). */
+  setId?: string;
   synced: boolean;
 }
 
