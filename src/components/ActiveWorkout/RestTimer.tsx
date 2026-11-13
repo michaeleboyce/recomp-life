@@ -14,12 +14,15 @@ import {
 } from "@/lib/restTimes";
 import type { TrainingPhase } from "@/types";
 
+/** Small top-ups to the remaining rest. */
+const EXTEND_SECONDS = [5, 15] as const;
+
 interface RestTimerProps {
   audioEnabled?: boolean;
   vibrationEnabled?: boolean;
   /** User's current training phase: shows the cutting rest bonus when it applied. */
   trainingPhase?: TrainingPhase;
-  /** What comes after the rest, e.g. "Next: set 3 at 190 lbs". */
+  /** What comes after the rest, e.g. "Next: set 3 of 5 · 190 lbs". */
   nextLabel?: string;
 }
 
@@ -112,32 +115,43 @@ export function RestTimer({
       aria-label="Rest timer"
       className="flex flex-col gap-2 rounded-2xl bg-card px-4 py-3"
     >
-      <div className="flex items-center gap-3">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Rest
-            {restEvidenceId && (
-              <EvidenceLine ruleId={restEvidenceId} variant="icon" hideLibraryLink />
-            )}
-            {hasCuttingBonus && (
-              <span className="inline-flex items-center gap-1 normal-case tracking-normal text-info">
-                +30s cut
-                <EvidenceLine ruleId="rest-cut-bonus" variant="icon" hideLibraryLink />
-              </span>
-            )}
+      {/* "Rest", what it is out of, and why it is this long. */}
+      <span className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <span data-testid="rest-label">Rest</span>
+        <span className="font-mono font-normal normal-case tracking-normal tabular-nums">
+          of {formatRestDuration(restTimerDuration)}
+        </span>
+        {restEvidenceId && (
+          <EvidenceLine ruleId={restEvidenceId} variant="icon" hideLibraryLink />
+        )}
+        {hasCuttingBonus && (
+          <span className="inline-flex items-center gap-1 normal-case tracking-normal text-info">
+            +30s cut
+            <EvidenceLine ruleId="rest-cut-bonus" variant="icon" hideLibraryLink />
           </span>
-          <span className="font-mono text-3xl font-bold leading-none tabular-nums">
-            {formatRestDuration(restTimeRemaining)}
-            <span className="ml-1.5 text-sm font-normal text-muted-foreground">
-              / {formatRestDuration(restTimerDuration)}
-            </span>
-          </span>
-        </div>
-        <Button variant="outline" className="h-11 px-4" onClick={() => handleAddTime(30)}>
-          +30s
-        </Button>
-        <Button variant="secondary" className="h-11 px-5" onClick={handleSkip}>
-          Skip
+        )}
+      </span>
+
+      <div className="flex items-center gap-2">
+        {/* The remaining time is the largest thing in the dock. */}
+        <span
+          data-testid="rest-remaining"
+          className="min-w-0 flex-1 font-mono text-4xl font-bold leading-none tabular-nums"
+        >
+          {formatRestDuration(restTimeRemaining)}
+        </span>
+        {EXTEND_SECONDS.map((seconds) => (
+          <Button
+            key={seconds}
+            variant="outline"
+            className="h-11 min-w-11 px-3 font-mono"
+            onClick={() => handleAddTime(seconds)}
+          >
+            +{seconds}s
+          </Button>
+        ))}
+        <Button variant="secondary" className="h-11 px-3.5" onClick={handleSkip}>
+          Skip rest
         </Button>
       </div>
 

@@ -50,14 +50,14 @@ async function open(overrides: Partial<StartWorkoutInput> = {}) {
 }
 
 const logButton = () => screen.getByRole("button", { name: /^LOG/ });
-const skipRest = () => fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+const skipRest = () => fireEvent.click(screen.getByRole("button", { name: "Skip rest" }));
 
 async function logSets(count: number) {
   for (let i = 0; i < count; i++) {
     const before = (await db.sets.count());
     fireEvent.click(logButton());
     await waitFor(async () => expect(await db.sets.count()).toBe(before + 1));
-    const skip = screen.queryByRole("button", { name: "Skip" });
+    const skip = screen.queryByRole("button", { name: "Skip rest" });
     if (skip) fireEvent.click(skip);
     await waitFor(() => expect(logButton()).toBeEnabled());
   }
@@ -90,7 +90,7 @@ describe("active workout page", () => {
     const timer = await screen.findByRole("timer");
     expect(timer).toHaveTextContent("3:30"); // T1 while cutting: 180 + 30
     expect(screen.queryByRole("button", { name: /^LOG/ })).toBeNull();
-    await waitFor(() => expect(timer).toHaveTextContent("Next: set 2 of 5 at 190 lbs"));
+    await waitFor(() => expect(timer).toHaveTextContent("Next: set 2 of 5 · 190 lbs"));
 
     const sets = await db.sets.toArray();
     expect(sets).toHaveLength(1);

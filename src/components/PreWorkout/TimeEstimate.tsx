@@ -3,28 +3,18 @@
 import { Clock } from "lucide-react";
 
 interface TimeEstimateProps {
-  accessoryCount: number;
+  /**
+   * From `estimateWorkoutMinutes(plan, phase)`, the helper Today's next-workout card
+   * uses: every set plus its rest, warm-ups and accessories included.
+   */
+  minutes: number;
 }
 
-const BASE_TIME_MINUTES = 40;
-const MINUTES_PER_ACCESSORY = 6;
-
-export function TimeEstimate({ accessoryCount }: TimeEstimateProps) {
-  const accessoryTime = accessoryCount * MINUTES_PER_ACCESSORY;
-  const total = BASE_TIME_MINUTES + accessoryTime;
-
+export function TimeEstimate({ minutes }: TimeEstimateProps) {
   return (
     <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
       <Clock className="size-4" aria-hidden="true" />
-      <span>
-        Est. time: ~{total} min
-        {accessoryCount > 0 && (
-          <span>
-            {" "}
-            ({BASE_TIME_MINUTES} base + {accessoryTime} accessories)
-          </span>
-        )}
-      </span>
+      <span>About {minutes} min, rests included</span>
     </p>
   );
 }

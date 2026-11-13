@@ -20,7 +20,7 @@ import { WeightDisplay } from "@/components/ActiveWorkout/WeightDisplay";
 import { WorkoutFinished } from "@/components/ActiveWorkout/WorkoutFinished";
 import { WorkoutHeader } from "@/components/ActiveWorkout/WorkoutHeader";
 import { WorkoutOverviewSheet } from "@/components/ActiveWorkout/WorkoutOverviewSheet";
-import { formatClock } from "@/components/ActiveWorkout/activeWorkoutLogic";
+import { formatClock, restNextLabel } from "@/components/ActiveWorkout/activeWorkoutLogic";
 import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
 import { useActiveWorkout } from "@/components/ActiveWorkout/useActiveWorkout";
 import {
@@ -151,7 +151,12 @@ function ActiveWorkoutContent() {
   }
 
   const showEffort = settings.showRPE && !entry.isWarmUp;
-  const nextSet = Math.min(entry.completedSets + 1, entry.targetSets);
+  const shown = getExercise(entry.substituteExerciseId || entry.exerciseId);
+  const nextLabel = restNextLabel(
+    entry,
+    shown.name,
+    !!entry.substituteExerciseId && shown.grip === "per_hand"
+  );
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background px-5 pt-4 pb-36">
@@ -227,7 +232,7 @@ function ActiveWorkoutContent() {
         audioEnabled={settings.restTimerAudio}
         vibrationEnabled={settings.restTimerVibration}
         trainingPhase={workout.trainingPhase}
-        nextLabel={`Next: set ${nextSet} of ${entry.targetSets} at ${entry.weight} lbs`}
+        nextLabel={nextLabel}
         message={workout.error}
       />
 
