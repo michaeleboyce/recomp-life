@@ -21,6 +21,7 @@
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.6.2",
     "@capacitor/ios": "^8.6.2",
+    "@capgo/capacitor-health": "^8.12.3",
     "@neondatabase/serverless": "^1.0.2",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
