@@ -153,10 +153,19 @@ describe('toPostgresRow', () => {
     expect(row.completed_at).toBeNull();
   });
 
-  it('drops undefined fields but keeps nulls (a cleared field clears the server too)', () => {
+  it('writes NULL for a nullable column the row omits, so a cleared field clears the server too', () => {
     const row = toPostgresRow('painEntries', { id: 'p1', clientId: 'p1', notes: undefined, associatedWorkoutId: null }, NOW);
-    expect('notes' in row).toBe(false);
+    expect(row.notes).toBeNull();
     expect(row.associated_workout_id).toBeNull();
+    expect(row.external_id).toBeNull();
+    expect(row.deleted_at).toBeNull();
+  });
+
+  it('never invents a value for a required column the row omits', () => {
+    const row = toPostgresRow('painEntries', { id: 'p1', clientId: 'p1' }, NOW);
+    for (const required of ['date', 'region', 'sensation', 'severity']) {
+      expect(required in row, required).toBe(false);
+    }
   });
 
   it('defaults a missing updatedAt to the server clock', () => {
@@ -256,15 +265,16 @@ describe('buildUpsert', () => {
     }, NOW);
     expect(buildUpsert('bodyweight', row)).toEqual({
       text:
-        'INSERT INTO "bodyweight" ("id", "client_id", "date", "weight", "time_of_day", "updated_at", "deleted_at", "synced") ' +
-        'VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ' +
+        'INSERT INTO "bodyweight" ("id", "client_id", "date", "weight", "time_of_day", "updated_at", "deleted_at", "synced", "external_id") ' +
+        'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ' +
         'ON CONFLICT ("client_id") DO UPDATE SET ' +
         '"date" = EXCLUDED."date", "weight" = EXCLUDED."weight", ' +
         '"time_of_day" = EXCLUDED."time_of_day", "updated_at" = EXCLUDED."updated_at", ' +
-        '"deleted_at" = EXCLUDED."deleted_at", "synced" = EXCLUDED."synced" ' +
+        '"deleted_at" = EXCLUDED."deleted_at", "synced" = EXCLUDED."synced", ' +
+        '"external_id" = EXCLUDED."external_id" ' +
         'WHERE COALESCE(EXCLUDED."updated_at", 0) >= COALESCE("bodyweight"."updated_at", 0) ' +
         'RETURNING "client_id"',
-      values: ['b1', 'c1', '2026-11-11T07:00:00.000Z', 226, 'morning', NOW, null, true],
+      values: ['b1', 'c1', '2026-11-11T07:00:00.000Z', 226, 'morning', NOW, null, true, null],
     });
   });
 

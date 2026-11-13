@@ -38,6 +38,8 @@ export interface SyncTableInfo {
   jsonColumns: ReadonlySet<string>;
   /** Postgres columns holding epoch-ms stamps (bigint), which the driver returns as strings. */
   bigintColumns: ReadonlySet<string>;
+  /** Postgres columns that may be null: a row that omits one clears it on the server. */
+  nullableColumns: ReadonlySet<string>;
   /** Client field -> Postgres column, for every accepted client field. */
   fieldToColumn: ReadonlyMap<string, string>;
   /** Postgres column -> client field (the reverse of `fieldToColumn`). */
@@ -67,6 +69,10 @@ function buildInfo(def: SyncTableDef): SyncTableInfo {
     drizzleColumns.filter((column) => column.getSQLType() === 'bigint').map((c) => c.name)
   );
 
+  const nullableColumns = new Set(
+    drizzleColumns.filter((column) => !column.notNull).map((c) => c.name)
+  );
+
   const mappedTargets = new Set(Object.values(def.columns));
   const fieldToColumn = new Map<string, string>(Object.entries(def.columns));
   // An unmapped client field keeps its name, so every column that is not the target
@@ -77,7 +83,9 @@ function buildInfo(def: SyncTableDef): SyncTableInfo {
   const columnToField = new Map<string, string>();
   for (const [field, column] of fieldToColumn) columnToField.set(column, field);
 
-  return { def, columns, jsonColumns, bigintColumns, fieldToColumn, columnToField };
+  return {
+    def, columns, jsonColumns, bigintColumns, nullableColumns, fieldToColumn, columnToField,
+  };
 }
 
 const TABLE_INFO: ReadonlyMap<string, SyncTableInfo> = new Map(
@@ -105,7 +113,10 @@ export function findUnknownFields(table: string, row: WireRow): string[] {
  * Turns a wire row into the column/value pairs to upsert. Client fields become
  * Postgres columns via the registry (unmapped fields keep their name), JSON fields are
  * serialised here (the driver would send a JS array as a Postgres array, which is not
- * valid JSON), `undefined` is dropped, and the row is marked synced. `updatedAt`
+ * valid JSON), and the row is marked synced. A nullable column the row does not carry
+ * (omitted or `undefined`) is written as NULL: rows travel whole, and a field cleared
+ * on the device has no key at all, so leaving it out would keep the old value on the
+ * server forever. `updatedAt`
  * defaults to the server clock and is clamped to it when the client's clock runs more
  * than MAX_CLOCK_SKEW_MS ahead, so one bad clock cannot win every future conflict.
  * The profile always gets the fixed PROFILE_ID, so two devices share one row.
@@ -114,13 +125,17 @@ export function findUnknownFields(table: string, row: WireRow): string[] {
  * `prepareBatch` / `findUnknownFields` (column names are interpolated into SQL).
  */
 export function toPostgresRow(table: string, row: WireRow, serverNow: number): PgRow {
-  const { def, jsonColumns, fieldToColumn } = getSyncTableInfo(table);
+  const { def, jsonColumns, nullableColumns, fieldToColumn } = getSyncTableInfo(table);
   const result: PgRow = {};
   for (const [field, value] of Object.entries(row)) {
     if (value === undefined) continue;
     const column = fieldToColumn.get(field) ?? field;
     result[column] =
       jsonColumns.has(column) && value !== null ? JSON.stringify(value) : value;
+  }
+
+  for (const column of nullableColumns) {
+    if (!(column in result)) result[column] = null;
   }
 
   const stamp = result.updated_at;
