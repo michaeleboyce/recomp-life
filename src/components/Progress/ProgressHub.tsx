@@ -59,13 +59,8 @@ export function ProgressHub() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Five tabs only fit a phone's width with tighter padding than the control's default. */}
-      <SegmentedControl
-        value={tab}
-        onChange={select}
-        options={TABS}
-        className="[&_[data-segment]]:px-1.5 max-[360px]:[&_[data-segment]]:px-0.5 max-[360px]:[&_[data-segment]]:text-xs"
-      />
+      {/* Five tabs need the compact size to fit a phone's width. */}
+      <SegmentedControl value={tab} onChange={select} options={TABS} size="compact" />
       <div role="tabpanel" aria-label={TABS.find((t) => t.value === tab)!.label}>
         {tab === "strength" && <StrengthTab />}
         {tab === "body" && <BodyTab />}
