@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
@@ -231,6 +231,34 @@ describe("ExerciseBlock", () => {
     const { container } = render(<AMRAPIndicator tier="accessory" />);
     expect(screen.getByText(/as many reps as you can/)).toBeInTheDocument();
     expect(container.querySelector("[data-evidence]")).toBeNull();
+  });
+});
+
+describe("glossary terms mid-workout", () => {
+  it("AMRAP opens its entry, with no links away from the workout", async () => {
+    render(<AMRAPIndicator tier="T1" />);
+    expect(document.querySelector("abbr")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "What does AMRAP mean?" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("AMRAP");
+    expect(within(sheet).queryByRole("link")).toBeNull();
+  });
+
+  it("the tier badge, RPE heading and 'new best' are explained", () => {
+    render(
+      <>
+        <ExerciseBlock exercise={entry({ tier: "T2" })} location="gym" />
+        <RPESelector selectedRPE={null} onSelectRPE={vi.fn()} />
+        <PrOpportunityLine
+          opportunity={{ repsNeeded: 5, e1rmAtRepsNeeded: 286, bestE1RM: 266, chance: "likely" }}
+          recentAMRAPReps={[]}
+        />
+      </>
+    );
+    expect(screen.getByRole("button", { name: "What does T2 mean?" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Effort \(.*RPE.*, optional\)/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "What does RPE mean?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "What does new best mean?" })).toBeInTheDocument();
   });
 });
 

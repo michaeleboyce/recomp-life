@@ -1,11 +1,15 @@
 "use client";
 
 import { ListChecks } from "lucide-react";
+import { LocationChip } from "@/components/ui/location-chip";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
+import type { WorkoutLocation } from "@/types";
 import { WorkoutMiniMap } from "./WorkoutMiniMap";
 
 interface WorkoutHeaderProps {
   title: string;
+  /** The session's location: fixed for this workout, so shown read-only. */
+  location?: WorkoutLocation;
   /** m:ss since the workout started. */
   elapsed: string;
   exercises?: WorkoutExerciseState[];
@@ -16,6 +20,7 @@ interface WorkoutHeaderProps {
 
 export function WorkoutHeader({
   title,
+  location,
   elapsed,
   exercises,
   currentExerciseIndex = -1,
@@ -34,7 +39,10 @@ export function WorkoutHeader({
         </button>
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <span className="truncate text-[13px] text-muted-foreground">{title}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-[13px] text-muted-foreground">{title}</span>
+          {location && <LocationChip location={location} size="sm" />}
+        </div>
         {exercises && exercises.length > 0 && (
           <WorkoutMiniMap exercises={exercises} currentExerciseIndex={currentExerciseIndex} />
         )}

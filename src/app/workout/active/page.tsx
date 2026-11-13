@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getExercise } from "@/lib/exercises";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { Term } from "@/components/ui/term";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { AutoRegCallout } from "@/components/ActiveWorkout/AutoRegCallout";
 import { DiscardWorkoutDialog } from "@/components/ActiveWorkout/DiscardWorkoutDialog";
@@ -131,7 +132,12 @@ function ActiveWorkoutContent() {
   if (status === "complete" || !entry) {
     return (
       <div className="mx-auto min-h-screen max-w-lg bg-background px-5 pt-4 pb-8">
-        <WorkoutHeader title={title} elapsed={elapsed} exercises={plan} />
+        <WorkoutHeader
+          title={title}
+          location={session.location}
+          elapsed={elapsed}
+          exercises={plan}
+        />
         <WorkoutFinished
           setsLogged={sets.length}
           duration={elapsed}
@@ -151,6 +157,7 @@ function ActiveWorkoutContent() {
     <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background px-5 pt-4 pb-36">
       <WorkoutHeader
         title={title}
+        location={session.location}
         elapsed={elapsed}
         exercises={plan}
         currentExerciseIndex={activeIndex}
@@ -171,7 +178,17 @@ function ActiveWorkoutContent() {
       />
 
       {workout.e1rmFlash !== null && (
-        <Callout variant="success" title={`Estimated 1RM: ${workout.e1rmFlash} lbs`} />
+        <Callout
+          variant="success"
+          title={
+            <>
+              <Term id="e1rm" hideLinks>
+                Estimated 1RM
+              </Term>
+              : {workout.e1rmFlash} lbs
+            </>
+          }
+        />
       )}
 
       {workout.dropSuggestion && (

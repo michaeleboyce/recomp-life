@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Dumbbell, Home } from "lucide-react";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { LocationChip } from "@/components/ui/location-chip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Term } from "@/components/ui/term";
+import { TierKey } from "@/components/Upcoming/TierKey";
 import { UpcomingWorkoutCard } from "@/components/Upcoming/UpcomingWorkoutCard";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import type { RuleId } from "@/lib/evidence";
 import { useTrainingLocation, useUpcomingWorkouts } from "@/hooks";
-import { tierStyle } from "@/lib/tierStyle";
 import type { WorkoutLocation } from "@/types";
 
 // The forecast applies the existing progression rule under a stated assumption.
@@ -23,23 +23,13 @@ const LOCATIONS = [
   { value: "home" as const, label: "Home", icon: <Home className="size-4" aria-hidden="true" /> },
 ];
 
-/** What the tier badges and the "+" mean, each word opening its glossary entry. */
-function TierKey() {
+const LOCATION_LABEL: Record<WorkoutLocation, string> = { gym: "Gym", home: "Home" };
+
+/** Back to where the page was opened from: Today (`?from=today`) or, by default, More. */
+function UpcomingHeader() {
+  const from = useSearchParams()?.get("from");
   return (
-    <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-      <span>
-        <Term id="t1" className={tierStyle("T1").text}>T1</Term> heavy
-      </span>
-      <span>
-        <Term id="t2" className={tierStyle("T2").text}>T2</Term> moderate
-      </span>
-      <span>
-        <Term id="t3" className={tierStyle("T3").text}>T3</Term> light
-      </span>
-      <span>
-        <Term id="amrap-plus" label="+">+</Term> last set is <Term id="amrap">AMRAP</Term>
-      </span>
-    </p>
+    <PageHeader title="Upcoming workouts" backHref={from === "today" ? "/" : "/more"} />
   );
 }
 
@@ -49,10 +39,14 @@ export default function UpcomingWorkoutsPage() {
   const [choice, setChoice] = useState<WorkoutLocation | null>(null);
   const location = choice ?? defaultLocation;
   const workouts = useUpcomingWorkouts(location, 5);
+  const previewing = !isLoading && location !== defaultLocation;
 
   return (
     <PageShell className="flex flex-col gap-4">
-      <PageHeader title="Upcoming workouts" backHref="/more" />
+      {/* Suspense is required around useSearchParams. */}
+      <Suspense fallback={<PageHeader title="Upcoming workouts" backHref="/more" />}>
+        <UpcomingHeader />
+      </Suspense>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
@@ -64,6 +58,11 @@ export default function UpcomingWorkoutsPage() {
           onChange={setChoice}
           options={LOCATIONS}
         />
+        {previewing && (
+          <p data-testid="location-preview" className="text-xs text-muted-foreground">
+            Previewing {LOCATION_LABEL[location]}. Your default is {LOCATION_LABEL[defaultLocation]}.
+          </p>
+        )}
       </div>
 
       <TierKey />

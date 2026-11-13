@@ -14,6 +14,7 @@ import {
   type ProjectionScenario,
 } from "@/lib/projection";
 import type { TrainingPhase } from "@/types";
+import { TermIcon } from "@/components/ui/term";
 import { ScenarioSlider } from "./ScenarioSlider";
 
 type Phase = TrainingPhase["mode"];
@@ -94,6 +95,7 @@ export function ScenarioControls({ baseline, scenario, onChange, onReset }: Scen
       />
       <ScenarioSlider
         label={`Sets of ${lift} a week`}
+        term="weekly-sets"
         value={scenario.directWeeklySets ?? baseline.directWeeklySets}
         baseline={baseline.directWeeklySets}
         min={0}
@@ -121,6 +123,8 @@ export function ScenarioControls({ baseline, scenario, onChange, onReset }: Scen
       />
       <ScenarioSlider
         label="Sessions passed"
+        // No glossary entry for "passed" yet; fail-and-reset says what a pass is.
+        term="fail-reset"
         value={(scenario.passRate ?? baseline.passRate) * 100}
         baseline={baseline.passRate * 100}
         min={50}
@@ -132,8 +136,11 @@ export function ScenarioControls({ baseline, scenario, onChange, onReset }: Scen
         }
       />
       <div className="flex flex-col gap-1">
-        <span id="phase-label" className="text-sm text-foreground">
-          Training phase <span className="text-muted-foreground">now {baseline.phase}</span>
+        <span className="flex items-center gap-1 text-sm text-foreground">
+          <span id="phase-label">
+            Training phase <span className="text-muted-foreground">now {baseline.phase}</span>
+          </span>
+          <TermIcon id="training-phase" />
         </span>
         <div role="group" aria-labelledby="phase-label">
           <SegmentedControl

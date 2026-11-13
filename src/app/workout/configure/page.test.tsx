@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb } from "@/lib/data/testUtils";
+import { updateSettings } from "@/lib/data/records";
 import { overridesFromSession } from "@/lib/workout";
 import type { ActivityLog, RunLog } from "@/types";
 import ConfigureWorkoutPage from "./page";
@@ -48,6 +49,35 @@ describe("configure page", () => {
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Warm-up sets" })).toBeChecked();
     expect(screen.getByText(/Est\. time: ~40 min/)).toBeInTheDocument();
+  });
+
+  it("opens on the training location saved elsewhere (e.g. Today) and states it with a chip", async () => {
+    await updateSettings({ defaultLocation: "home" });
+    await open();
+    await waitFor(() =>
+      expect(document.querySelector("[data-slot=location-chip]")).toHaveAttribute("data-location", "home")
+    );
+    expect(rows()[1]).toMatch(/^T2DB Bench Press/);
+
+    fireEvent.click(screen.getByRole("button", { name: "Gym" }));
+    await waitFor(() =>
+      expect(document.querySelector("[data-slot=location-chip]")).toHaveAttribute("data-location", "gym")
+    );
+    await waitFor(async () =>
+      expect((await db.userProfile.toCollection().first())!.settings.defaultLocation).toBe("gym")
+    );
+  });
+
+  it("has a key above the list explaining the tiers, the '+' and warm-ups", async () => {
+    await open();
+    const key = screen.getByTestId("tier-key");
+    const list = screen.getByRole("list", { name: "Exercises" });
+    expect(key.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    for (const word of ["T1", "T2", "T3", "+", "AMRAP", "warm-up"]) {
+      expect(within(key).getByRole("button", { name: `What does ${word} mean?` })).toBeInTheDocument();
+    }
+    fireEvent.click(within(key).getByRole("button", { name: "What does warm-up mean?" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Warm-up sets");
   });
 
   it("keeps the optional parts in collapsed expanders", async () => {

@@ -7,12 +7,19 @@ import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
 import { tierStyle } from "@/lib/tierStyle";
 import { cn } from "@/lib/utils";
+import { Term } from "@/components/ui/term";
+import type { TermId } from "@/lib/glossary";
+import type { Tier } from "@/types";
 import type { LiftSession } from "./sessions";
 
 const FIRST_PAGE = 10;
 
-function SessionRow({ session }: { session: LiftSession }) {
+const TIER_TERM: Partial<Record<Tier, TermId>> = { T1: "t1", T2: "t2", T3: "t3" };
+
+/** `explainTier`: this row's tier label opens its glossary entry (first row of each tier). */
+function SessionRow({ session, explainTier }: { session: LiftSession; explainTier: boolean }) {
   const style = tierStyle(session.tier);
+  const term = explainTier ? TIER_TERM[session.tier] : undefined;
   return (
     <li
       data-testid="session-row"
@@ -22,7 +29,7 @@ function SessionRow({ session }: { session: LiftSession }) {
         {formatShortDate(session.t)}
       </span>
       <span className={cn("w-[18px] shrink-0 font-mono text-[10px] font-bold", style.text)}>
-        {style.label}
+        {term ? <Term id={term}>{style.label}</Term> : style.label}
       </span>
       <span className="min-w-0 flex-1 font-mono text-sm">
         {session.weight} ×
@@ -74,8 +81,12 @@ export function SessionList({ sessions }: { sessions: LiftSession[] }) {
         className="mb-0.5"
       />
       <ul>
-        {visible.map((s) => (
-          <SessionRow key={s.key} session={s} />
+        {visible.map((s, i) => (
+          <SessionRow
+            key={s.key}
+            session={s}
+            explainTier={visible.findIndex((other) => other.tier === s.tier) === i}
+          />
         ))}
       </ul>
       {!showAll && sessions.length > FIRST_PAGE && (

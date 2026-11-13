@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
@@ -68,12 +68,20 @@ describe("Lift detail page", () => {
     for (const label of ["Working", "Last set", "Effort", "Volume"]) {
       expect(stats).toHaveTextContent(label);
     }
+    expect(within(stats).getByRole("button", { name: "What does Last set mean?" })).toHaveAttribute("data-term", "amrap");
+    expect(within(stats).getByRole("button", { name: "What does Effort mean?" })).toHaveAttribute("data-term", "rpe");
+    // Each tier in the session list is explained once.
+    const sessions = screen.getByRole("region", { name: "Sessions" });
+    expect(within(sessions).getAllByRole("button", { name: "What does T1 mean?" })).toHaveLength(1);
     expect(screen.getByRole("link", { name: /Projection/ })).toHaveAttribute(
       "href",
       "/progress/lift/squat/projection"
     );
     expect(screen.getAllByTestId("session-row").length).toBeGreaterThan(0);
     expect(screen.getAllByText("best")).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "What does Estimated 1RM mean?" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Estimated 1RM");
   });
 
   it("draws the trend overlay with enough points", async () => {

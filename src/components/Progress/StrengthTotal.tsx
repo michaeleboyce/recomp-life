@@ -2,9 +2,25 @@
 
 import { LazyTrendChart, RangeTabs } from "@/components/chart-kit";
 import { Delta } from "@/components/ui/delta";
+import { Term } from "@/components/ui/term";
 import type { RangeKey } from "@/lib/metrics/types";
 import type { StrengthOverview } from "./strength";
 import { rangeSuffix } from "./rangeText";
+
+const E1RM_WORDS = "est. 1RM";
+
+/** "Total of four lifts, est. 1RM" with "est. 1RM" opening its glossary entry. */
+function LabelWithTerm({ label }: { label: string }) {
+  const at = label.lastIndexOf(E1RM_WORDS);
+  if (at < 0) return <>{label}</>;
+  return (
+    <>
+      {label.slice(0, at)}
+      <Term id="e1rm">{E1RM_WORDS}</Term>
+      {label.slice(at + E1RM_WORDS.length)}
+    </>
+  );
+}
 
 /** Headline: the summed est. 1RM, its change over the range, and an area chart of it. */
 export function StrengthTotal({
@@ -21,7 +37,9 @@ export function StrengthTotal({
     <section className="flex flex-col gap-1.5" aria-label="Strength total">
       <div className="flex items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col">
-          <h2 className="text-xs font-normal text-muted-foreground">{label}</h2>
+          <h2 className="text-xs font-normal text-muted-foreground">
+            <LabelWithTerm label={label} />
+          </h2>
           <div className="flex items-baseline gap-2">
             <span
               data-testid="strength-total"

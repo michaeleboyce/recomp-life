@@ -77,6 +77,12 @@ describe("active workout page", () => {
     expect(document.querySelector("input")).toBeNull();
   });
 
+  it("shows the session's own location in the header, whatever the default", async () => {
+    await open({ location: "home" });
+    const chip = document.querySelector("header [data-slot=location-chip]");
+    expect(chip).toHaveAttribute("data-location", "home");
+  });
+
   it("logs a set that hit target with one tap, then rests where the button was", async () => {
     await open();
     fireEvent.click(logButton());

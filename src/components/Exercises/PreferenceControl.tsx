@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ExercisePreference, PreferenceScope, WorkoutLocation } from "@/types";
-import { useSettings } from "@/hooks";
+import { useSettings, useTrainingLocation } from "@/hooks";
 import { updateSettings } from "@/lib/data/records";
 import { isPreferenceEditable } from "@/lib/exerciseCategories";
 import {
@@ -33,6 +33,36 @@ const OPTIONS: { value: ExercisePreference; label: string; active: string }[] = 
 ];
 
 /**
+ * Captions under a three-option scope control (all, gym, home, in that order, with
+ * equal-width segments): "current" under the option that matches where the user is
+ * training, so "which preferences am I editing" and "where am I" stay separate.
+ */
+export function CurrentLocationMarks({
+  location,
+  className,
+}: {
+  location: WorkoutLocation;
+  className?: string;
+}) {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn("grid grid-cols-3 px-1 text-center text-[11px] leading-4", className)}
+    >
+      {(["all", "gym", "home"] as const).map((scope) => (
+        <span
+          key={scope}
+          data-current-location={scope === location || undefined}
+          className="font-medium text-accent-primary"
+        >
+          {scope === location ? "current" : ""}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
  * Set an accessory's preference (blocked / normal / preferred) for everywhere,
  * the gym, or home. Renders nothing for exercises whose preference cannot be
  * changed (the main lifts and their substitutes).
@@ -43,6 +73,7 @@ export function PreferenceControl({
   className,
 }: PreferenceControlProps) {
   const settings = useSettings();
+  const { location: trainingLocation } = useTrainingLocation();
   const [scope, setScope] = useState<PreferenceScope>(defaultScope);
 
   if (!isPreferenceEditable(exerciseId) || !settings) return null;
@@ -62,9 +93,10 @@ export function PreferenceControl({
 
   return (
     <div className={cn("space-y-2", className)} data-preference-control={exerciseId}>
-      <div className="flex items-center gap-3">
-        <span className="shrink-0 text-xs text-muted-foreground">Preference for</span>
-        <SegmentedControl value={scope} onChange={setScope} options={SCOPES} className="flex-1" />
+      <div className="space-y-0.5">
+        <span className="text-xs text-muted-foreground">Preference for</span>
+        <SegmentedControl value={scope} onChange={setScope} options={SCOPES} />
+        <CurrentLocationMarks location={trainingLocation} />
       </div>
       <div className="flex overflow-hidden rounded-md border border-border">
         {OPTIONS.map((opt) => (

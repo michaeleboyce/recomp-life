@@ -16,6 +16,8 @@ import EquipmentProfileEditor from "@/components/Equipment/EquipmentProfileEdito
 import ExercisePreferencesEditor from "@/components/Settings/ExercisePreferencesEditor";
 import AnatomySettings from "@/components/Settings/AnatomySettings";
 import { SkeletonCard } from "@/components/ui/skeleton";
+import { LocationChip } from "@/components/ui/location-chip";
+import { TrainingLocationRow } from "@/components/More/TrainingLocationRow";
 import { getSyncKey, setSyncKey } from "@/lib/syncKey";
 
 function formatHeight(totalInches: number): string {
@@ -215,7 +217,8 @@ export default function SettingsPage() {
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
         <Link
-          href="/"
+          href="/more"
+          aria-label="Back"
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -224,6 +227,10 @@ export default function SettingsPage() {
       </header>
 
       <div className="space-y-4">
+        {/* Training location: the same default Today, Configure and More use. */}
+        <section aria-label="Training location" className="overflow-hidden rounded-2xl bg-card">
+          <TrainingLocationRow />
+        </section>
         {/* Profile Section */}
         <Card>
           <CardContent>
@@ -323,7 +330,26 @@ export default function SettingsPage() {
 
         {/* Equipment Section */}
         <Card>
-          <CardContent>
+          <CardContent className="space-y-6">
+            <div data-testid="equipment-intro" className="space-y-2">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Equipment
+              </h2>
+              <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+                <LocationChip
+                  location="home"
+                  detail={`dumbbells up to ${settings.equipment.maxDumbbellWeight} lbs`}
+                />
+                <span>What you have at home decides the home substitutes.</span>
+              </p>
+              <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+                <LocationChip location="gym" />
+                <span>
+                  The gym is assumed to have a full barbell setup; only its bar and smallest
+                  plate are set here.
+                </span>
+              </p>
+            </div>
             <EquipmentProfileEditor
               equipment={settings.equipment}
               onChange={handleEquipmentChange}
@@ -613,6 +639,14 @@ function SyncKeyCard() {
   const [hasKey, setHasKey] = useState(() => getSyncKey() !== null);
   const [saved, setSaved] = useState(false);
 
+  // The card mounts after the database is ready, too late for the browser's own
+  // jump to #sync, so scroll to it here.
+  useEffect(() => {
+    if (window.location.hash === "#sync") {
+      document.getElementById("sync")?.scrollIntoView?.({ block: "start" });
+    }
+  }, []);
+
   const save = (value: string) => {
     setSyncKey(value);
     setHasKey(getSyncKey() !== null);
@@ -622,7 +656,8 @@ function SyncKeyCard() {
   };
 
   return (
-    <Card>
+    // Linked from More as /settings#sync.
+    <Card id="sync" className="scroll-mt-4">
       <CardContent>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
           Cloud Sync

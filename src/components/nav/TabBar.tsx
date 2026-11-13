@@ -19,20 +19,38 @@ const TABS: Array<{ id: TabId; href: string; label: string; icon: LucideIcon }> 
 const PREFIXES: Record<Exclude<TabId, "today">, string[]> = {
   progress: ["/progress", "/muscles"],
   log: ["/log"],
-  more: ["/more", "/settings", "/exercises", "/research", "/1rm-calculator", "/plate-calculator"],
+  more: [
+    "/more",
+    "/settings",
+    "/exercises",
+    "/research",
+    "/1rm-calculator",
+    "/plate-calculator",
+    // Listed under More > Training (Today's "Coming up" line also opens it); it is
+    // not part of the Progress hub, so More is the tab it belongs to.
+    "/progress/upcoming",
+  ],
 };
 
 function matchesPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-/** Which tab owns this pathname, or null for routes that belong to none (e.g. /weigh-in). */
+/**
+ * Which tab owns this pathname, or null for routes that belong to none (e.g. /weigh-in).
+ * The longest matching prefix wins, so /progress/upcoming is More's, not Progress's.
+ */
 export function activeTab(pathname: string): TabId | null {
   if (pathname === "/") return "today";
+  let best: { id: TabId; length: number } | null = null;
   for (const id of Object.keys(PREFIXES) as Array<keyof typeof PREFIXES>) {
-    if (PREFIXES[id].some((p) => matchesPrefix(pathname, p))) return id;
+    for (const prefix of PREFIXES[id]) {
+      if (matchesPrefix(pathname, prefix) && (!best || prefix.length > best.length)) {
+        best = { id, length: prefix.length };
+      }
+    }
   }
-  return null;
+  return best?.id ?? null;
 }
 
 function TabLink({ tab, active }: { tab: (typeof TABS)[number]; active: boolean }) {

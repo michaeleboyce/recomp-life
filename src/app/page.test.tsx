@@ -56,7 +56,8 @@ describe("Today page", () => {
     await db.liftStates.bulkPut(demo.liftStates);
     await db.userProfile.put(makeProfile());
     render(<TodayPage />);
-    expect(await screen.findByRole("link", { name: /PR chance on/ })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /^on .*reps on the last set beats/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "What does PR chance mean?" })).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: /Weight/ })).toHaveAttribute("href", "/progress?tab=body");
     expect(screen.getByRole("link", { name: "Open the muscle explorer" })).toHaveAttribute("href", "/muscles");
   });
