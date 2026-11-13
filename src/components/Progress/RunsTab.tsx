@@ -47,7 +47,7 @@ export function RunsTab() {
     );
   }
 
-  const paceChange = data.paceSummary.change;
+  const paceChange = data.paceChange;
 
   return (
     <div className="flex flex-col gap-5">

@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useActivities, useMetricSource } from "@/hooks";
-import { bucket, computeMetric, inRange, summarize } from "@/lib/metrics";
-import type { RangeKey, Series, SeriesSummary } from "@/lib/metrics/types";
+import { bucket, computeMetric, inRange } from "@/lib/metrics";
+import type { RangeKey, Series } from "@/lib/metrics/types";
 import {
   activityTotals,
   mean,
+  paceOverall,
   sleepEffortComparison,
   sum,
   type ActivityTotal,
@@ -22,8 +23,10 @@ export interface RunsData {
   distance: number;
   totalMinutes: number;
   avgEffort: number | null;
+  /** Minutes per mile over the range: total minutes / total miles of runs with a distance. */
   avgPace: number | null;
-  paceSummary: SeriesSummary;
+  /** Later half of the range's runs against the earlier half, same measure; negative is faster. */
+  paceChange: number | null;
   weeklyDistance: Series;
   sleep: Series;
   stress: Series;
@@ -44,7 +47,7 @@ export function useRunsData(range: RangeKey): RunsData | undefined {
     const ranged = (id: Parameters<typeof computeMetric>[0]) => inRange(computeMetric(id, source), range, now);
     const distance = ranged("runDistance");
     const duration = ranged("runDuration");
-    const pace = ranged("runPace");
+    const pace = paceOverall(distance, duration);
     return {
       hasRuns: source.runs.length > 0,
       hasReadiness: source.readiness.length > 0,
@@ -52,8 +55,8 @@ export function useRunsData(range: RangeKey): RunsData | undefined {
       distance: sum(distance),
       totalMinutes: sum(duration),
       avgEffort: mean(ranged("runEffort")),
-      avgPace: mean(pace),
-      paceSummary: summarize(pace),
+      avgPace: pace.average,
+      paceChange: pace.change,
       weeklyDistance: bucket(distance, "week", "sum"),
       sleep: ranged("sleep"),
       stress: ranged("stress"),
