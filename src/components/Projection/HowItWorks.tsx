@@ -4,7 +4,7 @@ import type { Projection } from "@/lib/projection";
 
 interface HowItWorksProps {
   projection: Projection;
-  /** Weeks of the lifter's own data behind the estimate. */
+  /** Weeks of the lifter's own data the trend was fitted to (`fitWindowWeeks`). */
   dataWeeks: number;
 }
 

@@ -15,7 +15,7 @@ import { LiftStats, ProjectionLink } from "./LiftStats";
 import { MoreCharts } from "./MoreCharts";
 import { PrLine } from "./PrLine";
 import { SessionList } from "./SessionList";
-import { liftMetrics, liftStats, nextT1Opportunity, projectionTeaser } from "./liftSeries";
+import { liftMetrics, liftStats, liftTeaser, nextT1Opportunity } from "./liftSeries";
 import { liftSessions } from "./sessions";
 
 /** Lift detail: e1RM headline and chart, next PR chance, stats, more charts, sessions. */
@@ -37,7 +37,9 @@ export function LiftDetail({ exerciseId }: { exerciseId: MainLiftId }) {
       metrics,
       stats: liftStats(metrics),
       next: nextT1Opportunity(exerciseId, liftState, best),
-      teaser: projectionTeaser(metrics.e1rm.series.points, now),
+      // The whole history, so the figure matches the projection screen and does not
+      // move with the range tab.
+      teaser: liftTeaser(source, exerciseId, metrics.e1rm.full.points, now),
       sessions: liftSessions(source.workouts, source.e1rms, exerciseId),
     };
   }, [source, exerciseId, range, now]);

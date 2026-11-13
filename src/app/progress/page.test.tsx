@@ -48,7 +48,7 @@ describe("Progress hub tabs", () => {
     render(<ProgressPage />);
     expect(screen.getByRole("heading", { name: "Progress" })).toBeInTheDocument();
     expect(await screen.findByRole("tabpanel", { name: "Strength" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Runs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cardio" }));
     expect(replace).toHaveBeenCalledWith("/progress?tab=runs", { scroll: false });
   });
 

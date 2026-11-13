@@ -113,3 +113,18 @@ export function formatClock(totalSeconds: number): string {
   const whole = Math.max(0, Math.floor(totalSeconds));
   return `${Math.floor(whole / 60)}:${(whole % 60).toString().padStart(2, "0")}`;
 }
+
+/**
+ * What the rest timer says comes next, for the entry that is now current:
+ * "Next: set 3 of 5 · 190 lbs", naming the exercise when it is a new one
+ * ("Next: Barbell Bench Press, set 1 of 3 · 100 lbs").
+ */
+export function restNextLabel(entry: WorkoutExerciseState, exerciseName: string, perHand = false): string {
+  const weight = `${entry.weight} ${perHand ? "lbs/hand" : "lbs"}`;
+  if (entry.isWarmUp) return `Next: ${exerciseName} warm-up · ${weight}`;
+  const set = Math.min(entry.completedSets + 1, entry.targetSets);
+  const what = `set ${set} of ${entry.targetSets}`;
+  return entry.completedSets === 0
+    ? `Next: ${exerciseName}, ${what} · ${weight}`
+    : `Next: ${what} · ${weight}`;
+}
