@@ -26,13 +26,14 @@ export function WorkoutComplete({ setsCompleted, duration }: WorkoutCompleteProp
             cy="12"
             r="10"
             fill="none"
-            stroke="oklch(0.65 0.10 160 / 0.2)"
+            stroke="var(--accent-primary)"
+            strokeOpacity={0.2}
             strokeWidth="1.5"
           />
           <path
             d="M7 13l3 3 7-7"
             fill="none"
-            stroke="oklch(0.65 0.10 160)"
+            stroke="var(--accent-primary)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"

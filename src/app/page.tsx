@@ -13,6 +13,7 @@ import {
   useDiscardStaleWorkouts,
 } from "@/components/Today/AttentionList";
 import { GlanceTiles } from "@/components/Today/GlanceTiles";
+import { WeeklyReviewLink } from "@/components/Review/WeeklyReviewLink";
 import MuscleHeatCard from "@/components/Dashboard/MuscleHeatCard";
 
 /**
@@ -30,6 +31,7 @@ export default function TodayPage() {
         <NextWorkoutHero key="hero" />
         {insights && hasAttention(insights) && <AttentionList key="attention" insights={insights} />}
         <GlanceTiles key="tiles" />
+        <WeeklyReviewLink key="review" />
         {insights && hasPositive(insights) && <PositiveInsightLine key="positive" insights={insights} />}
         <MuscleHeatCard key="muscles" />
       </Stagger>

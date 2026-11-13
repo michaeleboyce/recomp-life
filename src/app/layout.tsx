@@ -5,6 +5,7 @@ import { AppChrome } from "@/components/AppChrome";
 import { DbProvider } from "@/components/DbProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { SyncProvider } from "@/components/SyncProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 // The fonts are bundled with the app (variable woff2 files, SIL Open Font License,
 // see ./fonts) instead of being fetched from Google Fonts at build time: a change in
@@ -53,10 +54,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    // "dark" is only the first paint (no flash for dark users); ThemeProvider removes
+    // it on the client when the stored setting is "light".
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body
         className={`${plusJakarta.variable} ${jetbrainsMono.variable} antialiased`}
       >
+        <ThemeProvider />
         <AppChrome>
           <DbProvider>{children}</DbProvider>
         </AppChrome>

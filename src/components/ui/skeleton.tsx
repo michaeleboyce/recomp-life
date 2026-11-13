@@ -4,8 +4,8 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "rounded-md bg-[oklch(0.22_0.005_260)]",
-        "bg-[length:200%_100%] bg-[linear-gradient(90deg,oklch(0.22_0.005_260)_25%,oklch(0.28_0.005_260)_50%,oklch(0.22_0.005_260)_75%)]",
+        "rounded-md bg-muted",
+        "bg-[length:200%_100%] bg-[linear-gradient(90deg,var(--muted)_25%,var(--card-raised)_50%,var(--muted)_75%)]",
         "animate-[shimmer_1.5s_ease-in-out_infinite]",
         className
       )}

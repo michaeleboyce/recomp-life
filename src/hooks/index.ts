@@ -19,6 +19,7 @@ export {
 export { useNextWorkout } from "./useNextWorkout";
 export { useReadinessLogs, useMetricSource, useMetric } from "./useMetric";
 export { useInsights } from "./useInsights";
+export { useWeeklyReview, type WeeklyReviewResult } from "./useWeeklyReview";
 export { useProjection, type ProjectionResult } from "./useProjection";
 export { useTrainingLocation } from "./useTrainingLocation";
 export { useUpcomingWorkouts } from "./useUpcomingWorkouts";
