@@ -10,6 +10,7 @@ import {
   FlaskConical,
   PersonStanding,
   Settings,
+  Trash2,
 } from "lucide-react";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
 import { MoreGroup, MoreRow } from "@/components/More/MoreGroup";
@@ -95,6 +96,12 @@ export default function MorePage() {
           title="Cloud sync"
           subtitle={hasSyncKey ? "On this device" : "Off"}
           href="/settings#sync"
+        />
+        <MoreRow
+          icon={Trash2}
+          title="Recently deleted"
+          subtitle="Restore entries deleted in the last 30 days"
+          href="/more/deleted"
         />
       </MoreGroup>
 
