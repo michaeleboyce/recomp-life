@@ -44,6 +44,25 @@ beforeEach(async () => {
 });
 
 describe("BodyDetail", () => {
+  it("labels the change with the real span of the weigh-ins, not the range chip", async () => {
+    // Two weeks of data viewed at the default three-month range.
+    const now = Date.now();
+    await db.bodyweight.bulkPut(
+      Array.from({ length: 15 }, (_, i) => ({
+        id: `two-weeks-${i}`,
+        clientId: `two-weeks-${i}`,
+        date: new Date(now - (14 - i) * 86_400_000),
+        weight: 200 - i * 0.2,
+        timeOfDay: "morning" as const,
+        synced: false,
+      }))
+    );
+    await db.userProfile.put(makeProfile());
+    render(<BodyDetail />);
+    expect(await screen.findByText("in 2 wk")).toBeInTheDocument();
+    expect(screen.queryByText("in 3m")).toBeNull();
+  });
+
   it("links back to the Body tab and lists weigh-ins newest first, grouped by month", async () => {
     await seed("cutting");
     render(<BodyDetail />);
