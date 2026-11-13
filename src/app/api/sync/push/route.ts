@@ -1,53 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { neonSql } from '@/db/drizzle';
-import {
-  isSyncAuthorized,
-  isSyncTableName,
-  findUnknownColumns,
-  toPostgresRow,
-  buildUpsert,
-  SYNC_ALLOWED_COLUMNS,
-} from '@/lib/syncGuard';
+import { isSyncAuthorized, prepareBatch, buildUpsert } from '@/lib/syncGuard';
+import type { PushRequest, PushResponse } from '@/lib/sync/wire';
 
+/** Last-write-wins upsert of one batch of rows into one registry table. */
 export async function POST(request: NextRequest) {
   if (!isSyncAuthorized(request.headers.get('authorization'), process.env.SYNC_SECRET)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  let body: Partial<PushRequest>;
   try {
-    const { table, rows } = await request.json() as {
-      table: string;
-      rows: Record<string, unknown>[];
+    body = (await request.json()) as Partial<PushRequest>;
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  // The whole batch is validated (table, every column of every row) before any write.
+  const batch = prepareBatch(body?.table, body?.rows, Date.now());
+  if (!batch.ok) {
+    return NextResponse.json({ error: batch.error }, { status: 400 });
+  }
+
+  try {
+    let applied = 0;
+    for (const row of batch.rows) {
+      const { text, values } = buildUpsert(body.table as string, row);
+      const result = await neonSql.query(text, values);
+      if (result.length > 0) applied += 1;
+    }
+    const response: PushResponse = {
+      success: true,
+      applied,
+      skipped: batch.rows.length - applied,
     };
-
-    if (!isSyncTableName(table)) {
-      return NextResponse.json({ error: `Unknown table: ${table}` }, { status: 400 });
-    }
-
-    if (!rows?.length) {
-      return NextResponse.json({ success: true, count: 0 });
-    }
-
-    const allowedColumns = SYNC_ALLOWED_COLUMNS[table];
-
-    // Column names are interpolated into the SQL, so every one must be a known
-    // schema column. Validate all rows before writing any of them.
-    const mappedRows = rows.map((row) => toPostgresRow(table, row));
-    for (const mapped of mappedRows) {
-      if (findUnknownColumns(Object.keys(mapped), allowedColumns).length > 0) {
-        return NextResponse.json(
-          { error: `Unknown column in rows for table: ${table}` },
-          { status: 400 }
-        );
-      }
-    }
-
-    for (const mapped of mappedRows) {
-      const { text, values } = buildUpsert(table, mapped);
-      await neonSql.query(text, values);
-    }
-
-    return NextResponse.json({ success: true, count: rows.length });
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Sync push error:', error);
     return NextResponse.json(
