@@ -8,6 +8,7 @@ import { reviveDates } from "@/lib/sync/revive";
 import type {
   ActivityLog,
   BodyweightLog,
+  HealthDailyLog,
   LiftAdjustment,
   PainSorenessEntry,
   ReadinessLog,
@@ -27,6 +28,8 @@ export interface BackupTables {
   painEntries: PainSorenessEntry[];
   readinessLogs: ReadinessLog[];
   userProfile: UserProfile[];
+  /** Daily values imported from Apple Health. Absent from backups made before it existed. */
+  healthDaily: HealthDailyLog[];
 }
 
 export interface BackupV2 {
@@ -46,7 +49,11 @@ const TABLE_NAMES = [
   "painEntries",
   "readinessLogs",
   "userProfile",
+  "healthDaily",
 ] as const satisfies readonly (keyof BackupTables)[];
+
+/** Tables a version 2 file may lack because they were added after the format was set. */
+const OPTIONAL_TABLES: ReadonlySet<string> = new Set(["healthDaily"]);
 
 function logTables(): Table[] {
   return TABLE_NAMES.map((name) => db[name] as Table);
@@ -118,7 +125,8 @@ export function parseBackup(text: string): BackupV2 {
   const tables: Record<string, unknown[]> = {};
   for (const name of TABLE_NAMES) {
     // A version 1 file always had workouts and a profile; the rest may be missing.
-    const required = strict || name === "workouts" || name === "userProfile";
+    const required =
+      (strict && !OPTIONAL_TABLES.has(name)) || name === "workouts" || name === "userProfile";
     tables[name] = reviveDates(readTable(source, name, required)) as unknown[];
   }
   return { version: 2, exportedAt, tables: tables as unknown as BackupTables };

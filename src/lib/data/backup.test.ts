@@ -44,6 +44,7 @@ describe("exportBackup", () => {
       [
         "activities",
         "bodyweight",
+        "healthDaily",
         "liftAdjustments",
         "painEntries",
         "readinessLogs",
@@ -153,5 +154,16 @@ describe("parseBackup", () => {
     expect(() =>
       parseBackup(JSON.stringify({ version: 1, workouts: [{ nope: 1 }], userProfile: [] }))
     ).toThrow(/damaged entry in "workouts"/);
+  });
+});
+
+describe("optional tables", () => {
+  it("accepts a version 2 file written before the health table existed", () => {
+    const tables = {
+      workouts: [], liftAdjustments: [], runs: [], activities: [], bodyweight: [],
+      painEntries: [], readinessLogs: [], userProfile: [],
+    };
+    const backup = parseBackup(JSON.stringify({ version: 2, exportedAt: "2026-11-12T00:00:00.000Z", tables }));
+    expect(backup.tables.healthDaily).toEqual([]);
   });
 });
