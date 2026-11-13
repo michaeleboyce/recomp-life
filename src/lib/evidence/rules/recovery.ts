@@ -113,7 +113,7 @@ export const RECOVERY_RULES = {
     status: "active",
     title: "Why does a hard yoga class or ride matter?",
     summary: "A hard session in the last day can leave you a little short",
-    appBehavior: `Before a workout, the app checks the yoga, cycling, hiking, walking and other sessions you logged in the last ${ACTIVITY_NOTE_WINDOW_HOURS} hours. If one was rated effort ${ACTIVITY_HARD_EFFORT} or more out of 5, it shows a note suggesting you judge the day by your warm-ups. Cycling, hiking and walking are only mentioned before a lower-body T1 lift. The note never changes your weights, and these sessions never affect progression.`,
+    appBehavior: `Before a workout, the app checks the yoga, cycling, hiking, walking and other sessions you logged in the last ${ACTIVITY_NOTE_WINDOW_HOURS} hours. If one was rated effort ${ACTIVITY_HARD_EFFORT} or more out of 5, it shows a note suggesting you judge the day by your warm-ups. Cycling, hiking and walking are only mentioned before a lower-body T1 lift. The note never changes your weights, and these sessions never affect progression. A session imported from Apple Health has no effort rating and is ignored until you rate it in the Log.`,
     rationale:
       "A hard session of any kind leaves some fatigue, and it is better to have it in mind than to be surprised by a slow warm-up. Easy and moderate sessions are not flagged.",
     caveat:

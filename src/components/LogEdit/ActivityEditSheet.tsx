@@ -19,7 +19,7 @@ function ActivityForm({ open, onOpenChange, entry, now }: EntrySheetProps<Activi
   const [duration, setDuration] = useState(String(entry.durationMinutes));
   const [style, setStyle] = useState<YogaStyle | null>(entry.style);
   const [distance, setDistance] = useState(entry.distanceMiles == null ? "" : String(entry.distanceMiles));
-  const [effort, setEffort] = useState<Effort>(entry.perceivedEffort);
+  const [effort, setEffort] = useState<Effort | null>(entry.perceivedEffort);
   const [notes, setNotes] = useState(entry.notes);
   const [invalid, setInvalid] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

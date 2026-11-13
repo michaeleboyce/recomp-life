@@ -52,6 +52,11 @@ describe('evaluateActivityImpact', () => {
     expect(note).not.toBeNull();
   });
 
+  it('ignores a session with no effort rating', () => {
+    const imported = makeActivity({ kind: 'cycling', perceivedEffort: null, date: hoursAgo(2) });
+    expect(evaluateActivityImpact([imported], true, now)).toBeNull();
+  });
+
   it('ignores sessions outside the window and sessions dated in the future', () => {
     const old = makeActivity({ date: hoursAgo(ACTIVITY_NOTE_WINDOW_HOURS + 1) });
     const future = makeActivity({ date: hoursAgo(-2) });

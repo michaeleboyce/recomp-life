@@ -26,11 +26,11 @@ function minutes(value: number): string {
   return formatDuration(value * 60);
 }
 
-function cardioSubtitle(distanceMiles: number | null, durationMinutes: number, effort: number): string {
+function cardioSubtitle(distanceMiles: number | null, durationMinutes: number, effort: number | null): string {
   return [
     distanceMiles != null ? `${formatLbs(distanceMiles)} mi` : null,
     minutes(durationMinutes),
-    EFFORT[effort] ?? null,
+    effort != null ? EFFORT[effort] ?? null : null,
   ]
     .filter(Boolean)
     .join(" · ");

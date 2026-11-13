@@ -39,6 +39,26 @@ describe('evaluateRunImpact', () => {
     expect(result.suggestedAction).toBe('extra_warmups');
   });
 
+  it('ignores a run with no effort rating, however long or recent', () => {
+    const now = new Date();
+    const imported = makeRun({
+      date: hoursAgo(2, now),
+      category: 'other',
+      durationMinutes: 90,
+      perceivedEffort: null,
+    });
+
+    expect(evaluateRunImpact([imported], true, now, defaultPhase).level).toBe('none');
+  });
+
+  it('still judges a rated run when a later run is unrated', () => {
+    const now = new Date();
+    const rated = makeRun({ date: hoursAgo(18, now), category: 'tempo', perceivedEffort: 3 });
+    const imported = makeRun({ id: 'run-2', date: hoursAgo(1, now), perceivedEffort: null });
+
+    expect(evaluateRunImpact([rated, imported], true, now, defaultPhase).level).toBe('advisory');
+  });
+
   it('returns no advisory for run >24h ago', () => {
     const now = new Date();
     const run = makeRun({
