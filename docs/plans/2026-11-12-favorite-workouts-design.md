@@ -31,7 +31,7 @@ Evaluated per plan entry, from the session's stored `prescribed` list and its lo
 3. **Lighter, or a different scheme.** Logged only. No lift-state change at all: not a pass, not a failure, not a freeze trigger.
 4. **Removed program lift.** No lift-state change.
 5. **Swapped-in or added exercise.** Logged only. Its suggested weight next time is the last weight logged for that exercise; no new progression maths.
-6. **Rotation.** The session counts for the rotation only when its base day was the due day and its T1 lift was a program entry with at least one working set logged. Otherwise the due day stays due. An out-of-order day therefore progresses its lifts (rules 1 to 5) without moving the rotation.
+6. **Rotation.** The session counts for the rotation only when its base day was the due day and its T1 lift is still in the plan and is a program entry (an unedited day ended early still counts, as it does today). Otherwise the due day stays due. An out-of-order day therefore progresses its lifts (rules 1 to 5) without moving the rotation.
 
 Sessions with no `prescribed` list (everything before this change) are treated as unedited program sessions.
 
