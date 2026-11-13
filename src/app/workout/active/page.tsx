@@ -128,8 +128,37 @@ function ActiveWorkoutContent() {
   }
 
   const title = templateTitle(session.templateId);
+  const isOver = status === "complete" || !entry;
 
-  if (status === "complete" || !entry) {
+  // The overview stays reachable once the workout is over, so the last set can still
+  // be corrected before saving; jumping and ending early no longer apply then.
+  const overview = (
+    <>
+      <WorkoutOverviewSheet
+        open={overviewOpen}
+        onOpenChange={setOverviewOpen}
+        exercises={plan}
+        sets={sets}
+        currentExerciseIndex={activeIndex}
+        onSelectExercise={isOver ? undefined : workout.jumpTo}
+        elapsedTime={elapsed}
+        onEndWorkout={isOver ? undefined : openEndDialog}
+        onDiscard={() => setShowDiscardDialog(true)}
+        workoutId={session.id}
+        onCorrectSet={workout.correctSet}
+        correctionError={workout.correctionError}
+        onCorrectionStart={workout.clearCorrectionError}
+      />
+      <DiscardWorkoutDialog
+        open={showDiscardDialog}
+        onOpenChange={setShowDiscardDialog}
+        setsLogged={sets.length}
+        onDiscard={handleDiscard}
+      />
+    </>
+  );
+
+  if (isOver) {
     return (
       <div className="mx-auto min-h-screen max-w-lg bg-background px-5 pt-4 pb-8">
         <WorkoutHeader
@@ -137,6 +166,7 @@ function ActiveWorkoutContent() {
           location={session.location}
           elapsed={elapsed}
           exercises={plan}
+          onOpenOverview={sets.length > 0 ? () => setOverviewOpen(true) : undefined}
         />
         <WorkoutFinished
           setsLogged={sets.length}
@@ -146,6 +176,7 @@ function ActiveWorkoutContent() {
           onDiscard={handleDiscard}
           error={workout.error}
         />
+        {overview}
       </div>
     );
   }
@@ -236,17 +267,7 @@ function ActiveWorkoutContent() {
         message={workout.error}
       />
 
-      <WorkoutOverviewSheet
-        open={overviewOpen}
-        onOpenChange={setOverviewOpen}
-        exercises={plan}
-        sets={sets}
-        currentExerciseIndex={activeIndex}
-        onSelectExercise={workout.jumpTo}
-        elapsedTime={elapsed}
-        onEndWorkout={openEndDialog}
-        onDiscard={() => setShowDiscardDialog(true)}
-      />
+      {overview}
 
       <EndWorkoutConfirmDialog
         open={showEndDialog}
@@ -255,13 +276,6 @@ function ActiveWorkoutContent() {
         onCancel={handleDiscard}
         remainingExercises={remainingExercises}
         setsLogged={sets.length}
-      />
-
-      <DiscardWorkoutDialog
-        open={showDiscardDialog}
-        onOpenChange={setShowDiscardDialog}
-        setsLogged={sets.length}
-        onDiscard={handleDiscard}
       />
     </div>
   );

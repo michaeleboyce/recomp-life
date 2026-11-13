@@ -1,8 +1,17 @@
 // Pure derivations for the active workout screen. No React, no database.
 import { evaluateT2AutoRegulation } from "@/lib/progression";
+import { anchorToPrescription, applyChange, emptyLiftState, type LogChange } from "@/lib/rebuild";
+import { buildWorkoutPlan, overridesFromSession } from "@/lib/workout/buildPlan";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
-import type { SetLog, TrainingPhase } from "@/types";
+import type {
+  EquipmentProfile,
+  LiftState,
+  SetLog,
+  TrainingPhase,
+  WorkoutSession,
+  WorkoutTemplate,
+} from "@/types";
 
 /** The stepper never goes below one rep (as before) and is not capped near a target. */
 export const MIN_REPS = 1;
@@ -69,19 +78,83 @@ export function clampReps(reps: number): number {
 
 /**
  * True when a T2 load drop was accepted for this entry, judged from what was
- * logged so it survives a reload: a set carries the load-drop status, or the entry
- * has resumed at a weight below the one prescribed.
+ * logged so it survives a reload: a set carries the load-drop status. A weight that
+ * is merely lower than prescribed (a set whose weight was corrected) is not a drop.
  */
-export function isDropAccepted(
-  entry: WorkoutExerciseState,
-  prescribedWeight: number,
-  sets: SetLog[]
-): boolean {
+export function isDropAccepted(entry: WorkoutExerciseState, sets: SetLog[]): boolean {
   if (entry.tier !== "T2") return false;
-  const logged = workingSetsFor(sets, entry.exerciseId, entry.tier);
-  return (
-    logged.some((set) => set.status === "autoregulated_load_drop") ||
-    (logged.length > 0 && entry.weight < prescribedWeight)
+  return workingSetsFor(sets, entry.exerciseId, entry.tier).some(
+    (set) => set.status === "autoregulated_load_drop"
+  );
+}
+
+/**
+ * The plan of a workout in progress. A session that stored its prescription keeps
+ * it: each program lift's weight, sets and reps come from `session.prescribed`, so
+ * editing an earlier session or adjusting a weight mid-workout cannot change what is
+ * on the bar. Home substitution, warm-ups and accessories are built as always. A
+ * session without a stored prescription is planned from the current lift states.
+ */
+export function planForSession(input: {
+  session: WorkoutSession;
+  template: WorkoutTemplate;
+  liftStates: LiftState[];
+  equipment: EquipmentProfile;
+}): WorkoutPlan {
+  const { session, template, equipment } = input;
+  const prescribed = session.prescribed;
+
+  let liftStates = input.liftStates;
+  if (prescribed) {
+    const byId = new Map(liftStates.map((state) => [state.exerciseId, state]));
+    for (const entry of prescribed) {
+      const state = byId.get(entry.exerciseId) ?? emptyLiftState(entry.exerciseId);
+      byId.set(entry.exerciseId, anchorToPrescription(state, entry));
+    }
+    liftStates = [...byId.values()];
+  }
+
+  const plan = buildWorkoutPlan({
+    template,
+    liftStates,
+    location: session.location,
+    equipment,
+    includeWarmUps: session.includeWarmUps,
+    selectedAccessories: session.selectedAccessories ?? [],
+    overrides: overridesFromSession(session),
+  });
+  if (!prescribed) return plan;
+
+  return plan.map((entry) => {
+    if (entry.isWarmUp) return entry;
+    const stored = prescribed.find(
+      (p) => p.exerciseId === entry.exerciseId && p.tier === entry.tier
+    );
+    return stored ? { ...entry, targetSets: stored.sets, targetReps: stored.reps } : entry;
+  });
+}
+
+/**
+ * A logged set after an edit to its reps, weight or RPE, with the status derived
+ * again by the engine's rule (the one `createSetLog` uses; an accepted load drop
+ * stays one). Null when the change is not an edit of a set on this session.
+ */
+export function correctedSet(session: WorkoutSession, change: LogChange): SetLog | null {
+  if (change.kind !== "editSet" || change.workoutId !== session.id) return null;
+  if (!session.sets.some((set) => set.id === change.setId)) return null;
+  const edited = applyChange({ workouts: [session], adjustments: [] }, change).workouts[0];
+  return edited.sets.find((set) => set.id === change.setId) ?? null;
+}
+
+/** True when `set` is the last one logged for its exercise and tier. */
+export function isLatestSetOfEntry(sets: SetLog[], set: SetLog): boolean {
+  return workingSetsFor(sets, set.exerciseId, set.tier).at(-1)?.id === set.id;
+}
+
+/** Index of the working (non-warm-up) plan entry a set was logged against, else -1. */
+export function entryIndexForSet(plan: WorkoutPlan, set: SetLog): number {
+  return plan.findIndex(
+    (entry) => !entry.isWarmUp && entry.exerciseId === set.exerciseId && entry.tier === set.tier
   );
 }
 
