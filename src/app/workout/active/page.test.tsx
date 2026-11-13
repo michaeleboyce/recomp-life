@@ -1,12 +1,13 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb, makeE1RM } from "@/lib/data/testUtils";
 import { startWorkout, type StartWorkoutInput } from "@/lib/data/workouts";
 import { useWorkoutStore } from "@/stores/workoutStore";
+import { Toaster, dismissToast } from "@/components/ui/toast";
 import { logTapGuard } from "@/components/ActiveWorkout/useActiveWorkout";
 import ActiveWorkoutPage from "./page";
 
@@ -27,6 +28,7 @@ beforeEach(async () => {
   // These tests tap through sets faster than a person can; the guard has its own test.
   logTapGuard.ms = 0;
   cleanup();
+  dismissToast();
   await clearDb();
   await initializeDatabase();
   useWorkoutStore.getState().reset();
@@ -236,5 +238,116 @@ describe("active workout page", () => {
     expect(screen.getByRole("img", { name: "3 of 11 sets done" })).toBeInTheDocument();
     expect(document.querySelectorAll('[data-state="done"]')).toHaveLength(3);
     expect(logButton()).toHaveTextContent("LOG 3 REPS");
+  });
+});
+
+describe("correcting a logged set from the overview", () => {
+  const openOverview = () => fireEvent.click(screen.getByRole("button", { name: "Workout overview" }));
+  const squatSets = () => screen.getByRole("list", { name: "Barbell Squat logged sets" });
+  const setButton = (n: number) =>
+    within(squatSets()).getByRole("button", { name: new RegExp(`^Correct set ${n} of Barbell Squat`) });
+
+  async function openWithToaster() {
+    nav.sessionId = await startWorkout({
+      templateId: "A1",
+      location: "gym",
+      includeWarmUps: false,
+      selectedAccessories: [],
+    });
+    render(
+      <>
+        <ActiveWorkoutPage />
+        <Toaster />
+      </>
+    );
+    await screen.findByRole("button", { name: /^LOG/ });
+  }
+
+  it("lists every logged working set, and a corrected one updates the list and the workout row", async () => {
+    await openWithToaster();
+    await logSets(3);
+    openOverview();
+    expect(within(squatSets()).getAllByRole("listitem")).toHaveLength(3);
+    expect(setButton(2)).toHaveAccessibleName(
+      "Correct set 2 of Barbell Squat: 3 reps at 190 lbs"
+    );
+
+    fireEvent.click(setButton(2));
+    expect(await screen.findByRole("heading", { name: "Squat, set 2" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Decrease reps by 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save change" }));
+
+    await waitFor(() =>
+      expect(setButton(2)).toHaveAccessibleName(
+        "Correct set 2 of Barbell Squat: 2 reps at 190 lbs, below the target of 3"
+      )
+    );
+    expect(setButton(2)).toHaveTextContent("Set 2" + "2 reps" + "missed");
+    expect(await screen.findByText("Squat set 2 corrected")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    const stored = (await db.workouts.get(nav.sessionId))!.sets;
+    expect(stored.map((s) => [s.setNumber, s.actualReps, s.status])).toEqual([
+      [1, 3, "completed"],
+      [2, 2, "failed"],
+      [3, 3, "completed"],
+    ]);
+    // Still three sets done: the workout carries on at the fourth.
+    expect(screen.getByText("Set 4 of 5")).toBeInTheDocument();
+  });
+
+  it("deleting the last set steps the counter back so it can be logged again", async () => {
+    await openWithToaster();
+    await logSets(3);
+    openOverview();
+    fireEvent.click(setButton(3));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete set" }));
+
+    await waitFor(() => expect(within(squatSets()).getAllByRole("listitem")).toHaveLength(2));
+    expect(await screen.findByText("Squat set 3 deleted")).toBeInTheDocument();
+    expect(screen.getByText("Set 3 of 5")).toBeInTheDocument();
+    expect((await db.workouts.get(nav.sessionId))!.sets).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    await waitFor(async () => expect((await db.workouts.get(nav.sessionId))!.sets).toHaveLength(3));
+    expect(await screen.findByText("Set 4 of 5")).toBeInTheDocument();
+  });
+
+  it("explains inside the sheet why a set in the middle cannot be deleted", async () => {
+    await openWithToaster();
+    await logSets(2);
+    openOverview();
+    fireEvent.click(setButton(1));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete set" }));
+
+    expect(
+      await screen.findByText(/Only the last set logged for an exercise can be deleted/)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Squat, set 1" })).toBeInTheDocument();
+    expect((await db.workouts.get(nav.sessionId))!.sets).toHaveLength(2);
+  });
+
+  it("still offers the overview after ending early, so the last set can be fixed before saving", async () => {
+    await openWithToaster();
+    await logSets(5);
+    openOverview();
+    fireEvent.click(await screen.findByRole("button", { name: "End workout" }));
+    fireEvent.click(await screen.findByRole("button", { name: /End & Save Progress/ }));
+    await screen.findByRole("button", { name: "Finish & View Summary" });
+
+    openOverview();
+    expect(screen.queryByRole("button", { name: "End workout" })).toBeNull();
+    fireEvent.click(setButton(5));
+    fireEvent.click(await screen.findByRole("button", { name: "Decrease reps by 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Decrease reps by 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save change" }));
+    await waitFor(async () =>
+      expect((await db.workouts.get(nav.sessionId))!.sets[4]).toMatchObject({ actualReps: 1, status: "failed" })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Finish & View Summary", hidden: true }));
+    await waitFor(() => expect(nav.push).toHaveBeenCalled());
+    const squat = (await db.liftStates.get("squat"))!;
+    expect(squat.t1Stage).toBe("6x2");
+    expect(squat.t1Weight).toBe(190);
   });
 });
