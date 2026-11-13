@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { getOfflineWarmList } from "@/lib/offlineWarmList";
+import { isNativeApp } from "@/native/platform";
 
 /** Ask the service worker to cache the anatomy and exercise media ahead of time. */
 async function warmOfflineCache() {
@@ -27,6 +28,8 @@ async function warmOfflineCache() {
 export function ServiceWorkerRegistration() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
+    // The iPhone app carries every file inside it; there is nothing to cache.
+    if (isNativeApp()) return;
 
     navigator.serviceWorker.register("/sw.js").catch(() => {
       // Service worker registration failed — app works fine without it
