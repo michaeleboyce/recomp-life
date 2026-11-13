@@ -31,7 +31,8 @@ describe("PainHistory", () => {
     expect(await screen.findByText(/over 7 days old/)).toBeInTheDocument();
     expect(screen.getAllByText("pain")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Resolved!" }));
-    await waitFor(async () => expect(await db.painEntries.get("p1")).toBeUndefined());
+    // Resolving is a soft delete: the row stays so the delete can sync.
+    await waitFor(async () => expect((await db.painEntries.get("p1"))?.deletedAt).toEqual(expect.any(Number)));
     expect(await db.painEntries.get("p2")).toBeDefined();
   });
 

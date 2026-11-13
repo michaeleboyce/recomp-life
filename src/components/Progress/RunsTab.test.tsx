@@ -46,7 +46,6 @@ async function seedRuns() {
 
 async function seedReadiness(sleepHours: "<5" | "7+" | "mixed") {
   await db.workouts.bulkPut(demo.workouts);
-  await db.sets.bulkPut(demo.sets);
   const logs = demo.readinessLogs.map((l, i) => ({
     ...l,
     sleepHours: sleepHours === "mixed" ? (i % 2 ? ("<5" as const) : ("7+" as const)) : (sleepHours as "<5" | "7+"),

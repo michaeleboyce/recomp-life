@@ -49,14 +49,19 @@ async function open(overrides: Partial<StartWorkoutInput> = {}) {
   return view;
 }
 
+/** Every set logged so far: sets live on their workout row. */
+async function loggedSets() {
+  return (await db.workouts.toArray()).flatMap((workout) => workout.sets ?? []);
+}
+
 const logButton = () => screen.getByRole("button", { name: /^LOG/ });
 const skipRest = () => fireEvent.click(screen.getByRole("button", { name: "Skip rest" }));
 
 async function logSets(count: number) {
   for (let i = 0; i < count; i++) {
-    const before = (await db.sets.count());
+    const before = (await loggedSets()).length;
     fireEvent.click(logButton());
-    await waitFor(async () => expect(await db.sets.count()).toBe(before + 1));
+    await waitFor(async () => expect((await loggedSets()).length).toBe(before + 1));
     const skip = screen.queryByRole("button", { name: "Skip rest" });
     if (skip) fireEvent.click(skip);
     await waitFor(() => expect(logButton()).toBeEnabled());
@@ -92,7 +97,7 @@ describe("active workout page", () => {
     expect(screen.queryByRole("button", { name: /^LOG/ })).toBeNull();
     await waitFor(() => expect(timer).toHaveTextContent("Next: set 2 of 5 · 190 lbs"));
 
-    const sets = await db.sets.toArray();
+    const sets = await loggedSets();
     expect(sets).toHaveLength(1);
     expect(sets[0]).toMatchObject({ exerciseId: "squat", actualReps: 3, status: "completed" });
 
@@ -112,8 +117,8 @@ describe("active workout page", () => {
     expect(logButton()).toHaveTextContent("LOG 6 REPS");
 
     fireEvent.click(logButton());
-    await waitFor(async () => expect(await db.sets.count()).toBe(1));
-    expect((await db.sets.toArray())[0].actualReps).toBe(6);
+    await waitFor(async () => expect((await loggedSets()).length).toBe(1));
+    expect((await loggedSets())[0].actualReps).toBe(6);
     // The next set starts back at the target.
     skipRest();
     await waitFor(() => expect(logButton()).toHaveTextContent("LOG 3 REPS"));
@@ -190,7 +195,9 @@ describe("active workout page", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Discard Workout" }));
 
     await waitFor(() => expect(nav.push).toHaveBeenCalledWith("/"));
-    expect(await db.workouts.count()).toBe(0);
+    // Discard is a soft delete, so it can sync and the row no longer shows anywhere.
+    const remaining = await db.workouts.toArray();
+    expect(remaining.filter((w) => w.deletedAt == null)).toHaveLength(0);
   });
 
   it("ends early from the overview, saves and goes to the summary", async () => {
