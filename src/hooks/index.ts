@@ -8,7 +8,14 @@ export {
   useCompletedWorkouts,
   useUnfinishedWorkout,
 } from "./useWorkouts";
-export { useBodyweightLog, usePainEntries, useE1RMs, useRuns, useActivities } from "./useRecords";
+export {
+  useBodyweightLog,
+  usePainEntries,
+  useE1RMs,
+  useRuns,
+  useActivities,
+  useLiftAdjustments,
+} from "./useRecords";
 export { useNextWorkout } from "./useNextWorkout";
 export { useReadinessLogs, useMetricSource, useMetric } from "./useMetric";
 export { useInsights } from "./useInsights";

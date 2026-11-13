@@ -1,6 +1,13 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
-import type { ActivityLog, BodyweightLog, Estimated1RM, PainSorenessEntry, RunLog } from "@/types";
+import type {
+  ActivityLog,
+  BodyweightLog,
+  Estimated1RM,
+  LiftAdjustment,
+  PainSorenessEntry,
+  RunLog,
+} from "@/types";
 import { liveRows } from "./liveRows";
 
 /**
@@ -49,4 +56,20 @@ export function useRuns(): RunLog[] | undefined {
 /** Non-running activities (yoga, cycling, hiking...), newest first. */
 export function useActivities(): ActivityLog[] | undefined {
   return useLiveQuery(async () => byDate(liveRows(await db.activities.toArray()), "newest"), []);
+}
+
+/**
+ * Dated changes to lifts made outside a workout (starting weights, manual changes,
+ * accepted time-off reductions), newest first, for one lift or for all when omitted.
+ */
+export function useLiftAdjustments(exerciseId?: string): LiftAdjustment[] | undefined {
+  return useLiveQuery(async () => {
+    const rows = liveRows(
+      exerciseId
+        ? await db.liftAdjustments.where("exerciseId").equals(exerciseId).toArray()
+        : await db.liftAdjustments.toArray()
+    );
+    const time = (row: LiftAdjustment) => new Date(row.at).getTime() || 0;
+    return rows.sort((a, b) => time(b) - time(a));
+  }, [exerciseId]);
 }
