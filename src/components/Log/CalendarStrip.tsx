@@ -68,7 +68,7 @@ export function CalendarStrip({
           <ChevronRight className="size-5" aria-hidden="true" />
         </Button>
       </div>
-      <ol ref={scroller} className="flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none]">
+      <ol ref={scroller} className="relative flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none]">
         {days.map((day) => {
           const key = dayKey(day);
           const count = counts.get(key) ?? 0;

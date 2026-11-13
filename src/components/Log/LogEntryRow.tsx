@@ -8,8 +8,9 @@ import { describeActivity } from "@/lib/activities";
 import type { RunCategory, RunType } from "@/types";
 import { workoutResultLine, type LogEntry } from "./logEntries";
 
-const TIME = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" });
-const EFFORT = ["", "very easy", "easy", "moderate", "hard", "very hard"];
+const TIME_OF_DAY = { morning: "Morning", evening: "Evening", other: "Other time" } as const;
+// Same words as the effort picker the entry was logged with.
+const EFFORT = ["", "easy effort", "light effort", "moderate effort", "hard effort", "all-out effort"];
 const RUN_TYPE: Record<RunType, string> = { outdoor: "Outdoor", treadmill: "Treadmill", trail: "Trail" };
 const RUN_CATEGORY: Record<RunCategory, string> = {
   easy: "easy",
@@ -99,7 +100,7 @@ export function LogEntryRow({
           onClick={() => onOpen(entry)}
           leading={<Scale className={iconClass} aria-hidden="true" />}
           title="Weigh-in"
-          subtitle={TIME.format(entry.date)}
+          subtitle={TIME_OF_DAY[b.timeOfDay] ?? undefined}
           value={`${formatLbs(b.weight)} lbs`}
         />
       );
