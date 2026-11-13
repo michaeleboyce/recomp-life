@@ -122,7 +122,8 @@ describe("demo data", () => {
     const now = new Date(2026, 10, 13, 12);
     const demo = generateDemoData(now);
     const source: ReviewSource = {
-      workouts: demo.workouts.map((w) => ({ ...w, sets: demo.sets.filter((s) => w.sets.some((x) => x.id === s.id)) })),
+      // Sets live on the workout row; there is no separate sets table any more.
+      workouts: demo.workouts,
       e1rms: demo.estimated1RMs,
       bodyweight: demo.bodyweight,
       runs: demo.runs,
