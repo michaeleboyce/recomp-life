@@ -157,7 +157,7 @@ describe("useMetric", () => {
     const s = await loaded(() => useMetricSource());
     const expected = computeMetric("e1rm", s.result.current!, { exerciseId: "squat" });
     expect(r.result.current!.full).toEqual(expected);
-    expect(r.result.current!.full.points).toHaveLength(6);
+    expect(r.result.current!.full.points).toHaveLength(5); // the home session gives no e1RM row
     expect(r.result.current!.series.points).toEqual(
       inRange(expected, "3m", Date.now()).points
     );
