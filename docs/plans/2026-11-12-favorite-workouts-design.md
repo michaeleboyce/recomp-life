@@ -64,7 +64,6 @@ export interface PrescribedEntry {
 //   planEdits?: PlanEdit[];
 //   prescribed?: PrescribedEntry[];
 //   favoriteId?: string;
-//   countsForRotation?: boolean;
 
 /** One entry of a favourite's frozen copy. */
 export interface FavoriteSnapshotEntry {
@@ -114,9 +113,9 @@ One mechanism: a session is a base day plus optional edits, and the existing bui
 | `pinSnapshot(edits, snapshot)` | same | Structural edits plus a `scheme` and `weight` edit per snapshot entry: "exactly as saved" |
 | `prescribedFor(template, liftStates)` | same | The `PrescribedEntry[]` stored at start, from `getPrescription` |
 | `classifyEntry(entry, prescribed)` | `src/lib/workout/credit.ts` (new) | `"program" \| "logged-only"`. `@evidence off-program-credit` |
-| `countsForRotation(session, sets, dueTemplateId)` | same | Rule 6 |
-| `computeCompletion(input)` | `src/lib/workout/completeWorkout.ts` | Iterates plan entries, not the template list. `CompletionInput.dueTemplateId?` added; absent means the session counts. `sessionPatch.countsForRotation` added |
-| `describeNextWorkout(input)` | `src/lib/workout/buildPlan.ts` | Ignores completed sessions with `countsForRotation === false` |
+| `sessionCountsForRotation(session, dueTemplateId)`, `foldRotation(completedWorkouts)` | same | Rule 6, as a pure fold over the completed sessions. Nothing is stored on the session row, so editing or deleting an earlier workout re-derives the later ones. A session without `prescribed` always counts (the old rule) |
+| `computeCompletion(input)` | `src/lib/workout/completeWorkout.ts` | When the session has `prescribed`, a lift whose plan entry is missing or "logged-only" is skipped. Signature unchanged |
+| `describeNextWorkout(input)` | `src/lib/workout/buildPlan.ts` | Takes the due day from `foldRotation` |
 | `swapCandidates(exerciseId, location, equipment, prefs)` | `src/lib/swapCandidates.ts` (new) | Built on `exercisesForMuscle` and `applyPreferences` |
 | `favoriteFromSetup`, `favoriteFromSession`, `resolveFavorite(favorite, mode)` | `src/lib/favorites.ts` (new) | `mode: "as-saved" \| "current"`; returns the input for `startWorkout` |
 
@@ -126,12 +125,12 @@ One mechanism: a session is a base day plus optional edits, and the existing bui
 
 New table `favoriteWorkouts`: Dexie store `'id, clientId, synced'`, Drizzle `favorite_workouts` (`updated_at bigint`, `deleted_at bigint`), Settings export/clear/restore, writers in `src/lib/data/records.ts`, a `useFavoriteWorkouts` hook that hides rows with `deletedAt`.
 
-New columns on `workouts`: `plan_edits` (jsonb), `prescribed` (jsonb), `favorite_id`, `counts_for_rotation`.
+New columns on `workouts`: `plan_edits` (jsonb) and `favorite_id` (`prescribed` is added by the edit/rebuild work).
 
 Sync wiring depends on the edit/rebuild work (branch `feat/edit-rebuild`), which replaces the per-table lists with one registry, `src/lib/sync/registry.ts`, read by the client, the guard and both routes, and resets local Dexie to a single-version schema:
 - If that registry is on main when the storage task starts: one registry entry plus the Drizzle table. Do not copy the old three-list `activities` pattern.
 - The Dexie store goes into the fresh single-version schema if this lands before that work's deploy checkpoint D1, or one additive version after.
-- The Postgres table and the four workout columns go into that work's single script if `schema.ts` here is on main before D1, otherwise a small additive script after. Michael approves the database step either way; nothing is pushed without him.
+- The Postgres table and the two workout columns go into that work's single script if `schema.ts` here is on main before D1, otherwise a small additive script after. Michael approves the database step either way; nothing is pushed without him.
 
 ## UI
 

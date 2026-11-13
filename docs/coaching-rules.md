@@ -145,7 +145,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `off-program-credit`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/workout/credit.ts` (`classifyEntry`), `src/lib/workout/credit.ts` (`sessionCountsForRotation`), `src/lib/workout/completeWorkout.ts` (`computeCompletion`), `src/lib/workout/buildPlan.ts` (`describeNextWorkout`)
+- **Implemented in:** `src/lib/workout/credit.ts` (`classifyEntry`), `src/lib/workout/credit.ts` (`foldRotation`), `src/lib/workout/completeWorkout.ts` (`computeCompletion`), `src/lib/workout/buildPlan.ts` (`describeNextWorkout`)
 - **Reviewed:** November 2026
 
 **In one line.** A lift done as prescribed progresses; a changed one is only logged

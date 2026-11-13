@@ -1,4 +1,6 @@
-import type { PrescribedEntry, SetLog, SetStatus, Tier } from "@/types";
+import { getNextWorkoutId } from "@/lib/workoutTemplates";
+import type { PrescribedEntry, SetLog, SetStatus, Tier, WorkoutSession } from "@/types";
+import { applyPlanEdits } from "./planEdits";
 import { workingSetsFor } from "./setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "./types";
 
@@ -73,27 +75,80 @@ export function classifyEntry(
   return reached ? "program" : "logged-only";
 }
 
+/** The fields of a workout row the rotation depends on. */
+export type RotationSession = Pick<WorkoutSession, "templateId" | "startedAt" | "completedAt"> &
+  Partial<Pick<WorkoutSession, "id" | "prescribed" | "planEdits" | "sets">>;
+
 /**
- * Whether a finished session advances the A1 -> B1 -> A2 -> B2 rotation: its base day
- * was the day that was due, and its T1 lift is still in the plan and counts as a
- * program entry. `dueTemplateId` is supplied by the caller from the earlier completed
- * sessions; when it is not given the session counts, as every session did before
- * this rule.
+ * Whether a finished session advances the A1 -> B1 -> A2 -> B2 rotation, given the
+ * day that was due when it was done: it was that day, and its T1 lift was neither
+ * swapped out, removed, done at another scheme nor done lighter than prescribed.
+ * Decided from the session row alone (its prescription, edits and logged sets). With
+ * no T1 set logged, the weight is taken as prescribed, so a day ended early counts.
+ *
+ * A session without `prescribed` predates this rule and always counts, whatever its
+ * day, exactly as before.
  *
  * @evidence off-program-credit
  */
-export function sessionCountsForRotation(input: {
-  templateId: string;
-  plan: WorkoutPlan;
-  prescribed: PrescribedEntry[] | undefined;
-  sets: SetLog[];
-  dueTemplateId: string | undefined;
-}): boolean {
-  const { templateId, plan, prescribed, sets, dueTemplateId } = input;
-  if (dueTemplateId === undefined) return true;
-  if (templateId !== dueTemplateId) return false;
+export function sessionCountsForRotation(
+  session: RotationSession,
+  dueTemplateId: string
+): boolean {
+  const prescribed = session.prescribed;
+  if (!prescribed) return true;
+  if (session.templateId !== dueTemplateId) return false;
 
-  const t1 = plan.find((entry) => !entry.isWarmUp && entry.tier === "T1");
+  const target = prescribed.find((p) => p.tier === "T1");
+  if (!target) return false;
+
+  // The T1 slot as the program prescribed it, then as the user's structural and
+  // scheme edits left it. Weight edits are left to the logged sets.
+  const slot: WorkoutPlan = [
+    {
+      exerciseId: target.exerciseId,
+      tier: "T1",
+      targetSets: target.sets,
+      targetReps: target.reps,
+      weight: target.weight,
+      isAMRAP: false,
+      isWarmUp: false,
+      completedSets: 0,
+    },
+  ];
+  const edits = (session.planEdits ?? []).filter((edit) => edit.kind !== "weight");
+  const t1 = applyPlanEdits(slot, edits).find((entry) => entry.tier === "T1");
   if (!t1) return false;
-  return classifyEntry(t1, prescribed, sets) === "program";
+  return classifyEntry(t1, prescribed, session.sets ?? []) === "program";
+}
+
+export interface RotationFold {
+  /** The day that is due after every completed session. "A1" with no history. */
+  dueTemplateId: string;
+  /** Completed sessions oldest first, each with whether it advanced the rotation. */
+  sessions: { session: RotationSession; counted: boolean }[];
+}
+
+/**
+ * Walks the completed sessions in order of start time and works out, for each,
+ * whether it advanced the rotation, and which day is due at the end. Nothing is
+ * stored: editing or deleting an earlier session changes the answer for later ones
+ * by construction. Unfinished sessions are ignored.
+ *
+ * @evidence off-program-credit
+ */
+export function foldRotation(completedWorkouts: RotationSession[]): RotationFold {
+  const ordered = completedWorkouts
+    .filter((workout) => workout.completedAt != null)
+    .map((session, index) => ({ session, index, at: new Date(session.startedAt).getTime() }))
+    .sort((a, b) => a.at - b.at || a.index - b.index);
+
+  let dueTemplateId = "A1";
+  const sessions: RotationFold["sessions"] = [];
+  for (const { session } of ordered) {
+    const counted = sessionCountsForRotation(session, dueTemplateId);
+    if (counted) dueTemplateId = getNextWorkoutId(session.templateId);
+    sessions.push({ session, counted });
+  }
+  return { dueTemplateId, sessions };
 }

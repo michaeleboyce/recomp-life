@@ -57,7 +57,6 @@ function performAll(plan: WorkoutPlan, location: "gym" | "home" = "gym"): SetLog
 function run(options: {
   templateId?: string;
   edits?: PlanEdit[];
-  dueTemplateId?: string;
   liftStates?: LiftState[];
   alterSets?: (sets: SetLog[]) => SetLog[];
 }) {
@@ -79,10 +78,18 @@ function run(options: {
     recentE1RMsByExercise: {},
     currentExerciseIndex: plan.length,
     workoutStartTime: NOW,
-    dueTemplateId: options.dueTemplateId,
     now: NOW,
   });
-  return { session, plan, sets, result, changed: result.liftStateUpdates.map((ls) => ls.exerciseId) };
+  /** The session row as it is stored once finished. */
+  const finished: WorkoutSession = { ...session, ...result.sessionPatch };
+  return {
+    session,
+    finished,
+    plan,
+    sets,
+    result,
+    changed: result.liftStateUpdates.map((ls) => ls.exerciseId),
+  };
 }
 
 const state = (states: LiftState[], id: string) => states.find((ls) => ls.exerciseId === id)!;
@@ -140,7 +147,6 @@ describe("computeCompletion credits each lift on its own", () => {
     });
     expect(withPrescription).toEqual(without);
     expect(without.liftStateUpdates.length).toBeGreaterThan(0);
-    expect("countsForRotation" in without.sessionPatch).toBe(false);
   });
 
   it("a swapped lift leaves the program lift alone while the others progress", () => {
@@ -237,82 +243,58 @@ describe("computeCompletion credits each lift on its own", () => {
 });
 
 describe("rotation", () => {
-  it("says whether the session counts only when the due day is given", () => {
-    expect(run({}).result.sessionPatch.countsForRotation).toBeUndefined();
-    expect(run({ dueTemplateId: "A1" }).result.sessionPatch.countsForRotation).toBe(true);
+  const nextAfter = (completedWorkouts: WorkoutSession[]) =>
+    describeNextWorkout({
+      completedWorkouts,
+      templates: WORKOUT_TEMPLATES,
+      liftStates: seedLiftStates(),
+      plan: { location: "gym", equipment: EQUIPMENT, includeWarmUps: false, selectedAccessories: [] },
+    }).templateId;
+
+  it("the due day done as prescribed moves the rotation on", () => {
+    expect(nextAfter([run({}).finished])).toBe("B1");
   });
 
-  it("a day pulled out of order progresses its lifts but does not count", () => {
-    const { result, changed } = run({ templateId: "B1", dueTemplateId: "A1" });
-    expect(result.sessionPatch.countsForRotation).toBe(false);
-    expect(changed).toContain("ohp");
+  it("a day pulled out of order progresses its lifts but leaves the due day due", () => {
+    const pulled = run({ templateId: "B1" });
+    expect(pulled.changed).toContain("ohp");
+    expect(nextAfter([pulled.finished])).toBe("A1");
   });
 
-  it("the due day does not count when its T1 lift was swapped, removed or done lighter", () => {
+  it("the due day does not move the rotation when its T1 lift was swapped, removed or done lighter", () => {
     const edits: PlanEdit[][] = [
       [{ kind: "swap", exerciseId: "squat", tier: "T1", replacementId: "pendulum_squat" }],
       [{ kind: "remove", exerciseId: "squat", tier: "T1" }],
       [{ kind: "weight", exerciseId: "squat", tier: "T1", weight: 150 }],
     ];
     for (const edit of edits) {
-      expect(run({ edits: edit, dueTemplateId: "A1" }).result.sessionPatch.countsForRotation).toBe(
-        false
-      );
+      expect(nextAfter([run({ edits: edit }).finished])).toBe("A1");
     }
   });
 
-  it("the due day counts when only its T2 lift was changed", () => {
-    const { result } = run({
+  it("the due day moves the rotation when only its T2 lift was changed", () => {
+    const { finished } = run({
       edits: [{ kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "incline_db_press" }],
-      dueTemplateId: "A1",
     });
-    expect(result.sessionPatch.countsForRotation).toBe(true);
-  });
-
-  it("describeNextWorkout skips sessions that do not count", () => {
-    const plan = { location: "gym" as const, equipment: EQUIPMENT, includeWarmUps: false, selectedAccessories: [] };
-    const a1 = makeSession({ templateId: "A1", startedAt: new Date("2026-11-10"), completedAt: new Date("2026-11-10") });
-    const extra = makeSession({
-      templateId: "B2",
-      startedAt: new Date("2026-11-11"),
-      completedAt: new Date("2026-11-11"),
-      countsForRotation: false,
-    });
-    const next = (completedWorkouts: WorkoutSession[]) =>
-      describeNextWorkout({
-        completedWorkouts,
-        templates: WORKOUT_TEMPLATES,
-        liftStates: seedLiftStates(),
-        plan,
-      }).templateId;
-
-    expect(next([a1, extra])).toBe("B1");
-    expect(next([extra])).toBe("A1");
-    expect(next([a1, { ...extra, countsForRotation: true }])).toBe("A1");
-    expect(next([a1, { ...extra, countsForRotation: undefined }])).toBe("A1");
+    expect(nextAfter([finished])).toBe("B1");
   });
 });
 
 describe("downstream figures (R6)", () => {
   it("an off-program session adds to weekly muscle load and leaves the forecast's next day alone", () => {
-    const a1 = makeSession({
+    const a1: WorkoutSession = {
+      ...run({}).finished,
       id: "a1",
-      templateId: "A1",
       startedAt: new Date("2026-11-10T10:00:00Z"),
-      completedAt: new Date("2026-11-10T11:00:00Z"),
-    });
-    const extraRun = run({
-      templateId: "B2",
-      dueTemplateId: "B1",
-      edits: [{ kind: "weight", exerciseId: "deadlift", tier: "T1", weight: 135 }],
-    });
+    };
     const extra: WorkoutSession = {
-      ...extraRun.session,
+      ...run({
+        templateId: "B2",
+        edits: [{ kind: "weight", exerciseId: "deadlift", tier: "T1", weight: 135 }],
+      }).finished,
       id: "extra",
       startedAt: new Date("2026-11-11T10:00:00Z"),
-      ...extraRun.result.sessionPatch,
     };
-    expect(extra.countsForRotation).toBe(false);
 
     const forecast = (completedWorkouts: WorkoutSession[]) =>
       projectUpcomingWorkouts({

@@ -213,8 +213,6 @@ export interface WorkoutSession extends Stamped {
   planEdits?: PlanEdit[];
   /** The favourite this session was started from, if any. */
   favoriteId?: string;
-  /** False when the session must not advance the A1 -> B1 -> A2 -> B2 rotation. Absent means it counts. */
-  countsForRotation?: boolean;
   synced: boolean;
 }
 

@@ -1,7 +1,6 @@
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { DEFAULT_ACCESSORY_WEIGHTS, EXERCISES, getExercise } from "@/lib/exercises";
 import { generateWarmUpSets } from "@/lib/warmups";
-import { getNextWorkoutId } from "@/lib/workoutTemplates";
 import type {
   LiftState,
   Tier,
@@ -9,6 +8,7 @@ import type {
   WorkoutSession,
   WorkoutTemplate,
 } from "@/types";
+import { foldRotation, type RotationSession } from "./credit";
 import { applyPlanEdits } from "./planEdits";
 import { getPrescription } from "./prescription";
 import type { BuildPlanInput, NextWorkoutDescription, WorkoutPlan } from "./types";
@@ -164,28 +164,20 @@ export function overridesFromSession(
 /**
  * Which template comes next in the A1 -> B1 -> A2 -> B2 rotation given completed
  * workouts (any order), and its plan. Unfinished workouts do not advance the rotation,
- * and neither do sessions marked `countsForRotation: false` (a day pulled out of
+ * and neither do sessions `foldRotation` finds did not count (a day pulled out of
  * order, or one whose T1 lift was not done as prescribed).
  *
  * @evidence off-program-credit
  */
 export function describeNextWorkout(input: {
-  completedWorkouts: (Pick<WorkoutSession, "templateId" | "startedAt" | "completedAt"> &
-    Pick<Partial<WorkoutSession>, "countsForRotation">)[];
+  completedWorkouts: RotationSession[];
   templates: Record<string, WorkoutTemplate>;
   liftStates: LiftState[];
   plan: Omit<BuildPlanInput, "template" | "liftStates">;
 }): NextWorkoutDescription {
   const { completedWorkouts, templates, liftStates, plan } = input;
 
-  let last: (typeof completedWorkouts)[number] | undefined;
-  for (const workout of completedWorkouts) {
-    if (workout.completedAt == null) continue;
-    if (workout.countsForRotation === false) continue;
-    if (!last || timeOf(workout.startedAt) > timeOf(last.startedAt)) last = workout;
-  }
-
-  const templateId = last ? getNextWorkoutId(last.templateId) : "A1";
+  const templateId = foldRotation(completedWorkouts).dueTemplateId;
   const template = templates[templateId];
   if (!template) {
     throw new Error(`Workout template not found: ${templateId}`);
@@ -196,8 +188,4 @@ export function describeNextWorkout(input: {
     template,
     plan: buildWorkoutPlan({ ...plan, template, liftStates }),
   };
-}
-
-function timeOf(date: Date): number {
-  return new Date(date).getTime();
 }

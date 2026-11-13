@@ -8,7 +8,7 @@ import {
 } from "@/lib/progression";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, SetLog, TrainingPhase } from "@/types";
-import { classifyEntry, sessionCountsForRotation } from "./credit";
+import { classifyEntry } from "./credit";
 import { workingSetsFor } from "./setSelectors";
 import type { CompletionInput, CompletionResult } from "./types";
 
@@ -167,17 +167,6 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
       totalDurationSeconds,
       sets,
       ...(endedEarly ? { endedEarly: true as const } : {}),
-      ...(input.dueTemplateId !== undefined
-        ? {
-            countsForRotation: sessionCountsForRotation({
-              templateId: session.templateId,
-              plan,
-              prescribed: session.prescribed,
-              sets,
-              dueTemplateId: input.dueTemplateId,
-            }),
-          }
-        : {}),
     },
   };
 }

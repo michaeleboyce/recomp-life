@@ -97,7 +97,7 @@ export const PROGRESSION_RULES = {
     reviewedOn: "2026-11",
     implementedIn: [
       "src/lib/workout/credit.ts#classifyEntry",
-      "src/lib/workout/credit.ts#sessionCountsForRotation",
+      "src/lib/workout/credit.ts#foldRotation",
       "src/lib/workout/completeWorkout.ts#computeCompletion",
       "src/lib/workout/buildPlan.ts#describeNextWorkout",
     ],

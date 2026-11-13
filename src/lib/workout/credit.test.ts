@@ -1,11 +1,13 @@
 import { describe, it, expect } from "vitest";
-import type { PrescribedEntry } from "@/types";
+import type { PlanEdit, PrescribedEntry } from "@/types";
 import {
   classifyEntry,
   CREDIT_DECIDING_STATUSES,
   CREDIT_MIN_WEIGHT_RATIO,
   CREDIT_TIERS,
+  foldRotation,
   sessionCountsForRotation,
+  type RotationSession,
 } from "./credit";
 import { makeEntry, makeSets } from "./testFixtures";
 
@@ -131,40 +133,118 @@ describe("classifyEntry from logged sets", () => {
 });
 
 describe("sessionCountsForRotation", () => {
-  const plan = [squat(), bench()];
-  const base = { templateId: "A1", plan, prescribed: PRESCRIBED, sets: [], dueTemplateId: "A1" };
-
-  it("counts when no due day is given, as before this rule", () => {
-    expect(sessionCountsForRotation({ ...base, templateId: "B2", dueTemplateId: undefined })).toBe(
-      true
-    );
+  const session = (overrides: Partial<RotationSession> = {}): RotationSession => ({
+    templateId: "A1",
+    startedAt: new Date("2026-11-12T09:00:00Z"),
+    completedAt: new Date("2026-11-12T10:00:00Z"),
+    prescribed: PRESCRIBED,
+    sets: [],
+    ...overrides,
   });
 
   it("counts the due day done as prescribed, even when ended before any set", () => {
-    expect(sessionCountsForRotation(base)).toBe(true);
-  });
-
-  it("does not count a day pulled out of order", () => {
-    expect(sessionCountsForRotation({ ...base, templateId: "B1" })).toBe(false);
-  });
-
-  it("does not count when the T1 lift was removed, swapped or done lighter", () => {
-    expect(sessionCountsForRotation({ ...base, plan: [bench()] })).toBe(false);
+    expect(sessionCountsForRotation(session(), "A1")).toBe(true);
     expect(
-      sessionCountsForRotation({ ...base, plan: [squat({ exerciseId: "pendulum_squat" }), bench()] })
-    ).toBe(false);
-    expect(
-      sessionCountsForRotation({ ...base, sets: makeSets("squat", "T1", 5, 3, { weight: 150 }) })
-    ).toBe(false);
-  });
-
-  it("counts when only the T2 or T3 lift was changed", () => {
-    expect(
-      sessionCountsForRotation({ ...base, plan: [squat(), bench({ exerciseId: "incline_db_press" })] })
+      sessionCountsForRotation(session({ sets: makeSets("squat", "T1", 5, 3, { weight: 190 }) }), "A1")
     ).toBe(true);
   });
 
-  it("counts a session without a prescription on its due day", () => {
-    expect(sessionCountsForRotation({ ...base, prescribed: undefined })).toBe(true);
+  it("does not count a day pulled out of order", () => {
+    expect(sessionCountsForRotation(session({ templateId: "A1" }), "B1")).toBe(false);
+  });
+
+  it("does not count when the T1 lift was removed, swapped or done at another scheme", () => {
+    const edits: PlanEdit[] = [
+      { kind: "remove", exerciseId: "squat", tier: "T1" },
+      { kind: "swap", exerciseId: "squat", tier: "T1", replacementId: "pendulum_squat" },
+      { kind: "scheme", exerciseId: "squat", tier: "T1", sets: 4, reps: 8 },
+    ];
+    for (const edit of edits) {
+      expect(sessionCountsForRotation(session({ planEdits: [edit] }), "A1")).toBe(false);
+    }
+  });
+
+  it("does not count when the T1 sets were all lighter than prescribed", () => {
+    const lighter = session({
+      planEdits: [{ kind: "weight", exerciseId: "squat", tier: "T1", weight: 150 }],
+      sets: makeSets("squat", "T1", 5, 3, { weight: 150 }),
+    });
+    expect(sessionCountsForRotation(lighter, "A1")).toBe(false);
+  });
+
+  it("counts when only the T2 or T3 lift was changed", () => {
+    const edited = session({
+      planEdits: [
+        { kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "incline_db_press" },
+        { kind: "remove", exerciseId: "lat_pulldown", tier: "T3" },
+      ],
+    });
+    expect(sessionCountsForRotation(edited, "A1")).toBe(true);
+  });
+
+  it("always counts a session without a prescription, whatever its day", () => {
+    expect(sessionCountsForRotation(session({ prescribed: undefined }), "A1")).toBe(true);
+    expect(sessionCountsForRotation(session({ prescribed: undefined, templateId: "B2" }), "A1")).toBe(
+      true
+    );
+  });
+});
+
+describe("foldRotation", () => {
+  const at = (day: number) => new Date(`2026-11-${String(day).padStart(2, "0")}T09:00:00Z`);
+  const done = (templateId: string, day: number, overrides: Partial<RotationSession> = {}) => ({
+    id: `${templateId}-${day}`,
+    templateId,
+    startedAt: at(day),
+    completedAt: at(day),
+    ...overrides,
+  });
+  const prescribedT1 = (exerciseId: string): PrescribedEntry[] => [
+    { exerciseId, tier: "T1", weight: 100, sets: 5, reps: 3, stage: "5x3" },
+  ];
+
+  it("is A1 with no history, and ignores unfinished sessions", () => {
+    expect(foldRotation([]).dueTemplateId).toBe("A1");
+    expect(foldRotation([done("A1", 1, { completedAt: null })])).toEqual({
+      dueTemplateId: "A1",
+      sessions: [],
+    });
+  });
+
+  it("matches the old rule for sessions without a prescription: the day after the latest one", () => {
+    expect(foldRotation([done("A1", 1), done("B1", 2)]).dueTemplateId).toBe("A2");
+    expect(foldRotation([done("B1", 2), done("A1", 1)]).dueTemplateId).toBe("A2");
+    expect(foldRotation([done("B2", 1)]).dueTemplateId).toBe("A1");
+    expect(foldRotation([done("A1", 1), done("B2", 2)]).dueTemplateId).toBe("A1");
+  });
+
+  it("leaves the due day due after a day pulled out of order", () => {
+    const fold = foldRotation([
+      done("A1", 1, { prescribed: prescribedT1("squat") }),
+      done("B2", 2, { prescribed: prescribedT1("deadlift") }),
+    ]);
+    expect(fold.dueTemplateId).toBe("B1");
+    expect(fold.sessions.map((s) => s.counted)).toEqual([true, false]);
+    expect(fold.sessions.map((s) => s.session.id)).toEqual(["A1-1", "B2-2"]);
+  });
+
+  it("re-derives later sessions when an earlier one is removed", () => {
+    const a1 = done("A1", 1, { prescribed: prescribedT1("squat") });
+    const b1 = done("B1", 2, { prescribed: prescribedT1("ohp") });
+    expect(foldRotation([a1, b1]).sessions.map((s) => s.counted)).toEqual([true, true]);
+    // Without A1, B1 was done while A1 was due: it no longer counts.
+    const without = foldRotation([b1]);
+    expect(without.sessions.map((s) => s.counted)).toEqual([false]);
+    expect(without.dueTemplateId).toBe("A1");
+  });
+
+  it("does not advance on a due day whose T1 lift was swapped", () => {
+    const fold = foldRotation([
+      done("A1", 1, {
+        prescribed: prescribedT1("squat"),
+        planEdits: [{ kind: "swap", exerciseId: "squat", tier: "T1", replacementId: "pendulum_squat" }],
+      }),
+    ]);
+    expect(fold.dueTemplateId).toBe("A1");
   });
 });
