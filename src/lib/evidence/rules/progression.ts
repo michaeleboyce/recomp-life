@@ -87,7 +87,7 @@ export const PROGRESSION_RULES = {
     status: "planned",
     title: "Does a changed workout still count toward progression?",
     summary: "A lift done as prescribed progresses; a changed one is only logged",
-    appBehavior: `Rule in code: when you change a workout, each lift is judged on its own. A program lift done at its prescribed sets and reps and at ${creditPercent}% of its prescribed weight or more is evaluated as usual (pass, fail or stage change), whichever day you did it on. A lift done lighter or at a different scheme, and any exercise you swapped in or added, is logged and counts toward muscle load and history but leaves the program's weights alone: neither a pass nor a fail. A home equipment substitute still counts as the program lift. The rotation only moves on when the workout was the one that was due and its heavy (T1) lift was done as prescribed. Not connected.`,
+    appBehavior: `When a workout has been changed, each lift is judged on its own. A program lift done at its prescribed sets and reps and at ${creditPercent}% of its prescribed weight or more is evaluated as usual (pass, fail or stage change), whichever day you did it on. A lift done lighter or at a different scheme, and any exercise you swapped in or added, is logged and counts toward muscle load and history but leaves the program's weights alone: neither a pass nor a fail. A home equipment substitute still counts as the program lift. The rotation only moves on when the workout was the one that was due and its heavy (T1) lift was done as prescribed. The app does not yet let you change a workout on screen.`,
     rationale:
       "GZCLP's pass and fail rules assume the prescribed sets, reps and weight. Applying them to a lighter or different session would raise the weight after work that did not test it, or count a deliberate easy day as a failure. Judging each lift separately lets a changed workout keep the progress it earned without distorting the rest.",
     caveat:
@@ -98,9 +98,11 @@ export const PROGRESSION_RULES = {
     implementedIn: [
       "src/lib/workout/credit.ts#classifyEntry",
       "src/lib/workout/credit.ts#sessionCountsForRotation",
+      "src/lib/workout/completeWorkout.ts#computeCompletion",
+      "src/lib/workout/buildPlan.ts#describeNextWorkout",
     ],
     surfaces: [],
     activationNotes:
-      "Connect classifyEntry to computeCompletion and the rotation, show the result with this citation where a workout is edited before starting, then mark the rule active and add a changelog entry.",
+      "The rule runs when a workout is finished (computeCompletion) and when the next workout is chosen (describeNextWorkout), but no screen can edit a workout yet. Show each lift's result with this citation where a workout is edited before starting, then mark the rule active and add a changelog entry.",
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;

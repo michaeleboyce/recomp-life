@@ -8,6 +8,7 @@ import {
 } from "@/lib/progression";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, SetLog, TrainingPhase } from "@/types";
+import { classifyEntry, sessionCountsForRotation } from "./credit";
 import { workingSetsFor } from "./setSelectors";
 import type { CompletionInput, CompletionResult } from "./types";
 
@@ -64,6 +65,11 @@ function progressT3(
  * session row. T1 and T2 share one code path; T3 only ever raises `t3Weight`, and a
  * partially completed T3 changes nothing at all.
  *
+ * Each lift is credited on its own (`classifyEntry`): in a session that recorded what
+ * the program prescribed, a lift the user edited away from that prescription changes
+ * no lift state. Sessions without `prescribed` behave as they always have.
+ *
+ * @evidence off-program-credit
  * @evidence t3-progression
  */
 export function computeCompletion(input: CompletionInput): CompletionResult {
@@ -92,6 +98,14 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
         entry.tier === templateEx.tier &&
         !entry.isWarmUp
     );
+    // A session that recorded its prescription may have been edited: a lift that was
+    // removed or swapped out, or done lighter or at another scheme, is only logged.
+    if (
+      session.prescribed &&
+      (!planEntry || classifyEntry(planEntry, session.prescribed, sets) === "logged-only")
+    ) {
+      continue;
+    }
     const targetSets = planEntry?.targetSets ?? templateEx.sets;
     const partial = shouldFreezeProgression(exerciseSets.length, targetSets);
 
@@ -153,6 +167,17 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
       totalDurationSeconds,
       sets,
       ...(endedEarly ? { endedEarly: true as const } : {}),
+      ...(input.dueTemplateId !== undefined
+        ? {
+            countsForRotation: sessionCountsForRotation({
+              templateId: session.templateId,
+              plan,
+              prescribed: session.prescribed,
+              sets,
+              dueTemplateId: input.dueTemplateId,
+            }),
+          }
+        : {}),
     },
   };
 }

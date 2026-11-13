@@ -2,6 +2,7 @@
 import type {
   EquipmentProfile,
   LiftState,
+  PlanEdit,
   SetLog,
   Tier,
   UserSettings,
@@ -45,6 +46,12 @@ export interface BuildPlanInput {
    * alternative for that exercise.
    */
   overrides?: Record<string, string>;
+  /**
+   * Changes the user made to the day (swap, remove, add, sets and reps, weight),
+   * applied in order after everything above. Absent or empty: the plan is exactly
+   * the program's.
+   */
+  edits?: PlanEdit[];
 }
 
 export interface RehydratedPlan {
@@ -82,6 +89,12 @@ export interface CompletionInput {
   recentE1RMsByExercise: Record<string, number[]>;
   currentExerciseIndex: number;
   workoutStartTime: Date | null;
+  /**
+   * The day the rotation had due when this session was started, worked out by the
+   * caller from the earlier completed sessions. When given, the result says whether
+   * the session advances the rotation; when absent it is not mentioned and counts.
+   */
+  dueTemplateId?: string;
   now: Date;
 }
 
@@ -93,6 +106,8 @@ export interface CompletionResult {
     totalDurationSeconds: number;
     sets: SetLog[];
     endedEarly?: true;
+    /** Present only when `dueTemplateId` was given. */
+    countsForRotation?: boolean;
   };
 }
 
