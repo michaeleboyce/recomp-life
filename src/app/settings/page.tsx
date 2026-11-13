@@ -2,9 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowLeft, Calculator } from "lucide-react";
-import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import type { UserProfile, UserSettings, TrainingPhase, EquipmentProfile, ExercisePreferences } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +17,10 @@ import { SkeletonCard } from "@/components/ui/skeleton";
 import { LocationChip } from "@/components/ui/location-chip";
 import { TrainingLocationRow } from "@/components/More/TrainingLocationRow";
 import { getSyncKey, setSyncKey } from "@/lib/syncKey";
+import { useProfile } from "@/hooks";
+import { exportBackup, importBackup, parseBackup } from "@/lib/data/backup";
+import { updateProfile as saveProfile, updateSettings as saveSettings } from "@/lib/data/records";
+import { DataIntegrityCard } from "@/components/LogEdit";
 
 function formatHeight(totalInches: number): string {
   const feet = Math.floor(totalInches / 12);
@@ -40,19 +42,12 @@ export default function SettingsPage() {
     initializeDatabase().then(() => setDbReady(true));
   }, []);
 
-  const profile = useLiveQuery(
-    () => db.userProfile.toCollection().first(),
-    [],
-    undefined
-  );
+  const profile = useProfile();
 
   const updateSettings = useCallback(
     async (updates: Partial<UserSettings>) => {
       if (!profile) return;
-      await db.userProfile.update(profile.id, {
-        settings: { ...profile.settings, ...updates },
-        synced: false,
-      });
+      await saveSettings(updates);
     },
     [profile]
   );
@@ -60,7 +55,7 @@ export default function SettingsPage() {
   const updateProfile = useCallback(
     async (updates: Partial<UserProfile>) => {
       if (!profile) return;
-      await db.userProfile.update(profile.id, { ...updates, synced: false });
+      await saveProfile(updates);
     },
     [profile]
   );
@@ -111,21 +106,7 @@ export default function SettingsPage() {
 
   const handleExportData = useCallback(async () => {
     try {
-      const data = {
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        workouts: await db.workouts.toArray(),
-        liftAdjustments: await db.liftAdjustments.toArray(),
-        runs: await db.runs.toArray(),
-        activities: await db.activities.toArray(),
-        bodyweight: await db.bodyweight.toArray(),
-        painEntries: await db.painEntries.toArray(),
-        estimated1RMs: await db.estimated1RMs.toArray(),
-        liftStates: await db.liftStates.toArray(),
-        userProfile: await db.userProfile.toArray(),
-        readinessLogs: await db.readinessLogs.toArray(),
-      };
-
+      const data = await exportBackup();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -148,52 +129,24 @@ export default function SettingsPage() {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
 
+      let backup;
       try {
-        const text = await file.text();
-        const data = JSON.parse(text);
+        backup = parseBackup(await file.text());
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Import failed. Please check the file format.");
+        return;
+      }
 
-        if (!data.version || !data.workouts || !data.userProfile) {
-          alert("Invalid backup file format.");
-          return;
-        }
+      if (!confirm("This will replace ALL existing data. Are you sure?")) {
+        return;
+      }
 
-        if (!confirm("This will replace ALL existing data. Are you sure?")) {
-          return;
-        }
-
-        await db.transaction("rw",
-          [db.workouts, db.liftAdjustments, db.runs, db.activities, db.bodyweight,
-          db.painEntries, db.estimated1RMs, db.liftStates,
-          db.userProfile, db.readinessLogs],
-          async () => {
-            await db.workouts.clear();
-            await db.liftAdjustments.clear();
-            await db.runs.clear();
-            await db.activities.clear();
-            await db.bodyweight.clear();
-            await db.painEntries.clear();
-            await db.estimated1RMs.clear();
-            await db.liftStates.clear();
-            await db.userProfile.clear();
-            await db.readinessLogs.clear();
-
-            if (data.workouts?.length) await db.workouts.bulkAdd(data.workouts);
-            if (data.liftAdjustments?.length) await db.liftAdjustments.bulkAdd(data.liftAdjustments);
-            if (data.runs?.length) await db.runs.bulkAdd(data.runs);
-            if (data.activities?.length) await db.activities.bulkAdd(data.activities);
-            if (data.bodyweight?.length) await db.bodyweight.bulkAdd(data.bodyweight);
-            if (data.painEntries?.length) await db.painEntries.bulkAdd(data.painEntries);
-            if (data.estimated1RMs?.length) await db.estimated1RMs.bulkAdd(data.estimated1RMs);
-            if (data.liftStates?.length) await db.liftStates.bulkAdd(data.liftStates);
-            if (data.userProfile?.length) await db.userProfile.bulkAdd(data.userProfile);
-            if (data.readinessLogs?.length) await db.readinessLogs.bulkAdd(data.readinessLogs);
-          }
-        );
-
+      try {
+        await importBackup(backup);
         window.location.reload();
       } catch (err) {
         console.error("Import failed:", err);
-        alert("Import failed. Please check the file format.");
+        alert("Import failed. Your existing data was not changed.");
       }
     };
     input.click();
@@ -466,6 +419,10 @@ export default function SettingsPage() {
                 Export creates a full backup. Import replaces all data.
               </p>
             </div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-6 mb-3">
+              Data check
+            </h3>
+            <DataIntegrityCard />
           </CardContent>
         </Card>
 
