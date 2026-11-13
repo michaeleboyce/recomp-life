@@ -1,18 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { useMetric, useNextWorkout, useSettings } from "@/hooks";
+import { useBodyweightLog, useMetric, useNextWorkout, useSettings } from "@/hooks";
 import { getMonday } from "@/lib/dates";
 import { Sparkline, type SparklineTone } from "@/components/chart-kit";
 import { Delta, type DeltaBetter } from "@/components/ui/delta";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/ui/stat-tile";
+import { paceStatus, type PaceWord } from "@/components/Progress/body/bodyMath";
+import { rangeSuffix } from "@/components/Progress/rangeText";
 import { formatLbs, shortLiftName } from "./format";
 
 /** Sessions a week the old Dashboard ring counted towards (WeekSummary's `target`). */
 export const WEEKLY_SESSION_TARGET = 5;
 
 const DASH = "—";
+/** Past this, the rate of change describes an old stretch, so it is not shown. */
+export const STALE_WEIGH_IN_DAYS = 14;
+const DAY_MS = 86_400_000;
+
+/** While cutting, the rate is judged against the target band, as the Body tab does. */
+const PACE_TONE: Record<PaceWord, SparklineTone> = {
+  "on pace": "good",
+  slow: "warn",
+  fast: "warn",
+  gaining: "warn",
+};
 
 function Hint({ children }: { children: React.ReactNode }) {
   return <span className="text-xs text-muted-foreground">{children}</span>;
@@ -41,15 +54,24 @@ export function GlanceTiles() {
 
 function WeightTile() {
   const settings = useSettings();
+  const log = useBodyweightLog();
   const weight = useMetric("bodyweight");
   const rate = useMetric("lossRate");
   const trend = useMetric("bodyweight7d", undefined, "4w");
-  if (!weight || !rate || !trend || settings === undefined) return <TileSkeleton />;
+  const [now] = useState(() => Date.now());
+  if (!weight || !rate || !trend || !log || settings === undefined) return <TileSkeleton />;
 
   const latest = weight.full.points.at(-1);
-  const lbsPerWeek = rate.full.points.at(-1)?.v;
+  const fresh = latest !== undefined && now - latest.t <= STALE_WEIGH_IN_DAYS * DAY_MS;
+  const lbsPerWeek = fresh ? rate.full.points.at(-1)?.v : undefined;
   const mode = settings?.trainingPhase?.mode;
   const better: DeltaBetter = mode === "cutting" ? "down" : mode === "bulking" ? "up" : "none";
+  // Cutting: on pace is good; too slow, too fast or gaining all need a look.
+  const pace =
+    mode === "cutting" && lbsPerWeek !== undefined
+      ? paceStatus(log.map((e) => ({ date: new Date(e.date), weight: e.weight })))
+      : null;
+  const tone = pace ? PACE_TONE[pace] : toneFor(lbsPerWeek, better);
 
   return (
     <StatTile
@@ -61,12 +83,19 @@ function WeightTile() {
         !latest ? (
           <Hint>Log a weigh-in to see your trend</Hint>
         ) : lbsPerWeek !== undefined ? (
-          <Delta value={lbsPerWeek} unit="lb/wk" better={better} format={(v) => v.toFixed(1)} />
+          <Delta
+            value={lbsPerWeek}
+            unit="lb/wk"
+            better={better}
+            format={(v) => v.toFixed(1)}
+            data-pace={pace ?? undefined}
+            className={pace ? (tone === "good" ? "text-success" : "text-warning") : undefined}
+          />
         ) : undefined
       }
       sparkline={
         trend.series.points.length > 1 ? (
-          <Sparkline points={trend.series.points} width={150} height={24} tone={toneFor(lbsPerWeek, better)} />
+          <Sparkline points={trend.series.points} width={150} height={24} tone={tone} />
         ) : undefined
       }
     />
@@ -108,7 +137,8 @@ function LiftTile({ exerciseId }: { exerciseId: string }) {
         !latest ? (
           <Hint>Finish a workout to estimate it</Hint>
         ) : change !== null ? (
-          <Delta value={Math.round(change)} unit="lb" suffix="in 3 mo" better="up" />
+          // The real span of the points, not the nominal 3 months.
+          <Delta value={Math.round(change)} unit="lb" suffix={rangeSuffix(e1rm.series.points)} better="up" />
         ) : undefined
       }
       sparkline={

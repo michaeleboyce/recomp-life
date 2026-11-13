@@ -16,7 +16,8 @@ const TABS: { value: ProgressTab; label: string }[] = [
   { value: "strength", label: "Strength" },
   { value: "body", label: "Body" },
   { value: "muscles", label: "Muscles" },
-  { value: "runs", label: "Runs" },
+  // Runs plus sleep and energy; the key stays "runs" so ?tab=runs links keep working.
+  { value: "runs", label: "Cardio" },
 ];
 
 export function parseTab(value: string | null): ProgressTab {
