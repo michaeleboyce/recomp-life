@@ -1,18 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { HeartPulse, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface PostWorkoutBodyCheckProps {
-  onDismiss: () => void;
-}
-
-export default function PostWorkoutBodyCheck({
-  onDismiss,
-}: PostWorkoutBodyCheckProps) {
+/** After a workout: "All good" dismisses the card; "Log an issue" opens the body check. */
+export default function PostWorkoutBodyCheck({ onDismiss }: { onDismiss?: () => void }) {
   const [dismissed, setDismissed] = useState(false);
-
   if (dismissed) return null;
 
   return (
@@ -21,37 +17,25 @@ export default function PostWorkoutBodyCheck({
         <CardTitle className="text-base">How do you feel?</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          Any new pain or issues after this workout?
-        </p>
+        <p className="text-sm text-muted-foreground">Any new pain or soreness after this workout?</p>
         <div className="flex gap-2">
           <Button
-            variant="default"
-            size="sm"
-            className="flex-1"
+            className="min-h-11 flex-1"
             onClick={() => {
               setDismissed(true);
-              onDismiss();
+              onDismiss?.();
             }}
           >
-            {"\u2705"} All good
+            <ThumbsUp className="size-4" aria-hidden="true" />
+            All good
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => {
-              // Placeholder until Phase 4 pain logging
-              setDismissed(true);
-              onDismiss();
-            }}
-          >
-            {"\uD83E\uDE79"} Log issue
+          <Button asChild variant="outline" className="min-h-11 flex-1">
+            <Link href="/body-check">
+              <HeartPulse className="size-4" aria-hidden="true" />
+              Log an issue
+            </Link>
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Detailed pain logging coming in a future update.
-        </p>
       </CardContent>
     </Card>
   );

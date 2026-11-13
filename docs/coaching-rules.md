@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-25 active rules, 5 planned rules, 32 sources. Last reviewed against the research: November 2026.
+26 active rules, 4 planned rules, 32 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -26,7 +26,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 |---|---|---|---|---|
 | `tier-structure` | Program and progression | Active | Strong evidence | ACSM 2026, Pelland 2026 |
 | `gzclp-progression` | Program and progression | Active | Program rule | none |
-| `t3-progression` | Program and progression | Planned | Program rule | Robinson 2024, Halperin 2022 |
+| `t3-progression` | Program and progression | Active | Program rule | Robinson 2024, Halperin 2022 |
 | `accessory-progression` | Program and progression | Planned | Moderate evidence | Robinson 2024 |
 | `amrap-effort` | Effort and estimates | Active | Moderate evidence | Robinson 2024, ACSM 2026, Morán-Navarro 2017 |
 | `rpe-logging` | Effort and estimates | Active | Moderate evidence | Halperin 2022 |
@@ -85,12 +85,12 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Program rule
 - **Implemented in:** `src/lib/progression.ts` (`evaluateT1Progression`)
-- **Shown in:** `src/app/progress/upcoming/page.tsx`, `src/components/WorkoutSummary/LiftResult.tsx`, `src/components/Today/AttentionList.tsx`
+- **Shown in:** `src/app/progress/upcoming/page.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Complete every set and the weight goes up; miss and the scheme changes
 
-**What the app does.** Complete every set and the lift goes up next time: by your plate increment for upper-body lifts and double that for lower-body lifts. Miss reps and T1 moves from 5×3 to 6×2 to 10×1, and T2 from 3×10 to 3×8 to 3×6. After the last stage the weight resets to 85% and the cycle restarts. Sessions cut short by pain, a recent run or equipment limits freeze progression: they count as neither a pass nor a fail. Today notes when a T1 lift has reached its last stage through failed sessions, and the weight it would reset to.
+**What the app does.** Complete every set and the lift goes up next time: by your plate increment for upper-body lifts and double that for lower-body lifts. Miss reps and T1 moves from 5×3 to 6×2 to 10×1, and T2 from 3×10 to 3×8 to 3×6. After the last stage the weight resets to 85% and the cycle restarts. Sessions cut short by pain, a recent run or equipment limits freeze progression: they count as neither a pass nor a fail. Today notes when a T1 lift has reached its last stage through failed sessions, and the weight it would reset to. Editing or deleting a logged session re-runs progression from the log, so the next workout reflects the change; later sessions that are already logged are not rewritten.
 
 **Why.** This is the GZCLP linear progression. Adding load whenever the work is completed is the standard way to progress a newer lifter, and the stage changes let you keep training heavy after a miss instead of stalling.
 
@@ -101,18 +101,19 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### When does T3 weight go up?
 
 - **Rule id:** `t3-progression`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Program rule
 - **Implemented in:** `src/lib/progression.ts` (`evaluateT3Progression`), `src/lib/workout/completeWorkout.ts` (`computeCompletion`)
+- **Shown in:** `src/components/Log/WhatItDid.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** T3 weight goes up when the last set reaches 25 reps
 
-**What the app does.** When you finish every set of a T3 exercise, the app adds 5 lb for next time if the last AMRAP set reached 25 reps (or, outside a cut, if the three sets totalled 50 reps). Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. The app does not yet tell you on screen when this happens.
+**What the app does.** When you finish every set of a T3 exercise, the app adds 5 lb for next time if the last set reached 25 reps, or, except during a cut, if the sets totalled 50 reps or more. During a cut only the last set counts. Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. Each workout's page shows what happened to its T3 lift under "What it did".
 
 **Why.** Muscle growth improves as sets end closer to failure. Under this rule the first two sets of 15 can be about 10 reps short of failure, and people judge reps left least accurately in high-rep sets.
 
-**Before this is switched on.** The rule now runs when a workout is finished (computeCompletion), but no screen shows it. Show the T3 result with its citation on the workout summary, then mark the rule active. Still open: keep the stock GZCLP rule or move to a double progression (every set near the top of a rep range), which fits the evidence better.
+**Limits.** This is the stock GZCLP rule. A double progression (every set near the top of a rep range) would fit the evidence on proximity to failure better; that change is still open.
 
 **Sources**
 
@@ -750,6 +751,8 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **12 November 2026** — `t3-progression` (When does T3 weight go up?): The T3 rule is now shown: each workout's page says whether its T3 lift went up (and why) or stays at the same weight, as of that workout. The rule itself is unchanged. Sources: .
+- **12 November 2026** — `gzclp-progression` (Why does the weight go up, change stage or reset?): Logged sessions can now be edited or deleted. Doing so re-runs progression from the log, so the next workout follows the corrected history; sessions logged later are kept as they were lifted. Sources: .
 - **12 November 2026** — `fatigue-detection` (How does the app spot built-up fatigue?): Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or AMRAP reps), and an easier week is offered as optional. Sources: .
 - **12 November 2026** — `fat-loss-stall` (What should I do when weight loss stalls?): Today now reports a weight-loss stall while cutting, but only after about three slow weeks, and suggests more daily steps before any cut in calories. Sources: .
 - **12 November 2026** — `projection-rate-of-gain` (Why does the projection curve flatten, and why is the range so wide?): Projections are more cautious: the range now includes how uncertain your rate of gain is (much wider from only a few results), horizons longer than your history are marked unreliable, and after a break the projection starts from your last result instead of extending the trend across the gap. Sources: .

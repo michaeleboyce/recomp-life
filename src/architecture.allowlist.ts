@@ -6,7 +6,6 @@
 export const DB_IMPORT_ALLOWLIST: string[] = [
   "src/app/exercises/page.tsx",
   "src/app/settings/page.tsx",
-  "src/app/workout/summary/page.tsx",
   "src/components/Charts/E1RMChart.tsx",
   // Added by the interactive-anatomy branch; migrate to src/hooks once that work has landed.
   "src/components/Dashboard/MuscleHeatCard.tsx",
@@ -14,9 +13,7 @@ export const DB_IMPORT_ALLOWLIST: string[] = [
 
 /** Rule R9: pages and components must use theme tokens, not raw palette classes. */
 export const PALETTE_ALLOWLIST: string[] = [
-  "src/app/workout/summary/page.tsx",
   "src/components/Exercises/ExerciseRow.tsx",
-  "src/components/WorkoutSummary/LiftResult.tsx",
 ];
 
 /**
