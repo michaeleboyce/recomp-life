@@ -31,8 +31,6 @@ const INPUTS = [
   "package.json",
 ];
 
-const LEGACY_REDIRECTS = ["history", "program", "tools"];
-
 rmSync(work, { recursive: true, force: true });
 mkdirSync(work);
 for (const input of INPUTS) {
@@ -41,12 +39,6 @@ for (const input of INPUTS) {
   }
 }
 rmSync(join(work, "src", "app", "api"), { recursive: true, force: true });
-// Old addresses (/history, /program, /tools) that redirect to their new screens
-// by reading the query string on the server. They exist for web bookmarks; the
-// app has none and nothing inside it links to them.
-for (const legacy of LEGACY_REDIRECTS) {
-  rmSync(join(work, "src", "app", legacy), { recursive: true, force: true });
-}
 
 if (!process.env.NEXT_PUBLIC_API_BASE) {
   console.warn(
