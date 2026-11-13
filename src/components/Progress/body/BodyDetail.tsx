@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Scale } from "lucide-react";
 import Link from "next/link";
-import { ChartFrame, LazyTrendChart, RangeTabs, RANGE_LABELS } from "@/components/chart-kit";
+import { ChartFrame, LazyTrendChart, RangeTabs } from "@/components/chart-kit";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Button } from "@/components/ui/button";
 import { Delta } from "@/components/ui/delta";
@@ -16,6 +16,7 @@ import { BodyChart } from "./BodyChart";
 import { cutTargetBand } from "./bodyMath";
 import { useBodySeries } from "./useBodySeries";
 import { WeighInList } from "./WeighInList";
+import { rangeSuffix } from "../rangeText";
 
 const weightFormat = getMetric("bodyweight").format;
 const rateFormat = getMetric("lossRate").format;
@@ -50,7 +51,9 @@ export function BodyDetail() {
               body.weightSummary.change !== null ? (
                 <>
                   <Delta value={body.weightSummary.change} unit="lbs" better={body.weight.better} />
-                  <span className="ml-1 text-xs text-muted-foreground">in {RANGE_LABELS[range]}</span>
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    {rangeSuffix(body.weight.points)}
+                  </span>
                 </>
               ) : undefined
             }

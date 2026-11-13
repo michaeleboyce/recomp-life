@@ -88,7 +88,28 @@ describe("BodyTab", () => {
     await screen.findByText("Rate of change");
     fireEvent.click(screen.getByRole("radio", { name: "4w" }));
     expect(screen.getByRole("radio", { name: "4w" })).toBeChecked();
-    expect(screen.getByText("in 4w")).toBeInTheDocument();
+    expect(screen.getByText("in 4 wk")).toBeInTheDocument();
+  });
+
+  it("labels the change with the real span of the weigh-ins, not the range chip", async () => {
+    // Two weeks of data viewed at the default three-month range.
+    const now = Date.now();
+    await db.bodyweight.bulkPut(
+      Array.from({ length: 15 }, (_, i) => ({
+        id: `two-weeks-${i}`,
+        clientId: `two-weeks-${i}`,
+        date: new Date(now - (14 - i) * 86_400_000),
+        weight: 200 - i * 0.2,
+        timeOfDay: "morning" as const,
+        synced: false,
+      }))
+    );
+    await db.userProfile.put(makeProfile());
+    render(<BodyTab />);
+    const headline = await screen.findByRole("heading", { name: "Bodyweight" });
+    const frame = headline.closest("section")!;
+    expect(await within(frame).findByText("in 2 wk")).toBeInTheDocument();
+    expect(within(frame).queryByText("in 3m")).toBeNull();
   });
 
   it("shows an empty state with a Log weight action when there are no weigh-ins", async () => {

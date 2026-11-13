@@ -1,4 +1,7 @@
 // Rows for the Strength tab's Recovery and "Waiting for gym" sections. Pure.
+import { DEFAULT_USER_PROFILE } from "@/db/seed";
+import { adaptExerciseForHome } from "@/lib/autoAdapt";
+import { barbellToBothHands, barbellToDumbbell } from "@/lib/dbConversion";
 import { EXERCISES } from "@/lib/exercises";
 import { calculateRecoveryStatus, getMostRecent } from "@/lib/recovery";
 import type { LiftState, RecoveryStatus, TrainingPhase } from "@/types";
@@ -13,21 +16,51 @@ export interface GymDebtItem {
   exerciseId: string;
   name: string;
   t1Weight: number;
-  /** Per-hand dumbbell equivalent: half the barbell weight, rounded. */
+  /**
+   * The dumbbell weight the lift's home substitute would need, from the same
+   * conversion the Configure screen uses (`barbellToDumbbell` per hand, or
+   * `barbellToBothHands` for a substitute held as one dumbbell). For a lift with no
+   * home substitute it equals `t1Weight`.
+   */
   dbEquivalent: number;
+  /** `dbEquivalent` minus the heaviest dumbbell at home. */
   overage: number;
+  /** True when `dbEquivalent` is per hand; false for one dumbbell held in both hands. */
+  perHand: boolean;
+  /** `dbEquivalent` with its unit: "60 lbs/hand" or "180 lbs". */
+  dbLabel: string;
 }
 
 /**
- * Barbell lifts whose T1 weight is beyond the home dumbbells (half the barbell
- * weight per hand, the old Program page's simplified comparison).
+ * Barbell lifts that are "waiting for gym": their T1 weight cannot be matched at
+ * home. A lift is listed exactly when `adaptExerciseForHome`, called the way the
+ * Configure screen calls it, gives the status "exceeds" or "no_substitute", so the
+ * two screens agree. ("borderline", within 10 lbs of the limit, is still trained at
+ * home and is not listed.)
  */
 export function gymDebtItems(liftStates: LiftState[], maxDumbbellWeight: number): GymDebtItem[] {
+  // Only the dumbbell limit decides the status; the other fields are placeholders.
+  const equipment = { ...DEFAULT_USER_PROFILE.settings.equipment, maxDumbbellWeight };
   return liftStates.flatMap((state) => {
     const exercise = EXERCISES[state.exerciseId];
     if (!exercise || exercise.type !== "barbell") return [];
-    if (state.t1Weight / 2 <= maxDumbbellWeight) return [];
-    const dbEquivalent = Math.round(state.t1Weight / 2);
+    const substitute = exercise.dumbbellAlternative
+      ? EXERCISES[exercise.dumbbellAlternative]
+      : undefined;
+    const { adaptationStatus } = adaptExerciseForHome(
+      exercise,
+      state.t1Weight,
+      equipment,
+      substitute
+    );
+    if (adaptationStatus !== "exceeds" && adaptationStatus !== "no_substitute") return [];
+
+    const perHand = substitute ? substitute.grip !== "both_hands" : false;
+    const dbEquivalent = !substitute
+      ? state.t1Weight
+      : perHand
+        ? barbellToDumbbell(state.t1Weight)
+        : barbellToBothHands(state.t1Weight);
     return [
       {
         exerciseId: state.exerciseId,
@@ -35,6 +68,8 @@ export function gymDebtItems(liftStates: LiftState[], maxDumbbellWeight: number)
         t1Weight: state.t1Weight,
         dbEquivalent,
         overage: dbEquivalent - maxDumbbellWeight,
+        perHand,
+        dbLabel: `${dbEquivalent} ${perHand ? "lbs/hand" : "lbs"}`,
       },
     ];
   });

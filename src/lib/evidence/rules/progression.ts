@@ -28,7 +28,7 @@ export const PROGRESSION_RULES = {
     status: "active",
     title: "Why does the weight go up, change stage or reset?",
     summary: "Complete every set and the weight goes up; miss and the scheme changes",
-    appBehavior: `Complete every set and the lift goes up next time: by your plate increment for upper-body lifts and double that for lower-body lifts. Miss reps and T1 moves from 5×3 to 6×2 to 10×1, and T2 from 3×10 to 3×8 to 3×6. After the last stage the weight resets to ${resetPercent}% and the cycle restarts. Sessions cut short by pain, a recent run or equipment limits freeze progression: they count as neither a pass nor a fail.`,
+    appBehavior: `Complete every set and the lift goes up next time: by your plate increment for upper-body lifts and double that for lower-body lifts. Miss reps and T1 moves from 5×3 to 6×2 to 10×1, and T2 from 3×10 to 3×8 to 3×6. After the last stage the weight resets to ${resetPercent}% and the cycle restarts. Sessions cut short by pain, a recent run or equipment limits freeze progression: they count as neither a pass nor a fail. Today notes when a T1 lift has reached its last stage through failed sessions, and the weight it would reset to.`,
     rationale:
       "This is the GZCLP linear progression. Adding load whenever the work is completed is the standard way to progress a newer lifter, and the stage changes let you keep training heavy after a miss instead of stalling.",
     caveat:
@@ -38,7 +38,10 @@ export const PROGRESSION_RULES = {
     reviewedOn: "2026-11",
     implementedIn: ["src/lib/progression.ts#evaluateT1Progression"],
     surfaces: [
-      "src/app/progress/upcoming/page.tsx","src/components/WorkoutSummary/LiftResult.tsx"],
+      "src/app/progress/upcoming/page.tsx",
+      "src/components/WorkoutSummary/LiftResult.tsx",
+      "src/components/Today/AttentionList.tsx",
+    ],
   },
   "t3-progression": {
     area: "progression",

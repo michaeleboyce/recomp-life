@@ -1,6 +1,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
 import type { ActivityLog, BodyweightLog, Estimated1RM, PainSorenessEntry, RunLog } from "@/types";
+import { liveRows } from "./liveRows";
 
 /**
  * Sorts rows by their `date` in JavaScript. Rows synced from another device before the
@@ -18,12 +19,12 @@ function byDate<T extends { date: Date | string }>(rows: T[], order: "oldest" | 
 
 /** Bodyweight entries, oldest first. */
 export function useBodyweightLog(): BodyweightLog[] | undefined {
-  return useLiveQuery(async () => byDate(await db.bodyweight.toArray(), "oldest"), []);
+  return useLiveQuery(async () => byDate(liveRows(await db.bodyweight.toArray()), "oldest"), []);
 }
 
 /** Pain and soreness entries, newest first. */
 export function usePainEntries(): PainSorenessEntry[] | undefined {
-  return useLiveQuery(async () => byDate(await db.painEntries.toArray(), "newest"), []);
+  return useLiveQuery(async () => byDate(liveRows(await db.painEntries.toArray()), "newest"), []);
 }
 
 /** Estimated 1RM rows, oldest first, for one exercise or for all when omitted. */
@@ -42,10 +43,10 @@ export function useE1RMs(exerciseId?: string): Estimated1RM[] | undefined {
 
 /** Runs, newest first. */
 export function useRuns(): RunLog[] | undefined {
-  return useLiveQuery(async () => byDate(await db.runs.toArray(), "newest"), []);
+  return useLiveQuery(async () => byDate(liveRows(await db.runs.toArray()), "newest"), []);
 }
 
 /** Non-running activities (yoga, cycling, hiking...), newest first. */
 export function useActivities(): ActivityLog[] | undefined {
-  return useLiveQuery(() => db.activities.orderBy("date").reverse().toArray(), []);
+  return useLiveQuery(async () => byDate(liveRows(await db.activities.toArray()), "newest"), []);
 }

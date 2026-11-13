@@ -1,6 +1,7 @@
 import type { EvidenceRule } from "@/types";
 import type { SourceId } from "../sources";
 import { PROJECTION_COEFFICIENTS as C } from "@/lib/projection/coefficients";
+import { MIN_RELIABLE_WEEKS, STALE_HISTORY_WEEKS } from "@/lib/projection/project";
 
 const pct = (fraction: number) => `${Math.round(fraction * 100)}%`;
 /** Rate multiplier for doubling a dose under the given exponent, e.g. 2 ^ 0.1 -> "7%". */
@@ -18,7 +19,7 @@ export const PROJECTION_RULES = {
     status: "active",
     title: "How much would more sets or sessions speed up my lift?",
     summary: "More sessions help strength a little; extra sets help even less",
-    appBehavior: `The projection scales your own measured rate of gain. At equal weekly sets, the rate is multiplied by (new sessions ÷ current sessions) ^ ${C.frequencyExponent}, so doubling sessions adds about ${doubling(C.frequencyExponent)}. Weekly sets for the lift's main muscles scale it by (new ÷ current) ^ ${C.volumeExponent}, so doubling sets adds about ${doubling(C.volumeExponent)}, and sets beyond ${C.weeklySetsCeiling} a week add nothing. The combined effect is held between ×${C.minDoseMultiplier} and ×${C.maxDoseMultiplier}. The further an alternative is from what you do now, the wider its range: by ${C.scenarioUncertainty} × the size of the change in rate (on a log scale).`,
+    appBehavior: `The projection scales your own measured rate of gain. At equal weekly sets, the rate is multiplied by (new sessions ÷ current sessions) ^ ${C.frequencyExponent}, so doubling sessions adds about ${doubling(C.frequencyExponent)}. Weekly sets for the lift's main muscles scale it by (new ÷ current) ^ ${C.volumeExponent}, so doubling sets adds about ${doubling(C.volumeExponent)}, and sets beyond ${C.weeklySetsCeiling} a week add nothing. The combined effect is held between ×${C.minDoseMultiplier} and ×${C.maxDoseMultiplier}, except that an alternative with no sets and no sessions of the lift projects no gain at all. The further an alternative is from what you do now, the wider its range: by ${C.scenarioUncertainty} × the size of the change in rate (on a log scale).`,
     rationale:
       "The largest analysis of training dose found strength rises with weekly sets but levels off quickly, with no clear extra gain beyond about 4–5 sets a week, while training a lift more often kept adding strength with diminishing returns even when total sets were accounted for.",
     caveat:
@@ -50,11 +51,11 @@ export const PROJECTION_RULES = {
     status: "active",
     title: "Why does the projection curve flatten, and why is the range so wide?",
     summary: "Strength gains slow over time, and single estimates are noisy",
-    appBehavior: `The projected weekly gain keeps ${pct(C.weeklyRateRetention)} of the previous week's, so it halves in about ${halfLifeWeeks(C.weeklyRateRetention)} weeks. The range is ${C.bandWidthSd} times the scatter of your own estimates around their trend (about an 80% range), widened by (1 + ${C.bandGrowth} × √weeks ahead). The scatter is never taken as less than ${(C.minResidualSdFraction * 100).toFixed(1)}% of your current estimate, so a very steady history still gets a range.`,
+    appBehavior: `The projected weekly gain keeps ${pct(C.weeklyRateRetention)} of the previous week's, so it halves in about ${halfLifeWeeks(C.weeklyRateRetention)} weeks. The range (about an 80% range, ${C.bandWidthSd} standard deviations) combines two things: the scatter of your own estimates around their trend, widened by (1 + ${C.bandGrowth} × √weeks ahead), and how uncertain the fitted rate itself is, carried over the weeks ahead, which is large when the trend rests on few results. The scatter is never taken as less than ${(C.minResidualSdFraction * 100).toFixed(1)}% of your current estimate, so a very steady history still gets a range. A projection further ahead than the span of results behind the trend (at least ${MIN_RELIABLE_WEEKS} weeks) is marked as unreliable. The projection starts from your most recent result, not from the trend extended across a gap, and when that result is more than ${STALE_HISTORY_WEEKS} weeks old it says the figure may be optimistic: strength lost during time off is not estimated.`,
     rationale:
       "In nearly 15,000 adults' training records, strength rose quickly at first and then ever more slowly, practically levelling off after one to two years, and stronger powerlifters improved more slowly than weaker ones. Even a tested 1RM varies by a few percent from day to day, and estimates from rep sets vary more, so a single projected number would look more certain than it is.",
     caveat:
-      "How fast gains slow depends on how long you have trained; the app uses one rate that fits someone about four months in, so it under-promises for longer-trained lifters and may over-promise for someone in their first few months. The studies were of machine training and competition totals, not of a GZCLP lifter's estimated 1RM. The growth of the range is a judgment, not a measured value.",
+      "How fast gains slow depends on how long you have trained; the app uses one rate that fits someone about four months in, so it under-promises for longer-trained lifters and may over-promise for someone in their first few months. The studies were of machine training and competition totals, not of a GZCLP lifter's estimated 1RM. The growth of the range and the limit on how far ahead to look are judgments, not measured values.",
     strength: "limited",
     sources: ["steele2023", "latella2020", "grgic2020", "nuzzo2024"],
     reviewedOn: "2026-11",
