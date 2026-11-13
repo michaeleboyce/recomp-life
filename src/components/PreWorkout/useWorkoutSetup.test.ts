@@ -327,7 +327,15 @@ describe("advisories", () => {
     );
     const squat = (await db.liftStates.get("squat"))!;
     expect(squat.t1Weight).toBe(suggestion.suggestedWeight);
-    expect(squat.synced).toBe(false);
+    // The reduction is a dated "decay" adjustment in the log; the lift state is rebuilt from it.
+    const decays = (await db.liftAdjustments.toArray()).filter((a) => a.source === "decay");
+    expect(decays).toHaveLength(1);
+    expect(decays[0]).toMatchObject({
+      exerciseId: "squat",
+      set: { t1Weight: suggestion.suggestedWeight },
+      deletedAt: null,
+      synced: false,
+    });
     await waitFor(() =>
       expect(hook.result.current.plan.find((e) => e.tier === "T1")!.weight).toBe(
         suggestion.suggestedWeight

@@ -13,7 +13,8 @@ import {
 } from "@/hooks";
 import { ACTIVITY_NOTE_WINDOW_HOURS, evaluateActivityImpact } from "@/lib/activities";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
-import { saveLiftState, startWorkout } from "@/lib/data/workouts";
+import { recordAdjustment } from "@/lib/data/adjustments";
+import { startWorkout } from "@/lib/data/workouts";
 import { ACCESSORY_IDS, EXERCISES } from "@/lib/exercises";
 import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePreferences";
 import { RECOVERY_HOURS } from "@/lib/recovery";
@@ -245,9 +246,10 @@ export function useWorkoutSetup(requestedTemplateId?: string | null) {
     async (exerciseId: string, tier: "T1" | "T2", newWeight: number) => {
       const ls = liftStates.find((l) => l.exerciseId === exerciseId);
       if (!ls) return;
-      await saveLiftState({
-        ...ls,
-        ...(tier === "T1" ? { t1Weight: newWeight } : { t2Weight: newWeight }),
+      await recordAdjustment({
+        exerciseId,
+        source: "decay",
+        set: tier === "T1" ? { t1Weight: newWeight } : { t2Weight: newWeight },
       });
       // Settled: without this the lowered weight would be offered a further cut.
       dismissDecay(exerciseId, tier);

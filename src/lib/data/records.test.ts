@@ -13,7 +13,7 @@ import {
   updateProfile,
   updateSettings,
 } from "./records";
-import { clearDb, makeE1RM, makeLiftState, makeProfile, makeSet, makeWorkout } from "./testUtils";
+import { clearDb, makeE1RM, makeLiftState, makeProfile, makeWorkout } from "./testUtils";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -49,7 +49,13 @@ describe("updateProfile", () => {
     await updateProfile({ bodyweight: 220, name: "M" });
 
     const after = await db.userProfile.get(profile.id);
-    expect(after).toEqual({ ...profile, bodyweight: 220, name: "M", synced: false });
+    expect(after).toEqual({
+      ...profile,
+      bodyweight: 220,
+      name: "M",
+      synced: false,
+      updatedAt: expect.any(Number),
+    });
   });
 
   it("rejects clearly when there is no profile", async () => {
@@ -68,6 +74,8 @@ describe("bodyweight", () => {
       date,
       weight: 224.5,
       timeOfDay: "morning",
+      updatedAt: expect.any(Number),
+      deletedAt: null,
       synced: false,
     });
   });
@@ -124,10 +132,29 @@ describe("pain entries", () => {
     expect(await db.painEntries.get(id)).toMatchObject({ date: now, synced: false });
   });
 
-  it("deletePainEntry removes the entry", async () => {
+  it("deletePainEntry soft-deletes the entry, so the delete can sync and be undone", async () => {
+    const id = await savePainEntry(base);
+    await db.painEntries.update(id, { synced: true });
+    const before = Date.now();
+    await deletePainEntry(id);
+    const row = (await db.painEntries.get(id))!;
+    expect(row).toMatchObject({ ...base, synced: false });
+    expect(row.deletedAt).toBeGreaterThanOrEqual(before);
+    await expect(deletePainEntry("unknown")).resolves.toBeUndefined();
+  });
+
+  it("savePainEntry on a deleted entry makes it live again", async () => {
     const id = await savePainEntry(base);
     await deletePainEntry(id);
+    await savePainEntry({ ...base, id, severity: 4 });
+    expect(await db.painEntries.get(id)).toMatchObject({ severity: 4, deletedAt: null });
+  });
+
+  it("updatePainEntry and updateBodyweight do nothing for an unknown id", async () => {
+    await updatePainEntry("unknown", { severity: 1 });
+    await updateBodyweight("unknown", { weight: 1 });
     expect(await db.painEntries.count()).toBe(0);
+    expect(await db.bodyweight.count()).toBe(0);
   });
 });
 
@@ -144,7 +171,14 @@ describe("logRun", () => {
     };
     const id = await logRun(run);
     expect(id).toMatch(UUID);
-    expect(await db.runs.get(id)).toEqual({ ...run, id, clientId: id, synced: false });
+    expect(await db.runs.get(id)).toEqual({
+      ...run,
+      id,
+      clientId: id,
+      updatedAt: expect.any(Number),
+      deletedAt: null,
+      synced: false,
+    });
   });
 });
 
@@ -161,7 +195,14 @@ describe("logActivity", () => {
     };
     const id = await logActivity(activity);
     expect(id).toMatch(UUID);
-    expect(await db.activities.get(id)).toEqual({ ...activity, id, clientId: id, synced: false });
+    expect(await db.activities.get(id)).toEqual({
+      ...activity,
+      id,
+      clientId: id,
+      updatedAt: expect.any(Number),
+      deletedAt: null,
+      synced: false,
+    });
     expect(await db.runs.count()).toBe(0);
   });
 });
@@ -169,7 +210,10 @@ describe("logActivity", () => {
 describe("clearAllData", () => {
   it("empties every table and does not re-seed", async () => {
     await db.workouts.put(makeWorkout());
-    await db.sets.put(makeSet());
+    await db.liftAdjustments.put({
+      id: "adj", clientId: "adj", exerciseId: "squat", at: new Date(), source: "manual",
+      set: { t1Weight: 100 }, synced: false,
+    });
     await db.runs.put({
       id: "r", clientId: "r", date: new Date(), durationMinutes: 1, distanceMiles: null,
       type: "outdoor", category: "easy", notes: "", perceivedEffort: 1, synced: false,
@@ -190,7 +234,18 @@ describe("clearAllData", () => {
 
     await clearAllData();
 
-    expect(db.tables).toHaveLength(11);
+    expect(db.tables.map((t) => t.name).sort()).toEqual([
+      "activities",
+      "bodyweight",
+      "estimated1RMs",
+      "liftAdjustments",
+      "liftStates",
+      "painEntries",
+      "readinessLogs",
+      "runs",
+      "userProfile",
+      "workouts",
+    ]);
     for (const table of db.tables) {
       expect(await table.count()).toBe(0);
     }

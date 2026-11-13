@@ -3,17 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useE1RMs, useLiftStates, useSettings, useWorkout } from "@/hooks";
-import {
-  appendSet,
-  discardWorkout,
-  finishWorkout,
-  getRecentE1RMSeries,
-} from "@/lib/data/workouts";
+import { appendSet, discardWorkout, finishWorkout } from "@/lib/data/workouts";
 import { calculateE1RM, isE1RMEligibleSet } from "@/lib/e1rm";
 import { getRestSeconds } from "@/lib/restTimes";
 import {
   buildWorkoutPlan,
-  computeCompletion,
   createSetLog,
   isNextSetAMRAP,
   nextStep,
@@ -23,7 +17,7 @@ import {
 } from "@/lib/workout";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { useWorkoutStore } from "@/stores/workoutStore";
-import type { Estimated1RM, TrainingPhase } from "@/types";
+import type { TrainingPhase } from "@/types";
 import {
   clampReps,
   dropSuggestionFor,
@@ -198,27 +192,15 @@ export function useActiveWorkout(
 
     // e1RM only for heavy T1 AMRAP sets of the lift itself: a home substitute's
     // dumbbell weight says nothing about the barbell lift.
-    let e1rmRow: Estimated1RM | undefined;
-    if (!entry.substituteExerciseId && isE1RMEligibleSet(entry.tier, set.isAMRAP, selectedReps)) {
-      const e1rm = calculateE1RM(entry.weight, selectedReps, selectedRPE);
-      if (e1rm) {
-        e1rmRow = {
-          id: uuidv4(),
-          clientId: uuidv4(),
-          date: now,
-          exerciseId: entry.exerciseId,
-          workingWeight: entry.weight,
-          repsCompleted: selectedReps,
-          estimated1RM: e1rm,
-          workoutSessionId: session.id,
-          synced: false,
-        };
-      }
-    }
+    // The row itself is written by appendSet; this is only the number to flash.
+    const e1rm =
+      !entry.substituteExerciseId && isE1RMEligibleSet(entry.tier, set.isAMRAP, selectedReps)
+        ? calculateE1RM(entry.weight, selectedReps, selectedRPE)
+        : null;
 
     setAwaitingSetId(set.id);
     try {
-      await appendSet(session.id, set, e1rmRow);
+      await appendSet(session.id, set);
     } catch (err) {
       console.error("Failed to save set:", err);
       setAwaitingSetId(null);
@@ -228,8 +210,8 @@ export function useActiveWorkout(
       return;
     }
 
-    if (e1rmRow) {
-      setE1rmFlash(e1rmRow.estimated1RM);
+    if (e1rm) {
+      setE1rmFlash(e1rm);
       setTimeout(() => setE1rmFlash(null), E1RM_FLASH_MS);
     }
 
@@ -295,25 +277,13 @@ export function useActiveWorkout(
     if (!session || !settings || !liftStates || !template || isCompleting) return false;
     setIsCompleting(true);
     try {
-      const recentE1RMsByExercise: Record<string, number[]> = {};
-      for (const templateEx of template.exercises) {
-        if (templateEx.tier !== "T1" && templateEx.tier !== "T2") continue;
-        recentE1RMsByExercise[templateEx.exerciseId] = await getRecentE1RMSeries(
-          templateEx.exerciseId
-        );
-      }
-      const result = computeCompletion({
-        session,
-        plan,
-        sets,
-        liftStates,
-        settings,
-        recentE1RMsByExercise,
-        currentExerciseIndex: endedAtIndex ?? naturalIndex,
-        workoutStartTime: workoutStartTime ?? new Date(session.startedAt),
-        now: new Date(),
+      const completedAt = new Date();
+      const startedAt = workoutStartTime ?? new Date(session.startedAt);
+      await finishWorkout(session.id, {
+        completedAt,
+        totalDurationSeconds: Math.floor((completedAt.getTime() - startedAt.getTime()) / 1000),
+        endedEarly: (endedAtIndex ?? naturalIndex) < plan.length,
       });
-      await finishWorkout(session.id, result);
       return true;
     } catch (err) {
       console.error("Failed to complete workout:", err);
@@ -328,13 +298,12 @@ export function useActiveWorkout(
     template,
     isCompleting,
     plan,
-    sets,
     endedAtIndex,
     naturalIndex,
     workoutStartTime,
   ]);
 
-  /** Deletes the workout with its sets and e1RM rows. */
+  /** Discards the workout: a soft delete, so its sets and e1RM rows drop out everywhere. */
   const discard = useCallback(async () => {
     if (!sessionId) return;
     await discardWorkout(sessionId);

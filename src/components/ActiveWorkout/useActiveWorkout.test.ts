@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import { clearDb, makeE1RM } from "@/lib/data/testUtils";
-import { startWorkout, type StartWorkoutInput } from "@/lib/data/workouts";
+import { clearDb, makeE1RM, makeSet } from "@/lib/data/testUtils";
+import { appendSet, startWorkout, type StartWorkoutInput } from "@/lib/data/workouts";
 import { evaluateT1Progression, evaluateT2Progression } from "@/lib/progression";
 import { substituteModification } from "@/lib/workout";
 import { useWorkoutStore } from "@/stores/workoutStore";
@@ -94,12 +94,9 @@ describe("a full A1 workout at the gym with warm-ups", () => {
     });
     expect(saved).toBe(true);
 
-    // Sets: 4 warm-ups, 5 squat, 3 bench, 3 pulldown, each written to `sets` and
-    // mirrored on the workout row.
+    // Sets: 4 warm-ups, 5 squat, 3 bench, 3 pulldown, on the workout row (the only copy).
     const workout = (await db.workouts.get(sessionId))!;
-    const storedSets = await db.sets.toArray();
     expect(workout.sets).toHaveLength(15);
-    expect(storedSets.map((s) => s.id).sort()).toEqual(workout.sets.map((s) => s.id).sort());
     expect(
       workout.sets.map((s) => [s.tier, s.exerciseId, s.setNumber, s.weight, s.actualReps, s.isAMRAP])
     ).toEqual([
@@ -146,7 +143,8 @@ describe("a full A1 workout at the gym with warm-ups", () => {
       repsCompleted: 3,
       estimated1RM: 209,
       workoutSessionId: sessionId,
-      synced: false,
+      // Derived rows are local-only.
+      synced: true,
     });
 
     // Lift states: what the previous page's completion handler wrote.
@@ -159,7 +157,7 @@ describe("a full A1 workout at the gym with warm-ups", () => {
       recentE1RMs: [209],
       recentAvgRPEs: [],
       recentAMRAPReps: [3],
-      synced: false,
+      synced: true,
     });
     expect(after.bench).toEqual({
       ...evaluateT2Progression(before.bench, benchSets, "gym", equipment, "upper"),
@@ -167,7 +165,7 @@ describe("a full A1 workout at the gym with warm-ups", () => {
       recentE1RMs: [],
       recentAvgRPEs: [],
       recentAMRAPReps: [],
-      synced: false,
+      synced: true,
     });
     expect(after.squat.t1Weight).toBe(200);
     expect(after.squat.t1Stage).toBe("5x3");
@@ -263,7 +261,7 @@ describe("a full A1 workout at home", () => {
       recentE1RMs: [],
       recentAvgRPEs: [],
       recentAMRAPReps: [3],
-      synced: false,
+      synced: true,
     });
     expect(after.bench).toEqual({
       ...evaluateT2Progression(before.bench, benchSets, "home", equipment, "upper"),
@@ -271,7 +269,7 @@ describe("a full A1 workout at home", () => {
       recentE1RMs: [],
       recentAvgRPEs: [],
       recentAMRAPReps: [],
-      synced: false,
+      synced: true,
     });
     expect(after.squat.t1Weight).toBe(195);
     expect(after.bench.t2Weight).toBe(105);
@@ -556,24 +554,27 @@ describe("jumping, ending early and discarding", () => {
     expect(after.squat).toEqual({
       ...before.squat,
       t1LastWorkoutDate: workout.completedAt,
-      synced: false,
+      synced: true,
     });
     expect(after.bench).toEqual(before.bench);
   });
 
-  it("discarding removes the workout, its sets and its e1RM rows", async () => {
-    await db.estimated1RMs.put(makeE1RM({ id: "older", workoutSessionId: "another" }));
+  it("discarding soft-deletes the workout and removes its e1RM rows, and no others", async () => {
+    // Another workout's AMRAP set: its e1RM row must survive the discard.
+    const other = await start({ includeWarmUps: false });
+    await appendSet(other, makeSet({ id: "other-amrap", isAMRAP: true, actualReps: 5 }));
     const sessionId = await start({ includeWarmUps: false });
     const hook = await mount(sessionId);
     for (let i = 0; i < 5; i++) await logSet(hook);
-    expect(await db.sets.count()).toBe(5);
+    expect((await db.workouts.get(sessionId))!.sets).toHaveLength(5);
     expect(await db.estimated1RMs.count()).toBe(2);
 
     await act(() => hook.result.current.discard());
 
-    expect(await db.workouts.get(sessionId)).toBeUndefined();
-    expect(await db.sets.count()).toBe(0);
-    expect((await db.estimated1RMs.toArray()).map((e) => e.id)).toEqual(["older"]);
+    const discarded = (await db.workouts.get(sessionId))!;
+    expect(discarded.deletedAt).toEqual(expect.any(Number));
+    expect(discarded.synced).toBe(false);
+    expect((await db.estimated1RMs.toArray()).map((e) => e.workoutSessionId)).toEqual([other]);
     expect(useWorkoutStore.getState().sessionId).toBeNull();
     await waitFor(() => expect(hook.result.current.status).toBe("missing"));
   });
@@ -600,7 +601,7 @@ describe("useActiveWorkout: double tap", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 150));
     expect(hook.result.current.sets.length).toBe(1);
-    expect(await db.sets.count()).toBe(1);
+    expect((await db.workouts.get(sessionId))!.sets).toHaveLength(1);
   });
 });
 
