@@ -18,7 +18,7 @@ vi.mock("@/lib/sync", () => ({
 }));
 vi.mock("@/lib/syncKey", () => ({ getSyncKey: sync.getSyncKey }));
 
-const ok = { pushed: 0, pulled: 0, errors: [] as string[] };
+const ok = { pushed: 0, pulled: 0, errors: [] as string[], pullSucceeded: true };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -110,6 +110,53 @@ describe("SyncProvider", () => {
     });
     await waitFor(() => expect(sync.pushUnsynced).toHaveBeenCalledTimes(1));
     expect(sync.fullSync).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs a full sync on returning to the foreground when the last pull is over 5 minutes old", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_000_000);
+    render(<SyncProvider />);
+    await waitFor(() => expect(sync.fullSync).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+
+    now.mockReturnValue(1_000_000 + 5 * 60 * 1000);
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await waitFor(() => expect(sync.pushUnsynced).toHaveBeenCalledTimes(1));
+    expect(sync.fullSync).toHaveBeenCalledTimes(1);
+
+    now.mockReturnValue(1_000_000 + 5 * 60 * 1000 + 1);
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await waitFor(() => expect(sync.fullSync).toHaveBeenCalledTimes(2));
+    expect(sync.pushUnsynced).toHaveBeenCalledTimes(1);
+    now.mockRestore();
+  });
+
+  it("runs a full sync on returning to the foreground when no pull has completed yet", async () => {
+    sync.fullSync.mockResolvedValue({ ...ok, errors: ["Pull: Pull failed: 500"], pullSucceeded: false });
+    render(<SyncProvider />);
+    await waitFor(() => expect(sync.fullSync).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await waitFor(() => expect(sync.fullSync).toHaveBeenCalledTimes(2));
+    expect(sync.pushUnsynced).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when the page becomes hidden", async () => {
+    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    render(<SyncProvider />);
+    await waitFor(() => expect(sync.fullSync).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(sync.fullSync).toHaveBeenCalledTimes(1);
+    expect(sync.pushUnsynced).not.toHaveBeenCalled();
+    visibility.mockRestore();
   });
 
   it("stops listening after unmount", async () => {
