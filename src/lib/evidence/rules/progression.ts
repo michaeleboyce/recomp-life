@@ -1,10 +1,17 @@
 import type { EvidenceRule } from "@/types";
 import type { SourceId } from "../sources";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import { RESET_FACTOR } from "@/lib/progression";
+import {
+  RESET_FACTOR,
+  T3_INCREMENT_LBS,
+  T3_LAST_SET_INCREASE_REPS,
+  T3_LAST_SET_ONLY_PHASES,
+  T3_TOTAL_INCREASE_REPS,
+} from "@/lib/progression";
 
 const [t1, t2, t3] = WORKOUT_TEMPLATES.A1.exercises;
 const resetPercent = Math.round(RESET_FACTOR * 100);
+const lastSetOnlyPhases = T3_LAST_SET_ONLY_PHASES.map((mode) => (mode === "cutting" ? "a cut" : mode)).join(" or ");
 
 export const PROGRESSION_RULES = {
   "tier-structure": {
@@ -28,7 +35,7 @@ export const PROGRESSION_RULES = {
     status: "active",
     title: "Why does the weight go up, change stage or reset?",
     summary: "Complete every set and the weight goes up; miss and the scheme changes",
-    appBehavior: `Complete every set and the lift goes up next time: by your plate increment for upper-body lifts and double that for lower-body lifts. Miss reps and T1 moves from 5×3 to 6×2 to 10×1, and T2 from 3×10 to 3×8 to 3×6. After the last stage the weight resets to ${resetPercent}% and the cycle restarts. Sessions cut short by pain, a recent run or equipment limits freeze progression: they count as neither a pass nor a fail. Today notes when a T1 lift has reached its last stage through failed sessions, and the weight it would reset to.`,
+    appBehavior: `Complete every set and the lift goes up next time: by your plate increment for upper-body lifts and double that for lower-body lifts. Miss reps and T1 moves from 5×3 to 6×2 to 10×1, and T2 from 3×10 to 3×8 to 3×6. After the last stage the weight resets to ${resetPercent}% and the cycle restarts. Sessions cut short by pain, a recent run or equipment limits freeze progression: they count as neither a pass nor a fail. Today notes when a T1 lift has reached its last stage through failed sessions, and the weight it would reset to. Editing or deleting a logged session re-runs progression from the log, so the next workout reflects the change; later sessions that are already logged are not rewritten.`,
     rationale:
       "This is the GZCLP linear progression. Adding load whenever the work is completed is the standard way to progress a newer lifter, and the stage changes let you keep training heavy after a miss instead of stalling.",
     caveat:
@@ -39,19 +46,20 @@ export const PROGRESSION_RULES = {
     implementedIn: ["src/lib/progression.ts#evaluateT1Progression"],
     surfaces: [
       "src/app/progress/upcoming/page.tsx",
-      "src/components/WorkoutSummary/LiftResult.tsx",
+      "src/components/Log/WhatItDid.tsx",
       "src/components/Today/AttentionList.tsx",
     ],
   },
   "t3-progression": {
     area: "progression",
-    status: "planned",
+    status: "active",
     title: "When does T3 weight go up?",
-    summary: "T3 weight goes up when the last set reaches 25 reps",
-    appBehavior:
-      "When you finish every set of a T3 exercise, the app adds 5 lb for next time if the last AMRAP set reached 25 reps (or, outside a cut, if the three sets totalled 50 reps). Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. The app does not yet tell you on screen when this happens.",
+    summary: `T3 weight goes up when the last set reaches ${T3_LAST_SET_INCREASE_REPS} reps`,
+    appBehavior: `When you finish every set of a T3 exercise, the app adds ${T3_INCREMENT_LBS} lb for next time if the last set reached ${T3_LAST_SET_INCREASE_REPS} reps, or, except during ${lastSetOnlyPhases}, if the sets totalled ${T3_TOTAL_INCREASE_REPS} reps or more. During ${lastSetOnlyPhases} only the last set counts. Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. Each workout's page shows what happened to its T3 lift under "What it did".`,
     rationale:
       "Muscle growth improves as sets end closer to failure. Under this rule the first two sets of 15 can be about 10 reps short of failure, and people judge reps left least accurately in high-rep sets.",
+    caveat:
+      "This is the stock GZCLP rule. A double progression (every set near the top of a rep range) would fit the evidence on proximity to failure better; that change is still open.",
     strength: "program",
     sources: ["robinson2024", "halperin2022"],
     reviewedOn: "2026-11",
@@ -59,9 +67,7 @@ export const PROGRESSION_RULES = {
       "src/lib/progression.ts#evaluateT3Progression",
       "src/lib/workout/completeWorkout.ts#computeCompletion",
     ],
-    surfaces: [],
-    activationNotes:
-      "The rule now runs when a workout is finished (computeCompletion), but no screen shows it. Show the T3 result with its citation on the workout summary, then mark the rule active. Still open: keep the stock GZCLP rule or move to a double progression (every set near the top of a rep range), which fits the evidence better.",
+    surfaces: ["src/components/Log/WhatItDid.tsx"],
   },
   "accessory-progression": {
     area: "progression",

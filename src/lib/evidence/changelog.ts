@@ -12,6 +12,20 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-12",
+    ruleId: "t3-progression",
+    change:
+      "The T3 rule is now shown: each workout's page says whether its T3 lift went up (and why) or stays at the same weight, as of that workout. The rule itself is unchanged.",
+    sources: [],
+  },
+  {
+    date: "2026-11-12",
+    ruleId: "gzclp-progression",
+    change:
+      "Logged sessions can now be edited or deleted. Doing so re-runs progression from the log, so the next workout follows the corrected history; sessions logged later are kept as they were lifted.",
+    sources: [],
+  },
+  {
+    date: "2026-11-12",
     ruleId: "fatigue-detection",
     change:
       "Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or AMRAP reps), and an easier week is offered as optional.",
