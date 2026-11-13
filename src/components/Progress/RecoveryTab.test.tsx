@@ -38,7 +38,6 @@ const daysAgo = (n: number) => localDateKey(new Date(NOW.getTime() - n * DAY));
 async function seedReadiness(sleepHours: "7+" | "mixed") {
   await db.userProfile.put(makeProfile());
   await db.workouts.bulkPut(demo.workouts);
-  await db.sets.bulkPut(demo.sets);
   await db.readinessLogs.bulkPut(
     demo.readinessLogs.map((l, i) => ({
       ...l,
