@@ -93,7 +93,7 @@ export function WorkoutDetail({
     <article className="flex flex-col gap-6">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+          <h2 className="text-xl font-semibold text-foreground">{title}</h2>
           <p className="text-sm text-muted-foreground">
             {formatDateTime(workout.completedAt ?? workout.startedAt)}
           </p>

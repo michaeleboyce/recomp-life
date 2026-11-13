@@ -96,6 +96,22 @@ function AdjustForm({
     }
   }
 
+  // Until the lift's current weight has loaded there is nothing sensible to step from.
+  if (!state) {
+    return (
+      <EditSheetFrame
+        open={open}
+        onOpenChange={onOpenChange}
+        title={`Adjust ${name}`}
+        description="Saved as a dated change from today on. Past sessions are not altered."
+        onSave={() => undefined}
+        busy
+      >
+        <p className="text-sm text-muted-foreground">Loading the current weight.</p>
+      </EditSheetFrame>
+    );
+  }
+
   return (
     <EditSheetFrame
       open={open}

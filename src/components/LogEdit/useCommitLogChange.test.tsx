@@ -60,7 +60,7 @@ describe("useCommitLogChange", () => {
     expect(result).toBe("committed");
     expect(commitLogChange).toHaveBeenCalledWith(EDIT);
     expect(screen.queryByText("What this changes")).not.toBeInTheDocument();
-    expect(lastToast()).toMatchObject({ message: "Set saved", action: { label: "Undo" } });
+    expect(lastToast()).toMatchObject({ message: "Set saved. Nothing else changes", action: { label: "Undo" } });
   });
 
   it("shows the preview first when the next workout changes, and commits on confirm", async () => {
@@ -133,6 +133,6 @@ describe("savedMessage", () => {
     expect(savedMessage("Set saved", { ...UNAFFECTED, e1rmChanges: 2, unaffected: false })).toBe(
       "Set saved. 2 estimated 1RM entries updated"
     );
-    expect(savedMessage("Set saved", UNAFFECTED)).toBe("Set saved");
+    expect(savedMessage("Set saved", UNAFFECTED)).toBe("Set saved. Nothing else changes");
   });
 });

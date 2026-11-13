@@ -70,7 +70,7 @@ describe("AdjustLiftSheet", () => {
     });
     expect(change.adjustment.id).toBe(change.adjustment.clientId);
     expect(change.adjustment.at).toBeInstanceOf(Date);
-    expect(toast.mock.calls.at(-1)![0].message).toBe("Squat T1 weight saved");
+    expect(toast.mock.calls.at(-1)![0].message).toBe("Squat T1 weight saved. Nothing else changes");
   });
 
   it("switches tier to the T2 values and leaves the stage out when unchanged", async () => {

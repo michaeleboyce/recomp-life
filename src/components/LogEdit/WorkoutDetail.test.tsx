@@ -53,7 +53,7 @@ afterEach(cleanup);
 describe("WorkoutDetail", () => {
   it("shows the template, location and duration", () => {
     render(<WorkoutDetail workoutId="w1" />);
-    expect(screen.getByRole("heading", { level: 1, name: "Workout A1" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Workout A1" })).toBeInTheDocument();
     expect(screen.getByText("Home")).toBeInTheDocument();
     expect(screen.getByText("52 min")).toBeInTheDocument();
   });
@@ -91,7 +91,7 @@ describe("WorkoutDetail", () => {
       fireEvent.click(screen.getByRole("button", { name: "Save change" }));
     });
     expect(commitLogChange).toHaveBeenCalledWith({ kind: "editSet", workoutId: "w1", setId: "q2", patch: { actualReps: 4 } });
-    expect(toast.mock.calls.at(-1)![0]).toMatchObject({ message: "Set saved", action: { label: "Undo" } });
+    expect(toast.mock.calls.at(-1)![0]).toMatchObject({ message: "Set saved. Nothing else changes", action: { label: "Undo" } });
   });
 
   it("Add set opens the editor in add mode for that exercise", () => {
@@ -108,7 +108,7 @@ describe("WorkoutDetail", () => {
     });
     expect(softDelete).toHaveBeenCalledWith("workouts", "w1");
     expect(onDeleted).toHaveBeenCalled();
-    expect(toast.mock.calls.at(-1)![0]).toMatchObject({ message: "Workout A1 deleted" });
+    expect(toast.mock.calls.at(-1)![0]).toMatchObject({ message: "Workout A1 deleted. Nothing else changes" });
   });
 
   it("renders the header slot", () => {

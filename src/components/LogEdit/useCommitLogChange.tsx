@@ -44,7 +44,8 @@ export function savedMessage(message: string, preview: ChangePreview): string {
     const n = preview.e1rmChanges;
     return `${message}. ${n} estimated 1RM ${n === 1 ? "entry" : "entries"} updated`;
   }
-  return message;
+  // Said out loud so an edit to an older session is not left looking half-applied.
+  return preview.unaffected ? `${message}. Nothing else changes` : message;
 }
 
 /**

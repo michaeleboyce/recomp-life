@@ -69,7 +69,7 @@ describe("RecentlyDeleted", () => {
     });
     expect(previewLogChange).toHaveBeenCalledWith(expect.anything(), { kind: "restoreWorkout", workoutId: "w1" }, expect.any(Number));
     expect(restore).toHaveBeenCalledWith("workouts", "w1");
-    expect(toast.mock.calls.at(-1)![0]).toMatchObject({ message: "A1 workout restored", action: { label: "Undo" } });
+    expect(toast.mock.calls.at(-1)![0]).toMatchObject({ message: "A1 workout restored. Nothing else changes", action: { label: "Undo" } });
   });
 
   it("reports a failed restore", async () => {
