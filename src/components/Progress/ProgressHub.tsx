@@ -7,17 +7,19 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { BodyTab } from "./BodyTab";
 import { MusclesTab } from "./MusclesTab";
+import { RecoveryTab } from "./RecoveryTab";
 import { RunsTab } from "./RunsTab";
 import { StrengthTab } from "./StrengthTab";
 
-export type ProgressTab = "strength" | "body" | "muscles" | "runs";
+export type ProgressTab = "strength" | "body" | "muscles" | "runs" | "recovery";
 
 const TABS: { value: ProgressTab; label: string }[] = [
   { value: "strength", label: "Strength" },
   { value: "body", label: "Body" },
   { value: "muscles", label: "Muscles" },
-  // Runs plus sleep and energy; the key stays "runs" so ?tab=runs links keep working.
+  // The key stays "runs" so ?tab=runs links keep working.
   { value: "runs", label: "Cardio" },
+  { value: "recovery", label: "Recovery" },
 ];
 
 export function parseTab(value: string | null): ProgressTab {
@@ -57,12 +59,19 @@ export function ProgressHub() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SegmentedControl value={tab} onChange={select} options={TABS} />
+      {/* Five tabs only fit a phone's width with tighter padding than the control's default. */}
+      <SegmentedControl
+        value={tab}
+        onChange={select}
+        options={TABS}
+        className="[&_[data-segment]]:px-1.5 max-[360px]:[&_[data-segment]]:px-0.5 max-[360px]:[&_[data-segment]]:text-xs"
+      />
       <div role="tabpanel" aria-label={TABS.find((t) => t.value === tab)!.label}>
         {tab === "strength" && <StrengthTab />}
         {tab === "body" && <BodyTab />}
         {tab === "muscles" && <MusclesPanel />}
         {tab === "runs" && <RunsTab />}
+        {tab === "recovery" && <RecoveryTab />}
       </div>
     </div>
   );

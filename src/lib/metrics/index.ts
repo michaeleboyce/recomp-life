@@ -2,6 +2,16 @@
 // metric from plain records. Pure: no React, no database, no clock.
 import { bodyweight, bodyweight7d, lossRate } from "./body";
 import { DAY_MS, count, mean, monthStartMs, weekStartMs } from "./helpers";
+import {
+  activeEnergy,
+  bodyFat,
+  energyIntake,
+  hrv,
+  restingHr,
+  sleepHours,
+  steps,
+  vo2Max,
+} from "./health";
 import { amrapReps, avgRpe, e1rm, liftVolume, workingWeight } from "./lift";
 import { sleep, stress } from "./readiness";
 import { runDistance, runDuration, runEffort, runPace } from "./runs";
@@ -39,6 +49,14 @@ export const METRICS: Record<MetricId, MetricDef> = {
   runEffort,
   sleep,
   stress,
+  sleepHours,
+  restingHr,
+  hrv,
+  steps,
+  activeEnergy,
+  vo2Max,
+  bodyFat,
+  energyIntake,
 };
 
 export function getMetric(id: MetricId): MetricDef {

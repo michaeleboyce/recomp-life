@@ -95,34 +95,19 @@ describe("RunsTab", () => {
     expect(screen.queryByRole("region", { name: "Other activity" })).toBeNull();
   });
 
-  it("shows the sleep sentence only with at least three days of each kind", async () => {
+  it("leaves sleep and energy to the Recovery tab", async () => {
     await seedRuns();
     await seedReadiness("mixed");
-    const first = render(<RunsTab />);
-    expect(await screen.findByRole("region", { name: "Sleep and energy before workouts" })).toBeInTheDocument();
-    expect(screen.getByText("Stress / energy")).toBeInTheDocument();
-    expect(await screen.findByText(/slept under 7 hours/)).toBeInTheDocument();
-    first.unmount();
-
-    await db.readinessLogs.clear();
-    await seedReadiness("7+");
     render(<RunsTab />);
-    await screen.findByRole("region", { name: "Sleep and energy before workouts" });
-    expect(screen.queryByText(/slept under 7 hours/)).toBeNull();
+    await screen.findByText("Distance run");
+    expect(screen.queryByRole("region", { name: "Sleep and energy before workouts" })).toBeNull();
   });
 
-  it("shows sleep and energy for a lifter with check-ins but no runs or activities", async () => {
+  it("shows the empty state for a lifter with check-ins but no runs or activities", async () => {
     await db.userProfile.put(makeProfile());
     await seedReadiness("mixed");
     render(<RunsTab />);
-    expect(
-      await screen.findByRole("region", { name: "Sleep and energy before workouts" })
-    ).toBeInTheDocument();
-    expect(screen.queryByText("No runs or activities yet")).toBeNull();
-    expect(screen.queryByText("Distance run")).toBeNull();
-    // The range can still be changed without the distance chart that normally carries it.
-    expect(screen.getAllByRole("radiogroup")).toHaveLength(1);
-    expect(screen.getByRole("link", { name: /Log a run or activity/ })).toHaveAttribute("href", "/run");
+    await waitFor(() => expect(screen.getByText("No runs or activities yet")).toBeInTheDocument());
   });
 
   it("keeps a single range control when there are runs", async () => {
