@@ -8,6 +8,8 @@ import { LocationChip } from "@/components/ui/location-chip";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
+import { DaySelector } from "@/components/PreWorkout/DaySelector";
+import { EditWorkoutButton } from "@/components/PreWorkout/EditWorkoutButton";
 import { AccessoryPicker } from "@/components/PreWorkout/AccessoryPicker";
 import { HomeAlternatives } from "@/components/PreWorkout/HomeAlternatives";
 import { LocationToggle } from "@/components/PreWorkout/LocationToggle";
@@ -65,6 +67,12 @@ function ConfigureWorkoutContent() {
         />
       </div>
 
+      <DaySelector
+        value={setup.templateId}
+        dueTemplateId={setup.dueTemplateId}
+        onChange={setup.setTemplateId}
+      />
+
       {/* Needs attention: shown above the list, never tucked away. */}
       <SetupAdvisories
         runAdvisory={setup.runAdvisory}
@@ -87,7 +95,12 @@ function ConfigureWorkoutContent() {
       />
 
       {/* The workout exactly as the active screen will perform it. */}
-      <PlannedExerciseList plan={setup.plan} trainingPhase={setup.trainingPhase} />
+      <PlannedExerciseList
+        plan={setup.plan}
+        trainingPhase={setup.trainingPhase}
+        impact={setup.impact}
+      />
+      <EditWorkoutButton setup={setup} />
 
       <div className="flex items-center gap-4">
         <LocationToggle

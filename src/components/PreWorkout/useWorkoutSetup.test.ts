@@ -355,3 +355,113 @@ describe("advisories", () => {
     );
   });
 });
+
+describe("editing the workout", () => {
+  const entry = (hook: Awaited<ReturnType<typeof mount>>, exerciseId: string, tier: string) =>
+    hook.result.current.plan.find((e) => !e.isWarmUp && e.exerciseId === exerciseId && e.tier === tier);
+
+  it("changes the plan with a scheme and a weight edit and says the lift is logged only", async () => {
+    const hook = await mount("A1");
+    expect(hook.result.current.edits).toEqual([]);
+    expect(hook.result.current.impact).toEqual([]);
+    const prescribedBench = hook.result.current.prescribed.find((p) => p.exerciseId === "bench")!;
+
+    act(() => hook.result.current.setScheme("bench", "T2", 4, 8));
+    expect(entry(hook, "bench", "T2")).toMatchObject({ targetSets: 4, targetReps: 8 });
+    act(() => hook.result.current.setWeight("bench", "T2", prescribedBench.weight + 10));
+    expect(entry(hook, "bench", "T2")?.weight).toBe(prescribedBench.weight + 10);
+    expect(hook.result.current.impact).toContainEqual({
+      exerciseId: "bench",
+      tier: "T2",
+      status: "logged-only",
+      edited: true,
+    });
+    expect(hook.result.current.impact).toContainEqual({
+      exerciseId: "squat",
+      tier: "T1",
+      status: "program",
+      edited: false,
+    });
+  });
+
+  it("counts a lift whose weight edit stays at the prescription", async () => {
+    const hook = await mount("A1");
+    const bench = hook.result.current.prescribed.find((p) => p.exerciseId === "bench")!;
+    act(() => hook.result.current.setWeight("bench", "T2", bench.weight));
+    expect(hook.result.current.impact).toContainEqual(
+      expect.objectContaining({ exerciseId: "bench", status: "program", edited: true })
+    );
+  });
+
+  it("swaps a lift: the replacement is logged only and the original is not done today", async () => {
+    const hook = await mount("A1");
+    act(() => hook.result.current.swapExercise("lat_pulldown", "T3", "face_pulls"));
+    expect(entry(hook, "lat_pulldown", "T3")).toBeUndefined();
+    expect(entry(hook, "face_pulls", "T3")).toBeDefined();
+    expect(hook.result.current.impact).toContainEqual(
+      expect.objectContaining({ exerciseId: "face_pulls", tier: "T3", status: "logged-only" })
+    );
+    expect(hook.result.current.impact).toContainEqual(
+      expect.objectContaining({ exerciseId: "lat_pulldown", tier: "T3", status: "not-done" })
+    );
+  });
+
+  it("removes a lift and adds an accessory", async () => {
+    const hook = await mount("A1");
+    act(() => hook.result.current.removeExercise("bench", "T2"));
+    expect(describePlan(hook.result.current.plan.filter((e) => !e.isWarmUp))).toEqual([
+      "T1:squat",
+      "T3:lat_pulldown",
+    ]);
+    expect(hook.result.current.impact).toContainEqual(
+      expect.objectContaining({ exerciseId: "bench", status: "not-done" })
+    );
+
+    act(() =>
+      hook.result.current.addExercise("face_pulls", { sets: 3, reps: 12, weight: 30, isAMRAP: false })
+    );
+    expect(hook.result.current.plan.at(-1)).toMatchObject({
+      exerciseId: "face_pulls",
+      tier: "accessory",
+      targetSets: 3,
+      targetReps: 12,
+      weight: 30,
+    });
+    act(() => hook.result.current.removeExercise("face_pulls", "accessory"));
+    expect(hook.result.current.edits).toEqual([{ kind: "remove", exerciseId: "bench", tier: "T2" }]);
+  });
+
+  it("resets to the program", async () => {
+    const hook = await mount("A1");
+    act(() => hook.result.current.removeExercise("bench", "T2"));
+    act(() => hook.result.current.resetEdits());
+    expect(hook.result.current.edits).toEqual([]);
+    expect(entry(hook, "bench", "T2")).toBeDefined();
+  });
+
+  it("clears edits when the day changes", async () => {
+    const hook = await mount("A1");
+    act(() => hook.result.current.removeExercise("bench", "T2"));
+    act(() => hook.result.current.setTemplateId("B1"));
+    expect(hook.result.current.templateId).toBe("B1");
+    expect(hook.result.current.edits).toEqual([]);
+    expect(hook.result.current.plan.some((e) => e.exerciseId === "ohp")).toBe(true);
+  });
+});
+
+describe("choosing the day", () => {
+  it("overrides the URL and exposes the due day from the rotation", async () => {
+    const hook = await mount("B2");
+    expect(hook.result.current.templateId).toBe("B2");
+    expect(hook.result.current.dueTemplateId).toBe("A1");
+    act(() => hook.result.current.setTemplateId("A2"));
+    expect(hook.result.current.templateId).toBe("A2");
+    expect(hook.result.current.dueTemplateId).toBe("A1");
+  });
+
+  it("ignores an unknown day", async () => {
+    const hook = await mount("A1");
+    act(() => hook.result.current.setTemplateId("nonsense"));
+    expect(hook.result.current.templateId).toBe("A1");
+  });
+});
