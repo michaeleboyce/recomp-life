@@ -5,7 +5,8 @@ import { HEAT_COLORS, FIGURE_COLORS } from "@/lib/anatomy/palette";
 
 function shapeFill(container: HTMLElement, view: "Front" | "Back", slug: string): string | null {
   const svg = container.querySelector(`svg[aria-label="${view} of body"]`);
-  return svg?.querySelector(`g[data-slug="${slug}"] path`)?.getAttribute("fill") ?? null;
+  const path = svg?.querySelector<SVGPathElement>(`g[data-slug="${slug}"] path`);
+  return path?.style.fill ?? null;
 }
 
 describe("MuscleMap (R4)", () => {
@@ -33,7 +34,7 @@ describe("MuscleMap (R4)", () => {
     // Nothing on the front should be lit.
     const front = container.querySelector('svg[aria-label="Front of body"]')!;
     const lit = [...front.querySelectorAll("path")].filter(
-      (p) => p.getAttribute("fill") === HEAT_COLORS[4]
+      (p) => (p as SVGPathElement).style.fill === HEAT_COLORS[4]
     );
     expect(lit).toHaveLength(0);
   });
@@ -75,9 +76,21 @@ describe("MuscleMap (R4)", () => {
 
   it("outlines the selected muscle", () => {
     const { container } = render(<MuscleMap selected="chest" />);
-    const path = container.querySelector(
+    const path = container.querySelector<SVGPathElement>(
       'svg[aria-label="Front of body"] g[data-slug="chest"] path'
     );
-    expect(path?.getAttribute("stroke")).toBe(FIGURE_COLORS.selectedStroke);
+    expect(path?.style.stroke).toBe(FIGURE_COLORS.selectedStroke);
+  });
+
+  it("draws with theme variables, so the figure follows light and dark", () => {
+    const { container } = render(<MuscleMap heat={{ chest: 3 }} />);
+    expect(shapeFill(container, "Front", "chest")).toBe("var(--anatomy-heat-3)");
+    expect(shapeFill(container, "Front", "quadriceps")).toBe("var(--anatomy-rest)");
+    expect(shapeFill(container, "Front", "head")).toBe("var(--anatomy-inert)");
+    const paths = [...container.querySelectorAll<SVGPathElement>("svg path")];
+    for (const p of paths) {
+      expect(p.getAttribute("fill")).toBeNull();
+      expect(p.style.stroke).toMatch(/^var\(--anatomy-/);
+    }
   });
 });

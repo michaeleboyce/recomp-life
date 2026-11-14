@@ -15,7 +15,8 @@ import {
   type Prop,
   type Vec3,
 } from "@/lib/motion/sample";
-import { HEAT_COLORS } from "@/lib/anatomy/palette";
+import { SCENE_PALETTES, type ScenePalette } from "@/lib/anatomy/palette";
+import { useAppliedTheme } from "@/hooks";
 
 /**
  * WebGL part of the animated mannequin. Loaded lazily by Mannequin; do not
@@ -44,13 +45,6 @@ export interface MannequinSceneProps {
   showTrace: boolean;
   handleRef?: Ref<MannequinHandle>;
 }
-
-const BODY_COLOR = "#cfd4de";
-const JOINT_COLOR = "#aeb4c0";
-const STEEL_COLOR = "#8d929c";
-const PLATE_COLOR = "#737986";
-const PAD_COLOR = "#5d6370";
-const FLOOR_COLOR = "#23262e";
 
 const UP = new THREE.Vector3(0, 1, 0);
 const TARGET_Y = 1.05;
@@ -212,19 +206,26 @@ function Figure({
   scrubT,
   showTrace,
   tRef,
-}: Omit<MannequinSceneProps, "handleRef"> & { tRef: { current: number } }) {
+  palette,
+}: Omit<MannequinSceneProps, "handleRef"> & {
+  tRef: { current: number };
+  palette: ScenePalette["mannequin"];
+}) {
   const invalidate = useThree((s) => s.invalidate);
 
   const mats = useMemo<Materials>(
     () => ({
-      body: new THREE.MeshStandardMaterial({ color: BODY_COLOR, roughness: 0.7 }),
-      joint: new THREE.MeshStandardMaterial({ color: JOINT_COLOR, roughness: 0.7 }),
-      steel: new THREE.MeshStandardMaterial({ color: STEEL_COLOR, roughness: 0.35, metalness: 0.6 }),
-      plate: new THREE.MeshStandardMaterial({ color: PLATE_COLOR, roughness: 0.6, metalness: 0.2 }),
-      pad: new THREE.MeshStandardMaterial({ color: PAD_COLOR, roughness: 0.9 }),
+      body: new THREE.MeshStandardMaterial({ color: palette.body, roughness: 0.7 }),
+      joint: new THREE.MeshStandardMaterial({ color: palette.joint, roughness: 0.7 }),
+      steel: new THREE.MeshStandardMaterial({ color: palette.steel, roughness: 0.35, metalness: 0.6 }),
+      plate: new THREE.MeshStandardMaterial({ color: palette.plate, roughness: 0.6, metalness: 0.2 }),
+      pad: new THREE.MeshStandardMaterial({ color: palette.pad, roughness: 0.9 }),
     }),
-    []
+    [palette]
   );
+
+  // Free a theme's materials once they are replaced, and on unmount.
+  useEffect(() => () => Object.values(mats).forEach((m) => m.dispose()), [mats]);
 
   const rig = useMemo(() => {
     const root = new THREE.Group();
@@ -291,9 +292,9 @@ function Figure({
     }
     if (points.length < 2) return null;
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({ color: HEAT_COLORS[4] });
+    const material = new THREE.LineBasicMaterial({ color: palette.trace });
     return new THREE.Line(geometry, material);
-  }, [exerciseId]);
+  }, [exerciseId, palette]);
 
   const repSeconds = getMotionInfo(exerciseId)?.repSeconds ?? 3;
 
@@ -371,6 +372,9 @@ function Controls({ view, handleRef, tRef }: {
 export default function MannequinScene({ handleRef, ...props }: MannequinSceneProps) {
   const tRef = useRef(0);
   const view = getMotionInfo(props.exerciseId)?.view ?? "threeQuarter";
+  // three.js needs concrete colours, so the scene picks its palette from the theme.
+  // The canvas is transparent: the page is the background in both themes.
+  const palette = SCENE_PALETTES[useAppliedTheme()].mannequin;
 
   return (
     <Canvas
@@ -385,9 +389,9 @@ export default function MannequinScene({ handleRef, ...props }: MannequinScenePr
       <directionalLight position={[-4, 3, -3]} intensity={0.7} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]}>
         <circleGeometry args={[1.6, 48]} />
-        <meshStandardMaterial color={FLOOR_COLOR} roughness={1} />
+        <meshStandardMaterial color={palette.floor} roughness={1} />
       </mesh>
-      <Figure {...props} tRef={tRef} />
+      <Figure {...props} tRef={tRef} palette={palette} />
       <Controls view={view} handleRef={handleRef} tRef={tRef} />
     </Canvas>
   );

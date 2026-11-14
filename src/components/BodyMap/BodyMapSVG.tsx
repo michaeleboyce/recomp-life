@@ -11,7 +11,7 @@ import {
   type BodySide,
   type JointName,
 } from "@/lib/anatomy/regionMapping";
-import { mixHex, painColor } from "@/lib/anatomy/palette";
+import { BODY_MAP_COLORS, painFill } from "@/lib/anatomy/palette";
 import { formatRegion } from "@/lib/painModifications";
 import { BodyFigure, type ShapeStyle } from "@/components/Anatomy/BodyFigure";
 import { useFigure } from "@/components/Anatomy/useFigure";
@@ -23,10 +23,10 @@ interface BodyMapSVGProps {
 }
 
 /** A tappable region with nothing logged. Matches the page legend swatch. */
-const NO_ENTRY = { fill: "#374151", stroke: "#4b5563" };
-const SELECTED = { fill: "#3b82f6", stroke: "#93c5fd" };
+const NO_ENTRY = { fill: BODY_MAP_COLORS.region, stroke: BODY_MAP_COLORS.regionStroke };
+const SELECTED = { fill: BODY_MAP_COLORS.selected, stroke: BODY_MAP_COLORS.selectedStroke };
 /** Ring around joint dots so they read as tappable markers, not muscle. */
-const JOINT_RING = "#9ca3af";
+const JOINT_RING = BODY_MAP_COLORS.jointRing;
 
 /** Joint marker sizes in view-box units (the figure is ~724 wide). */
 const JOINT_HIT_RADIUS = 62;
@@ -57,8 +57,7 @@ function regionColors(
 ): { fill: string; stroke: string } {
   if (isSelected) return SELECTED;
   if (!entry) return NO_ENTRY;
-  const c = painColor(entry.sensation, entry.severity);
-  return { fill: mixHex(NO_ENTRY.fill, c.fill, c.opacity), stroke: c.stroke };
+  return painFill(entry.sensation, entry.severity);
 }
 
 interface JointMarker {
@@ -143,15 +142,14 @@ export default function BodyMapSVG({
                         onRegionTap(region);
                       }
                     }}
-                    className="cursor-pointer outline-none [&:focus-visible>circle:last-child]:stroke-ring"
+                    className="cursor-pointer outline-none [&:focus-visible>circle:last-child]:stroke-ring!"
                   >
                     <circle cx={p.x} cy={p.y} r={JOINT_HIT_RADIUS} fill="transparent" />
                     <circle
                       cx={p.x}
                       cy={p.y}
                       r={JOINT_DOT_RADIUS}
-                      fill={c.fill}
-                      stroke={isSelected ? c.stroke : JOINT_RING}
+                      style={{ fill: c.fill, stroke: isSelected ? c.stroke : JOINT_RING }}
                       strokeWidth={isSelected ? 2 : 1.5}
                       vectorEffect="non-scaling-stroke"
                       className="transition-[fill,stroke] duration-200"

@@ -4,6 +4,7 @@ import BodyMapSVG from "./BodyMapSVG";
 import { ALL_BODY_REGIONS } from "@/lib/anatomy/regionMapping";
 import { formatRegion } from "@/lib/painModifications";
 import type { BodyRegion, PainSorenessEntry } from "@/types";
+import { BODY_MAP_COLORS, painFill } from "@/lib/anatomy/palette";
 
 function entry(overrides: Partial<PainSorenessEntry>): PainSorenessEntry {
   return {
@@ -96,12 +97,23 @@ describe("BodyMapSVG (R5)", () => {
     });
     const fill = (slug: string, side: string) =>
       view(container, "Front")
-        .querySelector(`g[data-slug="${slug}"][data-side="${side}"] path`)
-        ?.getAttribute("fill");
-    expect(fill("knees", "left")).toBe("#ef4444");
-    expect(fill("knees", "right")).toBe("#f59e0b");
-    expect(fill("chest", "left")).toBe("#3b82f6");
-    expect(fill("quadriceps", "left")).toBe("#374151");
+        .querySelector<SVGPathElement>(`g[data-slug="${slug}"][data-side="${side}"] path`)
+        ?.style.fill;
+    expect(fill("knees", "left")).toBe("var(--anatomy-pain)");
+    expect(fill("knees", "right")).toBe("var(--anatomy-sore)");
+    expect(fill("chest", "left")).toBe("var(--anatomy-selected)");
+    expect(fill("quadriceps", "left")).toBe(BODY_MAP_COLORS.region);
+  });
+
+  it("blends milder entries into the empty region colour", () => {
+    const { container } = setup({
+      activeEntries: [entry({ region: "left_knee", sensation: "pain", severity: 2 })],
+    });
+    const path = view(container, "Front").querySelector<SVGPathElement>(
+      'g[data-slug="knees"][data-side="left"] path'
+    );
+    expect(path?.style.fill).toBe(painFill("pain", 2).fill);
+    expect(path?.style.fill).toContain("color-mix(in srgb, var(--anatomy-pain) 38%");
   });
 
   it("colours left and right independently", () => {
@@ -110,11 +122,11 @@ describe("BodyMapSVG (R5)", () => {
     });
     const front = view(container, "Front");
     expect(
-      front.querySelector('g[data-slug="deltoids"][data-side="left"] path')?.getAttribute("fill")
-    ).toBe("#ef4444");
+      front.querySelector<SVGPathElement>('g[data-slug="deltoids"][data-side="left"] path')?.style.fill
+    ).toBe("var(--anatomy-pain)");
     expect(
-      front.querySelector('g[data-slug="deltoids"][data-side="right"] path')?.getAttribute("fill")
-    ).toBe("#374151");
+      front.querySelector<SVGPathElement>('g[data-slug="deltoids"][data-side="right"] path')?.style.fill
+    ).toBe(BODY_MAP_COLORS.region);
   });
 
   it("uses the most recent entry for a region", () => {
@@ -126,18 +138,19 @@ describe("BodyMapSVG (R5)", () => {
     });
     expect(
       view(container, "Front")
-        .querySelector('g[data-slug="knees"][data-side="left"] path')
-        ?.getAttribute("fill")
-    ).toBe("#f59e0b");
+        .querySelector<SVGPathElement>('g[data-slug="knees"][data-side="left"] path')
+        ?.style.fill
+    ).toBe("var(--anatomy-sore)");
   });
 
   it("colours a joint dot when its region has an entry", () => {
     const { container } = setup({
       activeEntries: [entry({ region: "left_elbow", sensation: "pain", severity: 5 })],
     });
-    const dot = view(container, "Front").querySelector(
+    const dot = view(container, "Front").querySelector<SVGCircleElement>(
       'g[data-joint="elbow"][data-side="left"] circle:last-child'
     );
-    expect(dot?.getAttribute("fill")).toBe("#ef4444");
+    expect(dot?.style.fill).toBe("var(--anatomy-pain)");
+    expect(dot?.style.stroke).toBe(BODY_MAP_COLORS.jointRing);
   });
 });

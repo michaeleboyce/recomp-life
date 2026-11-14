@@ -45,7 +45,7 @@ export function SessionMuscleFigure({ exercises, className }: SessionMuscleFigur
         </p>
         <p className="text-xs text-muted-foreground">
           {started
-            ? "Brighter means more sets completed."
+            ? "Stronger colour means more sets completed."
             : "Fills in as you log sets."}
         </p>
       </div>
