@@ -6,8 +6,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import { db } from "@/db/local";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
-import { foldDaily, localDateKey } from "@/lib/health/daily";
-import type { MetricSource } from "@/lib/metrics/types";
+import { dailyRowId, foldDaily, localDateKey } from "@/lib/health/daily";
 
 vi.mock("recharts", async (importOriginal) => {
   const actual = await importOriginal<typeof import("recharts")>();
@@ -18,14 +17,6 @@ vi.mock("recharts", async (importOriginal) => {
         ? cloneElement(children as ReactElement<{ width: number; height: number }>, { width: 350, height: 170 })
         : null,
   };
-});
-
-// Apple Health rows are not stored yet, so tests that need them hand the tab a
-// source directly; every other test reads the real hooks and database.
-let healthSource: MetricSource | null = null;
-vi.mock("@/hooks", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/hooks")>();
-  return { ...actual, useMetricSource: () => healthSource ?? actual.useMetricSource() };
 });
 
 import { RecoveryTab } from "./RecoveryTab";
@@ -46,20 +37,8 @@ async function seedReadiness(sleepHours: "7+" | "mixed") {
   );
 }
 
-const emptySource: MetricSource = {
-  workouts: [],
-  e1rms: [],
-  bodyweight: [],
-  runs: [],
-  readiness: [],
-  pain: [],
-  liftStates: [],
-  settings: null,
-};
-
 beforeEach(async () => {
   cleanup();
-  healthSource = null;
   await clearDb();
 });
 
@@ -91,25 +70,33 @@ describe("RecoveryTab", () => {
   });
 
   it("shows the Apple Health trends that have data, with the latest value", async () => {
-    healthSource = {
-      ...emptySource,
-      healthDaily: foldDaily(
-        [
-          { quantity: "restingHr", day: daysAgo(2), value: 54 },
-          { quantity: "restingHr", day: daysAgo(1), value: 51 },
-        ],
-        [
-          {
-            day: daysAgo(1),
-            asleepMinutes: 432,
-            deepMinutes: null,
-            remMinutes: null,
-            start: new Date(NOW.getTime() - DAY - 8 * 3_600_000),
-            end: new Date(NOW.getTime() - DAY),
-          },
-        ]
-      ),
-    };
+    await db.userProfile.put(makeProfile());
+    const days = foldDaily(
+      [
+        { quantity: "restingHr", day: daysAgo(2), value: 54 },
+        { quantity: "restingHr", day: daysAgo(1), value: 51 },
+      ],
+      [
+        {
+          day: daysAgo(1),
+          asleepMinutes: 432,
+          deepMinutes: null,
+          remMinutes: null,
+          start: new Date(NOW.getTime() - DAY - 8 * 3_600_000),
+          end: new Date(NOW.getTime() - DAY),
+        },
+      ]
+    );
+    await db.healthDaily.bulkPut(
+      days.map((d) => ({
+        ...d,
+        id: dailyRowId(d.day),
+        clientId: dailyRowId(d.day),
+        updatedAt: 1,
+        deletedAt: null,
+        synced: false,
+      }))
+    );
     render(<RecoveryTab />);
     const health = await screen.findByRole("region", { name: "From Apple Health" });
     expect(within(health).getByText("Sleep")).toBeInTheDocument();
