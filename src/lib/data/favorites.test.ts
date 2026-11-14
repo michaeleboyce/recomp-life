@@ -6,6 +6,7 @@ import { getSyncTable } from "@/lib/sync/registry";
 import {
   deleteFavorite,
   renameFavorite,
+  restoreFavorite,
   saveFavoriteFromSession,
   saveFavoriteFromSetup,
 } from "./favorites";
@@ -87,6 +88,23 @@ describe("favourite workouts", () => {
 
     // A session's favourite that was deleted can be saved again.
     await deleteFavorite("missing-id");
+  });
+
+  it("restores a deleted favourite with a newer stamp, and ignores an unknown id", async () => {
+    const id = await saveFavoriteFromSetup("Back again", SETUP);
+    await deleteFavorite(id);
+    const deleted = (await db.favoriteWorkouts.get(id))!;
+    await db.favoriteWorkouts.update(id, { synced: true });
+
+    await restoreFavorite(id);
+    const row = (await db.favoriteWorkouts.get(id))!;
+    expect(row.deletedAt).toBeNull();
+    expect(row.name).toBe("Back again");
+    expect(row.synced).toBe(false);
+    expect(row.updatedAt).toBeGreaterThan(deleted.updatedAt ?? 0);
+    expect(listFavorites(await db.favoriteWorkouts.toArray())).toHaveLength(1);
+
+    await restoreFavorite("missing-id");
   });
 
   it("starting from a favourite stores the edits and the favourite, and marks it used", async () => {

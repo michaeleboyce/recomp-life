@@ -4,11 +4,13 @@ import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 import { LocationChip } from "@/components/ui/location-chip";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
 import { DaySelector } from "@/components/PreWorkout/DaySelector";
+import { FavouriteActions } from "@/components/PreWorkout/FavouriteActions";
 import { EditWorkoutButton } from "@/components/PreWorkout/EditWorkoutButton";
 import { AccessoryPicker } from "@/components/PreWorkout/AccessoryPicker";
 import { HomeAlternatives } from "@/components/PreWorkout/HomeAlternatives";
@@ -21,6 +23,7 @@ import { SetupExpander } from "@/components/PreWorkout/SetupExpander";
 import { TechniqueChecklist } from "@/components/PreWorkout/TechniqueChecklist";
 import { TimeEstimate } from "@/components/PreWorkout/TimeEstimate";
 import { WarmUpToggle } from "@/components/PreWorkout/WarmUpToggle";
+import { useFavoriteFromUrl } from "@/components/PreWorkout/useFavoriteFromUrl";
 import { useWorkoutSetup } from "@/components/PreWorkout/useWorkoutSetup";
 // The same estimate as Today's "about N min", so the two screens agree.
 import { estimateWorkoutMinutes } from "@/components/Today/format";
@@ -44,9 +47,15 @@ export default function ConfigureWorkoutPage() {
 
 function ConfigureWorkoutContent() {
   const router = useRouter();
-  const setup = useWorkoutSetup(useSearchParams().get("templateId"));
+  const params = useSearchParams();
+  const fromUrl = useFavoriteFromUrl(params.get("favorite"), params.get("mode"));
+  const setup = useWorkoutSetup(
+    params.get("templateId"),
+    fromUrl.status === "applied" ? fromUrl.resolved : null
+  );
 
-  if (setup.isLoading || !setup.templateId || !setup.template) {
+  // Wait for the favourite too, so the rotation's day is never flashed first.
+  if (fromUrl.status === "loading" || setup.isLoading || !setup.templateId || !setup.template) {
     return <LoadingScreen />;
   }
 
@@ -66,6 +75,17 @@ function ConfigureWorkoutContent() {
           action={<LocationChip location={setup.location} />}
         />
       </div>
+
+      {fromUrl.status === "applied" && (
+        <p className="text-sm text-muted-foreground">
+          From favourite: {fromUrl.name} · {fromUrl.mode === "as-saved" ? "Exactly as saved" : "Today's weights"}
+        </p>
+      )}
+      {fromUrl.status === "missing" && <Callout variant="warning">That favourite no longer exists.</Callout>}
+      <FavouriteActions
+        setup={setup}
+        appliedName={fromUrl.status === "applied" ? fromUrl.name : undefined}
+      />
 
       <DaySelector
         value={setup.templateId}

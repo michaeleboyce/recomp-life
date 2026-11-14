@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb, makeE1RM, makeSet, makeWorkout } from "@/lib/data/testUtils";
 import type { BodyweightLog, RunLog } from "@/types";
@@ -107,6 +107,22 @@ describe("/log", () => {
     expect(within(latest).getByText("PR")).toBeInTheDocument();
     const older = screen.getByRole("link", { name: /Squat 185 lbs/ });
     expect(within(older).queryByText("PR")).toBeNull();
+  });
+
+  it("stars a finished workout from its row without opening it, outside the link", async () => {
+    await seed();
+    render(<LogPage />);
+    const row = (await screen.findByRole("link", { name: /Squat 195 lbs/ })) as HTMLElement;
+    const stars = await screen.findAllByRole("button", { name: "Save as favourite" });
+    // Two finished workouts, two stars; none of them is inside an anchor.
+    expect(stars).toHaveLength(2);
+    expect(stars.every((s) => s.closest("a") === null)).toBe(true);
+    expect(row.querySelector("button")).toBeNull();
+
+    fireEvent.click(stars[0]);
+    await waitFor(async () => expect(await db.favoriteWorkouts.count()).toBe(1));
+    expect((await db.favoriteWorkouts.toArray())[0].sourceSessionId).toBe("w-new");
+    expect(await screen.findByRole("button", { name: "Remove from favourites" })).toBeInTheDocument();
   });
 
   it("filters by kind and shows an empty state when nothing matches", async () => {

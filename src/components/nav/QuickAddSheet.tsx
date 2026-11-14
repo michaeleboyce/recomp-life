@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Activity, ChevronRight, Dumbbell, HeartPulse, Scale } from "lucide-react";
+import { Activity, ChevronRight, Dumbbell, HeartPulse, Scale, Star } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { useBodyweightLog, useNextWorkout, useRuns } from "@/hooks";
+import { useBodyweightLog, useFavoriteWorkouts, useNextWorkout, useRuns } from "@/hooks";
 import { getExercise } from "@/lib/exercises";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,7 @@ export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
   const next = useNextWorkout();
   const bodyweight = useBodyweightLog();
   const runs = useRuns();
+  const favorites = useFavoriteWorkouts();
 
   const t1 = next?.template.exercises.find((e) => e.tier === "T1");
   const nextSubtitle = next
@@ -32,6 +33,13 @@ export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
 
   const lastWeight = bodyweight && bodyweight.length > 0 ? bodyweight[bodyweight.length - 1].weight : null;
   const lastRunMiles = runs?.[0]?.distanceMiles ?? null;
+
+  const favoritesSubtitle =
+    favorites === undefined
+      ? undefined
+      : favorites.length === 0
+        ? "None saved yet"
+        : `${favorites.length} saved`;
 
   const close = () => onOpenChange(false);
 
@@ -60,6 +68,12 @@ export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
             {nextSubtitle && <span className="truncate text-[13px] font-medium">{nextSubtitle}</span>}
           </span>
           <ChevronRight className="size-5" aria-hidden="true" />
+        </Link>
+
+        <Link href="/favorites" onClick={close} className={cn(rowClass, "border-b border-border")}>
+          <Star className="size-5 text-muted-foreground" aria-hidden="true" />
+          <span className="flex-1 text-base font-semibold">Start a favourite</span>
+          <SecondaryMono>{favoritesSubtitle}</SecondaryMono>
         </Link>
 
         <Link href="/weigh-in" onClick={close} className={cn(rowClass, "border-b border-border")}>

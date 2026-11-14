@@ -63,3 +63,8 @@ export async function renameFavorite(id: string, name: string): Promise<void> {
 export async function deleteFavorite(id: string): Promise<void> {
   await modifyFavorite(id, () => ({ deletedAt: Date.now() }));
 }
+
+/** Undoes a delete: the favourite is back in the list, with its rename and use history. */
+export async function restoreFavorite(id: string): Promise<void> {
+  await modifyFavorite(id, () => ({ deletedAt: null }));
+}

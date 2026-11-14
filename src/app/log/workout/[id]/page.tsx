@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
 import { WorkoutDetail } from "@/components/LogEdit";
+import { FavoriteStar } from "@/components/Favorites/FavoriteStar";
 import { SessionPRCallout } from "@/components/Log/SessionPRCallout";
 import { WhatItDid } from "@/components/Log/WhatItDid";
 
@@ -15,7 +16,11 @@ export default function LogWorkoutPage() {
   return (
     <PageShell className="space-y-6">
       <PageHeader title="Workout" backHref="/log" />
-      <WorkoutDetail workoutId={id} onDeleted={() => router.push("/log")} />
+      <WorkoutDetail
+        workoutId={id}
+        headerExtra={<FavoriteStar sessionId={id} />}
+        onDeleted={() => router.push("/log")}
+      />
       <SessionPRCallout workoutId={id} />
       <WhatItDid workoutId={id} />
     </PageShell>

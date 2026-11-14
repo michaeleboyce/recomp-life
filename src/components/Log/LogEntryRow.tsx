@@ -2,6 +2,7 @@
 
 import { Activity, Dumbbell, Footprints, House, Scale, Trophy } from "lucide-react";
 import { ListRow } from "@/components/ui/list-row";
+import { FavoriteStar } from "@/components/Favorites/FavoriteStar";
 import { formatDuration, formatLbs } from "@/components/LogEdit/format";
 import { workoutTitle } from "@/components/LogEdit";
 import { describeActivity } from "@/lib/activities";
@@ -54,21 +55,26 @@ export function LogEntryRow({
     case "workout": {
       const w = entry.row;
       const LocationIcon = w.location === "home" ? House : Dumbbell;
+      // The star is a sibling of the link, not inside it: a button in an anchor is invalid.
       return (
-        <ListRow
-          href={`/log/workout/${encodeURIComponent(w.id)}`}
-          leading={<LocationIcon className={iconClass} aria-hidden="true" />}
-          title={workoutTitle(w)}
-          subtitle={`${w.location === "home" ? "Home" : "Gym"} · ${workoutResultLine(w)}`}
-          trailing={
-            hasPR ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-success">
-                <Trophy className="size-3.5" aria-hidden="true" />
-                PR
-              </span>
-            ) : undefined
-          }
-        />
+        <div className="flex items-center border-b border-border last:border-b-0">
+          <ListRow
+            href={`/log/workout/${encodeURIComponent(w.id)}`}
+            className="min-w-0 flex-1 border-b-0"
+            leading={<LocationIcon className={iconClass} aria-hidden="true" />}
+            title={workoutTitle(w)}
+            subtitle={`${w.location === "home" ? "Home" : "Gym"} · ${workoutResultLine(w)}`}
+            trailing={
+              hasPR ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-success">
+                  <Trophy className="size-3.5" aria-hidden="true" />
+                  PR
+                </span>
+              ) : undefined
+            }
+          />
+          <FavoriteStar sessionId={w.id} />
+        </div>
       );
     }
     case "run": {

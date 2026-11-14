@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { WorkoutDetail } from "@/components/LogEdit";
+import { FavoriteStar } from "@/components/Favorites/FavoriteStar";
 import { SessionPRCallout } from "@/components/Log/SessionPRCallout";
 import { WhatItDid } from "@/components/Log/WhatItDid";
 import MusclesWorkedCard from "@/components/WorkoutSummary/MusclesWorkedCard";
@@ -33,7 +34,7 @@ function SummaryContent() {
 
   return (
     <div className="space-y-6">
-      <WorkoutDetail workoutId={sessionId} />
+      <WorkoutDetail workoutId={sessionId} headerExtra={<FavoriteStar sessionId={sessionId} />} />
       {workout && (
         <>
           <SessionPRCallout workoutId={sessionId} />
