@@ -51,6 +51,28 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("WorkoutDetail", () => {
+  it("shows the watch workout's heart rate and energy when one was linked", () => {
+    useWorkout.mockReturnValue({
+      ...W,
+      health: {
+        externalId: "ST",
+        sourceName: "Apple Watch",
+        avgHeartRate: 118,
+        maxHeartRate: 156,
+        activeEnergyKcal: 320,
+        durationSeconds: 3600,
+      },
+    });
+    render(<WorkoutDetail workoutId="w1" />);
+    expect(screen.getByText("avg 118 bpm · max 156 bpm · 320 kcal")).toBeInTheDocument();
+    expect(screen.getByText(", from Apple Watch")).toBeInTheDocument();
+  });
+
+  it("shows no heart-rate line without a linked watch workout", () => {
+    render(<WorkoutDetail workoutId="w1" />);
+    expect(screen.queryByText(/bpm/)).toBeNull();
+  });
+
   it("shows the template, location and duration", () => {
     render(<WorkoutDetail workoutId="w1" />);
     expect(screen.getByRole("heading", { level: 2, name: "Workout A1" })).toBeInTheDocument();
