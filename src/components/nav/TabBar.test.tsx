@@ -25,7 +25,7 @@ describe("activeTab", () => {
     ["/muscles", "progress"],
     ["/progress/upcoming", "more"],
     ["/log", "log"],
-    ["/log/workout/abc", "log"],
+    ["/log/workout", "log"],
     ["/more", "more"],
     ["/settings", "more"],
     ["/exercises/squat", "more"],

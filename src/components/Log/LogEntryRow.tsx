@@ -7,6 +7,7 @@ import { workoutTitle } from "@/components/LogEdit";
 import { describeActivity } from "@/lib/activities";
 import type { RunCategory, RunType } from "@/types";
 import { workoutResultLine, type LogEntry } from "./logEntries";
+import { workoutDetailHref } from "@/lib/routes";
 
 const TIME_OF_DAY = { morning: "Morning", evening: "Evening", other: "Other time" } as const;
 // Same words as the effort picker the entry was logged with.
@@ -56,7 +57,7 @@ export function LogEntryRow({
       const LocationIcon = w.location === "home" ? House : Dumbbell;
       return (
         <ListRow
-          href={`/log/workout/${encodeURIComponent(w.id)}`}
+          href={workoutDetailHref(w.id)}
           leading={<LocationIcon className={iconClass} aria-hidden="true" />}
           title={workoutTitle(w)}
           subtitle={`${w.location === "home" ? "Home" : "Gym"} · ${workoutResultLine(w)}`}

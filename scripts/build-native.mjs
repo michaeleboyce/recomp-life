@@ -53,6 +53,8 @@ const result = spawnSync(next, ["build"], {
   env: { ...process.env, BUILD_TARGET: "native" },
 });
 if (result.status !== 0) {
+  // Remove the copy: left behind, its test files would be picked up by the test runner.
+  rmSync(work, { recursive: true, force: true });
   console.error("Native build failed; ./out was left as it was.");
   process.exit(result.status ?? 1);
 }
