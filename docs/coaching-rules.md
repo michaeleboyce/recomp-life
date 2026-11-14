@@ -344,13 +344,13 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `readiness`
 - **Status:** Active
 - **Evidence:** Moderate evidence
-- **Implemented in:** `src/components/PreWorkout/ReadinessCheck.tsx` (`ReadinessCheck`)
+- **Implemented in:** `src/components/PreWorkout/ReadinessCheck.tsx` (`ReadinessCheck`), `src/lib/health/sleep.ts` (`sleepBucket`)
 - **Shown in:** `src/components/PreWorkout/ReadinessCheck.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Poor sleep and high stress both reduce performance and recovery
 
-**What the app does.** Before a workout you can log last night's sleep and your stress or energy. If you report under 5 hours of sleep and low energy together, the app suggests skipping accessories. Nothing else changes.
+**What the app does.** Before a workout you can log last night's sleep and your stress or energy. If Apple Health is connected in the iPhone app and has last night's sleep, the matching answer is already selected (under 5 hours, 5 to 7, or 7 or more) and you can change it. If the answer is under 5 hours of sleep together with low energy, the app suggests skipping accessories. Nothing else changes.
 
 **Why.** A night of lost or restricted sleep lowers physical performance by about 7.6% on average, and lifters under high life stress recover strength more slowly after a hard session.
 
@@ -753,6 +753,7 @@ Changes made to the app because of research, newest first.
 
 - **13 November 2026** — `run-interference` (Why does a recent run matter?): Runs can now be imported from Apple Health. An imported run has no effort rating and is ignored by this rule until you rate it. Sources: .
 - **13 November 2026** — `activity-fatigue` (Why does a hard yoga class or ride matter?): Sessions can now be imported from Apple Health. An imported session has no effort rating and is ignored by this rule until you rate it. Sources: .
+- **13 November 2026** — `readiness` (Why does the app ask about sleep and stress?): The sleep answer can now be filled in from Apple Health's record of last night; you can still change it. The suggestion itself is unchanged. Sources: .
 - **12 November 2026** — `t3-progression` (When does T3 weight go up?): The T3 rule is now shown: each workout's page says whether its T3 lift went up (and why) or stays at the same weight, as of that workout. The rule itself is unchanged. Sources: .
 - **12 November 2026** — `gzclp-progression` (Why does the weight go up, change stage or reset?): Logged sessions can now be edited or deleted. Doing so re-runs progression from the log, so the next workout follows the corrected history; sessions logged later are kept as they were lifted. Sources: .
 - **12 November 2026** — `fatigue-detection` (How does the app spot built-up fatigue?): Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or AMRAP reps), and an easier week is offered as optional. Sources: .

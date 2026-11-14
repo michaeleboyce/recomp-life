@@ -363,3 +363,67 @@ describe("advisories", () => {
     );
   });
 });
+
+describe("sleep from Apple Health", () => {
+  async function seedLastNight(sleepMinutes: number) {
+    const { dailyRowId, foldDaily, localDateKey } = await import("@/lib/health/daily");
+    const day = localDateKey(new Date());
+    const [values] = foldDaily([], [
+      { day, asleepMinutes: sleepMinutes, deepMinutes: null, remMinutes: null, start: new Date(), end: new Date() },
+    ]);
+    await db.healthDaily.put({
+      ...values,
+      id: dailyRowId(day),
+      clientId: dailyRowId(day),
+      updatedAt: 1,
+      deletedAt: null,
+      synced: false,
+    });
+  }
+
+  it("has no answer selected when there is no sleep data", async () => {
+    const hook = await mount("A1");
+    expect(hook.result.current.sleepHours).toBeNull();
+    expect(hook.result.current.healthSleepMinutes).toBeNull();
+  });
+
+  it("selects the matching answer and saves where it came from", async () => {
+    await seedLastNight(432);
+    const hook = await mount("A1");
+    await waitFor(() => expect(hook.result.current.sleepHours).toBe("7+"));
+    expect(hook.result.current.healthSleepMinutes).toBe(432);
+
+    act(() => hook.result.current.setStressLevel("normal"));
+    let sessionId: string | null = null;
+    await act(async () => {
+      sessionId = await hook.result.current.start();
+    });
+    const log = await db.readinessLogs.where("sessionId").equals(sessionId!).first();
+    expect(log).toMatchObject({
+      sleepHours: "7+",
+      stressLevel: "normal",
+      sleepMinutes: 432,
+      sleepSource: "apple_health",
+    });
+  });
+
+  it("lets the user's own answer win, and then records no source", async () => {
+    await seedLastNight(432);
+    const hook = await mount("A1");
+    await waitFor(() => expect(hook.result.current.sleepHours).toBe("7+"));
+    act(() => {
+      hook.result.current.setSleepHours("<5");
+      hook.result.current.setStressLevel("low");
+    });
+    expect(hook.result.current.sleepHours).toBe("<5");
+
+    let sessionId: string | null = null;
+    await act(async () => {
+      sessionId = await hook.result.current.start();
+    });
+    const log = await db.readinessLogs.where("sessionId").equals(sessionId!).first();
+    expect(log?.sleepHours).toBe("<5");
+    expect(log?.sleepMinutes).toBeUndefined();
+    expect(log?.sleepSource).toBeUndefined();
+  });
+});

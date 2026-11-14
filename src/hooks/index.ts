@@ -15,6 +15,7 @@ export {
   useRuns,
   useActivities,
   useHealthDaily,
+  useLastNightSleep,
   useLiftAdjustments,
 } from "./useRecords";
 export { useNextWorkout } from "./useNextWorkout";

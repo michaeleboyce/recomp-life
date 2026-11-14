@@ -18,8 +18,9 @@ export const SLEEP_DAY_CUTOFF_HOUR = 18;
 const ASLEEP_STAGES: readonly SleepStage[] = ["asleep", "core", "deep", "rem"];
 
 /**
- * The readiness answer for a night's sleep. This feeds the "readiness" coaching
- * rule; the evidence tag is added together with that rule's update (data wave).
+ * The readiness answer for a night's sleep.
+ *
+ * @evidence readiness
  */
 export function sleepBucket(asleepMinutes: number): SleepHours {
   const hours = asleepMinutes / 60;

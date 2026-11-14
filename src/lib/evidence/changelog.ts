@@ -149,4 +149,11 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
       "Sessions can now be imported from Apple Health. An imported session has no effort rating and is ignored by this rule until you rate it.",
     sources: [],
   },
+  {
+    date: "2026-11-13",
+    ruleId: "readiness",
+    change:
+      "The sleep answer can now be filled in from Apple Health's record of last night; you can still change it. The suggestion itself is unchanged.",
+    sources: [],
+  },
 ];
