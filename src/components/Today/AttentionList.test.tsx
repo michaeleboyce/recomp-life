@@ -131,7 +131,7 @@ describe("AttentionList", () => {
       />
     );
     fireEvent.click(screen.getAllByRole("button", { name: "Resolved" })[0]);
-    await waitFor(async () => expect(await db.painEntries.get("p1")).toBeUndefined());
+    await waitFor(async () => expect((await db.painEntries.get("p1"))?.deletedAt).toEqual(expect.any(Number)));
     fireEvent.click(screen.getAllByRole("button", { name: "Still there" })[1]);
     await waitFor(async () =>
       expect((await db.painEntries.get("p2"))!.date.getTime()).toBeGreaterThan(date.getTime())
@@ -147,13 +147,13 @@ describe("AttentionList with live insights", () => {
     const resume = await screen.findByRole("link", { name: "Resume" });
     expect(resume).toHaveAttribute("href", "/workout/active?sessionId=w1");
     fireEvent.click(screen.getByRole("button", { name: "Discard" }));
-    await waitFor(async () => expect(await db.workouts.get("w1")).toBeUndefined());
+    await waitFor(async () => expect((await db.workouts.get("w1"))?.deletedAt).toEqual(expect.any(Number)));
   });
 
   it("clears unfinished workouts older than a day", async () => {
     await db.workouts.add(makeWorkout({ id: "old", startedAt: new Date(Date.now() - 48 * HOUR) }));
     render(<Harness />);
-    await waitFor(async () => expect(await db.workouts.get("old")).toBeUndefined());
+    await waitFor(async () => expect((await db.workouts.get("old"))?.deletedAt).toEqual(expect.any(Number)));
   });
 
   it("is not rendered for an empty database", async () => {

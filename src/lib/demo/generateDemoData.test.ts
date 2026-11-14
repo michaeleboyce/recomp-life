@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { generateDemoData } from "./generateDemoData";
-import { INITIAL_LIFT_STATES } from "@/db/seed";
-import { calculateE1RM, isE1RMEligibleSet, toRecentE1RMSeries } from "@/lib/e1rm";
+import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES } from "@/db/seed";
+import { toRecentE1RMSeries } from "@/lib/e1rm";
+import { rebuildDerived } from "@/lib/rebuild";
+import { runSession, startSim, type SessionOptions } from "@/lib/rebuild/testHelpers";
 import { WORKOUT_ROTATION } from "@/lib/workoutTemplates";
 
+const settings = DEFAULT_USER_PROFILE.settings;
 const NOW = new Date(2026, 10, 11, 12, 0, 0);
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -30,7 +33,8 @@ describe("generateDemoData", () => {
     expect(data.bodyweight.length).toBeLessThan(56);
     expect(data.readinessLogs.length).toBeGreaterThanOrEqual(18);
     expect(data.readinessLogs.length).toBeLessThan(24);
-    expect(data.estimated1RMs).toHaveLength(24);
+    // One row per T1 AMRAP set of the lift itself: the five home sessions give none.
+    expect(data.estimated1RMs).toHaveLength(19);
     expect(data.liftStates).toHaveLength(Object.keys(INITIAL_LIFT_STATES).length);
   });
 
@@ -49,7 +53,8 @@ describe("generateDemoData", () => {
     data.workouts.forEach((w, i) => expect(w.templateId).toBe(WORKOUT_ROTATION[i % 4]));
     const ids = [
       ...data.workouts,
-      ...data.sets,
+      ...data.workouts.flatMap((w) => w.sets),
+      ...data.liftAdjustments,
       ...data.estimated1RMs,
       ...data.bodyweight,
       ...data.runs,
@@ -60,10 +65,13 @@ describe("generateDemoData", () => {
     expect(data.workouts[6].id).toBe("demo-workout-07");
   });
 
-  it("every workout's sets match the rows in sets", () => {
-    expect(data.workouts.flatMap((w) => w.sets)).toEqual(data.sets);
+  it("every workout carries its sets, prescription and completion context", () => {
     for (const w of data.workouts) {
       expect(w.completedAt).not.toBeNull();
+      expect(w.prescribed?.length).toBeGreaterThan(0);
+      expect(w.completionContext?.phaseMode).toBe(settings.trainingPhase.mode);
+      expect(typeof w.updatedAt).toBe("number");
+      expect(w.deletedAt).toBeNull();
       expect(w.sets.some((s) => s.tier === "warmup")).toBe(true);
       const t1 = w.sets.filter((s) => s.tier === "T1");
       expect(t1).toHaveLength(5);
@@ -91,33 +99,57 @@ describe("generateDemoData", () => {
     const failed = data.workouts.filter((w) => w.sets.some((s) => s.status === "failed"));
     expect(failed.length).toBeGreaterThanOrEqual(3);
     expect(failed.length).toBeLessThanOrEqual(5);
-    expect(
-      data.sets.filter((s) => s.status === "failed").every((s) => s.tier === "T2")
-    ).toBe(true);
+    const allSets = data.workouts.flatMap((w) => w.sets);
+    expect(allSets.filter((s) => s.status === "failed").every((s) => s.tier === "T2")).toBe(true);
     // A stage change shows up in the history.
-    expect(data.sets.some((s) => s.tier === "T2" && s.targetReps === 8)).toBe(true);
+    expect(allSets.some((s) => s.tier === "T2" && s.targetReps === 8)).toBe(true);
   });
 
-  it("stores an e1RM row for exactly the eligible sets", () => {
+  it("has no stored derived rows of its own: they are a rebuild of the log", () => {
+    const rebuilt = rebuildDerived({
+      workouts: data.workouts,
+      adjustments: data.liftAdjustments,
+      settings,
+    });
+    expect(data.liftStates).toEqual(rebuilt.liftStates);
+    expect(data.estimated1RMs).toEqual(rebuilt.e1rms);
+    expect(data.liftAdjustments.every((a) => a.source === "start")).toBe(true);
+    expect(data.estimated1RMs.length).toBeGreaterThan(0);
+    // A home (substituted) set gives no e1RM row; the rest are T1 AMRAP sets.
+    expect(
+      data.estimated1RMs.every((e) => {
+        const set = data.workouts.flatMap((w) => w.sets).find((s) => s.id === e.setId)!;
+        return set.tier === "T1" && set.isAMRAP && !set.isSubstituted;
+      })
+    ).toBe(true);
+  });
+
+  it("matches folding the same sessions one by one through the live completion path", () => {
+    const sim = startSim(settings);
     for (const w of data.workouts) {
-      const eligible = w.sets.filter((s) => isE1RMEligibleSet(s.tier, s.isAMRAP, s.actualReps));
-      const rows = data.estimated1RMs.filter((e) => e.workoutSessionId === w.id);
-      expect(rows).toHaveLength(eligible.length);
-      for (const set of eligible) {
-        const row = rows.find((r) => r.exerciseId === set.exerciseId)!;
-        // A substituted (home) set is recorded at its barbell equivalent.
-        const weight = set.originalWeight ?? set.weight;
-        expect(row.estimated1RM).toBe(calculateE1RM(weight, set.actualReps, set.rpe));
-        expect(row.workingWeight).toBe(weight);
-        expect(row.repsCompleted).toBe(set.actualReps);
-      }
+      const t1AmrapReps = (id: string) =>
+        w.sets.find((s) => s.exerciseId === id && s.tier === "T1" && s.isAMRAP)?.actualReps;
+      const t1 = w.sets.filter((s) => s.tier === "T1");
+      const options: SessionOptions = {
+        templateId: w.templateId,
+        location: w.location,
+        startedAt: w.startedAt,
+        t1: { lastReps: t1AmrapReps(t1[0].exerciseId), rpe: null },
+        t2: { reps: w.sets.filter((s) => s.tier === "T2").map((s) => s.actualReps) },
+        t3: { lastReps: w.sets.filter((s) => s.tier === "T3").at(-1)!.actualReps },
+      };
+      runSession(sim, options);
     }
+    const weights = (states: typeof data.liftStates) =>
+      states.map((l) => [l.exerciseId, l.t1Weight, l.t1Stage, l.t2Weight, l.t2Stage, l.t3Weight]);
+    const sorted = [...sim.states].sort((a, b) => (a.exerciseId < b.exerciseId ? -1 : 1));
+    expect(weights(data.liftStates)).toEqual(weights(sorted));
   });
 
   it("uses Date objects, none in the future", () => {
     const dates: unknown[] = [
       ...data.workouts.flatMap((w) => [w.startedAt, w.completedAt]),
-      ...data.sets.map((s) => s.completedAt),
+      ...data.workouts.flatMap((w) => w.sets.map((s) => s.completedAt)),
       ...data.estimated1RMs.map((e) => e.date),
       ...data.bodyweight.map((b) => b.date),
       ...data.runs.map((r) => r.date),
@@ -175,7 +207,7 @@ describe("generateDemoData", () => {
       expect(state.recentE1RMs).toEqual(
         toRecentE1RMSeries(data.estimated1RMs.filter((e) => e.exerciseId === id))
       );
-      expect(state.recentE1RMs).toHaveLength(5);
+      expect(state.recentE1RMs.length).toBeGreaterThanOrEqual(4);
       expect(state.recentAMRAPReps).toEqual(
         t1Workouts
           .map((w) => w.sets.find((s) => s.exerciseId === id && s.isAMRAP)!.actualReps)

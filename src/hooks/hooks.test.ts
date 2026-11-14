@@ -7,6 +7,7 @@ import {
   useBodyweightLog,
   useCompletedWorkouts,
   useE1RMs,
+  useLiftAdjustments,
   useLiftStates,
   usePainEntries,
   useProfile,
@@ -339,5 +340,22 @@ describe("soft-deleted rows", () => {
     await db.workouts.put(makeWorkout({ id: "w", completedAt: new Date(), deletedAt: null }));
     const workouts = await loaded(() => useCompletedWorkouts());
     expect(workouts.result.current!.map((w) => w.id)).toEqual(["w"]);
+  });
+});
+
+describe("useLiftAdjustments", () => {
+  it("returns one lift's adjustments newest first, without deleted ones", async () => {
+    const adjustment = (id: string, exerciseId: string, at: string, deletedAt: number | null = null) => ({
+      id, clientId: id, exerciseId, at: new Date(at), source: "manual" as const,
+      set: { t1Weight: 200 }, updatedAt: 1, deletedAt, synced: false,
+    });
+    await db.liftAdjustments.bulkPut([
+      adjustment("a1", "squat", "2026-11-01"),
+      adjustment("a2", "squat", "2026-11-05"),
+      adjustment("a3", "squat", "2026-11-06", 123),
+      adjustment("a4", "bench", "2026-11-07"),
+    ]);
+    const r = await loaded(() => useLiftAdjustments("squat"));
+    expect(r.result.current!.map((a) => a.id)).toEqual(["a2", "a1"]);
   });
 });

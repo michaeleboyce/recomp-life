@@ -14,7 +14,8 @@ import {
 } from "@/hooks";
 import { ACTIVITY_NOTE_WINDOW_HOURS, evaluateActivityImpact } from "@/lib/activities";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
-import { saveLiftState, startWorkout } from "@/lib/data/workouts";
+import { recordAdjustment } from "@/lib/data/adjustments";
+import { startWorkout } from "@/lib/data/workouts";
 import { ACCESSORY_IDS, EXERCISES } from "@/lib/exercises";
 import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePreferences";
 import { lastLoggedWeights, type ResolvedFavorite } from "@/lib/favorites";
@@ -354,9 +355,10 @@ export function useWorkoutSetup(
     async (exerciseId: string, tier: "T1" | "T2", newWeight: number) => {
       const ls = liftStates.find((l) => l.exerciseId === exerciseId);
       if (!ls) return;
-      await saveLiftState({
-        ...ls,
-        ...(tier === "T1" ? { t1Weight: newWeight } : { t2Weight: newWeight }),
+      await recordAdjustment({
+        exerciseId,
+        source: "decay",
+        set: tier === "T1" ? { t1Weight: newWeight } : { t2Weight: newWeight },
       });
       // Settled: without this the lowered weight would be offered a further cut.
       dismissDecay(exerciseId, tier);
@@ -406,8 +408,10 @@ export function useWorkoutSetup(
     });
 
     try {
-      // TODO(favorites): pass planEdits: edits and prescribed once StartWorkoutInput accepts them.
       return await startWorkout({
+        prescribed,
+        planEdits: edits,
+        favoriteId,
         templateId,
         location,
         includeWarmUps: warmUps,
@@ -432,6 +436,9 @@ export function useWorkoutSetup(
     selectedAccessories,
     sleepHours,
     stressLevel,
+    prescribed,
+    edits,
+    favoriteId,
   ]);
 
   return {

@@ -6,13 +6,19 @@ import { getSyncKey } from "@/lib/syncKey";
 
 type SyncStatus = "idle" | "syncing" | "success" | "error" | "locked";
 
-/** Push then pull, reporting each stage as it is reached. */
-async function runFullSync(report: (status: SyncStatus) => void): Promise<void> {
+/** On returning to the foreground, pull again when the last pull is older than this. */
+const PULL_STALE_MS = 5 * 60 * 1000;
+
+/**
+ * Push then pull, reporting each stage as it is reached. Resolves to true when the
+ * pull completed.
+ */
+async function runFullSync(report: (status: SyncStatus) => void): Promise<boolean> {
   // No passphrase on this device yet — stay local-only without nagging.
-  if (!getSyncKey()) return;
+  if (!getSyncKey()) return false;
 
   const online = await checkConnectivity();
-  if (!online) return;
+  if (!online) return false;
 
   report("syncing");
   const result = await fullSync();
@@ -21,6 +27,7 @@ async function runFullSync(report: (status: SyncStatus) => void): Promise<void> 
 
   // Reset to idle after showing status briefly
   setTimeout(() => report("idle"), 3000);
+  return result.pullSucceeded;
 }
 
 async function runPush(): Promise<void> {
@@ -40,15 +47,25 @@ export function SyncProvider() {
   const [status, setStatus] = useState<SyncStatus>("idle");
 
   useEffect(() => {
+    // When the last pull completed (epoch ms); null until one has.
+    let lastPullAt: number | null = null;
+
     // The sync runs outside React; its progress comes back through this callback.
-    const doFullSync = () => runFullSync(setStatus);
+    const doFullSync = async () => {
+      if (await runFullSync(setStatus)) lastPullAt = Date.now();
+    };
 
     // Sync on mount (non-blocking)
     doFullSync();
 
-    // Push on returning to foreground
+    // On returning to the foreground: push, or a full sync when the last pull is stale,
+    // so an edit made on another device shows up without a reload. Nothing runs while
+    // the page is hidden.
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState !== "visible") return;
+      if (lastPullAt === null || Date.now() - lastPullAt > PULL_STALE_MS) {
+        doFullSync();
+      } else {
         runPush();
       }
     };

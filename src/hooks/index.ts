@@ -8,10 +8,27 @@ export {
   useCompletedWorkouts,
   useUnfinishedWorkout,
 } from "./useWorkouts";
-export { useBodyweightLog, usePainEntries, useE1RMs, useRuns, useActivities } from "./useRecords";
+export {
+  useBodyweightLog,
+  usePainEntries,
+  useE1RMs,
+  useRuns,
+  useActivities,
+  useFavoriteWorkouts,
+  useLiftAdjustments,
+} from "./useRecords";
 export { useNextWorkout } from "./useNextWorkout";
 export { useReadinessLogs, useMetricSource, useMetric } from "./useMetric";
 export { useInsights } from "./useInsights";
+export { useWeeklyReview, type WeeklyReviewResult } from "./useWeeklyReview";
 export { useProjection, type ProjectionResult } from "./useProjection";
 export { useTrainingLocation } from "./useTrainingLocation";
 export { useUpcomingWorkouts } from "./useUpcomingWorkouts";
+export {
+  useLogChangePreview,
+  useRecentlyDeleted,
+  useDerivedCheck,
+  countDifferences,
+  type DerivedCheck,
+  type DerivedCheckStatus,
+} from "./useLogEdit";

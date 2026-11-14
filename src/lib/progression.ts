@@ -44,6 +44,18 @@ export const T2_AUTOREG_RPE_THRESHOLD: Record<TrainingPhase["mode"], number> = {
 /** Suggested T2 load drop: `max` after an RPE 10 set, `standard` otherwise. */
 export const T2_AUTOREG_DROP = { standard: 0.05, max: 0.1 } as const;
 
+/** Reps on the last T3 set at or above which the T3 weight goes up (every phase). */
+export const T3_LAST_SET_INCREASE_REPS = 25;
+
+/** Total T3 reps across its sets at or above which the weight goes up, outside a cut. */
+export const T3_TOTAL_INCREASE_REPS = 50;
+
+/** Pounds added to a T3 lift when it goes up. */
+export const T3_INCREMENT_LBS = 5;
+
+/** Training phases in which only the last-set trigger raises a T3 weight. */
+export const T3_LAST_SET_ONLY_PHASES: readonly TrainingPhase["mode"][] = ["cutting"];
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -327,7 +339,7 @@ export interface T3ProgressionResult {
  * - Maintaining/Bulking: either trigger works
  *
  * Applied by `computeCompletion` when a T3 exercise was fully completed. The
- * result is not explained on any screen yet.
+ * workout detail page explains the result ("What it did").
  *
  * @evidence t3-progression
  */
@@ -337,12 +349,12 @@ export function evaluateT3Progression(
   currentWeight: number,
   phase: TrainingPhase
 ): T3ProgressionResult {
-  const amrapTrigger = amrapLastSetReps >= 25;
-  const totalTrigger = totalReps >= 50;
+  const amrapTrigger = amrapLastSetReps >= T3_LAST_SET_INCREASE_REPS;
+  const totalTrigger = totalReps >= T3_TOTAL_INCREASE_REPS;
 
   let shouldIncrease: boolean;
 
-  if (phase.mode === "cutting") {
+  if (T3_LAST_SET_ONLY_PHASES.includes(phase.mode)) {
     // Cutting: only AMRAP trigger
     shouldIncrease = amrapTrigger;
   } else {
@@ -352,7 +364,7 @@ export function evaluateT3Progression(
 
   if (shouldIncrease) {
     return {
-      newWeight: currentWeight + 5,
+      newWeight: currentWeight + T3_INCREMENT_LBS,
       increased: true,
     };
   }

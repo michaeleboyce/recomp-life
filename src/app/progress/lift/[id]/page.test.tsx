@@ -5,6 +5,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { db } from "@/db/local";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
+import { initializeDatabase } from "@/db/init";
+import { Toaster, dismissToast } from "@/components/ui/toast";
 
 let id = "squat";
 vi.mock("next/navigation", () => ({
@@ -41,6 +43,7 @@ async function seedDemo() {
 beforeEach(async () => {
   id = "squat";
   await clearDb();
+  dismissToast();
 });
 afterEach(cleanup);
 
@@ -132,6 +135,51 @@ describe("Lift detail page", () => {
     expect(screen.getAllByTestId("session-row")).toHaveLength(10);
     fireEvent.click(screen.getByRole("button", { name: /Show all/ }));
     expect(screen.getAllByTestId("session-row").length).toBeGreaterThanOrEqual(total);
+  });
+
+  it("adjusts the next weight from the screen and lists the change under Weight changes", async () => {
+    await initializeDatabase();
+    render(
+      <>
+        <LiftPage />
+        <Toaster />
+      </>
+    );
+    expect(await screen.findByTestId("pr-line")).toHaveTextContent("Next squat is 190.");
+
+    // Starting weights are the only entry so far, and carry no date.
+    const changes = await screen.findByRole("region", { name: "Weight changes" });
+    expect(within(changes).getAllByTestId("weight-change")).toHaveLength(1);
+    expect(changes).toHaveTextContent("Starting weights");
+    expect(changes).toHaveTextContent("Before the first workout");
+    expect(changes).toHaveTextContent("T1 190 lbs 5x3 · T2 135 lbs 3x10");
+
+    const next = screen.getByRole("region", { name: "Next session" });
+    fireEvent.click(within(next).getByRole("button", { name: "Adjust weight" }));
+    expect(await screen.findByRole("heading", { name: "Adjust Squat" })).toBeInTheDocument();
+    // The sheet reads the lift's current weight; wait for it before stepping.
+    await waitFor(() => expect(screen.getByRole("spinbutton", { name: /^Weight/ })).toHaveValue(190));
+    fireEvent.click(screen.getByRole("button", { name: "Increase weight by 5" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save change" }));
+
+    // The next workout changes, so the preview comes first.
+    const preview = await screen.findByRole("dialog", { name: "What this changes" });
+    expect(preview).toHaveTextContent("Squat T1 next time: 190 lbs 5x3 changes to 195 lbs 5x3");
+    expect((await db.liftStates.get("squat"))!.t1Weight).toBe(190);
+    fireEvent.click(within(preview).getByRole("button", { name: "Save change" }));
+
+    await waitFor(() => expect(screen.getByTestId("pr-line")).toHaveTextContent("Next squat is 195."));
+    await waitFor(() =>
+      expect(within(screen.getByRole("region", { name: "Weight changes" })).getAllByTestId("weight-change")).toHaveLength(2)
+    );
+    const rows = within(screen.getByRole("region", { name: "Weight changes" })).getAllByTestId("weight-change");
+    // Newest first.
+    expect(rows[0]).toHaveTextContent("Manual change");
+    expect(rows[0]).toHaveTextContent("T1 195 lbs");
+    expect(rows[1]).toHaveTextContent("Starting weights");
+    expect((await db.liftStates.get("squat"))!.t1Weight).toBe(195);
+    const stored = (await db.liftAdjustments.toArray()).filter((a) => a.exerciseId === "squat");
+    expect(stored.map((a) => a.source).sort()).toEqual(["manual", "start"]);
   });
 
   it("shows an empty state with no data", async () => {

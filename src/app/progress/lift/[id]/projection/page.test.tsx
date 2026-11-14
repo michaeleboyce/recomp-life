@@ -45,7 +45,6 @@ const demo = generateDemoData(NOW);
 
 async function seedDemo() {
   await db.workouts.bulkPut(demo.workouts);
-  await db.sets.bulkPut(demo.sets);
   await db.estimated1RMs.bulkPut(demo.estimated1RMs);
   await db.liftStates.bulkPut(demo.liftStates);
   await db.userProfile.put(makeProfile());

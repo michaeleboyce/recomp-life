@@ -3,32 +3,32 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useE1RMs, useLiftStates, useSettings, useWorkout } from "@/hooks";
-import {
-  appendSet,
-  discardWorkout,
-  finishWorkout,
-  getRecentE1RMSeries,
-} from "@/lib/data/workouts";
+import { liftName } from "@/components/LogEdit/format";
+import { toast } from "@/components/ui/toast";
+import { commitLogChange } from "@/lib/data/logEdits";
+import { appendSet, discardWorkout, finishWorkout } from "@/lib/data/workouts";
 import { calculateE1RM, isE1RMEligibleSet } from "@/lib/e1rm";
+import type { LogChange } from "@/lib/rebuild";
 import { getRestSeconds } from "@/lib/restTimes";
 import {
-  buildWorkoutPlan,
-  computeCompletion,
   createSetLog,
   isNextSetAMRAP,
   nextStep,
-  overridesFromSession,
   rehydratePlan,
   type WorkoutPlan,
 } from "@/lib/workout";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { useWorkoutStore } from "@/stores/workoutStore";
-import type { Estimated1RM, TrainingPhase } from "@/types";
+import type { TrainingPhase } from "@/types";
 import {
   clampReps,
+  correctedSet,
   dropSuggestionFor,
   entryAfter,
+  entryIndexForSet,
   isDropAccepted,
+  isLatestSetOfEntry,
+  planForSession,
   resolveActiveIndex,
 } from "./activeWorkoutLogic";
 import { getPrOpportunity } from "./prOpportunity";
@@ -87,25 +87,19 @@ export function useActiveWorkout(
   const [awaitingSetId, setAwaitingSetId] = useState<string | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [correctionError, setCorrectionError] = useState<string | null>(null);
 
   const template = session ? WORKOUT_TEMPLATES[session.templateId] : undefined;
   const trainingPhase = settings?.trainingPhase ?? DEFAULT_PHASE;
 
-  // The plan as prescribed when the workout was opened. Frozen per session so that
+  // The plan as prescribed when the workout started (its stored prescription; the
+  // current lift states only for a session that has none). Frozen per session so that
   // saving the workout (which moves the lift states) cannot reshuffle it.
   const [frozen, setFrozen] = useState<{ sessionId: string; plan: WorkoutPlan } | null>(null);
   if (session && settings && liftStates && template && frozen?.sessionId !== session.id) {
     setFrozen({
       sessionId: session.id,
-      plan: buildWorkoutPlan({
-        template,
-        liftStates,
-        location: session.location,
-        equipment: settings.equipment,
-        includeWarmUps: session.includeWarmUps,
-        selectedAccessories: session.selectedAccessories ?? [],
-        overrides: overridesFromSession(session),
-      }),
+      plan: planForSession({ session, template, liftStates, equipment: settings.equipment }),
     });
   }
   const basePlan = session && frozen?.sessionId === session.id ? frozen.plan : null;
@@ -145,7 +139,7 @@ export function useActiveWorkout(
     !!entry &&
     !!baseEntry &&
     entry.tier === "T2" &&
-    (pendingDrop?.entryIndex === activeIndex || isDropAccepted(entry, baseEntry.weight, sets));
+    (pendingDrop?.entryIndex === activeIndex || isDropAccepted(entry, sets));
 
   const dropSuggestion = useMemo(() => {
     if (!entry || dropAccepted || dismissedDropEntryIndex === activeIndex) return null;
@@ -198,27 +192,15 @@ export function useActiveWorkout(
 
     // e1RM only for heavy T1 AMRAP sets of the lift itself: a home substitute's
     // dumbbell weight says nothing about the barbell lift.
-    let e1rmRow: Estimated1RM | undefined;
-    if (!entry.substituteExerciseId && isE1RMEligibleSet(entry.tier, set.isAMRAP, selectedReps)) {
-      const e1rm = calculateE1RM(entry.weight, selectedReps, selectedRPE);
-      if (e1rm) {
-        e1rmRow = {
-          id: uuidv4(),
-          clientId: uuidv4(),
-          date: now,
-          exerciseId: entry.exerciseId,
-          workingWeight: entry.weight,
-          repsCompleted: selectedReps,
-          estimated1RM: e1rm,
-          workoutSessionId: session.id,
-          synced: false,
-        };
-      }
-    }
+    // The row itself is written by appendSet; this is only the number to flash.
+    const e1rm =
+      !entry.substituteExerciseId && isE1RMEligibleSet(entry.tier, set.isAMRAP, selectedReps)
+        ? calculateE1RM(entry.weight, selectedReps, selectedRPE)
+        : null;
 
     setAwaitingSetId(set.id);
     try {
-      await appendSet(session.id, set, e1rmRow);
+      await appendSet(session.id, set);
     } catch (err) {
       console.error("Failed to save set:", err);
       setAwaitingSetId(null);
@@ -228,8 +210,8 @@ export function useActiveWorkout(
       return;
     }
 
-    if (e1rmRow) {
-      setE1rmFlash(e1rmRow.estimated1RM);
+    if (e1rm) {
+      setE1rmFlash(e1rm);
       setTimeout(() => setE1rmFlash(null), E1RM_FLASH_MS);
     }
 
@@ -278,6 +260,124 @@ export function useActiveWorkout(
     useWorkoutStore.getState().dismissDrop(activeIndex);
   }, [activeIndex]);
 
+  // What an Undo tapped later has to check against: the sets and plan as they are then.
+  const latest = useRef<{ sets: typeof sets; plan: WorkoutPlan }>({ sets, plan });
+  useEffect(() => {
+    latest.current = { sets, plan };
+  }, [sets, plan]);
+
+  /**
+   * Corrects a set of this workout before it is finished: an edit to its reps, weight
+   * or RPE, or deleting the last set logged for an exercise. Nothing is previewed:
+   * an unfinished workout has no progression yet, and finishing reads the corrected
+   * sets. Resolves false (with `correctionError` set) when nothing was changed.
+   */
+  const correctSet = useCallback(
+    async (change: LogChange): Promise<boolean> => {
+      if (!session || (change.kind !== "editSet" && change.kind !== "deleteSet")) return false;
+      const workoutId = session.id;
+      const original = sets.find((set) => set.id === change.setId);
+      if (!original) {
+        setCorrectionError("That set is no longer on this workout.");
+        return false;
+      }
+      setCorrectionError(null);
+      // Named as the edit sheet names it ("Squat, set 2").
+      const label = `${liftName(original.substituteExerciseId || original.exerciseId)} set ${original.setNumber}`;
+
+      if (change.kind === "editSet") {
+        const corrected = correctedSet(session, change);
+        if (!corrected) return false;
+        try {
+          await appendSet(workoutId, corrected);
+        } catch (err) {
+          console.error("Failed to correct set:", err);
+          setCorrectionError("That change could not be saved. Try again.");
+          return false;
+        }
+        setE1rmFlash(null);
+        toast({
+          message: `${label} corrected`,
+          action: {
+            label: "Undo",
+            onAction: async () => {
+              if (!latest.current.sets.some((set) => set.id === original.id)) {
+                toast({ message: "That set has since been deleted, so there is nothing to undo." });
+                return;
+              }
+              try {
+                await appendSet(workoutId, original);
+                toast({ message: "Correction undone" });
+              } catch (err) {
+                console.error("Failed to undo correction:", err);
+                toast({ message: "The correction could not be undone. Try again." });
+              }
+            },
+          },
+        });
+        return true;
+      }
+
+      // Sets are a sequence: taking one out of the middle would leave the AMRAP set
+      // and the set numbers describing a workout that did not happen.
+      if (!isLatestSetOfEntry(sets, original)) {
+        setCorrectionError(
+          "Only the last set logged for an exercise can be deleted during a workout. To fix this set, change its reps or weight."
+        );
+        return false;
+      }
+      const wasMostRecent = sets.at(-1)?.id === original.id;
+      try {
+        await commitLogChange(change);
+      } catch (err) {
+        console.error("Failed to delete set:", err);
+        setCorrectionError("That set could not be deleted. Try again.");
+        return false;
+      }
+      // The log button waits for the set it just wrote to show up; that set is gone.
+      setAwaitingSetId((id) => (id === original.id ? null : id));
+      // Start the set over from its target, not from what was picked for the deleted one.
+      setRepsChoice(null);
+      setRpeChoice(null);
+      const store = useWorkoutStore.getState();
+      // The rest that followed the deleted set is over: it is the next set to do.
+      if (wasMostRecent) store.skipRest();
+      const index = entryIndexForSet(plan, original);
+      if (index !== -1) {
+        if (store.pendingDrop?.entryIndex === index) store.clearPendingDrop();
+        store.viewEntry(index);
+      }
+      setE1rmFlash(null);
+      toast({
+        message: `${label} deleted`,
+        action: {
+          label: "Undo",
+          onAction: async () => {
+            const now = latest.current;
+            const target = now.plan[entryIndexForSet(now.plan, original)];
+            if (target && target.completedSets >= target.targetSets) {
+              toast({
+                message: "That set has been logged again, so the deleted one was not restored.",
+              });
+              return;
+            }
+            try {
+              await commitLogChange({ kind: "addSet", workoutId, set: original });
+              toast({ message: "Set restored" });
+            } catch (err) {
+              console.error("Failed to restore set:", err);
+              toast({ message: "The set could not be restored. Try again." });
+            }
+          },
+        },
+      });
+      return true;
+    },
+    [session, sets, plan]
+  );
+
+  const clearCorrectionError = useCallback(() => setCorrectionError(null), []);
+
   const jumpTo = useCallback((index: number) => {
     const store = useWorkoutStore.getState();
     store.skipRest();
@@ -295,25 +395,13 @@ export function useActiveWorkout(
     if (!session || !settings || !liftStates || !template || isCompleting) return false;
     setIsCompleting(true);
     try {
-      const recentE1RMsByExercise: Record<string, number[]> = {};
-      for (const templateEx of template.exercises) {
-        if (templateEx.tier !== "T1" && templateEx.tier !== "T2") continue;
-        recentE1RMsByExercise[templateEx.exerciseId] = await getRecentE1RMSeries(
-          templateEx.exerciseId
-        );
-      }
-      const result = computeCompletion({
-        session,
-        plan,
-        sets,
-        liftStates,
-        settings,
-        recentE1RMsByExercise,
-        currentExerciseIndex: endedAtIndex ?? naturalIndex,
-        workoutStartTime: workoutStartTime ?? new Date(session.startedAt),
-        now: new Date(),
+      const completedAt = new Date();
+      const startedAt = workoutStartTime ?? new Date(session.startedAt);
+      await finishWorkout(session.id, {
+        completedAt,
+        totalDurationSeconds: Math.floor((completedAt.getTime() - startedAt.getTime()) / 1000),
+        endedEarly: (endedAtIndex ?? naturalIndex) < plan.length,
       });
-      await finishWorkout(session.id, result);
       return true;
     } catch (err) {
       console.error("Failed to complete workout:", err);
@@ -328,13 +416,12 @@ export function useActiveWorkout(
     template,
     isCompleting,
     plan,
-    sets,
     endedAtIndex,
     naturalIndex,
     workoutStartTime,
   ]);
 
-  /** Deletes the workout with its sets and e1RM rows. */
+  /** Discards the workout: a soft delete, so its sets and e1RM rows drop out everywhere. */
   const discard = useCallback(async () => {
     if (!sessionId) return;
     await discardWorkout(sessionId);
@@ -380,6 +467,9 @@ export function useActiveWorkout(
     keepWeight,
     prOpportunity,
     recentAMRAPReps,
+    correctSet,
+    correctionError,
+    clearCorrectionError,
     jumpTo,
     endEarly,
     finish,

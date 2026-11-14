@@ -42,6 +42,10 @@ describe("More page", () => {
     expect(link(you, /Settings/)).toHaveAttribute("href", "/settings");
     expect(link(you, /Cloud sync/)).toHaveAttribute("href", "/settings#sync");
     expect(link(you, /Cloud sync/)).toHaveTextContent("Off");
+    expect(link(you, /Recently deleted/)).toHaveAttribute("href", "/more/deleted");
+    expect(link(you, /Recently deleted/)).toHaveTextContent(
+      "Restore entries deleted in the last 30 days"
+    );
 
     expect(screen.getByText(`Version ${packageJson.version}`)).toBeInTheDocument();
   });

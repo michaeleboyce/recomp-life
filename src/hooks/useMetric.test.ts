@@ -15,7 +15,6 @@ const demo = generateDemoData(NOW);
 
 async function seedDemo() {
   await db.workouts.bulkPut(demo.workouts);
-  await db.sets.bulkPut(demo.sets);
   await db.estimated1RMs.bulkPut(demo.estimated1RMs);
   await db.bodyweight.bulkPut(demo.bodyweight);
   await db.runs.bulkPut(demo.runs);
@@ -158,7 +157,7 @@ describe("useMetric", () => {
     const s = await loaded(() => useMetricSource());
     const expected = computeMetric("e1rm", s.result.current!, { exerciseId: "squat" });
     expect(r.result.current!.full).toEqual(expected);
-    expect(r.result.current!.full.points).toHaveLength(6);
+    expect(r.result.current!.full.points).toHaveLength(5); // the home session gives no e1RM row
     expect(r.result.current!.series.points).toEqual(
       inRange(expected, "3m", Date.now()).points
     );

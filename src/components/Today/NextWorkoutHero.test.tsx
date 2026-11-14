@@ -30,7 +30,6 @@ const demo = generateDemoData(new Date());
 
 async function seedDemo() {
   await db.workouts.bulkPut(demo.workouts);
-  await db.sets.bulkPut(demo.sets);
   await db.estimated1RMs.bulkPut(demo.estimated1RMs);
   await db.bodyweight.bulkPut(demo.bodyweight);
   await db.liftStates.bulkPut(demo.liftStates);
