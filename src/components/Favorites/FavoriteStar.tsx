@@ -4,6 +4,7 @@ import { toast } from "@/components/ui/toast";
 import { useFavoriteWorkouts, useWorkout } from "@/hooks";
 import { deleteFavorite, saveFavoriteFromSession } from "@/lib/data/favorites";
 import { favoriteForSession } from "@/lib/favorites";
+import type { FavoriteWorkout, WorkoutSession } from "@/types";
 import { FavoriteStarButton } from "./FavoriteStarButton";
 
 const DAY_MONTH = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
@@ -20,7 +21,22 @@ function defaultName(templateId: string, when: Date | string): string {
 export function FavoriteStar({ sessionId, className }: { sessionId: string; className?: string }) {
   const session = useWorkout(sessionId);
   const favorites = useFavoriteWorkouts();
+  return <FavoriteStarFor session={session} favorites={favorites} className={className} />;
+}
 
+/**
+ * The same star for a session and a favourites list the caller already has, so a long
+ * list of workouts shares one favourites lookup instead of running one per row.
+ */
+export function FavoriteStarFor({
+  session,
+  favorites,
+  className,
+}: {
+  session: WorkoutSession | null | undefined;
+  favorites: FavoriteWorkout[] | undefined;
+  className?: string;
+}) {
   if (!session || session.completedAt == null || favorites === undefined) return null;
   const saved = favoriteForSession(favorites, session.id);
 

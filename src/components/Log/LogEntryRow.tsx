@@ -2,11 +2,11 @@
 
 import { Activity, Dumbbell, Footprints, House, Scale, Trophy } from "lucide-react";
 import { ListRow } from "@/components/ui/list-row";
-import { FavoriteStar } from "@/components/Favorites/FavoriteStar";
+import { FavoriteStarFor } from "@/components/Favorites/FavoriteStar";
 import { formatDuration, formatLbs } from "@/components/LogEdit/format";
 import { workoutTitle } from "@/components/LogEdit";
 import { describeActivity } from "@/lib/activities";
-import type { RunCategory, RunType } from "@/types";
+import type { FavoriteWorkout, RunCategory, RunType } from "@/types";
 import { workoutResultLine, type LogEntry } from "./logEntries";
 
 const TIME_OF_DAY = { morning: "Morning", evening: "Evening", other: "Other time" } as const;
@@ -44,9 +44,12 @@ function cardioSubtitle(distanceMiles: number | null, durationMinutes: number, e
 export function LogEntryRow({
   entry,
   hasPR = false,
+  favorites,
   onOpen,
 }: {
   entry: LogEntry;
+  /** The live favourites, looked up once by the list. No star is shown without them. */
+  favorites?: FavoriteWorkout[];
   /** The workout set a new best estimated 1RM against earlier sessions. */
   hasPR?: boolean;
   onOpen: (entry: LogEntry) => void;
@@ -73,7 +76,7 @@ export function LogEntryRow({
               ) : undefined
             }
           />
-          <FavoriteStar sessionId={w.id} />
+          <FavoriteStarFor session={w} favorites={favorites} />
         </div>
       );
     }

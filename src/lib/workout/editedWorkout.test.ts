@@ -192,14 +192,67 @@ describe("computeCompletion credits each lift on its own", () => {
     expect(changed).toContain("bench");
   });
 
-  it("a heavier lift is a normal pass from the prescribed weight", () => {
+  it("a lift done heavier in every set passes and builds the next weight from the heavier one", () => {
     const plain = run({});
+    const increment = state(plain.result.liftStateUpdates, "squat").t1Weight - 190;
+    expect(increment).toBeGreaterThan(0);
+
     const heavier = run({
-      edits: [{ kind: "weight", exerciseId: "squat", tier: "T1", weight: 200 }],
+      edits: [
+        { kind: "weight", exerciseId: "squat", tier: "T1", weight: 200 },
+        { kind: "weight", exerciseId: "bench", tier: "T2", weight: 110 },
+      ],
     });
-    expect(state(heavier.result.liftStateUpdates, "squat").t1Weight).toBe(
+    const squat = state(heavier.result.liftStateUpdates, "squat");
+    expect(squat.t1Weight).toBe(200 + increment);
+    expect(squat.t1Stage).toBe("5x3");
+    expect(squat.t1FailCount).toBe(0);
+    expect(state(heavier.result.liftStateUpdates, "bench").t2Weight).toBeGreaterThan(110);
+  });
+
+  it("missing reps at a heavier weight is not a failure of the prescribed one: nothing changes", () => {
+    const { changed } = run({
+      edits: [{ kind: "weight", exerciseId: "squat", tier: "T1", weight: 200 }],
+      alterSets: (sets) =>
+        sets.map((s) =>
+          s.exerciseId === "squat" && s.setNumber === 5
+            ? { ...s, actualReps: 1, status: "failed" as const }
+            : s
+        ),
+    });
+    expect(changed).not.toContain("squat");
+    expect(changed).toContain("bench");
+  });
+
+  it("one heavier set among prescribed ones is an ordinary pass from the prescribed weight", () => {
+    const plain = run({});
+    const mixed = run({
+      alterSets: (sets) =>
+        sets.map((s) => (s.exerciseId === "squat" && s.setNumber === 5 ? { ...s, weight: 205 } : s)),
+    });
+    expect(state(mixed.result.liftStateUpdates, "squat").t1Weight).toBe(
       state(plain.result.liftStateUpdates, "squat").t1Weight
     );
+  });
+
+  it("a T3 lift done heavier keeps the heavier weight, and goes up from it on 25 reps", () => {
+    const base = seedLiftStates().map((ls) =>
+      ls.exerciseId === "lat_pulldown" ? { ...ls, t3Weight: 90 } : ls
+    );
+    const edits: PlanEdit[] = [{ kind: "weight", exerciseId: "lat_pulldown", tier: "T3", weight: 100 }];
+
+    const kept = run({ liftStates: base, edits });
+    expect(state(kept.result.liftStateUpdates, "lat_pulldown").t3Weight).toBe(100);
+
+    const raised = run({
+      liftStates: base,
+      edits,
+      alterSets: (sets) =>
+        sets.map((s) =>
+          s.exerciseId === "lat_pulldown" && s.setNumber === 3 ? { ...s, actualReps: 25 } : s
+        ),
+    });
+    expect(state(raised.result.liftStateUpdates, "lat_pulldown").t3Weight).toBeGreaterThan(100);
   });
 
   it("added exercises never change lift state", () => {

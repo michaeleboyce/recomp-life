@@ -34,7 +34,8 @@ type CreditEntry = Pick<
  * "program" when the entry is a T1/T2/T3 lift the session's `prescribed` list names,
  * at the prescribed sets and reps and at no less than the prescribed weight. Anything
  * else (a swapped-in or added exercise, a different scheme, a lighter weight, an
- * accessory, a warm-up) is "logged-only" and must not change lift state at all.
+ * accessory, a warm-up) is "logged-only" and must not change lift state at all. A
+ * heavier weight is still "program": see `heavierWeightPerformed`.
  *
  * Weight is judged from the logged sets when given, otherwise from the entry (the
  * pre-workout preview). The weight compared is `originalWeight ?? weight`, so a home
@@ -73,6 +74,32 @@ export function classifyEntry(
       : (entry.originalWeight ?? entry.weight) >= required;
 
   return reached ? "program" : "logged-only";
+}
+
+/**
+ * The weight a program lift was actually done at, when every deciding set of it was
+ * heavier than prescribed: the lightest of those sets (as `originalWeight ?? weight`,
+ * so a home substitute reads as the program lift). Null when the lift was done at the
+ * prescribed weight, when any deciding set was at or below it, or when nothing that
+ * decides was logged. A lift that qualifies builds its next weight from this one.
+ *
+ * @evidence off-program-credit
+ */
+export function heavierWeightPerformed(
+  entry: Pick<CreditEntry, "exerciseId" | "tier">,
+  prescribed: PrescribedEntry[] | undefined,
+  sets: SetLog[]
+): number | null {
+  const target = prescribed?.find(
+    (p) => p.exerciseId === entry.exerciseId && p.tier === entry.tier
+  );
+  if (!target) return null;
+  const deciding = workingSetsFor(sets, entry.exerciseId, entry.tier).filter((set) =>
+    CREDIT_DECIDING_STATUSES.includes(set.status)
+  );
+  if (deciding.length === 0) return null;
+  const lightest = Math.min(...deciding.map((set) => set.originalWeight ?? set.weight));
+  return lightest > target.weight ? lightest : null;
 }
 
 /** The fields of a workout row the rotation depends on. */

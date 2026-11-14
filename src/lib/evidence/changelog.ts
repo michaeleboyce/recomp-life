@@ -11,6 +11,13 @@ import type { SourceId } from "./sources";
 
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
+    date: "2026-11-14",
+    ruleId: "off-program-credit",
+    change:
+      "A lift done heavier than prescribed in every set now progresses from the heavier weight instead of the prescribed one. Missing reps at a heavier weight is not counted as a failure.",
+    sources: [],
+  },
+  {
     date: "2026-11-12",
     ruleId: "off-program-credit",
     change:

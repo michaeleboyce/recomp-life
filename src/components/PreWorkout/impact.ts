@@ -17,6 +17,8 @@ export interface ImpactItem {
   status: ImpactStatus;
   /** An edit touched this entry (a swap counts for its replacement). */
   edited: boolean;
+  /** A program lift set heavier than prescribed: its next weight builds from this one. */
+  heavier?: true;
 }
 
 /** Empty when there are no edits: an unedited day has nothing to explain. */
@@ -29,12 +31,19 @@ export function computeImpact(
   const touched = editedKeys(edits);
 
   const working = plan.filter((entry) => !entry.isWarmUp && CREDIT_TIERS.includes(entry.tier));
-  const performed: ImpactItem[] = working.map((entry) => ({
-    exerciseId: entry.exerciseId,
-    tier: entry.tier,
-    status: classifyEntry(entry, prescribed),
-    edited: touched.has(`${entry.exerciseId}|${entry.tier}`),
-  }));
+  const performed: ImpactItem[] = working.map((entry) => {
+    const status = classifyEntry(entry, prescribed);
+    const target = prescribed.find((p) => p.exerciseId === entry.exerciseId && p.tier === entry.tier);
+    const heavier =
+      status === "program" && target && (entry.originalWeight ?? entry.weight) > target.weight;
+    return {
+      exerciseId: entry.exerciseId,
+      tier: entry.tier,
+      status,
+      edited: touched.has(`${entry.exerciseId}|${entry.tier}`),
+      ...(heavier ? { heavier: true as const } : {}),
+    };
+  });
 
   const notDone: ImpactItem[] = prescribed
     .filter((p) => !working.some((e) => e.exerciseId === p.exerciseId && e.tier === p.tier))

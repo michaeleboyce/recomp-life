@@ -6,6 +6,7 @@ import {
   CREDIT_MIN_WEIGHT_RATIO,
   CREDIT_TIERS,
   foldRotation,
+  heavierWeightPerformed,
   sessionCountsForRotation,
   type RotationSession,
 } from "./credit";
@@ -129,6 +130,42 @@ describe("classifyEntry from logged sets", () => {
       ...makeSets("bench", "T2", 3, 10, { weight: 50 }),
     ];
     expect(classifyEntry(squat(), PRESCRIBED, sets)).toBe("program");
+  });
+});
+
+describe("heavierWeightPerformed", () => {
+  const squatT1 = { exerciseId: "squat", tier: "T1" as const };
+
+  it("is the lightest set's weight when every deciding set was heavier than prescribed", () => {
+    const sets = [
+      ...makeSets("squat", "T1", 4, 3, { weight: 200 }),
+      ...makeSets("squat", "T1", 1, 3, { weight: 205 }),
+    ];
+    expect(heavierWeightPerformed(squatT1, PRESCRIBED, sets)).toBe(200);
+  });
+
+  it("is null at the prescribed weight, with one set at or below it, or with nothing logged", () => {
+    expect(heavierWeightPerformed(squatT1, PRESCRIBED, makeSets("squat", "T1", 5, 3, { weight: 190 }))).toBeNull();
+    const mixed = [
+      ...makeSets("squat", "T1", 4, 3, { weight: 200 }),
+      ...makeSets("squat", "T1", 1, 3, { weight: 190 }),
+    ];
+    expect(heavierWeightPerformed(squatT1, PRESCRIBED, mixed)).toBeNull();
+    expect(heavierWeightPerformed(squatT1, PRESCRIBED, [])).toBeNull();
+    expect(heavierWeightPerformed(squatT1, undefined, makeSets("squat", "T1", 5, 3, { weight: 200 }))).toBeNull();
+  });
+
+  it("reads a home substitute by the program weight it stands for, and ignores load drops", () => {
+    const benchT2 = { exerciseId: "bench", tier: "T2" as const };
+    const home = makeSets("bench", "T2", 3, 10, { weight: 45, originalWeight: 110 });
+    expect(heavierWeightPerformed(benchT2, PRESCRIBED, home)).toBe(110);
+    const sameAtHome = makeSets("bench", "T2", 3, 10, { weight: 40, originalWeight: 100 });
+    expect(heavierWeightPerformed(benchT2, PRESCRIBED, sameAtHome)).toBeNull();
+    const withDrop = [
+      ...makeSets("bench", "T2", 1, 10, { weight: 110 }),
+      ...makeSets("bench", "T2", 2, 10, { weight: 95, originalWeight: 110, status: "autoregulated_load_drop" }),
+    ];
+    expect(heavierWeightPerformed(benchT2, PRESCRIBED, withDrop)).toBe(110);
   });
 });
 

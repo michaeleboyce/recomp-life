@@ -274,7 +274,7 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
     term: "Counts toward progression",
     aka: ["logged only", "progression paused"],
     short: "A lift done as prescribed is judged by the program's pass and fail rules; any other lift is only logged.",
-    long: `A program lift counts when you do its prescribed sets and reps at ${pct(CREDIT_MIN_WEIGHT_RATIO)} of its prescribed weight or more, on any day. A lighter lift, a different scheme, or an exercise you swapped in or added is still logged for your history and muscle load, but it is neither a pass nor a fail. A lift you skip keeps its weight.`,
+    long: `A program lift counts when you do its prescribed sets and reps at ${pct(CREDIT_MIN_WEIGHT_RATIO)} of its prescribed weight or more, on any day. Go heavier in every set and a pass builds your next weight from the heavier one. A lighter lift, a different scheme, or an exercise you swapped in or added is still logged for your history and muscle load, but it is neither a pass nor a fail. A lift you skip keeps its weight.`,
     ruleId: "off-program-credit",
     seeAlso: ["freeze", "substitute", "working-weight"],
   },

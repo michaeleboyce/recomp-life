@@ -65,7 +65,7 @@ export function EditEntryRow({
           onChange={onWeight}
         />
       </div>
-      {impact && <ImpactLine status={impact.status} />}
+      {impact && <ImpactLine status={impact.status} heavier={impact.heavier} />}
     </li>
   );
 }

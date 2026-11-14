@@ -80,7 +80,7 @@ export function PlannedExerciseList({ plan, trainingPhase, impact = [] }: Planne
                     {entry.originalWeight ? ` at ${entry.originalWeight} lbs` : ""}
                   </p>
                 )}
-                {entryImpact && <ImpactLine status={entryImpact.status} />}
+                {entryImpact && <ImpactLine status={entryImpact.status} heavier={entryImpact.heavier} />}
                 {warmUps.length > 0 && (
                   <p className="truncate font-mono text-xs tabular-nums text-muted-foreground">
                     warm-up: {warmUps.map((w) => `${w.weight}×${w.targetReps}`).join(" · ")}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useProfile } from "@/hooks";
@@ -90,19 +90,15 @@ function PlateVisual({ plates }: { plates: { plate: number; count: number }[] })
 }
 
 export default function PlateCalculatorPage() {
-  const [targetWeight, setTargetWeight] = useState(135);
+  const [chosenWeight, setTargetWeight] = useState(135);
 
   const profile = useProfile();
 
   const barWeight = profile?.settings.equipment.barWeight ?? 45;
   const availablePlates = profile?.settings.equipment.availablePlates ?? [45, 35, 25, 10, 5, 2.5];
 
-  // Ensure target weight is at least bar weight
-  useEffect(() => {
-    if (targetWeight < barWeight) {
-      setTargetWeight(barWeight);
-    }
-  }, [barWeight, targetWeight]);
+  // The target is never less than the bar itself.
+  const targetWeight = Math.max(chosenWeight, barWeight);
 
   const plates = useMemo(
     () => calculatePlatesPerSide(targetWeight, barWeight, availablePlates),

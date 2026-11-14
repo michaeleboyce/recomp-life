@@ -27,7 +27,7 @@ Evaluated per plan entry, from the session's stored `prescribed` list and its lo
 
 1. **Program entry.** The exercise is a T1/T2/T3 lift of the session's base day, at the prescribed tier and sets × reps, at a weight no lower than prescribed. Evaluated exactly as today (pass, fail, stage change, partial freeze). A home equipment substitute (`overrides`) is still a program entry: DB-adapted workouts at home count as passes.
    The weight compared is `set.originalWeight ?? set.weight`, over every working set that is not an autoregulated load drop. So a home substitute (dumbbell weight in `weight`, barbell prescription in `originalWeight`) and an accepted T2 load drop are both program entries, and the lift is "lighter" only when all of those sets are below the prescription, so one mistyped set does not flip it.
-2. **Heavier than prescribed.** Still a program entry. The next weight is computed from the prescribed weight, not the heavier one.
+2. **Heavier than prescribed.** Still a program entry. When every deciding set was heavier, the lightest of them becomes the lift's weight, so a pass builds the next weight from it (a T3 lift keeps the heavier weight). Missing reps at a heavier weight is not a failure of the prescribed one: nothing changes. (Changed 14 Nov 2026 at Michael's request; the first version progressed from the prescribed weight.)
 3. **Lighter, or a different scheme.** Logged only. No lift-state change at all: not a pass, not a failure, not a freeze trigger.
 4. **Removed program lift.** No lift-state change.
 5. **Swapped-in or added exercise.** Logged only. Its suggested weight next time is the last weight logged for that exercise; no new progression maths.
@@ -145,4 +145,3 @@ Pages and components reach data only through `src/hooks` and `src/lib/data` (`sr
 ## Open points
 
 - A day pulled out of order progresses its lifts but does not move the rotation.
-- A lift done heavier than prescribed is a normal pass from the prescribed weight.

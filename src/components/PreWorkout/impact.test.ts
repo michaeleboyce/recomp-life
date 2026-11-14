@@ -57,4 +57,16 @@ describe("computeImpact", () => {
     ]);
     expect(items.some((i) => i.exerciseId === "face_pulls")).toBe(false);
   });
+
+  it("marks a program lift set heavier than prescribed", () => {
+    const heavier = impactOf([
+      { kind: "weight", exerciseId: "bench", tier: "T2", weight: bench.weight + 10 },
+    ]).find((item) => item.exerciseId === "bench")!;
+    expect(heavier).toMatchObject({ status: "program", heavier: true });
+
+    const same = impactOf([
+      { kind: "weight", exerciseId: "bench", tier: "T2", weight: bench.weight },
+    ]).find((item) => item.exerciseId === "bench")!;
+    expect(same.heavier).toBeUndefined();
+  });
 });
