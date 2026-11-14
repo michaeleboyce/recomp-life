@@ -7,9 +7,11 @@ import { EXERCISES, HOME_SUBSTITUTE_CHAINS } from "@/lib/exercises";
 import { getExerciseMedia } from "@/lib/exerciseMedia";
 import { formatMuscle } from "@/lib/muscles";
 import { formatRegion } from "@/lib/painModifications";
+import { useMetric } from "@/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import E1RMChart from "@/components/Charts/E1RMChart";
+import { ChartEmpty, LazyTrendChart, TrendChartSkeleton } from "@/components/chart-kit";
+import { isMainLift } from "@/components/Progress/lifts";
 import { ExerciseViewer } from "@/components/ExerciseDemo/ExerciseViewer";
 import { PreferenceControl } from "./PreferenceControl";
 
@@ -42,6 +44,57 @@ function relatedExerciseIds(exerciseId: string): string[] {
   }
   ids.delete(exerciseId);
   return [...ids].filter((id) => EXERCISES[id]);
+}
+
+/** The exercise's estimated 1RM over time, with a link to the full lift page for main lifts. */
+export function ExerciseE1RMSection({
+  exerciseId,
+  exerciseName,
+}: {
+  exerciseId: string;
+  exerciseName: string;
+}) {
+  const e1rm = useMetric("e1rm", { exerciseId });
+  const latest = e1rm?.summary.latest;
+
+  return (
+    <section aria-label="Estimated 1RM" className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Estimated 1RM
+        </h2>
+        {latest && (
+          <span className="flex items-baseline gap-1">
+            <span className="font-mono text-sm font-bold tabular-nums text-foreground">
+              {Math.round(latest.v)}
+            </span>
+            <span className="font-mono text-xs text-muted-foreground">lbs</span>
+          </span>
+        )}
+      </div>
+      {e1rm === undefined ? (
+        <TrendChartSkeleton />
+      ) : e1rm.series.points.length === 0 ? (
+        <ChartEmpty message="Complete an AMRAP set to see your estimated 1RM here." height={64} />
+      ) : (
+        <LazyTrendChart
+          series={e1rm.series}
+          variant="line"
+          seriesLabel="Estimated 1RM"
+          ariaLabel={`${exerciseName} estimated 1RM over time`}
+        />
+      )}
+      {isMainLift(exerciseId) && (
+        <Link
+          href={`/progress/lift/${exerciseId}`}
+          className="flex items-center justify-end gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+        >
+          Full history
+          <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+        </Link>
+      )}
+    </section>
+  );
 }
 
 export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
@@ -154,7 +207,7 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
 
       <Card>
         <CardContent className="pt-4">
-          <E1RMChart exerciseId={exerciseId} exerciseName={exercise.name} />
+          <ExerciseE1RMSection exerciseId={exerciseId} exerciseName={exercise.name} />
         </CardContent>
       </Card>
     </div>

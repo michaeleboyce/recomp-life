@@ -5,7 +5,6 @@
 /** Rule R8: pages and components must not import the Dexie database directly. */
 export const DB_IMPORT_ALLOWLIST: string[] = [
   "src/app/exercises/page.tsx",
-  "src/components/Charts/E1RMChart.tsx",
   // Added by the interactive-anatomy branch; migrate to src/hooks once that work has landed.
   "src/components/Dashboard/MuscleHeatCard.tsx",
 ];

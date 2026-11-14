@@ -23,6 +23,7 @@ export { useWeeklyReview, type WeeklyReviewResult } from "./useWeeklyReview";
 export { useProjection, type ProjectionResult } from "./useProjection";
 export { useTrainingLocation } from "./useTrainingLocation";
 export { useUpcomingWorkouts } from "./useUpcomingWorkouts";
+export { useAppliedTheme, type AppliedTheme } from "./useAppliedTheme";
 export {
   useLogChangePreview,
   useRecentlyDeleted,
