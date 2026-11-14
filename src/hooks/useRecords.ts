@@ -4,6 +4,7 @@ import type {
   ActivityLog,
   BodyweightLog,
   Estimated1RM,
+  HealthDailyLog,
   LiftAdjustment,
   PainSorenessEntry,
   RunLog,
@@ -56,6 +57,14 @@ export function useRuns(): RunLog[] | undefined {
 /** Non-running activities (yoga, cycling, hiking...), newest first. */
 export function useActivities(): ActivityLog[] | undefined {
   return useLiveQuery(async () => byDate(liveRows(await db.activities.toArray()), "newest"), []);
+}
+
+/** One row of Apple Health values per day, oldest first. Empty when nothing was imported. */
+export function useHealthDaily(): HealthDailyLog[] | undefined {
+  return useLiveQuery(
+    async () => liveRows(await db.healthDaily.toArray()).sort((a, b) => a.day.localeCompare(b.day)),
+    []
+  );
 }
 
 /**
