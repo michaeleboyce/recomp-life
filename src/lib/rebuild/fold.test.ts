@@ -275,12 +275,12 @@ describe("rebuildDerived: completion context", () => {
 
   it("uses the stored context over the current settings", () => {
     const sim = startSim();
-    // 15 + 15 + 24 reps: an increase when bulking, none when cutting.
+    // The increments stored when the session was finished decide its outcome, not the
+    // doubled ones in the current settings.
     runSession(sim, { templateId: "A1", t3: { lastReps: 24 } });
     const { liftStates } = rebuilt(sim, changed);
     expect(stateOf(liftStates, "squat").t1Weight).toBe(200);
     expect(stateOf(liftStates, "bench").t2Weight).toBe(105);
-    expect(stateOf(liftStates, "lat_pulldown").t3Weight).toBe(90);
   });
 
   it("falls back to the current settings when no context is stored", () => {
@@ -290,7 +290,6 @@ describe("rebuildDerived: completion context", () => {
     const { liftStates } = rebuildDerived({ ...rebuildInput(sim, changed), workouts });
     expect(stateOf(liftStates, "squat").t1Weight).toBe(210);
     expect(stateOf(liftStates, "bench").t2Weight).toBe(110);
-    expect(stateOf(liftStates, "lat_pulldown").t3Weight).toBe(95);
   });
 });
 

@@ -61,7 +61,7 @@ describe("describeOutcomes", () => {
     expect(outcomes.map((o) => o.kind)).toEqual(["missed", "partial", "t3Same"]);
   });
 
-  it("a miss at the last stage is a reset, and a T3 raised by total reps says so", () => {
+  it("a miss at the last stage is a reset, and a raised T3 says why", () => {
     const prescribed: PrescribedEntry[] = [
       { exerciseId: "squat", tier: "T1", weight: 200, sets: 10, reps: 1, stage: "10x1" },
       { exerciseId: "lat_pulldown", tier: "T3", weight: 90, sets: 3, reps: 15 },
@@ -69,11 +69,11 @@ describe("describeOutcomes", () => {
     const after = [state("squat", { t1Weight: 170, t1Stage: "5x3" }), state("lat_pulldown", { t3Weight: 95 })];
     const s = workout({
       prescribed,
-      sets: [...sets("squat", "T1", 10, 1, 0), ...sets("lat_pulldown", "T3", 3, 20, 20)],
+      sets: [...sets("squat", "T1", 10, 1, 0), ...sets("lat_pulldown", "T3", 3, 15, 25)],
     });
     expect(text(describeOutcomes(s, after, undefined))).toEqual([
       "squat missed: resets to 170 lbs 5x3",
-      "lat_pulldown sets totalled 50+ reps: next 95 lbs",
+      "lat_pulldown last set reached 25: next 95 lbs",
     ]);
   });
 

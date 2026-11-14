@@ -109,7 +109,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** T3 weight goes up when the last set reaches 25 reps
 
-**What the app does.** When you finish every set of a T3 exercise, the app adds 5 lb for next time if the last set reached 25 reps, or, except during a cut, if the sets totalled 50 reps or more. During a cut only the last set counts. Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. Each workout's page shows what happened to its T3 lift under "What it did".
+**What the app does.** When you finish every set of a T3 exercise, the app adds 5 lb for next time if the last set reached 25 reps, whatever your training phase. Total reps across the sets do not count. Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. Each workout's page shows what happened to its T3 lift under "What it did".
 
 **Why.** Muscle growth improves as sets end closer to failure. Under this rule the first two sets of 15 can be about 10 reps short of failure, and people judge reps left least accurately in high-rep sets.
 
@@ -751,6 +751,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **13 November 2026** — `t3-progression` (When does T3 weight go up?): T3 weight now goes up only when the last set reaches 25 reps, in every phase. Outside a cut it used to go up on 50 total reps as well; that route is removed. Sources: .
 - **12 November 2026** — `t3-progression` (When does T3 weight go up?): The T3 rule is now shown: each workout's page says whether its T3 lift went up (and why) or stays at the same weight, as of that workout. The rule itself is unchanged. Sources: .
 - **12 November 2026** — `gzclp-progression` (Why does the weight go up, change stage or reset?): Logged sessions can now be edited or deleted. Doing so re-runs progression from the log, so the next workout follows the corrected history; sessions logged later are kept as they were lifted. Sources: .
 - **12 November 2026** — `fatigue-detection` (How does the app spot built-up fatigue?): Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or AMRAP reps), and an easier week is offered as optional. Sources: .

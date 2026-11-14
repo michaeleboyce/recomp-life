@@ -5,13 +5,10 @@ import {
   RESET_FACTOR,
   T3_INCREMENT_LBS,
   T3_LAST_SET_INCREASE_REPS,
-  T3_LAST_SET_ONLY_PHASES,
-  T3_TOTAL_INCREASE_REPS,
 } from "@/lib/progression";
 
 const [t1, t2, t3] = WORKOUT_TEMPLATES.A1.exercises;
 const resetPercent = Math.round(RESET_FACTOR * 100);
-const lastSetOnlyPhases = T3_LAST_SET_ONLY_PHASES.map((mode) => (mode === "cutting" ? "a cut" : mode)).join(" or ");
 
 export const PROGRESSION_RULES = {
   "tier-structure": {
@@ -55,7 +52,7 @@ export const PROGRESSION_RULES = {
     status: "active",
     title: "When does T3 weight go up?",
     summary: `T3 weight goes up when the last set reaches ${T3_LAST_SET_INCREASE_REPS} reps`,
-    appBehavior: `When you finish every set of a T3 exercise, the app adds ${T3_INCREMENT_LBS} lb for next time if the last set reached ${T3_LAST_SET_INCREASE_REPS} reps, or, except during ${lastSetOnlyPhases}, if the sets totalled ${T3_TOTAL_INCREASE_REPS} reps or more. During ${lastSetOnlyPhases} only the last set counts. Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. Each workout's page shows what happened to its T3 lift under "What it did".`,
+    appBehavior: `When you finish every set of a T3 exercise, the app adds ${T3_INCREMENT_LBS} lb for next time if the last set reached ${T3_LAST_SET_INCREASE_REPS} reps, whatever your training phase. Total reps across the sets do not count. Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. Each workout's page shows what happened to its T3 lift under "What it did".`,
     rationale:
       "Muscle growth improves as sets end closer to failure. Under this rule the first two sets of 15 can be about 10 reps short of failure, and people judge reps left least accurately in high-rep sets.",
     caveat:
