@@ -8,7 +8,8 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { MuscleId } from "@/types";
 import type { MuscleHeat } from "@/lib/muscleLoad";
-import { FIGURE_COLORS, HEAT_COLORS } from "@/lib/anatomy/palette";
+import { SCENE_PALETTES, sceneColor } from "@/lib/anatomy/palette";
+import { useAppliedTheme } from "@/hooks";
 import { isMuscleId } from "@/lib/muscles";
 
 /**
@@ -22,8 +23,6 @@ import { isMuscleId } from "@/lib/muscles";
 const MODEL_URL = "/models/anatomy.glb";
 const DRACO_PATH = "/draco/";
 const MODEL_CENTER_Y = 0.9;
-const RESTING_3D = "#6b7080";
-const OTHER_3D = "#565a66";
 
 // Start downloading the model as soon as this code loads, not on first render.
 useGLTF.preload(MODEL_URL, DRACO_PATH);
@@ -116,26 +115,41 @@ function Body({
   const invalidate = useThree((s) => s.invalidate);
   const prepared = useMemo(() => prepare(gltf.scene), [gltf.scene]);
 
+  // three.js needs concrete colours, so the scene picks its palette from the theme.
+  const theme = useAppliedTheme();
+
   const materials = useMemo(() => {
+    const palette = SCENE_PALETTES[theme].anatomy;
     const make = (color: string, extra: Partial<THREE.MeshStandardMaterialParameters> = {}) =>
       new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0, ...extra });
     return {
-      // Resting muscle is lighter here than in the 2D figure: shaded 3D
-      // surfaces read much darker than flat fills.
-      heat: HEAT_COLORS.map((c, i) =>
-        i === 0
-          ? make(RESTING_3D)
-          : make(c, i >= 3 ? { emissive: c, emissiveIntensity: i === 4 ? 0.28 : 0.12 } : {})
-      ),
-      other: make(OTHER_3D),
-      bone: make(FIGURE_COLORS.bone, { roughness: 0.9 }),
+      heat: [
+        make(palette.rest),
+        ...palette.heat.map((c, i) => {
+          const glow = palette.heatEmissive[i];
+          return make(c, glow > 0 ? { emissive: c, emissiveIntensity: glow } : {});
+        }),
+      ],
+      other: make(palette.other),
+      bone: make(palette.bone, { roughness: 0.9 }),
       custom: new Map<string, THREE.MeshStandardMaterial>(),
-      selected: make(FIGURE_COLORS.selected, {
-        emissive: FIGURE_COLORS.selected,
+      selected: make(palette.selected, {
+        emissive: palette.selected,
         emissiveIntensity: 0.45,
       }),
     };
-  }, []);
+  }, [theme]);
+
+  // Free a theme's materials once they are replaced, and on unmount.
+  useEffect(
+    () => () => {
+      [...materials.heat, materials.other, materials.bone, materials.selected].forEach((m) =>
+        m.dispose()
+      );
+      materials.custom.forEach((m) => m.dispose());
+    },
+    [materials]
+  );
 
   useEffect(() => {
     for (const mesh of prepared.muscles) {
@@ -144,8 +158,10 @@ function Body({
       if (selected === muscle) {
         material = materials.selected;
       } else if (colors) {
-        const hex = colors[muscle];
-        if (hex) {
+        const color = colors[muscle];
+        if (color) {
+          // Callers pass palette variables (e.g. recovery colours) or hex.
+          const hex = sceneColor(color, theme);
           let m = materials.custom.get(hex);
           if (!m) {
             m = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.62, metalness: 0.05 });
@@ -161,7 +177,7 @@ function Body({
       mesh.material = material;
     }
     invalidate();
-  }, [prepared, materials, heat, colors, selected, invalidate]);
+  }, [prepared, materials, heat, colors, selected, theme, invalidate]);
 
   useEffect(() => {
     onReady?.();

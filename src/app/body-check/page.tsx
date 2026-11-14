@@ -136,15 +136,15 @@ export default function BodyCheckPage() {
       {/* Legend */}
       <div className="flex items-center justify-center gap-4 mt-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-1">
-          <div className="h-3 w-3 rounded-sm bg-[#374151] border border-[#4b5563]" />
+          <div className="h-3 w-3 rounded-sm border border-anatomy-region-stroke bg-anatomy-region" />
           <span>No entry</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="h-3 w-3 rounded-sm bg-warning" />
+          <div className="h-3 w-3 rounded-sm bg-anatomy-sore" />
           <span>Soreness</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="h-3 w-3 rounded-sm bg-destructive" />
+          <div className="h-3 w-3 rounded-sm bg-anatomy-pain" />
           <span>Pain</span>
         </div>
       </div>

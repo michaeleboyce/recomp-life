@@ -16,7 +16,7 @@ interface BodyFigureProps {
   view: FigureView;
   /** Accessible name for the whole figure. */
   label: string;
-  /** Colour for a shape. Unstyled shapes use the resting colours. */
+  /** Colour for a shape (any CSS colour, usually a palette variable). Unstyled shapes use the resting colours. */
   styleFor?: (shape: FigureShape) => ShapeStyle | undefined;
   /** Accessible name for a shape. A shape is tappable only when this returns a name. */
   labelFor?: (shape: FigureShape) => string | undefined;
@@ -75,8 +75,12 @@ export function BodyFigure({
           <path
             key={i}
             d={d}
-            fill={style?.fill ?? restingFill(shape.slug)}
-            stroke={style?.stroke ?? FIGURE_COLORS.seam}
+            // Inline style, not presentation attributes: the colours are CSS
+            // variables (theme tokens), which every engine resolves in style.
+            style={{
+              fill: style?.fill ?? restingFill(shape.slug),
+              stroke: style?.stroke ?? FIGURE_COLORS.seam,
+            }}
             strokeWidth={style?.strokeWidth ?? 0.75}
             vectorEffect="non-scaling-stroke"
             className="transition-[fill,stroke] duration-200"
@@ -107,7 +111,8 @@ export function BodyFigure({
                 press();
               }
             }}
-            className="cursor-pointer outline-none [&:focus-visible>path]:stroke-ring"
+            // Important: the focus ring has to beat the inline stroke.
+            className="cursor-pointer outline-none [&:focus-visible>path]:stroke-ring!"
           >
             {paths}
           </g>
@@ -116,8 +121,7 @@ export function BodyFigure({
 
       <path
         d={view.outline}
-        fill="none"
-        stroke={FIGURE_COLORS.outline}
+        style={{ fill: "none", stroke: FIGURE_COLORS.outline }}
         strokeWidth={1}
         vectorEffect="non-scaling-stroke"
         pointerEvents="none"
