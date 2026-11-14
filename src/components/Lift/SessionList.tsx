@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { formatShortDate } from "@/components/chart-kit";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Button } from "@/components/ui/button";
@@ -64,6 +66,13 @@ function SessionRow({ session, explainTier }: { session: LiftSession; explainTie
           </span>
         )
       )}
+      <Link
+        href={`/log/workout/${session.workoutId}`}
+        aria-label={`Open workout from ${formatShortDate(session.t)}`}
+        className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+      >
+        <ChevronRight className="size-4" aria-hidden="true" />
+      </Link>
     </li>
   );
 }
