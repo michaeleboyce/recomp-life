@@ -33,8 +33,8 @@ describe("Today page", () => {
   it("renders for an empty database: header, first workout, no attention section", async () => {
     render(<TodayPage />);
     expect(screen.getByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
-    expect(await screen.findByText(/Workout A1/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "START WORKOUT" })).toHaveAttribute("href", "/workout/configure");
+    expect(await screen.findByText("Next up · A1")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Start workout" })).toHaveAttribute("href", "/workout/configure");
     await screen.findByText("Log a weigh-in to see your trend");
     expect(screen.queryByRole("heading", { name: "Needs attention" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /settings/i })).not.toBeInTheDocument();
@@ -43,16 +43,15 @@ describe("Today page", () => {
   it("renders a seeded new user the same way", async () => {
     await initializeDatabase();
     render(<TodayPage />);
-    expect(await screen.findByText(/Workout A1/)).toBeInTheDocument();
+    expect(await screen.findByText("Next up · A1")).toBeInTheDocument();
     // Wait until the estimates have loaded (the lift tiles say there are none), so
-    // the PR line's absence means "no PR chance", not "still loading".
+    // the new-best tile's absence means "no best to beat", not "still loading".
     await waitFor(() => expect(screen.getAllByText(/Finish a workout to estimate it/)).toHaveLength(2));
-    await screen.findAllByTestId("hero-exercise");
-    expect(screen.queryByText(/PR chance/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "What does PR chance mean?" })).toBeNull();
+    await screen.findByTestId("forecast-session");
+    expect(screen.queryByTestId("forecast-new-best")).toBeNull();
   });
 
-  it("with demo data shows the PR line, tiles and the muscle card", async () => {
+  it("with demo data shows the new-best tile, glance tiles and the muscle card", async () => {
     const demo = generateDemoData(new Date());
     await db.workouts.bulkPut(demo.workouts);
     await db.estimated1RMs.bulkPut(demo.estimated1RMs);
@@ -60,8 +59,7 @@ describe("Today page", () => {
     await db.liftStates.bulkPut(demo.liftStates);
     await db.userProfile.put(makeProfile());
     render(<TodayPage />);
-    expect(await screen.findByRole("link", { name: /^on .*reps on the last set beats/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "What does PR chance mean?" })).toBeInTheDocument();
+    expect(await screen.findByTestId("forecast-new-best")).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: /Weight/ })).toHaveAttribute("href", "/progress?tab=body");
     expect(screen.getByRole("link", { name: "Open the muscle explorer" })).toHaveAttribute("href", "/muscles");
   });

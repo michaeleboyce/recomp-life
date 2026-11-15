@@ -8,11 +8,10 @@ import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { describeNextWorkout } from "@/lib/workout/buildPlan";
 import { getNextWorkoutId, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
-import { EXERCISES } from "@/lib/exercises";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { WorkoutLocation } from "@/types";
 import { NextWorkoutHero } from "./NextWorkoutHero";
+import { dayName, displayLiftName } from "./todayModel";
 
 vi.mock("next/link", () => ({
   default: ({
@@ -54,21 +53,48 @@ function expectedPlan(location: WorkoutLocation) {
 beforeEach(clearDb);
 
 describe("NextWorkoutHero", () => {
-  it("lists the next workout's working exercises with their gym weights", async () => {
+  it("lists the next workout's working lifts with their gym weights under the day's name", async () => {
     await seedDemo();
     render(<NextWorkoutHero />);
     const next = expectedPlan("gym");
-    expect(await screen.findByText(new RegExp(`Workout ${next.templateId}`))).toBeInTheDocument();
+    expect(await screen.findByText(`Next up · ${next.templateId}`)).toBeInTheDocument();
+    const t1 = next.template.exercises.find((e) => e.tier === "T1")!.exerciseId;
+    expect(screen.getByRole("heading", { level: 2, name: dayName(t1, "") })).toBeInTheDocument();
 
     const rows = await screen.findAllByTestId("hero-exercise");
     const working = next.plan.filter((e) => !e.isWarmUp);
     expect(rows).toHaveLength(working.length);
     working.forEach((entry, i) => {
-      expect(within(rows[i]).getByText(EXERCISES[entry.exerciseId].name)).toBeInTheDocument();
+      expect(within(rows[i]).getByRole("link", { name: displayLiftName(entry.exerciseId) })).toHaveAttribute(
+        "href",
+        `/progress/lift/${entry.exerciseId}`
+      );
       expect(within(rows[i]).getByText(String(entry.weight))).toBeInTheDocument();
       expect(within(rows[i]).getByText(entry.tier)).toBeInTheDocument();
     });
     expect(within(rows[0]).getByText(`${working[0].targetSets}×${working[0].targetReps}+`)).toBeInTheDocument();
+  });
+
+  it("gives each lift a reason line from the last workout that had it", async () => {
+    await seedDemo();
+    render(<NextWorkoutHero />);
+    const reasons = await screen.findAllByTestId("lift-reason");
+    // Every lift in the demo has been done before, so none is a first time.
+    for (const reason of reasons) {
+      expect(reason.textContent).toMatch(/^(▲ \d+ from \d+|▼ \d+ from \d+|Held at \d+)$/);
+    }
+  });
+
+  it("shows the main lift's photo behind the title and links the muscles to the Muscles tab", async () => {
+    await seedDemo();
+    render(<NextWorkoutHero />);
+    const t1 = expectedPlan("gym").plan.find((e) => e.tier === "T1" && !e.isWarmUp)!;
+    const hero = await screen.findByTestId("today-hero");
+    expect(hero).toHaveAttribute("data-photo", t1.exerciseId);
+    expect(screen.getByRole("link", { name: "Muscles worked. Open the muscle map" })).toHaveAttribute(
+      "href",
+      "/progress?tab=muscles"
+    );
   });
 
   it("shows home substitutes and their weights after switching to Home", async () => {
@@ -81,7 +107,7 @@ describe("NextWorkoutHero", () => {
     const substituted = home.filter((e) => e.substituteExerciseId);
     expect(substituted.length).toBeGreaterThan(0);
     for (const entry of substituted) {
-      expect(await screen.findByText(EXERCISES[entry.substituteExerciseId!].name)).toBeInTheDocument();
+      expect(await screen.findByText(displayLiftName(entry.substituteExerciseId!))).toBeInTheDocument();
     }
     const rows = screen.getAllByTestId("hero-exercise");
     home.forEach((entry, i) => {
@@ -89,18 +115,17 @@ describe("NextWorkoutHero", () => {
     });
   });
 
-  it("states the location with a chip, and switching it saves the default", async () => {
+  it("shows the location on the switch, and switching it saves the default", async () => {
     await seedDemo();
     render(<NextWorkoutHero />);
     await screen.findAllByTestId("hero-exercise");
-    const chip = () => document.querySelector("[data-slot=location-chip]");
-    expect(chip()).toHaveAttribute("data-location", "gym");
+    expect(screen.getByRole("button", { name: "Gym" })).toHaveAttribute("aria-pressed", "true");
 
     fireEvent.click(screen.getByRole("button", { name: "Home" }));
     await waitFor(async () =>
       expect((await db.userProfile.toCollection().first())!.settings.defaultLocation).toBe("home")
     );
-    await waitFor(() => expect(chip()).toHaveAttribute("data-location", "home"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Home" })).toHaveAttribute("aria-pressed", "true"));
   });
 
   it("opens on the saved default location", async () => {
@@ -110,63 +135,65 @@ describe("NextWorkoutHero", () => {
     });
     render(<NextWorkoutHero />);
     const substitute = expectedPlan("home").plan.find((e) => e.substituteExerciseId)!;
-    expect(await screen.findByText(EXERCISES[substitute.substituteExerciseId!].name)).toBeInTheDocument();
+    expect(await screen.findByText(displayLiftName(substitute.substituteExerciseId!))).toBeInTheDocument();
   });
 
-  it("lists the two workouts after the next one, linking to the upcoming screen", async () => {
+  it("lists the two workouts after the next one, below START, linking to the upcoming screen", async () => {
     await seedDemo();
     render(<NextWorkoutHero />);
     const next = expectedPlan("gym").templateId;
     const then = getNextWorkoutId(next);
     const after = getNextWorkoutId(then);
+    const named = (id: string) => {
+      const t1 = WORKOUT_TEMPLATES[id].exercises.find((e) => e.tier === "T1")!.exerciseId;
+      return `${id} ${dayName(t1, "")}`;
+    };
     const line = await screen.findByRole("link", { name: /^Coming up:/ });
-    expect(line).toHaveTextContent(
-      `Coming up: ${templateTitle(then).replace(" · ", " ")}, then ${templateTitle(after).replace(" · ", " ")}`
-    );
+    expect(line).toHaveTextContent(`Coming up: ${named(then)}, then ${named(after)}`);
     expect(line).toHaveAttribute("href", "/progress/upcoming?from=today");
-    // Below START, so it never pushes it down.
-    const start = screen.getByRole("link", { name: "START WORKOUT" });
+    const start = screen.getByRole("link", { name: "Start workout" });
     expect(start.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("links START WORKOUT to the configure screen", async () => {
+  it("links Start workout to the configure screen", async () => {
     await seedDemo();
     render(<NextWorkoutHero />);
-    const start = await screen.findByRole("link", { name: "START WORKOUT" });
+    const start = await screen.findByRole("link", { name: "Start workout" });
     expect(start).toHaveAttribute("href", "/workout/configure");
   });
 
-  it("shows a PR-chance line for the T1 lift with demo data, linking to the lift page", async () => {
+  it("forecasts the session length and the chance of a new best, which opens the T1 lift", async () => {
     await seedDemo();
     render(<NextWorkoutHero />);
-    const t1 = expectedPlan("gym").plan.find((e) => e.tier === "T1")!;
-    const line = await screen.findByRole("link", { name: /^on .*reps on the last set beats/ });
-    expect(line).toHaveAttribute("href", `/progress/lift/${t1.exerciseId}`);
-    expect(line.textContent).toMatch(/\d+\+ reps on the last set beats \d+/);
+    const t1 = expectedPlan("gym").plan.find((e) => e.tier === "T1" && !e.isWarmUp)!;
+    expect(await screen.findByTestId("forecast-session")).toHaveTextContent(/^\d+ min$/);
+    const newBest = await screen.findByTestId("forecast-new-best");
+    expect(newBest.closest("a")).toHaveAttribute("href", `/progress/lift/${t1.exerciseId}`);
+    expect(newBest.closest("a")).toHaveTextContent(/needs \d+\+ reps|beats \d+/);
+    // No readiness yet: its tile is not drawn at all.
+    expect(screen.queryByText("Readiness")).toBeNull();
   });
 
-  it("explains the first tier label, the first '+' and PR chance, once each", async () => {
+  it("explains the first tier label and the first '+', once each", async () => {
     await seedDemo();
     render(<NextWorkoutHero />);
-    await screen.findByRole("button", { name: "What does PR chance mean?" });
-    const rows = screen.getAllByTestId("hero-exercise");
+    const rows = await screen.findAllByTestId("hero-exercise");
     expect(within(rows[0]).getByRole("button", { name: "What does T1 mean?" })).toBeInTheDocument();
     const scheme = within(rows[0]).getByRole("button", { name: /^What does \d+×\d+\+ mean\?$/ });
     expect(scheme).toHaveAttribute("data-term", "amrap-plus");
     // Later rows keep plain labels.
     expect(within(rows[1]).queryByRole("button")).toBeNull();
     expect(document.querySelectorAll('[data-term="amrap-plus"]')).toHaveLength(1);
-
-    fireEvent.click(screen.getByRole("button", { name: "What does PR chance mean?" }));
-    expect(await screen.findByRole("dialog")).toHaveTextContent("PR chance");
   });
 
-  it("shows the first workout from the seeded lift states for a new user, with no PR line", async () => {
+  it("shows the first workout for a new user: first-time lifts and no new-best tile", async () => {
     await initializeDatabase();
     render(<NextWorkoutHero />);
-    expect(await screen.findByText(/Workout A1/)).toBeInTheDocument();
+    expect(await screen.findByText("Next up · A1")).toBeInTheDocument();
     const rows = await screen.findAllByTestId("hero-exercise");
-    expect(within(rows[0]).getByText(EXERCISES.squat.name)).toBeInTheDocument();
-    expect(screen.queryByText(/PR chance/)).not.toBeInTheDocument();
+    expect(within(rows[0]).getByRole("link", { name: "Squat" })).toBeInTheDocument();
+    expect(within(rows[0]).getByTestId("lift-reason")).toHaveTextContent("First time");
+    await screen.findByTestId("forecast-session");
+    expect(screen.queryByTestId("forecast-new-best")).toBeNull();
   });
 });
