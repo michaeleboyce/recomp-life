@@ -297,7 +297,7 @@ export const SOURCES = {
     design: "meta-analysis",
     population: "69 publications",
     finding:
-      "A night of lost or restricted sleep lowered physical performance by about 7.6% on average.",
+      "A night of lost or restricted sleep lowered physical performance by about 7.6% on average, and strength by about 2.9%.",
     url: "https://doi.org/10.1007/s40279-022-01706-y",
     doi: "10.1007/s40279-022-01706-y",
     pmid: "35708888",
@@ -480,6 +480,98 @@ export const SOURCES = {
     url: "https://doi.org/10.1249/MSS.0000000000001300",
     doi: "10.1249/MSS.0000000000001300",
     pmid: "28463902",
+  },
+  mitter2022: {
+    short: "Mitter 2022",
+    authors: "Mitter et al.",
+    year: 2022,
+    title:
+      "Reproducibility of strength performance and strength-endurance profiles: A test-retest study",
+    journal: "PLoS One",
+    design: "observational",
+    population: "24 resistance-trained adults, bench press, retested after one week",
+    finding:
+      "The number of reps to failure at 70%, 80% and 90% of 1RM varied between test and retest with a typical error (standard error of measurement) of 0.7 to 1.1 reps.",
+    url: "https://doi.org/10.1371/journal.pone.0268074",
+    doi: "10.1371/journal.pone.0268074",
+    pmid: "35511896",
+    fullTextUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC9070879",
+  },
+  reynolds2006: {
+    short: "Reynolds 2006",
+    authors: "Reynolds et al.",
+    year: 2006,
+    title:
+      "Prediction of one repetition maximum strength from multiple repetition maximum testing and anthropometry",
+    journal: "Journal of Strength and Conditioning Research",
+    design: "observational",
+    population: "70 adults aged 18–69, bench press and leg press",
+    finding:
+      "A 1RM was predicted most accurately from a 5-rep maximum, less so from 10 or 20 reps, and the authors advise using no more than 10 reps.",
+    url: "https://doi.org/10.1519/R-15304.1",
+    doi: "10.1519/R-15304.1",
+    pmid: "16937972",
+  },
+  mayhew2008: {
+    short: "Mayhew 2008",
+    authors: "Mayhew et al.",
+    year: 2008,
+    title:
+      "Accuracy of prediction equations for determining one repetition maximum bench press in women before and after resistance training",
+    journal: "Journal of Strength and Conditioning Research",
+    design: "trial",
+    population: "103 young women, before and after 12 weeks of training",
+    finding:
+      "Equations predicting bench press 1RM from reps to fatigue were more accurate when fewer than 10 reps were done, both before and after training.",
+    url: "https://doi.org/10.1519/JSC.0b013e31817b02ad",
+    doi: "10.1519/JSC.0b013e31817b02ad",
+    pmid: "18714230",
+  },
+  schneditz2023: {
+    short: "Schneditz 2023",
+    authors: "Schneditz et al.",
+    year: 2023,
+    title: "Day-to-day variability in euvolemic body mass",
+    journal: "Renal Failure",
+    design: "observational",
+    population: "One healthy man, 9,521 days of morning weigh-ins",
+    finding:
+      "Body mass on consecutive days differed with a standard deviation of 0.53%, rising to 0.69% for weigh-ins a week apart, and this did not change over the years.",
+    url: "https://doi.org/10.1080/0886022X.2023.2273421",
+    doi: "10.1080/0886022X.2023.2273421",
+    pmid: "37955103",
+    fullTextUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10653631",
+  },
+  turicchi2020: {
+    short: "Turicchi 2020",
+    authors: "Turicchi et al.",
+    year: 2020,
+    title:
+      "Weekly, seasonal and holiday body weight fluctuation patterns among individuals engaged in a European multi-centre behavioural weight loss maintenance intervention",
+    journal: "PLoS One",
+    design: "observational",
+    population: "1,421 adults keeping off lost weight, weighed with connected scales",
+    finding:
+      "After removing each person's trend, weight rose at the weekend and fell during the week, a within-week swing of about 0.35%, highest on Monday and lowest on Friday.",
+    url: "https://doi.org/10.1371/journal.pone.0232152",
+    doi: "10.1371/journal.pone.0232152",
+    pmid: "32353079",
+    fullTextUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7192384",
+  },
+  hall2011: {
+    short: "Hall 2011",
+    authors: "Hall et al.",
+    year: 2011,
+    title: "Quantification of the effect of energy imbalance on bodyweight",
+    journal: "The Lancet",
+    design: "review",
+    population: "Mathematical model of adult energy balance",
+    finding:
+      "Bodyweight responds slowly to a lasting change in energy intake, taking about a year to get halfway to its new steady weight.",
+    url: "https://doi.org/10.1016/S0140-6736(11)60812-X",
+    doi: "10.1016/S0140-6736(11)60812-X",
+    pmid: "21872751",
+    fullTextUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC3880593",
   },
 } as const satisfies Record<string, EvidenceSource>;
 
