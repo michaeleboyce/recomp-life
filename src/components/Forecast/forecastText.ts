@@ -459,7 +459,6 @@ export function inputLines(forecast: Forecast): InputLine[] {
   }
   const scale = sdScaleOf(forecast);
   if (scale > 1) add("Range widened by the track record", `× ${formatAmount(scale)}`);
-  add("How much history", BASIS_LABELS[forecast.basis]);
   return lines;
 }
 
@@ -658,14 +657,27 @@ export function wrongest(scored: readonly ScoredForecast[]): WrongestFinding | n
   const candidates: Candidate[] = [];
   let anyEnough = false;
 
-  const missGroup = (rows: ScoredForecast[], subject: string, fmt: (v: number) => string) => {
+  const missGroup = (
+    rows: ScoredForecast[],
+    subject: string,
+    fmt: (v: number) => string,
+    higherIsBetter = true
+  ) => {
     if (rows.length < MIN_RESULTS_TO_JUDGE) return;
     const r = summarize(rows);
     if (r.miss.n < MIN_RESULTS_TO_JUDGE || r.miss.bias === null || !r.miss.meanAbs) return;
     anyEnough = true;
     const lean = r.miss.bias / r.miss.meanAbs;
     const direction = r.miss.bias < 0 ? "below" : "above";
-    const verdict = r.miss.bias < 0 ? "too optimistic" : "too cautious";
+    // For reps and an estimated max, a forecast above the result was too hopeful; for
+    // session length and bodyweight "high" or "low" says it without a judgement.
+    const verdict = higherIsBetter
+      ? r.miss.bias < 0
+        ? "too optimistic"
+        : "too cautious"
+      : r.miss.bias < 0
+        ? "forecasts ran high"
+        : "forecasts ran low";
     candidates.push({
       lean,
       subject,
@@ -700,8 +712,8 @@ export function wrongest(scored: readonly ScoredForecast[]): WrongestFinding | n
   for (const [id, rows] of byLift("e1rm4w")) {
     missGroup(rows, `${liftLabel(id)} estimated max`, (v) => `${formatAmount(v)} lb`);
   }
-  missGroup(resolved(scored, "bodyweight4w"), "Bodyweight", (v) => `${formatAmount(v)} lb`);
-  missGroup(resolved(scored, "sessionLength"), "Session length", formatMinutes);
+  missGroup(resolved(scored, "bodyweight4w"), "Bodyweight", (v) => `${formatAmount(v)} lb`, false);
+  missGroup(resolved(scored, "sessionLength"), "Session length", formatMinutes, false);
   chanceGroup(resolved(scored, "newBest"), "New-best chances");
   chanceGroup(resolved(scored, "liftPass"), "Pass chances");
 

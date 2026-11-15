@@ -26,7 +26,7 @@ export function ForecastsEntry() {
 
   let subtitle = "What the app predicts, and how right it has been";
   if (summary && summary.total === 0) subtitle = "They start with your next workout";
-  else if (summary) subtitle = `${summary.open} open · and how right they have been`;
+  else if (summary) subtitle = `${summary.open} open now`;
 
   return (
     <ListRow
