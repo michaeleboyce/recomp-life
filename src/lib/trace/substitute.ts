@@ -48,10 +48,10 @@ function adaptationFor(
  * dumbbells.
  */
 export function dumbbellLimitAtHome(
-  entry: Pick<PlanEntry, "exerciseId" | "substituteExerciseId" | "weight">,
+  entry: Pick<PlanEntry, "exerciseId" | "substituteExerciseId">,
   step: number,
   context: HomeContext,
-  weight: number = entry.weight
+  weight: number
 ): { needed: number; heaviest: number } | null {
   if (context.location !== "home" || !(step > 0)) return null;
   const performed = EXERCISES[entry.substituteExerciseId ?? entry.exerciseId];

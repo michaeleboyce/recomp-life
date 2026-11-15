@@ -321,7 +321,7 @@ function weightAlternatives(entry: PlanEntry, context: TraceContext): TraceAlter
   }
   options.push({ label: "the plan", value: entry.weight });
   if (increment > 0) {
-    const limit = dumbbellLimitAtHome(entry, increment, context);
+    const limit = dumbbellLimitAtHome(entry, increment, context, entry.weight);
     if (!limit) options.push({ label: "harder", value: entry.weight + increment });
     else if (limit.heaviest > entry.weight) {
       options.push({ label: "harder", value: limit.heaviest, note: "heaviest dumbbell" });
@@ -502,7 +502,7 @@ export function explainPrescription(
   // A dumbbell lift done as itself at home has no conversion step to say it.
   const limit = entry.substituteExerciseId
     ? null
-    : dumbbellLimitAtHome(entry, alternativeStep(entry, context), context);
+    : dumbbellLimitAtHome(entry, alternativeStep(entry, context), context, entry.weight);
   if (limit) {
     steps.push(
       step(
