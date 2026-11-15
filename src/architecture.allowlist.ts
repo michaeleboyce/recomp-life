@@ -10,9 +10,7 @@ export const DB_IMPORT_ALLOWLIST: string[] = [
 ];
 
 /** Rule R9: pages and components must use theme tokens, not raw palette classes. */
-export const PALETTE_ALLOWLIST: string[] = [
-  "src/components/Exercises/ExerciseRow.tsx",
-];
+export const PALETTE_ALLOWLIST: string[] = [];
 
 /**
  * Directories exempt from the palette rule for good: anatomical figures need

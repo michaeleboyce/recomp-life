@@ -5,9 +5,9 @@ import { useSettings } from "@/hooks";
 
 /**
  * The browser chrome colour for each theme: the `--background` token of that theme
- * (globals.css), converted from oklch to sRGB hex.
+ * (globals.css). layout.tsx `themeColor` and public/manifest.json use the dark value.
  */
-export const THEME_COLORS = { dark: "#060709", light: "#f5f7f9" } as const;
+export const THEME_COLORS = { dark: "#1b1512", light: "#f3e9d8" } as const;
 
 /**
  * Applies the theme setting. The server HTML always has `class="dark"`, so dark users

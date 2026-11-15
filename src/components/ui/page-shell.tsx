@@ -71,7 +71,7 @@ function PageHeader({
           <ChevronLeft className="size-5" aria-hidden="true" />
         </Link>
       )}
-      <h1 className="min-w-0 flex-1 truncate text-xl font-bold text-foreground">
+      <h1 className="min-w-0 flex-1 truncate font-display text-xl font-bold text-foreground">
         {title}
       </h1>
       {action && <div className="ml-auto shrink-0">{action}</div>}

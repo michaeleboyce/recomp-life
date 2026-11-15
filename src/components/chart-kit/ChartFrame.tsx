@@ -33,7 +33,7 @@ export function ChartFrame({
     <section className={cn("flex flex-col gap-1.5", className)}>
       <div className="flex items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col">
-          <Heading className="text-xs font-normal text-muted-foreground">{title}</Heading>
+          <Heading className="font-display text-xs font-medium text-muted-foreground">{title}</Heading>
           {(value !== undefined || change !== undefined) && (
             <div className="flex items-baseline gap-2">
               {value !== undefined && (

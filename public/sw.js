@@ -1,5 +1,6 @@
 // v5: earlier versions cached API responses; the new name drops those caches.
-const CACHE_NAME = "recomp-life-v5";
+// v6: the mid-century re-skin (new colours, fonts and theme colour).
+const CACHE_NAME = "recomp-life-v6";
 const PRECACHE_URLS = ["/", "/workout/configure", "/log", "/progress", "/more"];
 
 // API responses (sync data, session) are per-user and must always be live:

@@ -18,7 +18,7 @@ function SectionHeader({
       data-slot="section-header"
       className={cn("flex items-center justify-between gap-3", className)}
     >
-      <Heading className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      <Heading className="font-display text-xs font-semibold tracking-wide text-muted-foreground uppercase">
         {title}
       </Heading>
       {action && <div className="shrink-0 text-xs">{action}</div>}

@@ -9,6 +9,16 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
+  --color-grade-strong: var(--grade-strong);
+  --color-grade-moderate: var(--grade-moderate);
+  --color-grade-limited: var(--grade-limited);
+  --color-grade-heuristic: var(--grade-heuristic);
+  --color-grade-program: var(--grade-program);
+  --color-photo-tint: var(--photo-tint);
+  --color-stripe-1: var(--stripe-1);
+  --color-stripe-2: var(--stripe-2);
+  --color-stripe-3: var(--stripe-3);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -66,6 +76,10 @@
   --color-plate-5: var(--plate-5);
   --color-plate-2p5: var(--plate-2p5);
   --color-plate-other: var(--plate-other);
+  --color-plate-label: var(--plate-label);
+  --color-plate-label-dark: var(--plate-label-dark);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-scrim: var(--scrim);
   --color-chart-line: var(--chart-line);
   --color-chart-area: var(--chart-area);
   --color-chart-grid: var(--chart-grid);
@@ -104,206 +118,238 @@
   --plate-5: oklch(0.577 0.245 27.325);
   --plate-2p5: oklch(0.707 0.022 261.325);
   --plate-other: oklch(0.551 0.027 264.364);
+  /* Plate numbers: light on the dark plates, dark on the yellow, white and grey ones. */
+  --plate-label: oklch(1 0 0);
+  --plate-label-dark: oklch(0.2 0 0);
   --radius: 0.625rem;
-  /* Light theme. Each text token was checked for WCAG contrast (oklch -> sRGB) at
-     4.5:1 or more on the background, on a card and on its own -soft fill; borders
-     stay visible at 1px; cards sit one step off the page. */
-  --background: oklch(0.975 0.004 250);
-  --foreground: oklch(0.19 0.01 260);
-  --card: oklch(0.995 0.002 250);
-  --card-foreground: oklch(0.19 0.01 260);
-  --popover: oklch(0.995 0.002 250);
-  --popover-foreground: oklch(0.19 0.01 260);
-  --primary: oklch(0.45 0.10 160);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.935 0.006 250);
-  --secondary-foreground: oklch(0.22 0.01 260);
-  --muted: oklch(0.935 0.006 250);
-  --muted-foreground: oklch(0.47 0.012 260);
-  --accent: oklch(0.935 0.006 250);
-  --accent-foreground: oklch(0.22 0.01 260);
-  --destructive: oklch(0.52 0.20 27);
-  --border: oklch(0.87 0.008 250);
-  --input: oklch(0.84 0.008 250);
-  --ring: oklch(0.45 0.10 160);
-  --chart-1: oklch(0.52 0.10 160);
-  --chart-2: oklch(0.50 0.12 162);
-  --chart-3: oklch(0.58 0.15 60);
-  --chart-4: oklch(0.50 0.20 304);
-  --chart-5: oklch(0.54 0.20 16);
-  --sidebar: oklch(0.995 0.002 250);
-  --sidebar-foreground: oklch(0.19 0.01 260);
-  --sidebar-primary: oklch(0.45 0.10 160);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.935 0.006 250);
-  --sidebar-accent-foreground: oklch(0.22 0.01 260);
-  --sidebar-border: oklch(0.87 0.008 250);
-  --sidebar-ring: oklch(0.47 0.012 260);
-  --card-raised: oklch(0.955 0.005 250);
-  --accent-primary: oklch(0.45 0.10 160);
-  --accent-primary-soft: oklch(0.45 0.10 160 / 10%);
-  --accent-primary-dim: oklch(0.38 0.08 160);
-  --success: oklch(0.47 0.13 145);
-  --warning: oklch(0.50 0.12 70);
-  --info: oklch(0.48 0.11 250);
-  --success-soft: oklch(0.47 0.13 145 / 12%);
-  --warning-soft: oklch(0.50 0.12 70 / 14%);
-  --info-soft: oklch(0.48 0.11 250 / 10%);
-  --destructive-soft: oklch(0.52 0.20 27 / 10%);
+  /* Light theme, "paper": cream page, espresso ink, rust accent text (mustard is too
+     light to read as text on cream). Text tokens reach 4.5:1 on the page and on a
+     card; src/app/globals.test.ts checks this for both themes. */
+  --background: #f3e9d8;
+  --foreground: #2a201a;
+  --card: #eadfca;
+  --card-foreground: #2a201a;
+  --popover: #eadfca;
+  --popover-foreground: #2a201a;
+  --primary: #2a201a;
+  --primary-foreground: #f3e9d8;
+  --secondary: #dccfb4;
+  --secondary-foreground: #2a201a;
+  --muted: #dccfb4;
+  --muted-foreground: #5f4f42;
+  --accent: #dccfb4;
+  --accent-foreground: #2a201a;
+  --destructive: #a8332a;
+  --destructive-foreground: #f3e9d8;
+  /* Dimmed backdrop behind dialogs and sheets. */
+  --scrim: rgb(42 32 26 / 40%);
+  --border: rgb(42 32 26 / 16%);
+  --input: rgb(42 32 26 / 24%);
+  --ring: #9c4420;
+  --chart-1: #8d6110;
+  --chart-2: #2a6662;
+  --chart-3: #b8472a;
+  --chart-4: #7d4870;
+  --chart-5: #36607f;
+  --sidebar: #eadfca;
+  --sidebar-foreground: #2a201a;
+  --sidebar-primary: #2a201a;
+  --sidebar-primary-foreground: #f3e9d8;
+  --sidebar-accent: #dccfb4;
+  --sidebar-accent-foreground: #2a201a;
+  --sidebar-border: rgb(42 32 26 / 16%);
+  --sidebar-ring: #5f4f42;
+  --card-raised: #dccfb4;
+  --accent-primary: #9c4420;
+  --accent-primary-soft: rgb(156 68 32 / 10%);
+  --accent-primary-dim: #7e3618;
+  --success: #2a6662;
+  --warning: #85590c;
+  --info: #36607f;
+  --success-soft: rgb(42 102 98 / 12%);
+  --warning-soft: rgb(133 89 12 / 13%);
+  --info-soft: rgb(54 96 127 / 11%);
+  --destructive-soft: rgb(168 51 42 / 10%);
 
-  /* Workout tiers */
-  --tier-t1: oklch(0.50 0.17 25);
-  --tier-t1-soft: oklch(0.50 0.17 25 / 10%);
-  --tier-t2: oklch(0.50 0.13 50);
-  --tier-t2-soft: oklch(0.50 0.13 50 / 11%);
-  --tier-t3: oklch(0.48 0.13 250);
-  --tier-t3-soft: oklch(0.48 0.13 250 / 10%);
-  --tier-accessory: oklch(0.48 0.14 300);
-  --tier-accessory-soft: oklch(0.48 0.14 300 / 10%);
-  --tier-warmup: oklch(0.46 0.03 250);
-  --tier-warmup-soft: oklch(0.46 0.03 250 / 12%);
+  /* Workout tiers: T1 orange, T2 mustard, T3 teal. */
+  --tier-t1: #9c3f1f;
+  --tier-t1-soft: rgb(156 63 31 / 10%);
+  --tier-t2: #85590c;
+  --tier-t2-soft: rgb(133 89 12 / 12%);
+  --tier-t3: #2a6662;
+  --tier-t3-soft: rgb(42 102 98 / 11%);
+  --tier-accessory: #7d4870;
+  --tier-accessory-soft: rgb(125 72 112 / 10%);
+  --tier-warmup: #5f4f42;
+  --tier-warmup-soft: rgb(95 79 66 / 12%);
 
-  /* Chart kit (src/components/chart-kit). Series colours were checked with the
-     dataviz palette validator against the page background: lightness band, chroma,
-     colour-blind separation (all pairs) and 3:1 contrast. Each step differs in
-     lightness as well as hue; overlay lines also differ in dash pattern. */
-  --chart-line: oklch(0.52 0.11 160);
-  --chart-area: oklch(0.52 0.11 160 / 12%);
-  --chart-grid: oklch(0 0 0 / 8%);
-  --chart-axis: oklch(0.48 0.01 260);
+  /* Chart kit (src/components/chart-kit). The main line is ochre, good is teal and
+     warn is orange, each 3:1 or more on the page; overlays add teal, orange and
+     mauve, which differ in lightness as well as hue (overlays also differ in dash). */
+  --chart-line: #8d6110;
+  --chart-area: rgb(141 97 16 / 12%);
+  --chart-grid: rgb(42 32 26 / 9%);
+  --chart-axis: #5f4f42;
   --chart-point-ring: var(--background);
-  --chart-inspect: oklch(0.20 0 0);
-  --chart-series-2: oklch(0.44 0.15 255);
-  --chart-series-3: oklch(0.66 0.16 50);
-  --chart-series-4: oklch(0.58 0.18 300);
-  --chart-band: oklch(0.50 0.01 260 / 10%);
-  --chart-good: oklch(0.55 0.15 145);
-  --chart-warn: oklch(0.62 0.15 70);
+  --chart-inspect: #2a201a;
+  --chart-series-2: #2a6662;
+  --chart-series-3: #b8472a;
+  --chart-series-4: #7d4870;
+  --chart-band: rgb(95 79 66 / 12%);
+  --chart-good: #2a6662;
+  --chart-warn: #b8472a;
+
+  /* Evidence grades (grade chips): strong and moderate teal (filled vs outlined),
+     limited mustard, heuristic orange, program rule the raised surface. */
+  --grade-strong: #2a6662;
+  --grade-moderate: #2a6662;
+  --grade-limited: #85590c;
+  --grade-heuristic: #a8401f;
+  --grade-program: #dccfb4;
+  /* Colour layer over grayscale exercise photos; the three heading stripes. */
+  --photo-tint: #b5653a;
+  --stripe-1: #ef7a4a;
+  --stripe-2: #e0a93b;
+  --stripe-3: #3f8f86;
 
   /* Anatomy figures and the pain body map (src/lib/anatomy/palette.ts is the source;
-     palette.test.ts checks these match it and the contrast against --card). Light
-     values are drawn for a near-white card; the seam is the card colour. */
-  --anatomy-outline: oklch(0.68 0.01 260);
-  --anatomy-rest: oklch(0.85 0.008 260);
-  --anatomy-inert: oklch(0.91 0.006 260);
-  --anatomy-hair: oklch(0.78 0.008 260);
-  --anatomy-seam: oklch(0.995 0.002 250);
-  --anatomy-selected: oklch(0.6 0.15 255);
-  --anatomy-selected-stroke: oklch(0.45 0.14 255);
-  --anatomy-heat-1: oklch(0.78 0.06 160);
-  --anatomy-heat-2: oklch(0.69 0.09 160);
-  --anatomy-heat-3: oklch(0.59 0.11 160);
-  --anatomy-heat-4: oklch(0.49 0.11 160);
-  --anatomy-recovering: oklch(0.55 0.15 50);
-  --anatomy-ready: oklch(0.53 0.11 85);
-  --anatomy-primed: oklch(0.5 0.12 155);
-  --anatomy-detraining: oklch(0.52 0.015 260);
-  --anatomy-pain: oklch(0.56 0.2 27);
-  --anatomy-pain-stroke: oklch(0.47 0.18 27);
-  --anatomy-sore: oklch(0.66 0.15 70);
-  --anatomy-sore-stroke: oklch(0.55 0.13 65);
-  --anatomy-region: oklch(0.82 0.015 255);
-  --anatomy-region-stroke: oklch(0.7 0.02 255);
-  --anatomy-joint-ring: oklch(0.58 0.015 260);
+     palette.test.ts checks these match it and the contrast against --card). The load
+     ramp is burnt orange and darkens as load rises; the seam is the card colour. */
+  --anatomy-outline: #8a7762;
+  --anatomy-rest: #d5c4a5;
+  --anatomy-inert: #e2d6bf;
+  --anatomy-hair: #c4b393;
+  --anatomy-seam: #eadfca;
+  --anatomy-selected: #2f6f6b;
+  --anatomy-selected-stroke: #1f4f4c;
+  --anatomy-heat-1: #efc9a6;
+  --anatomy-heat-2: #e6a070;
+  --anatomy-heat-3: #d67440;
+  --anatomy-heat-4: #b8472a;
+  --anatomy-recovering: #9c3f1f;
+  --anatomy-ready: #85590c;
+  --anatomy-primed: #2a6662;
+  --anatomy-detraining: #5f4f42;
+  --anatomy-pain: #b83a2c;
+  --anatomy-pain-stroke: #8f2a20;
+  --anatomy-sore: #9e6c10;
+  --anatomy-sore-stroke: #7a520a;
+  --anatomy-region: #c9b694;
+  --anatomy-region-stroke: #a8946f;
+  --anatomy-joint-ring: #8a7762;
 }
 
 .dark {
-  --background: oklch(0.13 0.005 260);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.18 0.005 260);
-  --card-foreground: oklch(0.985 0 0);
-  --card-raised: oklch(0.22 0.005 260);
-  --popover: oklch(0.18 0.005 260);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.65 0.10 160);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.22 0.005 260);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.22 0.005 260);
-  --muted-foreground: oklch(0.55 0.01 260);
-  --accent: oklch(0.22 0.005 260);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.65 0.20 25);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.65 0.10 160);
-  --chart-1: oklch(0.65 0.10 160);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.18 0.005 260);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.65 0.10 160);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.22 0.005 260);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.55 0.01 260);
+  /* Dark theme, "espresso": warm near-black page, cream ink, mustard accent. */
+  --background: #1b1512;
+  --foreground: #f3e9d8;
+  --card: #241b16;
+  --card-foreground: #f3e9d8;
+  --card-raised: #33271f;
+  --popover: #241b16;
+  --popover-foreground: #f3e9d8;
+  --primary: #e0a93b;
+  --primary-foreground: #1b1512;
+  --secondary: #33271f;
+  --secondary-foreground: #f3e9d8;
+  --muted: #33271f;
+  --muted-foreground: #b8a892;
+  --accent: #33271f;
+  --accent-foreground: #f3e9d8;
+  --destructive: #e8584a;
+  --destructive-foreground: #f3e9d8;
+  --scrim: rgb(10 7 5 / 60%);
+  --border: rgb(243 233 216 / 11%);
+  --input: rgb(243 233 216 / 16%);
+  --ring: #e0a93b;
+  --chart-1: #e0a93b;
+  --chart-2: #6dbdb3;
+  --chart-3: #ef7a4a;
+  --chart-4: #c79bbd;
+  --chart-5: #8eb0cc;
+  --sidebar: #241b16;
+  --sidebar-foreground: #f3e9d8;
+  --sidebar-primary: #e0a93b;
+  --sidebar-primary-foreground: #1b1512;
+  --sidebar-accent: #33271f;
+  --sidebar-accent-foreground: #f3e9d8;
+  --sidebar-border: rgb(243 233 216 / 11%);
+  --sidebar-ring: #b8a892;
 
   /* Custom accent tokens */
-  --accent-primary: oklch(0.65 0.10 160);
-  --accent-primary-soft: oklch(0.65 0.10 160 / 15%);
-  --accent-primary-dim: oklch(0.55 0.08 160);
+  --accent-primary: #e0a93b;
+  --accent-primary-soft: rgb(224 169 59 / 15%);
+  --accent-primary-dim: #b8862a;
 
   /* Semantic colors */
-  --success: oklch(0.65 0.15 145);
-  --warning: oklch(0.75 0.15 85);
-  --info: oklch(0.60 0.10 250);
-  --success-soft: oklch(0.65 0.15 145 / 15%);
-  --warning-soft: oklch(0.75 0.15 85 / 15%);
-  --info-soft: oklch(0.60 0.10 250 / 15%);
-  --destructive-soft: oklch(0.65 0.20 25 / 15%);
+  --success: #6dbdb3;
+  --warning: #f0a04b;
+  --info: #8eb0cc;
+  --success-soft: rgb(109 189 179 / 15%);
+  --warning-soft: rgb(240 160 75 / 15%);
+  --info-soft: rgb(142 176 204 / 15%);
+  --destructive-soft: rgb(232 88 74 / 15%);
 
   /* Workout tiers */
-  --tier-t1: oklch(0.72 0.15 25);
-  --tier-t1-soft: oklch(0.72 0.15 25 / 18%);
-  --tier-t2: oklch(0.76 0.13 60);
-  --tier-t2-soft: oklch(0.76 0.13 60 / 18%);
-  --tier-t3: oklch(0.72 0.11 250);
-  --tier-t3-soft: oklch(0.72 0.11 250 / 18%);
-  --tier-accessory: oklch(0.74 0.10 300);
-  --tier-accessory-soft: oklch(0.74 0.10 300 / 18%);
-  --tier-warmup: oklch(0.72 0.03 250);
-  --tier-warmup-soft: oklch(0.72 0.03 250 / 18%);
+  --tier-t1: #ef7a4a;
+  --tier-t1-soft: rgb(239 122 74 / 18%);
+  --tier-t2: #e0a93b;
+  --tier-t2-soft: rgb(224 169 59 / 18%);
+  --tier-t3: #6dbdb3;
+  --tier-t3-soft: rgb(109 189 179 / 18%);
+  --tier-accessory: #c79bbd;
+  --tier-accessory-soft: rgb(199 155 189 / 18%);
+  --tier-warmup: #b8a892;
+  --tier-warmup-soft: rgb(184 168 146 / 18%);
 
   /* Chart kit */
-  --chart-line: oklch(0.67 0.13 160);
-  --chart-area: oklch(0.67 0.13 160 / 14%);
-  --chart-grid: oklch(1 0 0 / 7%);
-  --chart-axis: oklch(0.70 0.01 260); /* 7.5:1 on the background, 7.0:1 on a card */
+  --chart-line: #e0a93b;
+  --chart-area: rgb(224 169 59 / 14%);
+  --chart-grid: rgb(243 233 216 / 7%);
+  --chart-axis: #b8a892; /* 7.8:1 on the background, 7.3:1 on a card */
   --chart-point-ring: var(--background);
-  --chart-inspect: oklch(0.97 0 0);
-  --chart-series-2: oklch(0.51 0.15 252);
-  --chart-series-3: oklch(0.60 0.16 45);
-  --chart-series-4: oklch(0.65 0.15 305);
-  --chart-band: oklch(0.80 0.01 260 / 10%);
-  --chart-good: oklch(0.72 0.15 150);
-  --chart-warn: oklch(0.80 0.14 80);
+  --chart-inspect: #f3e9d8;
+  --chart-series-2: #6dbdb3;
+  --chart-series-3: #ef7a4a;
+  --chart-series-4: #c79bbd;
+  --chart-band: rgb(243 233 216 / 9%);
+  --chart-good: #6dbdb3;
+  --chart-warn: #ef7a4a;
 
-  /* Anatomy: the original dark-theme colours, unchanged (pinned in palette.test.ts). */
-  --anatomy-outline: #52555b;
-  --anatomy-rest: #2e3034;
-  --anatomy-inert: #202225;
-  --anatomy-hair: #17181b;
-  --anatomy-seam: #101214;
-  --anatomy-selected: #3b82f6;
-  --anatomy-selected-stroke: #93c5fd;
-  --anatomy-heat-1: #294b39;
-  --anatomy-heat-2: #2b7351;
-  --anatomy-heat-3: #31a773;
-  --anatomy-heat-4: #4aefa7;
-  --anatomy-recovering: #df6900;
-  --anatomy-ready: #cb9400;
-  --anatomy-primed: #00ac5f;
-  --anatomy-detraining: #4f5661;
-  --anatomy-pain: #ef4444;
-  --anatomy-pain-stroke: #dc2626;
-  --anatomy-sore: #f59e0b;
-  --anatomy-sore-stroke: #d97706;
-  --anatomy-region: #374151;
-  --anatomy-region-stroke: #4b5563;
-  --anatomy-joint-ring: #9ca3af;
+  /* Evidence grades */
+  --grade-strong: #6dbdb3;
+  --grade-moderate: #6dbdb3;
+  --grade-limited: #e0a93b;
+  --grade-heuristic: #ef7a4a;
+  --grade-program: #33271f;
+  --photo-tint: #a8602f;
+  --stripe-1: #ef7a4a;
+  --stripe-2: #e0a93b;
+  --stripe-3: #3f8f86;
+
+  /* Anatomy: burnt-orange load ramp that brightens as load rises. */
+  --anatomy-outline: #7d6c5b;
+  --anatomy-rest: #3b2f27;
+  --anatomy-inert: #2b221d;
+  --anatomy-hair: #211915;
+  --anatomy-seam: #241b16;
+  --anatomy-selected: #6dbdb3;
+  --anatomy-selected-stroke: #a9ddd6;
+  --anatomy-heat-1: #553224;
+  --anatomy-heat-2: #84432a;
+  --anatomy-heat-3: #bd5a31;
+  --anatomy-heat-4: #f47c45;
+  --anatomy-recovering: #ef7a4a;
+  --anatomy-ready: #e0a93b;
+  --anatomy-primed: #6dbdb3;
+  --anatomy-detraining: #988672;
+  --anatomy-pain: #e8584a;
+  --anatomy-pain-stroke: #c4402f;
+  --anatomy-sore: #e0a93b;
+  --anatomy-sore-stroke: #b8862a;
+  --anatomy-region: #3b2f27;
+  --anatomy-region-stroke: #54443a;
+  --anatomy-joint-ring: #b8a892;
 }
 
 @layer base {

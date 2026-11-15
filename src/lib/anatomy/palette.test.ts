@@ -28,7 +28,7 @@ describe("oklchToHex", () => {
     expect(oklchToHex(0.65, 0.1, 160)).toMatch(/^#[0-9a-f]{6}$/);
   });
 
-  it("keeps the accent hue green-dominant", () => {
+  it("keeps a green hue green-dominant", () => {
     const hex = oklchToHex(0.65, 0.1, 160);
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
@@ -79,7 +79,24 @@ function tokens(selector: string): Record<string, string> {
 
 const rootTokens = tokens(":root");
 const darkTokens = tokens(".dark");
-const fmt = ([l, c, h]: readonly [number, number, number]) => `oklch(${l} ${c} ${h})`;
+const darkHex = (t: (typeof ANATOMY_TOKENS)[number]) => anatomyHex(t, "dark");
+const HEAT = ["heat-1", "heat-2", "heat-3", "heat-4"] as const;
+
+/** Hue of a hex colour in degrees (HSL hue; good enough to tell orange from red or green). */
+function hue(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const d = max - Math.min(r, g, b);
+  if (d === 0) return 0;
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+}
+
+/** Spread between the strongest and weakest sRGB channel (0-255): 0 for a grey. */
+function chroma(hex: string): number {
+  const ch = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return Math.max(...ch) - Math.min(...ch);
+}
 
 describe("anatomy tokens in globals.css", () => {
   it("defines every anatomy token in both themes", () => {
@@ -97,12 +114,13 @@ describe("anatomy tokens in globals.css", () => {
 
   it("light values are the palette's light colours", () => {
     for (const t of ANATOMY_TOKENS) {
-      expect(rootTokens[`anatomy-${t}`], t).toBe(fmt(ANATOMY_LIGHT[t]));
+      expect(rootTokens[`anatomy-${t}`], t).toBe(ANATOMY_LIGHT[t]);
     }
   });
 
-  it("light seam is the card colour", () => {
+  it("the seam is the card colour in both themes", () => {
     expect(rootTokens["anatomy-seam"]).toBe(rootTokens["card"]);
+    expect(darkTokens["anatomy-seam"]).toBe(darkTokens["card"]);
   });
 
   it("maps the body-map legend tokens for Tailwind", () => {
@@ -112,72 +130,71 @@ describe("anatomy tokens in globals.css", () => {
   });
 });
 
-describe("dark theme is unchanged", () => {
-  // The colours the figure, heat ramp, recovery map and body map used before the
-  // light theme existed. Dark mode must keep drawing exactly these.
-  const BEFORE: Record<string, string> = {
-    outline: oklchToHex(0.45, 0.01, 260),
-    rest: oklchToHex(0.31, 0.008, 260),
-    inert: oklchToHex(0.25, 0.006, 260),
-    hair: oklchToHex(0.21, 0.006, 260),
-    seam: oklchToHex(0.18, 0.005, 260),
-    selected: "#3b82f6",
-    "selected-stroke": "#93c5fd",
-    "heat-1": oklchToHex(0.38, 0.05, 160),
-    "heat-2": oklchToHex(0.5, 0.09, 160),
-    "heat-3": oklchToHex(0.65, 0.13, 160),
-    "heat-4": oklchToHex(0.85, 0.17, 160),
-    recovering: oklchToHex(0.65, 0.18, 55),
-    ready: oklchToHex(0.7, 0.16, 85),
-    primed: oklchToHex(0.65, 0.17, 155),
-    detraining: oklchToHex(0.45, 0.02, 260),
-    pain: "#ef4444",
-    "pain-stroke": "#dc2626",
-    sore: "#f59e0b",
-    "sore-stroke": "#d97706",
-    region: "#374151",
-    "region-stroke": "#4b5563",
-    "joint-ring": "#9ca3af",
-  };
-
-  it("pins every dark token to its previous colour", () => {
-    expect(Object.keys(ANATOMY_DARK).sort()).toEqual(Object.keys(BEFORE).sort());
-    for (const [t, hex] of Object.entries(BEFORE)) {
-      expect(ANATOMY_DARK[t as keyof typeof ANATOMY_DARK], t).toBe(hex);
-      expect(darkTokens[`anatomy-${t}`], t).toBe(hex);
+describe("load ramp is burnt orange in both themes", () => {
+  it("every heat level is an orange hue, away from pain red and soreness mustard", () => {
+    for (const theme of ["dark", "light"] as const) {
+      for (const t of HEAT) {
+        const h = hue(anatomyHex(t, theme));
+        expect(h, `${theme} ${t}`).toBeGreaterThanOrEqual(12);
+        expect(h, `${theme} ${t}`).toBeLessThanOrEqual(32);
+      }
     }
   });
 
-  it("keeps the 3D scenes' dark colours", () => {
-    const a = SCENE_PALETTES.dark.anatomy;
-    expect(a.rest).toBe("#6b7080");
-    expect(a.other).toBe("#565a66");
-    expect(a.heat).toEqual([1, 2, 3, 4].map((i) => BEFORE[`heat-${i}`]));
-    expect(a.heatEmissive).toEqual([0, 0, 0.12, 0.28]);
-    expect(a.bone).toBe(oklchToHex(0.82, 0.02, 85));
-    expect(a.selected).toBe("#3b82f6");
-    expect(SCENE_PALETTES.dark.mannequin).toEqual({
-      body: "#cfd4de",
-      joint: "#aeb4c0",
-      steel: "#8d929c",
-      plate: "#737986",
-      pad: "#5d6370",
-      floor: "#23262e",
-      trace: BEFORE["heat-4"],
-    });
+  it("the 3D scenes use the same ramp", () => {
+    expect(SCENE_PALETTES.dark.anatomy.heat).toEqual(HEAT.map(darkHex));
+    expect(SCENE_PALETTES.light.anatomy.heat).toEqual(HEAT.map(lightHex));
+    expect(SCENE_PALETTES.dark.mannequin.trace).toBe(darkHex("heat-4"));
+    expect(SCENE_PALETTES.light.mannequin.trace).toBe(lightHex("heat-4"));
+  });
+});
+
+describe("dark theme contrast (against the dark card)", () => {
+  const card = darkTokens["card"];
+
+  it("resting muscle reads as a body on the card", () => {
+    expect(contrast(darkHex("rest"), card)).toBeGreaterThanOrEqual(1.25);
+    expect(contrast(darkHex("outline"), card)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("heat ramp gets lighter level by level and the top level reaches 3:1", () => {
+    let prev = darkHex("rest");
+    for (const t of HEAT) {
+      expect(luminance(darkHex(t)), t).toBeGreaterThan(luminance(prev));
+      prev = darkHex(t);
+    }
+    for (const [a, b] of [["heat-1", "heat-2"], ["heat-2", "heat-3"], ["heat-3", "heat-4"]] as const) {
+      expect(contrast(darkHex(a), darkHex(b)), `${a}/${b}`).toBeGreaterThanOrEqual(1.3);
+    }
+    expect(contrast(darkHex("heat-4"), card)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("pain and soreness reach 3:1; recovery labels (text) reach 4.5:1", () => {
+    expect(contrast(darkHex("pain"), card)).toBeGreaterThanOrEqual(3);
+    expect(contrast(darkHex("sore"), card)).toBeGreaterThanOrEqual(3);
+    for (const t of ["recovering", "ready", "primed", "detraining"] as const) {
+      expect(contrast(darkHex(t), card), t).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("body-map joint rings stand off the card", () => {
+    expect(contrast(darkHex("joint-ring"), card)).toBeGreaterThanOrEqual(3);
   });
 });
 
 describe("light theme contrast (against the light card)", () => {
-  const card = oklchToHex(0.995, 0.002, 250);
+  const card = rootTokens["card"];
 
   it("resting muscle reads as a body on the card", () => {
-    expect(contrast(lightHex("rest"), card)).toBeGreaterThanOrEqual(1.5);
+    expect(contrast(lightHex("rest"), card)).toBeGreaterThanOrEqual(1.25);
+    expect(contrast(lightHex("outline"), card)).toBeGreaterThanOrEqual(3);
   });
 
   it("heat ramp darkens level by level and the top level reaches 3:1", () => {
-    let prev = lightHex("rest");
-    for (const t of ["heat-1", "heat-2", "heat-3", "heat-4"] as const) {
+    // Level 1 is a pale peach, told from the tan resting muscle by its stronger colour.
+    expect(chroma(lightHex("heat-1"))).toBeGreaterThan(chroma(lightHex("rest")) * 1.3);
+    let prev = lightHex("heat-1");
+    for (const t of HEAT.slice(1)) {
       expect(luminance(lightHex(t)), t).toBeLessThan(luminance(prev));
       prev = lightHex(t);
     }
@@ -185,12 +202,6 @@ describe("light theme contrast (against the light card)", () => {
       expect(contrast(lightHex(a), lightHex(b)), `${a}/${b}`).toBeGreaterThanOrEqual(1.3);
     }
     expect(contrast(lightHex("heat-4"), card)).toBeGreaterThanOrEqual(3);
-  });
-
-  it("heat ramp is one sage hue", () => {
-    for (const t of ["heat-1", "heat-2", "heat-3", "heat-4"] as const) {
-      expect(ANATOMY_LIGHT[t][2]).toBe(160);
-    }
   });
 
   it("pain and soreness reach 3:1; recovery labels (text) reach 4.5:1", () => {

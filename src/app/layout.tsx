@@ -8,21 +8,31 @@ import { HealthProvider } from "@/components/HealthProvider";
 import { SyncProvider } from "@/components/SyncProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
-// The fonts are bundled with the app (variable woff2 files, SIL Open Font License,
+// The fonts are bundled with the app (woff2 files, SIL Open Font License,
 // see ./fonts) instead of being fetched from Google Fonts at build time: a change in
 // Google's font URLs broke every production build, and the PWA should not depend on
 // a third party to render text.
-const plusJakarta = localFont({
-  src: "./fonts/plus-jakarta-sans-latin-wght-normal.woff2",
+const dmSans = localFont({
+  src: "./fonts/dm-sans-latin-wght-normal.woff2",
   variable: "--font-sans",
-  weight: "200 800",
+  weight: "100 1000",
   display: "swap",
 });
 
-const jetbrainsMono = localFont({
-  src: "./fonts/jetbrains-mono-latin-wght-normal.woff2",
+const dmMono = localFont({
+  src: [
+    { path: "./fonts/dm-mono-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/dm-mono-latin-500-normal.woff2", weight: "500", style: "normal" },
+  ],
   variable: "--font-mono",
-  weight: "100 800",
+  display: "swap",
+});
+
+// Display face for headings and big numbers (`font-display`).
+const jost = localFont({
+  src: "./fonts/jost-latin-wght-normal.woff2",
+  variable: "--font-display",
+  weight: "100 900",
   display: "swap",
 });
 
@@ -42,7 +52,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#09090b",
+  // The dark theme's --background (globals.css); ThemeProvider's THEME_COLORS and
+  // public/manifest.json use the same value.
+  themeColor: "#1b1512",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -59,7 +71,7 @@ export default function RootLayout({
     // it on the client when the stored setting is "light".
     <html lang="en" className="dark" suppressHydrationWarning>
       <body
-        className={`${plusJakarta.variable} ${jetbrainsMono.variable} antialiased`}
+        className={`${dmSans.variable} ${dmMono.variable} ${jost.variable} antialiased`}
       >
         <ThemeProvider />
         <AppChrome>
