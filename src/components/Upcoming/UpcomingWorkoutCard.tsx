@@ -140,7 +140,7 @@ export function UpcomingWorkoutCard({
         aria-hidden="true"
         className="absolute top-2 right-2 bottom-2 flex items-center rounded-[14px] bg-background/85 px-2"
       >
-        <WorkoutFigure exerciseIds={figureIds} className="h-[104px]" />
+        <WorkoutFigure exerciseIds={figureIds} className="h-[92px]" />
       </span>
 
       {isNext && (
