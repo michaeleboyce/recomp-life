@@ -14,11 +14,11 @@ import { useWorkoutSnapshots } from "./useWorkoutSnapshots";
 const ICON: Record<OutcomeKind, ComponentType<{ className?: string }>> = {
   passed: ArrowUpRight,
   t3Up: ArrowUpRight,
-  missed: ArrowDownRight,
+  stageDown: ArrowDownRight,
   reset: RotateCcw,
   held: Pause,
   partial: Minus,
-  unchanged: Minus,
+  loggedOnly: Minus,
   t3Same: Minus,
   notDone: CircleSlash,
 };
@@ -26,7 +26,7 @@ const ICON: Record<OutcomeKind, ComponentType<{ className?: string }>> = {
 const TONE: Partial<Record<OutcomeKind, string>> = {
   passed: "text-success",
   t3Up: "text-success",
-  missed: "text-warning",
+  stageDown: "text-warning",
   reset: "text-warning",
 };
 
@@ -53,15 +53,15 @@ function OutcomeRow({ outcome, hideLibraryLink }: { outcome: LiftOutcome; hideLi
 }
 
 /**
- * What a finished workout did to each program lift, as of that workout: the lift
- * states the rebuild recorded right after it, so a past session shows what it did then,
- * not what the lift looks like today.
+ * What a finished workout did to each program lift, as of that workout: the outcomes
+ * the progression rules reported when the rebuild replayed it, so a past session shows
+ * what it did then, not what the lift looks like today.
  */
 export function WhatItDid({ workoutId, hideLibraryLink = false }: { workoutId: string; hideLibraryLink?: boolean }) {
   const workout = useWorkout(workoutId);
   const snapshots = useWorkoutSnapshots(workoutId);
   if (!workout || !snapshots) return null;
-  const outcomes = describeOutcomes(workout, snapshots.after, snapshots.before);
+  const outcomes = describeOutcomes(workout, snapshots.outcomes);
   if (outcomes.length === 0) return null;
 
   return (

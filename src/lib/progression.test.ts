@@ -448,61 +448,18 @@ describe("evaluateT2Progression", () => {
 });
 
 describe("evaluateT3Progression", () => {
-  describe("v3.2 critical fix: weight increases when AMRAP last set >= 25", () => {
-    it("3x15 (45 total reps) does NOT trigger weight increase", () => {
-      const result = evaluateT3Progression(45, 15, 30, { mode: "maintaining" });
-      expect(result.newWeight).toBe(30);
-    });
-
-    it("last set AMRAP >= 25 -> weight increases", () => {
-      // total = 15 + 15 + 25 = 55, AMRAP last set = 25
-      const result = evaluateT3Progression(55, 25, 30, { mode: "maintaining" });
-      expect(result.newWeight).toBe(35);
-    });
-
-    it("total reps >= 50 (e.g., 15+15+20) -> weight increases", () => {
-      // total = 50, AMRAP last set = 20 (< 25)
-      const result = evaluateT3Progression(50, 20, 30, { mode: "maintaining" });
-      expect(result.newWeight).toBe(35);
-    });
-
-    it("last set AMRAP 24 with total 49 -> no increase", () => {
-      const result = evaluateT3Progression(49, 24, 30, { mode: "maintaining" });
-      expect(result.newWeight).toBe(30);
-    });
+  it("goes up when the last set reaches 25 reps", () => {
+    expect(evaluateT3Progression(25, 30)).toEqual({ newWeight: 35, increased: true });
+    expect(evaluateT3Progression(31, 30)).toEqual({ newWeight: 35, increased: true });
   });
 
-  describe("phase-adjusted behavior", () => {
-    it("cutting: only AMRAP trigger counts (ignores total >= 50)", () => {
-      // total = 50 but AMRAP last set = 20 -> should NOT increase in cutting
-      const result = evaluateT3Progression(50, 20, 30, { mode: "cutting" });
-      expect(result.newWeight).toBe(30);
-    });
+  it("stays the same when the last set is short of 25", () => {
+    expect(evaluateT3Progression(24, 30)).toEqual({ newWeight: 30, increased: false });
+    expect(evaluateT3Progression(15, 30)).toEqual({ newWeight: 30, increased: false });
+  });
 
-    it("cutting: AMRAP >= 25 still triggers increase", () => {
-      const result = evaluateT3Progression(55, 25, 30, { mode: "cutting" });
-      expect(result.newWeight).toBe(35);
-    });
-
-    it("maintaining: either trigger works - total >= 50", () => {
-      const result = evaluateT3Progression(50, 20, 30, { mode: "maintaining" });
-      expect(result.newWeight).toBe(35);
-    });
-
-    it("maintaining: either trigger works - AMRAP >= 25", () => {
-      const result = evaluateT3Progression(40, 25, 30, { mode: "maintaining" });
-      expect(result.newWeight).toBe(35);
-    });
-
-    it("bulking: either trigger works - total >= 50", () => {
-      const result = evaluateT3Progression(50, 20, 30, { mode: "bulking" });
-      expect(result.newWeight).toBe(35);
-    });
-
-    it("bulking: either trigger works - AMRAP >= 25", () => {
-      const result = evaluateT3Progression(40, 25, 30, { mode: "bulking" });
-      expect(result.newWeight).toBe(35);
-    });
+  it("never goes down", () => {
+    expect(evaluateT3Progression(0, 30).newWeight).toBe(30);
   });
 });
 

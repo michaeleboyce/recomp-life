@@ -4,16 +4,20 @@
  * Pure functions implementing the GZCLP linear progression scheme:
  * - T1: 5x3 -> 6x2 -> 10x1 -> reset (failure cascade)
  * - T2: 3x10 -> 3x8 -> 3x6 -> reset (failure cascade)
- * - T3: AMRAP-based progression with phase adjustments
+ * - T3: the weight goes up when the last set reaches its rep target
  * - T2 Auto-regulation: RPE-based load drops per training phase
  *
- * All functions are pure — they take state in and return new state out.
+ * All functions are pure — they take state in and return new state out. `evaluateT1`,
+ * `evaluateT2` and `evaluateT3` also return the outcome: what the rule did and why.
  *
  * @evidence gzclp-progression
  */
 
 import type {
   LiftState,
+  ProgressionOutcome,
+  ProgressionOutcomeKind,
+  ProgressionOutcomeReason,
   SetLog,
   SetStatus,
   EquipmentProfile,
@@ -44,17 +48,23 @@ export const T2_AUTOREG_RPE_THRESHOLD: Record<TrainingPhase["mode"], number> = {
 /** Suggested T2 load drop: `max` after an RPE 10 set, `standard` otherwise. */
 export const T2_AUTOREG_DROP = { standard: 0.05, max: 0.1 } as const;
 
-/** Reps on the last T3 set at or above which the T3 weight goes up (every phase). */
+/** Reps on the last T3 set at or above which the T3 weight goes up, in every phase. */
 export const T3_LAST_SET_INCREASE_REPS = 25;
-
-/** Total T3 reps across its sets at or above which the weight goes up, outside a cut. */
-export const T3_TOTAL_INCREASE_REPS = 50;
 
 /** Pounds added to a T3 lift when it goes up. */
 export const T3_INCREMENT_LBS = 5;
 
-/** Training phases in which only the last-set trigger raises a T3 weight. */
-export const T3_LAST_SET_ONLY_PHASES: readonly TrainingPhase["mode"][] = ["cutting"];
+/**
+ * The evidence rule each kind of progression outcome points at: the program's own
+ * rules for T1 and T2, the T3 rule, the rule that suggests a T2 load drop, and the
+ * rule for a lift done differently from its prescription.
+ */
+export const OUTCOME_RULE_IDS = {
+  program: "gzclp-progression",
+  t3: "t3-progression",
+  loadDrop: "t2-autoregulation",
+  credit: "off-program-credit",
+} as const;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -108,11 +118,16 @@ export function shouldFreezeProgression(
 // Freeze-status detection
 // ---------------------------------------------------------------------------
 
-const FREEZE_STATUSES: ReadonlySet<SetStatus> = new Set([
-  "skipped_pain",
-  "reduced_run_fatigue",
-  "reduced_equipment",
-]);
+/** Set statuses that freeze progression, and the reason each one stands for. */
+const FREEZE_REASONS: Partial<Record<SetStatus, "pain" | "run" | "equipment">> = {
+  skipped_pain: "pain",
+  reduced_run_fatigue: "run",
+  reduced_equipment: "equipment",
+};
+
+const FREEZE_STATUSES: ReadonlySet<SetStatus> = new Set(
+  Object.keys(FREEZE_REASONS) as SetStatus[]
+);
 
 /**
  * Returns true if *any* set in the workout carries a status that should
@@ -127,6 +142,96 @@ export function hasFreezeStatus(sets: SetLog[]): boolean {
  */
 function hasAutoregulatedLoadDrop(sets: SetLog[]): boolean {
   return sets.some((s) => s.status === "autoregulated_load_drop");
+}
+
+export type HoldReason = Extract<
+  ProgressionOutcomeReason,
+  "pain" | "run" | "equipment" | "loadDrop"
+>;
+
+/**
+ * Why a tier's progression is on hold whatever the reps were, or null when it is not.
+ * Checked in the order progression checks it: a set skipped or reduced for pain, a
+ * run or equipment first (the first such set in logging order gives the reason), then,
+ * for T2 only, an accepted load drop. A hold is neither a pass nor a miss.
+ */
+export function getHoldReason(tier: "T1" | "T2" | "T3", sets: SetLog[]): HoldReason | null {
+  for (const set of sets) {
+    const reason = FREEZE_REASONS[set.status];
+    if (reason) return reason;
+  }
+  if (tier === "T2" && hasAutoregulatedLoadDrop(sets)) return "loadDrop";
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Outcomes
+// ---------------------------------------------------------------------------
+
+/** A lift state after a session, with what the program rules did to reach it. */
+export interface ProgressionResult {
+  state: LiftState;
+  outcome: ProgressionOutcome;
+}
+
+type OutcomePoint = ProgressionOutcome["from"];
+
+/** A tier's weight and stage in a lift state, as an outcome records them. T3 has no stage. */
+export function outcomePoint(state: LiftState, tier: ProgressionOutcome["tier"]): OutcomePoint {
+  if (tier === "T1") return { weight: state.t1Weight, stage: state.t1Stage };
+  if (tier === "T2") return { weight: state.t2Weight, stage: state.t2Stage };
+  return { weight: state.t3Weight };
+}
+
+/** A new state for one tier with the outcome that says how it differs from `before`. */
+function resultFor(
+  tier: ProgressionOutcome["tier"],
+  before: LiftState,
+  state: LiftState,
+  kind: ProgressionOutcomeKind,
+  reason?: ProgressionOutcomeReason
+): ProgressionResult {
+  return {
+    state,
+    outcome: makeOutcome(
+      before.exerciseId,
+      tier,
+      kind,
+      outcomePoint(before, tier),
+      outcomePoint(state, tier),
+      reason
+    ),
+  };
+}
+
+/** The evidence rule behind an outcome, from its tier and its reason. */
+export function outcomeRuleId(
+  tier: ProgressionOutcome["tier"],
+  reason?: ProgressionOutcomeReason
+): string {
+  if (reason === "edited" || reason === "heavier") return OUTCOME_RULE_IDS.credit;
+  if (reason === "loadDrop") return OUTCOME_RULE_IDS.loadDrop;
+  return tier === "T3" ? OUTCOME_RULE_IDS.t3 : OUTCOME_RULE_IDS.program;
+}
+
+/** One outcome record. `to` defaults to `from`: nothing about the lift changed. */
+export function makeOutcome(
+  exerciseId: string,
+  tier: ProgressionOutcome["tier"],
+  kind: ProgressionOutcomeKind,
+  from: OutcomePoint,
+  to: OutcomePoint = from,
+  reason?: ProgressionOutcomeReason
+): ProgressionOutcome {
+  return {
+    exerciseId,
+    tier,
+    kind,
+    ...(reason ? { reason } : {}),
+    from: { ...from },
+    to: { ...to },
+    ruleId: outcomeRuleId(tier, reason),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -174,32 +279,44 @@ function isT1Pass(sets: SetLog[], stage: T1Stage): boolean {
 }
 
 /**
- * Evaluate T1 progression after a workout.
+ * Evaluate T1 progression after a workout: the new lift state and the outcome that
+ * explains it. Branch order: hold (pain, a run, equipment), pass, reset after the
+ * last stage, otherwise one stage down.
  *
- * Returns a new (shallow-copied) LiftState with updated T1 fields.
+ * The state is a new (shallow-copied) LiftState with updated T1 fields.
  */
-export function evaluateT1Progression(
+export function evaluateT1(
   liftState: LiftState,
   setsCompleted: SetLog[],
   location: WorkoutLocation,
   equipment: EquipmentProfile,
   liftType: "upper" | "lower"
-): LiftState {
+): ProgressionResult {
+  const stage = liftState.t1Stage;
+  const result = (
+    state: LiftState,
+    kind: ProgressionOutcomeKind,
+    reason?: ProgressionOutcomeReason
+  ): ProgressionResult => resultFor("T1", liftState, state, kind, reason);
+
   // Freeze: return unchanged if any set has a freeze status
-  if (hasFreezeStatus(setsCompleted)) {
-    return { ...liftState };
+  const hold = getHoldReason("T1", setsCompleted);
+  if (hold) {
+    return result({ ...liftState }, "held", hold);
   }
 
-  const stage = liftState.t1Stage;
   const passed = isT1Pass(setsCompleted, stage);
 
   if (passed) {
     const increment = getIncrement(liftType, location, equipment);
-    return {
-      ...liftState,
-      t1Weight: liftState.t1Weight + increment,
-      t1FailCount: 0,
-    };
+    return result(
+      {
+        ...liftState,
+        t1Weight: liftState.t1Weight + increment,
+        t1FailCount: 0,
+      },
+      "passed"
+    );
   }
 
   // Failed — cascade
@@ -207,20 +324,31 @@ export function evaluateT1Progression(
 
   if (next === "reset") {
     const resetWeight = roundToNearest5(liftState.t1Weight * RESET_FACTOR);
-    return {
-      ...liftState,
-      t1Weight: resetWeight,
-      t1Stage: "5x3",
-      t1FailCount: 0,
-      t1LastResetWeight: liftState.t1Weight,
-    };
+    return result(
+      {
+        ...liftState,
+        t1Weight: resetWeight,
+        t1Stage: "5x3",
+        t1FailCount: 0,
+        t1LastResetWeight: liftState.t1Weight,
+      },
+      "reset"
+    );
   }
 
-  return {
-    ...liftState,
-    t1Stage: next,
-    t1FailCount: liftState.t1FailCount + 1,
-  };
+  return result(
+    {
+      ...liftState,
+      t1Stage: next,
+      t1FailCount: liftState.t1FailCount + 1,
+    },
+    "stageDown"
+  );
+}
+
+/** The lift state `evaluateT1` gives, without the outcome. */
+export function evaluateT1Progression(...args: Parameters<typeof evaluateT1>): LiftState {
+  return evaluateT1(...args).state;
 }
 
 // ---------------------------------------------------------------------------
@@ -261,37 +389,45 @@ function isT2Pass(sets: SetLog[], stage: T2Stage): boolean {
 }
 
 /**
- * Evaluate T2 progression after a workout.
+ * Evaluate T2 progression after a workout: the new lift state and the outcome that
+ * explains it. Branch order: hold (pain, a run, equipment, then an accepted load
+ * drop), pass, reset after the last stage, otherwise one stage down.
  *
- * Returns a new (shallow-copied) LiftState with updated T2 fields.
+ * The state is a new (shallow-copied) LiftState with updated T2 fields.
  */
-export function evaluateT2Progression(
+export function evaluateT2(
   liftState: LiftState,
   setsCompleted: SetLog[],
   location: WorkoutLocation,
   equipment: EquipmentProfile,
   liftType: "upper" | "lower"
-): LiftState {
-  // Freeze: return unchanged for pain/run/equipment statuses
-  if (hasFreezeStatus(setsCompleted)) {
-    return { ...liftState };
-  }
-
-  // Autoregulated load drop: counts as pass but FREEZE weight
-  if (hasAutoregulatedLoadDrop(setsCompleted)) {
-    return { ...liftState };
-  }
-
+): ProgressionResult {
   const stage = liftState.t2Stage;
+  const result = (
+    state: LiftState,
+    kind: ProgressionOutcomeKind,
+    reason?: ProgressionOutcomeReason
+  ): ProgressionResult => resultFor("T2", liftState, state, kind, reason);
+
+  // Freeze: return unchanged for pain/run/equipment statuses, then for an accepted
+  // autoregulated load drop (neither a pass nor a failure: the weight stays).
+  const hold = getHoldReason("T2", setsCompleted);
+  if (hold) {
+    return result({ ...liftState }, "held", hold);
+  }
+
   const passed = isT2Pass(setsCompleted, stage);
 
   if (passed) {
     const increment = getIncrement(liftType, location, equipment);
-    return {
-      ...liftState,
-      t2Weight: liftState.t2Weight + increment,
-      t2FailCount: 0,
-    };
+    return result(
+      {
+        ...liftState,
+        t2Weight: liftState.t2Weight + increment,
+        t2FailCount: 0,
+      },
+      "passed"
+    );
   }
 
   // Failed — cascade
@@ -299,20 +435,31 @@ export function evaluateT2Progression(
 
   if (next === "reset") {
     const resetWeight = roundToNearest5(liftState.t2Weight * RESET_FACTOR);
-    return {
-      ...liftState,
-      t2Weight: resetWeight,
-      t2Stage: "3x10",
-      t2FailCount: 0,
-      t2LastResetWeight: liftState.t2Weight,
-    };
+    return result(
+      {
+        ...liftState,
+        t2Weight: resetWeight,
+        t2Stage: "3x10",
+        t2FailCount: 0,
+        t2LastResetWeight: liftState.t2Weight,
+      },
+      "reset"
+    );
   }
 
-  return {
-    ...liftState,
-    t2Stage: next,
-    t2FailCount: liftState.t2FailCount + 1,
-  };
+  return result(
+    {
+      ...liftState,
+      t2Stage: next,
+      t2FailCount: liftState.t2FailCount + 1,
+    },
+    "stageDown"
+  );
+}
+
+/** The lift state `evaluateT2` gives, without the outcome. */
+export function evaluateT2Progression(...args: Parameters<typeof evaluateT2>): LiftState {
+  return evaluateT2(...args).state;
 }
 
 // ---------------------------------------------------------------------------
@@ -327,16 +474,9 @@ export interface T3ProgressionResult {
 /**
  * Evaluate T3 progression after a workout.
  *
- * v3.2 critical fix: weight increases when AMRAP last set >= 25 reps
- * (NOT just total >= 25).
- *
- * Progression criteria (use EITHER trigger in maintaining/bulking):
- * - IF last-set AMRAP reps >= 25 -> ADD 5 lbs
- * - OR IF total reps across 3 sets >= 50 -> ADD 5 lbs
- *
- * Phase-adjusted behavior:
- * - Cutting: only AMRAP trigger (last set >= 25)
- * - Maintaining/Bulking: either trigger works
+ * The weight goes up by T3_INCREMENT_LBS when the last set reached
+ * T3_LAST_SET_INCREASE_REPS reps, in every training phase. Total reps across the
+ * sets do not count: two easy sets must not stand in for a hard last one.
  *
  * Applied by `computeCompletion` when a T3 exercise was fully completed. The
  * workout detail page explains the result ("What it did").
@@ -344,35 +484,35 @@ export interface T3ProgressionResult {
  * @evidence t3-progression
  */
 export function evaluateT3Progression(
-  totalReps: number,
-  amrapLastSetReps: number,
-  currentWeight: number,
-  phase: TrainingPhase
+  lastSetReps: number,
+  currentWeight: number
 ): T3ProgressionResult {
-  const amrapTrigger = amrapLastSetReps >= T3_LAST_SET_INCREASE_REPS;
-  const totalTrigger = totalReps >= T3_TOTAL_INCREASE_REPS;
+  return lastSetReps >= T3_LAST_SET_INCREASE_REPS
+    ? { newWeight: currentWeight + T3_INCREMENT_LBS, increased: true }
+    : { newWeight: currentWeight, increased: false };
+}
 
-  let shouldIncrease: boolean;
-
-  if (T3_LAST_SET_ONLY_PHASES.includes(phase.mode)) {
-    // Cutting: only AMRAP trigger
-    shouldIncrease = amrapTrigger;
-  } else {
-    // Maintaining or Bulking: either trigger
-    shouldIncrease = amrapTrigger || totalTrigger;
+/**
+ * T3 after a workout in which every set of the lift was done: the new lift state and
+ * the outcome that explains it. A set skipped or reduced for pain, a run or equipment
+ * holds the weight like any other tier; otherwise `evaluateT3Progression` decides
+ * from the last set logged. The weight never goes down.
+ */
+export function evaluateT3(liftState: LiftState, setsCompleted: SetLog[]): ProgressionResult {
+  const hold = getHoldReason("T3", setsCompleted);
+  if (hold) {
+    return resultFor("T3", liftState, { ...liftState }, "held", hold);
   }
 
-  if (shouldIncrease) {
-    return {
-      newWeight: currentWeight + T3_INCREMENT_LBS,
-      increased: true,
-    };
-  }
-
-  return {
-    newWeight: currentWeight,
-    increased: false,
-  };
+  const lastSetReps = setsCompleted[setsCompleted.length - 1]?.actualReps ?? 0;
+  const result = evaluateT3Progression(lastSetReps, liftState.t3Weight);
+  return resultFor(
+    "T3",
+    liftState,
+    { ...liftState, t3Weight: result.newWeight },
+    result.increased ? "t3Up" : "t3Same",
+    "lastSet"
+  );
 }
 
 // ---------------------------------------------------------------------------

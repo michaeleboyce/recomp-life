@@ -18,6 +18,13 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     sources: [],
   },
   {
+    date: "2026-11-13",
+    ruleId: "t3-progression",
+    change:
+      "T3 weight now goes up only when the last set reaches 25 reps, in every phase. Outside a cut it used to go up on 50 total reps as well; that route is removed.",
+    sources: [],
+  },
+  {
     date: "2026-11-12",
     ruleId: "off-program-credit",
     change:

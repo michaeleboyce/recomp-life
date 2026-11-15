@@ -478,14 +478,11 @@ describe("computeCompletion: T3 progression", () => {
     expect(computeCompletion(completion({ sets: latT3(24) })).liftStateUpdates).toEqual([]);
   });
 
-  it("while cutting, 50 total reps without a 25-rep last set does not progress", () => {
+  it("50 total reps without a 25-rep last set does not progress, in any phase", () => {
     expect(SETTINGS.trainingPhase.mode).toBe("cutting");
     expect(computeCompletion(completion({ sets: latT3(20) })).liftStateUpdates).toEqual([]);
-  });
-
-  it("outside a cut, 50 total reps is enough", () => {
     const result = computeCompletion(completion({ sets: latT3(20), settings: maintaining }));
-    expect(byId(result.liftStateUpdates, "lat_pulldown")!.t3Weight).toBe(95);
+    expect(byId(result.liftStateUpdates, "lat_pulldown")).toBeUndefined();
   });
 
   it("uses the last set logged, not the best set", () => {
