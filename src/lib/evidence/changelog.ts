@@ -12,6 +12,41 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-15",
+    ruleId: "forecast-stall",
+    change:
+      "Introduced: Forecasts now shows the chance that each main lift misses at its current stage within its next two sessions, read from the rep forecast, and checks it against those sessions.",
+    sources: [],
+  },
+  {
+    date: "2026-11-15",
+    ruleId: "forecast-milestone",
+    change:
+      "Introduced: Forecasts now dates when each main lift's working weight reaches its next multiple of 25 lb, with a range, by walking the program's own rules forward, and checks it against the first workout at that weight.",
+    sources: [],
+  },
+  {
+    date: "2026-11-15",
+    ruleId: "forecast-muscle-ready",
+    change:
+      "Introduced: Forecasts now shows when the muscles of your last workout should be ready again, from the recovery times. It is an explanation and is not scored, because the log never records when a muscle has recovered.",
+    sources: [],
+  },
+  {
+    date: "2026-11-15",
+    ruleId: "forecast-bodyweight",
+    change:
+      "Now shown: the Forecasts screen lists the stored bodyweight forecast for four weeks on, with its range and how it was worked out.",
+    sources: [],
+  },
+  {
+    date: "2026-11-15",
+    ruleId: "forecast-calibration",
+    change:
+      "Now shown: the Track record screen scores every stored forecast against what happened, and the app widens a kind's ranges when too few results land inside them.",
+    sources: [],
+  },
+  {
+    date: "2026-11-15",
     ruleId: "forecast-session-length",
     change:
       "Introduced: Today now shows how long the workout is expected to take, as a number of minutes with a range, from the planned sets and rests and corrected by how long your own sessions have run.",

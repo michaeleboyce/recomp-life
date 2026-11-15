@@ -44,6 +44,7 @@ vi.mock("@/lib/forecast", async (importOriginal) => {
 
 import { initializeDatabase } from "@/db/init";
 import { db } from "@/db/local";
+import { FORECAST_KIND_IDS } from "@/lib/forecast";
 import { longHistory, SETTINGS } from "@/lib/forecast/testHelpers";
 import { prescribedFor } from "@/lib/workout/planEdits";
 import { makeSession, seedLiftStates } from "@/lib/workout/testFixtures";
@@ -88,7 +89,7 @@ describe("the start of a workout over a long history", () => {
     // Scoring the 3,600 stored forecasts and finding each lift's best share one pass.
     expect(counted.e1rmsForWorkout).toBeLessThanOrEqual(WORKOUTS);
     expect(Object.keys(source.bestE1RMs).sort()).toEqual(["bench", "deadlift", "ohp", "squat"]);
-    expect(Object.keys(source.sdScale!)).toHaveLength(6);
+    expect(Object.keys(source.sdScale!)).toHaveLength(FORECAST_KIND_IDS.length);
     expect(source.workouts).toHaveLength(WORKOUTS);
   });
 

@@ -201,6 +201,10 @@ export const RANGE_SOURCE_KIND: Record<ForecastKind, ForecastKind> = {
   sessionLength: "sessionLength",
   e1rm4w: "e1rm4w",
   bodyweight4w: "bodyweight4w",
+  // A chance read from the reps model, like the chance of a pass.
+  stallRisk: "amrapReps",
+  // A range of dates of its own.
+  milestone: "milestone",
 };
 
 const SCALE_TOLERANCE = 1e-9;

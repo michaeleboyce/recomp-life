@@ -28,6 +28,8 @@ const ALL_KINDS: Record<ForecastKind, true> = {
   sessionLength: true,
   e1rm4w: true,
   bodyweight4w: true,
+  stallRisk: true,
+  milestone: true,
 };
 
 const EVENT_OF_KIND: Record<ForecastKind, ForecastEventType> = {
@@ -37,6 +39,8 @@ const EVENT_OF_KIND: Record<ForecastKind, ForecastEventType> = {
   sessionLength: "durationSeconds",
   e1rm4w: "e1rmLevel",
   bodyweight4w: "bodyweightMean",
+  stallRisk: "missAtStage",
+  milestone: "weightReached",
 };
 
 const NOW = new Date(2026, 10, 14, 12, 0, 0);
@@ -67,6 +71,21 @@ describe("the registry", () => {
     expect(FORECAST_KINDS.sessionLength.ruleId).toBe("forecast-session-length");
     expect(FORECAST_KINDS.bodyweight4w.ruleId).toBe("forecast-bodyweight");
     expect(FORECAST_KINDS.e1rm4w.ruleId).toBe("projection-rate-of-gain");
+    expect(FORECAST_KINDS.stallRisk.ruleId).toBe("forecast-stall");
+    expect(FORECAST_KINDS.milestone.ruleId).toBe("forecast-milestone");
+  });
+
+  it("stores the second set of forecasts for a date ahead, one per lift per week", () => {
+    for (const kind of ["stallRisk", "milestone"] as const) {
+      expect(FORECAST_KINDS[kind].scope).toBe("horizon");
+      const rows = replay.forecasts.filter((row) => row.kind === kind);
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.slot).toMatch(new RegExp(`^${kind}\\|${row.exerciseId}\\|\\d{4}-W\\d{2}$`));
+        expect(row.id).toBe(`replay:${row.slot}`);
+        expect(row.tier).toBe("T1");
+      }
+    }
   });
 
   it("uses plain words in what screens show", () => {
@@ -139,7 +158,7 @@ describe("every kind has a resolver", () => {
   });
 
   it("is void, not an error, for a kind it does not know", () => {
-    const row = forecastRow({ kind: "stallRisk" as ForecastKind });
+    const row = forecastRow({ kind: "notAKind" as ForecastKind });
     expect(resolveForecast(row, { workouts: [], bodyweight: [] }, NOW)).toEqual({
       state: "void",
       reason: "not-scorable",

@@ -4,7 +4,9 @@ import { join, relative } from "path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/db/local";
 import type { Forecast } from "@/types";
-import { forecastTables, listForecasts, writeForecasts } from "./forecasts";
+import { generateDemoData } from "@/lib/demo/generateDemoData";
+import { horizonSlot } from "@/lib/forecast";
+import { forecastTables, listForecasts, recordLiftForecasts, writeForecasts } from "./forecasts";
 import { clearDb } from "./testUtils";
 
 beforeEach(clearDb);
@@ -116,5 +118,28 @@ describe("forecasts are write-once", () => {
       expect(FORBIDDEN.test(bad), bad).toBe(true);
     }
     expect(FORBIDDEN.test("db.forecasts.bulkAdd(")).toBe(false);
+  });
+});
+
+describe("recordLiftForecasts", () => {
+  it("writes each lift's forecasts for a date ahead, the stall chance and round-number date included, once a week", async () => {
+    const now = new Date(2026, 10, 14, 19);
+    const demo = generateDemoData(now);
+    await db.workouts.bulkAdd(demo.workouts);
+    await db.liftStates.bulkAdd(demo.liftStates);
+
+    expect(await recordLiftForecasts(["squat"], now)).toBeGreaterThan(0);
+    const rows = await db.forecasts.toArray();
+    expect(rows.every((row) => row.exerciseId === "squat")).toBe(true);
+    expect(new Set(rows.map((row) => row.kind))).toEqual(new Set(["e1rm4w", "stallRisk", "milestone"]));
+    for (const row of rows) {
+      expect(row.slot).toBe(horizonSlot(row.kind, "squat", now));
+      expect(row.workoutId).toBeUndefined();
+    }
+    // Later the same week: the squat's rows stay exactly as they were; the bench gets its own.
+    expect(await recordLiftForecasts(["squat", "bench"], new Date(now.getTime() + 60_000))).toBeGreaterThan(0);
+    const after = await db.forecasts.toArray();
+    for (const row of rows) expect(after.find((other) => other.id === row.id)).toEqual(row);
+    expect(after.filter((row) => row.exerciseId === "squat")).toHaveLength(rows.length);
   });
 });

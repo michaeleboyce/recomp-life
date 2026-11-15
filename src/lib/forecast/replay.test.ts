@@ -251,6 +251,64 @@ describe("ranges hold what they say, pooled over simulated lifters", () => {
   });
 });
 
+// The second set of forecasts (G13) on the same calibration population, made at every
+// workout start for every lift with an outlook and scored against what the lifter then
+// did. The stall chance is a stated chance, judged like the pass chance. A milestone is
+// reached at a session, so its range is a run of whole sessions and, like a range of
+// whole reps, cannot hold exactly 80%: it is judged against the chance the walk gave
+// its own range (`inputs.rangeChance`). Fixed before the figures were looked at, as above.
+describe("stall chances and round-number dates, pooled over simulated lifters", () => {
+  const pool: ScoredForecast[] = [];
+  for (let seed = 1; seed <= 12; seed++) {
+    pool.push(
+      ...replayForecasts(calibrationLifter(seed)).scored.filter(
+        (item) => item.forecast.kind === "stallRisk" || item.forecast.kind === "milestone"
+      )
+    );
+  }
+  const stall = pool.filter((item) => item.forecast.kind === "stallRisk");
+  const milestone = pool.filter((item) => item.forecast.kind === "milestone");
+  const gap = (items: ScoredForecast[]) => {
+    const { chances } = summarize(items);
+    return Math.abs(chances.meanStated! - chances.observed!);
+  };
+
+  it("pools enough results to judge by, and sets none aside", () => {
+    expect(summarize(stall).chances.n).toBeGreaterThanOrEqual(500);
+    expect(summarize(milestone).ranges.n).toBeGreaterThanOrEqual(300);
+    expect(summarize(pool).void).toBe(0);
+  });
+
+  it("states stall chances within 5 points of how often the lift stalled", () => {
+    expect(gap(stall)).toBeLessThan(0.05);
+    for (const basis of ["trend", "persistence"]) {
+      const items = stall.filter((item) => item.forecast.basis === basis);
+      expect(summarize(items).chances.n, basis).toBeGreaterThanOrEqual(250);
+      expect(gap(items), basis).toBeLessThan(0.1);
+    }
+  });
+
+  it("tells stalls apart better than always saying how often they happen", () => {
+    const { chances } = summarize(stall);
+    const baseRate = chances.observed!;
+    expect(chances.brier!).toBeLessThan(baseRate * (1 - baseRate) - 0.05);
+    // Said unlikely, rarely happened; said likely, mostly did.
+    expect(chances.bins[0].observed!).toBeLessThan(0.1);
+    expect(chances.bins[4].observed!).toBeGreaterThan(0.7);
+  });
+
+  it("holds results inside round-number ranges about as often as the ranges say", () => {
+    const resolved = milestone.filter((item) => item.status.state === "resolved");
+    const stated =
+      resolved.reduce((sum, item) => sum + (item.forecast.inputs.rangeChance as number), 0) /
+      resolved.length;
+    const { ranges } = summarize(milestone);
+    expect(Math.abs(ranges.share! - stated)).toBeLessThan(0.06);
+    expect(ranges.share!).toBeGreaterThanOrEqual(0.74);
+    expect(ranges.share!).toBeLessThanOrEqual(0.95);
+  });
+});
+
 // The new best is scored as the app shows it: the workout's estimated max, with the
 // credit for a logged effort, above the best that stood before. The same calibration
 // population as above, once logging no effort and once each logging every last set as

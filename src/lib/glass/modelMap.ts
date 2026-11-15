@@ -110,6 +110,9 @@ export const MODELS: readonly ModelDef[] = [
       "forecast-session-length",
       "forecast-bodyweight",
       "forecast-calibration",
+      "forecast-stall",
+      "forecast-milestone",
+      "forecast-muscle-ready",
     ],
   },
 ];

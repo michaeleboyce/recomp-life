@@ -72,12 +72,17 @@ export function ForecastDetailSheet({
                   low={view.bar.low}
                   high={view.bar.high}
                   point={view.bar.point}
+                  min={view.bar.min}
+                  max={view.bar.max}
                   formatValue={view.bar.format}
+                  ariaLabel={view.bar.label}
                 />
               )}
               <SheetDescription className="text-xs">
                 {view.due}. Stored when it was made and never changed
-                {view.bar ? `; the range is built to hold the result ${TARGET_IN_TEN}.` : "."}
+                {view.bar && view.bar.min === undefined
+                  ? `; the range is built to hold the result ${TARGET_IN_TEN}.`
+                  : "."}
               </SheetDescription>
               <Stripes className="w-20" />
               <SheetClose className="absolute top-2 right-2 inline-flex size-11 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden">

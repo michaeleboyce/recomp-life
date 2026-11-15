@@ -5,7 +5,8 @@ import { repsToBeat } from "@/lib/projection/prOpportunity";
 import { makeEntry, makeSession } from "@/lib/workout/testFixtures";
 import type { WorkoutPlan } from "@/lib/workout/types";
 import type { Forecast } from "@/types";
-import { BODYWEIGHT_MODEL, E1RM_HORIZON_MODEL, REPS_MODEL } from "./coefficients";
+import { emptyLiftState } from "@/lib/rebuild";
+import { BODYWEIGHT_MODEL, E1RM_HORIZON_MODEL, REPS_MODEL, STALL_MODEL } from "./coefficients";
 import {
   BODYWEIGHT_SUBJECT,
   horizonSlot,
@@ -14,6 +15,7 @@ import {
   makeSessionForecasts,
   sessionForecastId,
 } from "./make";
+import { forecastMilestone, forecastStall } from "./outlook";
 import { FORECAST_KINDS } from "./registry";
 import { forecastReps, lastT1Sets } from "./reps";
 import { forecastSessionLength } from "./sessionLength";
@@ -438,6 +440,50 @@ describe("makeHorizonForecasts", () => {
     let asked = 0;
     makeHorizonForecasts(full, () => `x${++asked}`);
     expect(asked).toBe(2);
+  });
+
+  it("adds the stall chance and the round-number date of each T1 lift with a lift state", () => {
+    const squat = { ...emptyLiftState("squat"), t1Weight: 225, t1Stage: "5x3" as const };
+    const withState = { ...full, liftStates: [squat] };
+    const rows = makeHorizonForecasts(withState, ids());
+    const lift = rows.filter((row) => row.kind === "stallRisk" || row.kind === "milestone");
+    expect(lift.map((row) => [row.kind, row.slot])).toEqual([
+      ["stallRisk", "stallRisk|squat|2026-W46"],
+      ["milestone", "milestone|squat|2026-W46"],
+    ]);
+    const stall = forecastStall(withState, "squat")!;
+    expect(lift[0]).toMatchObject({
+      exerciseId: "squat",
+      tier: "T1",
+      madeAt: NOW,
+      dueAt: new Date(stall.dueAt),
+      event: { type: "missAtStage", weight: 225, reps: 3, minResults: STALL_MODEL.sessions },
+      prediction: { point: stall.chance, probability: stall.chance, unit: "chance" },
+      basis: stall.basis,
+      modelVersion: FORECAST_KINDS.stallRisk.modelVersion,
+    });
+    const milestone = forecastMilestone(withState, "squat")!;
+    expect(lift[1]).toMatchObject({
+      event: { type: "weightReached", weight: 250 },
+      prediction: {
+        point: milestone.point / DAY,
+        low: milestone.low / DAY,
+        high: milestone.high / DAY,
+        unit: "day",
+      },
+      dueAt: new Date(milestone.high),
+    });
+    expect(lift[1].workoutId).toBeUndefined();
+  });
+
+  it("skips a slot it is told is taken without working it out", () => {
+    const squat = { ...emptyLiftState("squat"), t1Weight: 225, t1Stage: "5x3" as const };
+    let asked = 0;
+    const rows = makeHorizonForecasts({ ...full, liftStates: [squat] }, () => `x${++asked}`, {
+      skipSlot: (slot) => !slot.startsWith("bodyweight4w"),
+    });
+    expect(rows.map((row) => row.kind)).toEqual(["bodyweight4w"]);
+    expect(asked).toBe(1);
   });
 
   it("uses the same slot all week and a new one the week after", () => {

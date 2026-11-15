@@ -3,7 +3,9 @@
 This note records the research behind the constants in `src/lib/forecast/coefficients.ts`
 and the four evidence rules that grade them (`forecast-reps`, `forecast-session-length`,
 `forecast-bodyweight`, `forecast-calibration`, in `src/lib/evidence/rules/forecast.ts`).
-All four rules stay `planned` until the forecast screens ship.
+All four are now `active`: the Forecasts and Track record screens show them. The second
+set of forecasts (stall chance, round-number dates, muscles ready again) is in
+"Second set of forecasts" at the end.
 
 The forecasts are personal: each one is built from the lifter's own history and then scored
 against what happens, and a kind whose ranges hold too few results is widened. So the
@@ -349,3 +351,79 @@ With one to three results the model cannot yet tell a fast gainer from a slow on
 result: `priorSdFraction` 0.1 is wide for lifters who start as the program advises, and was
 left alone because a first session is where the app knows least. Ranges built on one to
 three results (88.6%) are still a little wide.
+
+## Second set of forecasts (G13, added November 2026)
+
+No new research: each of these reads the rep forecast above, or the recovery windows,
+in another way. All three rules are graded `heuristic` with no sources; the constants
+are in `coefficients.ts` (`LIFT_OUTLOOK_MODEL`, `STALL_MODEL`, `MILESTONE_MODEL`) with
+their reasoning.
+
+| Rule | What | Stored and scored? |
+|---|---|---|
+| `forecast-stall` | Chance a T1 lift misses at its current stage within its next two sessions | Yes, `stallRisk` |
+| `forecast-milestone` | Date the working weight first reaches the next multiple of 25 lb | Yes, `milestone` |
+| `forecast-muscle-ready` | When the last workout's main muscles are ready again | No: shown as an explanation |
+
+**Two sessions are not independent.** The rep forecast's scatter is part day-to-day
+noise and part uncertainty about the level itself, and the second part is shared by
+every later session. `repsOutlook` splits it by each basis's own reasoning (the trend
+fit's height and slope errors, `predictionSd`; sd / sqrt(n + 1) for one to three
+results; the 1.5× widening after a change all on the level; for no results, 3% of the
+level as day noise), and the walk averages over the level's error with Gauss-Hermite
+points (9 per part). Multiplying the two sessions' pass chances instead would overstate
+the stall chance (a test checks the joint is above the product).
+
+**The walk** (`walkProgram`) applies `evaluateT1` itself to whole sessions passed or
+missed, so a pass adds `getIncrement` for the lift, a miss moves it down a stage and a
+miss at 10×1 resets it, exactly as the program does. Sessions come at the lift's own
+pace (mean days between its sessions over 8 weeks, scatter at least 1 day).
+
+**Simulated lifters** (the same twelve as above, `replay.test.ts`, "stall chances and
+round-number dates"):
+
+- Stall: 808 resolved. Stated 34.4% on average, stalled 34.8%. On a trend 32.7% against
+  34.0% (353); with one to three results 35.7% against 35.4% (455). Brier 0.139, against
+  0.227 for always saying the base rate.
+- Right after a stage change, reset or break the rep forecast's level is the last
+  stretch's mean held flat. Read over two sessions it stated a 59.7% stall chance where
+  30.9% happened (123). No stall or milestone forecast is made then; the next one waits
+  for the lift's first result since the change.
+- Milestone: 493 resolved, 91.5% inside their ranges. The weight is reached at a session,
+  so the outcome is one of a few dates about a gap apart and, like whole reps, a range
+  cannot hold exactly 80%: it is the run of sessions closest to 80%
+  (`repsRange`), and the walk itself said those runs hold 89.4% on average. Misses were
+  41 late and 1 early: the earliest possible session is often the start of the range.
+  With a 26-week horizon the walk read an eight-week trend into the fifth month; the
+  horizon is 12 weeks.
+- The simulated schedule is regular (sessions of a lift 9 or 10 days apart), so the 1-day
+  floor on a date's drift is untested here; real schedules will show in the record.
+
+**Muscles ready again** is not stored or scored: the log never records when a muscle has
+recovered, and the next session that trains it is set by the rotation, two or three days
+on and after the 48-hour window nearly always, so a "ready by" date would score right by
+construction. Whether that session's last set met its own forecast is already scored by
+the rep forecast, which recovery does not enter.
+
+**A lighter week worth considering** was not built. The fatigue rule
+(`fatigue-detection`) shows a sign after 2 drops in a row of a lift's estimated max while
+cutting, 3 otherwise, and a lighter week is only ever optional. As a forecast it can be
+read one result ahead (the chance the next estimated max is below the last, with the
+usual effort credit), but that completes the run only when one drop fewer is already
+logged; every other lift has no chance at all at its next session, and storing those
+zeros would score as easy hits. The "lighter week" case proper is two or more lifts at
+once, trained on different days over a week or more, and the rep forecast has no model of
+how results move together across lifts or of runs of drops. A stored chance would look
+more precise than a heuristic sign that, by its own caveat, is a prompt to check in and
+not a diagnosis.
+
+**The overhead-press forecast on the demo data** (2 reps, 1 to 3, at 115 lb on 5×3, 39%
+chance of passing) is the demo lifter, not the model or a stage change. The lift is still
+at 5×3. Its bar has gone up 5 lb a session (about 4.5%, one of the steps from a home
+session done with dumbbells) while the demo lifter gains 2% a week (about 2.6% between
+overhead-press sessions), and its last two sets (105 × 4, 110 × 3) came on days 1.5% and
+2% below the lifter's level after rounding to whole reps. The demo lifter's own spread at
+115 is 2 to 4 with 3 in the middle and a 58% chance of 3 or more, so the forecast is about
+one rep low because of those two days. On the simulated lifters the forecast for the
+overhead press on a trend is a quarter of a rep high on average (38 results), not low.
+Nothing was changed.

@@ -6,7 +6,8 @@ import { db } from "@/db/local";
 import { clearDb } from "@/lib/data/testUtils";
 import { writeForecasts } from "@/lib/data/forecasts";
 import { replayForecasts } from "@/lib/forecast";
-import { demoReplayInput, forecastRow } from "@/lib/forecast/testHelpers";
+import { demoReplayInput, forecastRow, t1Session } from "@/lib/forecast/testHelpers";
+import { initializeDatabase } from "@/db/init";
 import type { Forecast } from "@/types";
 import { ForecastsEntry } from "./ForecastsEntry";
 import { ForecastsScreen } from "./ForecastsScreen";
@@ -107,6 +108,67 @@ describe("Forecasts", () => {
     expect(within(today).getByRole("button", { name: /Reps on today's last squat set/ })).toBeInTheDocument();
     const ahead = screen.getByRole("region", { name: "Weeks ahead" });
     expect(today.compareDocumentPosition(ahead) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+describe("Forecasts: the second set", () => {
+  const now = Date.now();
+  const stall = openAhead({
+    id: "h-stall",
+    clientId: "h-stall",
+    slot: "stallRisk|squat|2026-W46",
+    kind: "stallRisk",
+    exerciseId: "squat",
+    dueAt: new Date(now + 12 * DAY),
+    event: { type: "missAtStage", weight: 250, reps: 3, windowDays: 14, minResults: 2 },
+    prediction: { point: 0.42, probability: 0.42, unit: "chance" },
+    inputs: { sampleSize: 6, stage: "5x3", passFirst: 0.8, gapDays: 9, weight: 250, increment: 10 },
+    modelVersion: "stall-1",
+  });
+  const milestone = openAhead({
+    id: "h-mile",
+    clientId: "h-mile",
+    slot: "milestone|squat|2026-W46",
+    kind: "milestone",
+    exerciseId: "squat",
+    dueAt: new Date(now + 30 * DAY),
+    event: { type: "weightReached", weight: 275 },
+    prediction: {
+      point: (now + 18 * DAY) / DAY,
+      low: (now + 9 * DAY) / DAY,
+      high: (now + 30 * DAY) / DAY,
+      unit: "day",
+    },
+    inputs: { sampleSize: 6, gapDays: 9, target: 275 },
+    modelVersion: "milestone-1",
+  });
+
+  it("shows the stall chance and the round-number date in plain words, each with its bar and grade", async () => {
+    await db.forecasts.bulkAdd([stall, milestone]);
+    render(<ForecastsScreen />);
+    const stallRow = await screen.findByRole("button", { name: /Squat misses at 5×3 in the next two sessions/ });
+    expect(within(stallRow).getByText("42%")).toBeInTheDocument();
+    expect(within(stallRow).getByRole("img", { name: /20% at the next session, 42% within two/ })).toBeInTheDocument();
+    expect(within(stallRow).getByText(/Heuristic/i)).toBeInTheDocument();
+
+    const dateRow = screen.getByRole("button", { name: /Squat reaches 275 lb/ });
+    expect(within(dateRow).getByRole("img", { name: /Likely between/ })).toBeInTheDocument();
+    expect(within(dateRow).getByText("Checked when the bar first has 275 lb on it")).toBeInTheDocument();
+
+    const rules = screen.getByRole("region", { name: "How the weeks ahead are worked out" });
+    const shown = [...rules.querySelectorAll("[data-evidence]")].map((el) => el.getAttribute("data-evidence"));
+    expect(shown).toEqual(["forecast-stall", "forecast-milestone"]);
+  });
+
+  it("explains when the last workout's muscles are ready again, and says it is not scored", async () => {
+    await initializeDatabase();
+    const at = new Date(now - 10 * 60 * 60 * 1000);
+    await db.workouts.add(t1Session({ id: "w-done", at, weight: 200, lastReps: 5 }));
+    render(<ForecastsScreen />);
+    const section = await screen.findByRole("region", { name: "Muscles ready again" });
+    expect(within(section).getByText("Quads")).toBeInTheDocument();
+    expect(within(section).getByText(/Not scored like the forecasts above/)).toBeInTheDocument();
+    expect(section.querySelector('[data-evidence="forecast-muscle-ready"]')).not.toBeNull();
   });
 });
 

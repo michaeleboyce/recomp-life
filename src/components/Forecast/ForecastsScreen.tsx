@@ -11,8 +11,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { Stripes } from "@/components/ui/stripes";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { ForecastDetailSheet } from "./ForecastDetailSheet";
 import { ForecastRow } from "./ForecastRow";
+import { MuscleReadySection } from "./MuscleReadyList";
 import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
@@ -55,6 +57,8 @@ export function ForecastsScreen() {
   const keep = (v: ForecastView) => filter === "all" || v.category === filter;
   const today = open.today.filter(keep);
   const ahead = open.ahead.filter(keep);
+  /** Kinds of the forecasts for a date ahead on screen: each gets its rule below the list. */
+  const aheadKinds = new Set(ahead.map((v) => v.forecast.kind));
   const share = judgeShare(record.ranges.inside, record.ranges.n, "inside the range");
 
   return (
@@ -140,6 +144,19 @@ export function ForecastsScreen() {
             </p>
           )}
         </>
+      )}
+
+      {filter === "all" && <MuscleReadySection />}
+
+      {aheadKinds.size > 0 && (
+        <section aria-labelledby="forecasts-rules" className="flex flex-col gap-1.5">
+          <h2 id="forecasts-rules" className={`${EYEBROW} pt-2 text-muted-foreground`}>
+            How the weeks ahead are worked out
+          </h2>
+          {aheadKinds.has("stallRisk") && <EvidenceLine ruleId="forecast-stall" />}
+          {aheadKinds.has("milestone") && <EvidenceLine ruleId="forecast-milestone" />}
+          {aheadKinds.has("bodyweight4w") && <EvidenceLine ruleId="forecast-bodyweight" />}
+        </section>
       )}
 
       <ForecastDetailSheet

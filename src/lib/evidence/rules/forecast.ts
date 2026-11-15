@@ -1,12 +1,16 @@
 import type { EvidenceRule } from "@/types";
 import type { SourceId } from "../sources";
 import { E1RM_MAX_REPS } from "@/lib/e1rm";
+import { CUTTING_RECOVERY_BONUS_HOURS, RECOVERY_HOURS } from "@/lib/recovery";
 import {
   BODYWEIGHT_MODEL as B,
   CALIBRATION as K,
+  LIFT_OUTLOOK_MODEL as O,
+  MILESTONE_MODEL as M,
   NEW_BEST_MODEL as N,
   REPS_MODEL as R,
   SESSION_LENGTH_MODEL as S,
+  STALL_MODEL as ST,
 } from "@/lib/forecast/coefficients";
 
 /** 0.042 -> "4.2%", 0.1 -> "10%", 0.0005 -> "0.05%". */
@@ -15,8 +19,9 @@ const pct = (fraction: number) => `${Number((fraction * 100).toPrecision(3))}%`;
 const inTen = (fraction: number) => `${Math.round(fraction * 10)} in 10`;
 
 /**
- * Rules behind the forecasts the app stores and scores. Registered as planned
- * until the forecast screens ship. Research: docs/research/2026-11-forecast-models.md.
+ * Rules behind the forecasts the app stores and scores, and behind the one estimate
+ * the Forecasts screen shows without scoring it (muscles ready again).
+ * Research: docs/research/2026-11-forecast-models.md.
  * Spec: docs/plans/2026-11-14-glass-box-design.md
  */
 export const FORECAST_RULES = {
@@ -38,6 +43,7 @@ export const FORECAST_RULES = {
       "src/lib/forecast/coefficients.ts#NEW_BEST_MODEL",
       "src/lib/forecast/reps.ts#lastT1Sets",
       "src/lib/forecast/reps.ts#estimateRepsLevel",
+      "src/lib/forecast/reps.ts#repsOutlook",
       "src/lib/forecast/reps.ts#chanceOfAtLeast",
       "src/lib/forecast/reps.ts#usualEffortCredit",
       "src/lib/forecast/reps.ts#chanceOfNewBest",
@@ -65,9 +71,67 @@ export const FORECAST_RULES = {
     ],
     surfaces: ["src/components/Today/ForecastTiles.tsx"],
   },
+  "forecast-stall": {
+    area: "projection",
+    status: "active",
+    title: "How does the app judge the chance of a stall?",
+    summary: "The chance a lift misses at its stage soon, from your recent last sets",
+    appBehavior: `For each main lift the app gives the chance that it misses at its current stage within its next ${ST.sessions} sessions: the first at today's working weight, the next one program step heavier if the first passes. Each session's chance of passing is the rep forecast's chance of reaching the target on the last set at that weight and date; reaching it on the last set is taken to mean every set did. The two sessions are not treated as independent: a lifter weaker than the forecast thinks is weaker at both, so only the day-to-day part of the scatter is drawn afresh each time. The sessions come at the lift's own pace over the last ${O.paceWindowWeeks} weeks. The chance is checked against the next ${ST.sessions} sessions that count for progression, read within ${ST.outcomeWindowDays} days of when the second is due; sessions held back for pain, a run or equipment, or stopped part-way, are skipped, as the program skips them. It never changes a weight.`,
+    rationale:
+      "In this program a miss is what moves a lift to its next stage, so the chance of one is the useful number before a session, not a verdict after it. It is read from the same rep forecast as the other forecasts, so it is checked by the same record.",
+    caveat:
+      "This is the rep forecast read twice, not new research: the rep forecast's own limits apply. Taking a last set at the target to mean every set reached it is this app's assumption; a set missed earlier counts as a miss when the forecast is checked. A session at home with dumbbells counts for progression and so for this check, but the chance assumes the barbell lift at the gym.",
+    strength: "heuristic",
+    sources: [],
+    reviewedOn: "2026-11",
+    implementedIn: [
+      "src/lib/forecast/coefficients.ts#STALL_MODEL",
+      "src/lib/forecast/coefficients.ts#LIFT_OUTLOOK_MODEL",
+      "src/lib/forecast/outlook.ts#forecastStall",
+      "src/lib/forecast/outlook.ts#walkProgram",
+      "src/lib/forecast/outlook.ts#liftPace",
+    ],
+    surfaces: ["src/components/Forecast/ForecastsScreen.tsx"],
+  },
+  "forecast-milestone": {
+    area: "projection",
+    status: "active",
+    title: "How does the app date your next round-number weight?",
+    summary: "When a lift's working weight reaches its next round number, with a range",
+    appBehavior: `For each main lift the app dates the first session at the next multiple of ${M.roundToLbs} lb above today's working weight. It walks the program's own rules forward session by session at the lift's own pace: a pass adds the lift's step, a miss moves it down a stage and a miss at the last stage resets it, each session passing with the rep forecast's chance at that weight and date. The date is the middle of where that walk lands, with a range built to hold the result ${inTen(K.targetCoverage)} times, allowing for sessions coming earlier or later than usual. No date is given unless the weight is reached within ${M.maxWeeks} weeks with at least a ${pct(M.minReachChance)} chance. The forecast is checked against the first workout in which the lift itself is lifted at that weight or more.`,
+    rationale:
+      "A date for a round number answers how the program's steady steps add up for you, and it is checked like every other forecast, so its record shows whether to trust it.",
+    caveat:
+      "No research covers this. It continues today's trend of your last sets for weeks, which holds only while your training goes on as it has; a change of phase, time off or a lot of home sessions move the date. The round number and the horizon are this app's choices.",
+    strength: "heuristic",
+    sources: [],
+    reviewedOn: "2026-11",
+    implementedIn: [
+      "src/lib/forecast/coefficients.ts#MILESTONE_MODEL",
+      "src/lib/forecast/outlook.ts#forecastMilestone",
+      "src/lib/forecast/outlook.ts#walkProgram",
+    ],
+    surfaces: ["src/components/Forecast/ForecastsScreen.tsx"],
+  },
+  "forecast-muscle-ready": {
+    area: "projection",
+    status: "active",
+    title: "When will a muscle be ready again?",
+    summary: "Ready-again times read from the recovery windows; shown, never scored",
+    appBehavior: `After a workout the Forecasts screen lists the main muscles its T1 and T2 lifts trained and when each should be ready again: ${RECOVERY_HOURS.ready} hours after it was last trained, and at its best from ${RECOVERY_HOURS.primed} hours (${CUTTING_RECOVERY_BONUS_HOURS} hours later for both while cutting). The times are the recovery windows', unchanged. Unlike the other forecasts they are an explanation, not a stored and scored forecast.`,
+    rationale:
+      "It helps to see when the work you just did should have worn off. The times are those of the recovery statuses, so they agree with what the rest of the app shows.",
+    caveat:
+      "They are not scored because there is nothing honest to score them against: your log never records when a muscle has recovered, and the next session that trains it is set by the program's rotation, usually after these times, so a check against it would come out right by construction. Whether that session's last set met its forecast is already checked by the rep forecast, and a bad day cannot be told apart from a slow recovery. The windows' own grade and sources are on the recovery rule.",
+    strength: "heuristic",
+    sources: [],
+    reviewedOn: "2026-11",
+    implementedIn: ["src/lib/forecast/muscleReady.ts#muscleReadyTimes"],
+    surfaces: ["src/components/Forecast/MuscleReadyList.tsx"],
+  },
   "forecast-bodyweight": {
     area: "projection",
-    status: "planned",
+    status: "active",
     title: "How does the app forecast your bodyweight?",
     summary: "Bodyweight four weeks out continues your recent trend, with a range",
     appBehavior: `The app fits a straight line through your weigh-ins from the last ${B.fitWindowDays} days (at least ${B.minEntries} of them) and continues it ${B.horizonDays} days ahead, with a range from how much your weigh-ins scatter around that line. The forecast is checked against the average of your weigh-ins within ${B.outcomeWindowDays} days either side of the due date (at least ${B.minOutcomeEntries}), so one heavy or light morning does not decide it.`,
@@ -82,12 +146,11 @@ export const FORECAST_RULES = {
       "src/lib/forecast/coefficients.ts#BODYWEIGHT_MODEL",
       "src/lib/forecast/horizon.ts#forecastBodyweight",
     ],
-    surfaces: [],
-    activationNotes: "Switch on when the Forecasts screen ships.",
+    surfaces: ["src/components/Forecast/ForecastsScreen.tsx"],
   },
   "forecast-calibration": {
     area: "projection",
-    status: "planned",
+    status: "active",
     title: "How does the app check its own forecasts?",
     summary: "Every forecast is saved before the result and scored against it afterwards",
     appBehavior: `Each forecast is stored before the result exists and never edited. Ranges are built to hold the result ${inTen(K.targetCoverage)} times. Once at least ${K.minResolvedForCorrection} forecasts of one kind have been scored and fewer than ${inTen(K.widenBelowCoverage)} landed inside, the app widens that kind's range by ${pct(K.sdScaleStep)} of its starting width at a time, up to ${K.sdScaleMax} times its starting width, and says so in the adjustment log. It never makes a range narrower than the model gives.`,
@@ -103,7 +166,6 @@ export const FORECAST_RULES = {
       "src/lib/forecast/reps.ts#repsRange",
       "src/lib/forecast/resolve.ts#resolveForecast",
     ],
-    surfaces: [],
-    activationNotes: "Switch on when the track record screen ships.",
+    surfaces: ["src/components/Forecast/TrackRecordScreen.tsx"],
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;

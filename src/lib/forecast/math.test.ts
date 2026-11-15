@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { clamp, mean, median, normalCdf, robustSd, sampleSd } from "./math";
+import { clamp, mean, median, normalCdf, normalNodes, robustSd, sampleSd } from "./math";
 
 describe("normalCdf", () => {
   it("matches known values", () => {
@@ -60,5 +60,40 @@ describe("summary helpers", () => {
     expect(robustSd([...calm, 5])).toBeLessThan(0.05);
     expect(sampleSd([...calm, 5])).toBeGreaterThan(1);
     expect(robustSd([3])).toBe(0);
+  });
+});
+
+describe("normalNodes", () => {
+  // E[Z^k] for a standard normal Z: 1, 0, 1, 0, 3, 0, 15, 0, 105.
+  const moments = [1, 0, 1, 0, 3, 0, 15, 0, 105, 0, 945];
+
+  it.each([1, 2, 5, 7, 12])("with %i points gives the moments of a bell curve exactly", (n) => {
+    const nodes = normalNodes(n);
+    expect(nodes).toHaveLength(n);
+    // n points integrate polynomials up to degree 2n - 1 exactly.
+    for (let k = 0; k < Math.min(2 * n, moments.length); k++) {
+      const sum = nodes.reduce((acc, node) => acc + node.weight * node.z ** k, 0);
+      expect(sum, `n=${n}, k=${k}`).toBeCloseTo(moments[k], 8);
+    }
+  });
+
+  it("is symmetric, ordered and has positive weights", () => {
+    const nodes = normalNodes(9);
+    for (let i = 0; i < nodes.length; i++) {
+      expect(nodes[i].weight).toBeGreaterThan(0);
+      expect(nodes[i].z).toBeCloseTo(-nodes[nodes.length - 1 - i].z, 12);
+      if (i > 0) expect(nodes[i].z).toBeGreaterThan(nodes[i - 1].z);
+    }
+  });
+
+  it("averages a smooth function of a bell-curve value", () => {
+    // E[Phi(a + bZ)] = Phi(a / sqrt(1 + b^2)).
+    const nodes = normalNodes(12);
+    const value = nodes.reduce((acc, node) => acc + node.weight * normalCdf(0.4 + 0.8 * node.z), 0);
+    expect(value).toBeCloseTo(normalCdf(0.4 / Math.sqrt(1 + 0.64)), 5);
+  });
+
+  it("returns the same nodes every time", () => {
+    expect(normalNodes(7)).toBe(normalNodes(7));
   });
 });

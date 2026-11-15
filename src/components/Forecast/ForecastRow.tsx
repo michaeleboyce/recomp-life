@@ -62,7 +62,10 @@ export function ForecastRow({
             low={view.bar.low}
             high={view.bar.high}
             point={view.bar.point}
+            min={view.bar.min}
+            max={view.bar.max}
             formatValue={view.bar.format}
+            ariaLabel={view.bar.label}
           />
         </span>
       )}

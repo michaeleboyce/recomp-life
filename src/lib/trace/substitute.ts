@@ -41,9 +41,40 @@ function adaptationFor(
 }
 
 /**
+ * At home, whether one step heavier than `weight` is more than the heaviest dumbbell
+ * (`EquipmentProfile.maxDumbbellWeight`, the same limit `adaptExerciseForHome` caps a
+ * converted weight at) for an entry done with dumbbells: its home substitute, or the
+ * exercise itself. Null when the step fits, at the gym, or for a lift not done with
+ * dumbbells.
+ */
+export function dumbbellLimitAtHome(
+  entry: Pick<PlanEntry, "exerciseId" | "substituteExerciseId">,
+  step: number,
+  context: HomeContext,
+  weight: number
+): { needed: number; heaviest: number } | null {
+  if (context.location !== "home" || !(step > 0)) return null;
+  const performed = EXERCISES[entry.substituteExerciseId ?? entry.exerciseId];
+  if (performed?.type !== "dumbbell") return null;
+  const heaviest = context.equipment.maxDumbbellWeight;
+  const needed = weight + step;
+  return needed > heaviest ? { needed, heaviest } : null;
+}
+
+/** The sentence that says the heavier choice is held to the heaviest dumbbell, or "". */
+export function dumbbellLimitText(limit: { needed: number; heaviest: number } | null, weight: number): string {
+  if (!limit) return "";
+  const lead = `One step heavier would need ${num(limit.needed)}, more than your heaviest dumbbell (${num(limit.heaviest)})`;
+  return limit.heaviest > weight
+    ? ` ${lead}, so the heavier choice stops at ${num(limit.heaviest)}.`
+    : ` ${lead}, so nothing heavier is offered.`;
+}
+
+/**
  * The steps a home workout adds after the program's weight is known: the dumbbell
- * exercise the plan took and its converted weight. Empty at the gym and for a lift
- * that already works at home.
+ * exercise the plan took and its converted weight, and whether a heavier choice is
+ * held to the heaviest dumbbell. Empty at the gym and for a lift that already works
+ * at home.
  */
 export function homeSteps(
   entry: Pick<PlanEntry, "exerciseId" | "substituteExerciseId">,
@@ -82,9 +113,15 @@ export function homeSteps(
   const percent = Math.round(DUMBBELL_LOAD_FACTOR * 100);
   const share = oneDumbbell ? "in one dumbbell" : "split between two hands";
   const each = oneDumbbell ? "" : " per hand";
+  const atLimit = dumbbellLimitAtHome(
+    entry,
+    context.equipment.dumbbellIncrementLbs,
+    context,
+    chosen.weight
+  );
   const capped =
     chosen.weight < converted
-      ? ` Your heaviest dumbbell is ${num(context.equipment.maxDumbbellWeight)}, so it stops there.`
+      ? ` Your heaviest dumbbell is ${num(context.equipment.maxDumbbellWeight)}, so it stops there${atLimit ? " and nothing heavier is offered" : ""}.`
       : "";
   // The conversion only offers another exercise when the usual one does not fit.
   const usual = adaptation.originalExercise.dumbbellAlternative
@@ -94,12 +131,14 @@ export function homeSteps(
     usual && usual.id !== chosen.exercise.id
       ? `${usual.name} would need more than your heaviest dumbbell, so ${chosen.exercise.name} stands in`
       : chosen.exercise.name;
+  // A capped weight has said so already.
+  const limit = capped ? "" : dumbbellLimitText(atLimit, chosen.weight);
 
   return [
     step(
       "dumbbell",
       "At home with dumbbells",
-      `${lead}: ${percent}% of ${num(barbellWeight)} ${share}, rounded to 5, is ${num(converted)}${each}.${capped}`,
+      `${lead}: ${percent}% of ${num(barbellWeight)} ${share}, rounded to 5, is ${num(converted)}${each}.${capped}${limit}`,
       "set",
       "lb",
       chosen.weight,

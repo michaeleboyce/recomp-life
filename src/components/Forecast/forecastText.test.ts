@@ -169,3 +169,93 @@ describe("the track record in words", () => {
     }
   });
 });
+
+describe("the second set of forecasts in words", () => {
+  const stallRow = forecastRow({
+    id: "h-stall",
+    slot: "stallRisk|squat|2026-W46",
+    kind: "stallRisk",
+    workoutId: undefined,
+    madeAt: new Date(NOW.getTime() - DAY),
+    dueAt: new Date(NOW.getTime() + 12 * DAY),
+    event: { type: "missAtStage", weight: 250, reps: 3, windowDays: 14, minResults: 2 },
+    prediction: { point: 0.42, probability: 0.42, unit: "chance" },
+    inputs: { sampleSize: 6, stage: "5x3", passFirst: 0.8, gapDays: 9.2, weight: 250, increment: 10, sdScale: 1 },
+    basis: "persistence",
+    modelVersion: "stall-1",
+  });
+  const day = (offsetDays: number) => (NOW.getTime() + offsetDays * DAY) / DAY;
+  const milestoneRow = forecastRow({
+    id: "h-mile",
+    slot: "milestone|bench|2026-W46",
+    kind: "milestone",
+    exerciseId: "bench",
+    workoutId: undefined,
+    madeAt: new Date(NOW.getTime() - DAY),
+    dueAt: new Date(NOW.getTime() + 30 * DAY),
+    event: { type: "weightReached", weight: 200 },
+    prediction: { point: day(18), low: day(9), high: day(30), unit: "day" },
+    inputs: { sampleSize: 3, gapDays: 9, target: 200, reachChance: 0.97, rangeChance: 0.84, sdScale: 1 },
+    modelVersion: "milestone-1",
+  });
+
+  it("says what a stall forecast is about, how the chance builds and when it is checked", () => {
+    const view = viewOf(stallRow, NOW);
+    expect(view.question).toBe("Squat misses at 5×3 in the next two sessions");
+    expect(view.value).toBe("42%");
+    expect(view.range).toBe("chance of a stall");
+    expect(view.bar).toMatchObject({ high: 0.42, point: 0.42, min: 0, max: 1 });
+    expect(view.bar!.low).toBeCloseTo(0.2, 12);
+    expect(view.bar!.label).toBe("Chance of a miss: 20% at the next session, 42% within two");
+    expect(view.due).toMatch(/^Checked over the next two sessions, the second due about /);
+    expect(view.restsOn).toBe("From 6 last sets, so wider · a session every 9 days");
+    expect(view.strength).toBe("heuristic");
+    expect(view.category).toBe("strength");
+    expect(inputLines(stallRow).map((line) => line.label)).toContain("Chance the next session passes");
+  });
+
+  it("dates a round number with a range of dates", () => {
+    const view = viewOf(milestoneRow, NOW);
+    expect(view.question).toBe("Bench press reaches 200 lb");
+    expect(view.value).toMatch(/^[A-Z][a-z]{2} \d{1,2}$/);
+    expect(view.range).toMatch(/^[A-Z][a-z]{2} \d{1,2} to [A-Z][a-z]{2} \d{1,2}$/);
+    expect(view.bar!.format(day(18))).toBe(view.value);
+    expect(view.due).toBe("Checked when the bar first has 200 lb on it");
+    expect(inputLines(milestoneRow)).toContainEqual({ label: "Round number", value: "200 lb" });
+    // Weeks ahead: the stall chance, then the date, then the estimated max.
+    const estimate = forecastRow({
+      id: "e",
+      slot: "e1rm4w|squat|w",
+      kind: "e1rm4w",
+      workoutId: undefined,
+      dueAt: new Date(NOW.getTime() + 20 * DAY),
+      prediction: { point: 300, low: 290, high: 310, unit: "lb" },
+    });
+    const open = openForecasts(
+      [estimate, milestoneRow, stallRow].map((forecast) => ({ forecast, status: { state: "open" } })),
+      NOW
+    );
+    expect(open.ahead.map((v) => v.forecast.kind)).toEqual(["stallRisk", "milestone", "e1rm4w"]);
+  });
+
+  it("keeps a record of each, and calls a stall chance that ran high too cautious", () => {
+    const stalls: ScoredForecast[] = Array.from({ length: 12 }, (_, i) => ({
+      forecast: { ...stallRow, id: `s${i}`, slot: `stallRisk|squat|${i}` },
+      status: { state: "resolved", value: 0, hit: i < 1 },
+    }));
+    const dates: ScoredForecast[] = Array.from({ length: 10 }, (_, i) => ({
+      forecast: { ...milestoneRow, id: `m${i}`, slot: `milestone|bench|${i}` },
+      status: { state: "resolved", value: day(20), inside: i < 8 },
+    }));
+    const rows = kindRows([...stalls, ...dates]);
+    expect(rows.find((row) => row.id === "stallRisk")).toMatchObject({ title: "Stall calls", value: "8%", n: 12 });
+    expect(rows.find((row) => row.id === "milestone")).toMatchObject({
+      title: "Round-number dates",
+      value: "80%",
+      n: 10,
+    });
+    const finding = wrongest(stalls);
+    expect(finding).not.toBeNull();
+    expect(finding !== "none" && finding!.text).toMatch(/^Stall chances: too cautious\./);
+  });
+});

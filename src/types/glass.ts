@@ -93,7 +93,9 @@ export type ForecastKind =
   | "liftPass"
   | "sessionLength"
   | "e1rm4w"
-  | "bodyweight4w";
+  | "bodyweight4w"
+  | "stallRisk"
+  | "milestone";
 
 /** The measured thing, in raw log terms, so only a log edit can move an outcome. */
 export type ForecastEventType =
@@ -102,7 +104,9 @@ export type ForecastEventType =
   | "e1rmAbove"
   | "durationSeconds"
   | "e1rmLevel"
-  | "bodyweightMean";
+  | "bodyweightMean"
+  | "missAtStage"
+  | "weightReached";
 
 export interface ForecastEvent {
   type: ForecastEventType;

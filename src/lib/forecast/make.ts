@@ -4,9 +4,10 @@
 // the event it is about. What became of it is worked out on read (resolve.ts).
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
 import type { Forecast, ForecastKind, PrescribedEntry, Tier, WorkoutSession } from "@/types";
-import { BODYWEIGHT_MODEL, CALIBRATION, E1RM_HORIZON_MODEL } from "./coefficients";
+import { BODYWEIGHT_MODEL, CALIBRATION, E1RM_HORIZON_MODEL, STALL_MODEL } from "./coefficients";
 import { e1rmResults, forecastBodyweight, forecastE1RM, type HorizonForecast } from "./horizon";
-import { finishedBy } from "./log";
+import { DAY_MS, finishedBy } from "./log";
+import { forecastMilestone, forecastStall, T1_LIFTS } from "./outlook";
 import { FORECAST_KINDS } from "./registry";
 import { forecastReps, lastT1Sets, type RepsForecast } from "./reps";
 import { forecastSessionLength } from "./sessionLength";
@@ -248,14 +249,22 @@ export function makeSessionForecasts(
 
 /**
  * The forecasts for a date some weeks ahead, as things stand at `source.now`: the
- * estimated max of every lift whose results can be projected, and bodyweight. Each
- * row gets an id from `newId` and the slot `kind|subject|ISO week (UTC)`; readers
- * score the earliest row per slot (`earliestPerSlot`), so calling this again in the
- * same week adds nothing that counts. A subject with too little history gets no row.
+ * estimated max of every lift whose results can be projected, bodyweight, and for
+ * each program T1 lift the chance of a stall in its next two sessions and the date
+ * of its next round-number weight. Each row gets an id from `newId` and the slot
+ * `kind|subject|ISO week (UTC)`; readers score the earliest row per slot
+ * (`earliestPerSlot`), so calling this again in the same week adds nothing that
+ * counts. A subject with too little history gets no row. `skipSlot` leaves out a
+ * slot without working its model out (one already stored, say).
  */
-export function makeHorizonForecasts(source: ForecastSource, newId: () => string): Forecast[] {
+export function makeHorizonForecasts(
+  source: ForecastSource,
+  newId: () => string,
+  options: { skipSlot?: (slot: string) => boolean } = {}
+): Forecast[] {
   const madeAt = source.now;
   const rows: Forecast[] = [];
+  const skip = options.skipSlot ?? (() => false);
   const add = (
     kind: ForecastKind,
     subject: string,
@@ -285,6 +294,7 @@ export function makeHorizonForecasts(source: ForecastSource, newId: () => string
 
   const lifts = [...e1rmResults(finishedBy(source.workouts, madeAt.getTime())).keys()].sort();
   for (const exerciseId of lifts) {
+    if (skip(horizonSlot("e1rm4w", exerciseId, madeAt))) continue;
     const forecast = forecastE1RM(source, exerciseId);
     if (!forecast) continue;
     add("e1rm4w", exerciseId, forecast, {
@@ -297,7 +307,9 @@ export function makeHorizonForecasts(source: ForecastSource, newId: () => string
     });
   }
 
-  const bodyweight = forecastBodyweight(source);
+  const bodyweight = skip(horizonSlot("bodyweight4w", BODYWEIGHT_SUBJECT, madeAt))
+    ? null
+    : forecastBodyweight(source);
   if (bodyweight) {
     add("bodyweight4w", BODYWEIGHT_SUBJECT, bodyweight, {
       event: {
@@ -308,5 +320,80 @@ export function makeHorizonForecasts(source: ForecastSource, newId: () => string
     });
   }
 
+  rows.push(...makeLiftOutlookForecasts(source, newId, skip));
+  return rows;
+}
+
+/**
+ * The stall chance and the round-number date of every program T1 lift that has an
+ * outlook (`liftOutlook`): slot `kind|lift|ISO week (UTC)`, like the other forecasts
+ * for a date ahead. A milestone's dates are stored in days since 1 January 1970
+ * (UTC), so two weeks' forecasts of the same weight compare directly.
+ */
+function makeLiftOutlookForecasts(
+  source: ForecastSource,
+  newId: () => string,
+  skip: (slot: string) => boolean
+): Forecast[] {
+  const madeAt = source.now;
+  const rows: Forecast[] = [];
+  const row = (
+    kind: ForecastKind,
+    exerciseId: string,
+    fields: Pick<Forecast, "dueAt" | "event" | "prediction" | "basis" | "inputs">
+  ) => {
+    const id = newId();
+    rows.push({
+      id,
+      clientId: id,
+      slot: horizonSlot(kind, exerciseId, madeAt),
+      kind,
+      exerciseId,
+      tier: "T1",
+      madeAt,
+      ...fields,
+      modelVersion: FORECAST_KINDS[kind].modelVersion,
+      synced: false,
+    });
+  };
+
+  for (const exerciseId of T1_LIFTS) {
+    const stall = skip(horizonSlot("stallRisk", exerciseId, madeAt))
+      ? null
+      : forecastStall(source, exerciseId);
+    if (stall) {
+      row("stallRisk", exerciseId, {
+        dueAt: new Date(stall.dueAt),
+        event: {
+          type: "missAtStage",
+          weight: stall.weight,
+          reps: stall.targetReps,
+          windowDays: STALL_MODEL.outcomeWindowDays,
+          minResults: STALL_MODEL.sessions,
+        },
+        prediction: { point: stall.chance, probability: stall.chance, unit: "chance" },
+        basis: stall.basis,
+        inputs: stall.inputs,
+      });
+    }
+
+    const milestone = skip(horizonSlot("milestone", exerciseId, madeAt))
+      ? null
+      : forecastMilestone(source, exerciseId);
+    if (milestone) {
+      row("milestone", exerciseId, {
+        dueAt: new Date(milestone.high),
+        event: { type: "weightReached", weight: milestone.target },
+        prediction: {
+          point: milestone.point / DAY_MS,
+          low: milestone.low / DAY_MS,
+          high: milestone.high / DAY_MS,
+          unit: "day",
+        },
+        basis: milestone.basis,
+        inputs: milestone.inputs,
+      });
+    }
+  }
   return rows;
 }
