@@ -127,3 +127,13 @@ describe("Strength tab", () => {
     expect(await screen.findByText("No muscle data yet")).toBeInTheDocument();
   });
 });
+
+describe("Progress entry points", () => {
+  it("opens Forecasts from the hub and gives Weekly review a 44px tap target", async () => {
+    render(<ProgressPage />);
+    const forecasts = await screen.findByRole("link", { name: /Forecasts/ });
+    expect(forecasts).toHaveAttribute("href", "/progress/forecasts");
+    expect(await within(forecasts).findByText("They start with your next workout")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Weekly review" })).toHaveClass("min-h-11");
+  });
+});

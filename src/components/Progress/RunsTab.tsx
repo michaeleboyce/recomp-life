@@ -43,7 +43,7 @@ export function RunsTab() {
         body="Log a run, a ride or a yoga session to see your weekly totals."
         action={
           <Button asChild>
-            <Link href="/run">Log a run or activity</Link>
+            <Link href="/activity?from=cardio">Log a run or activity</Link>
           </Button>
         }
       />
@@ -102,7 +102,7 @@ export function RunsTab() {
       <ActivitySection totals={data.activities} />
 
       <ListRow
-        href="/run"
+        href="/activity?from=cardio"
         title="Log a run or activity"
         leading={<Plus className="size-4 text-muted-foreground" aria-hidden="true" />}
       />

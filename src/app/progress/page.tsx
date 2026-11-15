@@ -12,7 +12,10 @@ export default function ProgressPage() {
       <PageHeader
         title="Progress"
         action={
-          <Link href="/progress/review" className="text-[13px] font-semibold text-primary">
+          <Link
+            href="/progress/review"
+            className="inline-flex min-h-11 items-center px-1 text-[13px] font-semibold text-primary"
+          >
             Weekly review
           </Link>
         }
