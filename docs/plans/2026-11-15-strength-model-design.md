@@ -1,6 +1,6 @@
 # One strength model for gym and home, with per-set weights and drop sets
 
-Status: draft for Michael's sign-off. Builds on the glass-box design
+Status: approved by Michael on 2026-11-15 ("ok I think that makes sense!"). Builds on the glass-box design
 (`docs/plans/2026-11-14-glass-box-design.md`).
 
 ## Why
@@ -99,7 +99,6 @@ code.
 | P6 trace, evidence, docs | Sonnet | H9, H15 | `src/lib/trace`, `src/lib/evidence`, CLAUDE.md |
 | P7 muscles and forecasts | Sonnet | H7 | muscle view, forecast inputs |
 
-Order: P1 and P2 together; then P3, P5 and P7; then P4 and P6. An independent review before
 the deploy. Live data: a new derived table needs an additive script on Neon (empty table, no
 change to existing rows).
 
@@ -110,3 +109,14 @@ change to existing rows).
 - Changing who owns progression at home rewrites the golden rebuild fixtures; the change is
   deliberate and the diff is reviewed field by field.
 - Six packages touch shared code; lanes are exclusive and P1 lands first.
+
+## Build order (as run)
+
+- Wave S1, in parallel: `strength-core` (H1, H2, H12, the data shapes for H10 and H11, H15)
+  and `strength-lib` (H4, H5, H13, the research and rules behind the ratios).
+- Wave S2, after S1 lands and after the restyle and motion packages have landed: re-entry and
+  seeding wired to the pooled estimate (H3, H6), home surfaces (H8), the active workout's
+  per-set weights and drops (H10, H11, H14), the trace and docs (H9), muscles and forecasts (H7).
+- The new per-variant state is derived on each device from the log, like the lift states, so it
+  is not synced and needs no database change. Per-set weights and drops live inside the
+  existing workout and plan-edit JSON.
