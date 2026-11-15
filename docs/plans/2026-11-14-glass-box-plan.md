@@ -276,3 +276,57 @@ Check your work in a browser, not only in tests: start `next dev` on a free port
 screenshots at 390×844 in dark and light with the harness described in your launch message,
 compare with the boards, and fix what differs. Never use the real database or a sync
 passphrase.
+
+### ledger-wiring (G3, G5, G10 and the hooks the screens read)
+Lane: `src/lib/data/workouts.ts`, `src/lib/data/records.ts`, `src/lib/data/forecasts.ts`,
+new files under `src/hooks/` plus export lines in `src/hooks/index.ts`,
+`src/hooks/useTodayForecast.ts`, `src/lib/projection/index.ts` and `src/lib/workout/index.ts`
+(export lines only), `src/lib/evidence/rules/forecast.ts` and `readinessScore.ts`
+(`implementedIn` only), `@evidence` doc-comment tags in `src/lib/forecast/**`,
+`src/lib/readiness/**` and `src/lib/workout/duration.ts`, and tests for all of it.
+
+1. `startWorkout`: once the session row exists and before any set, save
+   `buildSessionDecisions(...)` on `session.decisions` and write
+   `makeSessionForecasts(...)` through `writeForecasts`. The forecast source carries the
+   readiness shift (`readinessFromRecords` then `readinessLevelShift`) and the widening factors
+   (`sdScales` of the scored record). A second call for the same workout adds nothing.
+2. `finishWorkout`: after `applyRebuild()`, write the horizon forecasts for the lifts just
+   trained (`makeHorizonForecasts`), at most one row per slot.
+3. `logBodyweight`: write the bodyweight horizon forecast for the week, at most one per slot.
+4. `updateSettings`: when the training phase mode changes, `recordCoachEvent` with what
+   changes in the app as a result (rest times, accessory cap, forecasts), citing
+   `rest-cut-bonus`.
+5. Hooks, all returning `undefined` while loading: `useForecastSource()`,
+   `useScoredForecasts()` (every stored forecast with its derived status, earliest per slot),
+   `useSessionForecasts(workoutId)`, `useTrackRecord()` (`score.ts` over the scored list),
+   `useReadinessToday()` (`ReadinessScore | null`), `useDecisionTrace({ exerciseId, tier })`
+   (live trace for the next workout) and `useStoredDecisions(workoutId)`.
+6. `useTodayForecast`: real values (session minutes with range; new-best chance as a
+   probability with the reps needed; readiness), keeping its return type.
+7. Add the `@evidence` tags and `implementedIn` entries listed in the forecast-models and
+   readiness reports (given in your launch message); the evidence contract tests must pass.
+8. Tests, against `fake-indexeddb` as the other data tests do: start writes decisions and
+   forecasts once; no forecast is written after a set exists; finish leaves forecast rows
+   byte-identical while their derived status becomes resolved; editing a set changes the
+   derived outcome and not the row; discarding or deleting the workout makes them void;
+   lifting a different weight from the forecast's makes that forecast void; a phase change
+   records one coach event.
+9. Browser check with the harness: seed, start a workout from Configure, log the sets of the
+   first lift, finish, and confirm in IndexedDB (through `page.evaluate`) that forecast rows
+   exist and were not modified, and that Today shows the new-best tile as a percentage.
+
+### adjustment-feed (G9, G7 display)
+Lane: `src/lib/adjustments/**` and tests. Pure functions only.
+`buildAdjustmentFeed(input): AdjustmentEntry[]` (type in `src/types/glass.ts`), newest first,
+merging: progression outcomes from `RebuildResult.outcomes` (stage changes, resets, holds and
+T3 increases; an ordinary pass is one line per workout, not one per lift); `liftAdjustments`
+rows (start, manual, decay, import) with `undo` where a clean inverse exists; entries of
+`EVIDENCE_CHANGELOG`; forecast revisions (the point of a horizon forecast for the same subject
+moving between consecutive slots by more than its own range's half-width); self-corrections
+(`inputs.sdScale` rising between consecutive forecasts of a kind); weight overrides (a set's
+weight differing from the planned weight, or a favourites plan edit of kind weight); and
+`CoachEvent` rows. Each entry has a plain title, a one-or-two sentence reason, a rule id where
+one applies (must pass `isRuleId`), and an `href` to where the user can see or change it
+(lift page, forecast screen, research rule, settings). Filters: `filterFeed(feed, group)` for
+All, Weights, Rest, Forecasts, Rules. Tests cover each source, ordering, the undo flag and an
+empty history.
