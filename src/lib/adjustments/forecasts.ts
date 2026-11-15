@@ -101,6 +101,9 @@ function revisionEntries(scored: Forecast[]): AdjustmentEntry[] {
   const bySubject = new Map<string, Forecast[]>();
   for (const forecast of scored) {
     if (FORECAST_KINDS[forecast.kind]?.scope !== "horizon") continue;
+    // Only kinds with wording are revised in the log: a round-number date is stored as a
+    // day count, which would read as "20,790 → 20,800".
+    if (!HORIZON_WORDING[forecast.kind]) continue;
     const key = subjectKey(forecast);
     const list = bySubject.get(key);
     if (list) list.push(forecast);
