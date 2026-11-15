@@ -40,7 +40,8 @@ function GradeChip({ strength, size = "sm", label, className }: GradeChipProps) 
       data-strength={strength}
       className={cn(
         "inline-flex w-fit shrink-0 items-center whitespace-nowrap rounded-full border-[1.5px] align-middle font-bold uppercase tracking-[0.08em]",
-        size === "sm" ? "h-5 px-2 text-[11px]" : "h-6 px-2.5 text-xs",
+        // 12 px is the smallest text the app uses; "md" is a step up for headers.
+        size === "sm" ? "h-5 px-2 text-xs leading-none" : "h-6 px-2.5 text-[13px] leading-none",
         GRADE_STYLE[strength],
         className
       )}

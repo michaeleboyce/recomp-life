@@ -74,7 +74,8 @@ export function EvidenceLine({
             <span className="block text-xs text-muted-foreground">
               {rule.summary}
             </span>
-            <span className="block text-[11px] text-muted-foreground/70">
+            {/* 12 px at full muted strength: a faded 11 px fell under 4.5:1 on paper. */}
+            <span data-slot="evidence-citation" className="block text-xs text-muted-foreground">
               {formatShortCitation(ruleId)}
             </span>
           </span>
