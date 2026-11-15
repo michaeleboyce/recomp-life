@@ -46,7 +46,22 @@ describe("replay of the demo history", () => {
     // Always saying 50% scores a mean squared gap of 0.25.
     expect(replay.record.byKind.liftPass!.chances.brier!).toBeLessThan(0.25);
     expect(replay.record.byKind.newBest!.chances.brier!).toBeLessThan(0.25);
-    expect(Math.abs(replay.record.byKind.amrapReps!.miss.bias!)).toBeLessThan(1);
+    // New bests happened about as often as the stated chances said.
+    const best = replay.record.byKind.newBest!.chances;
+    expect(Math.abs(best.meanStated! - best.observed!)).toBeLessThan(0.1);
+  });
+
+  it("is not biased once a lift has a result behind it", () => {
+    const reps = replay.scored.filter((item) => item.forecast.kind === "amrapReps");
+    const withHistory = summarize(reps.filter((item) => item.forecast.basis !== "prior"));
+    expect(withHistory.resolved).toBeGreaterThanOrEqual(12);
+    expect(Math.abs(withHistory.miss.bias!)).toBeLessThan(0.5);
+
+    // A first session has only the prior, which expects fewer reps than this lifter
+    // starts with (REPS_MODEL.priorRepsAboveTarget over the target against about six),
+    // so those forecasts come in low. That is the prior's gap, not the model's drift.
+    const first = summarize(reps.filter((item) => item.forecast.basis === "prior"));
+    expect(first.miss.bias!).toBeGreaterThan(withHistory.miss.bias!);
   });
 
   it("uses the ids the live writer would, and the weight that was lifted", () => {
