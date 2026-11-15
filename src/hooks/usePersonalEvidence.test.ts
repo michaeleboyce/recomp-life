@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb } from "@/lib/data/testUtils";
+import { writeForecasts } from "@/lib/data/forecasts";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { PERSONAL_MIN_GROUP_SIZE } from "@/lib/evidence/personal";
 import { constructedHistory } from "@/lib/evidence/personal/testHelpers";
@@ -12,7 +13,7 @@ beforeEach(clearDb);
 
 async function seed(log: ReturnType<typeof constructedHistory>) {
   await db.workouts.bulkPut(log.workouts);
-  await db.forecasts.bulkPut(log.forecasts);
+  await writeForecasts(log.forecasts);
   await db.readinessLogs.bulkPut(log.readinessLogs);
   await db.runs.bulkPut(log.runs);
   await db.activities.bulkPut(log.activities);
