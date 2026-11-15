@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { foldDaily } from "@/lib/health/daily";
-import { computeMetric, getMetric } from "./index";
+import { computeMetric, getMetric, inRange } from "./index";
 import type { MetricSource } from "./types";
 
 const base: MetricSource = {
@@ -39,14 +39,23 @@ describe("Apple Health metrics", () => {
     expect(computeMetric("restingHr", { ...base, healthDaily: [] }).points).toEqual([]);
   });
 
-  it("plot one point per day that has a value, oldest first, at local noon", () => {
+  it("plot one point per day that has a value, oldest first, at the start of the local day", () => {
     const series = computeMetric("restingHr", { ...base, healthDaily });
     expect(series.points).toEqual([
-      { t: new Date(2026, 10, 10, 12).getTime(), v: 54, refId: "2026-11-10" },
-      { t: new Date(2026, 10, 11, 12).getTime(), v: 51, refId: "2026-11-11" },
+      { t: new Date(2026, 10, 10).getTime(), v: 54, refId: "2026-11-10" },
+      { t: new Date(2026, 10, 11).getTime(), v: 51, refId: "2026-11-11" },
     ]);
     expect(series.unit).toBe("bpm");
     expect(series.better).toBe("down");
+  });
+
+  it("keep today's value in range from the first minute of the day", () => {
+    const series = computeMetric("restingHr", { ...base, healthDaily });
+    const justAfterMidnight = new Date(2026, 10, 11, 0, 1).getTime();
+    expect(inRange(series, "4w", justAfterMidnight).points.map((p) => p.refId)).toEqual([
+      "2026-11-10",
+      "2026-11-11",
+    ]);
   });
 
   it("skips days without the value", () => {
