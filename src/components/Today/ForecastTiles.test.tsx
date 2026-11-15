@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { TodayForecast } from "@/hooks";
 import { ForecastTiles, forecastTiles } from "./ForecastTiles";
+import { SETTLE_STEP_MS, resetSettled } from "./TodayHero";
 
 const readiness = {
   score: 78,
@@ -124,5 +125,41 @@ describe("ForecastTiles", () => {
     expect(container).toBeEmptyDOMElement();
     rerender(<ForecastTiles forecast={undefined} />);
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("ForecastTiles first-load motion", () => {
+  const tileOf = (key: string) =>
+    screen.getByTestId(`forecast-${key}`).closest("[data-slot=stat-tile]")!.parentElement!;
+
+  it("settles the tiles in one after another on first load only, never on a re-render", () => {
+    resetSettled();
+    const { rerender, unmount } = render(<ForecastTiles forecast={full} />);
+    const tiles = ["session", "new-best", "readiness"].map(tileOf);
+    tiles.forEach((tile, i) => {
+      expect(tile).toHaveAttribute("data-settle", "true");
+      // Only under motion-safe, so reduced motion shows the tiles still.
+      expect(tile).toHaveClass("motion-safe:animate-settle-in");
+      expect(tile.className).not.toMatch(/(^|\s)animate-/);
+      // After the hero's two parts, a step apart; the last starts by 160 ms.
+      expect(tile.style.animationDelay).toBe(`${(2 + i) * SETTLE_STEP_MS}ms`);
+    });
+
+    // A re-render keeps the same elements, so the animation does not start again.
+    rerender(<ForecastTiles forecast={{ ...full, session: { minutes: 47, low: 42, high: 53 } }} />);
+    expect(tileOf("session")).toBe(tiles[0]);
+    unmount();
+
+    // Coming back to Today later in the session: no motion.
+    render(<ForecastTiles forecast={full} />);
+    expect(tileOf("session")).not.toHaveAttribute("data-settle");
+    expect(tileOf("session").className).not.toContain("animate-settle-in");
+  });
+
+  it("still settles in when the forecast arrives after the screen", () => {
+    resetSettled();
+    const { rerender } = render(<ForecastTiles forecast={undefined} />);
+    rerender(<ForecastTiles forecast={full} />);
+    expect(tileOf("session")).toHaveAttribute("data-settle", "true");
   });
 });

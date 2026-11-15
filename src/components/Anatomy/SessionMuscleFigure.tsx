@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   combinedActivationHeat,
   loadFromSetCounts,
   relativeHeatLevels,
+  type MuscleHeat,
 } from "@/lib/muscleLoad";
 import { cn } from "@/lib/utils";
 import { MuscleMap } from "./MuscleMap";
@@ -13,6 +14,24 @@ interface SessionMuscleFigureProps {
   /** Exercises in the session with sets completed so far (warm-ups excluded). */
   exercises: { exerciseId: string; completedSets: number }[];
   className?: string;
+}
+
+/**
+ * Each muscle's colour eases to its new level (400 ms, ease-out) so the figure visibly
+ * fills in as sets are logged. Off under reduced motion: the colour simply changes.
+ */
+export const FILL_TRANSITION =
+  "[&_path]:transition-[fill] [&_path]:duration-400 [&_path]:ease-out motion-reduce:[&_path]:transition-none";
+
+/**
+ * The heat last drawn for a session (keyed by its exercises), so a figure opened again
+ * starts from what it showed before and fills in what was logged since.
+ */
+let lastDrawn: { key: string; heat: MuscleHeat } | null = null;
+
+/** For tests: forget the last figure drawn. */
+export function resetSessionFigureMemory(): void {
+  lastDrawn = null;
 }
 
 /**
@@ -32,11 +51,23 @@ export function SessionMuscleFigure({ exercises, className }: SessionMuscleFigur
     };
   }, [exercises]);
 
+  const key = exercises.map((e) => e.exerciseId).join("|");
+  // First frame: what this session's figure showed last time; then today's heat, which
+  // the fill transition eases into.
+  const [drawn, setDrawn] = useState<MuscleHeat>(() =>
+    lastDrawn && lastDrawn.key === key ? lastDrawn.heat : heat
+  );
+  useEffect(() => {
+    lastDrawn = { key, heat };
+    const frame = requestAnimationFrame(() => setDrawn(heat));
+    return () => cancelAnimationFrame(frame);
+  }, [key, heat]);
+
   return (
     <div className={cn("flex items-center gap-4", className)}>
       <MuscleMap
-        heat={heat}
-        className="h-28 shrink-0"
+        heat={drawn}
+        className={cn("h-28 shrink-0", FILL_TRANSITION)}
         label={started ? "Muscles worked so far" : "Muscles this workout targets"}
       />
       <div className="min-w-0">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
@@ -13,6 +13,43 @@ import { formatEyebrowDate, photoPosition } from "./todayModel";
 
 /** Small capitals in the display face, as on the boards. */
 export const EYEBROW = "font-display text-[11px] font-semibold uppercase tracking-[0.16em]";
+
+/**
+ * Today's first-load motion: the hero's words and figure, then each forecast tile, rise
+ * into place (240 ms, ease-out) 40 ms apart, all done within 400 ms. `motion-safe:`
+ * keeps it off under reduced motion; it never blocks a tap (the parts are there and
+ * tappable from the start).
+ */
+export const SETTLE_IN = "motion-safe:animate-settle-in";
+/** Delay before a part starts, by its place in the order (hero first, then tiles). */
+export const SETTLE_STEP_MS = 40;
+
+/** Parts that have already settled in this app session. */
+const settled = new Set<string>();
+
+/** For tests: as if the app had just opened. */
+export function resetSettled(): void {
+  settled.clear();
+}
+
+/**
+ * True on the first time `part` is shown in this app session, for the life of that
+ * element, so the settle-in plays on first load only: not on re-renders, and not when
+ * coming back to Today from another tab.
+ */
+export function useSettleOnce(part: string): boolean {
+  const [first] = useState(() => !settled.has(part));
+  useEffect(() => {
+    settled.add(part);
+  }, [part]);
+  return first;
+}
+
+/** Class and inline delay for a part that settles in at `step`, or nothing. */
+export function settleProps(on: boolean, step: number): { className?: string; style?: CSSProperties } {
+  if (!on) return {};
+  return { className: SETTLE_IN, style: step > 0 ? { animationDelay: `${step * SETTLE_STEP_MS}ms` } : undefined };
+}
 
 /**
  * The photo fades from half-covered at the top (for the date and the switch), almost
@@ -40,10 +77,13 @@ export function TodayHero({
   onLocationChange: (next: WorkoutLocation) => void;
 }) {
   const [today] = useState(() => new Date());
+  const settle = useSettleOnce("today-hero");
   const t1 = working.find((entry) => entry.tier === "T1");
   const photoId = t1 ? (t1.substituteExerciseId ?? t1.exerciseId) : undefined;
   const photo = photoId && hasExercisePhoto(photoId) ? photoId : null;
   const figureIds = working.map((entry) => entry.substituteExerciseId ?? entry.exerciseId);
+  const words = settleProps(settle, 0);
+  const figure = settleProps(settle, 1);
 
   const top = (
     <div className="flex items-center justify-between gap-3">
@@ -54,7 +94,11 @@ export function TodayHero({
 
   const bottom = (
     <div className="flex items-end justify-between gap-2.5">
-      <div className="flex min-w-0 flex-col gap-2 pb-1.5">
+      <div
+        data-settle={settle || undefined}
+        className={cn("flex min-w-0 flex-col gap-2 pb-1.5", words.className)}
+        style={words.style}
+      >
         <span className={cn(EYEBROW, "text-accent-primary")}>Next up · {templateId}</span>
         <h2
           id="next-workout-title"
@@ -67,7 +111,12 @@ export function TodayHero({
       <Link
         href="/progress?tab=muscles"
         aria-label="Muscles worked. Open the muscle map"
-        className="shrink-0 rounded-2xl bg-background/85 px-2 pt-2 pb-1.5 outline-none transition-colors hover:bg-background focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        data-settle={settle || undefined}
+        className={cn(
+          "shrink-0 rounded-2xl bg-background/85 px-2 pt-2 pb-1.5 outline-none transition-colors hover:bg-background focus-visible:ring-[3px] focus-visible:ring-ring/50",
+          figure.className
+        )}
+        style={figure.style}
       >
         <WorkoutFigure exerciseIds={figureIds} className="h-[136px]" />
       </Link>
