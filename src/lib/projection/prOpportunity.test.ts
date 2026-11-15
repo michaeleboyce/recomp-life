@@ -5,7 +5,13 @@ import {
   prChance,
   repsToBeat,
 } from "./index";
-import { PR_CHANCE_RECENT_SETS, PR_STRETCH_MAX_REPS_ABOVE } from "./prOpportunity";
+import {
+  PR_CHANCE_RECENT_SETS,
+  PR_LIKELY_MIN_CHANCE,
+  PR_STRETCH_MAX_REPS_ABOVE,
+  PR_STRETCH_MIN_CHANCE,
+  prChanceFromProbability,
+} from "./prOpportunity";
 
 function bruteForce(weight: number, best: number) {
   for (let reps = 1; reps <= E1RM_MAX_REPS; reps++) {
@@ -131,5 +137,56 @@ describe("describePrOpportunity", () => {
 
   it("reports unknown chance without AMRAP history", () => {
     expect(describePrOpportunity({ ...base, recentAMRAPReps: [] })!.chance).toBe("unknown");
+  });
+});
+
+describe("prChanceFromProbability", () => {
+  it("words a forecast chance as likely, a stretch or unlikely", () => {
+    expect(prChanceFromProbability(1)).toBe("likely");
+    expect(prChanceFromProbability(PR_LIKELY_MIN_CHANCE)).toBe("likely");
+    expect(prChanceFromProbability(PR_LIKELY_MIN_CHANCE - 0.001)).toBe("stretch");
+    expect(prChanceFromProbability(PR_STRETCH_MIN_CHANCE)).toBe("stretch");
+    expect(prChanceFromProbability(PR_STRETCH_MIN_CHANCE - 0.001)).toBe("unlikely");
+    expect(prChanceFromProbability(0)).toBe("unlikely");
+  });
+
+  it("is unknown without a usable chance", () => {
+    expect(prChanceFromProbability(null)).toBe("unknown");
+    expect(prChanceFromProbability(undefined)).toBe("unknown");
+    expect(prChanceFromProbability(NaN)).toBe("unknown");
+  });
+});
+
+describe("describePrOpportunity with a forecast chance", () => {
+  const base = {
+    tier: "T1" as const,
+    isAMRAP: true,
+    weight: 225,
+    bestE1RM: 255,
+    recentAMRAPReps: [5, 5, 6],
+  };
+
+  it("takes the category from the chance and returns the chance", () => {
+    // The recent-median rule alone would call this likely.
+    expect(describePrOpportunity(base)!.chance).toBe("likely");
+    const low = describePrOpportunity({ ...base, probability: 0.1 })!;
+    expect(low.chance).toBe("unlikely");
+    expect(low.probability).toBe(0.1);
+    expect(describePrOpportunity({ ...base, probability: 0.9 })!.chance).toBe("likely");
+    expect(describePrOpportunity({ ...base, probability: 0.3 })!.chance).toBe("stretch");
+  });
+
+  it("works without any recent reps when a chance is given", () => {
+    const result = describePrOpportunity({ ...base, recentAMRAPReps: [], probability: 0.7 })!;
+    expect(result.chance).toBe("likely");
+    expect(result.repsNeeded).toBe(repsToBeat(225, 255)!.reps);
+  });
+
+  it("falls back to the recent-median rule when the chance is missing", () => {
+    for (const probability of [undefined, null, NaN]) {
+      const result = describePrOpportunity({ ...base, probability })!;
+      expect(result.chance).toBe(prChance(result.repsNeeded, base.recentAMRAPReps));
+      expect("probability" in result).toBe(false);
+    }
   });
 });
