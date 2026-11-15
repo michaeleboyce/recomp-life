@@ -21,8 +21,10 @@ export function ImpactLine({
     return (
       <p data-impact="program" className={cn(base, "text-success", className)}>
         <CircleCheck className="size-3.5 shrink-0" aria-hidden="true" />
-        <Term id="counts-toward-progression">Counts toward progression</Term>
-        {heavier && <span>· next weight builds from this one</span>}
+        <span>
+          <Term id="counts-toward-progression">Counts toward progression</Term>
+          {heavier && " · next weight builds from this one"}
+        </span>
       </p>
     );
   }
