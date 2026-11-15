@@ -1,6 +1,6 @@
 # Importing training history from other apps
 
-Status: draft for Michael's sign-off. Builds on the strength-model spec
+Status: approved by Michael on 2026-11-15, including the new table and preloading his history. Builds on the strength-model spec
 (`docs/plans/2026-11-15-strength-model-design.md`).
 
 This repository is public. This document describes the file formats in general terms only.
@@ -92,3 +92,12 @@ before the deploy. The live-database script (decision 3) is applied before M4 is
 - **Unit or implement errors** (per hand against total) would skew every estimate by a factor
   of two. Mitigation: I2 tests, and the preview shows a few sample sets as "50 lb × 2 hands".
 - **Personal data in a public repo.** Mitigation: decision 1, the I12 guard, synthetic tests.
+
+## Preloading Michael's history (added on approval)
+
+Michael asked for his existing exports to be loaded now rather than through the import screen
+later. After M1 to M3 land, a script (`scripts/import-history.ts`, code only, reading file paths
+from its arguments) runs the same parsers and mapping on the Mac and writes the records to the
+live database in the sync format, so every device pulls them on its next sync. The exports
+stay in a private folder outside the repository and are never committed; the script prints
+counts only. The import screen (M4) is still built, for future exports.
