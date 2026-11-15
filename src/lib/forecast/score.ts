@@ -218,6 +218,8 @@ export function sdScaleOf(forecast: Forecast): number {
  * results again at the new factor, so one bad stretch cannot run it to the limit.
  * Nothing is stored: the factor each forecast used is on its row, and the adjustment
  * log reads the steps from there (`sdScaleChanges`).
+ *
+ * @evidence forecast-calibration
  */
 export function sdScaleFor(kind: ForecastKind, record: ScoredForecast[]): number {
   const source = RANGE_SOURCE_KIND[kind];

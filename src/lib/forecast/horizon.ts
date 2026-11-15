@@ -58,6 +58,8 @@ export function e1rmResults(workouts: WorkoutSession[]): Map<string, Point[]> {
  *
  * The basis is "trend", or "regime-change" when the last result is older than the
  * projection's own staleness limit and the line starts from that old result.
+ *
+ * @evidence projection-rate-of-gain
  */
 export function forecastE1RM(source: ForecastSource, exerciseId: string): HorizonForecast | null {
   const nowMs = source.now.getTime();
@@ -121,6 +123,8 @@ export function weighIns(logs: BodyweightLog[]): Point[] {
  * The range is rangeZ scatters either side, where the scatter of the outcome is the
  * weigh-ins' own around the line (at least sdFloorFraction of bodyweight), widened
  * for how far ahead the line is read (`predictionSd`).
+ *
+ * @evidence forecast-bodyweight
  */
 export function forecastBodyweight(source: ForecastSource): HorizonForecast | null {
   const nowMs = source.now.getTime();

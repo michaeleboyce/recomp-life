@@ -62,6 +62,8 @@ export function sessionPaceRatios(
  * sessions. The scatter is the ratios' own (a robust measure, so one session left
  * open overnight does not blow it up), at least sdFloorFraction, widened for the
  * small sample; the range is rangeZ scatters either side.
+ *
+ * @evidence forecast-session-length
  */
 export function forecastSessionLength(input: {
   plan: WorkoutPlan;
