@@ -49,11 +49,11 @@ export function QuickAddSheet({ open, onOpenChange, from }: QuickAddSheetProps) 
         side="bottom"
         showCloseButton={false}
         className={cn(
-          "mx-auto max-w-lg gap-1.5 rounded-t-3xl border-t-0 bg-card px-5 pt-2.5",
+          // pt-11 keeps the first row clear of the sheet's grab handle (44px tall).
+          "mx-auto max-w-lg gap-1.5 rounded-t-3xl border-t-0 bg-card px-5 pt-11",
           "pb-[calc(env(safe-area-inset-bottom)+20px)]"
         )}
       >
-        <div aria-hidden="true" className="mb-2 h-1 w-10 self-center rounded-full bg-border" />
         <SheetTitle className="sr-only">Quick add</SheetTitle>
         <SheetDescription className="sr-only">Start a workout or log something.</SheetDescription>
 
