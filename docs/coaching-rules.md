@@ -115,7 +115,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** T3 weight goes up when the last set reaches 25 reps
 
-**What the app does.** When you finish every set of a T3 exercise, the app adds 5 lb for next time if the last set reached 25 reps, or, except during a cut, if the sets totalled 50 reps or more. During a cut only the last set counts. Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. Each workout's page shows what happened to its T3 lift under "What it did".
+**What the app does.** When you finish every set of a T3 exercise, the app adds 5 lb for next time if the last set reached 25 reps, whatever your training phase. Total reps across the sets do not count. Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. Each workout's page shows what happened to its T3 lift under "What it did".
 
 **Why.** Muscle growth improves as sets end closer to failure. Under this rule the first two sets of 15 can be about 10 reps short of failure, and people judge reps left least accurately in high-rep sets.
 
@@ -894,6 +894,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 Changes made to the app because of research, newest first.
 
 - **14 November 2026** — `off-program-credit` (Does a changed workout still count toward progression?): A lift done heavier than prescribed in every set now progresses from the heavier weight instead of the prescribed one. Missing reps at a heavier weight is not counted as a failure. Sources: .
+- **13 November 2026** — `t3-progression` (When does T3 weight go up?): T3 weight now goes up only when the last set reaches 25 reps, in every phase. Outside a cut it used to go up on 50 total reps as well; that route is removed. Sources: .
 - **13 November 2026** — `run-interference` (Why does a recent run matter?): Runs can now be imported from Apple Health. An imported run has no effort rating and is ignored by this rule until you rate it. Sources: .
 - **13 November 2026** — `activity-fatigue` (Why does a hard yoga class or ride matter?): Sessions can now be imported from Apple Health. An imported session has no effort rating and is ignored by this rule until you rate it. Sources: .
 - **13 November 2026** — `readiness` (Why does the app ask about sleep and stress?): The sleep answer can now be filled in from Apple Health's record of last night; you can still change it. The suggestion itself is unchanged. Sources: .
