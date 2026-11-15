@@ -34,30 +34,28 @@ export function StrengthTotal({
 }) {
   const { summary, series, label } = total;
   return (
-    <section className="flex flex-col gap-1.5" aria-label="Strength total">
-      <div className="flex items-end justify-between gap-3">
-        <div className="flex min-w-0 flex-col">
-          <h2 className="text-xs font-normal text-muted-foreground">
-            <LabelWithTerm label={label} />
-          </h2>
-          <div className="flex items-baseline gap-2">
-            <span
-              data-testid="strength-total"
-              className="font-mono text-[34px] leading-tight font-bold tabular-nums text-foreground"
-            >
-              {summary.latest ? Math.round(summary.latest.v) : "–"}
-            </span>
-            {summary.change !== null && (
-              <Delta
-                value={Math.round(summary.change)}
-                better="up"
-                suffix={rangeSuffix(series.points)}
-                className="text-sm"
-              />
-            )}
-          </div>
-        </div>
+    <section className="flex flex-col gap-2" aria-label="Strength total">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="min-w-0 font-display text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          <LabelWithTerm label={label} />
+        </h2>
         <RangeTabs value={range} onChange={onRangeChange} options={["4w", "3m", "1y", "all"]} />
+      </div>
+      <div className="flex items-baseline gap-3">
+        <span
+          data-testid="strength-total"
+          className="font-display text-[64px] leading-none font-bold tabular-nums text-foreground"
+        >
+          {summary.latest ? Math.round(summary.latest.v) : "–"}
+        </span>
+        {summary.change !== null && (
+          <Delta
+            value={Math.round(summary.change)}
+            better="up"
+            suffix={rangeSuffix(series.points)}
+            className="text-sm whitespace-nowrap"
+          />
+        )}
       </div>
       <LazyTrendChart
         series={series}
