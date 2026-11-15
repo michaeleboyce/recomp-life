@@ -9,6 +9,7 @@ import type { SetLog } from "@/types";
 import { formatLbs, liftName, setStatusText } from "./format";
 import type { ExerciseGroup } from "./groupSets";
 
+// The whole row is a button, so these are plain words, not glossary terms.
 function SetSummary({ set }: { set: SetLog }) {
   const status = setStatusText(set.status);
   return (
@@ -20,9 +21,9 @@ function SetSummary({ set }: { set: SetLog }) {
         {set.actualReps}
         {set.isAMRAP ? "+" : ""} reps
       </span>
-      {set.isAMRAP && <span className="text-xs text-muted-foreground">AMRAP</span>}
+      {set.isAMRAP && <span className="text-xs text-muted-foreground">As many as you can</span>}
       {set.rpe !== undefined && (
-        <span className="text-xs text-muted-foreground">RPE {formatLbs(set.rpe)}</span>
+        <span className="text-xs text-muted-foreground">Effort {formatLbs(set.rpe)}</span>
       )}
       {status && (
         <span

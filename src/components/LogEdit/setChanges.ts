@@ -32,7 +32,7 @@ export function parseSetValues(
   if (rpe.trim() === "") return { actualReps: r, weight: w, rpe: null };
   const e = Number(rpe);
   if (!Number.isFinite(e) || e < RPE_MIN || e > RPE_MAX) {
-    return { error: `Enter an RPE from ${RPE_MIN} to ${RPE_MAX}, or clear it.` };
+    return { error: `Enter an effort from ${RPE_MIN} to ${RPE_MAX}, or clear it.` };
   }
   return { actualReps: r, weight: w, rpe: e };
 }

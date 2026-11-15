@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
+import { backTarget } from "@/components/nav/backTarget";
 import { WorkoutDetail } from "@/components/LogEdit";
 import { FavoriteStar } from "@/components/Favorites/FavoriteStar";
 import { SessionPRCallout } from "@/components/Log/SessionPRCallout";
@@ -10,15 +11,18 @@ import { WhatItDid } from "@/components/Log/WhatItDid";
 
 function LogWorkout() {
   const router = useRouter();
-  const id = useSearchParams().get("id") ?? "";
+  const params = useSearchParams();
+  const id = params.get("id") ?? "";
+  // Back goes to the Log unless a known `from` says otherwise.
+  const back = backTarget(params.get("from"), "log");
 
   return (
     <PageShell className="space-y-6">
-      <PageHeader title="Workout" backHref="/log" />
+      <PageHeader title="Workout" backHref={back.href} />
       <WorkoutDetail
         workoutId={id}
         headerExtra={<FavoriteStar sessionId={id} />}
-        onDeleted={() => router.push("/log")}
+        onDeleted={() => router.push(back.href)}
       />
       <SessionPRCallout workoutId={id} />
       <WhatItDid workoutId={id} />

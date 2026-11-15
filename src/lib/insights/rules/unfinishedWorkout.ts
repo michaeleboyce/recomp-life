@@ -1,4 +1,4 @@
-import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
+import { workoutDisplayName } from "@/lib/workoutNames";
 import type { Insight, InsightContext } from "../types";
 import { plural } from "../shared";
 
@@ -7,7 +7,7 @@ export function unfinishedWorkoutInsights(ctx: InsightContext): Insight[] {
   const session = ctx.unfinishedWorkout;
   if (!session) return [];
 
-  const name = WORKOUT_TEMPLATES[session.templateId]?.name ?? `Workout ${session.templateId}`;
+  const name = workoutDisplayName(session.templateId);
   const working = (session.sets ?? []).filter((s) => s.tier !== "warmup").length;
   const logged =
     working === 0

@@ -102,7 +102,7 @@ describe("/log", () => {
   it("describes a workout's result and marks a PR against earlier sessions only", async () => {
     await seed();
     render(<LogPage />);
-    const latest = (await screen.findByRole("link", { name: /Workout A1.*Squat 195 lbs/ })) as HTMLElement;
+    const latest = (await screen.findByRole("link", { name: /A1 · Squat day.*Squat 195 lbs/ })) as HTMLElement;
     expect(latest).toHaveTextContent("Gym · Squat 195 lbs · all targets hit");
     expect(within(latest).getByText("PR")).toBeInTheDocument();
     const older = screen.getByRole("link", { name: /Squat 185 lbs/ });
