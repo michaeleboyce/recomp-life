@@ -230,3 +230,49 @@ Follow the way `favoriteWorkouts` was added (see `git log -3 --stat -- src/db/lo
   `src` and fails on `forecasts.update`, `.put`, `.modify` or `.bulkPut` outside
   `src/lib/data/forecasts.ts`; registry and SQL tests as for the existing tables.
 - Do not call these from `startWorkout` or anywhere else; the lead wires them in.
+
+## Wave 2
+
+### today (G19), started early
+Lane: `src/app/page.tsx`, `src/components/Today/**`, `src/app/progress/upcoming/**`,
+`src/components/Progress/Upcoming*` (or wherever the Coming up screen's components live),
+new `src/hooks/useTodayForecast.ts` with its export line in `src/hooks/index.ts`, and tests.
+
+Build the Today screen to match `docs/plans/glass-box-mockups/GlassToday.png` (markup in
+`src/GlassToday.html`) and the Coming up screen to match `PhotoUpcoming.png` in the new palette.
+Use the kit: `ExerciseImage`, `WorkoutFigure`, `Stripes`, `GradeChip`, `RangeBar`, `StatTile`,
+`LocationChip`, `font-display`.
+
+Today, top to bottom:
+1. Photo hero of the workout's T1 lift (`ExerciseImage` hero, fading into the page), date,
+   the location control, "Next up · <code>", the workout name in the display face, stripes,
+   and the `WorkoutFigure` panel (links to the Muscles tab). No photo for the lift: the figure
+   takes the hero's place on a plain surface.
+2. "The app's forecast for today": three tiles (session length with range, chance of a new
+   best with the reps needed, readiness) from `useTodayForecast()`.
+3. One row per lift: tier, name, a one-line reason, weight, scheme, chevron to the lift page.
+   The reason line comes from a `reason` field on the row model: for now "▲ 10 from 205",
+   "Held at 65" or "First time", worked out from the last finished workout that had the lift
+   at that tier. The decision trace replaces it later; leave a `why` slot (hidden while empty).
+4. Start workout, inside the first 844 pixels at 390 wide with three lifts.
+5. Below: everything Today does now (unfinished-workout resume, needs-attention list,
+   glance tiles, weekly review link, coming-up line). Nothing that works today is lost,
+   including the gym/home switch and the empty-database state.
+
+`useTodayForecast()` returns
+`{ session: { minutes: number; low?: number; high?: number } | null;
+   newBest: { probability: number | null; chance: PrChance; repsNeeded: number; estimate: number; best: number } | null;
+   readiness: ReadinessScore | null }`.
+For now fill it from what exists (`estimateWorkoutMinutes`, `describePrOpportunity`; readiness
+`null`). A tile with no value is not rendered, and the row reflows; never show a made-up
+number. The lead swaps the internals for the stored forecasts when those packages land.
+
+Coming up: one photo card per workout in rotation order (photo of its T1 lift, name in the
+display face, the three lifts with projected weights, `WorkoutFigure` panel), from the
+existing `useUpcomingWorkouts`.
+
+Check your work in a browser, not only in tests: start `next dev` on a free port with
+`DATABASE_URL=postgres://dummy:dummy@localhost:5432/dummy`, load sample data and take
+screenshots at 390×844 in dark and light with the harness described in your launch message,
+compare with the boards, and fix what differs. Never use the real database or a sync
+passphrase.
