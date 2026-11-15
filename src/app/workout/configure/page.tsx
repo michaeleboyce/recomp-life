@@ -86,6 +86,7 @@ function ConfigureWorkoutContent() {
         <p className="text-sm text-muted-foreground">Ready?</p>
         <PageHeader
           title={templateTitle(setup.templateId)}
+          backHref="/"
           action={<LocationChip location={setup.location} />}
         />
       </div>
