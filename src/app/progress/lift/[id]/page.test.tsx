@@ -33,6 +33,8 @@ vi.mock("@/components/chart-kit/LazyTrendChart", () => ({
 
 import LiftPage from "./page";
 import { homeVersionWeight } from "@/components/Lift/homeVersion";
+import { describeNextWorkout } from "@/lib/workout/buildPlan";
+import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 
 const demo = generateDemoData(new Date());
 
@@ -56,6 +58,7 @@ describe("Lift detail page", () => {
     await seedDemo();
     render(<LiftPage />);
     expect(await screen.findByRole("heading", { name: "Barbell Squat" })).toBeInTheDocument();
+    expect(screen.queryByTestId("home-version")).toBeNull();
     expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/progress");
     expect(screen.getByRole("link", { name: "Form and muscles" })).toHaveAttribute(
       "href",
@@ -191,40 +194,157 @@ describe("Lift detail page", () => {
     expect(await screen.findByText("No squat sessions yet")).toBeInTheDocument();
   });
 
-  it("opened as a home substitute from Today, keeps the squat's history and shows the home version", async () => {
-    await seedDemo();
-    search = "as=goblet_squat&from=today";
-    render(<LiftPage />);
-    expect(await screen.findByRole("heading", { name: "Barbell Squat" })).toBeInTheDocument();
-    expect(screen.getByTestId("home-version")).toHaveTextContent(
-      "At home: Goblet squat. It counts toward Squat."
-    );
-    expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/");
-    expect(screen.getByRole("link", { name: "Form and muscles" })).toHaveAttribute(
-      "href",
-      "/exercises/goblet_squat"
-    );
-
+  describe("opened as a home version", () => {
+    const equipment = makeProfile().settings.equipment;
     const squat = demo.liftStates.find((s) => s.exerciseId === "squat")!;
-    const homeWeight = homeVersionWeight("squat", "goblet_squat", squat.t1Weight, makeProfile().settings.equipment);
-    const line = await screen.findByTestId("pr-line");
-    expect(line).toHaveTextContent(`Next squat at home: goblet squat, ${homeWeight} lbs. Barbell ${squat.t1Weight}.`);
-    expect(line).not.toHaveTextContent("new best");
-    const next = screen.getByRole("region", { name: "Next session" });
-    expect(next).toHaveTextContent("Set the barbell weight; the goblet squat weight follows from it.");
-    // The history is still the squat's.
-    expect(screen.getAllByTestId("session-row").length).toBeGreaterThan(0);
+    /** The next workout at home, as Today plans it. */
+    const nextAtHome = () =>
+      describeNextWorkout({
+        completedWorkouts: demo.workouts.filter((w) => w.completedAt),
+        templates: WORKOUT_TEMPLATES,
+        liftStates: demo.liftStates,
+        plan: { location: "home", equipment, includeWarmUps: true, selectedAccessories: [] },
+      })!;
+    /** Workouts with working sets done as the substitute, newest first. */
+    const sessionsAs = (substituteId: string) =>
+      demo.workouts
+        .filter((w) => w.sets.some((s) => s.substituteExerciseId === substituteId && s.tier !== "warmup"))
+        .sort((a, b) => +new Date(b.startedAt) - +new Date(a.startedAt));
+
+    it("is headed by the home exercise, then its next session, its sessions and the squat's progress", async () => {
+      await seedDemo();
+      search = "as=bulgarian_split_squat&from=today";
+      const { container } = render(<LiftPage />);
+
+      // The heading is the exercise the user tapped, not the barbell lift.
+      const title = await screen.findByRole("heading", { level: 1 });
+      expect(title).toHaveTextContent(/^Bulgarian split squat$/);
+      expect(screen.queryByRole("heading", { name: "Barbell Squat" })).toBeNull();
+      expect(screen.getByTestId("home-eyebrow")).toHaveTextContent("Home version of Squat");
+      expect(screen.getByTestId("home-version").querySelector("img")).toHaveAttribute(
+        "src",
+        expect.stringContaining("bulgarian")
+      );
+      expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/");
+      expect(screen.getByRole("link", { name: "Form and muscles" })).toHaveAttribute(
+        "href",
+        "/exercises/bulgarian_split_squat"
+      );
+
+      const next = await screen.findByRole("region", { name: "Next session" });
+      const homeSessions = screen.getByRole("region", { name: "Bulgarian split squat sessions" });
+      const progress = screen.getByRole("region", { name: "Squat progress" });
+      const order = [title, next, homeSessions, progress];
+      for (let i = 1; i < order.length; i++) {
+        expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      }
+
+      // The demo's next home workout does squat as a goblet squat, so this is the
+      // weight of the next T1 done as a Bulgarian split squat, and the page says so.
+      expect(nextAtHome().plan.find((e) => e.exerciseId === "squat")?.substituteExerciseId).toBe("goblet_squat");
+      const weight = homeVersionWeight("squat", "bulgarian_split_squat", squat.t1Weight, equipment);
+      expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(weight));
+      expect(within(next).getByTestId("home-next")).toHaveTextContent("lbs a hand");
+      expect(within(next).getByTestId("home-next")).toHaveTextContent("T15×3+");
+      expect(within(next).getByTestId("home-planned-as")).toHaveTextContent("has goblet squat for squat");
+      expect(within(next).getByTestId("home-conversion")).toHaveTextContent(
+        `80% of the ${squat.t1Weight} lbs barbell squat`
+      );
+      expect(next).not.toHaveTextContent("new best");
+      expect(next).toHaveTextContent("Set the barbell weight; the Bulgarian split squat weight follows from it.");
+
+      // Its own sessions, newest first, with no "At home" line on each.
+      const own = sessionsAs("bulgarian_split_squat");
+      expect(own.length).toBeGreaterThan(0);
+      const rows = within(homeSessions).getAllByTestId("session-row");
+      expect(rows).toHaveLength(own.length);
+      expect(within(rows[0]).getByRole("link")).toHaveAttribute("href", `/log/workout?id=${own[0].id}`);
+      expect(within(homeSessions).queryByTestId("session-home")).toBeNull();
+
+      // The squat's progress: the barbell estimate and the whole history, and a way to the lift's page.
+      expect(progress).toHaveTextContent(
+        "Home sessions keep squat progression going, while the estimated 1RM comes from barbell squat sets."
+      );
+      expect(within(progress).getByRole("link", { name: /Open Squat/ })).toHaveAttribute("href", "/progress/lift/squat");
+      expect(within(progress).getByRole("region", { name: "Estimated 1RM" })).toHaveTextContent("Barbell squat ·");
+      expect(within(progress).getByRole("img", { name: /Barbell squat estimated 1RM over time/ })).toBeInTheDocument();
+      expect(within(progress).getByTestId("e1rm-latest")).toBeInTheDocument();
+      expect(within(progress).getByRole("region", { name: "Lift stats" })).toBeInTheDocument();
+      expect(within(progress).getAllByTestId("session-row")).toHaveLength(10);
+      expect(container.querySelector('[data-testid="pr-line"]')).toBeNull();
+    });
+
+    it("gives the weight Today shows when the next home workout has this substitute", async () => {
+      await seedDemo();
+      search = "as=goblet_squat&from=today";
+      render(<LiftPage />);
+      expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent(/^Goblet squat$/);
+      const entry = nextAtHome().plan.find((e) => !e.isWarmUp && e.exerciseId === "squat")!;
+      expect(entry.substituteExerciseId).toBe("goblet_squat");
+      const next = await screen.findByTestId("home-next");
+      expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(entry.weight));
+      expect(next).not.toHaveTextContent("a hand");
+      expect(screen.queryByTestId("home-planned-as")).toBeNull();
+    });
+
+    it("says honestly when there are no sessions of it yet", async () => {
+      await seedDemo();
+      search = "as=db_lunge";
+      render(<LiftPage />);
+      expect(sessionsAs("db_lunge")).toHaveLength(0);
+      const list = await screen.findByRole("region", { name: "DB lunge sessions" });
+      expect(list).toHaveTextContent("No DB lunge sessions yet. They will appear here and count toward your squat.");
+      expect(within(list).queryAllByTestId("session-row")).toHaveLength(0);
+      expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/progress");
+    });
+
+    it("shows the muscle figure for a home version without a photo", async () => {
+      await seedDemo();
+      id = "deadlift";
+      search = "as=single_leg_db_rdl";
+      render(<LiftPage />);
+      const header = await screen.findByTestId("home-version");
+      expect(within(header).getByRole("heading", { level: 1 })).toHaveTextContent(/^Single-Leg DB RDL$/);
+      expect(screen.getByTestId("home-eyebrow")).toHaveTextContent("Home version of Deadlift");
+      expect(header.querySelector('[data-slot="exercise-image"]')).toBeNull();
+      expect(within(header).getByRole("group", { name: "Muscles worked by Single-Leg DB RDL" })).toBeInTheDocument();
+    });
+
+    it("says the weight control changes the barbell weight", async () => {
+      await initializeDatabase();
+      search = "as=bulgarian_split_squat";
+      render(<LiftPage />);
+      const next = await screen.findByRole("region", { name: "Next session" });
+      fireEvent.click(within(next).getByRole("button", { name: "Adjust weight" }));
+      expect(await screen.findByRole("heading", { name: "Adjust Squat" })).toBeInTheDocument();
+      // The sheet reads the lift's current weight before it shows the field and its hint.
+      await waitFor(() =>
+        expect(screen.getByRole("dialog")).toHaveTextContent(
+          "The barbell weight. At home the Bulgarian split squat weight follows from it."
+        )
+      );
+    });
   });
 
-  it("ignores an `as` that is not one of the lift's home substitutes", async () => {
-    await seedDemo();
-    search = "as=db_bench";
-    render(<LiftPage />);
-    expect(await screen.findByTestId("pr-line")).toHaveTextContent(/^Next squat is/);
-    expect(screen.queryByTestId("home-version")).toBeNull();
-    expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/progress");
-    expect(screen.getByRole("link", { name: "Form and muscles" })).toHaveAttribute("href", "/exercises/squat");
-  });
+  it.each(["as=db_bench", "as=nonsense&from=today", "as=squat"])(
+    "ignores an `as` that is not one of the lift's home substitutes (%s)",
+    async (query) => {
+      await seedDemo();
+      search = query;
+      render(<LiftPage />);
+      expect(await screen.findByTestId("pr-line")).toHaveTextContent(/^Next squat is/);
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Barbell Squat$/);
+      expect(screen.queryByTestId("home-version")).toBeNull();
+      expect(screen.queryByTestId("home-next")).toBeNull();
+      expect(screen.queryByRole("region", { name: "Squat progress" })).toBeNull();
+      expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute(
+        "href",
+        query.includes("from=today") ? "/" : "/progress"
+      );
+      expect(screen.getByRole("link", { name: "Form and muscles" })).toHaveAttribute("href", "/exercises/squat");
+      expect(screen.getByRole("region", { name: "Sessions" })).toBeInTheDocument();
+    }
+  );
 
   it("an unknown id links back to Progress", async () => {
     id = "lat_pulldown";
