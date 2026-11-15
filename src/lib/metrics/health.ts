@@ -4,10 +4,14 @@ import type { HealthDailyValues } from "@/lib/health/types";
 import { defineMetric } from "./helpers";
 import type { MetricDef, Point } from "./types";
 
-/** Noon, local time, of a "YYYY-MM-DD" day: the point's place on the time axis. */
+/**
+ * The start, local time, of a "YYYY-MM-DD" day: the point's place on the time
+ * axis. Not later in the day, or today's value would lie in the future and be
+ * cut from every range until that hour.
+ */
 function dayToMs(day: string): number {
   const [year, month, date] = day.split("-").map(Number);
-  return new Date(year, month - 1, date, 12).getTime();
+  return new Date(year, month - 1, date).getTime();
 }
 
 type DailyField = Exclude<keyof HealthDailyValues, "day">;
