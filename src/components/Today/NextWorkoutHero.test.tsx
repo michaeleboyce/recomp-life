@@ -11,7 +11,7 @@ import { getNextWorkoutId, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { WorkoutLocation } from "@/types";
 import { NextWorkoutHero } from "./NextWorkoutHero";
-import { dayName, displayLiftName } from "./todayModel";
+import { dayName, displayLiftName, liftPageHref } from "./todayModel";
 
 vi.mock("next/link", () => ({
   default: ({
@@ -67,7 +67,7 @@ describe("NextWorkoutHero", () => {
     working.forEach((entry, i) => {
       expect(within(rows[i]).getByRole("link", { name: displayLiftName(entry.exerciseId) })).toHaveAttribute(
         "href",
-        `/progress/lift/${entry.exerciseId}?from=today`
+        liftPageHref(entry.exerciseId, { from: "today" })
       );
       expect(within(rows[i]).getByText(String(entry.weight))).toBeInTheDocument();
       expect(within(rows[i]).getByText(entry.tier)).toBeInTheDocument();

@@ -2,6 +2,7 @@
 // photo framing and the one-line reason under each lift. No React, no database.
 import type { Tier, WorkoutSession } from "@/types";
 import { formatLbs, shortLiftName } from "./format";
+import { isMainLift } from "@/lib/liftNames";
 
 /** Plain names for lifts whose stored name is an abbreviation. */
 const PLAIN_NAME: Record<string, string> = {
@@ -94,6 +95,9 @@ export function liftPageHref(
   exerciseId: string,
   options: { as?: string; from?: "today" } = {}
 ): string {
+  // Only the four main lifts have a lift page; any other lift opens the page of the
+  // exercise actually shown (the home version when there is one).
+  if (!isMainLift(exerciseId)) return `/exercises/${options.as ?? exerciseId}`;
   const params = new URLSearchParams();
   if (options.as && options.as !== exerciseId) params.set("as", options.as);
   if (options.from) params.set("from", options.from);

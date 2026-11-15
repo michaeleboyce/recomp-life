@@ -72,6 +72,11 @@ describe("liftPageHref", () => {
     );
     expect(liftPageHref("squat", { as: "squat" })).toBe("/progress/lift/squat");
   });
+
+  it("opens the exercise page for a lift that has no lift page, such as a T3 row at home", () => {
+    expect(liftPageHref("lat_pulldown", { as: "db_row", from: "today" })).toBe("/exercises/db_row");
+    expect(liftPageHref("lat_pulldown", { from: "today" })).toBe("/exercises/lat_pulldown");
+  });
 });
 
 describe("nameInSentence", () => {
