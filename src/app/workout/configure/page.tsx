@@ -2,6 +2,8 @@
 
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useWorkout } from "@/hooks";
+import { discardWorkout } from "@/lib/data/workouts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
@@ -25,8 +27,8 @@ import { TimeEstimate } from "@/components/PreWorkout/TimeEstimate";
 import { WarmUpToggle } from "@/components/PreWorkout/WarmUpToggle";
 import { useFavoriteFromUrl } from "@/components/PreWorkout/useFavoriteFromUrl";
 import { useWorkoutSetup } from "@/components/PreWorkout/useWorkoutSetup";
-// The same estimate as Today's "about N min", so the two screens agree.
-import { estimateWorkoutMinutes } from "@/components/Today/format";
+// The same session-length model as Today's tile, so the two screens agree.
+import { useReadyLength } from "@/components/PreWorkout/useReadyLength";
 
 function LoadingScreen() {
   return (
@@ -48,11 +50,13 @@ export default function ConfigureWorkoutPage() {
 function ConfigureWorkoutContent() {
   const router = useRouter();
   const params = useSearchParams();
+  const replaced = useWorkout(params.get("replaces"));
   const fromUrl = useFavoriteFromUrl(params.get("favorite"), params.get("mode"));
   const setup = useWorkoutSetup(
     params.get("templateId"),
     fromUrl.status === "applied" ? fromUrl.resolved : null
   );
+  const length = useReadyLength(setup.plan, setup.trainingPhase);
 
   // Wait for the favourite too, so the rotation's day is never flashed first.
   if (fromUrl.status === "loading" || setup.isLoading || !setup.templateId || !setup.template) {
@@ -61,7 +65,17 @@ function ConfigureWorkoutContent() {
 
   const handleStart = async () => {
     const sessionId = await setup.start();
-    if (sessionId) router.push(`/workout/active?sessionId=${sessionId}`);
+    if (!sessionId) return;
+    // Today's "Start a new one": the open workout goes once the new one exists,
+    // and only while it is still unfinished. A failure here never blocks the start.
+    if (replaced && replaced.completedAt == null && replaced.id !== sessionId) {
+      await discardWorkout(replaced.id).catch((err) =>
+        console.error("Failed to discard the replaced workout:", err)
+      );
+    }
+    // Replace, not push: Back from the workout (or later from its summary) never
+    // reopens this Ready screen for a workout that has already started.
+    router.replace(`/workout/active?sessionId=${sessionId}`);
   };
 
   const hasSubstitutes = setup.homeAdaptations.length > 0;
@@ -96,7 +110,7 @@ function ConfigureWorkoutContent() {
       {/* Needs attention: shown above the list, never tucked away. */}
       <SetupAdvisories
         runAdvisory={setup.runAdvisory}
-        onDismissRunAdvisory={setup.dismissRunAdvisory}
+        onRunChoice={setup.chooseRunOption}
         onSkipToday={() => router.push("/")}
         runEvidence={
           setup.runAdvisory?.evidenceId && <EvidenceLine ruleId={setup.runAdvisory.evidenceId} />
@@ -131,7 +145,7 @@ function ConfigureWorkoutContent() {
         <WarmUpToggle enabled={setup.warmUps} onChange={setup.setWarmUps} />
       </div>
 
-      <TimeEstimate minutes={estimateWorkoutMinutes(setup.plan, setup.trainingPhase)} />
+      <TimeEstimate length={length} />
 
       {/* Everything optional. */}
       <div className="border-t border-border">

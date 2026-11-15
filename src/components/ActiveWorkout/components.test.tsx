@@ -12,7 +12,7 @@ import { RepPicker } from "./RepPicker";
 import { RPESelector } from "./RPESelector";
 import { WeightDisplay } from "./WeightDisplay";
 import { WorkoutOverviewSheet } from "./WorkoutOverviewSheet";
-import { repChips, restNextLabel } from "./activeWorkoutLogic";
+import { clampReps, repChips, restNextLabel } from "./activeWorkoutLogic";
 import { describeChance } from "./prOpportunity";
 
 const audio = vi.hoisted(() => ({
@@ -116,7 +116,7 @@ describe("WeightDisplay", () => {
 describe("RepPicker", () => {
   it("offers chips from one below the target to four above", () => {
     expect(repChips(3)).toEqual([2, 3, 4, 5, 6, 7]);
-    expect(repChips(1)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(repChips(1)).toEqual([0, 1, 2, 3, 4, 5]);
     expect(repChips(15)).toEqual([14, 15, 16, 17, 18, 19]);
   });
 
@@ -135,7 +135,19 @@ describe("RepPicker", () => {
     expect(onChange).toHaveBeenLastCalledWith(6);
   });
 
-  it("can step far past the chips and never below one", () => {
+  it("a missed set can be logged as 0 reps, never fewer", () => {
+    expect(clampReps(0)).toBe(0);
+    expect(clampReps(-1)).toBe(0);
+    const onChange = vi.fn();
+    const { rerender } = render(<RepPicker targetReps={1} isAMRAP={false} value={1} onChange={onChange} />);
+    fireEvent.click(screen.getByRole("button", { name: "One fewer rep" }));
+    expect(onChange).toHaveBeenLastCalledWith(0);
+    expect(screen.getByRole("button", { name: "0 reps" })).toBeInTheDocument();
+    rerender(<RepPicker targetReps={1} isAMRAP={false} value={0} onChange={onChange} />);
+    expect(screen.getByRole("button", { name: "One fewer rep" })).toBeDisabled();
+  });
+
+  it("can step far past the chips", () => {
     const onChange = vi.fn();
     const { rerender } = render(
       <RepPicker targetReps={15} isAMRAP value={29} onChange={onChange} />
@@ -144,9 +156,8 @@ describe("RepPicker", () => {
     fireEvent.click(screen.getByRole("button", { name: "One more rep" }));
     expect(onChange).toHaveBeenLastCalledWith(30);
     expect(screen.getByText("target 15+")).toBeInTheDocument();
-
-    rerender(<RepPicker targetReps={1} isAMRAP={false} value={1} onChange={onChange} />);
-    expect(screen.getByRole("button", { name: "One fewer rep" })).toBeDisabled();
+    rerender(<RepPicker targetReps={15} isAMRAP value={99} onChange={onChange} />);
+    expect(screen.getByRole("button", { name: "One more rep" })).toBeDisabled();
   });
 
   it("highlights the chips that would be a new best on an AMRAP set only", () => {
@@ -218,6 +229,13 @@ describe("ExerciseBlock", () => {
     expect(screen.getByRole("button", { name: "Form" })).toBeInTheDocument();
     expect(screen.getByLabelText("Muscles worked by Barbell Deadlift")).toBeInTheDocument();
     expect(screen.queryByText(/AMRAP/)).toBeNull();
+  });
+
+  it("lets a long name wrap to two lines instead of cutting it off", () => {
+    render(<ExerciseBlock exercise={entry({ substituteExerciseId: "single_leg_db_rdl" })} location="home" />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.className).not.toMatch(/\btruncate\b/);
+    expect(heading.className).toMatch(/line-clamp-2/);
   });
 
   it("shows the substitute's name and the AMRAP guidance with its evidence line", () => {
@@ -296,19 +314,20 @@ describe("LogDock", () => {
     const timer = screen.getByRole("timer");
     expect(within(timer).getByTestId("rest-label")).toHaveTextContent("Rest");
     expect(within(timer).getByTestId("rest-remaining")).toHaveTextContent("3:30");
-    // The remaining time is the largest text in the dock.
-    expect(within(timer).getByTestId("rest-remaining")).toHaveClass("text-4xl");
+    // The remaining time is the largest text on the rest screen.
+    expect(within(timer).getByTestId("rest-remaining")).toHaveClass("font-display");
     expect(timer).toHaveTextContent("of 3:30");
     expect(timer).toHaveTextContent("Next: set 2 of 5 · 245 lbs");
     expect(timer).toHaveTextContent("+30s cut");
     expect(timer.querySelector('[data-evidence="rest-heavy"]')).not.toBeNull();
     expect(timer.querySelector('[data-evidence="rest-cut-bonus"]')).not.toBeNull();
 
-    // +5s and +15s top up the remaining rest; all three controls are 44px tall.
+    // +5s and +15s top up the remaining rest; all three controls are at least 44px tall.
     expect(screen.queryByRole("button", { name: "+30s" })).toBeNull();
-    for (const name of ["+5s", "+15s", "Skip rest"]) {
-      expect(screen.getByRole("button", { name })).toHaveClass("h-11");
+    for (const name of ["+5s", "+15s"]) {
+      expect(screen.getByRole("button", { name })).toHaveClass("h-12");
     }
+    expect(screen.getByRole("button", { name: "Skip rest" })).toHaveClass("h-[60px]");
     expect(screen.getByRole("button", { name: "+5s" })).toHaveClass("font-mono");
     fireEvent.click(screen.getByRole("button", { name: "+5s" }));
     expect(useWorkoutStore.getState().restTimeRemaining).toBe(215);
@@ -318,6 +337,33 @@ describe("LogDock", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Skip rest" }));
     expect(screen.getByRole("button", { name: "LOG 3 REPS" })).toBeInTheDocument();
+  });
+
+  it("says why the rest is this long from the saved trace, each step with its grade", () => {
+    const why = {
+      subject: { kind: "rest" as const, exerciseId: "deadlift", tier: "T1" as const },
+      result: 210,
+      unit: "s" as const,
+      steps: [
+        { id: "base-rest", title: "T1 sets", detail: "", effect: { op: "start" as const, value: 180, unit: "s" as const }, ruleId: "rest-heavy" },
+        { id: "cutting-bonus", title: "Cutting phase", detail: "", effect: { op: "add" as const, value: 30, unit: "s" as const }, ruleId: "rest-cut-bonus" },
+      ],
+    };
+    render(<LogDock {...props} reps={3} restWhy={why} restBanner={<p>Banner here</p>} />);
+    act(() => useWorkoutStore.getState().startRestTimer(210, "T1"));
+    const timer = screen.getByRole("timer");
+    const list = within(timer).getByTestId("rest-why");
+    expect(list).toHaveTextContent("Why 3:30");
+    expect(list).toHaveTextContent("T1 sets");
+    expect(list).toHaveTextContent("3:00");
+    expect(list).toHaveTextContent("Cutting phase");
+    expect(list).toHaveTextContent("+0:30");
+    expect(list.querySelector('[data-evidence="rest-heavy"] [data-slot="grade-chip"]')).not.toBeNull();
+    expect(list.querySelector('[data-evidence="rest-cut-bonus"] [data-slot="grade-chip"]')).not.toBeNull();
+    expect(within(list).getByRole("button", { name: "Read the research" })).toBeInTheDocument();
+    expect(timer).toHaveTextContent("Banner here");
+    // +5s, +15s and Skip stay.
+    for (const name of ["+5s", "+15s", "Skip rest"]) expect(screen.getByRole("button", { name })).toBeInTheDocument();
   });
 
   it("returns to the log button by itself when the rest runs out", () => {

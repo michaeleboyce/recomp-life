@@ -1,11 +1,13 @@
 "use client";
 
 import { TierBadge } from "@/components/ui/tier-badge";
+import { Term } from "@/components/ui/term";
+import type { TermId } from "@/lib/glossary";
 import { TierKey } from "@/components/Upcoming/TierKey";
 import { getExercise } from "@/lib/exercises";
 import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
-import type { TrainingPhase } from "@/types";
+import type { Tier, TrainingPhase } from "@/types";
 import { ImpactLine } from "./ImpactLine";
 import type { ImpactItem } from "./impact";
 
@@ -22,6 +24,8 @@ interface Row {
   entry: WorkoutExerciseState;
   warmUps: WorkoutExerciseState[];
 }
+
+const TIER_TERM: Partial<Record<Tier, TermId>> = { T1: "t1", T2: "t2", T3: "t3", accessory: "accessory" };
 
 /** Working entries, each with the warm-up entries that lead into it. */
 function toRows(plan: WorkoutPlan): Row[] {
@@ -50,6 +54,8 @@ function weightLabel(entry: WorkoutExerciseState): string {
 export function PlannedExerciseList({ plan, trainingPhase, impact = [] }: PlannedExerciseListProps) {
   const notDone = impact.filter((item) => item.status === "not-done");
   const hasWarmUps = plan.some((entry) => entry.isWarmUp);
+  // The first badge of each tier opens its glossary entry; later ones stay plain.
+  const explained = new Set<Tier>();
   return (
     <div className="flex flex-col gap-1.5">
       <TierKey warmUp={hasWarmUps} rest />
@@ -71,18 +77,29 @@ export function PlannedExerciseList({ plan, trainingPhase, impact = [] }: Planne
               data-testid="planned-exercise"
               className="flex items-center gap-3 py-2.5"
             >
-              <TierBadge tier={entry.tier} variant="soft" className="w-10 rounded-md" />
+              {(() => {
+                const badge = <TierBadge tier={entry.tier} variant="soft" className="w-10 rounded-md" />;
+                const term = TIER_TERM[entry.tier];
+                if (!term || explained.has(entry.tier)) return badge;
+                explained.add(entry.tier);
+                return (
+                  <Term id={term} label={entry.tier} className="shrink-0 no-underline">
+                    {badge}
+                  </Term>
+                );
+              })()}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{info.name}</p>
+                {/* Long names wrap to a second line rather than being cut off. */}
+                <p className="line-clamp-2 text-sm font-medium break-words">{info.name}</p>
                 {original && (
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="line-clamp-2 text-xs break-words text-muted-foreground">
                     in place of {original.name}
                     {entry.originalWeight ? ` at ${entry.originalWeight} lbs` : ""}
                   </p>
                 )}
                 {entryImpact && <ImpactLine status={entryImpact.status} heavier={entryImpact.heavier} />}
                 {warmUps.length > 0 && (
-                  <p className="truncate font-mono text-xs tabular-nums text-muted-foreground">
+                  <p className="font-mono text-xs break-words tabular-nums text-muted-foreground">
                     warm-up: {warmUps.map((w) => `${w.weight}×${w.targetReps}`).join(" · ")}
                   </p>
                 )}

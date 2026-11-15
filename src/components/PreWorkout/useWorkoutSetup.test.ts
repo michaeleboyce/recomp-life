@@ -380,6 +380,92 @@ describe("advisories", () => {
     expect((await db.liftStates.get("squat"))!.t1Weight).toBe(190);
   });
 
+  describe("records the choice in the adjustment log", () => {
+    const events = () => db.coachEvents.toArray();
+
+    it("carrying on past a run advisory is a dismissal with the run rule", async () => {
+      await db.runs.put(run({}));
+      const hook = await mount("A1");
+      act(() => hook.result.current.chooseRunOption("proceed"));
+      expect(hook.result.current.runAdvisory).toBeNull();
+      await waitFor(async () => expect(await events()).toHaveLength(1));
+      expect((await events())[0]).toMatchObject({
+        kind: "advisoryDismissed",
+        ruleId: "run-interference",
+        data: { advisory: "run", choice: "proceed" },
+      });
+    });
+
+    it("extra warm-ups turns warm-ups on; reduce lowers the T1 weight 10% for today", async () => {
+      await patchSettings({ showWarmUps: false });
+      await db.runs.put(run({ perceivedEffort: 4, date: new Date(Date.now() - 10 * HOUR) }));
+      let hook = await mount("A1");
+      expect(hook.result.current.runAdvisory).toMatchObject({ level: "advisory" });
+      act(() => hook.result.current.chooseRunOption("extra_warmups"));
+      expect(hook.result.current.warmUps).toBe(true);
+      await waitFor(async () => expect(await events()).toHaveLength(1));
+      expect((await events())[0]).toMatchObject({
+        kind: "advisoryAccepted",
+        ruleId: "run-interference",
+        data: { choice: "extra_warmups" },
+      });
+
+      hook = await mount("A1");
+      act(() => hook.result.current.chooseRunOption("reduce_10"));
+      const t1 = hook.result.current.plan.find((e) => e.tier === "T1" && !e.isWarmUp)!;
+      expect(t1.weight).toBe(170); // 190 x 0.9 = 171, to the nearest 5
+      expect(hook.result.current.edits).toContainEqual({ kind: "weight", exerciseId: "squat", tier: "T1", weight: 170 });
+      await waitFor(async () => expect(await events()).toHaveLength(2));
+      expect((await events()).find((e) => e.data?.choice === "reduce_10")).toMatchObject({
+        kind: "advisoryAccepted",
+        data: { from: 190, to: 170 },
+      });
+    });
+
+    it("dismissing the activity note or a time-off suggestion is recorded with its rule", async () => {
+      await db.activities.put({
+        id: "act-1",
+        clientId: "c-act-1",
+        date: new Date(Date.now() - 3 * HOUR),
+        kind: "cycling",
+        durationMinutes: 90,
+        perceivedEffort: 5,
+        notes: "",
+        synced: false,
+      } as ActivityLog);
+      await db.liftStates.update("squat", { t1LastWorkoutDate: new Date(Date.now() - 40 * DAY) });
+      const hook = await mount("A1");
+      act(() => hook.result.current.dismissActivityNote());
+      act(() => hook.result.current.dismissDecay("squat", "T1"));
+      await waitFor(async () => expect(await events()).toHaveLength(2));
+      const rules = (await events()).map((e) => [e.kind, e.ruleId]).sort();
+      expect(rules).toEqual([
+        ["advisoryDismissed", "activity-fatigue"],
+        ["advisoryDismissed", "time-off"],
+      ]);
+    });
+
+    it("accepting a time-off suggestion is logged once, as its lift adjustment", async () => {
+      await db.liftStates.update("squat", { t1LastWorkoutDate: new Date(Date.now() - 40 * DAY) });
+      const hook = await mount("A1");
+      const [suggestion] = hook.result.current.decaySuggestions;
+      await act(() => hook.result.current.acceptDecay("squat", "T1", suggestion.suggestedWeight));
+      expect(await events()).toHaveLength(0);
+    });
+
+    it("a failure to record never blocks the choice", async () => {
+      await db.runs.put(run({}));
+      const add = vi.spyOn(db.coachEvents, "add").mockRejectedValueOnce(new Error("disk full"));
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const hook = await mount("A1");
+      act(() => hook.result.current.chooseRunOption("proceed"));
+      expect(hook.result.current.runAdvisory).toBeNull();
+      await waitFor(() => expect(error).toHaveBeenCalled());
+      add.mockRestore();
+      error.mockRestore();
+    });
+  });
+
   it("lists pain entries from the last seven days", async () => {
     await db.painEntries.bulkPut([
       { id: "p1", clientId: "p1", date: new Date(Date.now() - 2 * DAY), region: "lower_back", sensation: "pain", severity: 2, synced: false },

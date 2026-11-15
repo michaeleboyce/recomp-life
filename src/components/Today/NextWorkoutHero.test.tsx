@@ -162,6 +162,19 @@ describe("NextWorkoutHero", () => {
     expect(start).toHaveAttribute("href", "/workout/configure");
   });
 
+  it("offers Resume, not a second Start, while a workout is open", async () => {
+    await seedDemo();
+    const open = { ...demo.workouts[0], id: "open-1", clientId: "open-1", startedAt: new Date(Date.now() - 20 * 60_000), completedAt: null, deletedAt: undefined };
+    await db.workouts.put(open);
+    render(<NextWorkoutHero />);
+    const resume = await screen.findByRole("link", { name: "Resume workout" });
+    expect(resume).toHaveAttribute("href", "/workout/active?sessionId=open-1");
+    expect(screen.queryByRole("link", { name: "Start workout" })).toBeNull();
+    const fresh = screen.getByRole("link", { name: /Start a new one/ });
+    expect(fresh).toHaveAttribute("href", "/workout/configure?replaces=open-1");
+    expect(screen.getByTestId("replaces-note")).toHaveTextContent(/discarded when the new one starts/);
+  });
+
   it("forecasts the session length and the chance of a new best, which opens the T1 lift", async () => {
     await seedDemo();
     render(<NextWorkoutHero />);

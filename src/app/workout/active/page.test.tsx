@@ -211,7 +211,7 @@ describe("active workout page", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Finish & View Summary" }));
     await waitFor(() =>
-      expect(nav.push).toHaveBeenCalledWith(`/workout/summary?sessionId=${nav.sessionId}`)
+      expect(nav.replace).toHaveBeenCalledWith(`/workout/summary?sessionId=${nav.sessionId}`)
     );
     const workout = (await db.workouts.get(nav.sessionId))!;
     expect(workout.endedEarly).toBe(true);
@@ -225,6 +225,64 @@ describe("active workout page", () => {
     // With no sets the dialog only offers to keep going or discard.
     expect(await screen.findByText("You haven't logged any sets yet.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /End & Save Progress/ })).toBeNull();
+  });
+
+  it("Back opens the stop dialog: keep going is the default, leaving keeps everything", async () => {
+    await open();
+    await logSets(2);
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    const dialog = await screen.findByRole("dialog");
+    const buttons = within(dialog).getAllByRole("button").filter((b) => !b.dataset.term);
+    expect(buttons.map((b) => b.textContent)).toEqual([
+      "Keep going",
+      "Leave, resume later",
+      "End & Save Progress",
+      "Discard workout and all its sets",
+    ]);
+    expect(buttons[0]).toHaveFocus();
+    // Tier and stage words explain themselves.
+    expect(within(dialog).getAllByRole("button", { name: "What does T2 mean?" }).length).toBeGreaterThan(0);
+    expect(within(dialog).getByRole("button", { name: "What does stages mean?" })).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Leave, resume later" }));
+    expect(nav.push).toHaveBeenCalledWith("/");
+    const workout = (await db.workouts.get(nav.sessionId))!;
+    expect(workout.completedAt).toBeNull();
+    expect(workout.deletedAt).toBeFalsy();
+    expect(workout.sets).toHaveLength(2);
+  });
+
+  it("discarding from the stop dialog asks once more", async () => {
+    await open();
+    await logSets(1);
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Discard workout and all its sets" }));
+    expect(await screen.findByText(/Discarding deletes all of them/)).toBeInTheDocument();
+    expect((await db.workouts.get(nav.sessionId))!.deletedAt).toBeFalsy();
+    fireEvent.click(screen.getByRole("button", { name: "Discard Workout" }));
+    await waitFor(async () => expect((await db.workouts.get(nav.sessionId))!.deletedAt).toBeTruthy());
+  });
+
+  it("Back from the summary goes on to Today instead of reopening the summary", async () => {
+    const view = await open();
+    await logSets(2);
+    fireEvent.click(screen.getByRole("button", { name: "Workout overview" }));
+    fireEvent.click(await screen.findByRole("button", { name: "End workout" }));
+    fireEvent.click(await screen.findByRole("button", { name: /End & Save Progress/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Finish & View Summary" }));
+    await waitFor(() =>
+      expect(nav.replace).toHaveBeenCalledWith(`/workout/summary?sessionId=${nav.sessionId}`)
+    );
+    view.unmount();
+    nav.replace.mockReset();
+    // Back from the summary lands on this screen again.
+    render(<ActiveWorkoutPage />);
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/"));
+    expect(nav.push).not.toHaveBeenCalled();
   });
 
   it("resumes at the fourth set after a reload", async () => {
@@ -345,9 +403,79 @@ describe("correcting a logged set from the overview", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Finish & View Summary", hidden: true }));
-    await waitFor(() => expect(nav.push).toHaveBeenCalled());
+    await waitFor(() => expect(nav.replace).toHaveBeenCalled());
     const squat = (await db.liftStates.get("squat"))!;
     expect(squat.t1Stage).toBe("6x2");
     expect(squat.t1Weight).toBe(190);
+  });
+});
+
+describe("glass box: forecast, why and rest", () => {
+  async function toLastSquatSet() {
+    await open();
+    await logSets(4);
+    expect(screen.getByText("Set 5 of 5")).toBeInTheDocument();
+  }
+
+  it("shows the stored rep forecast as bars above the rep buttons on a T1 lift's last set", async () => {
+    await toLastSquatSet();
+    const panel = await screen.findByTestId("rep-forecast");
+    const bars = panel.querySelectorAll("[data-reps]");
+    const buttons = within(panel).getAllByRole("button");
+    // Column for column: one button per bar, in the same order.
+    expect(buttons).toHaveLength(bars.length);
+    expect(bars.length).toBe(6);
+    expect(panel.querySelectorAll("[data-in-range]").length).toBeGreaterThan(0);
+    const note = screen.getByTestId("forecast-note");
+    // No finished T1 sets yet: the forecast says it is a starting guess.
+    expect(note).toHaveTextContent(/starting guess/);
+    expect(within(note).getByRole("link", { name: "How right has this been?" })).toHaveAttribute(
+      "href",
+      "/progress/forecasts/record"
+    );
+    // The stepper stays, and a forecast button picks its count.
+    expect(screen.getByRole("button", { name: "One more rep" })).toBeInTheDocument();
+    fireEvent.click(buttons[buttons.length - 2]);
+    expect(logButton()).toHaveTextContent(`LOG ${bars[bars.length - 2].getAttribute("data-reps")} REPS`);
+  });
+
+  it("shows nothing made up when no forecast was stored for the lift", async () => {
+    nav.sessionId = await startWorkout({
+      templateId: "A1",
+      location: "gym",
+      includeWarmUps: false,
+      selectedAccessories: [],
+    });
+    await db.forecasts.clear();
+    render(<ActiveWorkoutPage />);
+    await screen.findByRole("button", { name: /^LOG/ });
+    await logSets(4);
+    expect(screen.getByText("Set 5 of 5")).toBeInTheDocument();
+    expect(screen.queryByTestId("rep-forecast")).toBeNull();
+    expect(screen.queryByTestId("forecast-note")).toBeNull();
+    // The usual chips are back.
+    expect(screen.getByRole("button", { name: "3 reps" })).toBeInTheDocument();
+  });
+
+  it("opens the saved weight trace from 'why' beside the weight", async () => {
+    await open();
+    fireEvent.click(await screen.findByRole("button", { name: "Why 190 lbs?" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent(/why this weight/i);
+    expect(sheet.querySelector('[data-slot="why-result"]')).toHaveTextContent("190");
+  });
+
+  it("after the last squat set, the rest says why it is this long and how the set compared", async () => {
+    await toLastSquatSet();
+    fireEvent.click(logButton());
+    const timer = await screen.findByRole("timer");
+    const banner = await within(timer).findByTestId("last-set-banner");
+    expect(banner).toHaveTextContent(/Forecast was \d+ \(\d+ to \d+\)\. You got 3\./);
+    expect(within(timer).getByTestId("rest-why")).toHaveTextContent("Why 3:30");
+    expect(timer.querySelector('[data-evidence="rest-cut-bonus"]')).not.toBeNull();
+    expect(within(timer).getByTestId("up-next")).toHaveTextContent("Barbell Bench Press");
+    for (const name of ["+5s", "+15s", "Skip rest"]) {
+      expect(within(timer).getByRole("button", { name })).toBeInTheDocument();
+    }
   });
 });

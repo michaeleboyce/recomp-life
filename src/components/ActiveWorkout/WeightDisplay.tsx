@@ -12,6 +12,8 @@ interface WeightDisplayProps {
   location: WorkoutLocation;
   equipment: EquipmentProfile;
   isAMRAPSet?: boolean;
+  /** Opens how this weight was reached (the trace saved at start); no link without it. */
+  onWhy?: () => void;
 }
 
 /** How to load or hold the weight, in a few words; null when there is nothing to add. */
@@ -48,6 +50,7 @@ export function WeightDisplay({
   location,
   equipment,
   isAMRAPSet = false,
+  onWhy,
 }: WeightDisplayProps) {
   const line = loadingLine(exercise, location, equipment);
 
@@ -56,15 +59,27 @@ export function WeightDisplay({
       active={isAMRAPSet}
       className="flex flex-col items-center gap-1 border-transparent px-4 py-1"
     >
-      <p className="flex items-baseline gap-2">
+      <div className="flex items-baseline gap-2">
         <span
           data-testid="weight"
-          className="font-mono text-8xl font-bold leading-none tracking-tighter tabular-nums"
+          className="font-display text-[96px] leading-[0.92] font-extrabold tracking-[-0.02em] tabular-nums"
         >
           {exercise.weight}
         </span>
-        <span className="font-mono text-xl font-medium text-muted-foreground">lbs</span>
-      </p>
+        <span className="flex flex-col items-start gap-0.5">
+          <span className="font-display text-lg font-extrabold text-muted-foreground uppercase">lbs</span>
+          {onWhy && (
+            <button
+              type="button"
+              onClick={onWhy}
+              aria-label={`Why ${exercise.weight} lbs?`}
+              className="-mx-1 min-h-8 px-1 text-xs font-semibold text-accent-primary underline decoration-dotted underline-offset-4"
+            >
+              why
+            </button>
+          )}
+        </span>
+      </div>
       {line && (
         <p data-testid="loading-line" className="font-mono text-sm font-medium text-foreground/80">
           {line}

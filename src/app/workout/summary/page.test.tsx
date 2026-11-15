@@ -33,13 +33,32 @@ describe("/workout/summary", () => {
   it("shows the finished workout with what it did, the body check and Done", async () => {
     query = new URLSearchParams({ sessionId: workoutId });
     render(<WorkoutSummaryPage />);
-    expect(screen.getByRole("heading", { level: 1, name: "Workout complete" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Squat day, done" })).toBeInTheDocument();
+    expect(screen.getByText(/^A1 complete/)).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "A1 · Squat day" })).toBeInTheDocument();
     const did = within(await screen.findByRole("region", { name: "What it did" }));
     expect(await did.findByText(/^passed: next \d+ lbs 5x3$/)).toBeInTheDocument();
+    // Each outcome carries the grade of the rule behind it.
+    expect(did.getAllByText("Program rule").length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: "Full log" })).toHaveAttribute("href", "/log");
     expect(screen.getByText("How do you feel?")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Log an issue/ })).toHaveAttribute("href", "/body-check");
     expect(screen.getByRole("link", { name: "Done" })).toHaveAttribute("href", "/");
+  });
+
+  it("sets every forecast made at start against what happened", async () => {
+    query = new URLSearchParams({ sessionId: workoutId });
+    render(<WorkoutSummaryPage />);
+    const table = within(await screen.findByRole("region", { name: "Forecast against what happened" }));
+    const rows = await table.findAllByTestId("forecast-row");
+    const labels = rows.map((row) => row.firstElementChild?.textContent);
+    expect(labels).toContain("Squat, last set");
+    expect(labels).toContain("Squat passes");
+    expect(labels.at(-1)).toMatch(/^Session length/);
+    const squat = rows.find((row) => row.textContent?.startsWith("Squat, last set"))!;
+    // Stated as "most likely (range)", then the reps logged.
+    expect(squat).toHaveTextContent(/\d+ \(\d+–\d+\)\d+ reps/);
+    expect(table.getByRole("link", { name: "track record" })).toHaveAttribute("href", "/progress/forecasts/record");
   });
 
   it("offers the favourite star for the finished workout", async () => {
@@ -51,10 +70,11 @@ describe("/workout/summary", () => {
     );
   });
 
-  it("without a session id it still offers Done", async () => {
+  it("without a session id it links to the Log it names, and offers Done", async () => {
     query = new URLSearchParams();
     render(<WorkoutSummaryPage />);
     expect(await screen.findByText("No workout to show")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open the Log" })).toHaveAttribute("href", "/log");
     expect(screen.getByRole("link", { name: "Done" })).toHaveAttribute("href", "/");
   });
 });

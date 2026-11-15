@@ -28,6 +28,7 @@ import {
   entryIndexForSet,
   isDropAccepted,
   isLatestSetOfEntry,
+  nextIncompleteIndex,
   planForSession,
   resolveActiveIndex,
 } from "./activeWorkoutLogic";
@@ -218,14 +219,20 @@ export function useActiveWorkout(
     const store = useWorkoutStore.getState();
     if (store.pendingDrop?.entryIndex === activeIndex) store.clearPendingDrop();
 
-    if (nextStep(plan, activeIndex) === "rest") {
+    const step = nextStep(plan, activeIndex);
+    if (step === "rest") {
       store.startRestTimer(getRestSeconds(entry.tier, trainingPhase), entry.tier);
     } else {
-      // Last set of the entry: no rest, straight on to whatever is next.
+      // Last set of the entry: on to whatever is next. A working lift's last set is
+      // still followed by its rest (the rest screen then shows how the set compared
+      // with its forecast); a warm-up goes straight on.
       const after = plan.map((e, i) =>
         i === activeIndex ? { ...e, completedSets: e.completedSets + 1 } : e
       );
       store.viewEntry(entryAfter(after, activeIndex));
+      if (step === "next-exercise" && !entry.isWarmUp && nextIncompleteIndex(after) !== -1) {
+        store.startRestTimer(getRestSeconds(entry.tier, trainingPhase), entry.tier);
+      }
     }
   }, [
     tapGuardMs,

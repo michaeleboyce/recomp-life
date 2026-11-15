@@ -29,6 +29,27 @@ import {
   useNotificationPermission,
   useWakeLock,
 } from "@/components/ActiveWorkout/useWorkoutGuards";
+import {
+  ForecastNoteLine,
+  LastSetBanner,
+  UpNextCard,
+} from "@/components/ActiveWorkout/GlassPanels";
+import {
+  forecastNote,
+  forecastWindow,
+  lastSetVerdict,
+  liftForecasts,
+} from "@/components/ActiveWorkout/glassForecast";
+import { WhySheet } from "@/components/ui/why-sheet";
+import { useSessionForecasts, useStoredDecisions } from "@/hooks";
+import { findStoredDecision } from "@/lib/trace";
+
+/**
+ * Workouts finished on this screen in this visit. Back from the summary lands on the
+ * active screen again (its history entry is still there); for these it goes on to
+ * Today instead of reopening the summary, so Back never loops.
+ */
+const finishedHere = new Set<string>();
 
 function LoadingScreen() {
   return (
@@ -63,10 +84,16 @@ function ActiveWorkoutContent() {
   useLeaveGuard(status === "active" && !leaving, openEndDialog);
   const elapsed = formatClock(useElapsedSeconds(workout.workoutStartTime));
 
-  // A workout that is already saved has nothing left to log: show its summary.
+  // What was saved when the workout started: the forecasts and the "why" of each number.
+  const sessionForecasts = useSessionForecasts(session?.id);
+  const decisions = useStoredDecisions(session?.id) ?? undefined;
+  const [whyOpen, setWhyOpen] = useState(false);
+
+  // A workout that is already saved has nothing left to log: show its summary, or
+  // go on to Today when Back from that summary brought the user here.
   useEffect(() => {
     if (status === "finished" && session) {
-      router.replace(`/workout/summary?sessionId=${session.id}`);
+      router.replace(finishedHere.has(session.id) ? "/" : `/workout/summary?sessionId=${session.id}`);
     }
   }, [status, session, router]);
 
@@ -86,8 +113,22 @@ function ActiveWorkoutContent() {
   const handleSave = async () => {
     if (!session) return;
     if (await workout.finish()) {
-      router.push(`/workout/summary?sessionId=${session.id}`);
+      finishedHere.add(session.id);
+      router.replace(`/workout/summary?sessionId=${session.id}`);
     }
+  };
+
+  // Step away: nothing is changed or saved; Today's main button becomes Resume.
+  const handleLeave = () => {
+    setLeaving(true);
+    setShowEndDialog(false);
+    router.push("/");
+  };
+
+  // Discarding from the end dialog asks once more, in the discard dialog.
+  const confirmDiscard = () => {
+    setShowEndDialog(false);
+    setShowDiscardDialog(true);
   };
 
   const handleDiscard = async () => {
@@ -189,6 +230,56 @@ function ActiveWorkoutContent() {
     !!entry.substituteExerciseId && shown.grip === "per_hand"
   );
 
+  // The last set of a T1 lift: the rep forecast stored at start, when there is one.
+  // No row (a first session, a swapped-in lift, another weight) means nothing is shown.
+  const forecast =
+    workout.isAMRAPSet && entry.tier === "T1" && !entry.isWarmUp
+      ? liftForecasts(sessionForecasts, entry)
+      : null;
+  const forecastView = forecast
+    ? {
+        pmf: forecast.reps.prediction.pmf!,
+        low: forecast.reps.prediction.low!,
+        high: forecast.reps.prediction.high!,
+        ...forecastWindow(forecast.reps.prediction.pmf!, forecast.reps.prediction.low!),
+      }
+    : null;
+  const note = forecast
+    ? forecastNote(forecast, {
+        weight: entry.weight,
+        reps: workout.selectedReps,
+        rpe: workout.selectedRPE,
+      })
+    : null;
+  const forecastBestFrom =
+    typeof forecast?.newBest?.inputs.repsNeeded === "number" ? forecast.newBest.inputs.repsNeeded : null;
+
+  // How this weight was reached, as saved at start.
+  const weightWhy = entry.isWarmUp
+    ? undefined
+    : findStoredDecision(decisions, "weight", entry.exerciseId, entry.tier);
+
+  // The rest screen: the set just logged is the most recent one.
+  const lastSet = sets.at(-1);
+  const restWhy = lastSet ? findStoredDecision(decisions, "rest", lastSet.exerciseId, lastSet.tier) : undefined;
+  const lastForecast =
+    lastSet && lastSet.isAMRAP && lastSet.tier === "T1"
+      ? liftForecasts(sessionForecasts, {
+          exerciseId: lastSet.exerciseId,
+          tier: lastSet.tier,
+          weight: lastSet.weight,
+        })
+      : null;
+  const restBanner =
+    lastSet && lastForecast ? <LastSetBanner verdict={lastSetVerdict(lastForecast, lastSet, session)} /> : null;
+  const passForecast = sessionForecasts?.find(
+    ({ forecast: row }) =>
+      row.kind === "liftPass" &&
+      row.exerciseId === entry.exerciseId &&
+      row.tier === entry.tier &&
+      row.event.weight === entry.weight
+  )?.forecast;
+
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background px-5 pt-4 pb-36">
       <WorkoutHeader
@@ -211,7 +302,16 @@ function ActiveWorkoutContent() {
         location={session.location}
         equipment={settings.equipment}
         isAMRAPSet={workout.isAMRAPSet}
+        onWhy={weightWhy ? () => setWhyOpen(true) : undefined}
       />
+      {weightWhy && (
+        <WhySheet
+          open={whyOpen}
+          onOpenChange={setWhyOpen}
+          title={`${entry.tier} · ${shown.name} · why this weight`}
+          trace={weightWhy}
+        />
+      )}
 
       {workout.e1rmFlash !== null && (
         <Callout
@@ -237,7 +337,8 @@ function ActiveWorkoutContent() {
         />
       )}
 
-      {workout.prOpportunity && (
+      {/* The stored forecast's sentence replaces the PR line when it names a new best. */}
+      {workout.prOpportunity && forecastBestFrom === null && (
         <PrOpportunityLine
           opportunity={workout.prOpportunity}
           recentAMRAPReps={workout.recentAMRAPReps}
@@ -249,8 +350,11 @@ function ActiveWorkoutContent() {
         isAMRAP={workout.isAMRAPSet}
         value={workout.selectedReps}
         onChange={workout.setSelectedReps}
-        highlightFrom={workout.prOpportunity?.repsNeeded}
-      />
+        highlightFrom={forecastBestFrom ?? workout.prOpportunity?.repsNeeded}
+        forecast={forecastView}
+      >
+        {note && <ForecastNoteLine note={note} />}
+      </RepPicker>
 
       {showEffort && (
         <RPESelector selectedRPE={workout.selectedRPE} onSelectRPE={workout.setSelectedRPE} />
@@ -265,6 +369,9 @@ function ActiveWorkoutContent() {
         trainingPhase={workout.trainingPhase}
         nextLabel={nextLabel}
         message={workout.error}
+        restWhy={restWhy}
+        restBanner={restBanner}
+        restUpNext={<UpNextCard entry={entry} label={nextLabel} passForecast={passForecast} />}
       />
 
       {overview}
@@ -273,7 +380,8 @@ function ActiveWorkoutContent() {
         open={showEndDialog}
         onOpenChange={setShowEndDialog}
         onConfirm={handleEndEarly}
-        onCancel={handleDiscard}
+        onLeave={handleLeave}
+        onCancel={confirmDiscard}
         remainingExercises={remainingExercises}
         setsLogged={sets.length}
       />

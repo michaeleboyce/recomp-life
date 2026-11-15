@@ -6,6 +6,7 @@ import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb } from "@/lib/data/testUtils";
 import { updateSettings } from "@/lib/data/records";
+import { startWorkout } from "@/lib/data/workouts";
 import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
 import { overridesFromSession } from "@/lib/workout";
 import type { ActivityLog, RunLog } from "@/types";
@@ -56,7 +57,11 @@ describe("configure page", () => {
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Warm-up sets" })).toBeChecked();
     // Every set plus its rest, warm-ups included: the same figure Today shows.
-    expect(screen.getByText("About 45 min, rests included")).toBeInTheDocument();
+    // The session-length forecast for this plan with its range; with no history yet it is
+    // the length on paper (every set and rest, warm-ups included), as Today shows it.
+    await waitFor(() =>
+      expect(screen.getByTestId("ready-length")).toHaveTextContent(/^About 45 min \(\d+ to \d+\), rests included$/)
+    );
   });
 
   it("states the rest after each exercise from getRestSeconds, and explains the rest timer once", async () => {
@@ -137,11 +142,32 @@ describe("configure page", () => {
     await waitFor(() => expect(rows()[0]).toMatch(/^T1Single-Leg DB RDLin place of Barbell Deadlift/));
 
     fireEvent.click(screen.getByRole("button", { name: "START WORKOUT" }));
-    await waitFor(() => expect(nav.push).toHaveBeenCalled());
+    await waitFor(() => expect(nav.replace).toHaveBeenCalled());
     const [session] = await db.workouts.toArray();
-    expect(nav.push).toHaveBeenCalledWith(`/workout/active?sessionId=${session.id}`);
+    expect(nav.replace).toHaveBeenCalledWith(`/workout/active?sessionId=${session.id}`);
     expect(session).toMatchObject({ templateId: "B2", location: "home" });
     expect(overridesFromSession(session)).toEqual({ deadlift: "single_leg_db_rdl" });
+  });
+
+  it("started from Today's 'Start a new one', discards the open workout once the new one starts", async () => {
+    const oldId = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+    await open(`replaces=${oldId}`);
+    expect((await db.workouts.get(oldId))!.deletedAt).toBeFalsy();
+    fireEvent.click(screen.getByRole("button", { name: "START WORKOUT" }));
+    await waitFor(() => expect(nav.replace).toHaveBeenCalled());
+    const fresh = (await db.workouts.toArray()).find((w) => w.id !== oldId)!;
+    expect(nav.replace).toHaveBeenCalledWith(`/workout/active?sessionId=${fresh.id}`);
+    await waitFor(async () => expect((await db.workouts.get(oldId))!.deletedAt).toBeTruthy());
+    expect(fresh.deletedAt).toBeFalsy();
+  });
+
+  it("never discards a finished workout named by replaces", async () => {
+    const oldId = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+    await db.workouts.update(oldId, { completedAt: new Date() });
+    await open(`replaces=${oldId}`);
+    fireEvent.click(screen.getByRole("button", { name: "START WORKOUT" }));
+    await waitFor(() => expect(nav.replace).toHaveBeenCalled());
+    expect((await db.workouts.get(oldId))!.deletedAt).toBeFalsy();
   });
 
   it("shows advisories above the list as callouts with their evidence lines", async () => {
@@ -187,7 +213,9 @@ describe("configure page", () => {
     expect(screen.getByText("Legs may still be fatigued")).toBeInTheDocument();
     expect(screen.getByText(/Hard yoga session 3h ago/)).toBeInTheDocument();
     expect(screen.getByText(/You trained Barbell Squat/)).toBeInTheDocument();
-    expect(screen.getByText("Barbell Bench Press (T2)")).toBeInTheDocument();
+    const decayTitle = screen.getByText((_, el) => el?.getAttribute("data-slot") === "callout-title" && el.textContent === "Barbell Bench Press (T2)");
+    expect(decayTitle.querySelector('[data-term="t2"]')).not.toBeNull();
+    expect(screen.getByText(/weight by 10%/).querySelector('[data-term="t1"]')).not.toBeNull();
     expect(
       ["run-interference", "activity-fatigue", "recovery-windows"].every((id) =>
         document.querySelector(`[data-evidence="${id}"]`)
@@ -197,7 +225,7 @@ describe("configure page", () => {
     // Accepting the time-off suggestion lowers the weight shown in the list.
     fireEvent.click(screen.getByRole("button", { name: /^Accept \(\d+ lbs\)$/ }));
     await waitFor(async () => expect((await db.liftStates.get("bench"))!.t2Weight).toBeLessThan(100));
-    await waitFor(() => expect(screen.queryByText("Barbell Bench Press (T2)")).toBeNull());
+    await waitFor(() => expect(screen.queryByText(/Barbell Bench Press \(/)).toBeNull());
 
     fireEvent.click(screen.getByRole("button", { name: "Got it" }));
     expect(screen.queryByText(/Hard yoga session/)).toBeNull();
@@ -209,10 +237,8 @@ describe("configure page", () => {
     const boxes = within(picker).getAllByRole("checkbox");
     fireEvent.click(boxes[0]);
     expect(rows()).toHaveLength(4);
-    expect(screen.queryByText("About 45 min, rests included")).toBeNull();
-    expect(screen.getByText(/^About \d+ min, rests included$/).textContent).not.toBe(
-      "About 45 min, rests included"
-    );
+    await waitFor(() => expect(screen.getByTestId("ready-length")).toHaveTextContent(/^About \d+ min/));
+    expect(screen.getByTestId("ready-length")).not.toHaveTextContent(/^About 45 min/);
   });
 });
 

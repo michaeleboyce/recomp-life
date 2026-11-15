@@ -11,7 +11,7 @@ import type { Table } from "dexie";
 import { v4 as uuidv4 } from "uuid";
 // The plan the active workout screen runs: the session forecasts and the saved
 // decisions must be about exactly that plan.
-import { planForSession } from "@/components/ActiveWorkout/activeWorkoutLogic";
+import { planForSession } from "@/lib/workout/planForSession";
 import { db } from "@/db/local";
 import {
   indexLog,
