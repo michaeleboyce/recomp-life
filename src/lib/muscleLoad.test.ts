@@ -3,6 +3,7 @@ import {
   getExerciseActivation,
   activationHeatLevels,
   combinedActivationHeat,
+  tieredActivationHeat,
   calculateMuscleLoad,
   getWeeklyMuscleLoad,
   weeklyHeatLevel,
@@ -98,6 +99,48 @@ describe("combinedActivationHeat", () => {
 
   it("ignores unknown exercise ids", () => {
     expect(combinedActivationHeat(["nope"])).toEqual({});
+  });
+});
+
+describe("tieredActivationHeat", () => {
+  it("equals activationHeatLevels for a single exercise", () => {
+    expect(tieredActivationHeat(["deadlift"])).toEqual(activationHeatLevels("deadlift"));
+    expect(tieredActivationHeat(["bench"])).toEqual(activationHeatLevels("bench"));
+  });
+
+  it("draws a T2 lift's primary muscle dimmer than the T1's", () => {
+    // Deadlift day: deadlift T1, overhead press T2, lat pulldown T3.
+    const h = tieredActivationHeat(["deadlift", "ohp", "lat_pulldown"]);
+    expect(h.hamstrings).toBe(4);
+    expect(h.front_delts).toBe(3);
+    expect(h.front_delts!).toBeLessThan(h.hamstrings!);
+  });
+
+  it("draws the third lift at half weight", () => {
+    const h = tieredActivationHeat(["squat", "bench", "lat_pulldown"]);
+    expect(h.lats).toBe(2);
+    expect(h.glutes).toBe(4);
+  });
+
+  it("is never 0 where a muscle is active", () => {
+    const ids = ["squat", "bench", "lat_pulldown", "ohp"];
+    const h = tieredActivationHeat(ids);
+    const combined = combinedActivationHeat(ids);
+    expect(Object.keys(h).sort()).toEqual(Object.keys(combined).sort());
+    for (const level of Object.values(h)) expect(level).toBeGreaterThanOrEqual(1);
+  });
+
+  it("is never brighter than the untiered heat", () => {
+    const ids = ["deadlift", "ohp", "lat_pulldown"];
+    const h = tieredActivationHeat(ids);
+    const combined = combinedActivationHeat(ids);
+    for (const [m, level] of Object.entries(h)) {
+      expect(level).toBeLessThanOrEqual(combined[m as keyof typeof combined]!);
+    }
+  });
+
+  it("ignores unknown exercise ids", () => {
+    expect(tieredActivationHeat(["nope"])).toEqual({});
   });
 });
 
