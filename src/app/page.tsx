@@ -1,9 +1,7 @@
 "use client";
 
 import { useInsights } from "@/hooks";
-import { PageShell } from "@/components/ui/page-shell";
 import { Stagger } from "@/components/ui/stagger";
-import { TodayHeader } from "@/components/Today/TodayHeader";
 import { NextWorkoutHero } from "@/components/Today/NextWorkoutHero";
 import {
   AttentionList,
@@ -17,24 +15,26 @@ import { WeeklyReviewLink } from "@/components/Review/WeeklyReviewLink";
 import MuscleHeatCard from "@/components/Dashboard/MuscleHeatCard";
 
 /**
- * Today (U2): the next workout and its START button first, then at most three
- * things that need attention, then the glance tiles and this week's muscles.
+ * Today: a photo of the day's main lift, the forecast, the lifts and START, all in
+ * the first screen; then up to three things that need attention (an unfinished
+ * workout first), the glance tiles and this week's muscles.
  */
 export default function TodayPage() {
   useDiscardStaleWorkouts();
   const insights = useInsights();
 
   return (
-    <PageShell>
-      <Stagger className="flex flex-col gap-[18px]">
-        <TodayHeader key="header" />
-        <NextWorkoutHero key="hero" />
+    <div data-slot="today" className="mx-auto max-w-lg">
+      {/* The day's name is the visible heading; this names the screen. */}
+      <h1 className="sr-only">Today</h1>
+      <NextWorkoutHero />
+      <Stagger className="flex flex-col gap-[18px] px-5 pt-5 pb-6">
         {insights && hasAttention(insights) && <AttentionList key="attention" insights={insights} />}
         <GlanceTiles key="tiles" />
         <WeeklyReviewLink key="review" />
         {insights && hasPositive(insights) && <PositiveInsightLine key="positive" insights={insights} />}
         <MuscleHeatCard key="muscles" />
       </Stagger>
-    </PageShell>
+    </div>
   );
 }
