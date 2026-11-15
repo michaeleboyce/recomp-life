@@ -11,6 +11,27 @@ import type { SourceId } from "./sources";
 
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
+    date: "2026-11-15",
+    ruleId: "forecast-session-length",
+    change:
+      "Introduced: Today now shows how long the workout is expected to take, as a number of minutes with a range, from the planned sets and rests and corrected by how long your own sessions have run.",
+    sources: [],
+  },
+  {
+    date: "2026-11-15",
+    ruleId: "forecast-reps",
+    change:
+      "Introduced: Today now shows the chance that this workout sets a new best estimated max, worked out from your recent last sets and how much they vary.",
+    sources: [],
+  },
+  {
+    date: "2026-11-15",
+    ruleId: "readiness-score",
+    change:
+      "Introduced: Today now shows a readiness score built from sleep, stress, rest, recent activity and soreness, measured against your own usual level.",
+    sources: [],
+  },
+  {
     date: "2026-11-14",
     ruleId: "off-program-credit",
     change:

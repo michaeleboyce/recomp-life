@@ -22,7 +22,7 @@ const inTen = (fraction: number) => `${Math.round(fraction * 10)} in 10`;
 export const FORECAST_RULES = {
   "forecast-reps": {
     area: "projection",
-    status: "planned",
+    status: "active",
     title: "How does the app forecast reps on the last set?",
     summary: "Last-set reps are forecast from your recent last sets and their scatter",
     appBehavior: `For the last set of a T1 lift the app turns your recent last sets into a strength level and a scatter, then gives the chance of each rep count at today's weight, up to ${R.maxReps} or more. The chance of a new best and the chance of passing come from the same numbers. A new best is what the app shows as one: the estimated max from your last set, which adds the reps a logged effort says you had left, comes out above your best so far. Its chance assumes your usual effort on the last set (the middle of your last ${N.effortCreditRecentSets} last sets, counting a set logged without an effort as all-out) and leaves out sets of more than ${E1RM_MAX_REPS} reps, which give no estimate. With at least ${R.minTrendPoints} results at the same stage in the last ${R.trendWindowWeeks} weeks it follows their trend, and the scatter is never taken as less than ${pct(R.trendSdFloorFraction)} of your level. With one to three results it uses their average and a scatter of at least ${pct(R.fewPointsSdFloorFraction)}. With none it assumes ${R.priorRepsAboveTarget} reps more than the target and a scatter of ${pct(R.priorSdFraction)}. After a stage change, a reset or ${R.regimeChangeWeeksOff} or more weeks off, the scatter is multiplied by ${R.regimeChangeSdMultiplier}. If you are cutting today but most of those sessions were not, the level is lowered by ${pct(-R.cuttingLevelShift)}. Each point your readiness score is below (or above) your usual moves the level by ${pct(R.readinessLevelShiftPerPoint)}.`,
@@ -44,12 +44,11 @@ export const FORECAST_RULES = {
       "src/lib/forecast/reps.ts#forecastReps",
       "src/lib/readiness/score.ts#readinessLevelShift",
     ],
-    surfaces: [],
-    activationNotes: "Switch on when the active-set forecast and the track record screens ship.",
+    surfaces: ["src/components/Today/ForecastTiles.tsx"],
   },
   "forecast-session-length": {
     area: "projection",
-    status: "planned",
+    status: "active",
     title: "How does the app forecast how long a workout takes?",
     summary: "Session length comes from planned sets and rests, corrected by your history",
     appBehavior: `The app adds up the planned rests and ${S.secondsPerSet} seconds for each planned set. Once you have finished ${S.minSessionsForCorrection} sessions it scales the total by how your past sessions compared with their estimates, and gives a range from how much those sessions varied. Before that, the range is ${pct(S.defaultRangeFraction)} either side of the estimate.`,
@@ -64,8 +63,7 @@ export const FORECAST_RULES = {
       "src/lib/forecast/sessionLength.ts#forecastSessionLength",
       "src/lib/workout/duration.ts#estimateWorkoutSeconds",
     ],
-    surfaces: [],
-    activationNotes: "Switch on when Today shows the session forecast.",
+    surfaces: ["src/components/Today/ForecastTiles.tsx"],
   },
   "forecast-bodyweight": {
     area: "projection",

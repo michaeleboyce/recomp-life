@@ -83,7 +83,7 @@ describe("ForecastTiles", () => {
   it("shares the row between the tiles it has", () => {
     const { rerender } = render(<ForecastTiles forecast={full} newBestHref="/progress/lift/squat" />);
     expect(screen.getByTestId("forecast-tiles")).toHaveClass("grid-cols-3");
-    expect(screen.getByTestId("forecast-new-best").closest("a")).toHaveAttribute("href", "/progress/lift/squat");
+    expect(screen.getByTestId("forecast-new-best").closest("a")).toHaveAttribute("href", "/progress/lift/squat?from=today");
 
     rerender(<ForecastTiles forecast={{ ...full, readiness: null }} />);
     expect(screen.getByTestId("forecast-tiles")).toHaveClass("grid-cols-2");
@@ -91,6 +91,30 @@ describe("ForecastTiles", () => {
 
     rerender(<ForecastTiles forecast={{ ...full, readiness: null, newBest: null }} />);
     expect(screen.getByTestId("forecast-tiles")).toHaveClass("grid-cols-1");
+  });
+
+  it("links each tile on and puts the evidence icon beside the link, never inside it", () => {
+    render(<ForecastTiles forecast={full} newBestHref="/progress/lift/squat?as=goblet" />);
+    const link = (testId: string) => screen.getByTestId(testId).closest("a");
+    expect(link("forecast-session")).toHaveAttribute("href", "/progress/forecasts");
+    expect(link("forecast-readiness")).toHaveAttribute("href", "/readiness");
+    expect(link("forecast-new-best")).toHaveAttribute(
+      "href",
+      "/progress/lift/squat?as=goblet&from=today"
+    );
+    for (const ruleId of ["forecast-session-length", "forecast-reps", "readiness-score"]) {
+      const icon = document.querySelector(`[data-evidence="${ruleId}"]`);
+      expect(icon).not.toBeNull();
+      expect(icon!.closest("a")).toBeNull();
+    }
+  });
+
+  it("does not add from=today twice", () => {
+    render(<ForecastTiles forecast={full} newBestHref="/progress/lift/squat?from=today" />);
+    expect(screen.getByTestId("forecast-new-best").closest("a")).toHaveAttribute(
+      "href",
+      "/progress/lift/squat?from=today"
+    );
   });
 
   it("renders nothing, heading included, with no tiles or while loading", () => {
