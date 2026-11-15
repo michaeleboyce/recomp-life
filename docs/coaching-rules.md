@@ -369,7 +369,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `readiness`
 - **Status:** Active
 - **Evidence:** Moderate evidence
-- **Implemented in:** `src/components/PreWorkout/ReadinessCheck.tsx` (`ReadinessCheck`), `src/lib/health/sleep.ts` (`sleepBucket`)
+- **Implemented in:** `src/components/PreWorkout/ReadinessCheck.tsx` (`ReadinessCheck`), `src/lib/health/sleep.ts` (`sleepBucket`), `src/lib/readiness/score.ts` (`shouldSuggestSkippingAccessories`)
 - **Shown in:** `src/components/PreWorkout/ReadinessCheck.tsx`
 - **Reviewed:** November 2026
 
@@ -648,7 +648,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `projection-rate-of-gain`
 - **Status:** Active
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`)
+- **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`), `src/lib/forecast/horizon.ts` (`forecastE1RM`)
 - **Shown in:** `src/components/Projection/HowItWorks.tsx`
 - **Reviewed:** November 2026
 
@@ -694,7 +694,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `forecast-reps`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/forecast/coefficients.ts` (`REPS_MODEL`)
+- **Implemented in:** `src/lib/forecast/coefficients.ts` (`REPS_MODEL`), `src/lib/forecast/reps.ts` (`lastT1Sets`), `src/lib/forecast/reps.ts` (`estimateRepsLevel`), `src/lib/forecast/reps.ts` (`chanceOfAtLeast`), `src/lib/forecast/reps.ts` (`forecastReps`), `src/lib/readiness/score.ts` (`readinessLevelShift`)
 - **Reviewed:** November 2026
 
 **In one line.** Last-set reps are forecast from your recent last sets and their scatter
@@ -721,7 +721,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `forecast-session-length`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/forecast/coefficients.ts` (`SESSION_LENGTH_MODEL`)
+- **Implemented in:** `src/lib/forecast/coefficients.ts` (`SESSION_LENGTH_MODEL`), `src/lib/forecast/sessionLength.ts` (`forecastSessionLength`), `src/lib/workout/duration.ts` (`estimateWorkoutSeconds`)
 - **Reviewed:** November 2026
 
 **In one line.** Session length comes from planned sets and rests, corrected by your history
@@ -741,7 +741,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `forecast-bodyweight`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/forecast/coefficients.ts` (`BODYWEIGHT_MODEL`)
+- **Implemented in:** `src/lib/forecast/coefficients.ts` (`BODYWEIGHT_MODEL`), `src/lib/forecast/horizon.ts` (`forecastBodyweight`)
 - **Reviewed:** November 2026
 
 **In one line.** Bodyweight four weeks out continues your recent trend, with a range
@@ -765,7 +765,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `forecast-calibration`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/forecast/coefficients.ts` (`CALIBRATION`)
+- **Implemented in:** `src/lib/forecast/coefficients.ts` (`CALIBRATION`), `src/lib/forecast/score.ts` (`sdScaleFor`), `src/lib/forecast/reps.ts` (`repsRange`), `src/lib/forecast/resolve.ts` (`resolveForecast`)
 - **Reviewed:** November 2026
 
 **In one line.** Every forecast is saved before the result and scored against it afterwards

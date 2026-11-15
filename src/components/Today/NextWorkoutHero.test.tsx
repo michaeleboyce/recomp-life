@@ -170,8 +170,8 @@ describe("NextWorkoutHero", () => {
     const newBest = await screen.findByTestId("forecast-new-best");
     expect(newBest.closest("a")).toHaveAttribute("href", `/progress/lift/${t1.exerciseId}`);
     expect(newBest.closest("a")).toHaveTextContent(/needs \d+\+ reps|beats \d+/);
-    // No readiness yet: its tile is not drawn at all.
-    expect(screen.queryByText("Readiness")).toBeNull();
+    // The demo history has check-ins, so the readiness tile shows a score out of 100.
+    expect(await screen.findByText("Readiness")).toBeInTheDocument();
   });
 
   it("explains the first tier label and the first '+', once each", async () => {
