@@ -47,6 +47,14 @@ function isProgressingTier(tier: string): tier is keyof typeof PROGRESSING_TIERS
 }
 
 /**
+ * Which step a lift's T1 and T2 weight goes up by on a pass (`getIncrement`): "lower"
+ * for lifts in the legs group, "upper" for every other lift.
+ */
+export function progressionLiftType(exerciseId: string): "upper" | "lower" {
+  return getExercise(exerciseId).muscleGroup === "legs" ? "lower" : "upper";
+}
+
+/**
  * `computeCompletion`'s result: the lift-state updates and session patch as before,
  * plus what the program rules did to each T1, T2 and T3 lift of the day.
  */
@@ -211,8 +219,7 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
       next = { ...liftState, [tier.lastWorkoutDate]: now, synced: false };
     } else {
       const tier = PROGRESSING_TIERS[templateEx.tier];
-      const liftType =
-        getExercise(templateEx.exerciseId).muscleGroup === "legs" ? "lower" : "upper";
+      const liftType = progressionLiftType(templateEx.exerciseId);
       const rpes = exerciseSets.flatMap((set) => (set.rpe != null ? [set.rpe] : []));
       const amrapSet = exerciseSets.find((set) => set.isAMRAP);
       const previousRPEs = liftState.recentAvgRPEs || [];
