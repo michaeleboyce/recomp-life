@@ -893,6 +893,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **15 November 2026** — `gzclp-progression` (Why does the weight go up, change stage or reset?): The deadlift and its home substitutes now count as lower-body lifts, so a pass adds the lower-body step. They had been adding the smaller upper-body step. Sources: .
 - **14 November 2026** — `off-program-credit` (Does a changed workout still count toward progression?): A lift done heavier than prescribed in every set now progresses from the heavier weight instead of the prescribed one. Missing reps at a heavier weight is not counted as a failure. Sources: .
 - **13 November 2026** — `t3-progression` (When does T3 weight go up?): T3 weight now goes up only when the last set reaches 25 reps, in every phase. Outside a cut it used to go up on 50 total reps as well; that route is removed. Sources: .
 - **13 November 2026** — `run-interference` (Why does a recent run matter?): Runs can now be imported from Apple Health. An imported run has no effort rating and is ignored by this rule until you rate it. Sources: .

@@ -177,4 +177,11 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
       "The sleep answer can now be filled in from Apple Health's record of last night; you can still change it. The suggestion itself is unchanged.",
     sources: [],
   },
+  {
+    date: "2026-11-15",
+    ruleId: "gzclp-progression",
+    change:
+      "The deadlift and its home substitutes now count as lower-body lifts, so a pass adds the lower-body step. They had been adding the smaller upper-body step.",
+    sources: [],
+  },
 ];

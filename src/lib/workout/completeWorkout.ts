@@ -46,12 +46,17 @@ function isProgressingTier(tier: string): tier is keyof typeof PROGRESSING_TIERS
   return tier === "T1" || tier === "T2";
 }
 
+const LOWER_BODY_PRIMARY_MUSCLES: readonly string[] = ["quads", "hamstrings", "glutes"];
+
 /**
  * Which step a lift's T1 and T2 weight goes up by on a pass (`getIncrement`): "lower"
- * for lifts in the legs group, "upper" for every other lift.
+ * for lifts whose main muscles are in the legs or hips (squat, deadlift and their
+ * substitutes), "upper" for every other lift.
  */
 export function progressionLiftType(exerciseId: string): "upper" | "lower" {
-  return getExercise(exerciseId).muscleGroup === "legs" ? "lower" : "upper";
+  const exercise = getExercise(exerciseId);
+  if (exercise.muscleGroup === "legs") return "lower";
+  return exercise.primaryMuscles.some((m) => LOWER_BODY_PRIMARY_MUSCLES.includes(m)) ? "lower" : "upper";
 }
 
 /**
