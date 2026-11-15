@@ -44,7 +44,7 @@ export function ExerciseBlock({ exercise, location, isAMRAPSet = false }: Exerci
         />
         <TierBadge tier={exercise.tier} className="rounded-md font-bold" />
         <TermIcon id={TIER_TERM[exercise.tier]} hideLinks className="-ml-1.5" />
-        <h1 className="min-w-0 truncate text-xl font-bold">{exerciseInfo.name}</h1>
+        <h1 className="line-clamp-2 min-w-0 text-xl font-bold break-words">{exerciseInfo.name}</h1>
         <FormSheetButton
           exerciseId={exerciseInfo.id}
           location={location}

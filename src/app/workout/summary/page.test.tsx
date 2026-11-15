@@ -51,10 +51,11 @@ describe("/workout/summary", () => {
     );
   });
 
-  it("without a session id it still offers Done", async () => {
+  it("without a session id it links to the Log it names, and offers Done", async () => {
     query = new URLSearchParams();
     render(<WorkoutSummaryPage />);
     expect(await screen.findByText("No workout to show")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open the Log" })).toHaveAttribute("href", "/log");
     expect(screen.getByRole("link", { name: "Done" })).toHaveAttribute("href", "/");
   });
 });

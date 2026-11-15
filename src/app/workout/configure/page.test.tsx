@@ -213,7 +213,9 @@ describe("configure page", () => {
     expect(screen.getByText("Legs may still be fatigued")).toBeInTheDocument();
     expect(screen.getByText(/Hard yoga session 3h ago/)).toBeInTheDocument();
     expect(screen.getByText(/You trained Barbell Squat/)).toBeInTheDocument();
-    expect(screen.getByText("Barbell Bench Press (T2)")).toBeInTheDocument();
+    const decayTitle = screen.getByText((_, el) => el?.getAttribute("data-slot") === "callout-title" && el.textContent === "Barbell Bench Press (T2)");
+    expect(decayTitle.querySelector('[data-term="t2"]')).not.toBeNull();
+    expect(screen.getByText(/weight by 10%/).querySelector('[data-term="t1"]')).not.toBeNull();
     expect(
       ["run-interference", "activity-fatigue", "recovery-windows"].every((id) =>
         document.querySelector(`[data-evidence="${id}"]`)
@@ -223,7 +225,7 @@ describe("configure page", () => {
     // Accepting the time-off suggestion lowers the weight shown in the list.
     fireEvent.click(screen.getByRole("button", { name: /^Accept \(\d+ lbs\)$/ }));
     await waitFor(async () => expect((await db.liftStates.get("bench"))!.t2Weight).toBeLessThan(100));
-    await waitFor(() => expect(screen.queryByText("Barbell Bench Press (T2)")).toBeNull());
+    await waitFor(() => expect(screen.queryByText(/Barbell Bench Press \(/)).toBeNull());
 
     fireEvent.click(screen.getByRole("button", { name: "Got it" }));
     expect(screen.queryByText(/Hard yoga session/)).toBeNull();

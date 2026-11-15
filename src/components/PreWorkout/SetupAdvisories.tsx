@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import { Term } from "@/components/ui/term";
 import { EXERCISES } from "@/lib/exercises";
 import type { ActivityNote } from "@/lib/activities";
 import type { RunAdvisory } from "@/lib/runRecovery";
@@ -105,7 +106,12 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
             {(
               [
                 ["proceed", "Proceed as planned"],
-                ["reduce", "Reduce T1 weight by 10%"],
+                [
+                  "reduce",
+                  <>
+                    Reduce <Term id="t1">T1</Term> weight by 10%
+                  </>,
+                ],
               ] as const
             ).map(([value, label]) => (
               <label key={value} className="flex min-h-9 cursor-pointer items-center gap-2">
@@ -130,7 +136,11 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
           <Callout
             key={`decay-${suggestion.exerciseId}-${suggestion.tier}`}
             variant="warning"
-            title={`${name} (${suggestion.tier})`}
+            title={
+              <>
+                {name} (<Term id={suggestion.tier === "T1" ? "t1" : "t2"}>{suggestion.tier}</Term>)
+              </>
+            }
             actions={
               <>
                 <Button

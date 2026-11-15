@@ -231,6 +231,13 @@ describe("ExerciseBlock", () => {
     expect(screen.queryByText(/AMRAP/)).toBeNull();
   });
 
+  it("lets a long name wrap to two lines instead of cutting it off", () => {
+    render(<ExerciseBlock exercise={entry({ substituteExerciseId: "single_leg_db_rdl" })} location="home" />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.className).not.toMatch(/\btruncate\b/);
+    expect(heading.className).toMatch(/line-clamp-2/);
+  });
+
   it("shows the substitute's name and the AMRAP guidance with its evidence line", () => {
     const { container } = render(
       <ExerciseBlock

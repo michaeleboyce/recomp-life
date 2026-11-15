@@ -29,7 +29,20 @@ function SummaryContent() {
   const workout = useWorkout(sessionId);
 
   if (!sessionId) {
-    return <EmptyState title="No workout to show" body="Open a workout from the Log." action={<DoneButton />} />;
+    return (
+      <EmptyState
+        title="No workout to show"
+        body="Open a workout from the Log."
+        action={
+          <div className="flex w-full flex-col gap-2">
+            <Button asChild variant="outline" className="h-12 w-full text-base font-semibold">
+              <Link href="/log">Open the Log</Link>
+            </Button>
+            <DoneButton />
+          </div>
+        }
+      />
+    );
   }
 
   return (
