@@ -268,7 +268,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** Heavy sets need 2+ minutes of rest to keep strength gains coming
 
-**What the app does.** Rests 3:00 after T1 sets and 2:00 after T2 sets. You can add 30 seconds or skip at any time.
+**What the app does.** Rests 3:00 after T1 sets and 2:00 after T2 sets. You can add 5 or 15 seconds, or skip, at any time.
 
 **Why.** A systematic review of 23 studies found trained lifters appear to need more than 2 minutes between sets to maximise strength gains. For muscle growth, resting longer than 60 seconds gives a small benefit.
 

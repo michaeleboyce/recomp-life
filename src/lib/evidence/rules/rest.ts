@@ -12,7 +12,7 @@ export const REST_RULES = {
     status: "active",
     title: "Why rest this long after heavy sets?",
     summary: "Heavy sets need 2+ minutes of rest to keep strength gains coming",
-    appBehavior: `Rests ${formatRestDuration(REST_SECONDS.T1)} after T1 sets and ${formatRestDuration(REST_SECONDS.T2)} after T2 sets. You can add 30 seconds or skip at any time.`,
+    appBehavior: `Rests ${formatRestDuration(REST_SECONDS.T1)} after T1 sets and ${formatRestDuration(REST_SECONDS.T2)} after T2 sets. You can add 5 or 15 seconds, or skip, at any time.`,
     rationale:
       "A systematic review of 23 studies found trained lifters appear to need more than 2 minutes between sets to maximise strength gains. For muscle growth, resting longer than 60 seconds gives a small benefit.",
     caveat:
