@@ -148,11 +148,21 @@ const listeners = new Set<() => void>();
 let uninstall: (() => void) | null = null;
 let installedOn: Window | null = null;
 
+let notifyQueued = false;
+
 function commit(win: Window, next: NavStack): void {
   if (next === current) return;
   current = next;
   save(win, next);
-  listeners.forEach((listener) => listener());
+  // The router writes history from an insertion effect, where React must not be
+  // asked to re-render: tell subscribers once the current work is done. Reads
+  // (getNavStack, canGoBackInApp) see the new list straight away.
+  if (notifyQueued) return;
+  notifyQueued = true;
+  queueMicrotask(() => {
+    notifyQueued = false;
+    listeners.forEach((listener) => listener());
+  });
 }
 
 /** The list as it stands, or null before the tracker is installed (and on the server). */

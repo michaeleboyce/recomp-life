@@ -14,8 +14,9 @@ function track() {
   });
 }
 
-function go(url: string) {
-  act(() => window.history.pushState({ __NA: true }, "", url));
+/** A push, as the router makes it. Subscribers hear of it after the current work (a microtask). */
+async function go(url: string) {
+  await act(async () => window.history.pushState({ __NA: true }, "", url));
 }
 
 /** history.back() or forward(), waiting for the popstate: jsdom moves through history asynchronously, as browsers do. */
@@ -45,33 +46,33 @@ afterEach(() => {
 });
 
 describe("useNavHistory", () => {
-  it("has no previous screen on the first screen of the session", () => {
+  it("has no previous screen on the first screen of the session", async () => {
     const { result } = track();
     expect(result.current).toBeNull();
     expect(canGoBackInApp()).toBe(false);
   });
 
-  it("records each in-app push, with the previous screen's name", () => {
+  it("records each in-app push, with the previous screen's name", async () => {
     const { result } = track();
-    go("/progress");
+    await go("/progress");
     expect(result.current).toEqual({ url: "/", name: "Today" });
-    go("/progress/forecasts");
-    go("/progress/lift/squat");
+    await go("/progress/forecasts");
+    await go("/progress/lift/squat");
     expect(result.current).toEqual({ url: "/progress/forecasts", name: "Forecasts" });
     expect(canGoBackInApp()).toBe(true);
   });
 
-  it("stamps each entry with its position, keeping the router's state", () => {
+  it("stamps each entry with its position, keeping the router's state", async () => {
     track();
-    go("/progress");
+    await go("/progress");
     expect(window.history.state).toEqual({ __NA: true, [STATE_KEY]: 1 });
   });
 
   it("follows back and forward", async () => {
     const { result } = track();
-    go("/progress");
-    go("/progress/forecasts");
-    go("/progress/lift/squat");
+    await go("/progress");
+    await go("/progress/forecasts");
+    await go("/progress/lift/squat");
 
     await back();
     expect(window.location.pathname).toBe("/progress/forecasts");
@@ -85,19 +86,19 @@ describe("useNavHistory", () => {
     expect(result.current?.url).toBe("/progress");
   });
 
-  it("does not add an entry for a replace (a tab switch or the why sheet)", () => {
+  it("does not add an entry for a replace (a tab switch or the why sheet)", async () => {
     const { result } = track();
-    go("/progress");
-    act(() => window.history.replaceState(null, "", "/progress?tab=body"));
-    go("/progress/lift/squat");
+    await go("/progress");
+    await act(async () => window.history.replaceState(null, "", "/progress?tab=body"));
+    await go("/progress/lift/squat");
     expect(result.current).toEqual({ url: "/progress?tab=body", name: "Progress" });
     expect(getNavStack()?.entries).toEqual(["/", "/progress?tab=body", "/progress/lift/squat"]);
   });
 
-  it("keeps the list through a document the browser loads again from history", () => {
+  it("keeps the list through a document the browser loads again from history", async () => {
     track();
-    go("/progress");
-    go("/progress/forecasts");
+    await go("/progress");
+    await go("/progress/forecasts");
     resetNavHistoryForTests();
 
     // Back to an entry after leaving the app: same stamp, same saved list.
@@ -106,10 +107,10 @@ describe("useNavHistory", () => {
     expect(result.current).toEqual({ url: "/progress", name: "Progress" });
   });
 
-  it("starts over after a reload, so back uses the page's own target", () => {
+  it("starts over after a reload, so back uses the page's own target", async () => {
     track();
-    go("/progress");
-    go("/progress/forecasts");
+    await go("/progress");
+    await go("/progress/forecasts");
     resetNavHistoryForTests();
 
     setNavigationType("reload");
@@ -118,16 +119,16 @@ describe("useNavHistory", () => {
     expect(getNavStack()).toEqual({ base: 0, entries: ["/progress/forecasts"], index: 0 });
   });
 
-  it("starts over when a reload finds nothing saved", () => {
+  it("starts over when a reload finds nothing saved", async () => {
     window.history.replaceState({ __NA: true, [STATE_KEY]: 4 }, "", "/progress/lift/squat");
     const { result } = track();
     expect(result.current).toBeNull();
     expect(window.history.state[STATE_KEY]).toBe(0);
   });
 
-  it("saves the list in sessionStorage", () => {
+  it("saves the list in sessionStorage", async () => {
     track();
-    go("/progress");
+    await go("/progress");
     expect(JSON.parse(sessionStorage.getItem(STORAGE_KEY)!)).toEqual({
       base: 0,
       entries: ["/", "/progress"],
@@ -143,8 +144,8 @@ describe("useNavHistory", () => {
       throw new Error("QuotaExceededError");
     });
     const { result } = track();
-    go("/progress");
-    go("/progress/forecasts");
+    await go("/progress");
+    await go("/progress/forecasts");
     expect(result.current?.url).toBe("/progress");
     await back();
     expect(result.current?.url).toBe("/");
