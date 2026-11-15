@@ -40,6 +40,7 @@ export { useUpcomingWorkouts } from "./useUpcomingWorkouts";
 export { useTodayForecast, type TodayForecast } from "./useTodayForecast";
 export { useWeightChances, type WeightChances } from "./useWeightChances";
 export { useAppliedTheme, type AppliedTheme } from "./useAppliedTheme";
+export { usePersonalEvidence } from "./usePersonalEvidence";
 export {
   useLogChangePreview,
   useRecentlyDeleted,
