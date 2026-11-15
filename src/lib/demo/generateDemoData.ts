@@ -5,6 +5,7 @@
 // the way the live app creates one: the plan from the running lift states, the stored
 // prescription, sets through `createSetLog`. Pure: no clock, no randomness, no database.
 import { DEFAULT_USER_PROFILE, startAdjustments } from "@/db/seed";
+import { E1RM_MAX_REPS } from "@/lib/e1rm";
 import { rebuildDerived } from "@/lib/rebuild";
 import { buildWorkoutPlan } from "@/lib/workout/buildPlan";
 import { createSetLog } from "@/lib/workout/logSet";
@@ -73,18 +74,22 @@ const MISSED_WEIGH_INS = new Set([47, 38, 30, 19, 9]);
  * lifter gets stronger. (They used to be drawn at random whatever the weight, which
  * made the lifter's strength leap about and rise with any weight the program asked for.)
  *
- * With these numbers every T1 lift passes for the whole demo and no last set is
- * longer than counts toward the estimated max, whatever the day-to-day swing: the
- * starting weights are light (as the program advises), and the lifter gains a little
- * slower than the bar does.
+ * The starting weights are light, as the program advises, and the lifter gains a
+ * little slower than the bar does. The lifter stops a last set at E1RM_MAX_REPS reps,
+ * because a longer set does not count toward the estimated max. With these numbers
+ * and the days as drawn, every T1 lift passes for the whole demo (the generator's
+ * tests check it).
  */
 export const DEMO_LIFTER = {
   /** Reps the lifter can do on the last set at each lift's starting weight on an average day. */
   startReps: 9,
   /** Strength gained per week, as a fraction of the starting level. */
   weeklyGain: 0.02,
-  /** How far strength swings either way from day to day, as a fraction. */
-  dailySwing: 0.02,
+  /**
+   * Day-to-day variation of strength: the standard deviation of a bell-shaped scatter,
+   * as a fraction of the level. The middle of what retest studies of trained lifters report.
+   */
+  dailyVariation: 0.025,
 } as const;
 
 /**
@@ -92,7 +97,7 @@ export const DEMO_LIFTER = {
  * workout. Strength is a level in the app's own rep-max terms (weight x (1 + reps / 30),
  * see src/lib/e1rm.ts): it starts where `DEMO_LIFTER.startReps` reps at the lift's
  * starting weight puts it, grows a little every week, and is `swing` (a fraction)
- * above or below on the day.
+ * above or below on the day. Never more than E1RM_MAX_REPS: the lifter stops there.
  */
 export function demoRepsInHand(
   startWeight: number,
@@ -102,7 +107,7 @@ export function demoRepsInHand(
 ): number {
   const startLevel = startWeight * (1 + DEMO_LIFTER.startReps / 30);
   const today = startLevel * (1 + DEMO_LIFTER.weeklyGain * weeks) * (1 + swing);
-  return Math.max(0, Math.floor(30 * (today / weight - 1)));
+  return Math.min(E1RM_MAX_REPS, Math.max(0, Math.floor(30 * (today / weight - 1))));
 }
 
 const SLEEP_CYCLE: SleepHours[] = ["7+", "7+", "5-7", "7+", "5-7", "7+", "<5"];
@@ -129,6 +134,13 @@ function rand(seed: number): number {
   t = Math.imul(t ^ (t >>> 15), t | 1);
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
+/** A repeatable draw from a standard bell curve for an integer seed (Box-Muller). */
+function bellDraw(seed: number): number {
+  const u = Math.max(rand(seed), 1e-12);
+  const v = rand(seed + 104729);
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 
 /** Local wall-clock time `daysAgo` calendar days before `now`. */
@@ -201,7 +213,7 @@ export function generateDemoData(now: Date): DemoData {
               startWeights.get(entry.exerciseId)!,
               barWeight,
               (daysAgo[0] - daysAgo[i]) / 7,
-              (rand(i * 31 + 7) * 2 - 1) * DEMO_LIFTER.dailySwing
+              bellDraw(i * 31 + 7) * DEMO_LIFTER.dailyVariation
             );
             rpe = actualReps <= 4 ? 9.5 : 9;
           } else {

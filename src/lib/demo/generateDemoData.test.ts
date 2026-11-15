@@ -108,26 +108,39 @@ describe("generateDemoData", () => {
       lastSets.set(last.exerciseId, list);
     }
 
+    /** The reps the lifter has for a set on a day `sds` standard deviations from average. */
+    const repsOnADay = (sets: LastSet[], set: LastSet, sds: number) =>
+      demoRepsInHand(sets[0].bar, set.bar, set.weeks, sds * DEMO_LIFTER.dailyVariation);
+
     it("logs the reps the lifter's strength allows at the weight on the bar", () => {
+      let withinOne = 0;
+      let offAverage = 0;
+      let total = 0;
       for (const [id, sets] of lastSets) {
         for (const set of sets) {
-          const onABadDay = demoRepsInHand(sets[0].bar, set.bar, set.weeks, -DEMO_LIFTER.dailySwing);
-          const onAGoodDay = demoRepsInHand(sets[0].bar, set.bar, set.weeks, DEMO_LIFTER.dailySwing);
-          expect(set.reps, id).toBeGreaterThanOrEqual(onABadDay);
-          expect(set.reps, id).toBeLessThanOrEqual(onAGoodDay);
-          expect(onAGoodDay - onABadDay, id).toBeLessThanOrEqual(2);
-          // Whatever the day brings: the lift passes, and the set still counts toward the estimated max.
-          expect(onABadDay, id).toBeGreaterThanOrEqual(3);
-          expect(onAGoodDay, id).toBeLessThanOrEqual(E1RM_MAX_REPS);
+          total += 1;
+          // No day is more than three standard deviations from the lifter's level.
+          expect(set.reps, id).toBeGreaterThanOrEqual(repsOnADay(sets, set, -3));
+          expect(set.reps, id).toBeLessThanOrEqual(repsOnADay(sets, set, 3));
+          if (set.reps >= repsOnADay(sets, set, -1) && set.reps <= repsOnADay(sets, set, 1)) {
+            withinOne += 1;
+          }
+          if (set.reps !== repsOnADay(sets, set, 0)) offAverage += 1;
         }
       }
+      // Most days are ordinary, and some are not: the scatter is there but bell-shaped.
+      expect(total).toBe(24);
+      expect(withinOne).toBeGreaterThanOrEqual(14);
+      expect(offAverage).toBeGreaterThanOrEqual(5);
     });
 
-    it("gives fewer reps for more weight on the same day, and more reps as the weeks pass", () => {
+    it("gives fewer reps for more weight on the same day, more as the weeks pass, and stops at ten", () => {
       expect(demoRepsInHand(200, 200, 0, 0)).toBe(DEMO_LIFTER.startReps);
       expect(demoRepsInHand(200, 220, 0, 0)).toBeLessThan(demoRepsInHand(200, 200, 0, 0));
-      expect(demoRepsInHand(200, 200, 8, 0)).toBeGreaterThan(demoRepsInHand(200, 200, 0, 0));
+      expect(demoRepsInHand(200, 200, 4, 0)).toBeGreaterThan(demoRepsInHand(200, 200, 0, 0));
+      expect(demoRepsInHand(200, 200, 0, -0.05)).toBeLessThan(demoRepsInHand(200, 200, 0, 0.05));
       expect(demoRepsInHand(200, 1000, 0, 0)).toBe(0);
+      expect(demoRepsInHand(200, 100, 0, 0)).toBe(E1RM_MAX_REPS);
     });
 
     it("covers the four main lifts, six sessions each, the bar heavier every time", () => {
@@ -140,17 +153,13 @@ describe("generateDemoData", () => {
       }
     });
 
-    it("implies a strength that grows steadily and never leaps between sessions", () => {
+    it("implies a strength that grows over the weeks", () => {
       for (const [id, sets] of lastSets) {
-        for (let i = 1; i < sets.length; i++) {
-          const step = sets[i].strength / sets[i - 1].strength - 1;
-          expect(step, id + " session " + (i + 1)).toBeGreaterThan(-0.04);
-          expect(step, id + " session " + (i + 1)).toBeLessThan(0.08);
-        }
-        // About 2% a week over the seven weeks between a lift's first and last session.
+        // About 2% a week over the seven weeks between a lift's first and last session,
+        // give or take the two days' scatter.
         const growth = sets[sets.length - 1].strength / sets[0].strength - 1;
         expect(growth, id).toBeGreaterThan(0.05);
-        expect(growth, id).toBeLessThan(0.2);
+        expect(growth, id).toBeLessThan(0.25);
       }
     });
 
@@ -158,9 +167,9 @@ describe("generateDemoData", () => {
       for (const [id, sets] of lastSets) {
         // The weights rise 17% to 29% over the demo, faster than strength does.
         expect(sets[sets.length - 1].reps, id).toBeLessThan(sets[0].reps);
-        // One more rep than last time on a heavier bar is a good day; two more does not happen.
+        // A good day after a bad one can add a rep or two on a heavier bar, never three.
         for (let i = 1; i < sets.length; i++) {
-          expect(sets[i].reps - sets[i - 1].reps, id + " session " + (i + 1)).toBeLessThanOrEqual(1);
+          expect(sets[i].reps - sets[i - 1].reps, id + " session " + (i + 1)).toBeLessThanOrEqual(2);
         }
       }
       // The press takes the biggest steps for its size and loses the most reps.
