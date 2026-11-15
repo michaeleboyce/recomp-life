@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { BackButton } from "@/components/nav/BackButton";
 import { useScoredForecasts } from "@/hooks";
 import { trackRecord } from "@/lib/forecast";
 import { CalibrationChart, calibrationSummary } from "@/components/chart-kit";
@@ -98,13 +98,7 @@ export function TrackRecordScreen() {
 
   const top = (
     <div className="flex items-center justify-between gap-2">
-      <Link
-        href="/progress/forecasts"
-        className="-ml-1 inline-flex min-h-11 items-center gap-0.5 text-[13px] font-semibold text-primary"
-      >
-        <ChevronLeft className="size-4" aria-hidden="true" />
-        Forecasts
-      </Link>
+      <BackButton variant="label" fallback="/progress/forecasts" label="Forecasts" className="text-[13px]" />
       {data?.everResolved && (
         <ChipGroup
           size="sm"

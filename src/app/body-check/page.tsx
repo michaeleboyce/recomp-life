@@ -3,12 +3,12 @@
 import { Suspense, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import type { BodyRegion, PainSorenessEntry } from "@/types";
 import { shouldShowRedFlag, type RedFlagDismissal } from "@/lib/painModifications";
 import { usePainEntries } from "@/hooks";
 import { PageShell } from "@/components/ui/page-shell";
 import { backTarget } from "@/components/nav/backTarget";
+import { BackButton } from "@/components/nav/BackButton";
 import BodyMapSVG from "@/components/BodyMap/BodyMapSVG";
 import RegionDetail from "@/components/BodyMap/RegionDetail";
 import PainHistory from "@/components/BodyMap/PainHistory";
@@ -116,13 +116,9 @@ function BodyCheckScreen() {
     <PageShell>
       {/* Header */}
       <header className="flex items-center gap-3 mb-4">
-        <Link
-          href={target.href}
-          aria-label="Back"
-          className="-m-3 p-3 text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <BackButton fallback={target.href}>
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-        </Link>
+        </BackButton>
         <h1 className="text-lg font-bold text-foreground">Body Check</h1>
       </header>
 

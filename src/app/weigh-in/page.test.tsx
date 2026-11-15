@@ -1,25 +1,34 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb } from "@/lib/data/testUtils";
+import { installNavHistory, resetNavHistoryForTests } from "@/components/nav/navHistory";
 import WeighInPage from "./page";
 
 const push = vi.fn();
+const back = vi.fn();
 let from: string | null = null;
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push, back }),
   useSearchParams: () => new URLSearchParams(from ? { from } : {}),
 }));
 
 describe("WeighInPage", () => {
   beforeEach(async () => {
     push.mockClear();
+    back.mockClear();
     from = null;
+    resetNavHistoryForTests();
+    window.history.replaceState(null, "", "/");
     await clearDb();
   });
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    resetNavHistoryForTests();
+    vi.restoreAllMocks();
+  });
 
   it("saves a new unsynced bodyweight row and returns home", async () => {
     render(<WeighInPage />);
@@ -62,6 +71,28 @@ describe("WeighInPage", () => {
     from = "https://example.com";
     render(<WeighInPage />);
     expect(await screen.findByRole("link", { name: "Back" })).toHaveAttribute("href", "/");
+  });
+
+  it("opened from another screen in the app, Back and Save return to it", async () => {
+    from = "body";
+    act(() => {
+      installNavHistory();
+      window.history.pushState(null, "", "/progress/forecasts");
+      window.history.pushState(null, "", "/weigh-in?from=body");
+    });
+    const historyBack = vi.spyOn(window.history, "back").mockImplementation(() => {});
+    render(<WeighInPage />);
+
+    // The arrow names the previous screen; its address stays the fixed fallback.
+    const arrow = await screen.findByRole("link", { name: "Back to Forecasts" });
+    expect(arrow).toHaveAttribute("href", "/progress?tab=body");
+    fireEvent.click(arrow);
+    expect(historyBack).toHaveBeenCalledTimes(1);
+
+    fireEvent.change(screen.getByPlaceholderText("0.0"), { target: { value: "181.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Weight" }));
+    await waitFor(() => expect(back).toHaveBeenCalledTimes(1));
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("with no entries the field starts empty and Save is disabled", async () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useGoBack } from "@/components/nav/useNavHistory";
 import { logRun } from "@/lib/data/records";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,9 +24,12 @@ const RUN_CATEGORIES: { value: RunCategory; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-/** Form for a run. `returnTo` is where to go after a save (default Today). */
+/**
+ * Form for a run. A save returns to the previous screen, or to `returnTo` when there
+ * is none (default Today).
+ */
 export default function RunLogger({ returnTo = "/" }: { returnTo?: string }) {
-  const router = useRouter();
+  const goBack = useGoBack(returnTo);
 
   const [durationMinutes, setDurationMinutes] = useState<string>("");
   const [distanceMiles, setDistanceMiles] = useState<string>("");
@@ -68,7 +71,7 @@ export default function RunLogger({ returnTo = "/" }: { returnTo?: string }) {
         perceivedEffort,
       });
       toast({ message: "Run saved" });
-      router.push(returnTo);
+      goBack();
     } catch (err) {
       setError("Failed to save run. Please try again.");
       setSaving(false);

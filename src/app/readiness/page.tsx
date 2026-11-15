@@ -3,8 +3,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
 import { backTarget, type BackTarget } from "@/components/nav/backTarget";
+import { BackButton } from "@/components/nav/BackButton";
 import { readinessBackTarget } from "@/components/Readiness/backLink";
 import { ReadinessScreen } from "@/components/Readiness/ReadinessScreen";
 
@@ -13,17 +13,9 @@ function BackLink() {
   return <BackLinkTo target={target} />;
 }
 
+/** The previous screen when there is one in the app; otherwise `target`. */
 function BackLinkTo({ target }: { target: BackTarget }) {
-  return (
-    <Link
-      href={target.href}
-      aria-label={`Back to ${target.label}`}
-      className="-ml-1 flex h-11 w-fit items-center gap-0.5 rounded-lg pr-2 text-sm font-semibold text-primary outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    >
-      <ChevronLeft className="size-4" aria-hidden="true" />
-      {target.label}
-    </Link>
-  );
+  return <BackButton variant="label" fallback={target.href} label={target.label} />;
 }
 
 // Client page: `from` comes from useSearchParams inside Suspense, so a static export

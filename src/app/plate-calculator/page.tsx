@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useProfile } from "@/hooks";
 import { PageShell } from "@/components/ui/page-shell";
+import { BackButton } from "@/components/nav/BackButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { calculatePlatesPerSide } from "@/lib/plates";
@@ -124,13 +124,9 @@ export default function PlateCalculatorPage() {
   return (
     <PageShell>
       <header className="flex items-center gap-3 mb-6">
-        <Link
-          href="/settings"
-          aria-label="Back"
-          className="-m-3 p-3 text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <BackButton fallback="/settings">
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-        </Link>
+        </BackButton>
         <h1 className="text-lg font-bold text-foreground">Plate Calculator</h1>
       </header>
 

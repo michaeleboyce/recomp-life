@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ChevronRight, Share2 } from "lucide-react";
+import { BackButton } from "@/components/nav/BackButton";
 import { Button } from "@/components/ui/button";
 import { GradeChip } from "@/components/ui/grade-chip";
 import { toast } from "@/components/ui/toast";
@@ -58,12 +59,12 @@ export function RulePage({ ruleId, backHref }: { ruleId: RuleId; backHref: strin
   return (
     <article className="flex flex-col gap-6" data-rule={ruleId}>
       <div className="flex items-center justify-between gap-3">
-        <Link
-          href={backHref}
-          className="-ml-2 inline-flex min-h-11 items-center px-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          ‹ All rules
-        </Link>
+        <BackButton
+          variant="label"
+          fallback={backHref}
+          label="All rules"
+          className="font-medium text-muted-foreground hover:text-foreground"
+        />
         <Button
           variant="secondary"
           className="min-h-11 gap-1.5 rounded-full px-4 font-bold"

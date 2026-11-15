@@ -116,7 +116,7 @@ describe("Track record", () => {
     render(<TrackRecordScreen />);
     expect(await screen.findByText("How the record builds up")).toBeInTheDocument();
     expect(screen.getByText("1 forecast is waiting for a result.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Forecasts" })).toHaveAttribute("href", "/progress/forecasts");
+    expect(screen.getByRole("link", { name: "Back to Forecasts" })).toHaveAttribute("href", "/progress/forecasts");
   });
 
   it("shows counts in place of a share with only a few results", async () => {

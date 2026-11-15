@@ -8,6 +8,7 @@ import { getExerciseMedia } from "@/lib/exerciseMedia";
 import { formatMuscle } from "@/lib/muscles";
 import { formatRegion } from "@/lib/painModifications";
 import { useMetric } from "@/hooks";
+import { BackButton } from "@/components/nav/BackButton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChartEmpty, LazyTrendChart, TrendChartSkeleton } from "@/components/chart-kit";
@@ -141,13 +142,9 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
   return (
     <div className="mx-auto max-w-lg px-5 pt-5 pb-28 space-y-5">
       <header className="flex items-center gap-3">
-        <Link
-          href="/exercises"
-          aria-label="Back to exercises"
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
+        <BackButton fallback="/exercises" label="Exercises">
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+        </BackButton>
         <div className="min-w-0">
           <h1 className="truncate text-lg font-bold text-foreground">{exercise.name}</h1>
           <div className="mt-0.5 flex items-center gap-2">
