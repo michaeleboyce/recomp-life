@@ -77,7 +77,7 @@ export function forecastTiles(forecast: TodayForecast, newBestHref?: string): Ti
     tiles.push({
       key: "readiness",
       ruleId: "readiness-score",
-      href: "/readiness",
+      href: "/readiness?from=today",
       label: "Readiness",
       value: String(Math.round(readiness.score)),
       sub: readiness.suggestSkippingAccessories ? "go lighter on extras" : "train as planned",

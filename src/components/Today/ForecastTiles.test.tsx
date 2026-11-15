@@ -97,7 +97,7 @@ describe("ForecastTiles", () => {
     render(<ForecastTiles forecast={full} newBestHref="/progress/lift/squat?as=goblet" />);
     const link = (testId: string) => screen.getByTestId(testId).closest("a");
     expect(link("forecast-session")).toHaveAttribute("href", "/progress/forecasts");
-    expect(link("forecast-readiness")).toHaveAttribute("href", "/readiness");
+    expect(link("forecast-readiness")).toHaveAttribute("href", "/readiness?from=today");
     expect(link("forecast-new-best")).toHaveAttribute(
       "href",
       "/progress/lift/squat?as=goblet&from=today"
