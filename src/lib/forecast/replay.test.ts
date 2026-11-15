@@ -58,17 +58,19 @@ describe("replay of the demo history", () => {
     expect(Math.abs(best.meanStated! - best.observed!)).toBeLessThan(0.1);
   });
 
-  it("is not biased once a lift has a result behind it", () => {
+  it("is not biased, with or without a result behind the lift", () => {
     const reps = replay.scored.filter((item) => item.forecast.kind === "amrapReps");
+    expect(Math.abs(summarize(reps).miss.bias!)).toBeLessThan(0.5);
+
     const withHistory = summarize(reps.filter((item) => item.forecast.basis !== "prior"));
     expect(withHistory.resolved).toBeGreaterThanOrEqual(12);
     expect(Math.abs(withHistory.miss.bias!)).toBeLessThan(0.5);
 
-    // A first session has only the prior, which expects fewer reps than this lifter
-    // starts with (REPS_MODEL.priorRepsAboveTarget over the target against about six),
-    // so those forecasts come in low. That is the prior's gap, not the model's drift.
+    // A first session has only the prior. The demo lifter starts light, as the program
+    // advises, which is what the prior assumes, so those forecasts are not far off either.
     const first = summarize(reps.filter((item) => item.forecast.basis === "prior"));
-    expect(first.miss.bias!).toBeGreaterThan(withHistory.miss.bias!);
+    expect(first.resolved).toBeGreaterThanOrEqual(4);
+    expect(Math.abs(first.miss.bias!)).toBeLessThan(1);
   });
 
   it("uses the ids the live writer would, and the weight that was lifted", () => {
