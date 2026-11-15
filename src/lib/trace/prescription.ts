@@ -32,7 +32,7 @@ import type {
 } from "@/types";
 import { findLastSession, findWeightAdjustment } from "./history";
 import { applySteps } from "./replay";
-import { homeSteps, yourChangeStep, YOUR_CHANGE_RULE } from "./substitute";
+import { homeSteps, prescribedTarget, yourChangeStep, YOUR_CHANGE_RULE } from "./substitute";
 import { change, joinList, num, regionWords, shortDay, stageWords, step } from "./text";
 import type { LastSession, PlanEntry, TraceContext } from "./types";
 
@@ -370,18 +370,27 @@ export function explainPrescription(
 
   if (entry.isWarmUp) {
     const steps = warmUpSteps(entry, context, plan);
-    steps.push(...yourChangeStep(steps, entry.weight));
+    steps.push(...yourChangeStep(steps, entry, context.prescribed));
     return { subject, result: entry.weight, unit: "lb", steps };
   }
 
   const liftState = context.liftStates.find((ls) => ls.exerciseId === entry.exerciseId);
   const steps: TraceStep[] = [];
   let programWeight: number;
+  // What the program prescribed today. With the session's prescription, a lift it does
+  // not name was swapped in or added; without it, having a lift state decides.
+  let prescribed = context.prescribed;
+  const named = !prescribed || !!prescribedTarget(entry, prescribed);
 
-  if (isProgramTier(entry.tier) && liftState) {
+  if (isProgramTier(entry.tier) && liftState && named) {
     const tier = entry.tier;
     // The weight the plan read: the same function, the same lift state.
-    programWeight = getPrescription(asTemplateExercise(entry), liftState).weight;
+    const program = getPrescription(
+      templateExerciseFor(entry.exerciseId, tier) ?? asTemplateExercise(entry),
+      liftState
+    );
+    programWeight = program.weight;
+    prescribed ??= [{ exerciseId: entry.exerciseId, tier, ...program }];
     const last = findLastSession(context.history, entry.exerciseId, tier, context.now);
 
     if (last) {
@@ -468,7 +477,7 @@ export function explainPrescription(
   steps.push(readinessStep(context), painStep(entry, context), phaseStep(entry, context));
   steps.push(...plateSteps(entry, programWeight, context));
   steps.push(...homeSteps(entry, programWeight, context));
-  steps.push(...yourChangeStep(steps, entry.weight));
+  steps.push(...yourChangeStep(steps, entry, prescribed ?? []));
 
   return {
     subject,

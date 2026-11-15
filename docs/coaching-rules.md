@@ -151,7 +151,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `off-program-credit`
 - **Status:** Active
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/workout/credit.ts` (`classifyEntry`), `src/lib/workout/credit.ts` (`foldRotation`), `src/lib/workout/completeWorkout.ts` (`computeCompletion`), `src/lib/workout/buildPlan.ts` (`describeNextWorkout`)
+- **Implemented in:** `src/lib/workout/credit.ts` (`classifyEntry`), `src/lib/workout/credit.ts` (`foldRotation`), `src/lib/workout/completeWorkout.ts` (`computeCompletion`), `src/lib/workout/buildPlan.ts` (`describeNextWorkout`), `src/lib/trace/substitute.ts` (`weightChangeEffect`)
 - **Shown in:** `src/components/PreWorkout/EditWorkoutSheet.tsx`
 - **Reviewed:** November 2026
 

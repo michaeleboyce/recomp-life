@@ -256,7 +256,8 @@ describe("explainPrescription: a T1 lift at the gym", () => {
     expect(trace.steps.at(-1)).toEqual({
       id: "your-change",
       title: "Your change",
-      detail: "You set 210 for today. Progression carries on from what you lift.",
+      detail:
+        "You set 210 for today, heavier than the program asks for. If every set is done that heavy, progression carries on from what you lift. A missed rep at the heavier weight changes nothing: the program weight stays at 200.",
       effect: { op: "set", value: 210, unit: "lb" },
       ruleId: "off-program-credit",
     });
