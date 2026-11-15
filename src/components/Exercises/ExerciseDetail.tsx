@@ -11,7 +11,11 @@ import { useMetric } from "@/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChartEmpty, LazyTrendChart, TrendChartSkeleton } from "@/components/chart-kit";
-import { isMainLift } from "@/components/Progress/lifts";
+import { isMainLift, LIFT_NAMES, type MainLiftId } from "@/components/Progress/lifts";
+import { programLiftFor } from "@/components/Lift/homeVersion";
+import { Term } from "@/components/ui/term";
+import { inSentence } from "@/components/Today/format";
+import { liftPageHref } from "@/components/Today/todayModel";
 import { ExerciseViewer } from "@/components/ExerciseDemo/ExerciseViewer";
 import { PreferenceControl } from "./PreferenceControl";
 
@@ -97,10 +101,42 @@ export function ExerciseE1RMSection({
   );
 }
 
+/** The main program lift a home substitute counts toward, or undefined. */
+export function countsToward(exerciseId: string): MainLiftId | undefined {
+  if (isMainLift(exerciseId)) return undefined;
+  const lift = programLiftFor(exerciseId);
+  return isMainLift(lift) ? lift : undefined;
+}
+
+/**
+ * For a home substitute, in place of the estimated 1RM (its sets never give one):
+ * "Counts toward Squat at home", opening the lift's page as this substitute.
+ */
+export function CountsTowardLine({ exerciseId, lift }: { exerciseId: string; lift: MainLiftId }) {
+  const liftLabel = LIFT_NAMES[lift].label;
+  return (
+    <section aria-label="Progress" className="flex flex-col gap-1.5">
+      <p data-testid="counts-toward" className="text-sm text-foreground">
+        At home it counts toward {liftLabel}. Its sets do not give an{" "}
+        <Term id="e1rm">estimated 1RM</Term>, so{" "}
+        {inSentence(liftLabel)} progress is tracked on the {inSentence(liftLabel)} page.
+      </p>
+      <Link
+        href={liftPageHref(lift, { as: exerciseId })}
+        className="flex min-h-11 items-center justify-end gap-0.5 text-xs font-medium text-accent-primary"
+      >
+        {liftLabel} progress
+        <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+      </Link>
+    </section>
+  );
+}
+
 export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
   const exercise = EXERCISES[exerciseId];
   const media = getExerciseMedia(exerciseId);
   const related = relatedExerciseIds(exerciseId);
+  const programLift = countsToward(exerciseId);
 
   return (
     <div className="mx-auto max-w-lg px-5 pt-5 pb-28 space-y-5">
@@ -207,7 +243,11 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
 
       <Card>
         <CardContent className="pt-4">
-          <ExerciseE1RMSection exerciseId={exerciseId} exerciseName={exercise.name} />
+          {programLift ? (
+            <CountsTowardLine exerciseId={exerciseId} lift={programLift} />
+          ) : (
+            <ExerciseE1RMSection exerciseId={exerciseId} exerciseName={exercise.name} />
+          )}
         </CardContent>
       </Card>
     </div>
