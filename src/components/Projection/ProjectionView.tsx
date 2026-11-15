@@ -7,6 +7,7 @@ import { TrendChartSkeleton } from "@/components/chart-kit";
 import { Callout } from "@/components/ui/callout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-shell";
+import { Stripes } from "@/components/ui/stripes";
 import { Term } from "@/components/ui/term";
 import { useProjection } from "@/hooks";
 import { liftShortName, type Projection, type ProjectionScenario } from "@/lib/projection";
@@ -78,6 +79,7 @@ export function ProjectionView({ exerciseId }: { exerciseId: string }) {
           />
         }
       />
+      <Stripes />
       {someDisabled && result && (
         <p data-testid="horizon-note" className="text-xs text-muted-foreground">
           {result.current.reliableHorizonNote}
@@ -124,7 +126,7 @@ export function ProjectionView({ exerciseId }: { exerciseId: string }) {
   return (
     <div className="flex flex-col gap-5">
       {header}
-      <p className="text-base leading-relaxed text-foreground" aria-live="polite" data-testid="projection-summary">
+      <p className="font-display text-2xl leading-snug font-semibold text-foreground" aria-live="polite" data-testid="projection-summary">
         {changed ? plainSummary(summary, result.scenario, current) : summary}
       </p>
       {current.lastResultWeeksAgo > STALE_RESULT_WEEKS && (

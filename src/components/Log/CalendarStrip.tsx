@@ -55,7 +55,7 @@ export function CalendarStrip({
         >
           <ChevronLeft className="size-5" aria-hidden="true" />
         </Button>
-        <h2 className="text-sm font-semibold text-foreground" aria-live="polite">
+        <h2 className="font-display text-sm font-bold tracking-wide text-foreground uppercase" aria-live="polite">
           {monthLabel(month)}
         </h2>
         <Button
@@ -86,9 +86,9 @@ export function CalendarStrip({
                 disabled={count === 0}
                 onClick={() => onSelectDay(selected ? null : key)}
                 className={cn(
-                  "flex h-14 w-11 flex-col items-center justify-center gap-0.5 rounded-lg border text-xs outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                  "flex h-16 w-11 flex-col items-center justify-center gap-0.5 rounded-full border text-xs outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50",
                   selected
-                    ? "border-primary bg-primary/15 text-primary"
+                    ? "border-primary bg-primary text-primary-foreground"
                     : "border-transparent text-muted-foreground",
                   count > 0 && !selected && "text-foreground hover:bg-card",
                   count === 0 && "opacity-50",
@@ -98,7 +98,7 @@ export function CalendarStrip({
                 <span aria-hidden="true">{WEEKDAY.format(day)}</span>
                 <span
                   aria-hidden="true"
-                  className={cn("font-mono text-sm tabular-nums", count > 0 && "font-semibold")}
+                  className={cn("font-display text-base tabular-nums", count > 0 && "font-semibold")}
                 >
                   {day.getDate()}
                 </span>

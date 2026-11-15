@@ -92,7 +92,7 @@ export function LogHistory({ now: fixedNow }: { now?: Date }) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <CalendarStrip
         month={month}
         onMonthChange={setMonth}
@@ -131,7 +131,7 @@ export function LogHistory({ now: fixedNow }: { now?: Date }) {
       ) : (
         groupByDay(shown).map((group) => (
           <section key={group.key} aria-label={dayLabel(group.date, now)} className="flex flex-col">
-            <SectionHeader title={dayLabel(group.date, now)} className="pb-1" />
+            <SectionHeader title={dayLabel(group.date, now)} className="pb-1.5" />
             <div>
               {group.entries.map((entry) => (
                 <LogEntryRow

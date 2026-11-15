@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
+import { Stripes } from "@/components/ui/stripes";
 import { backTarget } from "@/components/nav/backTarget";
 import { useGoBack } from "@/components/nav/useNavHistory";
 import { WorkoutDetail } from "@/components/LogEdit";
@@ -20,7 +21,10 @@ function LogWorkout() {
 
   return (
     <PageShell className="space-y-6">
-      <PageHeader title="Workout" backHref={back.href} />
+      <div className="flex flex-col gap-3">
+        <PageHeader title="Workout" backHref={back.href} />
+        <Stripes />
+      </div>
       <WorkoutDetail
         workoutId={id}
         headerExtra={<FavoriteStar sessionId={id} />}

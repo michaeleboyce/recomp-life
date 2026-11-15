@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
+import { Stripes } from "@/components/ui/stripes";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { WeeklyReviewScreen } from "@/components/Review/WeeklyReviewScreen";
 
@@ -10,7 +11,10 @@ import { WeeklyReviewScreen } from "@/components/Review/WeeklyReviewScreen";
 export default function WeeklyReviewPage() {
   return (
     <PageShell className="space-y-4">
-      <PageHeader title="Weekly review" backHref="/progress" />
+      <div className="flex flex-col gap-3">
+        <PageHeader title="Weekly review" backHref="/progress" />
+        <Stripes />
+      </div>
       <Suspense fallback={<SkeletonCard />}>
         <WeeklyReviewScreen />
       </Suspense>
