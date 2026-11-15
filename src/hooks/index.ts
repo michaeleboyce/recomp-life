@@ -21,6 +21,7 @@ export {
 } from "./useRecords";
 export { useForecasts } from "./useForecasts";
 export { useCoachEvents } from "./useCoachEvents";
+export { useAdjustmentFeed, type AdjustmentFeed } from "./useAdjustmentFeed";
 export {
   useForecastSource,
   useScoredForecasts,
