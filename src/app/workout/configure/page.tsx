@@ -2,6 +2,8 @@
 
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useWorkout } from "@/hooks";
+import { discardWorkout } from "@/lib/data/workouts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
@@ -48,6 +50,7 @@ export default function ConfigureWorkoutPage() {
 function ConfigureWorkoutContent() {
   const router = useRouter();
   const params = useSearchParams();
+  const replaced = useWorkout(params.get("replaces"));
   const fromUrl = useFavoriteFromUrl(params.get("favorite"), params.get("mode"));
   const setup = useWorkoutSetup(
     params.get("templateId"),
@@ -61,7 +64,15 @@ function ConfigureWorkoutContent() {
 
   const handleStart = async () => {
     const sessionId = await setup.start();
-    if (sessionId) router.push(`/workout/active?sessionId=${sessionId}`);
+    if (!sessionId) return;
+    // Today's "Start a new one": the open workout goes once the new one exists,
+    // and only while it is still unfinished. A failure here never blocks the start.
+    if (replaced && replaced.completedAt == null && replaced.id !== sessionId) {
+      await discardWorkout(replaced.id).catch((err) =>
+        console.error("Failed to discard the replaced workout:", err)
+      );
+    }
+    router.push(`/workout/active?sessionId=${sessionId}`);
   };
 
   const hasSubstitutes = setup.homeAdaptations.length > 0;

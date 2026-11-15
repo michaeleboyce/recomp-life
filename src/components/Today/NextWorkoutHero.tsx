@@ -9,12 +9,14 @@ import {
   usePainEntries,
   useTodayForecast,
   useTrainingLocation,
+  useUnfinishedWorkout,
 } from "@/hooks";
 import { EXERCISES } from "@/lib/exercises";
 import { getExpiredPainEntries } from "@/lib/painAutoClear";
 import { formatRegion } from "@/lib/painModifications";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
-import type { PainSorenessEntry, WorkoutLocation } from "@/types";
+import { workoutDisplayName } from "@/lib/workoutNames";
+import type { PainSorenessEntry, WorkoutLocation, WorkoutSession } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ComingUpLine } from "./ComingUpLine";
 import { ForecastTiles } from "./ForecastTiles";
@@ -33,6 +35,7 @@ export function NextWorkoutHero() {
   const next = useNextWorkout(location);
   const forecast = useTodayForecast(location);
   const finished = useCompletedWorkouts();
+  const open = useUnfinishedWorkout();
   const changeLocation = (value: WorkoutLocation) => {
     setLocation(value).catch((err) => console.error("Failed to save training location:", err));
   };
@@ -60,17 +63,51 @@ export function NextWorkoutHero() {
       />
       <LiftRows rows={rows} />
       <div className="flex flex-col gap-1 px-5 pt-2">
-        <Link
-          href="/workout/configure"
-          className="flex h-[58px] shrink-0 items-center justify-center rounded-full bg-primary font-display text-[19px] leading-none font-extrabold tracking-[0.14em] text-primary-foreground uppercase outline-none transition-transform focus-visible:ring-[3px] focus-visible:ring-ring/50 active:scale-[0.99]"
-        >
-          Start workout
-        </Link>
+        {open ? (
+          <ResumeOpen session={open} />
+        ) : (
+          <Link href="/workout/configure" className={MAIN_BUTTON}>
+            Start workout
+          </Link>
+        )}
         {/* Below START on purpose: neither can push the button out of view. */}
         <PainNote plan={working} />
         <ComingUpLine location={location} />
       </div>
     </div>
+  );
+}
+
+const MAIN_BUTTON =
+  "flex h-[58px] shrink-0 items-center justify-center rounded-full bg-primary font-display text-[19px] leading-none font-extrabold tracking-[0.14em] text-primary-foreground uppercase outline-none transition-transform focus-visible:ring-[3px] focus-visible:ring-ring/50 active:scale-[0.99]";
+
+/**
+ * A workout is already open: the main button resumes it, so START cannot leave a
+ * second one behind. Starting a fresh one stays possible, and says what happens to
+ * the open one (it is discarded once the new one actually starts).
+ */
+function ResumeOpen({ session }: { session: WorkoutSession }) {
+  const logged = session.sets.filter((set) => set.tier !== "warmup").length;
+  const what = `${workoutDisplayName(session.templateId)}${
+    logged > 0 ? ` (${logged} ${logged === 1 ? "set" : "sets"} logged)` : ""
+  }`;
+  return (
+    <>
+      <Link href={`/workout/active?sessionId=${session.id}`} className={MAIN_BUTTON}>
+        Resume workout
+      </Link>
+      <p className="pt-1 text-center text-[13px] text-muted-foreground">
+        <Link
+          href={`/workout/configure?replaces=${session.id}`}
+          className="font-semibold text-accent-primary underline decoration-dotted underline-offset-4"
+        >
+          Start a new one
+        </Link>{" "}
+        <span data-testid="replaces-note">
+          instead: the open {what} is discarded when the new one starts.
+        </span>
+      </p>
+    </>
   );
 }
 
@@ -92,7 +129,7 @@ function PainNote({ plan }: { plan: WorkoutExerciseState[] }) {
 
   return (
     <Link
-      href="/body-check"
+      href="/body-check?from=today"
       className="mt-2 flex items-start gap-2 rounded-[10px] bg-warning-soft px-3 py-2.5 text-[13px] text-foreground"
     >
       <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />

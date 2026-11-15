@@ -6,6 +6,7 @@ import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb } from "@/lib/data/testUtils";
 import { updateSettings } from "@/lib/data/records";
+import { startWorkout } from "@/lib/data/workouts";
 import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
 import { overridesFromSession } from "@/lib/workout";
 import type { ActivityLog, RunLog } from "@/types";
@@ -142,6 +143,27 @@ describe("configure page", () => {
     expect(nav.push).toHaveBeenCalledWith(`/workout/active?sessionId=${session.id}`);
     expect(session).toMatchObject({ templateId: "B2", location: "home" });
     expect(overridesFromSession(session)).toEqual({ deadlift: "single_leg_db_rdl" });
+  });
+
+  it("started from Today's 'Start a new one', discards the open workout once the new one starts", async () => {
+    const oldId = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+    await open(`replaces=${oldId}`);
+    expect((await db.workouts.get(oldId))!.deletedAt).toBeFalsy();
+    fireEvent.click(screen.getByRole("button", { name: "START WORKOUT" }));
+    await waitFor(() => expect(nav.push).toHaveBeenCalled());
+    const fresh = (await db.workouts.toArray()).find((w) => w.id !== oldId)!;
+    expect(nav.push).toHaveBeenCalledWith(`/workout/active?sessionId=${fresh.id}`);
+    await waitFor(async () => expect((await db.workouts.get(oldId))!.deletedAt).toBeTruthy());
+    expect(fresh.deletedAt).toBeFalsy();
+  });
+
+  it("never discards a finished workout named by replaces", async () => {
+    const oldId = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+    await db.workouts.update(oldId, { completedAt: new Date() });
+    await open(`replaces=${oldId}`);
+    fireEvent.click(screen.getByRole("button", { name: "START WORKOUT" }));
+    await waitFor(() => expect(nav.push).toHaveBeenCalled());
+    expect((await db.workouts.get(oldId))!.deletedAt).toBeFalsy();
   });
 
   it("shows advisories above the list as callouts with their evidence lines", async () => {
