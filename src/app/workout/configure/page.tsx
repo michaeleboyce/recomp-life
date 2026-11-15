@@ -27,8 +27,8 @@ import { TimeEstimate } from "@/components/PreWorkout/TimeEstimate";
 import { WarmUpToggle } from "@/components/PreWorkout/WarmUpToggle";
 import { useFavoriteFromUrl } from "@/components/PreWorkout/useFavoriteFromUrl";
 import { useWorkoutSetup } from "@/components/PreWorkout/useWorkoutSetup";
-// The same estimate as Today's "about N min", so the two screens agree.
-import { estimateWorkoutMinutes } from "@/components/Today/format";
+// The same session-length model as Today's tile, so the two screens agree.
+import { useReadyLength } from "@/components/PreWorkout/useReadyLength";
 
 function LoadingScreen() {
   return (
@@ -56,6 +56,7 @@ function ConfigureWorkoutContent() {
     params.get("templateId"),
     fromUrl.status === "applied" ? fromUrl.resolved : null
   );
+  const length = useReadyLength(setup.plan, setup.trainingPhase);
 
   // Wait for the favourite too, so the rotation's day is never flashed first.
   if (fromUrl.status === "loading" || setup.isLoading || !setup.templateId || !setup.template) {
@@ -144,7 +145,7 @@ function ConfigureWorkoutContent() {
         <WarmUpToggle enabled={setup.warmUps} onChange={setup.setWarmUps} />
       </div>
 
-      <TimeEstimate minutes={estimateWorkoutMinutes(setup.plan, setup.trainingPhase)} />
+      <TimeEstimate length={length} />
 
       {/* Everything optional. */}
       <div className="border-t border-border">

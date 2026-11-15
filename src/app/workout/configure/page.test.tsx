@@ -57,7 +57,11 @@ describe("configure page", () => {
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Warm-up sets" })).toBeChecked();
     // Every set plus its rest, warm-ups included: the same figure Today shows.
-    expect(screen.getByText("About 45 min, rests included")).toBeInTheDocument();
+    // The session-length forecast for this plan with its range; with no history yet it is
+    // the length on paper (every set and rest, warm-ups included), as Today shows it.
+    await waitFor(() =>
+      expect(screen.getByTestId("ready-length")).toHaveTextContent(/^About 45 min \(\d+ to \d+\), rests included$/)
+    );
   });
 
   it("states the rest after each exercise from getRestSeconds, and explains the rest timer once", async () => {
@@ -231,10 +235,8 @@ describe("configure page", () => {
     const boxes = within(picker).getAllByRole("checkbox");
     fireEvent.click(boxes[0]);
     expect(rows()).toHaveLength(4);
-    expect(screen.queryByText("About 45 min, rests included")).toBeNull();
-    expect(screen.getByText(/^About \d+ min, rests included$/).textContent).not.toBe(
-      "About 45 min, rests included"
-    );
+    await waitFor(() => expect(screen.getByTestId("ready-length")).toHaveTextContent(/^About \d+ min/));
+    expect(screen.getByTestId("ready-length")).not.toHaveTextContent(/^About 45 min/);
   });
 });
 
