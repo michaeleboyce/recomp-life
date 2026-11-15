@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarClock, Dumbbell, House, Trash2 } from "lucide-react";
+import { CalendarClock, Dumbbell, HeartPulse, House, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useWorkout } from "@/hooks";
 import type { LogChange } from "@/lib/rebuild";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import type { SetLog, WorkoutSession } from "@/types";
+import type { SetLog, WorkoutHealth, WorkoutSession } from "@/types";
 import { ExerciseSets } from "./ExerciseSets";
 import { formatDateTime, formatDuration } from "./format";
 import { groupSets, lastWorkingSet, nextSetNumber, type ExerciseGroup } from "./groupSets";
@@ -36,6 +36,23 @@ const MESSAGES: Record<LogChange["kind"], string> = {
 };
 
 const iconButton = "size-11";
+
+/** Heart rate and energy from the watch workout recorded during the session. */
+function WatchLine({ health }: { health: WorkoutHealth }) {
+  const parts = [
+    health.avgHeartRate !== null && `avg ${health.avgHeartRate} bpm`,
+    health.maxHeartRate !== null && `max ${health.maxHeartRate} bpm`,
+    health.activeEnergyKcal !== null && `${health.activeEnergyKcal} kcal`,
+  ].filter(Boolean);
+  if (parts.length === 0) return null;
+  return (
+    <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+      <HeartPulse className="size-4" aria-hidden="true" />
+      <span className="font-mono tabular-nums">{parts.join(" · ")}</span>
+      <span className="sr-only">, from {health.sourceName ?? "Apple Health"}</span>
+    </p>
+  );
+}
 
 /**
  * A finished workout with every set, editable in place: tap a set to edit it, "Add set"
@@ -103,6 +120,7 @@ export function WorkoutDetail({
             <span aria-hidden="true">·</span>
             <span className="font-mono tabular-nums">{formatDuration(workout.totalDurationSeconds)}</span>
           </p>
+          {workout.health && <WatchLine health={workout.health} />}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {headerExtra}

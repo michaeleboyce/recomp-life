@@ -112,6 +112,28 @@ describe("BodyTab", () => {
     expect(within(frame).queryByText("in 3m")).toBeNull();
   });
 
+  it("adds Apple Health trends only when there is imported data", async () => {
+    await seed("maintaining");
+    const first = render(<BodyTab />);
+    await screen.findByText("Bodyweight");
+    expect(screen.queryByRole("region", { name: "Activity and body from Apple Health" })).toBeNull();
+    first.unmount();
+
+    const today = new Date();
+    const day = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    await db.healthDaily.put({
+      id: `hd:${day}`, clientId: `hd:${day}`, day, updatedAt: 1, deletedAt: null, synced: false,
+      sleepMinutes: null, sleepDeepMinutes: null, sleepRemMinutes: null, steps: 9120, restingHr: null,
+      hrvMs: null, activeEnergyKcal: null, exerciseMinutes: null, vo2Max: null, bodyFatPct: null,
+      leanMassLbs: null, dietaryKcal: null, proteinG: null,
+    });
+    render(<BodyTab />);
+    const health = await screen.findByRole("region", { name: "Activity and body from Apple Health" });
+    expect(within(health).getByText("Steps")).toBeInTheDocument();
+    expect(within(health).getByText("9,120")).toBeInTheDocument();
+    expect(within(health).queryByText("Body fat")).toBeNull();
+  });
+
   it("shows an empty state with a Log weight action when there are no weigh-ins", async () => {
     await db.userProfile.put(makeProfile());
     render(<BodyTab />);

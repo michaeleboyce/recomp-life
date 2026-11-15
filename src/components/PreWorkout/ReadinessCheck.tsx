@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Moon, Minus, Sun, Circle } from "lucide-react";
+import { formatSleep } from "@/lib/health/sleep";
 import type { SleepHours, StressLevel } from "@/types";
 
 interface ReadinessCheckProps {
@@ -11,13 +12,16 @@ interface ReadinessCheckProps {
   stressLevel: StressLevel | null;
   onSleepChange: (value: SleepHours) => void;
   onStressChange: (value: StressLevel) => void;
+  /** Minutes asleep last night from Apple Health, when known. */
+  healthSleepMinutes?: number | null;
   onNext?: () => void;
   onSkip?: () => void;
 }
 
 /**
  * Pre-workout sleep and stress check. Suggests skipping accessories when
- * sleep was under 5 hours and energy is low.
+ * sleep was under 5 hours and energy is low. When Apple Health has last night's
+ * sleep, the matching answer is already selected and can be changed.
  *
  * @evidence readiness
  */
@@ -26,6 +30,7 @@ export function ReadinessCheck({
   stressLevel,
   onSleepChange,
   onStressChange,
+  healthSleepMinutes,
   onNext,
   onSkip,
 }: ReadinessCheckProps) {
@@ -65,6 +70,11 @@ export function ReadinessCheck({
             <Sun className="h-4 w-4" /> 7+h
           </Button>
         </div>
+        {healthSleepMinutes != null && (
+          <p className="text-xs text-muted-foreground">
+            {formatSleep(healthSleepMinutes)} last night, from Apple Health. Tap to change.
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">

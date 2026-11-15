@@ -40,6 +40,9 @@ export const RUN_ADVISORY_EFFORT_THRESHOLD: Record<RunLog['category'], number> =
   easy: 4,
 };
 
+/** A run the user has given an effort rating. */
+type RatedRun = RunLog & { perceivedEffort: NonNullable<RunLog['perceivedEffort']> };
+
 /**
  * Evaluate the impact of recent runs on an upcoming workout.
  *
@@ -48,6 +51,8 @@ export const RUN_ADVISORY_EFFORT_THRESHOLD: Record<RunLog['category'], number> =
  *   reducing the T1 load, never skipping the session.
  * - advisory: a run within RUN_ADVISORY_WINDOW_HOURS at or above the effort
  *   threshold for its category.
+ *
+ * A run with no effort rating is ignored.
  *
  * The user always decides; both levels can be dismissed.
  *
@@ -64,8 +69,11 @@ export function evaluateRunImpact(
   const hoursSinceRun = (r: RunLog) =>
     (now.getTime() - new Date(r.date).getTime()) / (1000 * 60 * 60);
 
+  // A run with no effort rating (imported from Apple Health and not rated since)
+  // is left out: the app does not guess how hard it was.
   const runsInWindow = recentRuns.filter(
-    (r) => hoursSinceRun(r) <= RUN_ADVISORY_WINDOW_HOURS
+    (r): r is RatedRun =>
+      r.perceivedEffort !== null && hoursSinceRun(r) <= RUN_ADVISORY_WINDOW_HOURS
   );
 
   if (runsInWindow.length === 0) return { level: 'none', message: '' };

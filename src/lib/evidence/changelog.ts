@@ -149,4 +149,25 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
       "The accessory cap while cutting was raised from 2 to 3, to match maintaining.",
     sources: ["roth2022"],
   },
+  {
+    date: "2026-11-13",
+    ruleId: "run-interference",
+    change:
+      "Runs can now be imported from Apple Health. An imported run has no effort rating and is ignored by this rule until you rate it.",
+    sources: [],
+  },
+  {
+    date: "2026-11-13",
+    ruleId: "activity-fatigue",
+    change:
+      "Sessions can now be imported from Apple Health. An imported session has no effort rating and is ignored by this rule until you rate it.",
+    sources: [],
+  },
+  {
+    date: "2026-11-13",
+    ruleId: "readiness",
+    change:
+      "The sleep answer can now be filled in from Apple Health's record of last night; you can still change it. The suggestion itself is unchanged.",
+    sources: [],
+  },
 ];

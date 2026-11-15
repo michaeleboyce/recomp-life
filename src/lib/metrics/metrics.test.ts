@@ -45,6 +45,14 @@ const ALL_IDS: MetricId[] = [
   "runEffort",
   "sleep",
   "stress",
+  "sleepHours",
+  "restingHr",
+  "hrv",
+  "steps",
+  "activeEnergy",
+  "vo2Max",
+  "bodyFat",
+  "energyIntake",
 ];
 
 // ---------------------------------------------------------------------------

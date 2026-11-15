@@ -18,7 +18,6 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { getMetric } from "@/lib/metrics";
 import type { RangeKey } from "@/lib/metrics/types";
 import { ActivitySection } from "./runs/ActivitySection";
-import { ReadinessSection } from "./runs/ReadinessSection";
 import { formatMinutes, weeklyBars } from "./runs/runsMath";
 import { useRunsData } from "./runs/useRunsData";
 
@@ -26,9 +25,9 @@ const paceFormat = getMetric("runPace").format;
 const MILES = new Intl.NumberFormat("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 /**
- * The Runs tab of /progress: run trends, other activity, and sleep and energy before
- * workouts. Each section shows when it has data; the empty state is only for a lifter
- * with none of the three.
+ * The Cardio tab of /progress: run trends and other activity. Each section shows
+ * when it has data; the empty state is for a lifter with neither. Sleep and energy
+ * are on the Recovery tab.
  */
 export function RunsTab() {
   const [range, setRange] = useState<RangeKey>("3m");
@@ -36,12 +35,12 @@ export function RunsTab() {
 
   if (!data) return <Skeleton className="h-64 w-full" />;
 
-  if (!data.hasRuns && !data.hasActivities && !data.hasReadiness) {
+  if (!data.hasRuns && !data.hasActivities) {
     return (
       <EmptyState
         icon={<Footprints />}
         title="No runs or activities yet"
-        body="Log a run, a ride or a yoga session to see your weekly totals. Sleep and energy check-ins before workouts show here too."
+        body="Log a run, a ride or a yoga session to see your weekly totals."
         action={
           <Button asChild>
             <Link href="/run">Log a run or activity</Link>
@@ -101,10 +100,6 @@ export function RunsTab() {
       )}
 
       <ActivitySection totals={data.activities} />
-
-      {data.hasReadiness && (
-        <ReadinessSection sleep={data.sleep} stress={data.stress} comparison={data.comparison} />
-      )}
 
       <ListRow
         href="/run"

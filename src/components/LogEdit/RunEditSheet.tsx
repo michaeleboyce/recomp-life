@@ -31,7 +31,7 @@ function RunForm({ open, onOpenChange, entry, now }: EntrySheetProps<RunLog>) {
   const [distance, setDistance] = useState(entry.distanceMiles == null ? "" : String(entry.distanceMiles));
   const [type, setType] = useState<RunType>(entry.type);
   const [category, setCategory] = useState<RunCategory>(entry.category);
-  const [effort, setEffort] = useState<Effort>(entry.perceivedEffort);
+  const [effort, setEffort] = useState<Effort | null>(entry.perceivedEffort);
   const [notes, setNotes] = useState(entry.notes);
   const [invalid, setInvalid] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

@@ -9,7 +9,7 @@ import { clearDb, runSession } from "@/lib/data/testUtils";
 let id = "";
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
-  useParams: () => ({ id }),
+  useSearchParams: () => new URLSearchParams({ id }),
   useRouter: () => ({ push, replace: vi.fn() }),
 }));
 
@@ -40,7 +40,7 @@ async function whatItDid() {
   return within(await screen.findByRole("region", { name: "What it did" }));
 }
 
-describe("/log/workout/[id]", () => {
+describe("/log/workout?id=", () => {
   it("renders every set with a back link to the Log", async () => {
     id = first;
     render(<LogWorkoutPage />);

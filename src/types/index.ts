@@ -343,7 +343,8 @@ export interface RunLog extends Stamped {
   type: RunType;
   category: RunCategory;
   notes: string;
-  perceivedEffort: 1 | 2 | 3 | 4 | 5;
+  /** Null for a session imported without an effort rating; the app never guesses one. */
+  perceivedEffort: 1 | 2 | 3 | 4 | 5 | null;
   /** Where the row came from; absent means entered by hand. */
   source?: RecordSource;
   /** The app or device that recorded an imported row, e.g. "Apple Watch". */
@@ -366,7 +367,8 @@ export interface ActivityLog extends Stamped {
   style: YogaStyle | null;
   distanceMiles: number | null;
   notes: string;
-  perceivedEffort: 1 | 2 | 3 | 4 | 5;
+  /** Null for a session imported without an effort rating; the app never guesses one. */
+  perceivedEffort: 1 | 2 | 3 | 4 | 5 | null;
   /** Where the row came from; absent means entered by hand. */
   source?: RecordSource;
   /** The app or device that recorded an imported row, e.g. "Apple Watch". */

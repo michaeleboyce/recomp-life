@@ -92,7 +92,7 @@ describe("/log", () => {
     render(<LogPage />);
     await screen.findByText("Weigh-in");
     expect(days().map((d) => d.getAttribute("aria-label"))).toEqual(["Yesterday", "Tue, Nov 10", "Tue, Nov 3"]);
-    expect(within(days()[1]).getAllByRole("link").map((l) => l.getAttribute("href"))).toEqual(["/log/workout/w-new"]);
+    expect(within(days()[1]).getAllByRole("link").map((l) => l.getAttribute("href"))).toEqual(["/log/workout?id=w-new"]);
     expect(within(days()[1]).getByText(/Outdoor run, easy/)).toBeInTheDocument();
     expect(screen.queryByText("Workout B1")).toBeNull();
     expect(screen.queryByText("Workout B2")).toBeNull();

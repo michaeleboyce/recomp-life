@@ -8,6 +8,7 @@ import { workoutTitle } from "@/components/LogEdit";
 import { describeActivity } from "@/lib/activities";
 import type { FavoriteWorkout, RunCategory, RunType } from "@/types";
 import { workoutResultLine, type LogEntry } from "./logEntries";
+import { workoutDetailHref } from "@/lib/routes";
 
 const TIME_OF_DAY = { morning: "Morning", evening: "Evening", other: "Other time" } as const;
 // Same words as the effort picker the entry was logged with.
@@ -27,11 +28,11 @@ function minutes(value: number): string {
   return formatDuration(value * 60);
 }
 
-function cardioSubtitle(distanceMiles: number | null, durationMinutes: number, effort: number): string {
+function cardioSubtitle(distanceMiles: number | null, durationMinutes: number, effort: number | null): string {
   return [
     distanceMiles != null ? `${formatLbs(distanceMiles)} mi` : null,
     minutes(durationMinutes),
-    EFFORT[effort] ?? null,
+    effort != null ? EFFORT[effort] ?? null : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -62,7 +63,7 @@ export function LogEntryRow({
       return (
         <div className="flex items-center border-b border-border last:border-b-0">
           <ListRow
-            href={`/log/workout/${encodeURIComponent(w.id)}`}
+            href={workoutDetailHref(w.id)}
             className="min-w-0 flex-1 border-b-0"
             leading={<LocationIcon className={iconClass} aria-hidden="true" />}
             title={workoutTitle(w)}

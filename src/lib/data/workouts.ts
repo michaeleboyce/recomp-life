@@ -12,6 +12,7 @@ import type {
   LiftState,
   PlanEdit,
   PrescribedEntry,
+  RecordSource,
   SetLog,
   SleepHours,
   StressLevel,
@@ -30,7 +31,13 @@ export interface StartWorkoutInput {
   selectedAccessories: string[];
   modifications?: WorkoutModification[];
   /** Saved as a readiness log linked to the new session when both values are given. */
-  readiness?: { sleepHours: SleepHours; stressLevel: StressLevel };
+  readiness?: {
+    sleepHours: SleepHours;
+    stressLevel: StressLevel;
+    /** Set when the sleep answer was filled in from a health source and left as it was. */
+    sleepMinutes?: number;
+    sleepSource?: RecordSource;
+  };
   /**
    * What the program prescribes for this session. Left out, it is read from the
    * current lift states.
@@ -120,6 +127,9 @@ export async function startWorkout(input: StartWorkoutInput): Promise<string> {
         sessionId,
         sleepHours: readiness.sleepHours,
         stressLevel: readiness.stressLevel,
+        ...(readiness.sleepMinutes !== undefined && readiness.sleepSource
+          ? { sleepMinutes: readiness.sleepMinutes, sleepSource: readiness.sleepSource }
+          : {}),
         date: new Date(),
         ...newRowStamps(),
       });

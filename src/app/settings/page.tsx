@@ -15,6 +15,7 @@ import ExercisePreferencesEditor from "@/components/Settings/ExercisePreferences
 import AnatomySettings from "@/components/Settings/AnatomySettings";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { LocationChip } from "@/components/ui/location-chip";
+import { ListRow } from "@/components/ui/list-row";
 import { TrainingLocationRow } from "@/components/More/TrainingLocationRow";
 import { getSyncKey, setSyncKey } from "@/lib/syncKey";
 import { useProfile } from "@/hooks";
@@ -183,6 +184,14 @@ export default function SettingsPage() {
         {/* Training location: the same default Today, Configure and More use. */}
         <section aria-label="Training location" className="overflow-hidden rounded-2xl bg-card">
           <TrainingLocationRow />
+        </section>
+        {/* Apple Health has its own screen; this is only the way in. */}
+        <section aria-label="Apple Health" className="overflow-hidden rounded-2xl bg-card px-4">
+          <ListRow
+            href="/settings/health"
+            title="Apple Health"
+            subtitle="Import weight, sleep, workouts and activity"
+          />
         </section>
         {/* Profile Section */}
         <Card>

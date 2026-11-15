@@ -31,6 +31,6 @@ describe("SessionList", () => {
   it("links each session to its workout detail page", () => {
     render(<SessionList sessions={[session]} />);
     const link = screen.getByRole("link", { name: /open workout from nov 6/i });
-    expect(link).toHaveAttribute("href", "/log/workout/w1");
+    expect(link).toHaveAttribute("href", "/log/workout?id=w1");
   });
 });

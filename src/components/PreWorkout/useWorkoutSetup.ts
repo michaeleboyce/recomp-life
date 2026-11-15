@@ -11,6 +11,7 @@ import {
   useRuns,
   useSettings,
   useTrainingLocation,
+  useLastNightSleep,
 } from "@/hooks";
 import { ACTIVITY_NOTE_WINDOW_HOURS, evaluateActivityImpact } from "@/lib/activities";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
@@ -21,6 +22,7 @@ import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePref
 import { lastLoggedWeights, type ResolvedFavorite } from "@/lib/favorites";
 import { RECOVERY_HOURS } from "@/lib/recovery";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
+import { sleepBucket } from "@/lib/health/sleep";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
 import {
   buildWorkoutPlan,
@@ -206,7 +208,14 @@ export function useWorkoutSetup(
     [overallPreferences, locationPreferences, location]
   );
 
-  const [sleepHours, setSleepHours] = useState<SleepHours | null>(null);
+  // The sleep answer is the user's own choice when they made one, otherwise last
+  // night's sleep from Apple Health when there is any.
+  const [chosenSleep, setSleepHours] = useState<SleepHours | null>(null);
+  const healthSleepMinutes = useLastNightSleep() ?? null;
+  const healthSleep = healthSleepMinutes !== null ? sleepBucket(healthSleepMinutes) : null;
+  const sleepHours = chosenSleep ?? healthSleep;
+  /** True while the answer shown is the one Apple Health gave. */
+  const sleepIsFromHealth = healthSleep !== null && sleepHours === healthSleep;
   const [stressLevel, setStressLevel] = useState<StressLevel | null>(null);
   const [selectedAccessories, setSelectedAccessories] = useState<string[]>([]);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
@@ -417,7 +426,16 @@ export function useWorkoutSetup(
         includeWarmUps: warmUps,
         selectedAccessories,
         modifications,
-        readiness: sleepHours && stressLevel ? { sleepHours, stressLevel } : undefined,
+        readiness:
+          sleepHours && stressLevel
+            ? {
+                sleepHours,
+                stressLevel,
+                ...(sleepIsFromHealth && healthSleepMinutes !== null
+                  ? { sleepMinutes: healthSleepMinutes, sleepSource: "apple_health" as const }
+                  : {}),
+              }
+            : undefined,
       });
     } catch (err) {
       console.error("Failed to start workout:", err);
@@ -439,6 +457,8 @@ export function useWorkoutSetup(
     prescribed,
     edits,
     favoriteId,
+    sleepIsFromHealth,
+    healthSleepMinutes,
   ]);
 
   return {
@@ -469,6 +489,8 @@ export function useWorkoutSetup(
     setWarmUps: setWarmUpsChoice,
     sleepHours,
     setSleepHours,
+    /** Minutes asleep last night from Apple Health; null when there is none. */
+    healthSleepMinutes,
     stressLevel,
     setStressLevel,
     selectedAccessories,

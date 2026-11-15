@@ -5,12 +5,14 @@ import type {
   BodyweightLog,
   Estimated1RM,
   FavoriteWorkout,
+  HealthDailyLog,
   LiftAdjustment,
   PainSorenessEntry,
   RunLog,
 } from "@/types";
 import { listFavorites } from "@/lib/favorites";
-import { liveRows } from "./liveRows";
+import { dailyRowId, localDateKey } from "@/lib/health/daily";
+import { liveRow, liveRows } from "./liveRows";
 
 /**
  * Sorts rows by their `date` in JavaScript. Rows synced from another device before the
@@ -63,6 +65,25 @@ export function useFavoriteWorkouts(): FavoriteWorkout[] | undefined {
 /** Non-running activities (yoga, cycling, hiking...), newest first. */
 export function useActivities(): ActivityLog[] | undefined {
   return useLiveQuery(async () => byDate(liveRows(await db.activities.toArray()), "newest"), []);
+}
+
+/** One row of Apple Health values per day, oldest first. Empty when nothing was imported. */
+export function useHealthDaily(): HealthDailyLog[] | undefined {
+  return useLiveQuery(
+    async () => liveRows(await db.healthDaily.toArray()).sort((a, b) => a.day.localeCompare(b.day)),
+    []
+  );
+}
+
+/**
+ * Minutes asleep last night according to Apple Health (the night counted toward
+ * today), or null when there is none. `undefined` while loading.
+ */
+export function useLastNightSleep(): number | null | undefined {
+  return useLiveQuery(async () => {
+    const row = liveRow(await db.healthDaily.get(dailyRowId(localDateKey(new Date()))));
+    return row?.sleepMinutes ?? null;
+  }, []);
 }
 
 /**

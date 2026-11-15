@@ -12,11 +12,16 @@ import { ListRow } from "@/components/ui/list-row";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/ui/stat-tile";
 import { getMetric } from "@/lib/metrics";
-import type { RangeKey } from "@/lib/metrics/types";
+import type { MetricId, RangeKey } from "@/lib/metrics/types";
 import { BodyChart } from "./body/BodyChart";
 import { formatSigned, paceStatus, type PaceWord } from "./body/bodyMath";
 import { useBodySeries } from "./body/useBodySeries";
+import { HealthTrendCharts } from "./health/HealthTrendCharts";
+import { useHealthTrends } from "./health/useHealthTrends";
 import { rangeSuffix } from "./rangeText";
+
+/** The Apple Health trends shown on the Body tab, in display order. */
+const BODY_TRENDS: readonly MetricId[] = ["steps", "activeEnergy", "energyIntake", "bodyFat", "vo2Max"];
 
 const weightFormat = getMetric("bodyweight").format;
 const rateFormat = getMetric("lossRate").format;
@@ -32,6 +37,7 @@ const PACE_TONE: Record<PaceWord, string> = {
 export function BodyTab() {
   const [range, setRange] = useState<RangeKey>("3m");
   const body = useBodySeries(range);
+  const health = useHealthTrends(BODY_TRENDS, range);
 
   if (!body) return <Skeleton className="h-64 w-full" />;
 
@@ -93,6 +99,8 @@ export function BodyTab() {
       </div>
 
       {body.cutting && <EvidenceLine ruleId="rate-of-loss" />}
+
+      {health && <HealthTrendCharts trends={health} label="Activity and body from Apple Health" />}
 
       <div>
         <ListRow

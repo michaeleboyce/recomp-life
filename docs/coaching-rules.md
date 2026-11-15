@@ -364,13 +364,13 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `readiness`
 - **Status:** Active
 - **Evidence:** Moderate evidence
-- **Implemented in:** `src/components/PreWorkout/ReadinessCheck.tsx` (`ReadinessCheck`)
+- **Implemented in:** `src/components/PreWorkout/ReadinessCheck.tsx` (`ReadinessCheck`), `src/lib/health/sleep.ts` (`sleepBucket`)
 - **Shown in:** `src/components/PreWorkout/ReadinessCheck.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Poor sleep and high stress both reduce performance and recovery
 
-**What the app does.** Before a workout you can log last night's sleep and your stress or energy. If you report under 5 hours of sleep and low energy together, the app suggests skipping accessories. Nothing else changes.
+**What the app does.** Before a workout you can log last night's sleep and your stress or energy. If Apple Health is connected in the iPhone app and has last night's sleep, the matching answer is already selected (under 5 hours, 5 to 7, or 7 or more) and you can change it. If the answer is under 5 hours of sleep together with low energy, the app suggests skipping accessories. Nothing else changes.
 
 **Why.** A night of lost or restricted sleep lowers physical performance by about 7.6% on average, and lifters under high life stress recover strength more slowly after a hard session.
 
@@ -414,7 +414,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** A hard session in the last day can leave you a little short
 
-**What the app does.** Before a workout, the app checks the yoga, cycling, hiking, walking and other sessions you logged in the last 24 hours. If one was rated effort 4 or more out of 5, it shows a note suggesting you judge the day by your warm-ups. Cycling, hiking and walking are only mentioned before a lower-body T1 lift. The note never changes your weights, and these sessions never affect progression.
+**What the app does.** Before a workout, the app checks the yoga, cycling, hiking, walking and other sessions you logged in the last 24 hours. If one was rated effort 4 or more out of 5, it shows a note suggesting you judge the day by your warm-ups. Cycling, hiking and walking are only mentioned before a lower-body T1 lift. The note never changes your weights, and these sessions never affect progression. A session imported from Apple Health has no effort rating and is ignored until you rate it in the Log.
 
 **Why.** A hard session of any kind leaves some fatigue, and it is better to have it in mind than to be surprised by a slow warm-up. Easy and moderate sessions are not flagged.
 
@@ -454,7 +454,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** A hard run in the last few hours lowers leg strength
 
-**What the app does.** Before a workout with a lower-body T1 lift, the app checks your most recent run. A hard run (effort 4 or more out of 5, or a non-easy run of 45 minutes or more) in the last 6 hours suggests reducing T1 by 10% or lifting later. A run in the last 24 hours at effort 3 or more (2 for intervals or tempo, 4 for easy runs) shows a lighter note. Neither changes your workout unless you choose to.
+**What the app does.** Before a workout with a lower-body T1 lift, the app checks your most recent run. A hard run (effort 4 or more out of 5, or a non-easy run of 45 minutes or more) in the last 6 hours suggests reducing T1 by 10% or lifting later. A run in the last 24 hours at effort 3 or more (2 for intervals or tempo, 4 for easy runs) shows a lighter note. Neither changes your workout unless you choose to. A run imported from Apple Health has no effort rating, and the app does not guess one: it is ignored until you rate it in the Log.
 
 **Why.** Aerobic exercise reduces strength for a while afterwards, more after longer or harder sessions, and less after running than cycling. In a training study, strength gains suffered when sessions were back to back but not when they were 6 hours apart. Over the long run, combining running and lifting does not compromise strength or muscle growth.
 
@@ -772,6 +772,9 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 Changes made to the app because of research, newest first.
 
 - **14 November 2026** — `off-program-credit` (Does a changed workout still count toward progression?): A lift done heavier than prescribed in every set now progresses from the heavier weight instead of the prescribed one. Missing reps at a heavier weight is not counted as a failure. Sources: .
+- **13 November 2026** — `run-interference` (Why does a recent run matter?): Runs can now be imported from Apple Health. An imported run has no effort rating and is ignored by this rule until you rate it. Sources: .
+- **13 November 2026** — `activity-fatigue` (Why does a hard yoga class or ride matter?): Sessions can now be imported from Apple Health. An imported session has no effort rating and is ignored by this rule until you rate it. Sources: .
+- **13 November 2026** — `readiness` (Why does the app ask about sleep and stress?): The sleep answer can now be filled in from Apple Health's record of last night; you can still change it. The suggestion itself is unchanged. Sources: .
 - **12 November 2026** — `off-program-credit` (Does a changed workout still count toward progression?): You can now change a workout before starting it. Each lift you change says whether it still counts toward progression or is only logged, and a lift you skip keeps its weight. Sources: .
 - **12 November 2026** — `t3-progression` (When does T3 weight go up?): The T3 rule is now shown: each workout's page says whether its T3 lift went up (and why) or stays at the same weight, as of that workout. The rule itself is unchanged. Sources: .
 - **12 November 2026** — `gzclp-progression` (Why does the weight go up, change stage or reset?): Logged sessions can now be edited or deleted. Doing so re-runs progression from the log, so the next workout follows the corrected history; sessions logged later are kept as they were lifted. Sources: .

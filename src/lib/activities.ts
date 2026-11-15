@@ -69,7 +69,8 @@ function describeHoursAgo(hours: number): string {
  * note about it, or null when there is nothing worth mentioning.
  *
  * A session counts when it was rated ACTIVITY_HARD_EFFORT or more and happened
- * within ACTIVITY_NOTE_WINDOW_HOURS. Leg-only kinds count only before a
+ * within ACTIVITY_NOTE_WINDOW_HOURS. A session with no effort rating (one imported
+ * from Apple Health and not rated since) never counts. Leg-only kinds count only before a
  * lower-body T1 lift. The note never changes weights or progression.
  *
  * @evidence activity-fatigue
@@ -87,7 +88,7 @@ export function evaluateActivityImpact(
       const hours = hoursSince(a);
       return hours >= 0 && hours <= ACTIVITY_NOTE_WINDOW_HOURS;
     })
-    .filter((a) => a.perceivedEffort >= ACTIVITY_HARD_EFFORT)
+    .filter((a) => a.perceivedEffort !== null && a.perceivedEffort >= ACTIVITY_HARD_EFFORT)
     .filter(
       (a) => nextWorkoutHasLowerBody || !LOWER_BODY_ACTIVITY_KINDS.includes(a.kind)
     )

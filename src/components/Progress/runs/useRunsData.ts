@@ -8,17 +8,13 @@ import {
   activityTotals,
   mean,
   paceOverall,
-  sleepEffortComparison,
   sum,
   type ActivityTotal,
-  type SleepEffortComparison,
 } from "./runsMath";
 
 export interface RunsData {
   /** Any run ever logged. */
   hasRuns: boolean;
-  /** Any readiness log ever recorded. */
-  hasReadiness: boolean;
   runCount: number;
   distance: number;
   totalMinutes: number;
@@ -28,9 +24,6 @@ export interface RunsData {
   /** Later half of the range's runs against the earlier half, same measure; negative is faster. */
   paceChange: number | null;
   weeklyDistance: Series;
-  sleep: Series;
-  stress: Series;
-  comparison: SleepEffortComparison | null;
   activities: ActivityTotal[];
   /** Any activity logged at all, in any range. */
   hasActivities: boolean;
@@ -50,7 +43,6 @@ export function useRunsData(range: RangeKey): RunsData | undefined {
     const pace = paceOverall(distance, duration);
     return {
       hasRuns: source.runs.length > 0,
-      hasReadiness: source.readiness.length > 0,
       runCount: duration.points.length,
       distance: sum(distance),
       totalMinutes: sum(duration),
@@ -58,9 +50,6 @@ export function useRunsData(range: RangeKey): RunsData | undefined {
       avgPace: pace.average,
       paceChange: pace.change,
       weeklyDistance: bucket(distance, "week", "sum"),
-      sleep: ranged("sleep"),
-      stress: ranged("stress"),
-      comparison: sleepEffortComparison(source.workouts, source.readiness),
       activities: activityTotals(activities, range, now),
       hasActivities: activities.length > 0,
     };
