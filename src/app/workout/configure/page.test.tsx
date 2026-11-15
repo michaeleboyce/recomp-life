@@ -9,11 +9,15 @@ import { updateSettings } from "@/lib/data/records";
 import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
 import { overridesFromSession } from "@/lib/workout";
 import type { ActivityLog, RunLog } from "@/types";
+import { testFavorite } from "@/components/Favorites/testFavorites";
 import ConfigureWorkoutPage from "./page";
 
-const nav = vi.hoisted(() => ({ params: "", push: vi.fn() }));
+const toasts = vi.hoisted(() => ({ toast: vi.fn() }));
+vi.mock("@/components/ui/toast", () => toasts);
+
+const nav = vi.hoisted(() => ({ params: "", push: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: nav.push }),
+  useRouter: () => ({ push: nav.push, replace: nav.replace }),
   useSearchParams: () => new URLSearchParams(nav.params),
 }));
 
@@ -25,6 +29,7 @@ beforeEach(async () => {
   await initializeDatabase();
   nav.params = "";
   nav.push.mockReset();
+  nav.replace.mockReset();
 });
 
 async function open(params = "") {
@@ -208,5 +213,66 @@ describe("configure page", () => {
     expect(screen.getByText(/^About \d+ min, rests included$/).textContent).not.toBe(
       "About 45 min, rests included"
     );
+  });
+});
+
+describe("configure page: favourites", () => {
+  async function addFavorite(weight: number) {
+    const favorite = testFavorite("fav-1", "Heavy bench");
+    await db.favoriteWorkouts.add({
+      ...favorite,
+      snapshot: favorite.snapshot.map((e) => (e.tier === "T2" ? { ...e, weight } : e)),
+    });
+  }
+
+  it("starts a favourite with today's weights by default and says so", async () => {
+    await addFavorite(80);
+    await open("favorite=fav-1");
+    expect(screen.getByText("From favourite: Heavy bench · Today's weights")).toBeInTheDocument();
+    expect(rows()[1]).toMatch(/^T2Barbell Bench Press100 lbs/);
+  });
+
+  it("starts a favourite exactly as saved", async () => {
+    await addFavorite(80);
+    await open("favorite=fav-1&mode=as-saved");
+    expect(screen.getByText("From favourite: Heavy bench · Exactly as saved")).toBeInTheDocument();
+    expect(rows()[1]).toMatch(/^T2Barbell Bench PressLogged only, progression paused80 lbs/);
+  });
+
+  it("falls back to the normal screen with one line when the favourite is gone", async () => {
+    await open("favorite=nope");
+    expect(screen.getByText("That favourite no longer exists.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "A1 · Squat day" })).toBeInTheDocument();
+    expect(screen.queryByText(/From favourite/)).toBeNull();
+  });
+
+  it("opens the picker and navigates to the chosen favourite and mode", async () => {
+    await addFavorite(80);
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Favourites" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Exactly as saved/ }));
+    expect(nav.replace).toHaveBeenCalledWith("/workout/configure?favorite=fav-1&mode=as-saved");
+  });
+
+  it("saves the set-up under a name and confirms with a toast", async () => {
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Save as favourite" }));
+    const name = await screen.findByRole("textbox");
+    expect(name).toHaveValue("A1 · Squat day");
+    fireEvent.change(name, { target: { value: "My squat day" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(async () => expect(await db.favoriteWorkouts.count()).toBe(1));
+    const saved = (await db.favoriteWorkouts.toArray())[0];
+    expect(saved).toMatchObject({ name: "My squat day", templateId: "A1", location: "gym" });
+    expect(saved.snapshot.map((e) => e.tier)).toEqual(["T1", "T2", "T3"]);
+    await waitFor(() => expect(toasts.toast).toHaveBeenCalledWith({ message: "Saved to favourites" }));
+  });
+
+  it("offers the applied favourite's name when saving again", async () => {
+    await addFavorite(80);
+    await open("favorite=fav-1");
+    fireEvent.click(screen.getByRole("button", { name: "Save as favourite" }));
+    expect(await screen.findByRole("textbox")).toHaveValue("Heavy bench");
   });
 });

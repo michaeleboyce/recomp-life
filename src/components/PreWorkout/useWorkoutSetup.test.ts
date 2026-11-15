@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import { clearDb, makeWorkout } from "@/lib/data/testUtils";
+import { clearDb, makeSet, makeWorkout } from "@/lib/data/testUtils";
+import type { ResolvedFavorite } from "@/lib/favorites";
 import { useActiveWorkout } from "@/components/ActiveWorkout/useActiveWorkout";
 import { ACCESSORY_IDS } from "@/lib/exercises";
 import { buildWorkoutPlan, overridesFromSession } from "@/lib/workout";
@@ -361,5 +362,185 @@ describe("advisories", () => {
     await waitFor(() =>
       expect(hook.result.current.recentPainEntries.map((p) => p.id)).toEqual(["p1"])
     );
+  });
+});
+
+describe("editing the workout", () => {
+  const entry = (hook: Awaited<ReturnType<typeof mount>>, exerciseId: string, tier: string) =>
+    hook.result.current.plan.find((e) => !e.isWarmUp && e.exerciseId === exerciseId && e.tier === tier);
+
+  it("changes the plan with a scheme and a weight edit and says the lift is logged only", async () => {
+    const hook = await mount("A1");
+    expect(hook.result.current.edits).toEqual([]);
+    expect(hook.result.current.impact).toEqual([]);
+    const prescribedBench = hook.result.current.prescribed.find((p) => p.exerciseId === "bench")!;
+
+    act(() => hook.result.current.setScheme("bench", "T2", 4, 8));
+    expect(entry(hook, "bench", "T2")).toMatchObject({ targetSets: 4, targetReps: 8 });
+    act(() => hook.result.current.setWeight("bench", "T2", prescribedBench.weight + 10));
+    expect(entry(hook, "bench", "T2")?.weight).toBe(prescribedBench.weight + 10);
+    expect(hook.result.current.impact).toContainEqual({
+      exerciseId: "bench",
+      tier: "T2",
+      status: "logged-only",
+      edited: true,
+    });
+    expect(hook.result.current.impact).toContainEqual({
+      exerciseId: "squat",
+      tier: "T1",
+      status: "program",
+      edited: false,
+    });
+  });
+
+  it("counts a lift whose weight edit stays at the prescription", async () => {
+    const hook = await mount("A1");
+    const bench = hook.result.current.prescribed.find((p) => p.exerciseId === "bench")!;
+    act(() => hook.result.current.setWeight("bench", "T2", bench.weight));
+    expect(hook.result.current.impact).toContainEqual(
+      expect.objectContaining({ exerciseId: "bench", status: "program", edited: true })
+    );
+  });
+
+  it("swaps a lift: the replacement is logged only and the original is not done today", async () => {
+    const hook = await mount("A1");
+    act(() => hook.result.current.swapExercise("lat_pulldown", "T3", "face_pulls"));
+    expect(entry(hook, "lat_pulldown", "T3")).toBeUndefined();
+    expect(entry(hook, "face_pulls", "T3")).toBeDefined();
+    expect(hook.result.current.impact).toContainEqual(
+      expect.objectContaining({ exerciseId: "face_pulls", tier: "T3", status: "logged-only" })
+    );
+    expect(hook.result.current.impact).toContainEqual(
+      expect.objectContaining({ exerciseId: "lat_pulldown", tier: "T3", status: "not-done" })
+    );
+  });
+
+  it("removes a lift and adds an accessory", async () => {
+    const hook = await mount("A1");
+    act(() => hook.result.current.removeExercise("bench", "T2"));
+    expect(describePlan(hook.result.current.plan.filter((e) => !e.isWarmUp))).toEqual([
+      "T1:squat",
+      "T3:lat_pulldown",
+    ]);
+    expect(hook.result.current.impact).toContainEqual(
+      expect.objectContaining({ exerciseId: "bench", status: "not-done" })
+    );
+
+    act(() =>
+      hook.result.current.addExercise("face_pulls", { sets: 3, reps: 12, weight: 30, isAMRAP: false })
+    );
+    expect(hook.result.current.plan.at(-1)).toMatchObject({
+      exerciseId: "face_pulls",
+      tier: "accessory",
+      targetSets: 3,
+      targetReps: 12,
+      weight: 30,
+    });
+    act(() => hook.result.current.removeExercise("face_pulls", "accessory"));
+    expect(hook.result.current.edits).toEqual([{ kind: "remove", exerciseId: "bench", tier: "T2" }]);
+  });
+
+  it("resets to the program", async () => {
+    const hook = await mount("A1");
+    act(() => hook.result.current.removeExercise("bench", "T2"));
+    act(() => hook.result.current.resetEdits());
+    expect(hook.result.current.edits).toEqual([]);
+    expect(entry(hook, "bench", "T2")).toBeDefined();
+  });
+
+  it("clears edits when the day changes", async () => {
+    const hook = await mount("A1");
+    act(() => hook.result.current.removeExercise("bench", "T2"));
+    act(() => hook.result.current.setTemplateId("B1"));
+    expect(hook.result.current.templateId).toBe("B1");
+    expect(hook.result.current.edits).toEqual([]);
+    expect(hook.result.current.plan.some((e) => e.exerciseId === "ohp")).toBe(true);
+  });
+});
+
+describe("choosing the day", () => {
+  it("overrides the URL and exposes the due day from the rotation", async () => {
+    const hook = await mount("B2");
+    expect(hook.result.current.templateId).toBe("B2");
+    expect(hook.result.current.dueTemplateId).toBe("A1");
+    act(() => hook.result.current.setTemplateId("A2"));
+    expect(hook.result.current.templateId).toBe("A2");
+    expect(hook.result.current.dueTemplateId).toBe("A1");
+  });
+
+  it("ignores an unknown day", async () => {
+    const hook = await mount("A1");
+    act(() => hook.result.current.setTemplateId("nonsense"));
+    expect(hook.result.current.templateId).toBe("A1");
+  });
+});
+
+describe("starting from a favourite", () => {
+  const favorite: ResolvedFavorite = {
+    favoriteId: "fav-1",
+    templateId: "B1",
+    location: "gym",
+    includeWarmUps: false,
+    selectedAccessories: ["face_pulls"],
+    overrides: {},
+    planEdits: [
+      { kind: "swap", exerciseId: "db_row", tier: "T3", replacementId: "bicep_curls" },
+      { kind: "weight", exerciseId: "bicep_curls", tier: "T3", weight: 25 },
+    ],
+  };
+
+  it("fills in the day, the choices and the edits, and they can still be changed", async () => {
+    const hook = renderHook(() => useWorkoutSetup(null, favorite));
+    await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
+
+    expect(hook.result.current.templateId).toBe("B1");
+    expect(hook.result.current.favoriteId).toBe("fav-1");
+    expect(hook.result.current.warmUps).toBe(false);
+    expect(hook.result.current.selectedAccessories).toEqual(["face_pulls"]);
+    expect(hook.result.current.edits).toEqual(favorite.planEdits);
+    expect(describePlan(hook.result.current.plan)).toEqual([
+      "T1:ohp",
+      "T2:deadlift",
+      "T3:bicep_curls",
+      "accessory:face_pulls",
+    ]);
+    expect(hook.result.current.plan.find((e) => e.exerciseId === "bicep_curls")!.weight).toBe(25);
+
+    act(() => hook.result.current.setWarmUps(true));
+    act(() => hook.result.current.resetEdits());
+    expect(hook.result.current.warmUps).toBe(true);
+    expect(hook.result.current.edits).toEqual([]);
+  });
+
+  it("takes the favourite's location as the training location", async () => {
+    await patchSettings({ defaultLocation: "home" });
+    const hook = renderHook(() => useWorkoutSetup(null, favorite));
+    await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
+    await waitFor(() => expect(hook.result.current.location).toBe("gym"));
+  });
+});
+
+describe("weights for exercises the program does not prescribe", () => {
+  it("start a swapped-in or added exercise at the last weight logged for it", async () => {
+    await db.workouts.put(
+      makeWorkout({
+        startedAt: new Date(Date.now() - 3 * DAY),
+        completedAt: new Date(Date.now() - 3 * DAY + HOUR),
+        sets: [
+          makeSet({ exerciseId: "face_pulls", tier: "accessory", weight: 35 }),
+          makeSet({ exerciseId: "bicep_curls", tier: "accessory", weight: 22.5 }),
+        ],
+      })
+    );
+    const hook = await mount("B1");
+    await waitFor(() => expect(hook.result.current.lastWeights.face_pulls).toBe(35));
+
+    act(() => hook.result.current.swapExercise("db_row", "T3", "face_pulls"));
+    act(() =>
+      hook.result.current.addExercise("bicep_curls", { sets: 3, reps: 12, weight: 10, isAMRAP: false })
+    );
+    const weightOf = (id: string) => hook.result.current.plan.find((e) => e.exerciseId === id)!.weight;
+    expect(weightOf("face_pulls")).toBe(35);
+    expect(weightOf("bicep_curls")).toBe(22.5);
   });
 });

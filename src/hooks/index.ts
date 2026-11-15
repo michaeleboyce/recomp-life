@@ -14,6 +14,7 @@ export {
   useE1RMs,
   useRuns,
   useActivities,
+  useFavoriteWorkouts,
   useLiftAdjustments,
 } from "./useRecords";
 export { useNextWorkout } from "./useNextWorkout";

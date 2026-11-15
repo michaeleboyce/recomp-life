@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import type {
   WorkoutSession, RunLog, ActivityLog, BodyweightLog,
-  PainSorenessEntry, Estimated1RM, LiftState, UserProfile, ReadinessLog, LiftAdjustment,
+  FavoriteWorkout, PainSorenessEntry, Estimated1RM, LiftState, UserProfile, ReadinessLog, LiftAdjustment,
   HealthDailyLog
 } from '@/types';
 
@@ -20,6 +20,8 @@ export class RecompDatabase extends Dexie {
   painEntries!: Table<PainSorenessEntry>;
   readinessLogs!: Table<ReadinessLog>;
   userProfile!: Table<UserProfile>;
+  // Saved workouts. Not part of the log: nothing is rebuilt from them.
+  favoriteWorkouts!: Table<FavoriteWorkout>;
   /** Daily values imported from Apple Health; display only. */
   healthDaily!: Table<HealthDailyLog>;
   // Projections of the log: written only by applyRebuild (src/lib/data/derived.ts).
@@ -41,6 +43,10 @@ export class RecompDatabase extends Dexie {
       liftAdjustments: 'id, clientId, exerciseId, at',
       liftStates: 'exerciseId',
       estimated1RMs: 'id, exerciseId, date, workoutSessionId',
+    });
+    // 13 Nov 2026: favourite workouts. Only the new table is declared.
+    this.version(2).stores({
+      favoriteWorkouts: 'id, clientId',
     });
   }
 }

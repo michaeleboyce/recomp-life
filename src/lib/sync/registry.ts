@@ -40,6 +40,8 @@ export const SYNC_REGISTRY: readonly SyncTableDef[] = [
       preWorkoutPainEntries: "pre_workout_pain_entries",
       endedEarly: "ended_early",
       completionContext: "completion_context",
+      planEdits: "plan_edits",
+      favoriteId: "favorite_id",
     },
     jsonFields: [
       "selectedAccessories",
@@ -48,6 +50,7 @@ export const SYNC_REGISTRY: readonly SyncTableDef[] = [
       "modifications",
       "prescribed",
       "completionContext",
+      "planEdits",
       "health",
     ],
   },
@@ -125,6 +128,20 @@ export const SYNC_REGISTRY: readonly SyncTableDef[] = [
       proteinG: "protein_g",
     },
     jsonFields: [],
+  },
+  {
+    name: "favoriteWorkouts",
+    pgName: "favorite_workouts",
+    columns: {
+      ...STAMPS,
+      templateId: "template_id",
+      includeWarmUps: "include_warm_ups",
+      selectedAccessories: "selected_accessories",
+      sourceSessionId: "source_session_id",
+      createdAt: "created_at",
+      lastUsedAt: "last_used_at",
+    },
+    jsonFields: ["selectedAccessories", "substitutes", "edits", "snapshot"],
   },
   {
     name: "userProfile",

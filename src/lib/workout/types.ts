@@ -2,6 +2,7 @@
 import type {
   EquipmentProfile,
   LiftState,
+  PlanEdit,
   SetLog,
   Tier,
   UserSettings,
@@ -45,6 +46,12 @@ export interface BuildPlanInput {
    * alternative for that exercise.
    */
   overrides?: Record<string, string>;
+  /**
+   * Changes the user made to the day (swap, remove, add, sets and reps, weight),
+   * applied in order after everything above. Absent or empty: the plan is exactly
+   * the program's.
+   */
+  edits?: PlanEdit[];
 }
 
 export interface RehydratedPlan {

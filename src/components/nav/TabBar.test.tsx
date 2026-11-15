@@ -8,6 +8,7 @@ vi.mock("@/hooks", () => ({
   useNextWorkout: () => undefined,
   useBodyweightLog: () => undefined,
   useRuns: () => undefined,
+  useFavoriteWorkouts: () => undefined,
 }));
 
 import { TabBar, activeTab } from "./TabBar";
@@ -60,6 +61,7 @@ describe("TabBar", () => {
     ["/more", "More"],
     ["/settings", "More"],
     ["/exercises", "More"],
+    ["/favorites", "More"],
     ["/research", "More"],
     ["/1rm-calculator", "More"],
     ["/plate-calculator", "More"],

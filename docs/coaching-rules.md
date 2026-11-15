@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-26 active rules, 4 planned rules, 32 sources. Last reviewed against the research: November 2026.
+27 active rules, 4 planned rules, 32 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -28,6 +28,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `gzclp-progression` | Program and progression | Active | Program rule | none |
 | `t3-progression` | Program and progression | Active | Program rule | Robinson 2024, Halperin 2022 |
 | `accessory-progression` | Program and progression | Planned | Moderate evidence | Robinson 2024 |
+| `off-program-credit` | Program and progression | Active | Coaching heuristic | none |
 | `amrap-effort` | Effort and estimates | Active | Moderate evidence | Robinson 2024, ACSM 2026, Morán-Navarro 2017 |
 | `rpe-logging` | Effort and estimates | Active | Moderate evidence | Halperin 2022 |
 | `t2-autoregulation` | Effort and estimates | Active | Moderate evidence | Zhang 2021, Halperin 2022 |
@@ -139,6 +140,25 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Sources**
 
 - [Robinson et al. (2024). Exploring the Dose–Response Relationship Between Estimated Resistance Training Proximity to Failure, Strength Gain, and Muscle Hypertrophy: A Series of Meta-Regressions. *Sports Medicine*.](https://doi.org/10.1007/s40279-024-02069-2) Meta-analysis; Meta-regressions of resistance training studies. Strength gains were similar whether sets stopped far from failure or close to it. Muscle growth increased as sets ended closer to failure.
+
+### Does a changed workout still count toward progression?
+
+- **Rule id:** `off-program-credit`
+- **Status:** Active
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/workout/credit.ts` (`classifyEntry`), `src/lib/workout/credit.ts` (`foldRotation`), `src/lib/workout/completeWorkout.ts` (`computeCompletion`), `src/lib/workout/buildPlan.ts` (`describeNextWorkout`)
+- **Shown in:** `src/components/PreWorkout/EditWorkoutSheet.tsx`
+- **Reviewed:** November 2026
+
+**In one line.** A lift done as prescribed progresses; a changed one is only logged
+
+**What the app does.** When a workout has been changed, each lift is judged on its own. A program lift done at its prescribed sets and reps and at 100% of its prescribed weight or more is evaluated as usual (pass, fail or stage change), whichever day you did it on. A lift done heavier than prescribed in every set counts too, and a pass builds the next weight from the heavier one; missing reps at a heavier weight changes nothing. A lift done lighter or at a different scheme, and any exercise you swapped in or added, is logged and counts toward muscle load and history but leaves the program's weights alone: neither a pass nor a fail. A home equipment substitute still counts as the program lift. The rotation only moves on when the workout was the one that was due and its heavy (T1) lift was done as prescribed. Before you start, the edit sheet on the Configure screen shows which of these applies to each lift you change.
+
+**Why.** GZCLP's pass and fail rules assume the prescribed sets, reps and weight. Applying them to a lighter or different session would raise the weight after work that did not test it, or count a deliberate easy day as a failure. Judging each lift separately lets a changed workout keep the progress it earned without distorting the rest.
+
+**Limits.** This is a convention of this app, not part of GZCLP and not a research finding.
+
+**Sources.** None: this is a coaching convention with no direct research.
 
 ## Effort and estimates
 
@@ -751,6 +771,8 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **14 November 2026** — `off-program-credit` (Does a changed workout still count toward progression?): A lift done heavier than prescribed in every set now progresses from the heavier weight instead of the prescribed one. Missing reps at a heavier weight is not counted as a failure. Sources: .
+- **12 November 2026** — `off-program-credit` (Does a changed workout still count toward progression?): You can now change a workout before starting it. Each lift you change says whether it still counts toward progression or is only logged, and a lift you skip keeps its weight. Sources: .
 - **12 November 2026** — `t3-progression` (When does T3 weight go up?): The T3 rule is now shown: each workout's page says whether its T3 lift went up (and why) or stays at the same weight, as of that workout. The rule itself is unchanged. Sources: .
 - **12 November 2026** — `gzclp-progression` (Why does the weight go up, change stage or reset?): Logged sessions can now be edited or deleted. Doing so re-runs progression from the log, so the next workout follows the corrected history; sessions logged later are kept as they were lifted. Sources: .
 - **12 November 2026** — `fatigue-detection` (How does the app spot built-up fatigue?): Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or AMRAP reps), and an easier week is offered as optional. Sources: .

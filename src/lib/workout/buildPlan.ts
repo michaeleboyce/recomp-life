@@ -1,7 +1,6 @@
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { DEFAULT_ACCESSORY_WEIGHTS, EXERCISES, getExercise } from "@/lib/exercises";
 import { generateWarmUpSets } from "@/lib/warmups";
-import { getNextWorkoutId } from "@/lib/workoutTemplates";
 import type {
   LiftState,
   Tier,
@@ -9,6 +8,8 @@ import type {
   WorkoutSession,
   WorkoutTemplate,
 } from "@/types";
+import { foldRotation, type RotationSession } from "./credit";
+import { applyPlanEdits } from "./planEdits";
 import { getPrescription } from "./prescription";
 import type { BuildPlanInput, NextWorkoutDescription, WorkoutPlan } from "./types";
 
@@ -22,6 +23,12 @@ export const WARM_UP_TIERS: readonly Tier[] = ["T1"];
  *
  * At home, gym-only exercises are adapted with `adaptExerciseForHome`; an entry in
  * `overrides` selects one of that adaptation's alternatives instead of the default.
+ *
+ * `edits` are then applied in order (see `applyPlanEdits`). A `swap` edit and an
+ * `overrides` entry are different things: an override is the program lift on other
+ * equipment and still credits that lift, a swap is a different exercise and is only
+ * logged. When both name the same exercise the swap wins, and a swapped-in exercise
+ * is never adapted for home.
  */
 export function buildWorkoutPlan(input: BuildPlanInput): WorkoutPlan {
   const { template, liftStates, location, equipment, includeWarmUps, selectedAccessories } = input;
@@ -108,7 +115,7 @@ export function buildWorkoutPlan(input: BuildPlanInput): WorkoutPlan {
     });
   }
 
-  return plan;
+  return input.edits?.length ? applyPlanEdits(plan, input.edits) : plan;
 }
 
 // `WorkoutModification` has no field for the substitute's id, so it travels in the
@@ -156,23 +163,21 @@ export function overridesFromSession(
 
 /**
  * Which template comes next in the A1 -> B1 -> A2 -> B2 rotation given completed
- * workouts (any order), and its plan. Unfinished workouts do not advance the rotation.
+ * workouts (any order), and its plan. Unfinished workouts do not advance the rotation,
+ * and neither do sessions `foldRotation` finds did not count (a day pulled out of
+ * order, or one whose T1 lift was not done as prescribed).
+ *
+ * @evidence off-program-credit
  */
 export function describeNextWorkout(input: {
-  completedWorkouts: Pick<WorkoutSession, "templateId" | "startedAt" | "completedAt">[];
+  completedWorkouts: RotationSession[];
   templates: Record<string, WorkoutTemplate>;
   liftStates: LiftState[];
   plan: Omit<BuildPlanInput, "template" | "liftStates">;
 }): NextWorkoutDescription {
   const { completedWorkouts, templates, liftStates, plan } = input;
 
-  let last: (typeof completedWorkouts)[number] | undefined;
-  for (const workout of completedWorkouts) {
-    if (workout.completedAt == null) continue;
-    if (!last || timeOf(workout.startedAt) > timeOf(last.startedAt)) last = workout;
-  }
-
-  const templateId = last ? getNextWorkoutId(last.templateId) : "A1";
+  const templateId = foldRotation(completedWorkouts).dueTemplateId;
   const template = templates[templateId];
   if (!template) {
     throw new Error(`Workout template not found: ${templateId}`);
@@ -183,8 +188,4 @@ export function describeNextWorkout(input: {
     template,
     plan: buildWorkoutPlan({ ...plan, template, liftStates }),
   };
-}
-
-function timeOf(date: Date): number {
-  return new Date(date).getTime();
 }

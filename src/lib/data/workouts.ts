@@ -10,6 +10,7 @@ import { getPrescription } from "@/lib/workout/prescription";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
   LiftState,
+  PlanEdit,
   PrescribedEntry,
   SetLog,
   SleepHours,
@@ -35,6 +36,10 @@ export interface StartWorkoutInput {
    * current lift states.
    */
   prescribed?: PrescribedEntry[];
+  /** Changes the user made to the day before starting (swap, remove, add, scheme, weight). */
+  planEdits?: PlanEdit[];
+  /** The favourite the workout was started from; its "last used" time is updated. */
+  favoriteId?: string;
 }
 
 /** What a finished workout records besides its sets. */
@@ -73,7 +78,8 @@ export function prescribedFor(templateId: string, liftStates: LiftState[]): Pres
 export async function startWorkout(input: StartWorkoutInput): Promise<string> {
   const sessionId = uuidv4();
 
-  await db.transaction("rw", db.workouts, db.readinessLogs, db.liftStates, async () => {
+  const tables = [db.workouts, db.readinessLogs, db.liftStates, db.favoriteWorkouts];
+  await db.transaction("rw", tables, async () => {
     const prescribed =
       input.prescribed ?? prescribedFor(input.templateId, await db.liftStates.toArray());
     const session: WorkoutSession = {
@@ -90,9 +96,21 @@ export async function startWorkout(input: StartWorkoutInput): Promise<string> {
       preWorkoutPainEntries: [],
       modifications: input.modifications ?? [],
       prescribed,
+      ...(input.planEdits?.length ? { planEdits: input.planEdits } : {}),
+      ...(input.favoriteId ? { favoriteId: input.favoriteId } : {}),
       ...newRowStamps(),
     };
     await db.workouts.add(session);
+
+    const favorite = input.favoriteId
+      ? await db.favoriteWorkouts.get(input.favoriteId)
+      : undefined;
+    if (favorite) {
+      await db.favoriteWorkouts.update(favorite.id, {
+        lastUsedAt: session.startedAt,
+        ...editStamps(favorite),
+      });
+    }
 
     const readiness = input.readiness;
     if (readiness?.sleepHours && readiness.stressLevel) {

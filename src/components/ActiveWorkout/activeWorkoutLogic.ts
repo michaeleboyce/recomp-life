@@ -2,6 +2,7 @@
 import { evaluateT2AutoRegulation } from "@/lib/progression";
 import { anchorToPrescription, applyChange, emptyLiftState, type LogChange } from "@/lib/rebuild";
 import { buildWorkoutPlan, overridesFromSession } from "@/lib/workout/buildPlan";
+import { applyPlanEdits } from "@/lib/workout/planEdits";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
 import type {
@@ -94,6 +95,7 @@ export function isDropAccepted(entry: WorkoutExerciseState, sets: SetLog[]): boo
  * editing an earlier session or adjusting a weight mid-workout cannot change what is
  * on the bar. Home substitution, warm-ups and accessories are built as always. A
  * session without a stored prescription is planned from the current lift states.
+ * The session's `planEdits` (changes made before starting) are applied last.
  */
 export function planForSession(input: {
   session: WorkoutSession;
@@ -123,15 +125,18 @@ export function planForSession(input: {
     selectedAccessories: session.selectedAccessories ?? [],
     overrides: overridesFromSession(session),
   });
-  if (!prescribed) return plan;
+  const programPlan = prescribed
+    ? plan.map((entry) => {
+        if (entry.isWarmUp) return entry;
+        const stored = prescribed.find(
+          (p) => p.exerciseId === entry.exerciseId && p.tier === entry.tier
+        );
+        return stored ? { ...entry, targetSets: stored.sets, targetReps: stored.reps } : entry;
+      })
+    : plan;
 
-  return plan.map((entry) => {
-    if (entry.isWarmUp) return entry;
-    const stored = prescribed.find(
-      (p) => p.exerciseId === entry.exerciseId && p.tier === entry.tier
-    );
-    return stored ? { ...entry, targetSets: stored.sets, targetReps: stored.reps } : entry;
-  });
+  // The user's own changes come last, on top of what the program prescribed.
+  return session.planEdits?.length ? applyPlanEdits(programPlan, session.planEdits) : programPlan;
 }
 
 /**

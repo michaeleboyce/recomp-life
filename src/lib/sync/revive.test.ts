@@ -37,6 +37,25 @@ describe("toLocalRow", () => {
     expect(row.synced).toBe(true);
   });
 
+  it("drops the null optionals of edited workouts and favourites", () => {
+    const workout = toLocalRow({ id: "w1", updatedAt: 5, planEdits: null, favoriteId: null });
+    expect("planEdits" in workout).toBe(false);
+    expect("favoriteId" in workout).toBe(false);
+
+    const favorite = toLocalRow({
+      id: "f1",
+      updatedAt: 5,
+      createdAt: "2026-11-13T09:00:00.000Z",
+      lastUsedAt: null,
+      sourceSessionId: null,
+      edits: [],
+    });
+    expect(favorite.createdAt).toBeInstanceOf(Date);
+    expect("lastUsedAt" in favorite).toBe(false);
+    expect("sourceSessionId" in favorite).toBe(false);
+    expect(favorite.edits).toEqual([]);
+  });
+
   it("leaves ordinary strings alone", () => {
     expect(reviveDates({ templateId: "A1", note: "2026" })).toEqual({ templateId: "A1", note: "2026" });
   });

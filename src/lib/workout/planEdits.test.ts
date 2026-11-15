@@ -1,0 +1,239 @@
+import { describe, it, expect } from "vitest";
+import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
+import type { PlanEdit } from "@/types";
+import { buildWorkoutPlan } from "./buildPlan";
+import {
+  applyPlanEdits,
+  pinSnapshot,
+  prescribedFor,
+  snapshotOfPlan,
+  snapshotOfSets,
+  structuralEdits,
+} from "./planEdits";
+import { EQUIPMENT, makeSets, seedLiftStates } from "./testFixtures";
+import type { WorkoutPlan } from "./types";
+
+function plan(overrides: { location?: "gym" | "home"; includeWarmUps?: boolean } = {}): WorkoutPlan {
+  return buildWorkoutPlan({
+    template: WORKOUT_TEMPLATES.A1,
+    liftStates: seedLiftStates(),
+    location: overrides.location ?? "gym",
+    equipment: EQUIPMENT,
+    includeWarmUps: overrides.includeWarmUps ?? false,
+    selectedAccessories: ["face_pulls"],
+  });
+}
+
+const working = (p: WorkoutPlan) => p.filter((e) => !e.isWarmUp);
+const ids = (p: WorkoutPlan) => working(p).map((e) => e.exerciseId);
+
+describe("applyPlanEdits", () => {
+  it("returns an equal plan, and never the same objects, when there are no edits", () => {
+    const base = plan({ includeWarmUps: true });
+    const result = applyPlanEdits(base, undefined);
+    expect(result).toEqual(base);
+    expect(result).not.toBe(base);
+    expect(result[0]).not.toBe(base[0]);
+    expect(applyPlanEdits(base, [])).toEqual(base);
+  });
+
+  it("swaps an exercise in place, keeping the slot's tier and scheme", () => {
+    const base = plan();
+    const result = applyPlanEdits(base, [
+      { kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "incline_db_press" },
+    ]);
+    expect(ids(result)).toEqual(["squat", "incline_db_press", "lat_pulldown", "face_pulls"]);
+    const swapped = result[1];
+    const original = base[1];
+    expect(swapped.tier).toBe("T2");
+    expect(swapped.targetSets).toBe(original.targetSets);
+    expect(swapped.targetReps).toBe(original.targetReps);
+    expect(swapped.substituteExerciseId).toBeUndefined();
+    expect(swapped.originalWeight).toBeUndefined();
+  });
+
+  it("drops the warm-ups generated for a swapped or removed T1 lift", () => {
+    const base = plan({ includeWarmUps: true });
+    expect(base.some((e) => e.isWarmUp)).toBe(true);
+
+    const swapped = applyPlanEdits(base, [
+      { kind: "swap", exerciseId: "squat", tier: "T1", replacementId: "pendulum_squat" },
+    ]);
+    expect(swapped.some((e) => e.isWarmUp)).toBe(false);
+    expect(ids(swapped)[0]).toBe("pendulum_squat");
+
+    const removed = applyPlanEdits(base, [{ kind: "remove", exerciseId: "squat", tier: "T1" }]);
+    expect(removed.some((e) => e.isWarmUp)).toBe(false);
+    expect(ids(removed)).toEqual(["bench", "lat_pulldown", "face_pulls"]);
+  });
+
+  it("drops a home substitute when the exercise is swapped", () => {
+    const base = plan({ location: "home" });
+    const bench = base.find((e) => e.exerciseId === "bench")!;
+    expect(bench.substituteExerciseId).toBeDefined();
+
+    const result = applyPlanEdits(base, [
+      { kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "db_floor_press" },
+    ]);
+    const swapped = result.find((e) => e.exerciseId === "db_floor_press")!;
+    expect(swapped.substituteExerciseId).toBeUndefined();
+    expect(swapped.originalWeight).toBeUndefined();
+  });
+
+  it("adds an accessory entry and replaces one of the same exercise", () => {
+    const result = applyPlanEdits(plan(), [
+      { kind: "add", exerciseId: "bicep_curls", sets: 3, reps: 12, weight: 20, isAMRAP: false },
+      { kind: "add", exerciseId: "face_pulls", sets: 2, reps: 20, weight: 30, isAMRAP: true },
+    ]);
+    expect(ids(result)).toEqual(["squat", "bench", "lat_pulldown", "bicep_curls", "face_pulls"]);
+    expect(result.find((e) => e.exerciseId === "bicep_curls")).toMatchObject({
+      tier: "accessory",
+      targetSets: 3,
+      targetReps: 12,
+      weight: 20,
+      isAMRAP: false,
+      completedSets: 0,
+    });
+    expect(result.find((e) => e.exerciseId === "face_pulls")).toMatchObject({
+      targetSets: 2,
+      targetReps: 20,
+      weight: 30,
+    });
+  });
+
+  it("changes sets and reps, and weight", () => {
+    const result = applyPlanEdits(plan(), [
+      { kind: "scheme", exerciseId: "squat", tier: "T1", sets: 4, reps: 8 },
+      { kind: "weight", exerciseId: "squat", tier: "T1", weight: 150 },
+    ]);
+    expect(result[0]).toMatchObject({ targetSets: 4, targetReps: 8, weight: 150 });
+  });
+
+  it("scales the program weight a home substitute stands for when its weight changes", () => {
+    const base = plan({ location: "home" });
+    const bench = base.find((e) => e.exerciseId === "bench")!;
+    const lighter = applyPlanEdits(base, [
+      { kind: "weight", exerciseId: "bench", tier: "T2", weight: bench.weight / 2 },
+    ]).find((e) => e.exerciseId === "bench")!;
+    expect(lighter.weight).toBe(bench.weight / 2);
+    expect(lighter.originalWeight).toBe(Math.round(bench.originalWeight! / 2));
+
+    const same = applyPlanEdits(base, [
+      { kind: "weight", exerciseId: "bench", tier: "T2", weight: bench.weight },
+    ]).find((e) => e.exerciseId === "bench")!;
+    expect(same.originalWeight).toBe(bench.originalWeight);
+  });
+
+  it("applies edits in order, so an edit after a swap names the replacement", () => {
+    const result = applyPlanEdits(plan(), [
+      { kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "incline_db_press" },
+      { kind: "weight", exerciseId: "incline_db_press", tier: "T2", weight: 45 },
+    ]);
+    expect(result[1]).toMatchObject({ exerciseId: "incline_db_press", weight: 45 });
+  });
+
+  it("ignores edits that name a missing entry or an unknown exercise", () => {
+    const base = plan();
+    const edits: PlanEdit[] = [
+      { kind: "swap", exerciseId: "deadlift", tier: "T1", replacementId: "db_rdl" },
+      { kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "not_an_exercise" },
+      { kind: "remove", exerciseId: "bench", tier: "T1" },
+      { kind: "add", exerciseId: "not_an_exercise", sets: 3, reps: 10, weight: 5, isAMRAP: false },
+      { kind: "scheme", exerciseId: "ohp", tier: "T2", sets: 1, reps: 1 },
+      { kind: "weight", exerciseId: "ohp", tier: "T2", weight: 1 },
+    ];
+    expect(applyPlanEdits(base, edits)).toEqual(base);
+  });
+});
+
+describe("prescribedFor", () => {
+  it("lists the program's T1, T2 and T3 lifts with weight, scheme and stage", () => {
+    expect(prescribedFor(WORKOUT_TEMPLATES.A1, seedLiftStates())).toEqual([
+      { exerciseId: "squat", tier: "T1", weight: 190, sets: 5, reps: 3, stage: "5x3" },
+      { exerciseId: "bench", tier: "T2", weight: 100, sets: 3, reps: 10, stage: "3x10" },
+      { exerciseId: "lat_pulldown", tier: "T3", weight: expect.any(Number), sets: 3, reps: 15 },
+    ]);
+  });
+
+  it("follows the lift state's stage", () => {
+    const states = seedLiftStates().map((ls) =>
+      ls.exerciseId === "squat" ? { ...ls, t1Stage: "6x2" as const, t1Weight: 200 } : ls
+    );
+    expect(prescribedFor(WORKOUT_TEMPLATES.A1, states)[0]).toEqual({
+      exerciseId: "squat",
+      tier: "T1",
+      weight: 200,
+      sets: 6,
+      reps: 2,
+      stage: "6x2",
+    });
+  });
+});
+
+describe("structuralEdits", () => {
+  it("keeps swaps, removals and additions only", () => {
+    const edits: PlanEdit[] = [
+      { kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "incline_db_press" },
+      { kind: "weight", exerciseId: "squat", tier: "T1", weight: 150 },
+      { kind: "remove", exerciseId: "lat_pulldown", tier: "T3" },
+      { kind: "scheme", exerciseId: "squat", tier: "T1", sets: 4, reps: 8 },
+      { kind: "add", exerciseId: "bicep_curls", sets: 3, reps: 12, weight: 20, isAMRAP: false },
+    ];
+    expect(structuralEdits(edits).map((e) => e.kind)).toEqual(["swap", "remove", "add"]);
+    expect(structuralEdits(undefined)).toEqual([]);
+  });
+});
+
+describe("snapshots", () => {
+  it("snapshotOfPlan copies working entries and leaves warm-ups out", () => {
+    const snapshot = snapshotOfPlan(plan({ includeWarmUps: true }));
+    expect(snapshot.map((e) => e.exerciseId)).toEqual([
+      "squat",
+      "bench",
+      "lat_pulldown",
+      "face_pulls",
+    ]);
+    expect(snapshot[0]).toEqual({
+      exerciseId: "squat",
+      tier: "T1",
+      sets: 5,
+      reps: 3,
+      weight: 190,
+      isAMRAP: true,
+    });
+  });
+
+  it("snapshotOfSets groups logged sets by exercise and tier, without warm-ups", () => {
+    const sets = [
+      ...makeSets("squat", "warmup", 2, 5, { weight: 95 }),
+      ...makeSets("squat", "T1", 4, 3, { weight: 190 }),
+      ...makeSets("squat", "T1", 1, 3, { weight: 190, isAMRAP: true, actualReps: 6 }),
+      ...makeSets("bench", "T2", 3, 10, { weight: 100 }),
+    ];
+    expect(snapshotOfSets(sets)).toEqual([
+      { exerciseId: "squat", tier: "T1", sets: 5, reps: 3, weight: 190, isAMRAP: true },
+      { exerciseId: "bench", tier: "T2", sets: 3, reps: 10, weight: 100, isAMRAP: false },
+    ]);
+  });
+
+  it("pinSnapshot reproduces a saved plan after lift states have moved on", () => {
+    const edits: PlanEdit[] = [
+      { kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "incline_db_press" },
+      { kind: "weight", exerciseId: "incline_db_press", tier: "T2", weight: 45 },
+      { kind: "scheme", exerciseId: "squat", tier: "T1", sets: 4, reps: 8 },
+    ];
+    const saved = applyPlanEdits(plan(), edits);
+    const snapshot = snapshotOfPlan(saved);
+
+    const later = buildWorkoutPlan({
+      template: WORKOUT_TEMPLATES.A1,
+      liftStates: seedLiftStates().map((ls) => ({ ...ls, t1Weight: ls.t1Weight + 10 })),
+      location: "gym",
+      equipment: EQUIPMENT,
+      includeWarmUps: false,
+      selectedAccessories: ["face_pulls"],
+    });
+    const replayed = applyPlanEdits(later, pinSnapshot(edits, snapshot));
+    expect(snapshotOfPlan(replayed)).toEqual(snapshot);
+  });
+});

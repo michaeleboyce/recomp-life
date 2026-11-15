@@ -8,6 +8,7 @@ import { reviveDates } from "@/lib/sync/revive";
 import type {
   ActivityLog,
   BodyweightLog,
+  FavoriteWorkout,
   HealthDailyLog,
   LiftAdjustment,
   PainSorenessEntry,
@@ -30,6 +31,8 @@ export interface BackupTables {
   userProfile: UserProfile[];
   /** Daily values imported from Apple Health. Absent from backups made before it existed. */
   healthDaily: HealthDailyLog[];
+  /** Saved workouts. Absent from backups made before favourites existed. */
+  favoriteWorkouts: FavoriteWorkout[];
 }
 
 export interface BackupV2 {
@@ -50,10 +53,11 @@ const TABLE_NAMES = [
   "readinessLogs",
   "userProfile",
   "healthDaily",
+  "favoriteWorkouts",
 ] as const satisfies readonly (keyof BackupTables)[];
 
 /** Tables a version 2 file may lack because they were added after the format was set. */
-const OPTIONAL_TABLES: ReadonlySet<string> = new Set(["healthDaily"]);
+const OPTIONAL_TABLES: ReadonlySet<string> = new Set(["healthDaily", "favoriteWorkouts"]);
 
 function logTables(): Table[] {
   return TABLE_NAMES.map((name) => db[name] as Table);

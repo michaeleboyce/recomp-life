@@ -39,6 +39,24 @@ export const workouts = pgTable('workouts', {
   prescribed: jsonb('prescribed'),
   completionContext: jsonb('completion_context'),
   health: jsonb('health'),
+  planEdits: jsonb('plan_edits'),
+  favoriteId: text('favorite_id'),
+});
+
+// Favourite workouts: a saved day with the user's choices, edits and a frozen plan
+export const favoriteWorkouts = pgTable('favorite_workouts', {
+  ...syncColumns(),
+  name: text('name').notNull(),
+  templateId: text('template_id').notNull(),
+  location: text('location').notNull(),
+  includeWarmUps: boolean('include_warm_ups').notNull(),
+  selectedAccessories: jsonb('selected_accessories').notNull(),
+  substitutes: jsonb('substitutes').notNull(),
+  edits: jsonb('edits').notNull(),
+  snapshot: jsonb('snapshot').notNull(),
+  sourceSessionId: text('source_session_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
 });
 
 // Lift adjustments: dated, append-only changes to a lift made outside a workout

@@ -4,10 +4,12 @@ import type {
   ActivityLog,
   BodyweightLog,
   Estimated1RM,
+  FavoriteWorkout,
   LiftAdjustment,
   PainSorenessEntry,
   RunLog,
 } from "@/types";
+import { listFavorites } from "@/lib/favorites";
 import { liveRows } from "./liveRows";
 
 /**
@@ -51,6 +53,11 @@ export function useE1RMs(exerciseId?: string): Estimated1RM[] | undefined {
 /** Runs, newest first. */
 export function useRuns(): RunLog[] | undefined {
   return useLiveQuery(async () => byDate(liveRows(await db.runs.toArray()), "newest"), []);
+}
+
+/** Saved workouts that have not been deleted, most recently used (or created) first. */
+export function useFavoriteWorkouts(): FavoriteWorkout[] | undefined {
+  return useLiveQuery(async () => listFavorites(await db.favoriteWorkouts.toArray()), []);
 }
 
 /** Non-running activities (yoga, cycling, hiking...), newest first. */

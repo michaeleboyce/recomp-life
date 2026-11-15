@@ -10,6 +10,7 @@ import {
   FlaskConical,
   PersonStanding,
   Settings,
+  Star,
   Trash2,
 } from "lucide-react";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
@@ -17,7 +18,7 @@ import { MoreGroup, MoreRow } from "@/components/More/MoreGroup";
 import { TrainingLocationRow } from "@/components/More/TrainingLocationRow";
 import { useHasSyncKey } from "@/components/More/useHasSyncKey";
 import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
-import { useNextWorkout, useSettings } from "@/hooks";
+import { useFavoriteWorkouts, useNextWorkout, useSettings } from "@/hooks";
 import packageJson from "../../../package.json";
 
 const PHASE_LABEL = { cutting: "Cutting", maintaining: "Maintaining", bulking: "Bulking" } as const;
@@ -25,6 +26,7 @@ const PHASE_LABEL = { cutting: "Cutting", maintaining: "Maintaining", bulking: "
 export default function MorePage() {
   const next = useNextWorkout();
   const settings = useSettings();
+  const favorites = useFavoriteWorkouts();
   const hasSyncKey = useHasSyncKey();
   const phase = settings?.trainingPhase.mode;
 
@@ -38,6 +40,18 @@ export default function MorePage() {
           title="Upcoming workouts"
           subtitle={next ? `Next: ${templateTitle(next.templateId)}` : "The next workouts in your rotation"}
           href="/progress/upcoming"
+        />
+        <MoreRow
+          icon={Star}
+          title="Favourites"
+          subtitle={
+            favorites === undefined
+              ? "Saved workouts you can start again"
+              : favorites.length === 0
+                ? "None saved yet"
+                : `${favorites.length} saved workout${favorites.length === 1 ? "" : "s"}`
+          }
+          href="/favorites"
         />
         <MoreRow
           icon={Dumbbell}

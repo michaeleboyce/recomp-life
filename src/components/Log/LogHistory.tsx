@@ -9,7 +9,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { EntryEditSheet, type EditableEntry } from "@/components/LogEdit";
-import { useActivities, useBodyweightLog, useCompletedWorkouts, useE1RMs, useRuns } from "@/hooks";
+import {
+  useActivities,
+  useBodyweightLog,
+  useCompletedWorkouts,
+  useE1RMs,
+  useFavoriteWorkouts,
+  useRuns,
+} from "@/hooks";
 import { CalendarStrip } from "./CalendarStrip";
 import { LogEntryRow } from "./LogEntryRow";
 import {
@@ -37,6 +44,7 @@ function editable(entry: LogEntry): EditableEntry | null {
 export function LogHistory({ now: fixedNow }: { now?: Date }) {
   const [now] = useState(() => fixedNow ?? new Date());
   const workouts = useCompletedWorkouts();
+  const favorites = useFavoriteWorkouts();
   const runs = useRuns();
   const activities = useActivities();
   const weighIns = useBodyweightLog();
@@ -130,6 +138,7 @@ export function LogHistory({ now: fixedNow }: { now?: Date }) {
                   key={`${entry.kind}:${entry.id}`}
                   entry={entry}
                   hasPR={entry.kind === "workout" && prSessions.has(entry.id)}
+                  favorites={favorites}
                   onOpen={(e) => setEditing(editable(e))}
                 />
               ))}
