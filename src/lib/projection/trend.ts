@@ -23,6 +23,15 @@ export interface TrendFit {
   timeSumSquares: number;
   /** Weeks from the earliest point to the latest. */
   spanWeeks: number;
+  /** Mean time of the fitted points, epoch milliseconds: where the line is best known. */
+  meanTime: number;
+  /**
+   * Standard deviation of one new result at `at` around the line, given a scatter of
+   * `sd` per result (default: `residualSd`): sd x sqrt(1 + 1/n + d^2 / timeSumSquares),
+   * with d the weeks between `at` and `meanTime`. It adds the uncertainty of the
+   * fitted level and slope to the scatter itself, so it grows away from the data.
+   */
+  predictionSd(at: number, sd?: number): number;
 }
 
 /**
@@ -62,6 +71,10 @@ export function fitTrend(points: Point[]): TrendFit | null {
 
   const residualSd = Math.sqrt(ssr / (n - 2));
   const times = usable.map((p) => p.t);
+  const predictionSd = (at: number, sd: number = residualSd) => {
+    const weeksFromMean = (at - meanT) / MS_PER_WEEK;
+    return sd * Math.sqrt(1 + 1 / n + (weeksFromMean * weeksFromMean) / sxx);
+  };
 
   return {
     slopePerWeek,
@@ -71,5 +84,7 @@ export function fitTrend(points: Point[]): TrendFit | null {
     slopeSe: residualSd / Math.sqrt(sxx),
     timeSumSquares: sxx,
     spanWeeks: (Math.max(...times) - Math.min(...times)) / MS_PER_WEEK,
+    meanTime: meanT,
+    predictionSd,
   };
 }

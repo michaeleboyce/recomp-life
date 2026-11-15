@@ -12,6 +12,8 @@ export interface PrOpportunity {
   e1rmAtRepsNeeded: number;
   bestE1RM: number;
   chance: PrChance;
+  /** The forecast chance of reaching `repsNeeded`, 0 to 1, when the caller supplied one. */
+  probability?: number;
 }
 
 /** How many of the most recent AMRAP sets set the expectation for the next one. */
@@ -22,6 +24,12 @@ export const PR_CHANCE_RECENT_SETS = 5;
  * needing more than that is "unlikely". At or below the median is "likely".
  */
 export const PR_STRETCH_MAX_REPS_ABOVE = 2;
+
+/** A forecast chance at or above this is worded "likely". */
+export const PR_LIKELY_MIN_CHANCE = 0.6;
+
+/** A forecast chance at or above this, and below "likely", is worded "a stretch". */
+export const PR_STRETCH_MIN_CHANCE = 0.2;
 
 function isPositiveFinite(value: number): boolean {
   return Number.isFinite(value) && value > 0;
@@ -73,6 +81,20 @@ export function prChance(repsNeeded: number, recentAMRAPReps: number[]): PrChanc
   return "unlikely";
 }
 
+/**
+ * The wording category for a forecast chance of a new best (0 to 1, from the reps
+ * forecast in src/lib/forecast): "likely" at PR_LIKELY_MIN_CHANCE or more, "stretch"
+ * at PR_STRETCH_MIN_CHANCE or more, else "unlikely". "unknown" without a usable chance.
+ */
+export function prChanceFromProbability(probability: number | null | undefined): PrChance {
+  if (probability === null || probability === undefined || !Number.isFinite(probability)) {
+    return "unknown";
+  }
+  if (probability >= PR_LIKELY_MIN_CHANCE) return "likely";
+  if (probability >= PR_STRETCH_MIN_CHANCE) return "stretch";
+  return "unlikely";
+}
+
 /** Whether a set of this tier and AMRAP flag counts toward e1RM at any rep count. */
 function canCountTowardE1RM(tier: Tier, isAMRAP: boolean): boolean {
   for (let reps = 1; reps <= E1RM_MAX_REPS; reps++) {
@@ -84,6 +106,11 @@ function canCountTowardE1RM(tier: Tier, isAMRAP: boolean): boolean {
 /**
  * The PR opportunity for a set, or null when the set cannot count toward e1RM
  * (see `isE1RMEligibleSet`), when there is no best yet, or when no rep count beats it.
+ *
+ * `probability` is the reps forecast's chance of reaching the reps needed at this
+ * weight (`forecastReps(...).newBest.chance`). When given, the category comes from it
+ * (`prChanceFromProbability`) and it is returned alongside; without it the category
+ * falls back to the recent-median rule of `prChance`.
  */
 export function describePrOpportunity(input: {
   tier: Tier;
@@ -91,15 +118,19 @@ export function describePrOpportunity(input: {
   weight: number;
   bestE1RM: number | null;
   recentAMRAPReps: number[];
+  probability?: number | null;
 }): PrOpportunity | null {
-  const { tier, isAMRAP, weight, bestE1RM, recentAMRAPReps } = input;
+  const { tier, isAMRAP, weight, bestE1RM, recentAMRAPReps, probability } = input;
   if (bestE1RM === null || !canCountTowardE1RM(tier, isAMRAP)) return null;
   const target = repsToBeat(weight, bestE1RM);
   if (!target) return null;
-  return {
+  const opportunity = {
     repsNeeded: target.reps,
     e1rmAtRepsNeeded: target.e1rm,
     bestE1RM,
-    chance: prChance(target.reps, recentAMRAPReps),
   };
+  if (probability !== null && probability !== undefined && Number.isFinite(probability)) {
+    return { ...opportunity, chance: prChanceFromProbability(probability), probability };
+  }
+  return { ...opportunity, chance: prChance(target.reps, recentAMRAPReps) };
 }

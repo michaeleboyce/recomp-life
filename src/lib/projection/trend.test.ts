@@ -76,3 +76,49 @@ describe("fitTrend", () => {
     expect(fitTrend(points)).toBeNull();
   });
 });
+
+describe("fitTrend: how sure the line is away from the data", () => {
+  // Four weekly points: mean time 1.5 weeks in, sum of squares 5 weeks squared.
+  const noisy = line(4, 200, 2).map((p, i) => ({ ...p, v: p.v + [1, -1, -1, 1][i] }));
+  const fit = fitTrend(noisy)!;
+
+  it("reports the mean time of the points", () => {
+    expect(fit.meanTime).toBeCloseTo(T0 + 1.5 * MS_PER_WEEK, 3);
+    expect(fit.timeSumSquares).toBeCloseTo(5, 9);
+  });
+
+  it("gives the scatter of one new result: sd x sqrt(1 + 1/n + d^2 / Sxx)", () => {
+    expect(fit.residualSd).toBeGreaterThan(0);
+    // At the mean time only the level is uncertain.
+    expect(fit.predictionSd(fit.meanTime)).toBeCloseTo(fit.residualSd * Math.sqrt(1 + 1 / 4), 9);
+    // One step past the last point: d = 2.5 weeks.
+    expect(fit.predictionSd(T0 + 4 * MS_PER_WEEK)).toBeCloseTo(
+      fit.residualSd * Math.sqrt(1 + 1 / 4 + 6.25 / 5),
+      9
+    );
+  });
+
+  it("grows the further from the data it is read, the same either side", () => {
+    const near = fit.predictionSd(T0 + 4 * MS_PER_WEEK);
+    const far = fit.predictionSd(T0 + 8 * MS_PER_WEEK);
+    expect(far).toBeGreaterThan(near);
+    expect(fit.predictionSd(fit.meanTime - 3 * MS_PER_WEEK)).toBeCloseTo(
+      fit.predictionSd(fit.meanTime + 3 * MS_PER_WEEK),
+      9
+    );
+  });
+
+  it("takes a scatter to use in place of the residual one", () => {
+    expect(fit.predictionSd(fit.meanTime, 10)).toBeCloseTo(10 * Math.sqrt(1.25), 9);
+    const exact = fitTrend(line(4, 200, 2))!;
+    expect(exact.predictionSd(T0 + 4 * MS_PER_WEEK)).toBeCloseTo(0, 9);
+    expect(exact.predictionSd(T0 + 4 * MS_PER_WEEK, 6)).toBeGreaterThan(6);
+  });
+
+  it("is tighter with more points over a longer stretch", () => {
+    const long = fitTrend(line(12, 200, 2))!;
+    const short = fitTrend(line(4, 200, 2))!;
+    const oneStepOn = (f: typeof long, n: number) => f.predictionSd(T0 + n * MS_PER_WEEK, 5);
+    expect(oneStepOn(long, 12)).toBeLessThan(oneStepOn(short, 4));
+  });
+});
