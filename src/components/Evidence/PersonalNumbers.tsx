@@ -106,10 +106,10 @@ export function PersonalNumbers({ evidence }: { evidence: PersonalEvidence }) {
             <Stat value={result.referenceMean} group={reference} unit={unit} />
           </div>
           <p className="text-sm text-foreground">
-            Gap <span className="font-mono tabular-nums">{formatSignedReps(result.difference)}</span>{" "}
+            Gap <span className="font-semibold tabular-nums">{formatSignedReps(result.difference)}</span>{" "}
             reps, with a rough {Math.round(result.level * 100)}% range of{" "}
-            <span className="font-mono tabular-nums">{formatSignedReps(result.low)}</span> to{" "}
-            <span className="font-mono tabular-nums">{formatSignedReps(result.high)}</span>.
+            <span className="font-semibold tabular-nums">{formatSignedReps(result.low)}</span> to{" "}
+            <span className="font-semibold tabular-nums">{formatSignedReps(result.high)}</span>.
           </p>
           <div className="flex flex-col gap-0.5">
             <p className="text-sm font-semibold text-foreground" data-verdict={result.verdict}>
