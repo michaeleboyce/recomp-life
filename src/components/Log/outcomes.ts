@@ -1,7 +1,7 @@
 // What one finished session did to each of its program lifts, read from the lift states
 // the rebuild recorded as of that session. Pure: no React, no database.
 import { formatLbs } from "@/components/LogEdit/format";
-import { hasFreezeStatus, T3_LAST_SET_INCREASE_REPS, T3_TOTAL_INCREASE_REPS } from "@/lib/progression";
+import { hasFreezeStatus, T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
 import { T1_STAGE_SCHEME, T2_STAGE_SCHEME } from "@/lib/workout/prescription";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
@@ -107,12 +107,7 @@ export function describeOutcomes(
 
     if (tier === "T3") {
       if (next.weight > given.weight) {
-        const lastSet = sets[sets.length - 1].actualReps;
-        const reason =
-          lastSet >= T3_LAST_SET_INCREASE_REPS
-            ? `last set reached ${T3_LAST_SET_INCREASE_REPS}`
-            : `sets totalled ${T3_TOTAL_INCREASE_REPS}+ reps`;
-        outcome("t3Up", `${reason}: next ${lbs(next.weight)}`);
+        outcome("t3Up", `last set reached ${T3_LAST_SET_INCREASE_REPS}: next ${lbs(next.weight)}`);
       } else if (held(sets)) {
         outcome("held", stillThere("held"));
       } else if (sets.length < ex.sets) {

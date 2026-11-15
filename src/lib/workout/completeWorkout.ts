@@ -7,7 +7,7 @@ import {
   shouldFreezeProgression,
 } from "@/lib/progression";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import type { LiftState, SetLog, TrainingPhase } from "@/types";
+import type { LiftState, SetLog } from "@/types";
 import { classifyEntry, heavierWeightPerformed } from "./credit";
 import { workingSetsFor } from "./setSelectors";
 import type { CompletionInput, CompletionResult } from "./types";
@@ -44,16 +44,11 @@ function isProgressingTier(tier: string): tier is keyof typeof PROGRESSING_TIERS
  * the weight only moves up, and a set skipped or reduced for pain, a run or equipment
  * freezes it like any other tier. Substituted (home) sets count as performed.
  */
-function progressT3(
-  liftState: LiftState,
-  exerciseSets: SetLog[],
-  phase: TrainingPhase
-): LiftState | null {
+function progressT3(liftState: LiftState, exerciseSets: SetLog[]): LiftState | null {
   if (hasFreezeStatus(exerciseSets)) return null;
 
-  const totalReps = exerciseSets.reduce((sum, set) => sum + set.actualReps, 0);
   const lastSetReps = exerciseSets[exerciseSets.length - 1].actualReps;
-  const result = evaluateT3Progression(totalReps, lastSetReps, liftState.t3Weight, phase);
+  const result = evaluateT3Progression(lastSetReps, liftState.t3Weight);
 
   return result.increased
     ? { ...liftState, t3Weight: result.newWeight, synced: false }
@@ -136,7 +131,7 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
       // heavier weight when that is what was lifted).
       const progressed = partial
         ? null
-        : progressT3(liftState, exerciseSets, settings.trainingPhase);
+        : progressT3(liftState, exerciseSets);
       if (!progressed && heavier == null) continue;
       next = progressed ?? { ...liftState, synced: false };
     } else if (partial) {

@@ -44,17 +44,11 @@ export const T2_AUTOREG_RPE_THRESHOLD: Record<TrainingPhase["mode"], number> = {
 /** Suggested T2 load drop: `max` after an RPE 10 set, `standard` otherwise. */
 export const T2_AUTOREG_DROP = { standard: 0.05, max: 0.1 } as const;
 
-/** Reps on the last T3 set at or above which the T3 weight goes up (every phase). */
+/** Reps on the last T3 set at or above which the T3 weight goes up, in every phase. */
 export const T3_LAST_SET_INCREASE_REPS = 25;
-
-/** Total T3 reps across its sets at or above which the weight goes up, outside a cut. */
-export const T3_TOTAL_INCREASE_REPS = 50;
 
 /** Pounds added to a T3 lift when it goes up. */
 export const T3_INCREMENT_LBS = 5;
-
-/** Training phases in which only the last-set trigger raises a T3 weight. */
-export const T3_LAST_SET_ONLY_PHASES: readonly TrainingPhase["mode"][] = ["cutting"];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -327,16 +321,9 @@ export interface T3ProgressionResult {
 /**
  * Evaluate T3 progression after a workout.
  *
- * v3.2 critical fix: weight increases when AMRAP last set >= 25 reps
- * (NOT just total >= 25).
- *
- * Progression criteria (use EITHER trigger in maintaining/bulking):
- * - IF last-set AMRAP reps >= 25 -> ADD 5 lbs
- * - OR IF total reps across 3 sets >= 50 -> ADD 5 lbs
- *
- * Phase-adjusted behavior:
- * - Cutting: only AMRAP trigger (last set >= 25)
- * - Maintaining/Bulking: either trigger works
+ * The weight goes up by T3_INCREMENT_LBS when the last set reached
+ * T3_LAST_SET_INCREASE_REPS reps, in every training phase. Total reps across the
+ * sets do not count: two easy sets must not stand in for a hard last one.
  *
  * Applied by `computeCompletion` when a T3 exercise was fully completed. The
  * workout detail page explains the result ("What it did").
@@ -344,35 +331,12 @@ export interface T3ProgressionResult {
  * @evidence t3-progression
  */
 export function evaluateT3Progression(
-  totalReps: number,
-  amrapLastSetReps: number,
-  currentWeight: number,
-  phase: TrainingPhase
+  lastSetReps: number,
+  currentWeight: number
 ): T3ProgressionResult {
-  const amrapTrigger = amrapLastSetReps >= T3_LAST_SET_INCREASE_REPS;
-  const totalTrigger = totalReps >= T3_TOTAL_INCREASE_REPS;
-
-  let shouldIncrease: boolean;
-
-  if (T3_LAST_SET_ONLY_PHASES.includes(phase.mode)) {
-    // Cutting: only AMRAP trigger
-    shouldIncrease = amrapTrigger;
-  } else {
-    // Maintaining or Bulking: either trigger
-    shouldIncrease = amrapTrigger || totalTrigger;
-  }
-
-  if (shouldIncrease) {
-    return {
-      newWeight: currentWeight + T3_INCREMENT_LBS,
-      increased: true,
-    };
-  }
-
-  return {
-    newWeight: currentWeight,
-    increased: false,
-  };
+  return lastSetReps >= T3_LAST_SET_INCREASE_REPS
+    ? { newWeight: currentWeight + T3_INCREMENT_LBS, increased: true }
+    : { newWeight: currentWeight, increased: false };
 }
 
 // ---------------------------------------------------------------------------
