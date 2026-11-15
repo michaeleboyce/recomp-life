@@ -1,9 +1,8 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { BackButton } from "@/components/nav/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TierKey } from "@/components/Upcoming/TierKey";
 import { UpcomingWorkoutCard } from "@/components/Upcoming/UpcomingWorkoutCard";
@@ -20,7 +19,10 @@ const PROGRESSION_RULE: RuleId = "gzclp-progression";
 
 const LOCATION_LABEL: Record<WorkoutLocation, string> = { gym: "Gym", home: "Home" };
 
-/** Back to where the page was opened from: Today (`?from=today`) or, by default, More. */
+/**
+ * Back to the previous screen; with none, to where the page was opened from: Today
+ * (`?from=today`) or, by default, More.
+ */
 function BackLink() {
   const from = useSearchParams()?.get("from");
   return <BackLinkTo today={from === "today"} />;
@@ -28,14 +30,12 @@ function BackLink() {
 
 function BackLinkTo({ today }: { today: boolean }) {
   return (
-    <Link
-      href={today ? "/" : "/more"}
-      aria-label="Back"
-      className="-ml-1 flex h-11 w-fit items-center gap-0.5 rounded-lg pr-2 text-sm font-semibold text-accent-primary outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    >
-      <ChevronLeft className="size-4" aria-hidden="true" />
-      {today ? "Today" : "More"}
-    </Link>
+    <BackButton
+      variant="label"
+      fallback={today ? "/" : "/more"}
+      label={today ? "Today" : "More"}
+      className="text-accent-primary"
+    />
   );
 }
 

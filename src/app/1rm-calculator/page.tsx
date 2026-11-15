@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { BackButton } from "@/components/nav/BackButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { EXERCISES } from "@/lib/exercises";
 import { calculateE1RM } from "@/lib/e1rm";
@@ -46,12 +46,9 @@ export default function OneRMCalculatorPage() {
   return (
     <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       <header className="flex items-center gap-3 mb-6">
-        <Link
-          href="/more"
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
+        <BackButton fallback="/more">
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+        </BackButton>
         <h1 className="text-lg font-bold text-foreground">1RM Calculator</h1>
       </header>
 

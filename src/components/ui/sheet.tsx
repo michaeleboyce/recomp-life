@@ -5,6 +5,7 @@ import { XIcon } from "lucide-react"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { useSheetDrag } from "./sheet-drag"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -44,23 +45,78 @@ function SheetOverlay({
   )
 }
 
+function compose<E>(theirs: ((event: E) => void) | undefined, ours: (event: E) => void) {
+  return (event: E) => {
+    theirs?.(event)
+    ours(event)
+  }
+}
+
+/**
+ * The grab bar at the top of a bottom sheet. It is the sheet's close button for
+ * pointer and screen-reader users (a tap closes, as does a drag down; see
+ * useSheetDrag), but it is left out of the tab order: keyboard users have Escape
+ * and the close button, and the sheet's first focus stays where it was.
+ */
+function SheetHandle({ ref }: { ref: React.Ref<HTMLButtonElement> }) {
+  return (
+    <SheetPrimitive.Close
+      ref={ref}
+      data-slot="sheet-handle"
+      tabIndex={-1}
+      aria-label="Drag down to close"
+      className="absolute inset-x-0 top-0 z-10 mx-auto flex h-11 w-28 cursor-grab touch-none items-start justify-center pt-1.5 outline-none select-none active:cursor-grabbing"
+    >
+      <span aria-hidden="true" className="h-[5px] w-9 rounded-full bg-muted-foreground/40" />
+    </SheetPrimitive.Close>
+  )
+}
+
 function SheetContent({
   className,
   children,
   side = "right",
   showCloseButton = true,
+  ref,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
 }) {
+  const bottom = side === "bottom"
+  const drag = useSheetDrag()
+  const contentRef = React.useCallback(
+    (el: HTMLDivElement | null) => {
+      if (bottom) drag.contentRef(el)
+      if (typeof ref === "function") ref(el)
+      else if (ref) ref.current = el
+    },
+    // drag.contentRef is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bottom, ref]
+  )
+  // Only a bottom sheet is dragged; the other sides keep their handlers as given.
+  const pointer = bottom
+    ? {
+        onPointerDown: compose(onPointerDown, drag.onPointerDown),
+        onPointerMove: compose(onPointerMove, drag.onPointerMove),
+        onPointerUp: compose(onPointerUp, drag.onPointerUp),
+        onPointerCancel: compose(onPointerCancel, drag.onPointerCancel),
+      }
+    : { onPointerDown, onPointerMove, onPointerUp, onPointerCancel }
+
   return (
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
+        ref={contentRef}
         data-slot="sheet-content"
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 motion-reduce:animate-none motion-reduce:transition-none",
           side === "right" &&
             "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
           side === "left" &&
@@ -72,7 +128,9 @@ function SheetContent({
           className
         )}
         {...props}
+        {...pointer}
       >
+        {bottom && <SheetHandle ref={drag.handleRef} />}
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">

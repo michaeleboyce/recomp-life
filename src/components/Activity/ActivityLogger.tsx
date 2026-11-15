@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useGoBack } from "@/components/nav/useNavHistory";
 import { logActivity } from "@/lib/data/records";
 import {
   ACTIVITY_KIND_LABELS,
@@ -21,7 +21,8 @@ const INPUT_CLASS =
 
 /**
  * Form for a non-running session. Remount it (via `key`) when the kind changes.
- * `returnTo` is where to go after a save (default Today).
+ * A save returns to the previous screen, or to `returnTo` when there is none
+ * (default Today).
  */
 export default function ActivityLogger({
   kind,
@@ -30,7 +31,7 @@ export default function ActivityLogger({
   kind: ActivityKind;
   returnTo?: string;
 }) {
-  const router = useRouter();
+  const goBack = useGoBack(returnTo);
 
   const [durationMinutes, setDurationMinutes] = useState("");
   const [distanceMiles, setDistanceMiles] = useState("");
@@ -72,7 +73,7 @@ export default function ActivityLogger({
         perceivedEffort,
       });
       toast({ message: kind === "other" ? "Session saved" : `${label} saved` });
-      router.push(returnTo);
+      goBack();
     } catch {
       setError("Failed to save. Please try again.");
       setSaving(false);

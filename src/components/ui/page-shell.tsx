@@ -1,7 +1,6 @@
 import * as React from "react"
-import Link from "next/link"
-import { ChevronLeft } from "lucide-react"
 
+import { BackButton } from "@/components/nav/BackButton"
 import { cn } from "@/lib/utils"
 
 function PageShell({
@@ -53,6 +52,7 @@ function PageHeader({
   className,
 }: {
   title: React.ReactNode
+  /** The back arrow's target when there is no in-app previous screen. */
   backHref?: string
   action?: React.ReactNode
   className?: string
@@ -62,17 +62,9 @@ function PageHeader({
       data-slot="page-header"
       className={cn("flex items-center gap-3", className)}
     >
-      {backHref && (
-        <Link
-          href={backHref}
-          aria-label="Back"
-          // A 44px tap target: the padding grows it and the negative margin cancels
-          // the growth, so the layout does not move.
-          className="-m-3 p-3 text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ChevronLeft className="size-5" aria-hidden="true" />
-        </Link>
-      )}
+      {/* Back returns to the previous in-app screen; backHref is where it goes
+          when there is none (opened from a link, a reload, the first screen). */}
+      {backHref && <BackButton fallback={backHref} />}
       <h1 className="min-w-0 flex-1 truncate font-display text-xl font-bold text-foreground">
         {title}
       </h1>

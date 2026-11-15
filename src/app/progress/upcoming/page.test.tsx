@@ -109,11 +109,11 @@ describe("upcoming workouts page", () => {
 
   it("goes back to More by default and to Today when opened from Today", async () => {
     const { unmount } = render(<UpcomingWorkoutsPage />);
-    expect(await screen.findByRole("link", { name: "Back" })).toHaveAttribute("href", "/more");
+    expect(await screen.findByRole("link", { name: "Back to More" })).toHaveAttribute("href", "/more");
     unmount();
     nav.params = "from=today";
     render(<UpcomingWorkoutsPage />);
-    expect(await screen.findByRole("link", { name: "Back" })).toHaveAttribute("href", "/");
+    expect(await screen.findByRole("link", { name: "Back to Today" })).toHaveAttribute("href", "/");
   });
 
   it("opens on the saved default location", async () => {

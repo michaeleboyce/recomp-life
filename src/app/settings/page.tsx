@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Calculator } from "lucide-react";
 import { initializeDatabase } from "@/db/init";
+import { BackButton } from "@/components/nav/BackButton";
 import type { UserProfile, UserSettings, TrainingPhase, EquipmentProfile, ExercisePreferences } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -170,13 +171,9 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
-        <Link
-          href="/more"
-          aria-label="Back"
-          className="-m-3 p-3 text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <BackButton fallback="/more">
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-        </Link>
+        </BackButton>
         <h1 className="text-lg font-bold text-foreground">Settings</h1>
       </header>
 

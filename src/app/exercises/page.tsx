@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/db/local";
+import { BackButton } from "@/components/nav/BackButton";
 import { initializeDatabase } from "@/db/init";
 import { getGroupedExercises, filterGroupsByMuscle } from "@/lib/exerciseCategories";
 import ExerciseRow from "@/components/Exercises/ExerciseRow";
@@ -107,13 +107,9 @@ export default function ExercisesPage() {
     <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
-        <Link
-          href="/more"
-          aria-label="Back"
-          className="-m-3 p-3 text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <BackButton fallback="/more">
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-        </Link>
+        </BackButton>
         <h1 className="text-lg font-bold text-foreground">Exercises</h1>
       </header>
 

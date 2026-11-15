@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Telescope } from "lucide-react";
+import { Telescope } from "lucide-react";
 import { useScoredForecasts } from "@/hooks";
 import { summarize } from "@/lib/forecast";
+import { BackButton } from "@/components/nav/BackButton";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -58,13 +59,7 @@ export function ForecastsScreen() {
 
   return (
     <div className="flex flex-col gap-3">
-      <Link
-        href="/progress"
-        className="-ml-1 inline-flex min-h-11 w-fit items-center gap-0.5 text-[13px] font-semibold text-primary"
-      >
-        <ChevronLeft className="size-4" aria-hidden="true" />
-        Progress
-      </Link>
+      <BackButton variant="label" fallback="/progress" label="Progress" className="text-[13px]" />
       <header className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col gap-1.5">

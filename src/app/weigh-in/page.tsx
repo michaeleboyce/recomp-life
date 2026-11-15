@@ -1,8 +1,7 @@
 "use client";
 
 import { Suspense, useState, useCallback, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { useBodyweightLog, useMetric } from "@/hooks";
 import { logBodyweight, updateBodyweight } from "@/lib/data/records";
@@ -12,6 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { backTarget } from "@/components/nav/backTarget";
+import { BackButton } from "@/components/nav/BackButton";
+import { useGoBack } from "@/components/nav/useNavHistory";
 import { DateField, dateFromInput, toDateInputValue } from "@/components/Activity/DateField";
 import { STALE_WEIGH_IN_DAYS } from "@/components/Today/GlanceTiles";
 
@@ -40,9 +41,10 @@ function startOfDay(date: Date): Date {
 }
 
 function WeighInScreen() {
-  const router = useRouter();
-  // Only a known `from` is used; anything else goes back to Today.
+  // Back, and Save, return to the previous screen; with none, a known `from` is
+  // used and anything else goes to Today.
   const target = backTarget(useSearchParams()?.get("from"));
+  const goBack = useGoBack(target.href);
   const [date, setDate] = useState(() => toDateInputValue(new Date()));
   // What the user has typed; empty until they do.
   const [typedWeight, setWeight] = useState("");
@@ -125,12 +127,12 @@ function WeighInScreen() {
         });
       }
       toast({ message: "Weight saved" });
-      router.push(target.href);
+      goBack();
     } catch {
       setError("Failed to save. Please try again.");
       setSaving(false);
     }
-  }, [weight, timeOfDay, todayEntry, router, date, target.href]);
+  }, [weight, timeOfDay, todayEntry, goBack, date]);
 
   if (bodyweightLog === undefined) {
     return (
@@ -144,13 +146,9 @@ function WeighInScreen() {
     <PageShell>
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
-        <Link
-          href={target.href}
-          aria-label="Back"
-          className="-m-3 p-3 text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <BackButton fallback={target.href}>
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-        </Link>
+        </BackButton>
         <h1 className="text-lg font-bold text-foreground">Log Weight</h1>
       </header>
 
