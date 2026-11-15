@@ -333,6 +333,7 @@ function activityFactor(
   // The session the activity check picked: the most recent hard one that applies.
   const session = recent.find(
     (activity) =>
+      activity.perceivedEffort !== null &&
       activity.perceivedEffort >= ACTIVITY_HARD_EFFORT &&
       (workout.lowerBody || !LOWER_BODY_ACTIVITY_KINDS.includes(activity.kind))
   );
