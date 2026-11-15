@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb } from "@/lib/data/testUtils";
@@ -8,11 +8,18 @@ import { getHealthSettings } from "@/lib/health/deviceSettings";
 import { HEALTH_DEMO_KEY } from "@/native/appleHealth";
 import { AppleHealthSettings, describeImport } from "./AppleHealthSettings";
 
+// The demo data is built from the clock, so pin it to a local midday. Only
+// Date is faked: timers stay real for the async queries.
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(2026, 10, 10, 12, 0, 0));
   localStorage.clear();
   await clearDb();
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 describe("describeImport", () => {
   const none = { weighIns: 0, runs: 0, activities: 0, matched: 0, sessions: 0, days: 0 };
