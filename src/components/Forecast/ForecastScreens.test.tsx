@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb } from "@/lib/data/testUtils";
+import { writeForecasts } from "@/lib/data/forecasts";
 import { replayForecasts } from "@/lib/forecast";
 import { demoReplayInput, forecastRow } from "@/lib/forecast/testHelpers";
 import type { Forecast } from "@/types";
@@ -51,7 +52,7 @@ async function seedReplay() {
   const replay = replayForecasts(input);
   await db.workouts.bulkPut(input.workouts);
   await db.bodyweight.bulkPut(input.bodyweight);
-  await db.forecasts.bulkPut(replay.forecasts);
+  await writeForecasts(replay.forecasts);
   return replay;
 }
 
@@ -127,7 +128,7 @@ describe("Track record", () => {
       .map((s) => s.forecast);
     expect(few).toHaveLength(3);
     await db.workouts.bulkPut(input.workouts);
-    await db.forecasts.bulkPut(few);
+    await writeForecasts(few);
     render(<TrackRecordScreen />);
     const headline = await screen.findByText(/landed inside the forecast range/);
     expect(headline).toHaveTextContent(TOO_FEW_TO_JUDGE);
