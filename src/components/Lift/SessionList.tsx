@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { formatShortDate } from "@/components/chart-kit";
@@ -16,6 +16,7 @@ import type { LiftSession } from "./sessions";
 import { workoutDetailHref } from "@/lib/routes";
 import { EXERCISES } from "@/lib/exercises";
 import { nameInSentence } from "@/components/Today/todayModel";
+import { isPerHand } from "./homeVersion";
 
 const FIRST_PAGE = 10;
 
@@ -30,13 +31,19 @@ function homeName(substituteId: string): string {
   return EXERCISES[substituteId] ? nameInSentence(substituteId) : "dumbbells";
 }
 
-/** `explainTier`: this row's tier label opens its glossary entry (first row of each tier). */
+/**
+ * `explainTier`: this row's tier label opens its glossary entry (first row of each tier).
+ * `homeOnly`: the list holds one home version only, so the row does not name it again
+ * and marks a weight that is per dumbbell.
+ */
 function SessionRow({
   session,
   explainTier,
+  homeOnly,
 }: {
   session: LiftSession;
   explainTier: boolean;
+  homeOnly: boolean;
 }) {
   const style = tierStyle(session.tier);
   const term = explainTier ? TIER_TERM[session.tier] : undefined;
@@ -58,7 +65,11 @@ function SessionRow({
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="font-mono text-sm">
-          {session.weight} ×
+          {session.weight}
+          {homeOnly && session.substituteExerciseId && isPerHand(session.substituteExerciseId) && (
+            <span className="text-[11px] text-muted-foreground">/hand</span>
+          )}{" "}
+          ×
           {session.sets.map((set, i) => (
             <span
               key={i}
@@ -79,7 +90,7 @@ function SessionRow({
             </span>
           ))}
         </span>
-        {session.substituteExerciseId && (
+        {session.substituteExerciseId && !homeOnly && (
           <span
             data-testid="session-home"
             className="truncate text-xs text-muted-foreground"
@@ -110,18 +121,37 @@ function SessionRow({
   );
 }
 
-/** Every session with this lift, newest first; the first ten, then "Show all". */
-export function SessionList({ sessions }: { sessions: LiftSession[] }) {
+/**
+ * Every session with this lift, newest first; the first ten, then "Show all". With
+ * `empty` the list still shows, titled, when there are no sessions; without it, it
+ * shows nothing. `homeOnly` when every row is the same home version.
+ */
+export function SessionList({
+  sessions,
+  title = "Sessions",
+  empty,
+  homeOnly = false,
+}: {
+  sessions: LiftSession[];
+  title?: string;
+  empty?: ReactNode;
+  homeOnly?: boolean;
+}) {
   const [showAll, setShowAll] = useState(false);
-  if (sessions.length === 0) return null;
+  if (sessions.length === 0 && !empty) return null;
   const visible = showAll ? sessions : sessions.slice(0, FIRST_PAGE);
   return (
-    <section aria-label="Sessions">
+    <section aria-label={title}>
       <SectionHeader
-        title="Sessions"
+        title={title}
         action={<EvidenceLine ruleId="tier-structure" variant="icon" />}
         className="mb-0.5"
       />
+      {sessions.length === 0 && (
+        <p data-testid="sessions-empty" className="py-2 text-sm text-muted-foreground">
+          {empty}
+        </p>
+      )}
       <ul>
         {visible.map((s, i) => (
           <SessionRow
@@ -130,6 +160,7 @@ export function SessionList({ sessions }: { sessions: LiftSession[] }) {
             explainTier={
               visible.findIndex((other) => other.tier === s.tier) === i
             }
+            homeOnly={homeOnly}
           />
         ))}
       </ul>

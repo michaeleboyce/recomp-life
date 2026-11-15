@@ -177,13 +177,16 @@ function t1TemplateExercise(exerciseId: string): WorkoutTemplateExercise {
   return { exerciseId, tier: "T1", sets: 5, reps: 3, isAMRAP: true };
 }
 
-/** The lift's next T1 weight and what its AMRAP set needs for a new best e1RM. */
+/**
+ * The lift's next T1 weight and scheme, and what its AMRAP set needs for a new best
+ * e1RM.
+ */
 export function nextT1Opportunity(
   exerciseId: string,
   liftState: LiftState | undefined,
   bestE1RM: number | null
-): { weight: number; opportunity: PrOpportunity | null } {
-  const { weight } = getPrescription(t1TemplateExercise(exerciseId), liftState);
+): { weight: number; sets: number; reps: number; opportunity: PrOpportunity | null } {
+  const { weight, sets, reps } = getPrescription(t1TemplateExercise(exerciseId), liftState);
   const opportunity =
     weight > 0
       ? describePrOpportunity({
@@ -194,5 +197,5 @@ export function nextT1Opportunity(
           recentAMRAPReps: liftState?.recentAMRAPReps ?? [],
         })
       : null;
-  return { weight, opportunity };
+  return { weight, sets, reps, opportunity };
 }

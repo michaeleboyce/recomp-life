@@ -7,17 +7,23 @@ import type { RangeKey } from "@/lib/metrics/types";
 import { rangeSuffix } from "@/components/Progress/rangeText";
 import { trendOverlay, type RangedMetric } from "./liftSeries";
 
-/** "Estimated 1RM": the latest value, its change over the range, and the e1RM line. */
+/**
+ * "Estimated 1RM": the latest value, its change over the range, and the e1RM line.
+ * `subject` names whose estimate it is when the page is about something else, e.g.
+ * "Barbell squat" under a home version.
+ */
 export function LiftHeadline({
   e1rm,
   liftName,
   range,
   onRangeChange,
+  subject,
 }: {
   e1rm: RangedMetric;
   liftName: string;
   range: RangeKey;
   onRangeChange: (range: RangeKey) => void;
+  subject?: string;
 }) {
   const { series, summary } = e1rm;
   const trend = trendOverlay(series.points);
@@ -26,6 +32,7 @@ export function LiftHeadline({
       <div className="flex items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col">
           <h2 className="text-xs font-normal text-muted-foreground">
+            {subject && <span className="font-semibold text-foreground">{subject} · </span>}
             <Term id="e1rm">Estimated 1RM</Term>
           </h2>
           <div className="flex items-baseline gap-2">
