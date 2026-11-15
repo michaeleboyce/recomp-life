@@ -65,6 +65,11 @@ export interface IndexedLog extends ForecastLog {
   e1rmResultsOf(exerciseId: string): readonly Measurement[];
   /** Live weigh-ins, oldest first. */
   weighIns(): readonly Measurement[];
+  /**
+   * The live, finished workouts holding T1 sets of a lift (the lift itself or its
+   * substitute), by finish time, oldest first (ties by id).
+   */
+  t1SessionsOf(exerciseId: string): readonly WorkoutSession[];
 }
 
 /**

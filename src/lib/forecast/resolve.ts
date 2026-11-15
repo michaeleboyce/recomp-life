@@ -8,11 +8,23 @@
 // and estimated-max results are worked out once per log, so scoring every stored
 // forecast costs about as much as reading the history once.
 import { isNewPR } from "@/lib/e1rm";
+import { EXERCISES } from "@/lib/exercises";
+import { getIncrement } from "@/lib/progression";
+import { progressionLiftType } from "@/lib/workout/completeWorkout";
+import { T1_STAGE_SCHEME } from "@/lib/workout/prescription";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
-import type { Forecast, ForecastKind, ForecastStatus, SetLog, WorkoutSession } from "@/types";
-import { BODYWEIGHT_MODEL, E1RM_HORIZON_MODEL } from "./coefficients";
+import type {
+  EquipmentProfile,
+  Forecast,
+  ForecastKind,
+  ForecastStatus,
+  SetLog,
+  WorkoutSession,
+} from "@/types";
+import { BODYWEIGHT_MODEL, E1RM_HORIZON_MODEL, STALL_MODEL } from "./coefficients";
 import { DAY_MS, hasFreeze, hasLoadDrop, isLive, lastSetOf, toMs } from "./log";
-import { indexLog, valuesAround } from "./logIndex";
+import { finishedBetween, indexLog, valuesAround } from "./logIndex";
+import { stageForReps } from "./reps";
 import { mean } from "./math";
 import type { ForecastLog, ForecastResolver, IndexedLog, Measurement } from "./types";
 
@@ -187,6 +199,134 @@ const resolveBodyweight: ForecastResolver = (forecast, log, now) =>
     () => indexLog(log).weighIns()
   );
 
+const differs = (a: number, b: number) => Math.abs(a - b) > WEIGHT_TOLERANCE_LBS;
+const isSubstitute = (set: SetLog) => set.isSubstituted || !!set.substituteExerciseId;
+
+/**
+ * The working weight the program set for a lift's T1 sets in a workout: the stored
+ * prescription when there is one, otherwise the weight of a set done as the lift
+ * itself. Null when neither says.
+ */
+function programWeightOf(workout: WorkoutSession, exerciseId: string, sets: SetLog[]): number | null {
+  const prescribed = workout.prescribed?.find((p) => p.exerciseId === exerciseId && p.tier === "T1");
+  if (prescribed && Number.isFinite(prescribed.weight)) return prescribed.weight;
+  const own = sets.find((set) => !isSubstitute(set));
+  return own ? own.weight : null;
+}
+
+/**
+ * The step the program added after a pass in this workout: `getIncrement` for the
+ * lift at the workout's location, with the increments stored on it when it was
+ * finished. NaN when the workout does not say, so a later weight cannot be checked.
+ */
+function stepAfterPass(workout: WorkoutSession, exerciseId: string): number {
+  const context = workout.completionContext;
+  if (!context || !EXERCISES[exerciseId]) return NaN;
+  const equipment = {
+    gymBarbellIncrementLbs: context.gymBarbellIncrementLbs,
+    dumbbellIncrementLbs: context.dumbbellIncrementLbs,
+  } as EquipmentProfile;
+  return getIncrement(progressionLiftType(exerciseId), workout.location, equipment);
+}
+
+/**
+ * Whether a T1 lift missed at the forecast's stage within its next sessions, as the
+ * program counts them. The lift's T1 sessions finished after the forecast was made,
+ * by `now` and by `dueAt` + `event.windowDays`, are read in order:
+ * - void on a load drop, or when a session's working weight is not the one the
+ *   program carried to it (`event.weight` first, one step up after each pass), or a
+ *   set was lifted heavier than it (the program then carries on from what was
+ *   lifted);
+ * - a session that changes nothing in the program is skipped: a set held back for
+ *   pain, a run or equipment, fewer sets than the stage has, a set lighter than the
+ *   working weight or at other target reps than the stage's (`event.reps`; such a
+ *   session is only logged);
+ * - otherwise the session passes when every set reaches the target with none marked
+ *   failed; a home session done with the dumbbell substitute counts, as it does for
+ *   progression.
+ * Resolved at the first miss (hit; the value is which session, 1 or 2) or once
+ * `event.minResults` sessions have passed (value 0). Open until the window closes,
+ * then void with too few sessions.
+ */
+const resolveStallRisk: ForecastResolver = (forecast, log, now) => {
+  const { exerciseId } = forecast;
+  const { weight, reps: target } = forecast.event;
+  const stage = typeof target === "number" ? stageForReps(target) : null;
+  const madeAt = toMs(forecast.madeAt);
+  const dueAt = toMs(forecast.dueAt);
+  if (!exerciseId || typeof weight !== "number" || typeof target !== "number" || !stage) {
+    return voided("not-scorable");
+  }
+  if (!Number.isFinite(madeAt) || !Number.isFinite(dueAt)) return voided("not-scorable");
+  const needed = forecast.event.minResults ?? STALL_MODEL.sessions;
+  const closes = dueAt + (forecast.event.windowDays ?? STALL_MODEL.outcomeWindowDays) * DAY_MS;
+  const sessions = finishedBetween(
+    indexLog(log).t1SessionsOf(exerciseId),
+    madeAt,
+    Math.min(now.getTime(), closes)
+  );
+
+  let expected = weight;
+  let passes = 0;
+  for (const workout of sessions) {
+    const sets = workingSetsFor(workout.sets ?? [], exerciseId, "T1");
+    if (sets.length === 0) continue;
+    if (hasLoadDrop(sets)) return voided("load-drop");
+    if (hasFreeze(sets)) continue;
+    const programWeight = programWeightOf(workout, exerciseId, sets);
+    if (programWeight === null || !(Math.abs(programWeight - expected) <= WEIGHT_TOLERANCE_LBS)) {
+      return voided("weight-changed");
+    }
+    const own = sets.filter((set) => !isSubstitute(set));
+    if (own.some((set) => set.weight > programWeight + WEIGHT_TOLERANCE_LBS)) {
+      return voided("weight-changed");
+    }
+    if (own.some((set) => differs(set.weight, programWeight))) continue;
+    if (sets.some((set) => set.targetReps !== target)) continue;
+    if (sets.length < T1_STAGE_SCHEME[stage].sets) continue;
+
+    const passed = sets.every((set) => set.status !== "failed" && set.actualReps >= target);
+    if (!passed) return { state: "resolved", value: passes + 1, hit: true };
+    passes += 1;
+    if (passes >= needed) return { state: "resolved", value: 0, hit: false };
+    expected = programWeight + stepAfterPass(workout, exerciseId);
+  }
+  if (now.getTime() < closes) return open;
+  return voided("too-few-measurements");
+};
+
+/**
+ * When a lift was first lifted at or above `event.weight`: the first workout finished
+ * after the forecast was made, by `now`, with a T1 set of the lift done as itself
+ * (not a home substitute) at that weight or more. The value is its finish date in
+ * days since 1 January 1970 (UTC), the unit of the stored range. Open until the
+ * range's last day; after it, if the weight still has not been lifted, resolved
+ * outside the range with today's date as the value, a lower bound that grows until
+ * the weight is lifted.
+ */
+const resolveMilestone: ForecastResolver = (forecast, log, now) => {
+  const { exerciseId } = forecast;
+  const target = forecast.event.weight;
+  const { low, high } = forecast.prediction;
+  const madeAt = toMs(forecast.madeAt);
+  if (!exerciseId || typeof target !== "number" || typeof low !== "number" || typeof high !== "number") {
+    return voided("not-scorable");
+  }
+  if (!Number.isFinite(madeAt)) return voided("not-scorable");
+  const nowMs = now.getTime();
+  for (const workout of finishedBetween(indexLog(log).t1SessionsOf(exerciseId), madeAt, nowMs)) {
+    const lifted = workingSetsFor(workout.sets ?? [], exerciseId, "T1").some(
+      (set) => !isSubstitute(set) && set.weight >= target - WEIGHT_TOLERANCE_LBS
+    );
+    if (!lifted) continue;
+    const value = toMs(workout.completedAt) / DAY_MS;
+    return { state: "resolved", value, inside: value >= low && value <= high };
+  }
+  const today = nowMs / DAY_MS;
+  if (today <= high) return open;
+  return { state: "resolved", value: today, inside: false };
+};
+
 /** The resolver of each kind. The registry reads these; nothing else should. */
 export const RESOLVERS: Record<ForecastKind, ForecastResolver> = {
   amrapReps: resolveAmrapReps,
@@ -195,6 +335,8 @@ export const RESOLVERS: Record<ForecastKind, ForecastResolver> = {
   sessionLength: resolveSessionLength,
   e1rm4w: resolveE1RM,
   bodyweight4w: resolveBodyweight,
+  stallRisk: resolveStallRisk,
+  milestone: resolveMilestone,
 };
 
 /**

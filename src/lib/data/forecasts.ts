@@ -534,38 +534,51 @@ export async function writeSessionForecasts(
 
 /**
  * Adds the horizon forecasts `wanted` picks, as things stand at `now`, leaving out
- * every slot (kind, subject, ISO week) that already has a row. Returns how many were
- * added. Another device can still write the same slot before the two sync; readers
- * score the earliest row per slot.
+ * every slot (kind, subject, ISO week) that already has a row; a taken slot's model is
+ * not worked out at all. Returns how many were added. Another device can still write
+ * the same slot before the two sync; readers score the earliest row per slot.
  */
 async function recordHorizonForecasts(
   now: Date,
-  wanted: (row: Forecast) => boolean
+  wanted: { kinds: ReadonlySet<Forecast["kind"]>; subjects?: ReadonlySet<string> }
 ): Promise<number> {
+  // A slot is `kind|subject|ISO week`.
+  const isWanted = (slot: string) => {
+    const [kind, subject] = slot.split("|");
+    return (
+      wanted.kinds.has(kind as Forecast["kind"]) && (!wanted.subjects || wanted.subjects.has(subject))
+    );
+  };
   return db.transaction("rw", ledgerTables(), async () => {
     const records = await readLedgerRecords(now);
     const taken = new Set(records.forecasts.map((row) => row.slot));
-    const rows = makeHorizonForecasts(forecastSourceFrom(records, now), uuidv4).filter(
-      (row) => wanted(row) && !taken.has(row.slot)
-    );
+    const rows = makeHorizonForecasts(forecastSourceFrom(records, now), uuidv4, {
+      skipSlot: (slot) => taken.has(slot) || !isWanted(slot),
+    }).filter((row) => isWanted(row.slot) && !taken.has(row.slot));
     return writeForecasts(rows);
   });
 }
 
+/** The forecasts for a date ahead that are about one lift. */
+const LIFT_HORIZON_KINDS: ReadonlySet<Forecast["kind"]> = new Set([
+  "e1rm4w",
+  "stallRisk",
+  "milestone",
+]);
+
 /**
- * The estimated-max forecast for each of the given lifts, at most one per lift per
- * week. A lift with too little history to project gets none.
+ * The forecasts for a date ahead about each of the given lifts, at most one of each
+ * kind per lift per week: the estimated max four weeks on, and for a T1 lift the
+ * chance of a stall in its next two sessions and the date of its next round-number
+ * weight. A lift with too little history gets none.
  */
 export function recordLiftForecasts(exerciseIds: readonly string[], now: Date): Promise<number> {
   const lifts = new Set(exerciseIds);
   if (lifts.size === 0) return Promise.resolve(0);
-  return recordHorizonForecasts(
-    now,
-    (row) => row.kind === "e1rm4w" && row.exerciseId !== undefined && lifts.has(row.exerciseId)
-  );
+  return recordHorizonForecasts(now, { kinds: LIFT_HORIZON_KINDS, subjects: lifts });
 }
 
 /** The bodyweight forecast, at most one per week. Too few weigh-ins give none. */
 export function recordBodyweightForecast(now: Date): Promise<number> {
-  return recordHorizonForecasts(now, (row) => row.kind === "bodyweight4w");
+  return recordHorizonForecasts(now, { kinds: new Set(["bodyweight4w"]) });
 }

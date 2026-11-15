@@ -40,6 +40,65 @@ export function normalCdf(z: number): number {
   return z > 0 ? 1 - tail : tail;
 }
 
+/** A point of a quadrature for the standard bell curve: E[f(Z)] = sum of weight x f(z). */
+export interface NormalNode {
+  z: number;
+  weight: number;
+}
+
+const nodeCache = new Map<number, readonly NormalNode[]>();
+
+/**
+ * Gauss-Hermite points for averaging a function over a standard bell curve, `n`
+ * points from the lowest z up; the weights sum to 1. Exact for polynomials up to
+ * degree 2n - 1. The roots are found by Newton's method on the normalised Hermite
+ * recurrence (Press et al., Numerical Recipes, `gauher`) and kept, so a second call
+ * returns the same array.
+ */
+export function normalNodes(n: number): readonly NormalNode[] {
+  const cached = nodeCache.get(n);
+  if (cached) return cached;
+  // Physicists' points x and weights w for the weight exp(-x^2).
+  const x = new Array<number>(n).fill(0);
+  const w = new Array<number>(n).fill(0);
+  const piToMinusQuarter = 0.7511255444649425;
+  const m = Math.floor((n + 1) / 2);
+  let z = 0;
+  for (let i = 0; i < m; i++) {
+    if (i === 0) z = Math.sqrt(2 * n + 1) - 1.85575 * Math.pow(2 * n + 1, -0.16667);
+    else if (i === 1) z -= (1.14 * Math.pow(n, 0.426)) / z;
+    else if (i === 2) z = 1.86 * z - 0.86 * x[0];
+    else if (i === 3) z = 1.91 * z - 0.91 * x[1];
+    else z = 2 * z - x[i - 2];
+    let derivative = 1;
+    for (let iteration = 0; iteration < 100; iteration++) {
+      let p1 = piToMinusQuarter;
+      let p2 = 0;
+      for (let j = 0; j < n; j++) {
+        const p3 = p2;
+        p2 = p1;
+        p1 = z * Math.sqrt(2 / (j + 1)) * p2 - Math.sqrt(j / (j + 1)) * p3;
+      }
+      derivative = Math.sqrt(2 * n) * p2;
+      const previous = z;
+      z = previous - p1 / derivative;
+      if (Math.abs(z - previous) <= 1e-14) break;
+    }
+    x[i] = z;
+    x[n - 1 - i] = -z;
+    w[i] = 2 / (derivative * derivative);
+    w[n - 1 - i] = w[i];
+  }
+  const total = w.reduce((sum, v) => sum + v, 0);
+  const nodes = x
+    .map((xi, i) => ({ z: Math.SQRT2 * xi, weight: w[i] / total }))
+    .sort((a, b) => a.z - b.z);
+  // An odd count has a point at exactly 0.
+  if (n % 2 === 1) nodes[(n - 1) / 2].z = 0;
+  nodeCache.set(n, nodes);
+  return nodes;
+}
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }

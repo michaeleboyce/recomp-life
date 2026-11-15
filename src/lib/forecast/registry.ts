@@ -63,6 +63,26 @@ export const FORECAST_KINDS: Record<ForecastKind, ForecastKindDef> = {
     modelVersion: "bodyweight-1",
     resolve: RESOLVERS.bodyweight4w,
   },
+  stallRisk: {
+    kind: "stallRisk",
+    label: "Chance of a stall in the next two sessions",
+    ruleId: "forecast-stall",
+    estimand:
+      "Whether the lift misses at its current stage (a session where a set falls short of the target reps or is marked failed) within its next two sessions that count for progression, at the working weights the program sets: today's, then one step up after a pass. Sessions held back for pain, a run or equipment, or stopped part-way, are not counted; a changed weight or scheme sets the forecast aside.",
+    scope: "horizon",
+    modelVersion: "stall-1",
+    resolve: RESOLVERS.stallRisk,
+  },
+  milestone: {
+    kind: "milestone",
+    label: "Date of the next round-number weight",
+    ruleId: "forecast-milestone",
+    estimand:
+      "The date of the first workout, after the forecast was made, in which the lift itself (not a home substitute) is lifted at or above the round-number weight in a main-lift set. Not reached by the last day of the range counts as outside it.",
+    scope: "horizon",
+    modelVersion: "milestone-1",
+    resolve: RESOLVERS.milestone,
+  },
 };
 
 /** The kinds in display order. */

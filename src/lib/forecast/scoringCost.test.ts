@@ -19,6 +19,7 @@ vi.mock("@/lib/rebuild/e1rm", async (importOriginal) => {
 });
 
 import { indexLog } from "./logIndex";
+import { FORECAST_KIND_IDS } from "./registry";
 import { resolveForecast } from "./resolve";
 import { scoreForecasts, sdScales, trackRecord } from "./score";
 import { DAY, longHistory } from "./testHelpers";
@@ -95,7 +96,7 @@ describe("scoring a long history", () => {
     expect(record.byKind.newBest!.chances.hits).toBeGreaterThan(0);
     expect(record.byKind.e1rm4w!.resolved).toBeGreaterThan(500);
     expect(record.byKind.bodyweight4w!.resolved).toBeGreaterThan(500);
-    expect(Object.keys(sdScales(scored))).toHaveLength(6);
+    expect(Object.keys(sdScales(scored))).toHaveLength(FORECAST_KIND_IDS.length);
   });
 
   it("lets one index serve several passes", () => {

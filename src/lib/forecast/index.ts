@@ -16,9 +16,12 @@ export {
   BODYWEIGHT_MODEL,
   CALIBRATION,
   E1RM_HORIZON_MODEL,
+  LIFT_OUTLOOK_MODEL,
+  MILESTONE_MODEL,
   NEW_BEST_MODEL,
   REPS_MODEL,
   SESSION_LENGTH_MODEL,
+  STALL_MODEL,
 } from "./coefficients";
 
 export { FORECAST_KINDS, FORECAST_KIND_IDS } from "./registry";
@@ -30,6 +33,7 @@ export type {
   RepsForecast,
   RepsLevel,
   RepsModelInput,
+  RepsOutlook,
   RepsRange,
 } from "./reps";
 export {
@@ -40,6 +44,7 @@ export {
   lastT1Sets,
   mostLikelyReps,
   repsIndex,
+  repsOutlook,
   repsPmf,
   repsRange,
   stageForReps,
@@ -52,6 +57,29 @@ export { forecastSessionLength, sessionPaceRatios } from "./sessionLength";
 
 export type { HorizonForecast } from "./horizon";
 export { e1rmResults, forecastBodyweight, forecastE1RM, weighIns } from "./horizon";
+
+export type {
+  LiftOutlook,
+  LiftPace,
+  MilestoneForecast,
+  StallForecast,
+  WalkInput,
+  WalkResult,
+} from "./outlook";
+export {
+  forecastMilestone,
+  forecastStall,
+  liftOutlook,
+  liftPace,
+  nextRoundWeight,
+  nextSessionTimes,
+  T1_LIFTS,
+  walkProgram,
+} from "./outlook";
+
+// Shown, never stored: when the last workout's muscles are ready again.
+export type { MuscleReadyExplanation, MuscleReadyTime } from "./muscleReady";
+export { muscleReadyTimes } from "./muscleReady";
 
 // ── Rows to store ──────────────────────────────────────────────────────────
 export {

@@ -273,14 +273,20 @@ describe("sdScaleFor: when a kind's range widens", () => {
     expect(sdScaleFor("sessionLength", record)).toBeCloseTo(1 + STEP, 10);
     expect(sdScaleFor("amrapReps", record)).toBe(1);
     expect(sdScaleFor("bodyweight4w", record)).toBe(1);
+    // A milestone's dates are a range of its own, widened on its own record.
+    expect(RANGE_SOURCE_KIND.milestone).toBe("milestone");
+    expect(sdScaleFor("milestone", ranges(MIN, 0, 1, "milestone"))).toBeCloseTo(1 + STEP, 10);
+    expect(sdScaleFor("milestone", record)).toBe(1);
   });
 
-  it("widens the two chance kinds with the reps ranges they come from", () => {
+  it("widens the chance kinds with the reps ranges they come from", () => {
     expect(RANGE_SOURCE_KIND.newBest).toBe("amrapReps");
     expect(RANGE_SOURCE_KIND.liftPass).toBe("amrapReps");
+    expect(RANGE_SOURCE_KIND.stallRisk).toBe("amrapReps");
     const record = ranges(MIN, 0);
     expect(sdScaleFor("newBest", record)).toBeCloseTo(1 + STEP, 10);
     expect(sdScaleFor("liftPass", record)).toBeCloseTo(1 + STEP, 10);
+    expect(sdScaleFor("stallRisk", record)).toBeCloseTo(1 + STEP, 10);
     const widened = sdScaleFor("amrapReps", record);
     expect(sdScales(record)).toEqual({
       amrapReps: widened,
@@ -289,6 +295,8 @@ describe("sdScaleFor: when a kind's range widens", () => {
       sessionLength: 1,
       e1rm4w: 1,
       bodyweight4w: 1,
+      stallRisk: widened,
+      milestone: 1,
     });
     expect(Object.keys(sdScales([])).sort()).toEqual([...FORECAST_KIND_IDS].sort());
   });

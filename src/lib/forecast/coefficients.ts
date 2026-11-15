@@ -142,6 +142,78 @@ export const BODYWEIGHT_MODEL = {
 } as const;
 
 /**
+ * Reading the reps model at a lift's next sessions: how often the lift comes round
+ * and how the level's own error is averaged over.
+ *
+ * Reasoning: a session's chance of passing is the reps model's chance of reaching the
+ * target on the last set at that session's weight, with the level read at that
+ * session's date. Two sessions share the same uncertain level (a lifter who is weaker
+ * than the model thinks is weaker at both), so the chances are not multiplied as if
+ * independent: the level's error is averaged over with Gauss-Hermite points and only
+ * the day-to-day part is drawn afresh each session (`repsOutlook`). The pace is the
+ * lift's own: the mean days between its sessions over the last windowWeeks, with
+ * their own scatter (at least gapSdFloorDays) for how far a date can drift. Grade:
+ * heuristic; the window and the floor are assumptions.
+ * @evidence forecast-stall
+ * @evidence forecast-milestone
+ */
+export const LIFT_OUTLOOK_MODEL = {
+  /** Sessions of the lift within this many weeks give its pace. */
+  paceWindowWeeks: 8,
+  /** Fewest sessions of the lift in that window for a pace, and so for a forecast. */
+  minPaceSessions: 2,
+  /** Smallest scatter of the days between two sessions of a lift. */
+  gapSdFloorDays: 1,
+  /** Gauss-Hermite points for each part of the level's error. */
+  levelErrorPoints: 9,
+} as const;
+
+/**
+ * The chance a T1 lift misses at its current stage within its next sessions.
+ *
+ * Reasoning: the program moves a T1 lift to its next stage (or resets it) after a
+ * session that does not pass. The lift passes when every set reaches the target; the
+ * last set is taken as many reps as you can after the others at the same weight, so
+ * the chance of reaching the target there is taken as the chance of reaching it on
+ * every set. The first session is at today's working weight, the second one
+ * program step heavier. Sessions held back for pain, a run or equipment, or stopped
+ * part-way, change nothing in the program and are not counted. Grade: heuristic.
+ * @evidence forecast-stall
+ */
+export const STALL_MODEL = {
+  /** How many of the lift's next sessions the chance covers. */
+  sessions: 2,
+  /** Sessions are counted up to this many days after the last one is due. */
+  outcomeWindowDays: 14,
+} as const;
+
+/**
+ * When a T1 lift's working weight reaches its next round number.
+ *
+ * Reasoning: the program's own rules are walked forward session by session (a pass
+ * adds the lift's step, a miss moves it down a stage, a miss at the last stage resets
+ * it), each session passing with the reps model's chance at that session's weight
+ * and date. The sessions come at the lift's own pace. Round numbers are multiples of
+ * roundToLbs, the next one above today's weight: three passes of a lower-body step
+ * or five of an upper-body one at the usual plates. The walk reads the trend of the
+ * last trendWindowWeeks of results forward, so it looks no further ahead than about
+ * that window again (maxWeeks); a straight line through eight weeks says little about
+ * the fourth month. Grade: heuristic: the round number is a choice for the screen,
+ * and the horizon and the least chance are assumptions.
+ * @evidence forecast-milestone
+ */
+export const MILESTONE_MODEL = {
+  roundToLbs: 25,
+  /** The walk looks at most this many weeks ahead. */
+  maxWeeks: 12,
+  /**
+   * No date is given unless the weight is reached within maxWeeks with at least the
+   * chance the top of an 80% range needs (0.9), so the whole range is inside the walk.
+   */
+  minReachChance: 0.9,
+} as const;
+
+/**
  * How ranges are sized and when the app widens them.
  * @evidence forecast-calibration
  */

@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import { useScoredForecasts } from "@/hooks";
 import { trackRecord } from "@/lib/forecast";
 import { CalibrationChart, calibrationSummary } from "@/components/chart-kit";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/ui/chip-group";
 import { SkeletonCard } from "@/components/ui/skeleton";
@@ -47,7 +48,7 @@ function FirstRun({ open }: { open: number }) {
       </h2>
       <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm text-foreground">
         <li>When you start a workout, before the first set, the app writes down what it expects: reps on each last set, the chance of a pass or a new best, how long the session takes.</li>
-        <li>Every week it also writes down where each lift&apos;s estimated max and your bodyweight should be four weeks on.</li>
+        <li>Every week it also writes down where each lift&apos;s estimated max and your bodyweight should be four weeks on, the chance each main lift stalls in its next two sessions, and when it reaches its next round number.</li>
         <li>When the result is in, each forecast is checked against your log. Nothing it wrote down is changed afterwards.</li>
         <li>Once a kind has about {MIN_RESULTS_TO_JUDGE} results, this page shows how often it was right.</li>
       </ol>
@@ -210,6 +211,7 @@ export function TrackRecordScreen() {
             </p>
           </>
         )}
+        <EvidenceLine ruleId="forecast-calibration" />
       </section>
 
       {data.kinds.length > 0 && (

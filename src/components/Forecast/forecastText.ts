@@ -73,6 +73,8 @@ const CATEGORY: Record<ForecastKind, ForecastCategory> = {
   newBest: "strength",
   liftPass: "strength",
   e1rm4w: "strength",
+  stallRisk: "strength",
+  milestone: "strength",
   bodyweight4w: "body",
   sessionLength: "session",
 };
@@ -124,12 +126,23 @@ export function formatMinutes(seconds: number): string {
   return m === 0 ? `${h} h` : `${h} h ${m} min`;
 }
 
+/** A date stored as days since 1 January 1970 (UTC), the unit "day": "Dec 3". */
+export function dayDate(days: number): string {
+  return shortDate(days * DAY_MS);
+}
+
 /** An amount in a prediction's unit, without the unit for lbs (the label says it). */
 function formatIn(unit: string, value: number): string {
   if (unit === "s") return formatMinutes(value);
   if (unit === "reps") return String(Math.round(value));
   if (unit === "chance") return formatPercent(value);
+  if (unit === "day") return dayDate(value);
   return formatAmount(value);
+}
+
+/** "5x3" -> "5×3". */
+function stageText(stage: string | null): string {
+  return stage ? stage.replace("x", "×") : "this stage";
 }
 
 /** The rep count with the highest single chance in a stored spread. */
@@ -154,8 +167,19 @@ export interface ForecastView {
   valueUnit?: string;
   /** "4 to 6", or for a chance what it is a chance of. */
   range?: string;
-  /** Numbers for the range bar; absent for a chance. */
-  bar?: { low: number; high: number; point: number; format: (v: number) => string };
+  /**
+   * Numbers for the range bar; absent for most chances. `min` and `max` fix the
+   * track (0 to 1 for a chance), `label` replaces the generated text alternative.
+   */
+  bar?: {
+    low: number;
+    high: number;
+    point: number;
+    format: (v: number) => string;
+    min?: number;
+    max?: number;
+    label?: string;
+  };
   /** When it falls due. */
   due: string;
   /** One line on what it rests on. */
@@ -182,6 +206,14 @@ export function questionOf(forecast: Forecast): string {
       return `${liftLabel(forecast.exerciseId)} estimated max, ${shortDate(forecast.dueAt)}`;
     case "bodyweight4w":
       return `Bodyweight around ${shortDate(forecast.dueAt)}`;
+    case "stallRisk":
+      return `${liftLabel(forecast.exerciseId)} misses at ${stageText(str(forecast, "stage"))} in the next two sessions`;
+    case "milestone": {
+      const target = forecast.event.weight;
+      return target !== undefined
+        ? `${liftLabel(forecast.exerciseId)} reaches ${formatAmount(target)} lb`
+        : `${liftLabel(forecast.exerciseId)} reaches its next round number`;
+    }
   }
 }
 
@@ -200,9 +232,20 @@ export function dueOf(forecast: Forecast, now: Date): string {
       ? `Checked on the last set at ${formatAmount(weight)} lb`
       : "Checked when this workout ends";
   }
+  if (forecast.kind === "milestone") {
+    const target = forecast.event.weight;
+    return target !== undefined
+      ? `Checked when the bar first has ${formatAmount(target)} lb on it`
+      : "Checked when the bar first has that weight on it";
+  }
   const due = ms(forecast.dueAt);
   const windowDays = forecast.event.windowDays ?? 0;
   const days = Math.ceil((due - now.getTime()) / DAY_MS);
+  if (forecast.kind === "stallRisk") {
+    return days > 0
+      ? `Checked over the next two sessions, the second due about ${shortDate(due)}`
+      : `Checked over the next two sessions; set aside if they are not done by ${shortDate(due + windowDays * DAY_MS)}`;
+  }
   if (days > 0) return `Due ${shortDate(due)}, ${weeksText(days)}`;
   return `Measuring now; scored after ${shortDate(due + windowDays * DAY_MS)}`;
 }
@@ -272,6 +315,17 @@ export function restsOnOf(forecast: Forecast): string {
       if (rate !== null) parts.push(rateWords(rate, "gaining", "losing"));
       break;
     }
+    case "stallRisk":
+    case "milestone": {
+      parts.push(
+        forecast.basis === "trend"
+          ? `Trend of ${plural(n, "last set")}`
+          : `From ${plural(n, "last set")}, so wider`
+      );
+      const gap = num(forecast, "gapDays");
+      if (gap !== null) parts.push(`a session every ${Math.round(gap)} days`);
+      break;
+    }
   }
   return parts.join(" · ");
 }
@@ -296,6 +350,29 @@ export function viewOf(forecast: Forecast, now: Date, earlierOpen = 0): Forecast
     strength: strengthOf(forecast.kind),
     earlierOpen,
   };
+  if (forecast.kind === "stallRisk" && p.probability !== undefined) {
+    // How the chance builds: a miss at the next session, then within two.
+    const passFirst = num(forecast, "passFirst");
+    const first = passFirst === null ? null : Math.min(p.probability, Math.max(0, 1 - passFirst));
+    return {
+      ...base,
+      value: formatPercent(p.probability),
+      range: "chance of a stall",
+      ...(first !== null
+        ? {
+            bar: {
+              low: first,
+              high: p.probability,
+              point: p.probability,
+              format: formatPercent,
+              min: 0,
+              max: 1,
+              label: `Chance of a miss: ${formatPercent(first)} at the next session, ${formatPercent(p.probability)} within two`,
+            },
+          }
+        : {}),
+    };
+  }
   if (p.probability !== undefined) {
     return {
       ...base,
@@ -313,6 +390,8 @@ export function viewOf(forecast: Forecast, now: Date, earlierOpen = 0): Forecast
     value = `${likely} ${likely === 1 ? "rep" : "reps"}`;
   } else if (unit === "s") {
     value = formatMinutes(p.point);
+  } else if (unit === "day") {
+    value = dayDate(p.point);
   } else {
     value = formatAmount(p.point);
     valueUnit = unit === "lb" ? "lb" : undefined;
@@ -349,6 +428,8 @@ const KIND_ORDER: ForecastKind[] = [
   "liftPass",
   "newBest",
   "sessionLength",
+  "stallRisk",
+  "milestone",
   "e1rm4w",
   "bodyweight4w",
 ];
@@ -436,6 +517,27 @@ export function inputLines(forecast: Forecast): InputLine[] {
       add("Best estimated max to beat", lb("bestE1RM"));
       add("Reps needed for a new best", n("repsNeeded") === null ? null : String(n("repsNeeded")));
     }
+  } else if (forecast.kind === "stallRisk" || forecast.kind === "milestone") {
+    add("Working weight today", lb("weight"));
+    add("Stage", str(forecast, "stage")?.replace("x", "×") ?? null);
+    add("Target reps", n("targetReps") === null ? null : String(n("targetReps")));
+    add("Added after each pass", lb("increment"));
+    add("Past last sets used", n("sampleSize") === null ? null : String(n("sampleSize")));
+    add("Strength level (weight × (1 + reps ÷ 30))", lb("level"));
+    add("Day-to-day scatter of that level", lb("daySd"));
+    const gap = n("gapDays");
+    if (gap !== null) add("Days between sessions of this lift", formatAmount(gap));
+    if (forecast.kind === "stallRisk") {
+      const first = n("passFirst");
+      if (first !== null) add("Chance the next session passes", formatPercent(first));
+    } else {
+      add("Round number", lb("target"));
+      const reach = n("reachChance");
+      if (reach !== null) add("Chance of getting there within the walk", formatPercent(reach));
+      const inRange = n("rangeChance");
+      if (inRange !== null) add("Chance the range itself gives", formatPercent(inRange));
+    }
+    if ((n("cuttingShift") ?? 0) !== 0) add("Lowered for the cut", formatPercent(Math.abs(n("cuttingShift")!)));
   } else if (forecast.kind === "sessionLength") {
     add("Planned sets and rests", n("plannedSeconds") === null ? null : formatMinutes(n("plannedSeconds")!));
     add("Past sessions used", n("sampleSize") === null ? null : String(n("sampleSize")));
@@ -619,6 +721,34 @@ export function kindRows(scored: readonly ScoredForecast[]): KindRow[] {
     });
   }
 
+  const stalls = resolved(scored, "stallRisk");
+  if (stalls.length > 0) {
+    const r = summarize(stalls);
+    rows.push({
+      id: "stallRisk",
+      title: "Stall calls",
+      subtitle:
+        r.chances.meanStated !== null
+          ? `Said ${formatPercent(r.chances.meanStated)} on average · stalled ${r.chances.hits} of ${r.chances.n}`
+          : `${r.chances.n} results`,
+      value: r.chances.n < MIN_RESULTS_TO_JUDGE || r.chances.observed === null ? null : formatPercent(r.chances.observed),
+      n: stalls.length,
+    });
+  }
+
+  const milestones = resolved(scored, "milestone");
+  if (milestones.length > 0) {
+    const r = summarize(milestones);
+    const judged = judgeShare(r.ranges.inside, r.ranges.n, "inside the range");
+    rows.push({
+      id: "milestone",
+      title: "Round-number dates",
+      subtitle: `Reached within the range of dates · ${judged.counts}`,
+      value: judged.value,
+      n: milestones.length,
+    });
+  }
+
   const amounts: { kind: ForecastKind; title: string; format: (v: number) => string }[] = [
     { kind: "bodyweight4w", title: "Bodyweight, 4 weeks ahead", format: (v) => `${formatAmount(v)} lb` },
     { kind: "e1rm4w", title: "Estimated max, 4 weeks ahead", format: (v) => `${formatAmount(v)} lb` },
@@ -684,13 +814,14 @@ export function wrongest(scored: readonly ScoredForecast[]): WrongestFinding | n
       text: `${subject}: ${verdict}. Results came in ${fmt(Math.abs(r.miss.bias))} ${direction} the forecast on average, over ${plural(r.miss.n, "result")}.`,
     });
   };
-  const chanceGroup = (rows: ScoredForecast[], subject: string) => {
+  /** `goodEvent`: whether the event is one the lifter hopes for (a pass), not one to avoid (a stall). */
+  const chanceGroup = (rows: ScoredForecast[], subject: string, goodEvent = true) => {
     if (rows.length < MIN_RESULTS_TO_JUDGE) return;
     const r = summarize(rows);
     if (r.chances.n < MIN_RESULTS_TO_JUDGE || r.chances.meanStated === null || r.chances.observed === null) return;
     anyEnough = true;
     const gap = r.chances.observed - r.chances.meanStated;
-    const verdict = gap < 0 ? "too optimistic" : "too cautious";
+    const verdict = gap < 0 === goodEvent ? "too optimistic" : "too cautious";
     candidates.push({
       lean: gap / 0.5,
       subject,
@@ -716,6 +847,7 @@ export function wrongest(scored: readonly ScoredForecast[]): WrongestFinding | n
   missGroup(resolved(scored, "sessionLength"), "Session length", formatMinutes, false);
   chanceGroup(resolved(scored, "newBest"), "New-best chances");
   chanceGroup(resolved(scored, "liftPass"), "Pass chances");
+  chanceGroup(resolved(scored, "stallRisk"), "Stall chances", false);
 
   if (!anyEnough) return null;
   const top = candidates.sort((a, b) => Math.abs(b.lean) - Math.abs(a.lean))[0];

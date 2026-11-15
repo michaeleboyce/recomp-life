@@ -261,6 +261,56 @@ function finiteOr(value: number | null | undefined, fallback: number): number {
  * @evidence forecast-reps
  */
 export function estimateRepsLevel(input: RepsModelInput): RepsLevel {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { levelAt, daySd, levelErrors, ...level } = repsOutlook(input);
+  return level;
+}
+
+/**
+ * Today's level (`estimateRepsLevel`) and how it carries to a later session of the
+ * same lift, for reading the same model several sessions ahead.
+ */
+export interface RepsOutlook extends RepsLevel {
+  /**
+   * The level at `tMs` for a planned weight, with today's shifts. A trend is read at
+   * that time; one to three results are carried up by fewPointsWeightCarry of that
+   * weight's rise; a prior or the level after a change stays where it is today.
+   */
+  levelAt(tMs: number, plannedWeight: number): number;
+  /** The day-to-day scatter of one result around the level, in index lbs. */
+  daySd: number;
+  /**
+   * The level's own error, as independent bell-curve parts: each gives its size in
+   * index lbs at a time. With `daySd` they make up the scatter:
+   * scatter^2 = daySd^2 + the sum of the parts' squares at `now`. A part is shared by
+   * every later session, so the results of two sessions are not independent.
+   */
+  levelErrors: ReadonlyArray<(tMs: number) => number>;
+}
+
+/**
+ * The share of a few-results scatter that is day-to-day scatter, as the floor's own
+ * reasoning splits it: the next result spreads around the mean of n results by
+ * sd x sqrt(1 + 1/n), so the day part is sqrt(n / (n + 1)) of it.
+ */
+const dayShare = (n: number) => (n > 0 ? Math.sqrt(n / (n + 1)) : 0);
+
+/**
+ * `estimateRepsLevel` with what is needed to read it at later sessions: the level at
+ * a later time and weight, and the scatter split into the day-to-day part and the
+ * level's own error. The split follows each basis's own reasoning:
+ * - trend: the day part is the residual scatter (at least the floor); the level's
+ *   error is the fitted line's, its height and its slope (`predictionSd`);
+ * - one to three results: n results pin their mean down to a scatter / sqrt(n + 1);
+ * - after a change: as for one to three results, and the extra
+ *   regimeChangeSdMultiplier widening is all the level's;
+ * - prior: the day part is trendSdFloorFraction of the level (the smallest scatter a
+ *   trained lifter shows), the rest is the level's.
+ * The track-record widening scales both parts.
+ *
+ * @evidence forecast-reps
+ */
+export function repsOutlook(input: RepsModelInput): RepsOutlook {
   const nowMs = input.now.getTime();
   const stage = stageForReps(input.targetReps);
   const plannedWeight = finiteOr(input.plannedWeight, input.weight);
@@ -273,6 +323,11 @@ export function estimateRepsLevel(input: RepsModelInput): RepsLevel {
   let baseScatter: number;
   let fitted: LastSetPoint[] = [];
   let regimeChange: RegimeChange | null = null;
+  /** The level before shifts at a time and planned weight. */
+  let baseLevelAt: (tMs: number, weight: number) => number;
+  /** The day part and the level's error parts, before the track-record widening. */
+  let baseDaySd: number;
+  let baseErrors: Array<(tMs: number) => number>;
 
   const fewPoints = (values: number[]) => {
     const level = mean(values);
@@ -287,6 +342,11 @@ export function estimateRepsLevel(input: RepsModelInput): RepsLevel {
     basis = "prior";
     baseLevel = repsIndex(plannedWeight, input.targetReps + REPS_MODEL.priorRepsAboveTarget);
     baseScatter = REPS_MODEL.priorSdFraction * baseLevel;
+    const level = baseLevel;
+    baseLevelAt = () => level;
+    baseDaySd = Math.min(baseScatter, REPS_MODEL.trendSdFloorFraction * baseLevel);
+    const error = Math.sqrt(Math.max(0, baseScatter ** 2 - baseDaySd ** 2));
+    baseErrors = [() => error];
   } else {
     const last = points[points.length - 1];
     const run = currentRun(points);
@@ -296,6 +356,12 @@ export function estimateRepsLevel(input: RepsModelInput): RepsLevel {
       basis = "regime-change";
       fitted = run.slice(-few);
       ({ level: baseLevel, scatter: baseScatter } = fewPoints(fitted.map((p) => p.index)));
+      const level = baseLevel;
+      baseLevelAt = () => level;
+      baseDaySd = baseScatter * dayShare(fitted.length);
+      const total = baseScatter * REPS_MODEL.regimeChangeSdMultiplier;
+      const error = Math.sqrt(Math.max(0, total ** 2 - baseDaySd ** 2));
+      baseErrors = [() => error];
     } else {
       const windowStart = nowMs - REPS_MODEL.trendWindowWeeks * MS_PER_WEEK;
       const recent = run.filter((p) => p.t >= windowStart);
@@ -309,18 +375,30 @@ export function estimateRepsLevel(input: RepsModelInput): RepsLevel {
         basis = "trend";
         fitted = recent;
         baseLevel = trendLevel;
-        baseScatter = fit.predictionSd(
-          nowMs,
-          Math.max(fit.residualSd, REPS_MODEL.trendSdFloorFraction * trendLevel)
-        );
+        const single = Math.max(fit.residualSd, REPS_MODEL.trendSdFloorFraction * trendLevel);
+        baseScatter = fit.predictionSd(nowMs, single);
+        baseLevelAt = (tMs) => fit.valueAt(tMs);
+        baseDaySd = single;
+        const n = fit.pointsUsed;
+        baseErrors = [
+          () => single / Math.sqrt(n),
+          (tMs) =>
+            (single * ((tMs - fit.meanTime) / MS_PER_WEEK)) / Math.sqrt(fit.timeSumSquares),
+        ];
       } else {
         basis = "persistence";
         fitted = recent.slice(-few);
-        const carried = fitted.map((p) => {
-          const rise = p.weight > 0 ? Math.max(0, plannedWeight / p.weight - 1) : 0;
-          return p.index * (1 + REPS_MODEL.fewPointsWeightCarry * rise);
-        });
-        ({ level: baseLevel, scatter: baseScatter } = fewPoints(carried));
+        const kept = fitted;
+        const carriedAt = (weight: number) =>
+          kept.map((p) => {
+            const rise = p.weight > 0 ? Math.max(0, weight / p.weight - 1) : 0;
+            return p.index * (1 + REPS_MODEL.fewPointsWeightCarry * rise);
+          });
+        ({ level: baseLevel, scatter: baseScatter } = fewPoints(carriedAt(plannedWeight)));
+        baseLevelAt = (_tMs, weight) => mean(carriedAt(weight));
+        baseDaySd = baseScatter * dayShare(kept.length);
+        const error = baseScatter / Math.sqrt(kept.length + 1);
+        baseErrors = [() => error];
       }
     }
   }
@@ -341,10 +419,11 @@ export function estimateRepsLevel(input: RepsModelInput): RepsLevel {
     CALIBRATION.sdScaleMin,
     CALIBRATION.sdScaleMax
   );
+  const shift = 1 + cuttingShift + readinessShift;
 
   return {
     basis,
-    level: baseLevel * (1 + cuttingShift + readinessShift),
+    level: baseLevel * shift,
     scatter: baseScatter * regimeMultiplier * sdScale,
     sampleSize: fitted.length,
     baseLevel,
@@ -355,6 +434,9 @@ export function estimateRepsLevel(input: RepsModelInput): RepsLevel {
     cuttingShift,
     readinessShift,
     fittedPhase,
+    levelAt: (tMs, weight) => baseLevelAt(tMs, weight) * shift,
+    daySd: baseDaySd * sdScale,
+    levelErrors: baseErrors.map((error) => (tMs: number) => error(tMs) * sdScale),
   };
 }
 

@@ -169,7 +169,10 @@ export function replayForecasts(input: ReplayInput, options: ReplayOptions = {})
 
     if (horizon) {
       let made = 0;
-      for (const row of makeHorizonForecasts(source, () => `replay:${made++}`)) {
+      const rows = makeHorizonForecasts(source, () => `replay:${made++}`, {
+        skipSlot: (slot) => slots.has(slot),
+      });
+      for (const row of rows) {
         if (slots.has(row.slot)) continue;
         slots.add(row.slot);
         const id = `replay:${row.slot}`;

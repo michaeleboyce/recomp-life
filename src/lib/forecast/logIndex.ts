@@ -7,7 +7,7 @@
 import { e1rmsForWorkout } from "@/lib/rebuild/e1rm";
 import type { Estimated1RM, WorkoutSession } from "@/types";
 import { weighIns } from "./horizon";
-import { isLive, toMs } from "./log";
+import { finishedBy, isLive, toMs } from "./log";
 import type { ForecastLog, IndexedLog, Measurement } from "./types";
 
 function isIndexed(log: ForecastLog): log is IndexedLog {
@@ -34,6 +34,7 @@ export function indexLog(log: ForecastLog): IndexedLog {
   const e1rms = new Map<WorkoutSession, Estimated1RM[]>();
   let resultsByExercise: Map<string, Measurement[]> | undefined;
   let weights: Measurement[] | undefined;
+  let t1Sessions: Map<string, WorkoutSession[]> | undefined;
 
   const e1rmsOf = (workout: WorkoutSession): Estimated1RM[] => {
     let rows = e1rms.get(workout);
@@ -79,7 +80,47 @@ export function indexLog(log: ForecastLog): IndexedLog {
       weights ??= weighIns(log.bodyweight).map(({ t, v }) => ({ t, v }));
       return weights;
     },
+    t1SessionsOf(exerciseId) {
+      if (!t1Sessions) {
+        t1Sessions = new Map();
+        for (const workout of finishedBy(log.workouts, Infinity)) {
+          const lifts = new Set<string>();
+          for (const set of workout.sets ?? []) {
+            if (set.tier === "T1") lifts.add(set.exerciseId);
+          }
+          for (const lift of lifts) {
+            const list = t1Sessions.get(lift);
+            if (list) list.push(workout);
+            else t1Sessions.set(lift, [workout]);
+          }
+        }
+      }
+      return t1Sessions.get(exerciseId) ?? [];
+    },
   };
+}
+
+/**
+ * The workouts of a list sorted by finish time (`t1SessionsOf`) finished after
+ * `afterMs` and by `untilMs`, both found by bisection.
+ */
+export function finishedBetween(
+  sorted: readonly WorkoutSession[],
+  afterMs: number,
+  untilMs: number
+): WorkoutSession[] {
+  let low = 0;
+  let high = sorted.length;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    if (toMs(sorted[mid].completedAt) <= afterMs) low = mid + 1;
+    else high = mid;
+  }
+  const out: WorkoutSession[] = [];
+  for (let i = low; i < sorted.length && toMs(sorted[i].completedAt) <= untilMs; i++) {
+    out.push(sorted[i]);
+  }
+  return out;
 }
 
 /**
