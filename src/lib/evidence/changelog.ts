@@ -70,7 +70,7 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     date: "2026-11-12",
     ruleId: "fatigue-detection",
     change:
-      "Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or AMRAP reps), and an easier week is offered as optional.",
+      "Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or the reps on the last set, taken to as many as you can), and an easier week is offered as optional.",
     sources: [],
   },
   {
@@ -147,7 +147,7 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     date: "2026-11-11",
     ruleId: "amrap-effort",
     change:
-      "T1 AMRAP sets now ask you to stop about 1 rep short of failure in every phase, not only while cutting.",
+      "On a T1 lift, the last set, taken to as many reps as you can, now asks you to stop about 1 rep short of failure in every phase, not only while cutting.",
     sources: ["robinson2024", "moranNavarro2017"],
   },
   {
