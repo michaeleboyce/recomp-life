@@ -5,6 +5,7 @@
 // the way the live app creates one: the plan from the running lift states, the stored
 // prescription, sets through `createSetLog`. Pure: no clock, no randomness, no database.
 import { DEFAULT_USER_PROFILE, startAdjustments } from "@/db/seed";
+import { E1RM_MAX_REPS } from "@/lib/e1rm";
 import { rebuildDerived } from "@/lib/rebuild";
 import { buildWorkoutPlan } from "@/lib/workout/buildPlan";
 import { createSetLog } from "@/lib/workout/logSet";
@@ -67,6 +68,48 @@ const BODYWEIGHT_END = 226;
 /** Days (before `now`) with no weigh-in. */
 const MISSED_WEIGH_INS = new Set([47, 38, 30, 19, 9]);
 
+/**
+ * The demo lifter's strength. Reps on the last set of a T1 lift are what this allows
+ * at the weight on the bar, so they fall when the bar gets heavier faster than the
+ * lifter gets stronger. (They used to be drawn at random whatever the weight, which
+ * made the lifter's strength leap about and rise with any weight the program asked for.)
+ *
+ * The starting weights are light, as the program advises, and the lifter gains a
+ * little slower than the bar does. The lifter stops a last set at E1RM_MAX_REPS reps,
+ * because a longer set does not count toward the estimated max. With these numbers
+ * and the days as drawn, every T1 lift passes for the whole demo (the generator's
+ * tests check it).
+ */
+export const DEMO_LIFTER = {
+  /** Reps the lifter can do on the last set at each lift's starting weight on an average day. */
+  startReps: 9,
+  /** Strength gained per week, as a fraction of the starting level. */
+  weeklyGain: 0.02,
+  /**
+   * Day-to-day variation of strength: the standard deviation of a bell-shaped scatter,
+   * as a fraction of the level. The middle of what retest studies of trained lifters report.
+   */
+  dailyVariation: 0.025,
+} as const;
+
+/**
+ * Whole reps the demo lifter has on the last set at `weight`, `weeks` after the first
+ * workout. Strength is a level in the app's own rep-max terms (weight x (1 + reps / 30),
+ * see src/lib/e1rm.ts): it starts where `DEMO_LIFTER.startReps` reps at the lift's
+ * starting weight puts it, grows a little every week, and is `swing` (a fraction)
+ * above or below on the day. Never more than E1RM_MAX_REPS: the lifter stops there.
+ */
+export function demoRepsInHand(
+  startWeight: number,
+  weight: number,
+  weeks: number,
+  swing: number
+): number {
+  const startLevel = startWeight * (1 + DEMO_LIFTER.startReps / 30);
+  const today = startLevel * (1 + DEMO_LIFTER.weeklyGain * weeks) * (1 + swing);
+  return Math.min(E1RM_MAX_REPS, Math.max(0, Math.floor(30 * (today / weight - 1))));
+}
+
 const SLEEP_CYCLE: SleepHours[] = ["7+", "7+", "5-7", "7+", "5-7", "7+", "<5"];
 const STRESS_CYCLE: StressLevel[] = ["normal", "good", "normal", "low", "good"];
 
@@ -93,6 +136,13 @@ function rand(seed: number): number {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
+/** A repeatable draw from a standard bell curve for an integer seed (Box-Muller). */
+function bellDraw(seed: number): number {
+  const u = Math.max(rand(seed), 1e-12);
+  const v = rand(seed + 104729);
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
 /** Local wall-clock time `daysAgo` calendar days before `now`. */
 function at(now: Date, daysAgo: number, hours: number, minutes = 0): Date {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo, hours, minutes, 0, 0);
@@ -102,8 +152,9 @@ const stamp = (date: Date) => ({ updatedAt: date.getTime(), deletedAt: null });
 
 /**
  * About eight weeks of plausible training ending at `now`: workouts rotating
- * A1/B1/A2/B2 every two to three days with steady progression and an occasional
- * failed T2, one home session in five, near-daily morning weigh-ins trending down
+ * A1/B1/A2/B2 every two to three days with steady progression (last-set reps start
+ * high and fall as the weights climb, see `DEMO_LIFTER`) and an occasional failed T2, one
+ * home session in five, near-daily morning weigh-ins trending down
  * about 1 lb a week, six runs, readiness logs for most workouts and one recent
  * soreness entry. The same `now` always produces the same data (ids included), so
  * tests and screenshots are stable.
@@ -122,6 +173,8 @@ export function generateDemoData(now: Date): DemoData {
 
   const workouts: WorkoutSession[] = [];
   const readinessLogs: ReadinessLog[] = [];
+  /** The barbell weight each T1 lift was first prescribed at. */
+  const startWeights = new Map<string, number>();
 
   for (let i = 0; i < WORKOUT_COUNT; i++) {
     const workoutId = `demo-workout-${pad(i + 1)}`;
@@ -153,7 +206,15 @@ export function generateDemoData(now: Date): DemoData {
 
         if (entry.tier === "T1") {
           if (entry.isAMRAP && isLast) {
-            actualReps = entry.targetReps + Math.floor(rand(i * 31 + 7) * 4); // 3 to 6 at 5x3
+            // At home the substitute stands in for the barbell weight the program asked for.
+            const barWeight = entry.originalWeight ?? entry.weight;
+            if (!startWeights.has(entry.exerciseId)) startWeights.set(entry.exerciseId, barWeight);
+            actualReps = demoRepsInHand(
+              startWeights.get(entry.exerciseId)!,
+              barWeight,
+              (daysAgo[0] - daysAgo[i]) / 7,
+              bellDraw(i * 31 + 7) * DEMO_LIFTER.dailyVariation
+            );
             rpe = actualReps <= 4 ? 9.5 : 9;
           } else {
             rpe = s <= 2 ? 7.5 : 8;

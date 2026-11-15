@@ -27,18 +27,25 @@ describe("replay of the demo history", () => {
     expect(replay.record.overall.void).toBe(0);
   });
 
-  it("puts the 80% ranges between 70% and 90%", () => {
+  // A sanity bound, not the calibration check (that is the pooled test below). The demo
+  // has about 50 resolved ranges. With 50, a range that truly holds 80% of results shows
+  // anything from about 69% to 91% by chance alone (standard error sqrt(0.8 x 0.2 / 50),
+  // 5.7 points; two of them either side), so a tight band here would fail a good model
+  // as often as it caught a bad one. These bounds only catch a model that is broken.
+  const DEMO_SANITY = { min: 0.66, max: 0.94 };
+
+  it("holds a sane share of the demo's results inside its 80% ranges", () => {
     const { ranges } = replay.record.overall;
     expect(ranges.n).toBeGreaterThanOrEqual(2 * demo.workouts.length);
-    expect(ranges.share!).toBeGreaterThanOrEqual(0.7);
-    expect(ranges.share!).toBeLessThanOrEqual(0.9);
+    expect(ranges.share!).toBeGreaterThanOrEqual(DEMO_SANITY.min);
+    expect(ranges.share!).toBeLessThanOrEqual(DEMO_SANITY.max);
   });
 
-  it("gives the same figure whatever day the demo ends on", () => {
+  it("gives a sane figure whatever day the demo ends on", () => {
     for (const now of [new Date(2026, 6, 1, 9), new Date(2026, 2, 3, 20)]) {
       const { ranges } = replayForecasts(demoReplayInput(now)).record.overall;
-      expect(ranges.share!).toBeGreaterThanOrEqual(0.7);
-      expect(ranges.share!).toBeLessThanOrEqual(0.9);
+      expect(ranges.share!).toBeGreaterThanOrEqual(DEMO_SANITY.min);
+      expect(ranges.share!).toBeLessThanOrEqual(DEMO_SANITY.max);
     }
   });
 
@@ -46,7 +53,24 @@ describe("replay of the demo history", () => {
     // Always saying 50% scores a mean squared gap of 0.25.
     expect(replay.record.byKind.liftPass!.chances.brier!).toBeLessThan(0.25);
     expect(replay.record.byKind.newBest!.chances.brier!).toBeLessThan(0.25);
-    expect(Math.abs(replay.record.byKind.amrapReps!.miss.bias!)).toBeLessThan(1);
+    // New bests happened about as often as the stated chances said.
+    const best = replay.record.byKind.newBest!.chances;
+    expect(Math.abs(best.meanStated! - best.observed!)).toBeLessThan(0.1);
+  });
+
+  it("is not biased, with or without a result behind the lift", () => {
+    const reps = replay.scored.filter((item) => item.forecast.kind === "amrapReps");
+    expect(Math.abs(summarize(reps).miss.bias!)).toBeLessThan(0.5);
+
+    const withHistory = summarize(reps.filter((item) => item.forecast.basis !== "prior"));
+    expect(withHistory.resolved).toBeGreaterThanOrEqual(12);
+    expect(Math.abs(withHistory.miss.bias!)).toBeLessThan(0.5);
+
+    // A first session has only the prior. The demo lifter starts light, as the program
+    // advises, which is what the prior assumes, so those forecasts are not far off either.
+    const first = summarize(reps.filter((item) => item.forecast.basis === "prior"));
+    expect(first.resolved).toBeGreaterThanOrEqual(4);
+    expect(Math.abs(first.miss.bias!)).toBeLessThan(1);
   });
 
   it("uses the ids the live writer would, and the weight that was lifted", () => {
@@ -169,6 +193,57 @@ describe("no forecast sees what came after it", () => {
   });
 });
 
+// The calibration check for ranges (requirement G6). The demo history is too short to
+// judge a range by, so this pools twelve simulated lifters, 64 workouts each: seeds 1
+// to 12, starting 3, 5 or 7 reps over the target at the starting weights, gaining 1% or
+// 2% a week, with a day-to-day variation of 2.5% of their level (the middle of the 2.0%
+// to 2.6% that retest studies of trained lifters report). The simulation varies strength
+// and nothing else, so the pool is the forecasts strength decides: reps on the last set
+// and the estimated max four weeks on. Session lengths there depend on nothing that
+// varies and are left out. The population was fixed before the figures were looked at.
+// Do not widen these bands or pick other lifters to get a pass: a figure outside them
+// says the ranges are sized wrongly.
+describe("ranges hold what they say, pooled over simulated lifters", () => {
+  const STARTS_OVER_TARGET = [3, 5, 7];
+  const WEEKLY_GAINS = [0.01, 0.02];
+  const DAILY_VARIATION = 0.025;
+
+  const pool: ScoredForecast[] = [];
+  for (let seed = 1; seed <= 12; seed++) {
+    const input = simulateLifter({
+      seed,
+      sessions: 64,
+      noise: DAILY_VARIATION,
+      weeklyGain: WEEKLY_GAINS[seed % WEEKLY_GAINS.length],
+      headroomReps: STARTS_OVER_TARGET[seed % STARTS_OVER_TARGET.length],
+    });
+    pool.push(
+      ...replayForecasts(input).scored.filter(
+        (item) => item.forecast.kind === "amrapReps" || item.forecast.kind === "e1rm4w"
+      )
+    );
+  }
+  const overall = summarize(pool).ranges;
+  const onATrend = summarize(pool.filter((item) => item.forecast.basis === "trend")).ranges;
+
+  it("pools enough resolved ranges to judge by", () => {
+    expect(overall.n).toBeGreaterThanOrEqual(300);
+    expect(onATrend.n).toBeGreaterThanOrEqual(300);
+    const kinds = new Set(pool.map((item) => item.forecast.kind));
+    expect([...kinds].sort()).toEqual(["amrapReps", "e1rm4w"]);
+  });
+
+  it("holds between 74% and 88% of results inside the 80% ranges", () => {
+    expect(overall.share!).toBeGreaterThanOrEqual(0.74);
+    expect(overall.share!).toBeLessThanOrEqual(0.88);
+  });
+
+  it("holds between 72% and 90% for forecasts built on a trend", () => {
+    expect(onATrend.share!).toBeGreaterThanOrEqual(0.72);
+    expect(onATrend.share!).toBeLessThanOrEqual(0.9);
+  });
+});
+
 describe("replay of simulated lifters", () => {
   const scoredFor = (noise: number, seeds: number, options = {}) => {
     const all: ScoredForecast[] = [];
@@ -192,14 +267,6 @@ describe("replay of simulated lifters", () => {
     const bases = new Set(typical.map((item) => item.forecast.basis));
     expect([...bases].sort()).toEqual(["persistence", "prior", "regime-change", "trend"]);
     expect(of("liftPass").chances.observed!).toBeLessThan(0.95);
-  });
-
-  it("holds about the stated share of results in its rep ranges", () => {
-    const reps = of("amrapReps");
-    expect(reps.resolved).toBeGreaterThan(500);
-    expect(reps.ranges.share!).toBeGreaterThan(0.75);
-    expect(reps.ranges.share!).toBeLessThan(0.95);
-    expect(of("amrapReps", "trend").ranges.share!).toBeGreaterThan(0.75);
   });
 
   it("is not biased once it has a trend", () => {

@@ -37,9 +37,9 @@ the number.
 | `REPS_MODEL.minTrendPoints` | 4 | 4 | assumption |
 | `REPS_MODEL.trendWindowWeeks` | 8 | 8 | assumption |
 | `REPS_MODEL.trendSdFloorFraction` | 0.042 | **0.03** | Mitter 2022 (≈2.0–2.6% in trained lifters), rounded up for real sessions (assumption); Grgic 2020 4.2% is an upper reference |
-| `REPS_MODEL.fewPointsSdFloorFraction` | 0.06 | 0.06 | assumption, derived from the trend floor (see (a)) |
+| `REPS_MODEL.fewPointsSdFloorFraction` | 0.06 | **0.045** | derived from the Mitter scatter (see (a) and "Calibration on simulated lifters"); at 0.06 these ranges held 97% of simulated results |
 | `REPS_MODEL.priorSdFraction` | 0.1 | 0.1 | assumption |
-| `REPS_MODEL.priorRepsAboveTarget` | 2 | 2 | assumption |
+| `REPS_MODEL.priorRepsAboveTarget` | 2 | **5** | the program's own starting-weight guidance, not a study (see "Calibration on simulated lifters") |
 | `REPS_MODEL.regimeChangeSdMultiplier` | 1.5 | 1.5 | assumption |
 | `REPS_MODEL.regimeChangeWeeksOff` | 3 | 3 | assumption |
 | `REPS_MODEL.cuttingLevelShift` | −0.01 | −0.01 | assumption (no study of acute strength in a deficit found) |
@@ -106,11 +106,15 @@ tested 1RM) is a sensible upper reference.
   1.15σ for three. At σ = 0.03 that is 0.042 for one result. The average of up to eight weeks
   of results also lags a lifter who is still gaining (GZCLP adds weight most sessions), which
   adds a bias of a few percent. Combining 0.042 with a 3% lag gives about 0.05; 0.06 leaves a
-  margin. No study measures this.
+  margin. No study measures this. **Since lowered to 0.045**, after the simulation below
+  showed 0.06 was too wide; the model now also carries part of the bar's weight increase
+  into these results, which takes most of the lag out.
 - **`priorSdFraction` 0.1, `priorRepsAboveTarget` 2, `regimeChangeSdMultiplier` 1.5,
   `regimeChangeWeeksOff` 3, `minTrendPoints` 4, `trendWindowWeeks` 8:** no source; keep as
   assumptions. Mitter's retest gain (up to 0.7 reps in a week) supports making the scatter
   wider, not narrower, after a change of routine, but gives no multiplier.
+  **`priorRepsAboveTarget` has since been raised to 5**; see "Calibration on simulated
+  lifters".
 
 ## (b) How accurate are rep-based estimates of a max at low reps?
 
@@ -255,3 +259,60 @@ the correction from the user's own sessions is what makes the forecast fit.
 - Bodyweight day-to-day noise in a group of lifters (the best figure is one man).
 - Whether reps at a fixed load are normally distributed around a person's level; the normal
   shape is a modelling choice.
+
+## Calibration on simulated lifters
+
+Added after the models were built. This is a check of the arithmetic, not evidence about
+real lifters: **the lifters are simulated from this app's own assumptions** (a strength
+level that grows steadily, bell-shaped day-to-day scatter, the rep-max relation in
+`src/lib/e1rm.ts`). It can show that a range is sized wrongly for the lifter the model
+assumes. It cannot show that real lifters behave that way. The stored track record, scored
+against what users actually log, is what will show real calibration.
+
+**Set-up** (`src/lib/forecast/replay.test.ts`, "ranges hold what they say, pooled over
+simulated lifters"). Twelve lifters, 64 workouts each, run through the real program rules:
+seeds 1 to 12, starting 3, 5 or 7 reps over the target at the starting weights, gaining 1%
+or 2% a week, with session-to-session variation of 2.5% of their level (the middle of the
+Mitter range in (a)). Each workout is forecast from the workouts before it and scored
+against what the lifter then did. The pool is the 1,261 resolved 80% ranges for reps on the
+last set and for the estimated max four weeks on. Session lengths are left out because
+nothing in the simulation varies them. The test requires 74% to 88% of results inside the
+ranges overall, and 72% to 90% for forecasts built on a trend. The demo history has only
+about 50 ranges, where a correctly sized range shows anything from 69% to 91% by chance,
+so it is kept only as a sanity bound.
+
+**Result.** Share of results inside the 80% range, before and after two constants changed:
+
+| Basis of the forecast | Before | After |
+|---|---|---|
+| All | 89.1% (1,124 of 1,261) | 87.2% (1,099) |
+| No results yet (`prior`) | 68.8% (33 of 48) | 100% (48 of 48) |
+| One to three results (`persistence`) | 97.0% (323 of 333) | 88.6% (295) |
+| Four or more (`trend`) | 86.7% (664 of 766) | 86.7% (664) |
+| After a stage change, reset or break (`regime-change`) | 91.2% (104 of 114) | 80.7% (92) |
+
+Before, the pool was above the 88% ceiling; after, it passes. The two changes:
+
+- **`fewPointsSdFloorFraction` 0.06 → 0.045.** With session-to-session variation of about
+  2.5% of the level, the next result spreads around the mean of n earlier ones by
+  2.5% × √(1 + 1/n): 3.5% from one result, 2.9% from three. 4.5% keeps a margin for the level
+  also moving between sessions. Because the calibration loop can only widen a range, a floor
+  that starts too wide is never corrected, which is the same argument as for the trend floor
+  in (a). **Grade: heuristic, derived from a cited figure (Mitter 2022).** The same floor,
+  times `regimeChangeSdMultiplier`, sizes the range after a stage change, reset or break,
+  so that row moved too.
+- **`priorRepsAboveTarget` 2 → 5.** GZCLP's own guidance is to start the T1 lifts at about
+  85% of a five-rep max, roughly three quarters of a one-rep max, and to stop the last set
+  with one or two reps left (read on the program's page at
+  https://www.liftosaur.com/programs/gzclp, which describes Cody Lefever's program). Three
+  quarters of a max is about ten reps fresh and all-out, so about eight on the last of five
+  sets stopped short, which is five over a 3-rep target. In the simulation, first-session
+  forecasts ran 3.2 reps low before the change (1.4, 3.1 and 5.1 low for lifters starting 3,
+  5 and 7 over the target) and 0.2 low after (1.6 high, 0.1 low, 2.1 low). That figure only
+  mirrors the starting strength given to the simulated lifters, so it supports the value
+  no further than the guidance does. **Grade: heuristic (program guidance, not a study).**
+
+**What the table still shows.** Ranges with no results yet now hold every simulated
+result: `priorSdFraction` 0.1 is wide for lifters who start as the program advises, and was
+left alone because a first session is where the app knows least. Ranges built on one to
+three results (88.6%) are still a little wide.

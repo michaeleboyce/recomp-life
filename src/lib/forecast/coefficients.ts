@@ -15,8 +15,19 @@ export const REPS_MODEL = {
   trendWindowWeeks: 8,
   /** Smallest scatter, as a fraction of the level, when a trend is fitted. */
   trendSdFloorFraction: 0.03,
-  /** Smallest scatter with one to three results. */
-  fewPointsSdFloorFraction: 0.06,
+  /**
+   * Smallest scatter with one to three results.
+   *
+   * Reasoning: a lifter's result varies from session to session by about 2.5% of the
+   * level (2.0% to 2.6% in the retest study the trend floor rests on). The next result
+   * then spreads around the mean of n earlier ones by 2.5% x sqrt(1 + 1/n): 3.5% from
+   * one result, 2.9% from three. 4.5% keeps a margin for the level itself moving
+   * between sessions. The app's self-correction can only widen a range, so a floor set
+   * too wide is never corrected; at 0.06, ranges built on one to three results held
+   * 97% of simulated results instead of 80%. Grade: heuristic, derived from a cited
+   * figure. See "Calibration on simulated lifters" in the research note.
+   */
+  fewPointsSdFloorFraction: 0.045,
   /**
    * With one to three results, the share of the bar's weight increase since each
    * result that the lifter is assumed to have grown into: 0 holds the strength level
@@ -26,8 +37,16 @@ export const REPS_MODEL = {
   fewPointsWeightCarry: 0.5,
   /** Scatter with no results at all. */
   priorSdFraction: 0.1,
-  /** With no results, assume this many reps above the target on the last set. */
-  priorRepsAboveTarget: 2,
+  /**
+   * With no results, assume this many reps above the target on the last set.
+   *
+   * Reasoning: GZCLP's own guidance is to start the T1 lifts at about 85% of a five-rep
+   * max, which is roughly three quarters of a one-rep max. That is about ten reps fresh
+   * and all-out, so about five over a 3-rep target on the last of five sets, stopped
+   * short of failure. Grade: heuristic (program guidance, not a study). A lifter who
+   * starts heavier will come in under this on the first session of a lift only.
+   */
+  priorRepsAboveTarget: 5,
   /** Scatter is multiplied by this after a stage change, a reset or a long break. */
   regimeChangeSdMultiplier: 1.5,
   regimeChangeWeeksOff: 3,
