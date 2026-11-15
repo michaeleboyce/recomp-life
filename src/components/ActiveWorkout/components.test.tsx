@@ -9,6 +9,7 @@ import { ExerciseBlock } from "./ExerciseBlock";
 import { LogDock } from "./LogDock";
 import { PrOpportunityLine } from "./PrOpportunityLine";
 import { RepPicker } from "./RepPicker";
+import { FINAL_SECONDS, restRingFraction } from "./RestTimer";
 import { RPESelector } from "./RPESelector";
 import { WeightDisplay } from "./WeightDisplay";
 import { WorkoutOverviewSheet } from "./WorkoutOverviewSheet";
@@ -391,6 +392,70 @@ describe("LogDock", () => {
     act(() => useWorkoutStore.setState({ restTimeRemaining: 0 }));
     expect(audio.playTimerChime).toHaveBeenCalledTimes(1);
     expect(audio.vibrateTimer).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("rest timer motion", () => {
+  const props = {
+    onLog: vi.fn(),
+    audioEnabled: false,
+    vibrationEnabled: false,
+    trainingPhase: { mode: "cutting" as const },
+    nextLabel: "Next: set 2 of 5 · 245 lbs",
+    reps: 3,
+  };
+  const C = 2 * Math.PI * 76;
+  const offset = (ring: Element) => Number(ring.getAttribute("stroke-dashoffset"));
+
+  it("aims the ring at the next tick so it glides through each second and empties at 0:00", () => {
+    // Before the first frame: where the rest is now (full at the start).
+    expect(restRingFraction(210, 210, false)).toBe(1);
+    // Then one tick ahead, reached by a one-second linear transition.
+    expect(restRingFraction(210, 210, true)).toBeCloseTo(209 / 210);
+    expect(restRingFraction(1, 210, true)).toBe(0);
+    expect(restRingFraction(5, 0, true)).toBe(0);
+  });
+
+  it("starts full and moves on after the first frame", async () => {
+    render(<LogDock {...props} />);
+    act(() => useWorkoutStore.getState().startRestTimer(210, "T1"));
+    const ring = screen.getByTestId("rest-ring");
+    expect(offset(ring)).toBeCloseTo(0);
+    await act(() => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined))));
+    expect(offset(ring)).toBeCloseTo(C * (1 - 209 / 210));
+    // A one-second linear sweep, switched off under reduced motion.
+    expect(ring.getAttribute("class")).toContain("[transition:stroke-dashoffset_1000ms_linear");
+    expect(ring.getAttribute("class")).toContain("motion-reduce:transition-none");
+  });
+
+  it("signals the last ten seconds without sound: colour, words and a pulse that motion settings can stop", () => {
+    audio.playTimerChime.mockClear();
+    render(<LogDock {...props} audioEnabled />);
+    act(() => useWorkoutStore.getState().startRestTimer(210, "T1"));
+    const timer = screen.getByRole("timer");
+    expect(timer).not.toHaveAttribute("data-final");
+    expect(screen.getByTestId("rest-ring")).toHaveAttribute("stroke", "var(--primary)");
+
+    act(() => useWorkoutStore.setState({ restTimeRemaining: FINAL_SECONDS }));
+    expect(timer).toHaveAttribute("data-final", "true");
+    expect(screen.getByTestId("rest-ring")).toHaveAttribute("stroke", "var(--rest-final)");
+    const numeral = screen.getByTestId("rest-remaining");
+    expect(numeral).toHaveTextContent("0:10");
+    expect(numeral).toHaveClass("text-rest-final", "motion-safe:animate-tick-pulse");
+    expect(numeral.className).not.toMatch(/(^|\s)animate-/);
+    expect(screen.getByTestId("rest-final-note")).toHaveTextContent("Get ready");
+    expect(timer.querySelector('[aria-live="polite"]')).toHaveTextContent("10 seconds left");
+    // No sound for it.
+    expect(audio.playTimerChime).not.toHaveBeenCalled();
+
+    // A new element each second, so the pulse plays on every tick.
+    act(() => useWorkoutStore.setState({ restTimeRemaining: 9 }));
+    expect(screen.getByTestId("rest-remaining")).not.toBe(numeral);
+
+    // Topping up past ten seconds clears the signal.
+    fireEvent.click(screen.getByRole("button", { name: "+15s" }));
+    expect(timer).not.toHaveAttribute("data-final");
+    expect(timer).toHaveTextContent("of 3:45");
   });
 });
 

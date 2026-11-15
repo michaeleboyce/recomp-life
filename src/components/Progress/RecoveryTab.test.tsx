@@ -56,7 +56,9 @@ describe("RecoveryTab", () => {
     expect(
       await screen.findByRole("region", { name: "Sleep and energy before workouts" })
     ).toBeInTheDocument();
-    expect(screen.getByText("Stress / energy")).toBeInTheDocument();
+    // The chart is named for the question asked: energy, not stress.
+    expect(screen.getByText("Energy")).toBeInTheDocument();
+    expect(screen.queryByText(/stress/i)).toBeNull();
     expect(await screen.findByText(/slept under 7 hours/)).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "From Apple Health" })).toBeNull();
     expect(screen.getAllByRole("radiogroup")).toHaveLength(1);

@@ -115,8 +115,10 @@ export const ANATOMY_DARK: Record<AnatomyToken, string> = {
 /**
  * Light theme ("paper", card #eadfca). Resting muscle is a tan a step darker than the
  * card; non-muscle parts sit closer to the card and the outline further from it. The
- * load ramp runs from pale peach to burnt orange, darkening at every level, and the
- * top level clears 3:1. Recovery colours are dark enough to read as text.
+ * load ramp runs from peach to burnt orange, darkening at every level, and the top
+ * level clears 3:1. Level 1 is no lighter than the resting tan (a lighter level 1 read
+ * as "less than resting"), so it differs from it by colour, not by being paler.
+ * Recovery colours are dark enough to read as text.
  */
 export const ANATOMY_LIGHT: Record<AnatomyToken, string> = {
   outline: "#8a7762",
@@ -126,8 +128,8 @@ export const ANATOMY_LIGHT: Record<AnatomyToken, string> = {
   seam: "#eadfca",
   selected: "#2f6f6b",
   "selected-stroke": "#1f4f4c",
-  "heat-1": "#efc9a6",
-  "heat-2": "#e6a070",
+  "heat-1": "#e6b890",
+  "heat-2": "#dc9862",
   "heat-3": "#d67440",
   "heat-4": "#b8472a",
   recovering: "#9c3f1f",

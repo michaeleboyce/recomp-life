@@ -41,14 +41,16 @@ describe("GradeChip", () => {
     }
   });
 
-  it("keeps text at least 11px", () => {
+  it("keeps text at least 12px at both sizes", () => {
     render(<GradeChip strength="limited" />);
-    expect(screen.getByText("Limited")).toHaveClass("text-[11px]");
+    const chip = screen.getByText("Limited");
+    expect(chip).toHaveClass("text-xs");
+    expect(chip.className).not.toMatch(/text-\[(?:[0-9]|1[01])px\]/);
   });
 
   it("accepts a longer label", () => {
     render(<GradeChip strength="strong" label="Strong evidence" size="md" />);
-    expect(screen.getByText("Strong evidence")).toHaveClass("text-xs");
+    expect(screen.getByText("Strong evidence")).toHaveClass("text-[13px]");
   });
 });
 

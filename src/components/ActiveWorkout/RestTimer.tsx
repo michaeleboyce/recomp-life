@@ -21,6 +21,20 @@ import type { DecisionTrace, TrainingPhase } from "@/types";
 const EXTEND_SECONDS = [5, 15] as const;
 const RING_R = 76;
 const RING_C = 2 * Math.PI * RING_R;
+/** The last stretch of a rest, shown without sound: ring and numeral change colour. */
+export const FINAL_SECONDS = 10;
+
+/**
+ * How much of the ring to draw. The clock ticks once a second, so the ring aims at
+ * where the next tick will be and glides there over that second (a linear CSS
+ * transition): it moves all the time and empties exactly as the clock reaches 0:00.
+ * Before the first frame it shows where the rest is now, so it starts full.
+ */
+export function restRingFraction(remaining: number, duration: number, gliding: boolean): number {
+  if (duration <= 0) return 0;
+  const target = gliding ? remaining - 1 : remaining;
+  return Math.min(1, Math.max(0, target / duration));
+}
 
 interface RestTimerProps {
   audioEnabled?: boolean;
@@ -181,16 +195,34 @@ export function RestTimer({
     skipRest();
   }, [skipRest]);
 
+  // After the first frame the ring glides toward the next tick (see restRingFraction).
+  const [gliding, setGliding] = useState(false);
+  useEffect(() => {
+    if (!isRestTimerActive) return;
+    const frame = requestAnimationFrame(() => setGliding(true));
+    return () => {
+      cancelAnimationFrame(frame);
+      // The next rest starts full again.
+      setGliding(false);
+    };
+  }, [isRestTimerActive]);
+
   if (!isRestTimerActive) return null;
 
-  const left = restTimerDuration > 0 ? Math.min(1, Math.max(0, restTimeRemaining / restTimerDuration)) : 0;
+  const left = restRingFraction(restTimeRemaining, restTimerDuration, gliding);
+  const final = restTimeRemaining > 0 && restTimeRemaining <= FINAL_SECONDS;
 
   // Why the rest is this long (heavy vs lighter sets); none for warm-ups.
   const restEvidenceId = tier ? getRestEvidenceId(tier) : null;
   const hasCuttingBonus = !!tier && hasCuttingRestBonus(tier, trainingPhase);
 
   return (
-    <div role="timer" aria-label="Rest timer" className="flex min-h-full flex-col gap-4">
+    <div
+      role="timer"
+      aria-label="Rest timer"
+      data-final={final || undefined}
+      className="flex min-h-full flex-col gap-4"
+    >
       {banner}
 
       <div className="grid grid-cols-[minmax(0,172px)_minmax(0,1fr)] items-center gap-3.5">
@@ -203,12 +235,14 @@ export function RestTimer({
               cy="86"
               r={RING_R}
               fill="none"
-              stroke="var(--primary)"
+              stroke={final ? "var(--rest-final)" : "var(--primary)"}
               strokeWidth="9"
               strokeLinecap="round"
               strokeDasharray={RING_C}
               strokeDashoffset={RING_C * (1 - left)}
-              className="transition-[stroke-dashoffset] duration-1000 ease-linear"
+              // The sweep is linear (a clock); the colour change in the last ten seconds
+              // eases out. Under reduced motion the ring steps once a second.
+              className="[transition:stroke-dashoffset_1000ms_linear,stroke_300ms_ease-out] motion-reduce:transition-none"
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -216,13 +250,28 @@ export function RestTimer({
               Rest
             </span>
             <span
+              // A fresh element each second in the last ten, so the pulse plays per tick.
+              key={final ? restTimeRemaining : "rest"}
               data-testid="rest-remaining"
-              className="font-display text-[52px] leading-none font-extrabold tabular-nums"
+              className={cn(
+                "font-display text-[52px] leading-none font-extrabold tabular-nums",
+                final && "text-rest-final motion-safe:animate-tick-pulse"
+              )}
             >
               {formatRestDuration(restTimeRemaining)}
             </span>
-            <span className="text-xs text-muted-foreground">
-              of <span className="font-mono tabular-nums">{formatRestDuration(restTimerDuration)}</span>
+            {final ? (
+              <span data-testid="rest-final-note" className="text-xs font-semibold text-rest-final">
+                Get ready
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                of <span className="font-mono tabular-nums">{formatRestDuration(restTimerDuration)}</span>
+              </span>
+            )}
+            {/* Said once by a screen reader as the last ten seconds begin. */}
+            <span aria-live="polite" className="sr-only">
+              {final ? `${FINAL_SECONDS} seconds left` : ""}
             </span>
           </div>
         </div>

@@ -101,6 +101,14 @@ describe.each(Object.entries(THEMES))("%s theme text contrast", (_name, theme) =
     for (const t of textTokens) for (const s of ["background", "card"]) check(t, s);
   });
 
+  it("the rest timer's last-ten-seconds colour reads as large text and differs from the ring", () => {
+    // The numeral is 52 px bold (large text, 3:1); the ring is normally --primary.
+    for (const s of ["background", "card"]) {
+      expect(contrast(solid(theme, "rest-final"), solid(theme, s)), `--rest-final on --${s}`).toBeGreaterThanOrEqual(3);
+    }
+    expect(solid(theme, "rest-final")).not.toBe(solid(theme, "primary"));
+  });
+
   it("chart lines reach 3:1 on the page and stay distinct from each other", () => {
     const lines = ["chart-line", "chart-good", "chart-warn"].map((t) => solid(theme, t));
     for (const c of lines) expect(contrast(c, solid(theme, "background"))).toBeGreaterThanOrEqual(3);
@@ -121,6 +129,7 @@ describe("shared tokens", () => {
     "stripe-1",
     "stripe-2",
     "stripe-3",
+    "rest-final",
   ];
 
   it("defines the glass-box colour tokens in both themes, mapped for Tailwind", () => {
@@ -135,6 +144,40 @@ describe("shared tokens", () => {
   it("maps the three font families, including the display face", () => {
     for (const f of ["sans", "mono", "display"]) {
       expect(block("@theme inline")).toContain(`--font-${f}: var(--font-${f});`);
+    }
+  });
+});
+
+describe("motion", () => {
+  /** The body of the first `@media (prefers-reduced-motion: reduce)` block. */
+  function reducedMotionBlock(): string {
+    const start = css.indexOf("@media (prefers-reduced-motion: reduce)");
+    expect(start, "reduced-motion block").toBeGreaterThanOrEqual(0);
+    return css.slice(start, css.indexOf("\n}", start));
+  }
+
+  it("defines the settle-in and tick-pulse animations, short and ease-out", () => {
+    for (const name of ["settle-in", "tick-pulse"]) {
+      const token = css.match(new RegExp(`--animate-${name}:\\s*${name}\\s+(\\d+)ms\\s+cubic-bezier\\(0\\.22, 1, 0\\.36, 1\\)`));
+      expect(token, `--animate-${name}`).not.toBeNull();
+      const ms = Number(token![1]);
+      expect(ms).toBeGreaterThanOrEqual(150);
+      expect(ms).toBeLessThanOrEqual(400);
+      expect(css).toContain(`@keyframes ${name} {`);
+    }
+  });
+
+  it("stops every animation and transition under reduced motion", () => {
+    const rule = reducedMotionBlock();
+    expect(rule).toMatch(/\*,\s*::before,\s*::after\s*\{/);
+    for (const decl of [
+      "animation-duration: 0.01ms !important",
+      "animation-delay: 0ms !important",
+      "animation-iteration-count: 1 !important",
+      "transition-duration: 0.01ms !important",
+      "transition-delay: 0ms !important",
+    ]) {
+      expect(rule).toContain(decl);
     }
   });
 });

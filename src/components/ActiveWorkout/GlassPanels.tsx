@@ -5,6 +5,7 @@
 // what comes next. Each reads stored rows only.
 import Link from "next/link";
 import { ExerciseMuscleThumb } from "@/components/Anatomy/ExerciseMuscleThumb";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Term } from "@/components/ui/term";
 import { getExercise } from "@/lib/exercises";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
@@ -31,8 +32,22 @@ export function ForecastNoteLine({ note }: { note: ForecastNote }) {
   );
 }
 
-/** Top of the rest screen after a T1 lift's last set: the set against its forecast. */
-export function LastSetBanner({ verdict }: { verdict: LastSetVerdict }) {
+/** How long a new best takes to count up: short, and over before the eye leaves it. */
+export const NEW_BEST_COUNT_MS = 400;
+
+/**
+ * Top of the rest screen after a T1 lift's last set: the set against its forecast. A
+ * new best's estimated max counts up as the screen opens, from the old best when the
+ * caller passes it (else from zero); under reduced motion it is simply shown.
+ */
+export function LastSetBanner({
+  verdict,
+  previousBest,
+}: {
+  verdict: LastSetVerdict;
+  /** The best that stood before this set, for the count-up to start from. */
+  previousBest?: number | null;
+}) {
   return (
     <div
       data-testid="last-set-banner"
@@ -46,9 +61,13 @@ export function LastSetBanner({ verdict }: { verdict: LastSetVerdict }) {
       </span>
       {verdict.newBest !== null && (
         <span className="flex flex-col items-end">
-          <span className="font-display text-[40px] leading-none font-extrabold tabular-nums">
-            {verdict.newBest}
-          </span>
+          <AnimatedNumber
+            key={verdict.title}
+            value={verdict.newBest}
+            from={previousBest ?? 0}
+            duration={NEW_BEST_COUNT_MS}
+            className="font-display text-[40px] leading-none font-extrabold"
+          />
           <span className="text-[11px] text-muted-foreground">
             <Term id="e1rm" hideLinks>
               est. max

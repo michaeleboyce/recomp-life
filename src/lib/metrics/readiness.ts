@@ -1,12 +1,13 @@
-// Readiness metrics: the pre-workout sleep and stress/energy answers as ordered
-// levels, one point per log. `format` turns a level back into its word so a chart
-// axis can show "7+ h" or "Good" at 1, 2 and 3. Pure.
+// Readiness metrics: the pre-workout sleep and energy answers as ordered levels, one
+// point per log. The energy answer is stored as `stressLevel`, but the question asks
+// about energy (low, normal or good), so that is what the label says. `format` turns a
+// level back into its word so a chart axis can show "7+ h" or "Good" at 1, 2 and 3. Pure.
 import type { SleepHours, StressLevel } from "@/types";
 import { defineMetric, toMs } from "./helpers";
 
 /** Sleep answer -> level. Higher is more sleep. */
 export const SLEEP_LEVELS: Record<SleepHours, number> = { "<5": 1, "5-7": 2, "7+": 3 };
-/** Stress / energy answer -> level. Higher is better ("low" is the rough day). */
+/** Energy answer -> level. Higher is better ("low" is the rough day). */
 export const STRESS_LEVELS: Record<StressLevel, number> = { low: 1, normal: 2, good: 3 };
 
 const SLEEP_WORDS = ["<5 h", "5-7 h", "7+ h"];
@@ -35,11 +36,11 @@ export const sleep = defineMetric(
     })
 );
 
-/** Stress / energy before each workout: 1 = "Low", 2 = "Normal", 3 = "Good". */
+/** Energy before each workout: 1 = "Low", 2 = "Normal", 3 = "Good". */
 export const stress = defineMetric(
   {
     id: "stress",
-    label: "Stress / energy",
+    label: "Energy",
     unit: "level",
     better: "up",
     scope: "global",

@@ -32,6 +32,15 @@ describe("EvidenceLine", () => {
     expect(screen.getByText("Singer 2024 · meta-analysis")).toBeTruthy();
   });
 
+  it("sets the citation at 12px in the full muted colour", () => {
+    render(<EvidenceLine ruleId="rest-light" />);
+    const citation = screen.getByText("Singer 2024 · meta-analysis");
+    expect(citation.className).toContain("text-xs");
+    expect(citation.className).toContain("text-muted-foreground");
+    // No 11px (or smaller) text and no faded muted colour.
+    expect(citation.className).not.toMatch(/text-\[(?:[0-9]|1[01])px\]|text-muted-foreground\//);
+  });
+
   it("does not show the sheet until tapped", () => {
     render(<EvidenceLine ruleId="rest-light" />);
     expect(screen.queryByRole("dialog")).toBeNull();
