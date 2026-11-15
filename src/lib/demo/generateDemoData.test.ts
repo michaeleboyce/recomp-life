@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { generateDemoData } from "./generateDemoData";
+import { DEMO_LIFTER, demoRepsInHand, generateDemoData } from "./generateDemoData";
 import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES } from "@/db/seed";
-import { toRecentE1RMSeries } from "@/lib/e1rm";
+import { E1RM_MAX_REPS, toRecentE1RMSeries } from "@/lib/e1rm";
 import { rebuildDerived } from "@/lib/rebuild";
 import { runSession, startSim, type SessionOptions } from "@/lib/rebuild/testHelpers";
 import { WORKOUT_ROTATION } from "@/lib/workoutTemplates";
@@ -77,8 +77,9 @@ describe("generateDemoData", () => {
       expect(t1).toHaveLength(5);
       expect(t1.filter((s) => s.isAMRAP)).toHaveLength(1);
       expect(t1[4].isAMRAP).toBe(true);
+      // Every T1 lift passes, and no last set is too long to count toward the estimated max.
       expect(t1[4].actualReps).toBeGreaterThanOrEqual(3);
-      expect(t1[4].actualReps).toBeLessThanOrEqual(6);
+      expect(t1[4].actualReps).toBeLessThanOrEqual(E1RM_MAX_REPS);
       expect(t1.every((s) => typeof s.rpe === "number")).toBe(true);
       expect(w.sets.filter((s) => s.tier === "T2")).toHaveLength(3);
       const t3 = w.sets.filter((s) => s.tier === "T3");
@@ -86,6 +87,86 @@ describe("generateDemoData", () => {
       expect(t3[2].isAMRAP).toBe(true);
       expect(w.sets.every((s) => s.location === w.location)).toBe(true);
     }
+  });
+
+  describe("the lifter's last sets follow from one strength level per lift", () => {
+    /** Per T1 lift, oldest first: the bar weight the program asked for, the reps, the strength they imply. */
+    type LastSet = { bar: number; reps: number; strength: number; weeks: number };
+    const lastSets = new Map<string, LastSet[]>();
+    const firstStart = data.workouts[0].startedAt.getTime();
+    for (const w of data.workouts) {
+      const last = w.sets.find((s) => s.tier === "T1" && s.isAMRAP)!;
+      const bar = last.originalWeight ?? last.weight;
+      const list = lastSets.get(last.exerciseId) ?? [];
+      list.push({
+        bar,
+        reps: last.actualReps,
+        strength: bar * (1 + last.actualReps / 30),
+        // Whole days, so a clock change between two workouts does not matter.
+        weeks: Math.round((w.startedAt.getTime() - firstStart) / DAY) / 7,
+      });
+      lastSets.set(last.exerciseId, list);
+    }
+
+    it("logs the reps the lifter's strength allows at the weight on the bar", () => {
+      for (const [id, sets] of lastSets) {
+        for (const set of sets) {
+          const onABadDay = demoRepsInHand(sets[0].bar, set.bar, set.weeks, -DEMO_LIFTER.dailySwing);
+          const onAGoodDay = demoRepsInHand(sets[0].bar, set.bar, set.weeks, DEMO_LIFTER.dailySwing);
+          expect(set.reps, id).toBeGreaterThanOrEqual(onABadDay);
+          expect(set.reps, id).toBeLessThanOrEqual(onAGoodDay);
+          expect(onAGoodDay - onABadDay, id).toBeLessThanOrEqual(2);
+          // Whatever the day brings: the lift passes, and the set still counts toward the estimated max.
+          expect(onABadDay, id).toBeGreaterThanOrEqual(3);
+          expect(onAGoodDay, id).toBeLessThanOrEqual(E1RM_MAX_REPS);
+        }
+      }
+    });
+
+    it("gives fewer reps for more weight on the same day, and more reps as the weeks pass", () => {
+      expect(demoRepsInHand(200, 200, 0, 0)).toBe(DEMO_LIFTER.startReps);
+      expect(demoRepsInHand(200, 220, 0, 0)).toBeLessThan(demoRepsInHand(200, 200, 0, 0));
+      expect(demoRepsInHand(200, 200, 8, 0)).toBeGreaterThan(demoRepsInHand(200, 200, 0, 0));
+      expect(demoRepsInHand(200, 1000, 0, 0)).toBe(0);
+    });
+
+    it("covers the four main lifts, six sessions each, the bar heavier every time", () => {
+      expect([...lastSets.keys()].sort()).toEqual(["bench", "deadlift", "ohp", "squat"]);
+      for (const [id, sets] of lastSets) {
+        expect(sets, id).toHaveLength(6);
+        for (let i = 1; i < sets.length; i++) {
+          expect(sets[i].bar, id).toBeGreaterThan(sets[i - 1].bar);
+        }
+      }
+    });
+
+    it("implies a strength that grows steadily and never leaps between sessions", () => {
+      for (const [id, sets] of lastSets) {
+        for (let i = 1; i < sets.length; i++) {
+          const step = sets[i].strength / sets[i - 1].strength - 1;
+          expect(step, id + " session " + (i + 1)).toBeGreaterThan(-0.04);
+          expect(step, id + " session " + (i + 1)).toBeLessThan(0.08);
+        }
+        // About 2% a week over the seven weeks between a lift's first and last session.
+        const growth = sets[sets.length - 1].strength / sets[0].strength - 1;
+        expect(growth, id).toBeGreaterThan(0.05);
+        expect(growth, id).toBeLessThan(0.2);
+      }
+    });
+
+    it("has fewer reps as the bar outruns the lifter's strength", () => {
+      for (const [id, sets] of lastSets) {
+        // The weights rise 17% to 29% over the demo, faster than strength does.
+        expect(sets[sets.length - 1].reps, id).toBeLessThan(sets[0].reps);
+        // One more rep than last time on a heavier bar is a good day; two more does not happen.
+        for (let i = 1; i < sets.length; i++) {
+          expect(sets[i].reps - sets[i - 1].reps, id + " session " + (i + 1)).toBeLessThanOrEqual(1);
+        }
+      }
+      // The press takes the biggest steps for its size and loses the most reps.
+      const ohp = lastSets.get("ohp")!;
+      expect(ohp[0].reps - ohp[5].reps).toBeGreaterThanOrEqual(4);
+    });
   });
 
   it("includes home sessions with substituted sets and failed T2 sessions", () => {
