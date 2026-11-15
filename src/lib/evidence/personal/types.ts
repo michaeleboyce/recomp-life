@@ -69,6 +69,8 @@ export interface PersonalEvidence {
    * kind of set with only one kind of rest so far).
    */
   unmatched: number;
+  /** Why unmatched results wait, after their count: "wait for a match: ...". Null when none can. */
+  unmatchedReason: string | null;
   /** PERSONAL_MIN_GROUP_SIZE when the result was worked out. */
   minPerGroup: number;
   /** How many more results each group needs before numbers are shown; 0 once enough. */

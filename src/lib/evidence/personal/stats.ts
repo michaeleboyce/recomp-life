@@ -53,10 +53,18 @@ export interface Stratum {
 }
 
 export interface StrataComparison {
-  /** Results counted: those in strata where both groups have at least one. */
+  /**
+   * Results counted toward the minimum: those in a stratum where the other group has a
+   * result too, or, while the other group has none anywhere, all of them (they are
+   * waiting for the first one). When numbers are shown these are exactly the results
+   * compared.
+   */
   exposedCount: number;
   referenceCount: number;
-  /** Results left out because their stratum has only one group. */
+  /**
+   * Results left out because their stratum has none of the other group while another
+   * stratum does: there is nothing of their own kind to compare them with.
+   */
   unmatched: number;
   needed: { exposed: number; reference: number };
   /** Null below the minimum sample. */
@@ -84,7 +92,9 @@ function variance(values: number[]): number {
  * Compares two groups of results, stratum by stratum, so results are only set against
  * others of the same kind.
  *
- * - A stratum counts when both groups have a result in it; the rest are `unmatched`.
+ * - Only strata where both groups have a result are compared. A result in a stratum
+ *   without the other group is `unmatched`, unless the other group has no results
+ *   anywhere yet: then it counts toward the minimum while it waits for one.
  * - Below `minPerGroup` counted results in either group there are no numbers.
  * - Each group's average is standardised: the average within each stratum, weighted
  *   by that stratum's share of all counted results. With one stratum these are plain
@@ -102,11 +112,18 @@ export function compareStrata(strata: Stratum[], options: CompareOptions = {}): 
   const expects = options.researchExpects ?? "lower";
 
   const used = strata.filter((s) => s.exposed.length > 0 && s.reference.length > 0);
-  const unmatched = strata
-    .filter((s) => !used.includes(s))
-    .reduce((sum, s) => sum + s.exposed.length + s.reference.length, 0);
-  const exposedCount = used.reduce((sum, s) => sum + s.exposed.length, 0);
-  const referenceCount = used.reduce((sum, s) => sum + s.reference.length, 0);
+  const anyExposed = strata.some((s) => s.exposed.length > 0);
+  const anyReference = strata.some((s) => s.reference.length > 0);
+  const exposedCount = strata
+    .filter((s) => s.reference.length > 0 || !anyReference)
+    .reduce((sum, s) => sum + s.exposed.length, 0);
+  const referenceCount = strata
+    .filter((s) => s.exposed.length > 0 || !anyExposed)
+    .reduce((sum, s) => sum + s.reference.length, 0);
+  const unmatched =
+    strata.reduce((sum, s) => sum + s.exposed.length + s.reference.length, 0) -
+    exposedCount -
+    referenceCount;
   const needed = {
     exposed: Math.max(0, minPerGroup - exposedCount),
     reference: Math.max(0, minPerGroup - referenceCount),

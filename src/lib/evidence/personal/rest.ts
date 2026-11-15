@@ -117,6 +117,8 @@ export function restLengthEvidence(log: PersonalLog, now: Date): PersonalEvidenc
       count: comparison.referenceCount,
     },
     unmatched: comparison.unmatched,
+    unmatchedReason:
+      "sets are compared only with sets of the same kind (main lift with main lift, second lift with second lift), and so far their kind has had only one length of rest.",
     minPerGroup: PERSONAL_MIN_GROUP_SIZE,
     needed: comparison.needed,
     result: comparison.result,

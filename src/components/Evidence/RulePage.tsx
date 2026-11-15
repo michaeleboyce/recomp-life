@@ -17,6 +17,7 @@ import {
   getSources,
   type RuleId,
 } from "@/lib/evidence";
+import { PersonalNumbersCard } from "./PersonalNumbers";
 import { SourceCard } from "./RuleDetail";
 import { ruleLink } from "./useLinkedRule";
 import { getRuleSurfaces } from "./surfaces";
@@ -45,8 +46,9 @@ export async function shareRule(ruleId: RuleId) {
 
 /**
  * One rule, worth landing on: the question, the grade and what it means, what the app
- * does and why, where it could be wrong, the sources, related rules, where the rule
- * shows up in the app, and every change made to it.
+ * does and why, where it could be wrong, what the user's own log says (for the rules
+ * that have "Your own numbers"), the sources, related rules, where the rule shows up in
+ * the app, and every change made to it.
  */
 export function RulePage({ ruleId, backHref }: { ruleId: RuleId; backHref: string }) {
   const rule = getRule(ruleId);
@@ -107,6 +109,8 @@ export function RulePage({ ruleId, backHref }: { ruleId: RuleId; backHref: strin
           {rule.caveat ?? "No limits are recorded beyond the grade above."}
         </p>
       </Section>
+
+      <PersonalNumbersCard ruleId={ruleId} />
 
       {rule.status === "planned" && rule.activationNotes && (
         <Section heading="Before this is switched on">

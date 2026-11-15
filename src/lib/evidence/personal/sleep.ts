@@ -62,6 +62,7 @@ export function sleepEvidence(log: PersonalLog, now: Date): PersonalEvidence {
       count: comparison.referenceCount,
     },
     unmatched: comparison.unmatched,
+    unmatchedReason: null,
     minPerGroup: PERSONAL_MIN_GROUP_SIZE,
     needed: comparison.needed,
     result: comparison.result,

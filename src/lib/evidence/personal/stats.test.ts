@@ -105,6 +105,26 @@ describe("compareStrata", () => {
     expect(out.unmatched).toBe(4);
   });
 
+  it("counts one group while the other has nothing anywhere yet", () => {
+    const out = compareStrata([{ exposed: [], reference: repeat(0, 8) }]);
+    expect(out.exposedCount).toBe(0);
+    expect(out.referenceCount).toBe(8);
+    expect(out.unmatched).toBe(0);
+    expect(out.needed).toEqual({ exposed: PERSONAL_MIN_GROUP_SIZE, reference: 0 });
+    expect(out.result).toBeNull();
+  });
+
+  it("asks for both groups when each kind has had only one of them", () => {
+    const out = compareStrata([
+      { exposed: repeat(0, 40), reference: [] },
+      { exposed: [], reference: repeat(0, 30) },
+    ]);
+    expect(out.exposedCount).toBe(0);
+    expect(out.referenceCount).toBe(0);
+    expect(out.unmatched).toBe(70);
+    expect(out.needed).toEqual({ exposed: PERSONAL_MIN_GROUP_SIZE, reference: PERSONAL_MIN_GROUP_SIZE });
+  });
+
   it("standardises across strata so a mix of strata cannot pass for a difference", () => {
     // Within each stratum the two groups are identical. Pooled, the exposed group would
     // look 1.2 reps better only because more of it sits in the easier stratum.
