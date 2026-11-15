@@ -4,8 +4,6 @@ import type { FakeHealthData } from "./fakeSource";
 import { localDateKey } from "./daily";
 import type { HealthQuantitySample, HealthSleepSample, HealthWeight, HealthWorkout } from "./types";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 /** A repeatable wobble between -1 and 1 for day `i`. */
 const wobble = (i: number, salt: number) => Math.sin(i * 12.9898 + salt * 78.233);
 
@@ -16,8 +14,15 @@ export function demoHealthData(now: Date, days = 30): FakeHealthData {
   const daily: HealthQuantitySample[] = [];
   const workouts: HealthWorkout[] = [];
 
+  // Before the morning weigh-in time, the newest day is yesterday, so there
+  // are always `days` weigh-ins and nights whatever the time of day.
+  const latest = new Date(now);
+  latest.setHours(6, 45, 0, 0);
+  const offset = latest.getTime() > now.getTime() ? 1 : 0;
+
   for (let i = days - 1; i >= 0; i--) {
-    const morning = new Date(now.getTime() - i * DAY_MS);
+    const morning = new Date(now);
+    morning.setDate(morning.getDate() - i - offset);
     morning.setHours(6, 45, 0, 0);
     const day = localDateKey(morning);
 
