@@ -1,14 +1,15 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb, runSession } from "@/lib/data/testUtils";
 
 let id = "";
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
-  useParams: () => ({ id }),
+  useSearchParams: () => new URLSearchParams({ id }),
   useRouter: () => ({ push, replace: vi.fn() }),
 }));
 
@@ -39,7 +40,7 @@ async function whatItDid() {
   return within(await screen.findByRole("region", { name: "What it did" }));
 }
 
-describe("/log/workout/[id]", () => {
+describe("/log/workout?id=", () => {
   it("renders every set with a back link to the Log", async () => {
     id = first;
     render(<LogWorkoutPage />);
@@ -47,6 +48,17 @@ describe("/log/workout/[id]", () => {
     expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/log");
     expect(screen.getByRole("region", { name: "Squat" })).toBeInTheDocument();
     expect(screen.getAllByText(/^Set \d+$/).length).toBeGreaterThanOrEqual(11);
+  });
+
+  it("stars the workout and shows it as a favourite", async () => {
+    id = first;
+    render(<LogWorkoutPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Save as favourite" }));
+    expect(await screen.findByRole("button", { name: "Remove from favourites" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    expect(await db.favoriteWorkouts.count()).toBe(1);
   });
 
   it("shows a passed T1 and a T3 increase as of that workout, with the T3 citation", async () => {

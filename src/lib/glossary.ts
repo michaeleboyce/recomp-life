@@ -8,6 +8,7 @@ import { RESET_FACTOR, T2_AUTOREG_DROP, T2_AUTOREG_RPE_THRESHOLD } from "@/lib/p
 import { PR_CHANCE_RECENT_SETS, PR_STRETCH_MAX_REPS_ABOVE } from "@/lib/projection/prOpportunity";
 import { STALL_BAND_PERCENT } from "@/lib/rateOfLoss";
 import { CUTTING_REST_BONUS_SECONDS, REST_SECONDS } from "@/lib/restTimes";
+import { CREDIT_MIN_WEIGHT_RATIO } from "@/lib/workout/credit";
 import { T1_STAGE_SCHEME, T2_STAGE_SCHEME } from "@/lib/workout/prescription";
 import { WORKOUT_ROTATION } from "@/lib/workoutTemplates";
 
@@ -17,7 +18,7 @@ export type TermId =
   | "gym-debt" | "rest-timer" | "deload"
   | "amrap" | "rpe" | "rir" | "hard-set" | "autoregulation"
   | "e1rm" | "pr" | "pr-chance" | "projection" | "weekly-sets"
-  | "training-phase" | "rate-of-loss";
+  | "training-phase" | "rate-of-loss" | "counts-toward-progression";
 
 export interface GlossaryEntry {
   term: string;
@@ -269,13 +270,21 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
     ruleId: "rate-of-loss",
     seeAlso: ["training-phase"],
   },
+  "counts-toward-progression": {
+    term: "Counts toward progression",
+    aka: ["logged only", "progression paused"],
+    short: "A lift done as prescribed is judged by the program's pass and fail rules; any other lift is only logged.",
+    long: `A program lift counts when you do its prescribed sets and reps at ${pct(CREDIT_MIN_WEIGHT_RATIO)} of its prescribed weight or more, on any day. Go heavier in every set and a pass builds your next weight from the heavier one. A lighter lift, a different scheme, or an exercise you swapped in or added is still logged for your history and muscle load, but it is neither a pass nor a fail. A lift you skip keeps its weight.`,
+    ruleId: "off-program-credit",
+    seeAlso: ["freeze", "substitute", "working-weight"],
+  },
 };
 
 export const GLOSSARY_THEMES: Record<GlossaryTheme, TermId[]> = {
   Program: [
     "gzclp", "t1", "t2", "t3", "rotation", "sets-reps", "amrap-plus", "stage", "fail-reset",
     "freeze", "working-weight", "warm-up", "accessory", "substitute", "gym-debt",
-    "rest-timer", "deload",
+    "rest-timer", "deload", "counts-toward-progression",
   ],
   Effort: ["amrap", "rpe", "rir", "hard-set", "autoregulation"],
   Progress: ["e1rm", "pr", "pr-chance", "projection", "weekly-sets"],

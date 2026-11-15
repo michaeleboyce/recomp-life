@@ -74,6 +74,7 @@ describe("useMetricSource", () => {
       pain: [],
       liftStates: [],
       settings: null,
+      healthDaily: [],
     });
   });
 

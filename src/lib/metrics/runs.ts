@@ -81,5 +81,6 @@ export const runEffort = defineMetric(
     scope: "global",
     format: (v) => formatNumber(v),
   },
-  (source) => perRun(source, (run) => ({ v: run.perceivedEffort, label: run.category }))
+  (source) => perRun(source, // An imported run has no rating; NaN drops its point from the series.
+    (run) => ({ v: run.perceivedEffort ?? NaN, label: run.category }))
 );

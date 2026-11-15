@@ -25,6 +25,8 @@ describe("More page", () => {
     const training = group("Training");
     expect(link(training, /Upcoming workouts/)).toHaveAttribute("href", "/progress/upcoming");
     await waitFor(() => expect(link(training, /Upcoming workouts/)).toHaveTextContent("A1 · Squat day"));
+    expect(link(training, /Favourites/)).toHaveAttribute("href", "/favorites");
+    await waitFor(() => expect(link(training, /Favourites/)).toHaveTextContent("None saved yet"));
     expect(link(training, /Exercises/)).toHaveAttribute("href", "/exercises");
     expect(link(training, /Muscles/)).toHaveAttribute("href", "/muscles");
 

@@ -4,7 +4,7 @@ import { ChartFrame, LazyTrendChart } from "@/components/chart-kit";
 import { SectionHeader } from "@/components/ui/section-header";
 import { getMetric } from "@/lib/metrics";
 import type { MetricId, Series } from "@/lib/metrics/types";
-import { describeSleepEffort, type SleepEffortComparison } from "./runsMath";
+import { describeSleepEffort, type SleepEffortComparison } from "../runs/runsMath";
 
 const LEVELS = [1, 2, 3];
 

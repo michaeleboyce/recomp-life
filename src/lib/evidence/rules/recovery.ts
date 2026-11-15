@@ -1,5 +1,6 @@
 import type { EvidenceRule } from "@/types";
 import type { SourceId } from "../sources";
+import { SLEEP_FULL_HOURS, SLEEP_SHORT_HOURS } from "@/lib/health/sleep";
 import {
   RECOVERY_HOURS,
   CUTTING_RECOVERY_BONUS_HOURS,
@@ -80,7 +81,7 @@ export const RECOVERY_RULES = {
     title: "Why does the app ask about sleep and stress?",
     summary: "Poor sleep and high stress both reduce performance and recovery",
     appBehavior:
-      "Before a workout you can log last night's sleep and your stress or energy. If you report under 5 hours of sleep and low energy together, the app suggests skipping accessories. Nothing else changes.",
+      `Before a workout you can log last night's sleep and your stress or energy. If Apple Health is connected in the iPhone app and has last night's sleep, the matching answer is already selected (under ${SLEEP_SHORT_HOURS} hours, ${SLEEP_SHORT_HOURS} to ${SLEEP_FULL_HOURS}, or ${SLEEP_FULL_HOURS} or more) and you can change it. If the answer is under ${SLEEP_SHORT_HOURS} hours of sleep together with low energy, the app suggests skipping accessories. Nothing else changes.`,
     rationale:
       "A night of lost or restricted sleep lowers physical performance by about 7.6% on average, and lifters under high life stress recover strength more slowly after a hard session.",
     caveat:
@@ -88,7 +89,10 @@ export const RECOVERY_RULES = {
     strength: "moderate",
     sources: ["craven2022", "stults2014"],
     reviewedOn: "2026-11",
-    implementedIn: ["src/components/PreWorkout/ReadinessCheck.tsx#ReadinessCheck"],
+    implementedIn: [
+      "src/components/PreWorkout/ReadinessCheck.tsx#ReadinessCheck",
+      "src/lib/health/sleep.ts#sleepBucket",
+    ],
     surfaces: ["src/components/PreWorkout/ReadinessCheck.tsx"],
   },
   deload: {
@@ -113,7 +117,7 @@ export const RECOVERY_RULES = {
     status: "active",
     title: "Why does a hard yoga class or ride matter?",
     summary: "A hard session in the last day can leave you a little short",
-    appBehavior: `Before a workout, the app checks the yoga, cycling, hiking, walking and other sessions you logged in the last ${ACTIVITY_NOTE_WINDOW_HOURS} hours. If one was rated effort ${ACTIVITY_HARD_EFFORT} or more out of 5, it shows a note suggesting you judge the day by your warm-ups. Cycling, hiking and walking are only mentioned before a lower-body T1 lift. The note never changes your weights, and these sessions never affect progression.`,
+    appBehavior: `Before a workout, the app checks the yoga, cycling, hiking, walking and other sessions you logged in the last ${ACTIVITY_NOTE_WINDOW_HOURS} hours. If one was rated effort ${ACTIVITY_HARD_EFFORT} or more out of 5, it shows a note suggesting you judge the day by your warm-ups. Cycling, hiking and walking are only mentioned before a lower-body T1 lift. The note never changes your weights, and these sessions never affect progression. A session imported from Apple Health has no effort rating and is ignored until you rate it in the Log.`,
     rationale:
       "A hard session of any kind leaves some fatigue, and it is better to have it in mind than to be surprised by a slow warm-up. Easy and moderate sessions are not flagged.",
     caveat:

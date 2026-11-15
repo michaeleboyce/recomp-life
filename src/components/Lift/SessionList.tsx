@@ -13,6 +13,7 @@ import { Term } from "@/components/ui/term";
 import type { TermId } from "@/lib/glossary";
 import type { Tier } from "@/types";
 import type { LiftSession } from "./sessions";
+import { workoutDetailHref } from "@/lib/routes";
 
 const FIRST_PAGE = 10;
 
@@ -67,7 +68,7 @@ function SessionRow({ session, explainTier }: { session: LiftSession; explainTie
         )
       )}
       <Link
-        href={`/log/workout/${session.workoutId}`}
+        href={workoutDetailHref(session.workoutId)}
         aria-label={`Open workout from ${formatShortDate(session.t)}`}
         className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
       >

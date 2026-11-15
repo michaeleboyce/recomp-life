@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-26 active rules, 9 planned rules, 38 sources. Last reviewed against the research: November 2026.
+27 active rules, 9 planned rules, 38 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -28,6 +28,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `gzclp-progression` | Program and progression | Active | Program rule | none |
 | `t3-progression` | Program and progression | Active | Program rule | Robinson 2024, Halperin 2022 |
 | `accessory-progression` | Program and progression | Planned | Moderate evidence | Robinson 2024 |
+| `off-program-credit` | Program and progression | Active | Coaching heuristic | none |
 | `amrap-effort` | Effort and estimates | Active | Moderate evidence | Robinson 2024, ACSM 2026, Morán-Navarro 2017 |
 | `rpe-logging` | Effort and estimates | Active | Moderate evidence | Halperin 2022 |
 | `t2-autoregulation` | Effort and estimates | Active | Moderate evidence | Zhang 2021, Halperin 2022 |
@@ -144,6 +145,25 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Sources**
 
 - [Robinson et al. (2024). Exploring the Dose–Response Relationship Between Estimated Resistance Training Proximity to Failure, Strength Gain, and Muscle Hypertrophy: A Series of Meta-Regressions. *Sports Medicine*.](https://doi.org/10.1007/s40279-024-02069-2) Meta-analysis; Meta-regressions of resistance training studies. Strength gains were similar whether sets stopped far from failure or close to it. Muscle growth increased as sets ended closer to failure.
+
+### Does a changed workout still count toward progression?
+
+- **Rule id:** `off-program-credit`
+- **Status:** Active
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/workout/credit.ts` (`classifyEntry`), `src/lib/workout/credit.ts` (`foldRotation`), `src/lib/workout/completeWorkout.ts` (`computeCompletion`), `src/lib/workout/buildPlan.ts` (`describeNextWorkout`)
+- **Shown in:** `src/components/PreWorkout/EditWorkoutSheet.tsx`
+- **Reviewed:** November 2026
+
+**In one line.** A lift done as prescribed progresses; a changed one is only logged
+
+**What the app does.** When a workout has been changed, each lift is judged on its own. A program lift done at its prescribed sets and reps and at 100% of its prescribed weight or more is evaluated as usual (pass, fail or stage change), whichever day you did it on. A lift done heavier than prescribed in every set counts too, and a pass builds the next weight from the heavier one; missing reps at a heavier weight changes nothing. A lift done lighter or at a different scheme, and any exercise you swapped in or added, is logged and counts toward muscle load and history but leaves the program's weights alone: neither a pass nor a fail. A home equipment substitute still counts as the program lift. The rotation only moves on when the workout was the one that was due and its heavy (T1) lift was done as prescribed. Before you start, the edit sheet on the Configure screen shows which of these applies to each lift you change.
+
+**Why.** GZCLP's pass and fail rules assume the prescribed sets, reps and weight. Applying them to a lighter or different session would raise the weight after work that did not test it, or count a deliberate easy day as a failure. Judging each lift separately lets a changed workout keep the progress it earned without distorting the rest.
+
+**Limits.** This is a convention of this app, not part of GZCLP and not a research finding.
+
+**Sources.** None: this is a coaching convention with no direct research.
 
 ## Effort and estimates
 
@@ -349,13 +369,13 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `readiness`
 - **Status:** Active
 - **Evidence:** Moderate evidence
-- **Implemented in:** `src/components/PreWorkout/ReadinessCheck.tsx` (`ReadinessCheck`)
+- **Implemented in:** `src/components/PreWorkout/ReadinessCheck.tsx` (`ReadinessCheck`), `src/lib/health/sleep.ts` (`sleepBucket`)
 - **Shown in:** `src/components/PreWorkout/ReadinessCheck.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Poor sleep and high stress both reduce performance and recovery
 
-**What the app does.** Before a workout you can log last night's sleep and your stress or energy. If you report under 5 hours of sleep and low energy together, the app suggests skipping accessories. Nothing else changes.
+**What the app does.** Before a workout you can log last night's sleep and your stress or energy. If Apple Health is connected in the iPhone app and has last night's sleep, the matching answer is already selected (under 5 hours, 5 to 7, or 7 or more) and you can change it. If the answer is under 5 hours of sleep together with low energy, the app suggests skipping accessories. Nothing else changes.
 
 **Why.** A night of lost or restricted sleep lowers physical performance by about 7.6% on average, and lifters under high life stress recover strength more slowly after a hard session.
 
@@ -399,7 +419,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** A hard session in the last day can leave you a little short
 
-**What the app does.** Before a workout, the app checks the yoga, cycling, hiking, walking and other sessions you logged in the last 24 hours. If one was rated effort 4 or more out of 5, it shows a note suggesting you judge the day by your warm-ups. Cycling, hiking and walking are only mentioned before a lower-body T1 lift. The note never changes your weights, and these sessions never affect progression.
+**What the app does.** Before a workout, the app checks the yoga, cycling, hiking, walking and other sessions you logged in the last 24 hours. If one was rated effort 4 or more out of 5, it shows a note suggesting you judge the day by your warm-ups. Cycling, hiking and walking are only mentioned before a lower-body T1 lift. The note never changes your weights, and these sessions never affect progression. A session imported from Apple Health has no effort rating and is ignored until you rate it in the Log.
 
 **Why.** A hard session of any kind leaves some fatigue, and it is better to have it in mind than to be surprised by a slow warm-up. Easy and moderate sessions are not flagged.
 
@@ -459,7 +479,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** A hard run in the last few hours lowers leg strength
 
-**What the app does.** Before a workout with a lower-body T1 lift, the app checks your most recent run. A hard run (effort 4 or more out of 5, or a non-easy run of 45 minutes or more) in the last 6 hours suggests reducing T1 by 10% or lifting later. A run in the last 24 hours at effort 3 or more (2 for intervals or tempo, 4 for easy runs) shows a lighter note. Neither changes your workout unless you choose to.
+**What the app does.** Before a workout with a lower-body T1 lift, the app checks your most recent run. A hard run (effort 4 or more out of 5, or a non-easy run of 45 minutes or more) in the last 6 hours suggests reducing T1 by 10% or lifting later. A run in the last 24 hours at effort 3 or more (2 for intervals or tempo, 4 for easy runs) shows a lighter note. Neither changes your workout unless you choose to. A run imported from Apple Health has no effort rating, and the app does not guess one: it is ignored until you rate it in the Log.
 
 **Why.** Aerobic exercise reduces strength for a while afterwards, more after longer or harder sessions, and less after running than cycling. In a training study, strength gains suffered when sessions were back to back but not when they were 6 hours apart. Over the long run, combining running and lifting does not compromise strength or muscle growth.
 
@@ -873,6 +893,11 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **14 November 2026** — `off-program-credit` (Does a changed workout still count toward progression?): A lift done heavier than prescribed in every set now progresses from the heavier weight instead of the prescribed one. Missing reps at a heavier weight is not counted as a failure. Sources: .
+- **13 November 2026** — `run-interference` (Why does a recent run matter?): Runs can now be imported from Apple Health. An imported run has no effort rating and is ignored by this rule until you rate it. Sources: .
+- **13 November 2026** — `activity-fatigue` (Why does a hard yoga class or ride matter?): Sessions can now be imported from Apple Health. An imported session has no effort rating and is ignored by this rule until you rate it. Sources: .
+- **13 November 2026** — `readiness` (Why does the app ask about sleep and stress?): The sleep answer can now be filled in from Apple Health's record of last night; you can still change it. The suggestion itself is unchanged. Sources: .
+- **12 November 2026** — `off-program-credit` (Does a changed workout still count toward progression?): You can now change a workout before starting it. Each lift you change says whether it still counts toward progression or is only logged, and a lift you skip keeps its weight. Sources: .
 - **12 November 2026** — `t3-progression` (When does T3 weight go up?): The T3 rule is now shown: each workout's page says whether its T3 lift went up (and why) or stays at the same weight, as of that workout. The rule itself is unchanged. Sources: .
 - **12 November 2026** — `gzclp-progression` (Why does the weight go up, change stage or reset?): Logged sessions can now be edited or deleted. Doing so re-runs progression from the log, so the next workout follows the corrected history; sessions logged later are kept as they were lifted. Sources: .
 - **12 November 2026** — `fatigue-detection` (How does the app spot built-up fatigue?): Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or AMRAP reps), and an easier week is offered as optional. Sources: .

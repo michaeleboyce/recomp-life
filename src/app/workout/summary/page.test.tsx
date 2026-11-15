@@ -42,6 +42,15 @@ describe("/workout/summary", () => {
     expect(screen.getByRole("link", { name: "Done" })).toHaveAttribute("href", "/");
   });
 
+  it("offers the favourite star for the finished workout", async () => {
+    query = new URLSearchParams({ sessionId: workoutId });
+    render(<WorkoutSummaryPage />);
+    expect(await screen.findByRole("button", { name: "Save as favourite" })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+  });
+
   it("without a session id it still offers Done", async () => {
     query = new URLSearchParams();
     render(<WorkoutSummaryPage />);

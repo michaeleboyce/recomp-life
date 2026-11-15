@@ -10,7 +10,9 @@ import { getPrescription } from "@/lib/workout/prescription";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
   LiftState,
+  PlanEdit,
   PrescribedEntry,
+  RecordSource,
   SetLog,
   SleepHours,
   StressLevel,
@@ -29,12 +31,22 @@ export interface StartWorkoutInput {
   selectedAccessories: string[];
   modifications?: WorkoutModification[];
   /** Saved as a readiness log linked to the new session when both values are given. */
-  readiness?: { sleepHours: SleepHours; stressLevel: StressLevel };
+  readiness?: {
+    sleepHours: SleepHours;
+    stressLevel: StressLevel;
+    /** Set when the sleep answer was filled in from a health source and left as it was. */
+    sleepMinutes?: number;
+    sleepSource?: RecordSource;
+  };
   /**
    * What the program prescribes for this session. Left out, it is read from the
    * current lift states.
    */
   prescribed?: PrescribedEntry[];
+  /** Changes the user made to the day before starting (swap, remove, add, scheme, weight). */
+  planEdits?: PlanEdit[];
+  /** The favourite the workout was started from; its "last used" time is updated. */
+  favoriteId?: string;
 }
 
 /** What a finished workout records besides its sets. */
@@ -73,7 +85,8 @@ export function prescribedFor(templateId: string, liftStates: LiftState[]): Pres
 export async function startWorkout(input: StartWorkoutInput): Promise<string> {
   const sessionId = uuidv4();
 
-  await db.transaction("rw", db.workouts, db.readinessLogs, db.liftStates, async () => {
+  const tables = [db.workouts, db.readinessLogs, db.liftStates, db.favoriteWorkouts];
+  await db.transaction("rw", tables, async () => {
     const prescribed =
       input.prescribed ?? prescribedFor(input.templateId, await db.liftStates.toArray());
     const session: WorkoutSession = {
@@ -90,9 +103,21 @@ export async function startWorkout(input: StartWorkoutInput): Promise<string> {
       preWorkoutPainEntries: [],
       modifications: input.modifications ?? [],
       prescribed,
+      ...(input.planEdits?.length ? { planEdits: input.planEdits } : {}),
+      ...(input.favoriteId ? { favoriteId: input.favoriteId } : {}),
       ...newRowStamps(),
     };
     await db.workouts.add(session);
+
+    const favorite = input.favoriteId
+      ? await db.favoriteWorkouts.get(input.favoriteId)
+      : undefined;
+    if (favorite) {
+      await db.favoriteWorkouts.update(favorite.id, {
+        lastUsedAt: session.startedAt,
+        ...editStamps(favorite),
+      });
+    }
 
     const readiness = input.readiness;
     if (readiness?.sleepHours && readiness.stressLevel) {
@@ -102,6 +127,9 @@ export async function startWorkout(input: StartWorkoutInput): Promise<string> {
         sessionId,
         sleepHours: readiness.sleepHours,
         stressLevel: readiness.stressLevel,
+        ...(readiness.sleepMinutes !== undefined && readiness.sleepSource
+          ? { sleepMinutes: readiness.sleepMinutes, sleepSource: readiness.sleepSource }
+          : {}),
         date: new Date(),
         ...newRowStamps(),
       });

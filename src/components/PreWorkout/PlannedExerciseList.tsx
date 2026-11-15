@@ -6,12 +6,16 @@ import { getExercise } from "@/lib/exercises";
 import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
 import type { TrainingPhase } from "@/types";
+import { ImpactLine } from "./ImpactLine";
+import type { ImpactItem } from "./impact";
 
 interface PlannedExerciseListProps {
   /** The plan from `buildWorkoutPlan`: the same one the active workout performs. */
   plan: WorkoutPlan;
   /** Sets the rest shown after each exercise's sets (longer for heavy tiers while cutting). */
   trainingPhase?: TrainingPhase;
+  /** Per program lift, when the workout has been edited: what the edit does to progression. */
+  impact?: ImpactItem[];
 }
 
 interface Row {
@@ -43,7 +47,8 @@ function weightLabel(entry: WorkoutExerciseState): string {
  * The workout exactly as it will be performed: tier, exercise, weight, sets x reps,
  * and the rest the timer will run after each of its sets.
  */
-export function PlannedExerciseList({ plan, trainingPhase }: PlannedExerciseListProps) {
+export function PlannedExerciseList({ plan, trainingPhase, impact = [] }: PlannedExerciseListProps) {
+  const notDone = impact.filter((item) => item.status === "not-done");
   const hasWarmUps = plan.some((entry) => entry.isWarmUp);
   return (
     <div className="flex flex-col gap-1.5">
@@ -53,6 +58,13 @@ export function PlannedExerciseList({ plan, trainingPhase }: PlannedExerciseList
           const info = getExercise(entry.substituteExerciseId || entry.exerciseId);
           const original = entry.substituteExerciseId ? getExercise(entry.exerciseId) : null;
           const rest = formatRestDuration(getRestSeconds(entry.tier, trainingPhase));
+          const entryImpact = impact.find(
+            (item) =>
+              item.edited &&
+              item.status !== "not-done" &&
+              item.exerciseId === entry.exerciseId &&
+              item.tier === entry.tier
+          );
           return (
             <li
               key={`${entry.exerciseId}-${entry.tier}-${index}`}
@@ -68,6 +80,7 @@ export function PlannedExerciseList({ plan, trainingPhase }: PlannedExerciseList
                     {entry.originalWeight ? ` at ${entry.originalWeight} lbs` : ""}
                   </p>
                 )}
+                {entryImpact && <ImpactLine status={entryImpact.status} heavier={entryImpact.heavier} />}
                 {warmUps.length > 0 && (
                   <p className="truncate font-mono text-xs tabular-nums text-muted-foreground">
                     warm-up: {warmUps.map((w) => `${w.weight}×${w.targetReps}`).join(" · ")}
@@ -88,6 +101,18 @@ export function PlannedExerciseList({ plan, trainingPhase }: PlannedExerciseList
           );
         })}
       </ul>
+      {notDone.length > 0 && (
+        <ul aria-label="Not done today" className="flex flex-col gap-1.5 border-t border-border pt-2.5">
+          {notDone.map((item) => (
+            <li key={`${item.exerciseId}-${item.tier}`} data-testid="not-done-exercise">
+              <p className="text-sm font-medium text-muted-foreground">
+                {getExercise(item.exerciseId).name}
+              </p>
+              <ImpactLine status="not-done" />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -1,34 +1,12 @@
-"use client";
+import { MAIN_LIFTS } from "@/components/Progress/lifts";
+import { LiftPageClient } from "./LiftPageClient";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { SearchX } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageShell } from "@/components/ui/page-shell";
-import { LiftDetail } from "@/components/Lift/LiftDetail";
-import { isMainLift } from "@/components/Progress/lifts";
+// The pages are listed at build time so the iPhone app, which is built as
+// static files, contains one for each main lift.
+export function generateStaticParams() {
+  return MAIN_LIFTS.map((id) => ({ id }));
+}
 
 export default function LiftPage() {
-  const params = useParams<{ id: string }>();
-  const id = params?.id;
-
-  return (
-    <PageShell>
-      {isMainLift(id) ? (
-        <LiftDetail exerciseId={id} />
-      ) : (
-        <EmptyState
-          icon={<SearchX />}
-          title="No such lift"
-          body="Lift pages cover squat, bench press, deadlift and overhead press."
-          action={
-            <Button asChild variant="outline">
-              <Link href="/progress">Back to Progress</Link>
-            </Button>
-          }
-        />
-      )}
-    </PageShell>
-  );
+  return <LiftPageClient />;
 }

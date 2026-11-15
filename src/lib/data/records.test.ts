@@ -238,6 +238,7 @@ describe("clearAllData", () => {
       "activities",
       "bodyweight",
       "estimated1RMs",
+      "favoriteWorkouts",
       "healthDaily",
       "liftAdjustments",
       "liftStates",

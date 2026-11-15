@@ -10,6 +10,7 @@ import type {
   UserSettings,
   WorkoutSession,
 } from "@/types";
+import type { HealthDailyValues } from "@/lib/health/types";
 
 export type Unit =
   | "lbs"
@@ -21,7 +22,14 @@ export type Unit =
   | "miles"
   | "min"
   | "min/mi"
-  | "level";
+  | "level"
+  | "h"
+  | "steps"
+  | "bpm"
+  | "ms"
+  | "kcal"
+  | "%"
+  | "mL/kg/min";
 
 /** One data point. `t` is epoch milliseconds. */
 export interface Point {
@@ -53,7 +61,16 @@ export type MetricId =
   | "runPace"
   | "runEffort"
   | "sleep"
-  | "stress";
+  | "stress"
+  // from Apple Health, one point per day (display only: no coaching rule reads these)
+  | "sleepHours"
+  | "restingHr"
+  | "hrv"
+  | "steps"
+  | "activeEnergy"
+  | "vo2Max"
+  | "bodyFat"
+  | "energyIntake";
 
 export interface MetricParams {
   exerciseId?: string;
@@ -81,6 +98,8 @@ export interface MetricSource {
   pain: PainSorenessEntry[];
   liftStates: LiftState[];
   settings: UserSettings | null;
+  /** Daily values imported from Apple Health; absent or empty when not connected. */
+  healthDaily?: HealthDailyValues[];
 }
 
 export interface MetricDef {

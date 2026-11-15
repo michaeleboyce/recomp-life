@@ -235,6 +235,7 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
         includeWarmUps: false,
         selectedAccessories: session.selectedAccessories ?? [],
         overrides: overridesFromSession(session),
+        edits: session.planEdits,
       });
 
       // Rule 6. The series is what the live app reads at finish: every row that existed

@@ -8,6 +8,7 @@ import {
 } from "@/lib/progression";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, SetLog, TrainingPhase } from "@/types";
+import { classifyEntry, heavierWeightPerformed } from "./credit";
 import { workingSetsFor } from "./setSelectors";
 import type { CompletionInput, CompletionResult } from "./types";
 
@@ -21,11 +22,13 @@ const TRACKING_WINDOW = 5;
  */
 const PROGRESSING_TIERS = {
   T1: {
+    weight: "t1Weight",
     lastWorkoutDate: "t1LastWorkoutDate",
     evaluate: evaluateT1Progression,
     tracksEffort: true,
   },
   T2: {
+    weight: "t2Weight",
     lastWorkoutDate: "t2LastWorkoutDate",
     evaluate: evaluateT2Progression,
     tracksEffort: false,
@@ -64,6 +67,12 @@ function progressT3(
  * session row. T1 and T2 share one code path; T3 only ever raises `t3Weight`, and a
  * partially completed T3 changes nothing at all.
  *
+ * Each lift is credited on its own (`classifyEntry`): in a session that recorded what
+ * the program prescribed, a lift the user edited away from that prescription changes
+ * no lift state, and a lift done heavier than prescribed in every set progresses from
+ * the heavier weight. Sessions without `prescribed` behave as they always have.
+ *
+ * @evidence off-program-credit
  * @evidence t3-progression
  */
 export function computeCompletion(input: CompletionInput): CompletionResult {
@@ -80,8 +89,8 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
     // Accessories do not change lift state.
     if (templateEx.tier !== "T3" && !isProgressingTier(templateEx.tier)) continue;
 
-    const liftState = current.get(templateEx.exerciseId);
-    if (!liftState) continue;
+    const storedLiftState = current.get(templateEx.exerciseId);
+    if (!storedLiftState) continue;
 
     const exerciseSets = workingSetsFor(sets, templateEx.exerciseId, templateEx.tier);
     if (exerciseSets.length === 0) continue;
@@ -92,17 +101,44 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
         entry.tier === templateEx.tier &&
         !entry.isWarmUp
     );
+    // A session that recorded its prescription may have been edited: a lift that was
+    // removed or swapped out, or done lighter or at another scheme, is only logged.
+    if (
+      session.prescribed &&
+      (!planEntry || classifyEntry(planEntry, session.prescribed, sets) === "logged-only")
+    ) {
+      continue;
+    }
     const targetSets = planEntry?.targetSets ?? templateEx.sets;
     const partial = shouldFreezeProgression(exerciseSets.length, targetSets);
 
+    // Done heavier than prescribed, every set: the heavier weight becomes the lift's
+    // weight, so a pass builds from it. Missing reps at a weight the program did not
+    // ask for is not a failure of the prescribed one: nothing changes.
+    const heavier =
+      session.prescribed && !partial
+        ? heavierWeightPerformed(templateEx, session.prescribed, sets)
+        : null;
+    if (heavier != null && exerciseSets.some((set) => set.status === "failed")) continue;
+    const liftState =
+      heavier == null
+        ? storedLiftState
+        : {
+            ...storedLiftState,
+            [isProgressingTier(templateEx.tier)
+              ? PROGRESSING_TIERS[templateEx.tier].weight
+              : "t3Weight"]: heavier,
+          };
+
     let next: LiftState;
     if (!isProgressingTier(templateEx.tier)) {
-      // T3 has no stage, fail count or date: either the weight goes up or nothing changes.
+      // T3 has no stage, fail count or date: the weight goes up, or stays (at the
+      // heavier weight when that is what was lifted).
       const progressed = partial
         ? null
         : progressT3(liftState, exerciseSets, settings.trainingPhase);
-      if (!progressed) continue;
-      next = progressed;
+      if (!progressed && heavier == null) continue;
+      next = progressed ?? { ...liftState, synced: false };
     } else if (partial) {
       const tier = PROGRESSING_TIERS[templateEx.tier];
       // Partial completion: no pass, no fail, only the date moves.

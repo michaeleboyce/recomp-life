@@ -8,9 +8,11 @@ import {
   T3_LAST_SET_ONLY_PHASES,
   T3_TOTAL_INCREASE_REPS,
 } from "@/lib/progression";
+import { CREDIT_MIN_WEIGHT_RATIO } from "@/lib/workout/credit";
 
 const [t1, t2, t3] = WORKOUT_TEMPLATES.A1.exercises;
 const resetPercent = Math.round(RESET_FACTOR * 100);
+const creditPercent = Math.round(CREDIT_MIN_WEIGHT_RATIO * 100);
 const lastSetOnlyPhases = T3_LAST_SET_ONLY_PHASES.map((mode) => (mode === "cutting" ? "a cut" : mode)).join(" or ");
 
 export const PROGRESSION_RULES = {
@@ -85,5 +87,26 @@ export const PROGRESSION_RULES = {
     surfaces: [],
     activationNotes:
       "Ready to connect once accessory weights are tracked per exercise in the UI.",
+  },
+  "off-program-credit": {
+    area: "progression",
+    status: "active",
+    title: "Does a changed workout still count toward progression?",
+    summary: "A lift done as prescribed progresses; a changed one is only logged",
+    appBehavior: `When a workout has been changed, each lift is judged on its own. A program lift done at its prescribed sets and reps and at ${creditPercent}% of its prescribed weight or more is evaluated as usual (pass, fail or stage change), whichever day you did it on. A lift done heavier than prescribed in every set counts too, and a pass builds the next weight from the heavier one; missing reps at a heavier weight changes nothing. A lift done lighter or at a different scheme, and any exercise you swapped in or added, is logged and counts toward muscle load and history but leaves the program's weights alone: neither a pass nor a fail. A home equipment substitute still counts as the program lift. The rotation only moves on when the workout was the one that was due and its heavy (T1) lift was done as prescribed. Before you start, the edit sheet on the Configure screen shows which of these applies to each lift you change.`,
+    rationale:
+      "GZCLP's pass and fail rules assume the prescribed sets, reps and weight. Applying them to a lighter or different session would raise the weight after work that did not test it, or count a deliberate easy day as a failure. Judging each lift separately lets a changed workout keep the progress it earned without distorting the rest.",
+    caveat:
+      "This is a convention of this app, not part of GZCLP and not a research finding.",
+    strength: "heuristic",
+    sources: [],
+    reviewedOn: "2026-11",
+    implementedIn: [
+      "src/lib/workout/credit.ts#classifyEntry",
+      "src/lib/workout/credit.ts#foldRotation",
+      "src/lib/workout/completeWorkout.ts#computeCompletion",
+      "src/lib/workout/buildPlan.ts#describeNextWorkout",
+    ],
+    surfaces: ["src/components/PreWorkout/EditWorkoutSheet.tsx"],
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;

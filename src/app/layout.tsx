@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppChrome } from "@/components/AppChrome";
 import { DbProvider } from "@/components/DbProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { HealthProvider } from "@/components/HealthProvider";
 import { SyncProvider } from "@/components/SyncProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
@@ -66,6 +67,7 @@ export default function RootLayout({
         </AppChrome>
         <ServiceWorkerRegistration />
         <SyncProvider />
+        <HealthProvider />
       </body>
     </html>
   );

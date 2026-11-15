@@ -13,12 +13,12 @@ async function makeLegacyDatabase() {
 }
 
 describe("the local database", () => {
-  it("is one fresh database with a single version and no sets table or synced index", async () => {
+  it("is one fresh database, at version 2 since favourites, with no sets table or synced index", async () => {
     const { db, DATABASE_NAME } = await import("./local");
     expect(DATABASE_NAME).toBe("recomp-life-2");
     expect(db.name).toBe("recomp-life-2");
     await db.open();
-    expect(db.verno).toBe(1);
+    expect(db.verno).toBe(2);
 
     const schema = Object.fromEntries(
       db.tables.map((t) => [
@@ -38,6 +38,7 @@ describe("the local database", () => {
       liftAdjustments: "id, clientId, exerciseId, at",
       liftStates: "exerciseId",
       estimated1RMs: "id, exerciseId, date, workoutSessionId",
+      favoriteWorkouts: "id, clientId",
     });
   });
 });

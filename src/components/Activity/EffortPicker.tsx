@@ -18,12 +18,15 @@ const EFFORT_COLORS: Record<Effort, string> = {
   5: "border-destructive bg-destructive/10 text-destructive",
 };
 
-/** Five-step perceived effort selector shared by the run and activity loggers. */
+/**
+ * Five-step perceived effort selector shared by the run and activity loggers.
+ * A null value (a session imported without a rating) shows no step selected.
+ */
 export function EffortPicker({
   value,
   onChange,
 }: {
-  value: Effort;
+  value: Effort | null;
   onChange: (effort: Effort) => void;
 }) {
   return (

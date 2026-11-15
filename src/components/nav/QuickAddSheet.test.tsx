@@ -7,6 +7,7 @@ const hooks = vi.hoisted(() => ({
   useNextWorkout: vi.fn(),
   useBodyweightLog: vi.fn(),
   useRuns: vi.fn(),
+  useFavoriteWorkouts: vi.fn(),
 }));
 vi.mock("@/hooks", () => hooks);
 
@@ -14,8 +15,11 @@ import { QuickAddSheet } from "./QuickAddSheet";
 
 const a1 = WORKOUT_TEMPLATES.A1;
 
-function setHooks(overrides: { next?: unknown; weights?: unknown; runs?: unknown } = {}) {
+function setHooks(
+  overrides: { next?: unknown; weights?: unknown; runs?: unknown; favorites?: unknown } = {}
+) {
   const data = {
+    favorites: [{ id: "a" }, { id: "b" }],
     next: { templateId: "A1", template: a1, plan: [] },
     weights: [{ weight: 230 }, { weight: 226 }],
     runs: [{ distanceMiles: 3.1 }, { distanceMiles: 5 }],
@@ -24,6 +28,7 @@ function setHooks(overrides: { next?: unknown; weights?: unknown; runs?: unknown
   hooks.useNextWorkout.mockReturnValue(data.next);
   hooks.useBodyweightLog.mockReturnValue(data.weights);
   hooks.useRuns.mockReturnValue(data.runs);
+  hooks.useFavoriteWorkouts.mockReturnValue(data.favorites);
 }
 
 describe("QuickAddSheet", () => {
@@ -67,6 +72,18 @@ describe("QuickAddSheet", () => {
     render(<QuickAddSheet open onOpenChange={() => {}} />);
     expect(screen.getByRole("link", { name: "Log weight" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Log run" })).toBeInTheDocument();
+  });
+
+  it("links to the favourites with how many are saved", () => {
+    const { unmount } = render(<QuickAddSheet open onOpenChange={() => {}} />);
+    const row = screen.getByRole("link", { name: /Start a favourite/ });
+    expect(row).toHaveAttribute("href", "/favorites");
+    expect(row).toHaveTextContent("2 saved");
+    unmount();
+
+    setHooks({ favorites: [] });
+    render(<QuickAddSheet open onOpenChange={() => {}} />);
+    expect(screen.getByRole("link", { name: /Start a favourite/ })).toHaveTextContent("None saved yet");
   });
 
   it("closes the sheet when a row is chosen", () => {

@@ -223,8 +223,54 @@ export interface WorkoutSession extends Stamped {
   prescribed?: PrescribedEntry[];
   /** The settings progression depended on when the session was finished. */
   completionContext?: CompletionContext;
+  /** Changes the user made to the day's plan before starting. Absent for a plain GZCLP day. */
+  planEdits?: PlanEdit[];
+  /** The favourite this session was started from, if any. */
+  favoriteId?: string;
   /** The watch workout recorded during this session, when one was found. */
   health?: WorkoutHealth;
+  synced: boolean;
+}
+
+/**
+ * A change to one entry of a day's plan, applied after the program's prescription.
+ * `exerciseId` and `tier` name the entry as it stands when the edit is applied, so an
+ * edit that follows a swap names the replacement.
+ */
+export type PlanEdit =
+  | { kind: "swap"; exerciseId: string; tier: Tier; replacementId: string }
+  | { kind: "remove"; exerciseId: string; tier: Tier }
+  | { kind: "add"; exerciseId: string; sets: number; reps: number; weight: number; isAMRAP: boolean }
+  | { kind: "scheme"; exerciseId: string; tier: Tier; sets: number; reps: number }
+  | { kind: "weight"; exerciseId: string; tier: Tier; weight: number };
+
+/** One working entry of a favourite's frozen copy. */
+export interface FavoriteSnapshotEntry {
+  exerciseId: string;
+  tier: Tier;
+  sets: number;
+  reps: number;
+  weight: number;
+  isAMRAP: boolean;
+}
+
+/** A saved workout: a base day, the user's choices and edits, and a frozen copy of the plan. */
+export interface FavoriteWorkout extends Stamped {
+  id: string;
+  clientId: string;
+  name: string;
+  templateId: string;
+  location: WorkoutLocation;
+  includeWarmUps: boolean;
+  selectedAccessories: string[];
+  /** Home substitutes: template exerciseId -> substitute exerciseId. */
+  substitutes: Record<string, string>;
+  /** Structural edits only (swap, remove, add). Weights and schemes live in `snapshot`. */
+  edits: PlanEdit[];
+  snapshot: FavoriteSnapshotEntry[];
+  sourceSessionId?: string;
+  createdAt: Date;
+  lastUsedAt?: Date;
   synced: boolean;
 }
 
@@ -297,7 +343,8 @@ export interface RunLog extends Stamped {
   type: RunType;
   category: RunCategory;
   notes: string;
-  perceivedEffort: 1 | 2 | 3 | 4 | 5;
+  /** Null for a session imported without an effort rating; the app never guesses one. */
+  perceivedEffort: 1 | 2 | 3 | 4 | 5 | null;
   /** Where the row came from; absent means entered by hand. */
   source?: RecordSource;
   /** The app or device that recorded an imported row, e.g. "Apple Watch". */
@@ -320,7 +367,8 @@ export interface ActivityLog extends Stamped {
   style: YogaStyle | null;
   distanceMiles: number | null;
   notes: string;
-  perceivedEffort: 1 | 2 | 3 | 4 | 5;
+  /** Null for a session imported without an effort rating; the app never guesses one. */
+  perceivedEffort: 1 | 2 | 3 | 4 | 5 | null;
   /** Where the row came from; absent means entered by hand. */
   source?: RecordSource;
   /** The app or device that recorded an imported row, e.g. "Apple Watch". */

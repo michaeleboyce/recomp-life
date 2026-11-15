@@ -10,6 +10,7 @@ import { recordAdjustment, type NewAdjustment } from "@/lib/data/adjustments";
 import { clearDb } from "@/lib/data/testUtils";
 import { startWorkout, type StartWorkoutInput } from "@/lib/data/workouts";
 import type { ToastOptions } from "@/components/ui/toast";
+import { foldRotation } from "@/lib/workout";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import type { LiftState, SetLog } from "@/types";
 import { useActiveWorkout } from "./useActiveWorkout";
@@ -297,9 +298,12 @@ describe("correcting a set before finishing", () => {
       [95, "completed", undefined],
     ]);
 
-    // A real drop freezes T2 progression; this was a correction, so it progresses.
+    // Not a load drop, but every set was below the prescribed 100: the lift is logged
+    // only (off-program-credit), so its weight neither goes up nor counts as a miss.
     await endAndFinish(hook);
-    expect((await liftState("bench")).t2Weight).toBeGreaterThan(before.t2Weight);
+    const after = await liftState("bench");
+    expect(after.t2Weight).toBe(before.t2Weight);
+    expect(after.t2FailCount).toBe(before.t2FailCount);
   });
 
   it("keeps an accepted load drop's status when that set's reps are corrected", async () => {
@@ -376,5 +380,73 @@ describe("the plan of a workout in progress", () => {
 
     const second = await reload(first, sessionId);
     expect(workingPlan(second)[0]).toBe("T1:squat:150:6x2");
+  });
+});
+
+describe("a workout edited before starting", () => {
+  const EDITS: StartWorkoutInput["planEdits"] = [
+    { kind: "scheme", exerciseId: "squat", tier: "T1", sets: 2, reps: 8 },
+    { kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "incline_db_press" },
+    { kind: "weight", exerciseId: "incline_db_press", tier: "T2", weight: 45 },
+    { kind: "scheme", exerciseId: "incline_db_press", tier: "T2", sets: 2, reps: 10 },
+  ];
+  const EDITED_PLAN = [
+    "T1:squat:190:2x8",
+    "T2:incline_db_press:45:2x10",
+    "T3:lat_pulldown:90:3x15",
+  ];
+
+  async function logAll(hook: Hook) {
+    while (hook.result.current.status === "active") await logSet(hook);
+  }
+
+  it("performs the edited plan, keeps it after a reload, and stores the edits on the session", async () => {
+    const sessionId = await start({ planEdits: EDITS });
+    const first = await mount(sessionId);
+    expect(workingPlan(first)).toEqual(EDITED_PLAN);
+    expect((await db.workouts.get(sessionId))!.planEdits).toEqual(EDITS);
+
+    await logSet(first);
+    const second = await reload(first, sessionId);
+    expect(workingPlan(second)).toEqual(EDITED_PLAN);
+    expect(second.result.current.entry).toMatchObject({ exerciseId: "squat", completedSets: 1 });
+  });
+
+  it("credits each lift on its own when finished, and leaves the due day due", async () => {
+    const before = {
+      squat: await liftState("squat"),
+      bench: await liftState("bench"),
+      lat: await liftState("lat_pulldown"),
+    };
+    const hook = await mount(await start({ planEdits: EDITS }));
+    // The T3 AMRAP set reaches 25 reps, so the untouched T3 lift earns its increase.
+    while (hook.result.current.status === "active") {
+      const entry = hook.result.current.entry!;
+      const last = entry.completedSets + 1 === entry.targetSets;
+      await logSet(hook, entry.tier === "T3" && last ? { reps: 25 } : {});
+    }
+    await endAndFinish(hook);
+
+    const squat = await liftState("squat");
+    expect(squat.t1Weight).toBe(before.squat.t1Weight);
+    expect(squat.t1Stage).toBe(before.squat.t1Stage);
+    expect(squat.t1FailCount).toBe(before.squat.t1FailCount);
+    const bench = await liftState("bench");
+    expect(bench.t2Weight).toBe(before.bench.t2Weight);
+    expect(bench.t2FailCount).toBe(before.bench.t2FailCount);
+    expect((await liftState("lat_pulldown")).t3Weight).toBeGreaterThan(before.lat.t3Weight);
+
+    const fold = foldRotation(await db.workouts.toArray());
+    expect(fold.sessions.map((s) => s.counted)).toEqual([false]);
+    expect(fold.dueTemplateId).toBe("A1");
+  });
+
+  it("an unedited due day still progresses and moves the rotation on", async () => {
+    const before = await liftState("squat");
+    const hook = await mount(await start());
+    await logAll(hook);
+    await endAndFinish(hook);
+    expect((await liftState("squat")).t1Weight).toBeGreaterThan(before.t1Weight);
+    expect(foldRotation(await db.workouts.toArray()).dueTemplateId).toBe("B1");
   });
 });

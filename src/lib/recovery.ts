@@ -162,7 +162,8 @@ export function adjustRecoveryForRun(
   const hasImpactfulRecentRun = recentRuns.some((run) => {
     const hoursSinceRun =
       (now.getTime() - run.date.getTime()) / (1000 * 60 * 60);
-    return hoursSinceRun <= 24 && run.perceivedEffort >= 3;
+    // A run with no effort rating (an import) is not counted either way.
+    return hoursSinceRun <= 24 && run.perceivedEffort !== null && run.perceivedEffort >= 3;
   });
 
   if (!hasImpactfulRecentRun) return baseStatus;

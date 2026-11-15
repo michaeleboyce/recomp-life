@@ -6,3 +6,5 @@ export * from "./rehydrate";
 export * from "./logSet";
 export * from "./completeWorkout";
 export * from "./upcoming";
+export * from "./planEdits";
+export * from "./credit";

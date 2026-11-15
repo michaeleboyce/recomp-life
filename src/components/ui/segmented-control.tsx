@@ -7,6 +7,11 @@ interface SegmentedControlProps<T extends string> {
   value: T
   onChange: (value: T) => void
   options: { value: T; label: string; icon?: React.ReactNode }[]
+  /**
+   * "compact" is for four or more options on a phone: tighter padding and a
+   * smaller label, with each segment still tall enough to tap comfortably.
+   */
+  size?: "default" | "compact"
   className?: string
 }
 
@@ -14,6 +19,7 @@ export function SegmentedControl<T extends string>({
   value,
   onChange,
   options,
+  size = "default",
   className,
 }: SegmentedControlProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -54,10 +60,12 @@ export function SegmentedControl<T extends string>({
         <button
           key={option.value}
           data-segment
+          data-size={size}
           type="button"
           onClick={() => onChange(option.value)}
           className={cn(
-            "relative z-10 flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            "relative z-10 flex-1 flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors",
+            size === "compact" ? "min-h-11 px-1 text-xs whitespace-nowrap" : "px-3 py-1.5 text-sm",
             value === option.value
               ? "text-foreground"
               : "text-muted-foreground hover:text-foreground"

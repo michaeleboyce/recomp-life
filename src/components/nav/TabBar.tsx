@@ -23,6 +23,7 @@ const PREFIXES: Record<Exclude<TabId, "today">, string[]> = {
     "/more",
     "/settings",
     "/exercises",
+    "/favorites",
     "/research",
     "/1rm-calculator",
     "/plate-calculator",

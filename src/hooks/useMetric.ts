@@ -15,7 +15,7 @@ import type {
 } from "@/lib/metrics/types";
 import type { ReadinessLog } from "@/types";
 import { useSettings } from "./useProfile";
-import { useBodyweightLog, useE1RMs, usePainEntries, useRuns } from "./useRecords";
+import { useBodyweightLog, useE1RMs, useHealthDaily, usePainEntries, useRuns } from "./useRecords";
 import { useCompletedWorkouts, useLiftStates } from "./useWorkouts";
 
 /** Readiness (sleep and stress) logs, oldest first; `undefined` while loading. */
@@ -37,6 +37,7 @@ export function useMetricSource(): MetricSource | undefined {
   const pain = usePainEntries();
   const liftStates = useLiftStates();
   const settings = useSettings();
+  const healthDaily = useHealthDaily();
 
   return useMemo(() => {
     if (
@@ -47,12 +48,13 @@ export function useMetricSource(): MetricSource | undefined {
       readiness === undefined ||
       pain === undefined ||
       liftStates === undefined ||
-      settings === undefined
+      settings === undefined ||
+      healthDaily === undefined
     ) {
       return undefined;
     }
-    return { workouts, e1rms, bodyweight, runs, readiness, pain, liftStates, settings };
-  }, [workouts, e1rms, bodyweight, runs, readiness, pain, liftStates, settings]);
+    return { workouts, e1rms, bodyweight, runs, readiness, pain, liftStates, settings, healthDaily };
+  }, [workouts, e1rms, bodyweight, runs, readiness, pain, liftStates, settings, healthDaily]);
 }
 
 export interface MetricResult {

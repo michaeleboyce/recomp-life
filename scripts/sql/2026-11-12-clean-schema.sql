@@ -31,6 +31,7 @@ DROP TABLE IF EXISTS "user_profile";
 DROP TABLE IF EXISTS "readiness_logs";
 DROP TABLE IF EXISTS "lift_adjustments";
 DROP TABLE IF EXISTS "health_daily";
+DROP TABLE IF EXISTS "favorite_workouts";
 
 CREATE TABLE "workouts" (
   "id" text PRIMARY KEY,
@@ -52,7 +53,9 @@ CREATE TABLE "workouts" (
   "ended_early" boolean,
   "prescribed" jsonb,
   "completion_context" jsonb,
-  "health" jsonb
+  "health" jsonb,
+  "plan_edits" jsonb,
+  "favorite_id" text
 );
 
 CREATE TABLE "lift_adjustments" (
@@ -184,6 +187,26 @@ CREATE TABLE "health_daily" (
   "lean_mass_lbs" real,
   "dietary_kcal" real,
   "protein_g" real
+);
+
+CREATE TABLE "favorite_workouts" (
+  "id" text PRIMARY KEY,
+  "client_id" text NOT NULL UNIQUE,
+  "updated_at" bigint NOT NULL,
+  "deleted_at" bigint,
+  "external_id" text,
+  "synced" boolean NOT NULL DEFAULT true,
+  "name" text NOT NULL,
+  "template_id" text NOT NULL,
+  "location" text NOT NULL,
+  "include_warm_ups" boolean NOT NULL,
+  "selected_accessories" jsonb NOT NULL,
+  "substitutes" jsonb NOT NULL,
+  "edits" jsonb NOT NULL,
+  "snapshot" jsonb NOT NULL,
+  "source_session_id" text,
+  "created_at" timestamp with time zone NOT NULL,
+  "last_used_at" timestamp with time zone
 );
 
 COMMIT;
