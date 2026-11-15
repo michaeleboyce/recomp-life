@@ -130,6 +130,98 @@ export function forecastRow(overrides: Partial<Forecast> = {}): Forecast {
   };
 }
 
+const LONG_HISTORY_LIFTS = ["squat", "ohp", "bench", "deadlift"];
+const LONG_HISTORY_START = new Date("2023-01-02T17:00:00Z").getTime();
+
+/**
+ * A long log with the forecasts a real one would hold, for tests of how much work
+ * scoring does: `count` finished workouts two days apart (one T1 lift each, the four
+ * lifts in turn), two weigh-ins for each, and six stored forecasts per workout (reps,
+ * pass, new best, session length, and an estimated-max and a bodyweight forecast for
+ * four weeks on). `now` is late enough for every forecast to have closed.
+ */
+export function longHistory(count: number): {
+  workouts: WorkoutSession[];
+  bodyweight: BodyweightLog[];
+  forecasts: Forecast[];
+  now: Date;
+} {
+  const workouts: WorkoutSession[] = [];
+  const bodyweight: BodyweightLog[] = [];
+  const forecasts: Forecast[] = [];
+  for (let i = 0; i < count; i++) {
+    const exerciseId = LONG_HISTORY_LIFTS[i % LONG_HISTORY_LIFTS.length];
+    const at = new Date(LONG_HISTORY_START + i * 2 * DAY);
+    const weight = 150 + (i % 40) * 5;
+    const id = `w${i}`;
+    workouts.push(t1Session({ id, exerciseId, at, weight, lastReps: 3 + (i % 5) }));
+    bodyweight.push(weighIn(`bw${i}a`, at, 200 - i / 100));
+    bodyweight.push(weighIn(`bw${i}b`, new Date(at.getTime() + DAY), 200 - i / 100));
+
+    const session = (kind: Forecast["kind"], rest: Partial<Forecast>) => {
+      const rowId = `fc:${id}:${kind}`;
+      return forecastRow({
+        id: rowId,
+        clientId: rowId,
+        slot: rowId,
+        kind,
+        workoutId: id,
+        exerciseId,
+        tier: "T1",
+        madeAt: at,
+        ...rest,
+      });
+    };
+    const horizon = (kind: Forecast["kind"], rest: Partial<Forecast>) => {
+      const rowId = `h:${kind}:${i}`;
+      return forecastRow({
+        id: rowId,
+        clientId: rowId,
+        slot: `${kind}|${rest.exerciseId ?? "bodyweight"}|${i}`,
+        kind,
+        workoutId: undefined,
+        exerciseId: undefined,
+        tier: undefined,
+        madeAt: at,
+        dueAt: new Date(at.getTime() + 28 * DAY),
+        ...rest,
+      });
+    };
+    forecasts.push(
+      session("amrapReps", { event: { type: "amrapReps", weight } }),
+      session("liftPass", {
+        event: { type: "repsAtLeast", weight, reps: 3 },
+        prediction: { point: 0.8, probability: 0.8, unit: "chance" },
+      }),
+      session("newBest", {
+        event: { type: "e1rmAbove", weight, level: 180 },
+        prediction: { point: 0.4, probability: 0.4, unit: "chance" },
+      }),
+      session("sessionLength", {
+        exerciseId: undefined,
+        tier: undefined,
+        event: { type: "durationSeconds" },
+        prediction: { point: 2400, low: 2200, high: 2600, unit: "s" },
+      }),
+      horizon("e1rm4w", {
+        exerciseId,
+        event: { type: "e1rmLevel", windowDays: 7 },
+        prediction: { point: 200, low: 180, high: 220, unit: "lb" },
+      }),
+      horizon("bodyweight4w", {
+        event: { type: "bodyweightMean", windowDays: 3 },
+        prediction: { point: 198, low: 196, high: 200, unit: "lb" },
+      })
+    );
+  }
+  return {
+    workouts,
+    bodyweight,
+    forecasts,
+    now: new Date(LONG_HISTORY_START + (count * 2 + 60) * DAY),
+  };
+}
+
 /** The demo log as replay input. */
 export function demoReplayInput(now: Date): ReplayInput {
   const demo = generateDemoData(now);

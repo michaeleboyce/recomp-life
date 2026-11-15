@@ -17,6 +17,7 @@ import type {
 } from "@/types";
 import { e1rmResults } from "./horizon";
 import { finishedBy, isLive, toMs } from "./log";
+import { indexLog } from "./logIndex";
 import { makeHorizonForecasts, makeSessionForecasts } from "./make";
 import { resolveForecast } from "./resolve";
 import { scoreForecasts, sdScales, trackRecord, type TrackRecordSplit } from "./score";
@@ -110,10 +111,10 @@ export function replayForecasts(input: ReplayInput, options: ReplayOptions = {})
     const before = finishedBy(finished, startMs);
     const adjustments = liveAdjustments.filter((a) => toMs(a.at) <= startMs);
     const settings = settingsFor(input.settings, workout);
-    const logBefore: ForecastLog = {
+    const logBefore: ForecastLog = indexLog({
       workouts: before,
       bodyweight: input.bodyweight.filter((b) => toMs(b.date) <= startMs),
-    };
+    });
 
     let liftStates: LiftState[];
     if (workout.prescribed && before.length > 0) {

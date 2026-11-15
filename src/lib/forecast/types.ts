@@ -3,6 +3,7 @@
 import type { RuleId } from "@/lib/evidence/rules";
 import type {
   BodyweightLog,
+  Estimated1RM,
   Forecast,
   ForecastKind,
   ForecastStatus,
@@ -44,7 +45,32 @@ export interface ForecastLog {
   bodyweight: BodyweightLog[];
 }
 
-/** Works out a forecast's status from the log. Pure: the same log gives the same answer. */
+/** One measurement: when it was taken (epoch milliseconds) and its value. */
+export interface Measurement {
+  t: number;
+  v: number;
+}
+
+/**
+ * A log prepared for scoring many forecasts (`indexLog`): workouts are found by id and
+ * each workout's estimated-max results are worked out once, however many forecasts
+ * read them. It is still a log, so it can be passed wherever one is taken.
+ */
+export interface IndexedLog extends ForecastLog {
+  /** The workout row with this id, deleted or not. */
+  workoutById(id: string): WorkoutSession | undefined;
+  /** The estimated-max rows the app keeps for a workout of this log (`e1rmsForWorkout`). */
+  e1rmsOf(workout: WorkoutSession): Estimated1RM[];
+  /** A lift's estimated-max results from live workouts, oldest first. */
+  e1rmResultsOf(exerciseId: string): readonly Measurement[];
+  /** Live weigh-ins, oldest first. */
+  weighIns(): readonly Measurement[];
+}
+
+/**
+ * Works out a forecast's status from the log. Pure: the same log gives the same
+ * answer. Pass an `IndexedLog` when resolving many forecasts against one log.
+ */
 export type ForecastResolver = (forecast: Forecast, log: ForecastLog, now: Date) => ForecastStatus;
 
 export interface ForecastKindDef {

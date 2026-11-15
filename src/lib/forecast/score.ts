@@ -3,6 +3,7 @@
 import type { Forecast, ForecastBasis, ForecastKind } from "@/types";
 import { CALIBRATION } from "./coefficients";
 import { toMs } from "./log";
+import { indexLog } from "./logIndex";
 import { clamp } from "./math";
 import { FORECAST_KIND_IDS } from "./registry";
 import { earliestPerSlot, resolveForecast } from "./resolve";
@@ -57,15 +58,20 @@ export interface TrackRecordSplit {
 /**
  * Each forecast to score (the earliest row per slot) with the status the log gives
  * it at `now`, oldest first.
+ *
+ * The log is indexed once for the whole pass (`indexLog`), so the work grows with the
+ * history and the number of forecasts, not with their product. Pass an index to share
+ * it with other reads of the same log.
  */
 export function scoreForecasts(
   forecasts: Forecast[],
   log: ForecastLog,
   now: Date
 ): ScoredForecast[] {
+  const index = indexLog(log);
   return earliestPerSlot(forecasts).map((forecast) => ({
     forecast,
-    status: resolveForecast(forecast, log, now),
+    status: resolveForecast(forecast, index, now),
   }));
 }
 
