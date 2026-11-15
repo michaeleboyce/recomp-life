@@ -102,7 +102,11 @@ export function phaseChangeEvent(from: TrainingPhase, to: TrainingPhase): CoachE
 /**
  * Merges a patch into the single profile's settings and marks the profile unsynced.
  * A change of training phase is also recorded in the coach's change log, in the same
- * transaction, so the adjustment log can never miss one.
+ * transaction, so the two are saved together whenever the event can be saved at all.
+ *
+ * The change log never costs the user their setting: a failure to describe or store
+ * the event is caught inside the transaction (which keeps it alive), logged, and the
+ * settings are saved without it.
  */
 export async function updateSettings(
   patch: Partial<UserSettings>,
@@ -116,8 +120,12 @@ export async function updateSettings(
     const settings = { ...profile.settings, ...patch };
     await db.userProfile.update(profile.id, { settings, ...editStamps(profile, now) });
 
-    const event = phaseChangeEvent(profile.settings.trainingPhase, settings.trainingPhase);
-    if (event) await recordCoachEvent(event, now);
+    try {
+      const event = phaseChangeEvent(profile.settings.trainingPhase, settings.trainingPhase);
+      if (event) await recordCoachEvent(event, now);
+    } catch (error) {
+      console.error("Recording a settings change failed; the setting is saved without it", error);
+    }
   });
 }
 

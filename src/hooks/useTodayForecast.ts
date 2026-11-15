@@ -36,17 +36,37 @@ export interface TodayForecast {
 
 const toMinutes = (seconds: number) => Math.round(seconds / 60);
 
+/** Whether a failure to work out Today's forecast has been logged already. */
+let failureReported = false;
+
 /**
  * The forecast tiles for the next workout at `location`, from one snapshot of the
  * records. The numbers are the rows `startWorkout` would store if the workout started
  * now with this plan (`makeSessionForecasts`), so Today never shows a forecast the
  * ledger would not keep. The sleep and energy answers are not known yet; once they
- * are given the stored forecast can differ a little. Pure.
+ * are given the stored forecast can differ a little.
+ *
+ * Never throws: Today renders this on the home screen, above the Start button, and a
+ * forecast is never worth losing that screen for. When scoring, readiness or a model
+ * fails, every part is null (no tile is shown) and the failure is logged once.
  */
 export function todayForecastFrom(
   records: LedgerRecords,
   location?: WorkoutLocation
 ): TodayForecast {
+  try {
+    return buildTodayForecast(records, location);
+  } catch (error) {
+    if (!failureReported) {
+      failureReported = true;
+      console.error("Working out Today's forecast failed; showing none", error);
+    }
+    return { session: null, newBest: null, readiness: null };
+  }
+}
+
+/** The forecast itself. Pure; may throw on records no model expects. */
+function buildTodayForecast(records: LedgerRecords, location?: WorkoutLocation): TodayForecast {
   const now = records.readAt;
   const { plan } = nextWorkoutFrom(records, location);
   const readiness = readinessTodayFrom(records, { now, location });

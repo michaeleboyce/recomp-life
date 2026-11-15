@@ -384,6 +384,23 @@ describe("useTodayForecast", () => {
     expect(today.session!.minutes).toBe(Math.round(length.prediction.point / 60));
   });
 
+  it("gives no forecast, and says so once, when working it out throws", async () => {
+    await history(8);
+    const records = await readLedgerRecords(new Date());
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    // The records are read as stored, so a damaged row gets as far as the models.
+    const damaged = { ...records, workouts: [...records.workouts, null as never] };
+    const nothing = { session: null, newBest: null, readiness: null };
+
+    expect(todayForecastFrom(damaged, "gym")).toEqual(nothing);
+    expect(todayForecastFrom(damaged, "home")).toEqual(nothing);
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(error).toHaveBeenCalledWith(expect.stringMatching(/forecast/i), expect.any(Error));
+    // Sound records still give a forecast afterwards.
+    expect(todayForecastFrom(records, "gym").session).not.toBeNull();
+    error.mockRestore();
+  });
+
   it("gives no new-best chance for a home substitute, and follows the location", async () => {
     await history(8);
     const rendered = renderHook(({ location }) => useTodayForecast(location), {

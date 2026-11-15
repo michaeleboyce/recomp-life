@@ -674,10 +674,47 @@ describe("updateSettings", () => {
     expect(phaseChangeEvent({ mode: "bulking" }, { mode: "bulking", dailyDeficit: 1 })).toBeNull();
   });
 
-  it("changes nothing when the event cannot be recorded", async () => {
-    const before = await readSettings();
+  it("saves the setting all the same when the event cannot be recorded", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.spyOn(db.coachEvents, "add").mockRejectedValue(new Error("disk full"));
-    await expect(updateSettings({ trainingPhase: { mode: "bulking" } })).rejects.toThrow();
-    expect(await readSettings()).toEqual(before);
+
+    await expect(updateSettings({ trainingPhase: { mode: "bulking" } })).resolves.toBeUndefined();
+
+    expect((await readSettings()).trainingPhase).toEqual({ mode: "bulking" });
+    expect(await listCoachEvents()).toEqual([]);
+    expect(error).toHaveBeenCalledWith(
+      expect.stringMatching(/settings change/i),
+      expect.any(Error)
+    );
+  });
+
+  it("saves the setting when the database itself refuses the event", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    // A real failed write inside the transaction, not a mocked promise.
+    const refuse = () => {
+      throw new Error("refused");
+    };
+    db.coachEvents.hook("creating", refuse);
+    try {
+      await updateSettings({ trainingPhase: { mode: "maintaining" }, showWarmUps: false });
+    } finally {
+      db.coachEvents.hook("creating").unsubscribe(refuse);
+    }
+    const settings = await readSettings();
+    expect(settings.trainingPhase).toEqual({ mode: "maintaining" });
+    expect(settings.showWarmUps).toBe(false);
+    expect(await listCoachEvents()).toEqual([]);
+    expect(error).toHaveBeenCalledTimes(1);
+
+    // And the next change is recorded as usual.
+    await updateSettings({ trainingPhase: { mode: "cutting" } });
+    expect(await listCoachEvents()).toHaveLength(1);
+  });
+
+  it("still refuses a save with no profile, whatever the event", async () => {
+    await clearDb();
+    await expect(updateSettings({ trainingPhase: { mode: "bulking" } })).rejects.toThrow(
+      /no user profile/i
+    );
   });
 });
