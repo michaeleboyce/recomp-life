@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-30 active rules, 6 planned rules, 38 sources. Last reviewed against the research: November 2026.
+35 active rules, 4 planned rules, 38 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -57,8 +57,11 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `dumbbell-conversion` | Equipment | Active | Moderate evidence | Saeterbakken 2011 |
 | `forecast-reps` | Strength projections | Active | Limited evidence | Mitter 2022, Grgic 2020, Reynolds 2006, Mayhew 2008, Nuzzo 2024, Craven 2022 |
 | `forecast-session-length` | Strength projections | Active | Coaching heuristic | none |
-| `forecast-bodyweight` | Strength projections | Planned | Limited evidence | Schneditz 2023, Turicchi 2020, Hall 2011 |
-| `forecast-calibration` | Strength projections | Planned | Coaching heuristic | none |
+| `forecast-stall` | Strength projections | Active | Coaching heuristic | none |
+| `forecast-milestone` | Strength projections | Active | Coaching heuristic | none |
+| `forecast-muscle-ready` | Strength projections | Active | Coaching heuristic | none |
+| `forecast-bodyweight` | Strength projections | Active | Limited evidence | Schneditz 2023, Turicchi 2020, Hall 2011 |
+| `forecast-calibration` | Strength projections | Active | Coaching heuristic | none |
 | `readiness-score` | Recovery and time off | Active | Coaching heuristic | none |
 
 ## Program and progression
@@ -693,7 +696,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `forecast-reps`
 - **Status:** Active
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/forecast/coefficients.ts` (`REPS_MODEL`), `src/lib/forecast/coefficients.ts` (`NEW_BEST_MODEL`), `src/lib/forecast/reps.ts` (`lastT1Sets`), `src/lib/forecast/reps.ts` (`estimateRepsLevel`), `src/lib/forecast/reps.ts` (`chanceOfAtLeast`), `src/lib/forecast/reps.ts` (`usualEffortCredit`), `src/lib/forecast/reps.ts` (`chanceOfNewBest`), `src/lib/forecast/reps.ts` (`forecastReps`), `src/lib/readiness/score.ts` (`readinessLevelShift`)
+- **Implemented in:** `src/lib/forecast/coefficients.ts` (`REPS_MODEL`), `src/lib/forecast/coefficients.ts` (`NEW_BEST_MODEL`), `src/lib/forecast/reps.ts` (`lastT1Sets`), `src/lib/forecast/reps.ts` (`estimateRepsLevel`), `src/lib/forecast/reps.ts` (`repsOutlook`), `src/lib/forecast/reps.ts` (`chanceOfAtLeast`), `src/lib/forecast/reps.ts` (`usualEffortCredit`), `src/lib/forecast/reps.ts` (`chanceOfNewBest`), `src/lib/forecast/reps.ts` (`forecastReps`), `src/lib/readiness/score.ts` (`readinessLevelShift`)
 - **Shown in:** `src/components/Today/ForecastTiles.tsx`
 - **Reviewed:** November 2026
 
@@ -733,12 +736,70 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **Sources.** None: this is a coaching convention with no direct research.
 
+### How does the app judge the chance of a stall?
+
+- **Rule id:** `forecast-stall`
+- **Status:** Active
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/forecast/coefficients.ts` (`STALL_MODEL`), `src/lib/forecast/coefficients.ts` (`LIFT_OUTLOOK_MODEL`), `src/lib/forecast/outlook.ts` (`forecastStall`), `src/lib/forecast/outlook.ts` (`walkProgram`), `src/lib/forecast/outlook.ts` (`liftPace`)
+- **Shown in:** `src/components/Forecast/ForecastsScreen.tsx`
+- **Reviewed:** November 2026
+
+**In one line.** The chance a lift misses at its stage soon, from your recent last sets
+
+**What the app does.** For each main lift the app gives the chance that it misses at its current stage within its next 2 sessions: the first at today's working weight, the next one program step heavier if the first passes. Each session's chance of passing is the rep forecast's chance of reaching the target on the last set at that weight and date; reaching it on the last set is taken to mean every set did. The two sessions are not treated as independent: a lifter weaker than the forecast thinks is weaker at both, so only the day-to-day part of the scatter is drawn afresh each time. The sessions come at the lift's own pace over the last 8 weeks. The chance is checked against the next 2 sessions that count for progression, read within 14 days of when the second is due; sessions held back for pain, a run or equipment, or stopped part-way, are skipped, as the program skips them. It never changes a weight.
+
+**Why.** In this program a miss is what moves a lift to its next stage, so the chance of one is the useful number before a session, not a verdict after it. It is read from the same rep forecast as the other forecasts, so it is checked by the same record.
+
+**Limits.** This is the rep forecast read twice, not new research: the rep forecast's own limits apply. Taking a last set at the target to mean every set reached it is this app's assumption; a set missed earlier counts as a miss when the forecast is checked. A session at home with dumbbells counts for progression and so for this check, but the chance assumes the barbell lift at the gym.
+
+**Sources.** None: this is a coaching convention with no direct research.
+
+### How does the app date your next round-number weight?
+
+- **Rule id:** `forecast-milestone`
+- **Status:** Active
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/forecast/coefficients.ts` (`MILESTONE_MODEL`), `src/lib/forecast/outlook.ts` (`forecastMilestone`), `src/lib/forecast/outlook.ts` (`walkProgram`)
+- **Shown in:** `src/components/Forecast/ForecastsScreen.tsx`
+- **Reviewed:** November 2026
+
+**In one line.** When a lift's working weight reaches its next round number, with a range
+
+**What the app does.** For each main lift the app dates the first session at the next multiple of 25 lb above today's working weight. It walks the program's own rules forward session by session at the lift's own pace: a pass adds the lift's step, a miss moves it down a stage and a miss at the last stage resets it, each session passing with the rep forecast's chance at that weight and date. The date is the middle of where that walk lands, with a range built to hold the result 8 in 10 times, allowing for sessions coming earlier or later than usual. No date is given unless the weight is reached within 12 weeks with at least a 90% chance. The forecast is checked against the first workout in which the lift itself is lifted at that weight or more.
+
+**Why.** A date for a round number answers how the program's steady steps add up for you, and it is checked like every other forecast, so its record shows whether to trust it.
+
+**Limits.** No research covers this. It continues today's trend of your last sets for weeks, which holds only while your training goes on as it has; a change of phase, time off or a lot of home sessions move the date. The round number and the horizon are this app's choices.
+
+**Sources.** None: this is a coaching convention with no direct research.
+
+### When will a muscle be ready again?
+
+- **Rule id:** `forecast-muscle-ready`
+- **Status:** Active
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/forecast/muscleReady.ts` (`muscleReadyTimes`)
+- **Shown in:** `src/components/Forecast/MuscleReadyList.tsx`
+- **Reviewed:** November 2026
+
+**In one line.** Ready-again times read from the recovery windows; shown, never scored
+
+**What the app does.** After a workout the Forecasts screen lists the main muscles its T1 and T2 lifts trained and when each should be ready again: 48 hours after it was last trained, and at its best from 72 hours (12 hours later for both while cutting). The times are the recovery windows', unchanged. Unlike the other forecasts they are an explanation, not a stored and scored forecast.
+
+**Why.** It helps to see when the work you just did should have worn off. The times are those of the recovery statuses, so they agree with what the rest of the app shows.
+
+**Limits.** They are not scored because there is nothing honest to score them against: your log never records when a muscle has recovered, and the next session that trains it is set by the program's rotation, usually after these times, so a check against it would come out right by construction. Whether that session's last set met its forecast is already checked by the rep forecast, and a bad day cannot be told apart from a slow recovery. The windows' own grade and sources are on the recovery rule.
+
+**Sources.** None: this is a coaching convention with no direct research.
+
 ### How does the app forecast your bodyweight?
 
 - **Rule id:** `forecast-bodyweight`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/forecast/coefficients.ts` (`BODYWEIGHT_MODEL`), `src/lib/forecast/horizon.ts` (`forecastBodyweight`)
+- **Shown in:** `src/components/Forecast/ForecastsScreen.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Bodyweight four weeks out continues your recent trend, with a range
@@ -749,8 +810,6 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **Limits.** The day-to-day figure comes from a single healthy man, the weekly pattern from people keeping off weight they had lost, and the slow response from a mathematical model of average adults, not from lifters on a cut. A big change in eating or training within the last few weeks breaks the straight line. The window lengths and minimum counts are this app's choices.
 
-**Before this is switched on.** Switch on when the Forecasts screen ships.
-
 **Sources**
 
 - [Schneditz et al. (2023). Day-to-day variability in euvolemic body mass. *Renal Failure*.](https://doi.org/10.1080/0886022X.2023.2273421) Observational study; One healthy man, 9,521 days of morning weigh-ins. Body mass on consecutive days differed with a standard deviation of 0.53%, rising to 0.69% for weigh-ins a week apart, and this did not change over the years. [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC10653631).
@@ -760,9 +819,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How does the app check its own forecasts?
 
 - **Rule id:** `forecast-calibration`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/forecast/coefficients.ts` (`CALIBRATION`), `src/lib/forecast/score.ts` (`sdScaleFor`), `src/lib/forecast/reps.ts` (`repsRange`), `src/lib/forecast/resolve.ts` (`resolveForecast`)
+- **Shown in:** `src/components/Forecast/TrackRecordScreen.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Every forecast is saved before the result and scored against it afterwards
@@ -772,8 +832,6 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Why.** A forecast is only useful if its stated odds match what happens. Scoring them in the open shows where the app can be trusted and where it cannot.
 
 **Limits.** Forecasts are void, not misses, when you change the weight or do not reach the lift. This is standard forecasting practice rather than training research, so it cites none; the thresholds are this app's choices. With a small number of scored forecasts a well-sized range can still look too narrow by chance.
-
-**Before this is switched on.** Switch on when the track record screen ships.
 
 **Sources.** None: this is a coaching convention with no direct research.
 
@@ -890,6 +948,11 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **15 November 2026** — `forecast-stall` (How does the app judge the chance of a stall?): Introduced: Forecasts now shows the chance that each main lift misses at its current stage within its next two sessions, read from the rep forecast, and checks it against those sessions. Sources: .
+- **15 November 2026** — `forecast-milestone` (How does the app date your next round-number weight?): Introduced: Forecasts now dates when each main lift's working weight reaches its next multiple of 25 lb, with a range, by walking the program's own rules forward, and checks it against the first workout at that weight. Sources: .
+- **15 November 2026** — `forecast-muscle-ready` (When will a muscle be ready again?): Introduced: Forecasts now shows when the muscles of your last workout should be ready again, from the recovery times. It is an explanation and is not scored, because the log never records when a muscle has recovered. Sources: .
+- **15 November 2026** — `forecast-bodyweight` (How does the app forecast your bodyweight?): Now shown: the Forecasts screen lists the stored bodyweight forecast for four weeks on, with its range and how it was worked out. Sources: .
+- **15 November 2026** — `forecast-calibration` (How does the app check its own forecasts?): Now shown: the Track record screen scores every stored forecast against what happened, and the app widens a kind's ranges when too few results land inside them. Sources: .
 - **15 November 2026** — `forecast-session-length` (How does the app forecast how long a workout takes?): Introduced: Today now shows how long the workout is expected to take, as a number of minutes with a range, from the planned sets and rests and corrected by how long your own sessions have run. Sources: .
 - **15 November 2026** — `forecast-reps` (How does the app forecast reps on the last set?): Introduced: Today now shows the chance that this workout sets a new best estimated max, worked out from your recent last sets and how much they vary. Sources: .
 - **15 November 2026** — `readiness-score` (How is the readiness score worked out?): Introduced: Today now shows a readiness score built from sleep, stress, rest, recent activity and soreness, measured against your own usual level. Sources: .
