@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import { LiftRows, buildLiftRows } from "./LiftRows";
 
@@ -25,6 +25,15 @@ describe("LiftRows", () => {
       "href",
       "/progress/lift/squat?from=today"
     );
+  });
+
+  it("has a why control beside the row's link, never inside it, that opens the sheet", () => {
+    render(<LiftRows rows={buildLiftRows([entry({})], [])} />);
+    const why = screen.getByRole("button", { name: "Why this weight for Squat" });
+    expect(why.closest("a")).toBeNull();
+    fireEvent.click(why);
+    expect(window.location.search).toBe("?why=squat:T1");
+    window.history.replaceState(null, "", "/");
   });
 
   it("opens the home version a substituted row shows, not the barbell lift", () => {
