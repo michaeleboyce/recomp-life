@@ -78,7 +78,11 @@ const DASH: Record<OverlayStyle, string | undefined> = {
 };
 
 const AXIS_TICK = { fontSize: 10, fill: "var(--chart-axis)" };
-const Y_AXIS_WIDTH = 36;
+/** Narrowest y-axis; it widens for longer tick labels such as "1,000". */
+const Y_AXIS_MIN_WIDTH = 36;
+/** Rough width of one mono character: 10 px axis ticks, 11 px bold end labels. */
+const TICK_CHAR_W = 6.2;
+const END_LABEL_CHAR_W = 6.9;
 const X_AXIS_HEIGHT = 22;
 const MARGIN_TOP = 8;
 const LABEL_GAP = 12;
@@ -176,9 +180,21 @@ export function TrendChart(props: TrendChartProps) {
   const maxT = rows[rows.length - 1].t;
   const xDomain: [number, number] = minT === maxT ? [minT - DAY, maxT + DAY] : [minT, maxT];
   const [lo, hi] = scale.domain;
-  const marginRight = overlays.length > 0 ? 34 : 8;
-
   const fmt = (v: number) => (formatValue ? formatValue(v) : formatNumber(v));
+  // Room for the longest tick label on the left and the longest end label on the right,
+  // so neither is cut off ("1,000" lost its first digit, "226.2" its last).
+  const yAxisWidth = Math.max(
+    Y_AXIS_MIN_WIDTH,
+    Math.ceil(Math.max(0, ...scale.ticks.map((t) => formatNumber(t).length)) * TICK_CHAR_W) + 10
+  );
+  const longestEnd = Math.max(
+    0,
+    ...overlays.map((o) => {
+      const last = o.points[o.points.length - 1];
+      return last ? fmt(last.v).length : 0;
+    })
+  );
+  const marginRight = overlays.length > 0 ? Math.max(34, Math.ceil(longestEnd * END_LABEL_CHAR_W) + 8) : 8;
   const fmtWithUnit = (v: number) => (formatValue ? formatValue(v) : `${formatNumber(v)}${unit ? ` ${unit}` : ""}`);
 
   // End labels: estimate their pixel positions and push colliding ones apart.
@@ -295,7 +311,7 @@ export function TrendChart(props: TrendChartProps) {
                 tick={AXIS_TICK}
                 tickLine={false}
                 axisLine={false}
-                width={Y_AXIS_WIDTH}
+                width={yAxisWidth}
               />
               <Tooltip content={() => null} cursor={false} isAnimationActive={false} />
               {target && (
@@ -418,7 +434,7 @@ export function TrendChart(props: TrendChartProps) {
             aria-hidden="true"
             className="pointer-events-none absolute top-0 rounded-lg bg-card-raised px-2.5 py-1.5 whitespace-nowrap shadow-sm"
             style={{
-              left: `calc(${Y_AXIS_WIDTH}px + (100% - ${Y_AXIS_WIDTH + marginRight}px) * ${inspectorFrac})`,
+              left: `calc(${yAxisWidth}px + (100% - ${yAxisWidth + marginRight}px) * ${inspectorFrac})`,
               transform: `translateX(${inspectorFrac < 0.34 ? "8px" : inspectorFrac > 0.66 ? "calc(-100% - 8px)" : "-50%"})`,
             }}
           >

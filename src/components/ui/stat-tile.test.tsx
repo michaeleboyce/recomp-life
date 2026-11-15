@@ -13,6 +13,13 @@ describe("StatTile", () => {
     expect(screen.getByText("lb")).toBeInTheDocument();
   });
 
+  it("lets a long unit wrap under the value instead of overflowing the tile", () => {
+    render(<StatTile label="Rate of change" value="-0.75" unit="lb/wk" />);
+    const reading = screen.getByText("lb/wk").parentElement!;
+    expect(reading).toHaveAttribute("data-slot", "stat-tile-reading");
+    expect(reading).toHaveClass("flex-wrap", "min-w-0");
+  });
+
   it("renders as a plain div without href", () => {
     render(<StatTile label="Squat" value={300} className="extra" />);
     expect(screen.queryByRole("link")).not.toBeInTheDocument();

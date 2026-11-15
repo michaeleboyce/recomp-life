@@ -107,6 +107,39 @@
   --duration-fast: 150ms;
   --duration-normal: 300ms;
   --duration-slow: 500ms;
+  --color-rest-final: var(--rest-final);
+}
+
+/*
+ * Motion. Short (150 to 400 ms), ease-out, and never in the way of a tap: nothing waits
+ * for an animation to finish. Components use these through `motion-safe:`, and the
+ * reduced-motion rule at the end of this file stops every animation and transition.
+ */
+@theme {
+  /* Today's hero and forecast tiles rise into place on the first load. */
+  --animate-settle-in: settle-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* The rest timer's numeral in the last ten seconds, once a second. */
+  --animate-tick-pulse: tick-pulse 320ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  @keyframes settle-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes tick-pulse {
+    from {
+      transform: scale(1.06);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
 }
 
 :root {
@@ -206,11 +239,16 @@
   --grade-limited: #85590c;
   --grade-heuristic: #a8401f;
   --grade-program: #dccfb4;
-  /* Colour layer over grayscale exercise photos; the three heading stripes. */
-  --photo-tint: #b5653a;
+  /* Colour layer over grayscale exercise photos; the three heading stripes. On cream
+     the photo takes a muted sepia: a saturated orange competed with the rust accent
+     text and the muscle figure's load colours. */
+  --photo-tint: #a87a5a;
   --stripe-1: #ef7a4a;
   --stripe-2: #e0a93b;
   --stripe-3: #3f8f86;
+  /* The rest ring and numeral in the last ten seconds: a clear change from the
+     espresso ring, 3:1 or more on the page (the numeral is large text). */
+  --rest-final: #b8472a;
 
   /* Anatomy figures and the pain body map (src/lib/anatomy/palette.ts is the source;
      palette.test.ts checks these match it and the contrast against --card). The load
@@ -222,8 +260,8 @@
   --anatomy-seam: #eadfca;
   --anatomy-selected: #2f6f6b;
   --anatomy-selected-stroke: #1f4f4c;
-  --anatomy-heat-1: #efc9a6;
-  --anatomy-heat-2: #e6a070;
+  --anatomy-heat-1: #e6b890;
+  --anatomy-heat-2: #dc9862;
   --anatomy-heat-3: #d67440;
   --anatomy-heat-4: #b8472a;
   --anatomy-recovering: #9c3f1f;
@@ -326,6 +364,7 @@
   --stripe-1: #ef7a4a;
   --stripe-2: #e0a93b;
   --stripe-3: #3f8f86;
+  --rest-final: #ef7a4a;
 
   /* Anatomy: burnt-orange load ramp that brightens as load rises. */
   --anatomy-outline: #7d6c5b;
@@ -379,4 +418,22 @@
 @keyframes radial-pulse {
   0% { transform: scale(1); opacity: 0.4; }
   100% { transform: scale(2.5); opacity: 0; }
+}
+
+/*
+ * Reduced motion: every animation and transition finishes at once (state changes still
+ * show, they just do not move). Durations are near zero rather than "none" so the end
+ * events that sheets and dialogs wait for still fire.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
 }

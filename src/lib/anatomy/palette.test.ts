@@ -191,8 +191,10 @@ describe("light theme contrast (against the light card)", () => {
   });
 
   it("heat ramp darkens level by level and the top level reaches 3:1", () => {
-    // Level 1 is a pale peach, told from the tan resting muscle by its stronger colour.
+    // Level 1 is a peach, told from the tan resting muscle by its stronger colour, and
+    // never paler than it: a lighter level 1 read as "worked less than resting".
     expect(chroma(lightHex("heat-1"))).toBeGreaterThan(chroma(lightHex("rest")) * 1.3);
+    expect(luminance(lightHex("heat-1"))).toBeLessThanOrEqual(luminance(lightHex("rest")));
     let prev = lightHex("heat-1");
     for (const t of HEAT.slice(1)) {
       expect(luminance(lightHex(t)), t).toBeLessThan(luminance(prev));

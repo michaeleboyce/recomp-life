@@ -28,7 +28,8 @@ function StatTile({
       <span data-slot="stat-tile-label" className="text-xs text-muted-foreground">
         {label}
       </span>
-      <span className="flex items-baseline gap-1">
+      {/* The unit wraps under a long value rather than running out of a narrow tile. */}
+      <span data-slot="stat-tile-reading" className="flex min-w-0 flex-wrap items-baseline gap-x-1">
         <span
           data-slot="stat-tile-value"
           className="font-mono text-[22px] leading-tight font-bold tabular-nums"

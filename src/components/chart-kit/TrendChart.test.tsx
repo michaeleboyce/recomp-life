@@ -73,6 +73,28 @@ describe("TrendChart", () => {
     expect(tickLabels(container, "x")).toEqual(["Sep 19", "Oct 6", "Oct 24"]);
   });
 
+  it("leaves room for long tick labels and end labels so neither is cut off", () => {
+    const big: Point[] = [880, 905, 930, 960, 985].map((v, i) => ({ t: T0 + i * 7 * DAY, v }));
+    const { container } = render(
+      <TrendChart
+        data={big}
+        unit="lbs"
+        overlays={[{ id: "avg", label: "Average", points: [{ t: big[0].t, v: 880 }, { t: big[4].t, v: 1012.4 }] }]}
+        ariaLabel="Total"
+      />
+    );
+    const ticks = Array.from(
+      container.querySelectorAll(".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-label text, .recharts-yAxis-tick-labels text")
+    );
+    const longest = ticks.find((t) => t.textContent === "1,000") ?? ticks[ticks.length - 1];
+    expect(longest?.textContent).toBe("1,000");
+    // Right-aligned at x: five 10 px mono characters (about 6 px each) must start at or after 0.
+    expect(Number(longest!.getAttribute("x")) - 5 * 6.2).toBeGreaterThanOrEqual(0);
+    // The end label "1,012.4" starts after the line's end and fits in the 350 px chart.
+    const end = screen.getByText("1,012.4");
+    expect(Number(end.getAttribute("x")) + "1,012.4".length * 6.9).toBeLessThanOrEqual(350);
+  });
+
   it("never starts a weight axis at zero", () => {
     const { container } = render(<TrendChart series={series} ariaLabel="x" />);
     const labels = tickLabels(container, "y").map(Number);
