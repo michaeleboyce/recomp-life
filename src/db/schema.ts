@@ -41,6 +41,7 @@ export const workouts = pgTable('workouts', {
   health: jsonb('health'),
   planEdits: jsonb('plan_edits'),
   favoriteId: text('favorite_id'),
+  decisions: jsonb('decisions'),
 });
 
 // Favourite workouts: a saved day with the user's choices, edits and a frozen plan
@@ -156,4 +157,32 @@ export const healthDaily = pgTable('health_daily', {
   leanMassLbs: real('lean_mass_lbs'),
   dietaryKcal: real('dietary_kcal'),
   proteinG: real('protein_g'),
+});
+
+// Stored forecasts: write-once predictions, scored later against the log
+export const forecasts = pgTable('forecasts', {
+  ...syncColumns(),
+  slot: text('slot').notNull(),
+  kind: text('kind').notNull(),
+  workoutId: text('workout_id'),
+  exerciseId: text('exercise_id'),
+  tier: text('tier'),
+  madeAt: timestamp('made_at', { withTimezone: true }).notNull(),
+  dueAt: timestamp('due_at', { withTimezone: true }).notNull(),
+  event: jsonb('event').notNull(),
+  prediction: jsonb('prediction').notNull(),
+  basis: text('basis').notNull(),
+  inputs: jsonb('inputs').notNull(),
+  modelVersion: text('model_version').notNull(),
+});
+
+// The coach's change log: only changes that cannot be worked out from the rest of the data
+export const coachEvents = pgTable('coach_events', {
+  ...syncColumns(),
+  at: timestamp('at', { withTimezone: true }).notNull(),
+  kind: text('kind').notNull(),
+  title: text('title').notNull(),
+  detail: text('detail').notNull(),
+  ruleId: text('rule_id'),
+  data: jsonb('data'),
 });

@@ -48,7 +48,7 @@ describe('scripts/sql/2026-11-12-clean-schema.sql', () => {
     const firstCreate = SQL.indexOf('CREATE TABLE');
     for (const table of [
       'workouts', 'sets', 'runs', 'activities', 'bodyweight', 'pain_entries', 'estimated_1rms',
-      'lift_states', 'user_profile', 'readiness_logs', 'lift_adjustments', 'health_daily',
+      'lift_states', 'user_profile', 'readiness_logs', 'lift_adjustments', 'health_daily', 'favorite_workouts', 'forecasts', 'coach_events',
     ]) {
       const drop = SQL.indexOf(`DROP TABLE IF EXISTS "${table}";`);
       expect(drop, table).toBeGreaterThan(-1);
@@ -89,4 +89,30 @@ describe('scripts/sql/2026-11-12-clean-schema.sql', () => {
       }
     });
   }
+});
+
+describe('scripts/sql/2026-11-14-glass-box.sql', () => {
+  const ADDITIVE = readFileSync(join(process.cwd(), 'scripts/sql/2026-11-14-glass-box.sql'), 'utf8');
+  const statements = ADDITIVE.split('\n').filter((l) => /^(ALTER TABLE|CREATE TABLE)/.test(l));
+
+  it('says what it does, touches no existing data and is safe to run twice', () => {
+    expect(ADDITIVE.trim()).toMatch(/^--[\s\S]*\nBEGIN;[\s\S]*\nCOMMIT;$/);
+    expect(ADDITIVE).toMatch(/touches no existing data/);
+    expect(ADDITIVE).toMatch(/safe to run more than once/);
+    expect(ADDITIVE).not.toMatch(/\b(DROP|DELETE|UPDATE|TRUNCATE) /);
+  });
+
+  it('uses IF NOT EXISTS on every statement', () => {
+    expect(statements).toHaveLength(3);
+    for (const line of statements) expect(line, line).toMatch(/IF NOT EXISTS/);
+  });
+
+  it('creates the same tables and columns as the clean-schema script', () => {
+    const additive = parseCreateTables(ADDITIVE.replace(/CREATE TABLE IF NOT EXISTS/g, 'CREATE TABLE'));
+    for (const name of ['forecasts', 'coach_events']) {
+      expect(additive.get(name), name).toEqual(sqlTables.get(name));
+    }
+    expect(ADDITIVE).toMatch(/ADD COLUMN IF NOT EXISTS "decisions" jsonb;/);
+    expect(sqlTables.get('workouts')!.get('decisions')).toMatchObject({ type: 'jsonb', notNull: false });
+  });
 });

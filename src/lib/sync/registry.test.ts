@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { getTableColumns, getTableName } from "drizzle-orm";
+import * as schema from "@/db/schema";
 import { SYNC_REGISTRY, getSyncTable } from "./registry";
 
 describe("SYNC_REGISTRY", () => {
@@ -29,6 +31,20 @@ describe("SYNC_REGISTRY", () => {
       expect(new Set(columns).size, table.name).toBe(columns.length);
       for (const column of columns) expect(column, table.name).toMatch(/^[a-z0-9_]+$/);
     }
+  });
+
+  it("maps the forecast, coach event and workout decision fields onto the Drizzle columns", () => {
+    const tables = new Map<string, (typeof schema)[keyof typeof schema]>(
+      Object.values(schema).map((t) => [getTableName(t), t])
+    );
+    for (const name of ["forecasts", "coachEvents", "workouts"]) {
+      const def = getSyncTable(name)!;
+      const known = new Set(Object.values(getTableColumns(tables.get(def.pgName)!)).map((c) => c.name));
+      for (const column of Object.values(def.columns)) expect(known.has(column), `${name}.${column}`).toBe(true);
+    }
+    expect(getSyncTable("workouts")!.jsonFields).toContain("decisions");
+    expect(getSyncTable("forecasts")!.jsonFields).toEqual(["event", "prediction", "inputs"]);
+    expect(getSyncTable("coachEvents")!.jsonFields).toEqual(["data"]);
   });
 
   it("keeps exactly one single-row table: the profile", () => {

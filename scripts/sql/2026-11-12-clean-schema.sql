@@ -32,6 +32,8 @@ DROP TABLE IF EXISTS "readiness_logs";
 DROP TABLE IF EXISTS "lift_adjustments";
 DROP TABLE IF EXISTS "health_daily";
 DROP TABLE IF EXISTS "favorite_workouts";
+DROP TABLE IF EXISTS "forecasts";
+DROP TABLE IF EXISTS "coach_events";
 
 CREATE TABLE "workouts" (
   "id" text PRIMARY KEY,
@@ -55,7 +57,8 @@ CREATE TABLE "workouts" (
   "completion_context" jsonb,
   "health" jsonb,
   "plan_edits" jsonb,
-  "favorite_id" text
+  "favorite_id" text,
+  "decisions" jsonb
 );
 
 CREATE TABLE "lift_adjustments" (
@@ -207,6 +210,42 @@ CREATE TABLE "favorite_workouts" (
   "source_session_id" text,
   "created_at" timestamp with time zone NOT NULL,
   "last_used_at" timestamp with time zone
+);
+
+CREATE TABLE "forecasts" (
+  "id" text PRIMARY KEY,
+  "client_id" text NOT NULL UNIQUE,
+  "updated_at" bigint NOT NULL,
+  "deleted_at" bigint,
+  "external_id" text,
+  "synced" boolean NOT NULL DEFAULT true,
+  "slot" text NOT NULL,
+  "kind" text NOT NULL,
+  "workout_id" text,
+  "exercise_id" text,
+  "tier" text,
+  "made_at" timestamp with time zone NOT NULL,
+  "due_at" timestamp with time zone NOT NULL,
+  "event" jsonb NOT NULL,
+  "prediction" jsonb NOT NULL,
+  "basis" text NOT NULL,
+  "inputs" jsonb NOT NULL,
+  "model_version" text NOT NULL
+);
+
+CREATE TABLE "coach_events" (
+  "id" text PRIMARY KEY,
+  "client_id" text NOT NULL UNIQUE,
+  "updated_at" bigint NOT NULL,
+  "deleted_at" bigint,
+  "external_id" text,
+  "synced" boolean NOT NULL DEFAULT true,
+  "at" timestamp with time zone NOT NULL,
+  "kind" text NOT NULL,
+  "title" text NOT NULL,
+  "detail" text NOT NULL,
+  "rule_id" text,
+  "data" jsonb
 );
 
 COMMIT;

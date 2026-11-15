@@ -52,6 +52,7 @@ export const SYNC_REGISTRY: readonly SyncTableDef[] = [
       "completionContext",
       "planEdits",
       "health",
+      "decisions",
     ],
   },
   {
@@ -142,6 +143,25 @@ export const SYNC_REGISTRY: readonly SyncTableDef[] = [
       lastUsedAt: "last_used_at",
     },
     jsonFields: ["selectedAccessories", "substitutes", "edits", "snapshot"],
+  },
+  {
+    name: "forecasts",
+    pgName: "forecasts",
+    columns: {
+      ...STAMPS,
+      workoutId: "workout_id",
+      exerciseId: "exercise_id",
+      madeAt: "made_at",
+      dueAt: "due_at",
+      modelVersion: "model_version",
+    },
+    jsonFields: ["event", "prediction", "inputs"],
+  },
+  {
+    name: "coachEvents",
+    pgName: "coach_events",
+    columns: { ...STAMPS, ruleId: "rule_id" },
+    jsonFields: ["data"],
   },
   {
     name: "userProfile",

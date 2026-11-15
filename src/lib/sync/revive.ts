@@ -40,6 +40,12 @@ export const NULL_MEANS_ABSENT: ReadonlySet<string> = new Set([
   "favoriteId",
   "sourceSessionId",
   "lastUsedAt",
+  "decisions",
+  "workoutId",
+  "exerciseId",
+  "tier",
+  "ruleId",
+  "data",
 ]);
 
 /** A pulled row as it is stored locally: dates revived, absent optionals removed, synced. */

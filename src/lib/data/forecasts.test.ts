@@ -1,0 +1,120 @@
+import "fake-indexeddb/auto";
+import { readdirSync, readFileSync, statSync } from "fs";
+import { join, relative } from "path";
+import { beforeEach, describe, expect, it } from "vitest";
+import { db } from "@/db/local";
+import type { Forecast } from "@/types";
+import { forecastTables, listForecasts, writeForecasts } from "./forecasts";
+import { clearDb } from "./testUtils";
+
+beforeEach(clearDb);
+
+function makeForecast(id: string, overrides: Partial<Forecast> = {}): Forecast {
+  return {
+    id,
+    clientId: id,
+    slot: id,
+    kind: "amrapReps",
+    workoutId: "w1",
+    exerciseId: "squat",
+    tier: "T1",
+    madeAt: new Date("2026-11-14T09:00:00Z"),
+    dueAt: new Date("2026-11-14T10:00:00Z"),
+    event: { type: "amrapReps", weight: 200 },
+    prediction: { point: 5, low: 3, high: 7, unit: "reps" },
+    basis: "trend",
+    inputs: { level: 250, scatter: 10 },
+    modelVersion: "test-1",
+    updatedAt: 0,
+    deletedAt: null,
+    synced: true,
+    ...overrides,
+  };
+}
+
+describe("writeForecasts", () => {
+  it("adds rows stamped as new and unsynced", async () => {
+    expect(await writeForecasts([makeForecast("a"), makeForecast("b")], 5000)).toBe(2);
+    const row = (await db.forecasts.get("a"))!;
+    expect(row).toMatchObject({ updatedAt: 5000, deletedAt: null, synced: false });
+    expect(await db.forecasts.count()).toBe(2);
+  });
+
+  it("leaves a stored row identical when the same id is written again", async () => {
+    await writeForecasts([makeForecast("a")], 5000);
+    const stored = await db.forecasts.get("a");
+
+    const added = await writeForecasts(
+      [makeForecast("a", { prediction: { point: 9, unit: "reps" }, basis: "prior" }), makeForecast("c")],
+      9000
+    );
+
+    expect(added).toBe(1);
+    expect(await db.forecasts.get("a")).toEqual(stored);
+    expect(await db.forecasts.count()).toBe(2);
+  });
+
+  it("keeps the first of a repeated id within one call", async () => {
+    await writeForecasts([makeForecast("a"), makeForecast("a", { basis: "prior" })]);
+    expect((await db.forecasts.get("a"))!.basis).toBe("trend");
+  });
+
+  it("writes nothing for an empty list", async () => {
+    expect(await writeForecasts([])).toBe(0);
+  });
+});
+
+describe("listForecasts and forecastTables", () => {
+  it("lists live forecasts oldest made first", async () => {
+    await writeForecasts([
+      makeForecast("late", { madeAt: new Date("2026-11-15T00:00:00Z") }),
+      makeForecast("early", { madeAt: new Date("2026-11-13T00:00:00Z") }),
+      makeForecast("gone"),
+    ]);
+    // Test setup only: soft-delete one row to check the filter.
+    await db.forecasts.where("id").equals("gone").modify({ deletedAt: 1 });
+    expect((await listForecasts()).map((f) => f.id)).toEqual(["early", "late"]);
+  });
+
+  it("names the forecasts table for transactions", () => {
+    expect(forecastTables()).toEqual([db.forecasts]);
+  });
+});
+
+describe("forecasts are write-once", () => {
+  const ROOT = join(process.cwd(), "src");
+  // The sync engine marks pushed rows synced through a generic lookup by name
+  // (src/lib/sync.ts), so it does not match; this file's own setup is exempt.
+  const ALLOWED = new Set(["lib/data/forecasts.test.ts"]);
+  const FORBIDDEN =
+    /\bforecasts\s*\??\.\s*(update|put|modify|bulkPut)\b|table\(\s*["']forecasts["']\s*\)\s*\.\s*(update|put|modify|bulkPut)\b/;
+
+  function sourceFiles(dir: string): string[] {
+    return readdirSync(dir).flatMap((name) => {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) return sourceFiles(path);
+      return /\.(ts|tsx)$/.test(name) ? [path] : [];
+    });
+  }
+
+  it("no code, the writer included, updates, puts, modifies or bulk-puts the table", () => {
+    const offenders = sourceFiles(ROOT)
+      .map((path) => relative(ROOT, path))
+      .filter((path) => !ALLOWED.has(path))
+      .filter((path) => FORBIDDEN.test(readFileSync(join(ROOT, path), "utf8")));
+    expect(offenders).toEqual([]);
+  });
+
+  it("the pattern catches what it should", () => {
+    for (const bad of [
+      "db.forecasts.update(",
+      "db.forecasts.put(",
+      "db.forecasts.modify(",
+      "db.forecasts.bulkPut(",
+      'db.table("forecasts").put(',
+    ]) {
+      expect(FORBIDDEN.test(bad), bad).toBe(true);
+    }
+    expect(FORBIDDEN.test("db.forecasts.bulkAdd(")).toBe(false);
+  });
+});
