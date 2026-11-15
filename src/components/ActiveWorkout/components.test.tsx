@@ -12,7 +12,7 @@ import { RepPicker } from "./RepPicker";
 import { RPESelector } from "./RPESelector";
 import { WeightDisplay } from "./WeightDisplay";
 import { WorkoutOverviewSheet } from "./WorkoutOverviewSheet";
-import { repChips, restNextLabel } from "./activeWorkoutLogic";
+import { clampReps, repChips, restNextLabel } from "./activeWorkoutLogic";
 import { describeChance } from "./prOpportunity";
 
 const audio = vi.hoisted(() => ({
@@ -116,7 +116,7 @@ describe("WeightDisplay", () => {
 describe("RepPicker", () => {
   it("offers chips from one below the target to four above", () => {
     expect(repChips(3)).toEqual([2, 3, 4, 5, 6, 7]);
-    expect(repChips(1)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(repChips(1)).toEqual([0, 1, 2, 3, 4, 5]);
     expect(repChips(15)).toEqual([14, 15, 16, 17, 18, 19]);
   });
 
@@ -135,7 +135,19 @@ describe("RepPicker", () => {
     expect(onChange).toHaveBeenLastCalledWith(6);
   });
 
-  it("can step far past the chips and never below one", () => {
+  it("a missed set can be logged as 0 reps, never fewer", () => {
+    expect(clampReps(0)).toBe(0);
+    expect(clampReps(-1)).toBe(0);
+    const onChange = vi.fn();
+    const { rerender } = render(<RepPicker targetReps={1} isAMRAP={false} value={1} onChange={onChange} />);
+    fireEvent.click(screen.getByRole("button", { name: "One fewer rep" }));
+    expect(onChange).toHaveBeenLastCalledWith(0);
+    expect(screen.getByRole("button", { name: "0 reps" })).toBeInTheDocument();
+    rerender(<RepPicker targetReps={1} isAMRAP={false} value={0} onChange={onChange} />);
+    expect(screen.getByRole("button", { name: "One fewer rep" })).toBeDisabled();
+  });
+
+  it("can step far past the chips", () => {
     const onChange = vi.fn();
     const { rerender } = render(
       <RepPicker targetReps={15} isAMRAP value={29} onChange={onChange} />
@@ -144,9 +156,8 @@ describe("RepPicker", () => {
     fireEvent.click(screen.getByRole("button", { name: "One more rep" }));
     expect(onChange).toHaveBeenLastCalledWith(30);
     expect(screen.getByText("target 15+")).toBeInTheDocument();
-
-    rerender(<RepPicker targetReps={1} isAMRAP={false} value={1} onChange={onChange} />);
-    expect(screen.getByRole("button", { name: "One fewer rep" })).toBeDisabled();
+    rerender(<RepPicker targetReps={15} isAMRAP value={99} onChange={onChange} />);
+    expect(screen.getByRole("button", { name: "One more rep" })).toBeDisabled();
   });
 
   it("highlights the chips that would be a new best on an AMRAP set only", () => {

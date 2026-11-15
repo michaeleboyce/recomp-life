@@ -12,8 +12,11 @@ import type {
 /** Moved to `src/lib/workout/planForSession.ts`; re-exported for existing callers. */
 export { planForSession } from "@/lib/workout/planForSession";
 
-/** The stepper never goes below one rep (as before) and is not capped near a target. */
-export const MIN_REPS = 1;
+/**
+ * A missed set is logged as 0 reps (a failed set: no estimated max, and progression
+ * treats it as any other missed set). The stepper is not capped near a target.
+ */
+export const MIN_REPS = 0;
 export const MAX_REPS = 99;
 const CHIP_COUNT = 6;
 
