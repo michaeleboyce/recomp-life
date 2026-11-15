@@ -173,9 +173,9 @@ export default function SettingsPage() {
         <Link
           href="/more"
           aria-label="Back"
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="-m-3 p-3 text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Link>
         <h1 className="text-lg font-bold text-foreground">Settings</h1>
       </header>
@@ -320,12 +320,12 @@ export default function SettingsPage() {
         </Card>
 
         <div className="flex justify-end -mt-2">
-          <Link href="/plate-calculator">
-            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+          <Button asChild variant="ghost" size="sm" className="text-xs text-muted-foreground">
+            <Link href="/plate-calculator">
               <Calculator className="h-3.5 w-3.5 mr-1" />
               Plate Calculator
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
 
         {/* Exercise Preferences Section */}

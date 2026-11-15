@@ -204,7 +204,7 @@ describe("unfinished-workout", () => {
         kind: "unfinished-workout",
         severity: "action",
         title: "Unfinished workout",
-        body: "Workout A1 has 3 working sets logged. Resume it to pick up where you left off.",
+        body: "Squat day has 3 working sets logged. Resume it to pick up where you left off.",
         action: { label: "Resume", href: "/workout/active?sessionId=abc" },
       },
     ]);
@@ -212,10 +212,10 @@ describe("unfinished-workout", () => {
 
   it("handles no sets and one set", () => {
     expect(computeInsights(ctx({ unfinishedWorkout: workout("x", null, [], "B2") }))[0].body).toBe(
-      "Workout B2 was started but has no working sets logged. Resume it to pick up where you left off."
+      "Deadlift day was started but has no working sets logged. Resume it to pick up where you left off."
     );
     expect(computeInsights(ctx({ unfinishedWorkout: workout("x", null, [set("T1", 3)]) }))[0].body).toBe(
-      "Workout A1 has 1 working set logged. Resume it to pick up where you left off."
+      "Squat day has 1 working set logged. Resume it to pick up where you left off."
     );
   });
 

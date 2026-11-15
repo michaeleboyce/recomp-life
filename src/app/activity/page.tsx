@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { PageShell, PageHeader } from "@/components/ui/page-shell";
 import RunLogger from "@/components/RunLogger";
 import ActivityLogger from "@/components/Activity/ActivityLogger";
 import { ACTIVITY_KINDS, ACTIVITY_KIND_LABELS } from "@/lib/activities";
+import { backTarget } from "@/components/nav/backTarget";
 import type { ActivityKind } from "@/types";
 
 type Choice = "run" | ActivityKind;
@@ -14,13 +16,15 @@ const CHOICES: { value: Choice; label: string }[] = [
   ...ACTIVITY_KINDS.map((kind) => ({ value: kind, label: ACTIVITY_KIND_LABELS[kind] })),
 ];
 
-export default function ActivityPage() {
+function ActivityScreen() {
   const [choice, setChoice] = useState<Choice>("run");
+  // Only a known `from` is used; anything else goes back to Today.
+  const target = backTarget(useSearchParams()?.get("from"));
 
   return (
     <div className="min-h-screen bg-background">
       <PageShell className="space-y-4">
-        <PageHeader title="Log Activity" backHref="/" />
+        <PageHeader title="Log activity" backHref={target.href} />
 
         <div className="flex flex-wrap gap-2" role="group" aria-label="Activity type">
           {CHOICES.map(({ value, label }) => (
@@ -40,8 +44,17 @@ export default function ActivityPage() {
           ))}
         </div>
 
-        {choice === "run" ? <RunLogger /> : <ActivityLogger key={choice} kind={choice} />}
+        {choice === "run" ? <RunLogger returnTo={target.href} /> : <ActivityLogger key={choice} kind={choice} returnTo={target.href} />}
       </PageShell>
     </div>
+  );
+}
+
+export default function ActivityPage() {
+  return (
+    // Reading the query string suspends while the page is prerendered.
+    <Suspense fallback={null}>
+      <ActivityScreen />
+    </Suspense>
   );
 }

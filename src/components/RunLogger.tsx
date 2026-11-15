@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { logRun } from "@/lib/data/records";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
+import { DateField, dateFromInput, toDateInputValue } from "@/components/Activity/DateField";
 import { EffortPicker, type Effort } from "@/components/Activity/EffortPicker";
 import type { RunType, RunCategory } from "@/types";
 
@@ -22,7 +24,8 @@ const RUN_CATEGORIES: { value: RunCategory; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-export default function RunLogger() {
+/** Form for a run. `returnTo` is where to go after a save (default Today). */
+export default function RunLogger({ returnTo = "/" }: { returnTo?: string }) {
   const router = useRouter();
 
   const [durationMinutes, setDurationMinutes] = useState<string>("");
@@ -31,6 +34,7 @@ export default function RunLogger() {
   const [category, setCategory] = useState<RunCategory>("easy");
   const [perceivedEffort, setPerceivedEffort] = useState<Effort>(3);
   const [notes, setNotes] = useState("");
+  const [date, setDate] = useState(() => toDateInputValue(new Date()));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +59,7 @@ export default function RunLogger() {
 
     try {
       await logRun({
-        date: new Date(),
+        date: dateFromInput(date),
         durationMinutes: duration,
         distanceMiles: distance,
         type: runType,
@@ -63,7 +67,8 @@ export default function RunLogger() {
         notes: notes.trim(),
         perceivedEffort,
       });
-      router.push("/?runSaved=1");
+      toast({ message: "Run saved" });
+      router.push(returnTo);
     } catch (err) {
       setError("Failed to save run. Please try again.");
       setSaving(false);
@@ -76,12 +81,15 @@ export default function RunLogger() {
         <CardTitle className="text-lg">Log a Run</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
+        <DateField id="run-date" value={date} onChange={setDate} />
+
         {/* Duration */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">
+          <label htmlFor="run-duration" className="text-sm font-medium text-foreground">
             Duration (minutes) <span className="text-destructive">*</span>
           </label>
           <input
+            id="run-duration"
             type="number"
             inputMode="numeric"
             min={1}
@@ -94,10 +102,11 @@ export default function RunLogger() {
 
         {/* Distance */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">
+          <label htmlFor="run-distance" className="text-sm font-medium text-foreground">
             Distance (miles)
           </label>
           <input
+            id="run-distance"
             type="number"
             inputMode="decimal"
             min={0}
@@ -111,8 +120,8 @@ export default function RunLogger() {
 
         {/* Run Type */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">Type</label>
-          <div className="flex gap-2">
+          <span id="run-type-label" className="block text-sm font-medium text-foreground">Type</span>
+          <div role="group" aria-labelledby="run-type-label" className="flex gap-2">
             {RUN_TYPES.map(({ value, label }) => (
               <button
                 key={value}
@@ -132,8 +141,8 @@ export default function RunLogger() {
 
         {/* Category */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">Category</label>
-          <div className="flex flex-wrap gap-2">
+          <span id="run-category-label" className="block text-sm font-medium text-foreground">Category</span>
+          <div role="group" aria-labelledby="run-category-label" className="flex flex-wrap gap-2">
             {RUN_CATEGORIES.map(({ value, label }) => (
               <button
                 key={value}
@@ -156,8 +165,9 @@ export default function RunLogger() {
 
         {/* Notes */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">Notes</label>
+          <label htmlFor="run-notes" className="text-sm font-medium text-foreground">Notes</label>
           <textarea
+            id="run-notes"
             rows={2}
             placeholder="How did it feel?"
             value={notes}
@@ -168,7 +178,7 @@ export default function RunLogger() {
 
         {/* Error */}
         {error && (
-          <p className="text-sm text-destructive">{error}</p>
+          <p role="alert" className="text-sm text-destructive">{error}</p>
         )}
 
         {/* Save Button */}

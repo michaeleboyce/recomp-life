@@ -56,7 +56,7 @@ describe("SetEditSheet", () => {
 
   it("can clear the RPE: the patch carries rpe undefined", async () => {
     const { onSubmit } = open();
-    fireEvent.click(screen.getByRole("button", { name: "Clear RPE" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear effort" }));
     await save();
     const change = onSubmit.mock.calls[0][0];
     expect(change.kind).toBe("editSet");
@@ -80,10 +80,10 @@ describe("SetEditSheet", () => {
 
   it("rejects invalid entry and stays open", async () => {
     const { onSubmit } = open();
-    fireEvent.change(field("RPE"), { target: { value: "14" } });
+    fireEvent.change(field("Effort"), { target: { value: "14" } });
     await save();
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByRole("alert")).toHaveTextContent("Enter an RPE from 1 to 10, or clear it.");
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter an effort from 1 to 10, or clear it.");
   });
 
   it("stays open when the save flow reports an error", async () => {

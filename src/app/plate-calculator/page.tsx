@@ -126,9 +126,10 @@ export default function PlateCalculatorPage() {
       <header className="flex items-center gap-3 mb-6">
         <Link
           href="/settings"
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Back"
+          className="-m-3 p-3 text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Link>
         <h1 className="text-lg font-bold text-foreground">Plate Calculator</h1>
       </header>

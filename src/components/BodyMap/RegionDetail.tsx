@@ -7,6 +7,7 @@ import { formatRegion } from "@/lib/painModifications";
 import { savePainEntry } from "@/lib/data/records";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { toast } from "@/components/ui/toast";
 import {
   Sheet,
   SheetContent,
@@ -55,6 +56,7 @@ export default function RegionDetail({
 
     const id = await savePainEntry(fields);
     onSave({ ...fields, id, clientId: id, synced: false });
+    toast({ message: `${formatRegion(region)} ${sensation} saved` });
 
     // Check if red flag should be triggered (pain only)
     if (sensation === "pain" && severity >= 4) {

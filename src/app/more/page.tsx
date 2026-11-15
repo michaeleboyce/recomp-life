@@ -37,7 +37,7 @@ export default function MorePage() {
       <MoreGroup title="Training">
         <MoreRow
           icon={CalendarClock}
-          title="Upcoming workouts"
+          title="Coming up"
           subtitle={next ? `Next: ${templateTitle(next.templateId)}` : "The next workouts in your rotation"}
           href="/progress/upcoming"
         />
@@ -63,7 +63,7 @@ export default function MorePage() {
           icon={PersonStanding}
           title="Muscles"
           subtitle="Weekly volume, recovery and pain on the body"
-          href="/muscles"
+          href="/progress?tab=muscles"
         />
       </MoreGroup>
 
@@ -108,7 +108,7 @@ export default function MorePage() {
         <MoreRow
           icon={Cloud}
           title="Cloud sync"
-          subtitle={hasSyncKey ? "On this device" : "Off"}
+          subtitle={`${hasSyncKey ? "On" : "Off"}. Jumps to the sync section of Settings`}
           href="/settings#sync"
         />
         <MoreRow

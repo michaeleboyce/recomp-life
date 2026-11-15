@@ -44,7 +44,7 @@ describe("/log/workout?id=", () => {
   it("renders every set with a back link to the Log", async () => {
     id = first;
     render(<LogWorkoutPage />);
-    expect(await screen.findByRole("heading", { level: 2, name: "Workout A1" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "A1 · Squat day" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/log");
     expect(screen.getByRole("region", { name: "Squat" })).toBeInTheDocument();
     expect(screen.getAllByText(/^Set \d+$/).length).toBeGreaterThanOrEqual(11);

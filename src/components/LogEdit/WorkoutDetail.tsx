@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useWorkout } from "@/hooks";
 import type { LogChange } from "@/lib/rebuild";
-import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
+import { workoutDisplayName } from "@/lib/workoutNames";
 import type { SetLog, WorkoutHealth, WorkoutSession } from "@/types";
 import { ExerciseSets } from "./ExerciseSets";
 import { formatDateTime, formatDuration } from "./format";
@@ -22,7 +22,7 @@ type Editing =
   | null;
 
 export function workoutTitle(workout: Pick<WorkoutSession, "templateId">): string {
-  return WORKOUT_TEMPLATES[workout.templateId]?.name ?? `Workout ${workout.templateId}`;
+  return workoutDisplayName(workout.templateId, true);
 }
 
 const MESSAGES: Record<LogChange["kind"], string> = {

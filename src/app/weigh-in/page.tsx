@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useCallback, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { useBodyweightLog } from "@/hooks";
+import { useBodyweightLog, useMetric } from "@/hooks";
 import { logBodyweight, updateBodyweight } from "@/lib/data/records";
 import type { TimeOfDay } from "@/types";
 import { PageShell } from "@/components/ui/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
+import { backTarget } from "@/components/nav/backTarget";
+import { DateField, dateFromInput, toDateInputValue } from "@/components/Activity/DateField";
+import { STALE_WEIGH_IN_DAYS } from "@/components/Today/GlanceTiles";
 
 function getDefaultTimeOfDay(): TimeOfDay {
   const hour = new Date().getHours();
@@ -35,8 +39,11 @@ function startOfDay(date: Date): Date {
   return d;
 }
 
-export default function WeighInPage() {
+function WeighInScreen() {
   const router = useRouter();
+  // Only a known `from` is used; anything else goes back to Today.
+  const target = backTarget(useSearchParams()?.get("from"));
+  const [date, setDate] = useState(() => toDateInputValue(new Date()));
   // What the user has typed; empty until they do.
   const [typedWeight, setWeight] = useState("");
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(getDefaultTimeOfDay());
@@ -44,6 +51,8 @@ export default function WeighInPage() {
   const [error, setError] = useState<string | null>(null);
 
   const bodyweightLog = useBodyweightLog();
+  // The same weekly rate Today shows.
+  const rate = useMetric("lossRate");
 
   // Last 14 entries, newest first, for trend calculation (need 14 for two 7-day windows)
   const recentEntries = useMemo(
@@ -54,26 +63,24 @@ export default function WeighInPage() {
   // The last 5 for display
   const last5 = recentEntries.slice(0, 5);
 
-  // Pre-filled from the last entry whenever nothing is typed
-  const weight =
-    typedWeight !== "" || recentEntries.length === 0
-      ? typedWeight
-      : String(recentEntries[0].weight);
+  // The last weight is only a hint; Save stays off until a weight is typed.
+  const weight = typedWeight;
+  const lastWeight = recentEntries.length > 0 ? String(recentEntries[0].weight) : null;
 
-  // Check if already logged today
+  // The entry already logged on the chosen day, if any
   const todayEntry = useMemo(() => {
-    const todayStart = startOfDay(new Date());
-    const tomorrowStart = new Date(todayStart);
-    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+    const dayStart = startOfDay(dateFromInput(date));
+    const nextDayStart = new Date(dayStart);
+    nextDayStart.setDate(nextDayStart.getDate() + 1);
 
-    // The log is oldest first, so the first match is the earliest entry today.
+    // The log is oldest first, so the first match is the earliest entry that day.
     return (
       (bodyweightLog ?? []).find((e) => {
         const t = new Date(e.date).getTime();
-        return t >= todayStart.getTime() && t < tomorrowStart.getTime();
+        return t >= dayStart.getTime() && t < nextDayStart.getTime();
       }) ?? null
     );
-  }, [bodyweightLog]);
+  }, [bodyweightLog, date]);
 
   // Calculate 7-day average (from first 7 entries)
   const avg7Day =
@@ -84,18 +91,12 @@ export default function WeighInPage() {
         Math.min(7, recentEntries.length)
       : null;
 
-  // Calculate previous 7-day average (entries 8-14) for trend
-  const prev7Day =
-    recentEntries.length > 7
-      ? recentEntries
-          .slice(7, Math.min(14, recentEntries.length))
-          .reduce((sum, e) => sum + e.weight, 0) /
-        Math.min(7, recentEntries.length - 7)
-      : null;
-
-  // Trend: difference per week
+  // Rate of change per week from the shared metric, and not when it is out of date
+  const latestPoint = rate?.full.points.at(-1);
   const trendPerWeek =
-    avg7Day !== null && prev7Day !== null ? avg7Day - prev7Day : null;
+    latestPoint && Date.now() - latestPoint.t <= STALE_WEIGH_IN_DAYS * 86_400_000
+      ? latestPoint.v
+      : null;
 
   const handleSave = useCallback(async () => {
     setError(null);
@@ -118,17 +119,18 @@ export default function WeighInPage() {
       } else {
         // Create new entry
         await logBodyweight({
-          date: startOfDay(new Date()),
+          date: startOfDay(dateFromInput(date)),
           weight: parsedWeight,
           timeOfDay,
         });
       }
-      router.push("/");
+      toast({ message: "Weight saved" });
+      router.push(target.href);
     } catch {
       setError("Failed to save. Please try again.");
       setSaving(false);
     }
-  }, [weight, timeOfDay, todayEntry, router]);
+  }, [weight, timeOfDay, todayEntry, router, date, target.href]);
 
   if (bodyweightLog === undefined) {
     return (
@@ -143,10 +145,11 @@ export default function WeighInPage() {
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
         <Link
-          href="/"
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          href={target.href}
+          aria-label="Back"
+          className="-m-3 p-3 text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Link>
         <h1 className="text-lg font-bold text-foreground">Log Weight</h1>
       </header>
@@ -156,7 +159,7 @@ export default function WeighInPage() {
         <Card>
           <CardContent>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-              Today&apos;s Weight
+              {date === toDateInputValue(new Date()) ? "Today's Weight" : "Weight"}
             </h2>
             <div className="flex items-center justify-center gap-2">
               <input
@@ -165,26 +168,33 @@ export default function WeighInPage() {
                 step="0.1"
                 min="50"
                 max="500"
+                aria-label="Weight in pounds"
                 value={weight}
                 onChange={(e) => {
                   setWeight(e.target.value);
                   setError(null);
                 }}
-                placeholder="0.0"
+                placeholder={lastWeight ?? "0.0"}
                 className="w-40 rounded-lg border border-input bg-background px-4 py-3 text-center text-3xl font-bold font-mono tabular-nums text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               <span className="text-lg text-muted-foreground">lbs</span>
             </div>
             {todayEntry && (
               <p className="text-xs text-muted-foreground text-center mt-2">
-                Updating today&apos;s existing entry
+                Updating the existing entry for this day
               </p>
             )}
             {error && (
-              <p className="text-xs text-destructive text-center mt-2">
+              <p role="alert" className="text-xs text-destructive text-center mt-2">
                 {error}
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent>
+            <DateField id="weigh-in-date" value={date} onChange={setDate} />
           </CardContent>
         </Card>
 
@@ -292,5 +302,14 @@ export default function WeighInPage() {
         </Button>
       </div>
     </PageShell>
+  );
+}
+
+export default function WeighInPage() {
+  return (
+    // Reading the query string suspends while the page is prerendered.
+    <Suspense fallback={null}>
+      <WeighInScreen />
+    </Suspense>
   );
 }

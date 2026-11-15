@@ -75,7 +75,7 @@ describe("WorkoutDetail", () => {
 
   it("shows the template, location and duration", () => {
     render(<WorkoutDetail workoutId="w1" />);
-    expect(screen.getByRole("heading", { level: 2, name: "Workout A1" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "A1 · Squat day" })).toBeInTheDocument();
     expect(screen.getByText("Home")).toBeInTheDocument();
     expect(screen.getByText("52 min")).toBeInTheDocument();
   });
@@ -89,7 +89,7 @@ describe("WorkoutDetail", () => {
     expect(rows[0]).toHaveTextContent("Warm-up");
     expect(rows[1]).toHaveTextContent("Set 1");
     expect(rows[2]).toHaveTextContent("Set 2");
-    expect(rows[2]).toHaveTextContent("RPE 8.5");
+    expect(rows[2]).toHaveTextContent("Effort 8.5");
     // Warm-ups are not tappable; working sets are.
     expect(within(rows[0]).queryByRole("button")).toBeNull();
     expect(within(rows[1]).getByRole("button")).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("WorkoutDetail", () => {
     const failed = screen.getByText("Set 3").closest("li")!;
     expect(failed).toHaveTextContent("Failed");
     expect(failed).toHaveTextContent("1+ reps");
-    expect(failed).toHaveTextContent("AMRAP");
+    expect(failed).toHaveTextContent("As many as you can");
     expect(screen.getByText("Set 1", { selector: "section[aria-label='Squat'] *" }).closest("li")).not.toHaveTextContent("Failed");
   });
 
@@ -130,7 +130,7 @@ describe("WorkoutDetail", () => {
     });
     expect(softDelete).toHaveBeenCalledWith("workouts", "w1");
     expect(onDeleted).toHaveBeenCalled();
-    expect(toast.mock.calls.at(-1)![0]).toMatchObject({ message: "Workout A1 deleted. Nothing else changes" });
+    expect(toast.mock.calls.at(-1)![0]).toMatchObject({ message: "A1 · Squat day deleted. Nothing else changes" });
   });
 
   it("renders the header slot", () => {

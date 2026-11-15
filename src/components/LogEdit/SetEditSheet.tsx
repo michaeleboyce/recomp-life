@@ -79,7 +79,7 @@ function SetForm({
       open={open}
       onOpenChange={onOpenChange}
       title={title}
-      description={set.isAMRAP ? "AMRAP set: enter every rep you did." : undefined}
+      description={set.isAMRAP ? "Last set, as many as you can: enter every rep you did." : undefined}
       onSave={save}
       saveLabel={mode === "add" ? "Add set" : "Save change"}
       onDelete={
@@ -112,7 +112,7 @@ function SetForm({
         }
       />
       <StepperField
-        label="RPE"
+        label="Effort"
         unit="optional"
         value={rpe}
         onChange={setRpe}
@@ -122,7 +122,7 @@ function SetForm({
         hint={
           rpe !== "" && (
             <Button type="button" variant="ghost" className="h-11 self-start" onClick={() => setRpe("")}>
-              Clear RPE
+              Clear effort
             </Button>
           )
         }

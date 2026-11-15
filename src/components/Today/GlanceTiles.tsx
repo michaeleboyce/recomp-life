@@ -7,12 +7,13 @@ import { Sparkline, type SparklineTone } from "@/components/chart-kit";
 import { Delta, type DeltaBetter } from "@/components/ui/delta";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/ui/stat-tile";
+import { Term } from "@/components/ui/term";
 import { paceStatus, type PaceWord } from "@/components/Progress/body/bodyMath";
 import { rangeSuffix } from "@/components/Progress/rangeText";
 import { formatLbs, shortLiftName } from "./format";
 
-/** Sessions a week the old Dashboard ring counted towards (WeekSummary's `target`). */
-export const WEEKLY_SESSION_TARGET = 5;
+/** The program rotates four workouts (A1, B1, A2, B2), so a full week is four sessions. */
+export const WEEKLY_SESSION_TARGET = 4;
 
 const DASH = "—";
 /** Past this, the rate of change describes an old stretch, so it is not shown. */
@@ -130,7 +131,11 @@ function LiftTile({ exerciseId }: { exerciseId: string }) {
   return (
     <StatTile
       href={`/progress/lift/${exerciseId}`}
-      label={`${shortLiftName(exerciseId)} est. 1RM`}
+      label={
+        <>
+          {shortLiftName(exerciseId)} <Term id="e1rm">est. 1RM</Term>
+        </>
+      }
       value={latest ? formatLbs(Math.round(latest.v)) : DASH}
       unit={latest ? "lbs" : undefined}
       delta={

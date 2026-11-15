@@ -101,18 +101,16 @@ export function MusclesTab() {
           <BodyMapSVG
             activeEntries={painEntries}
             selectedRegion={null}
-            onRegionTap={() => router.push("/body-check")}
+            onRegionTap={() => router.push("/body-check?from=muscles")}
           />
           <p className="text-center text-xs text-muted-foreground">
             {painEntries.length === 0
               ? "No pain or soreness logged in the last 30 days."
               : "Pain and soreness logged in the last 30 days."}
           </p>
-          <Link href="/body-check" className="block">
-            <Button variant="outline" className="w-full">
-              Open Body Check
-            </Button>
-          </Link>
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/body-check?from=muscles">Open Body Check</Link>
+          </Button>
         </section>
       ) : (
         <>

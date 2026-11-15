@@ -75,7 +75,7 @@ describe("GlanceTiles", () => {
     const thisWeek = demo.workouts.filter(
       (w) => w.completedAt && new Date(w.startedAt).getTime() >= monday
     ).length;
-    expect(within(week).getByText(`${thisWeek} / 5`)).toBeInTheDocument();
+    expect(within(week).getByText(`${thisWeek} / 4`)).toBeInTheDocument();
 
     for (const id of nextLifts()) {
       const tile = await waitFor(() => {

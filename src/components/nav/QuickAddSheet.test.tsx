@@ -47,16 +47,15 @@ describe("QuickAddSheet", () => {
       "/workout/configure"
     );
     expect(screen.getByRole("link", { name: /Log weight/ })).toHaveAttribute("href", "/weigh-in");
-    expect(screen.getByRole("link", { name: /Log run/ })).toHaveAttribute("href", "/run");
+    expect(screen.getByRole("link", { name: /Log activity/ })).toHaveAttribute("href", "/activity");
     expect(screen.getByRole("link", { name: /Body check/ })).toHaveAttribute("href", "/body-check");
   });
 
   it("shows the next workout, last weight and last run from the hooks", () => {
     render(<QuickAddSheet open onOpenChange={() => {}} />);
-    expect(screen.getByRole("link", { name: /Start workout/ })).toHaveTextContent(/A1/);
-    expect(screen.getByRole("link", { name: /Start workout/ })).toHaveTextContent(/Squat/i);
+    expect(screen.getByRole("link", { name: /Start workout/ })).toHaveTextContent("A1 · Squat day");
     expect(screen.getByRole("link", { name: /Log weight/ })).toHaveTextContent("last 226.0");
-    expect(screen.getByRole("link", { name: /Log run/ })).toHaveTextContent("last 3.1 mi");
+    expect(screen.getByRole("link", { name: /Log activity/ })).toHaveTextContent("last 3.1 mi");
   });
 
   it("omits secondary text while hooks are loading", () => {
@@ -64,14 +63,14 @@ describe("QuickAddSheet", () => {
     render(<QuickAddSheet open onOpenChange={() => {}} />);
     expect(screen.getByRole("link", { name: "Start workout" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Log weight" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Log run" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Log activity" })).toBeInTheDocument();
   });
 
   it("omits secondary text when there is no data or no distance", () => {
     setHooks({ weights: [], runs: [{ distanceMiles: null }] });
     render(<QuickAddSheet open onOpenChange={() => {}} />);
     expect(screen.getByRole("link", { name: "Log weight" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Log run" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Log activity" })).toBeInTheDocument();
   });
 
   it("links to the favourites with how many are saved", () => {
@@ -89,7 +88,7 @@ describe("QuickAddSheet", () => {
   it("closes the sheet when a row is chosen", () => {
     const onOpenChange = vi.fn();
     render(<QuickAddSheet open onOpenChange={onOpenChange} />);
-    fireEvent.click(screen.getByRole("link", { name: /Log run/ }));
+    fireEvent.click(screen.getByRole("link", { name: /Log activity/ }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

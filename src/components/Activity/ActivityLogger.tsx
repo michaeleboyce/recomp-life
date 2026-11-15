@@ -11,14 +11,25 @@ import {
 } from "@/lib/activities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
+import { DateField, dateFromInput, toDateInputValue } from "@/components/Activity/DateField";
 import { EffortPicker, type Effort } from "@/components/Activity/EffortPicker";
 import type { ActivityKind, YogaStyle } from "@/types";
 
 const INPUT_CLASS =
   "w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-foreground/30";
 
-/** Form for a non-running session. Remount it (via `key`) when the kind changes. */
-export default function ActivityLogger({ kind }: { kind: ActivityKind }) {
+/**
+ * Form for a non-running session. Remount it (via `key`) when the kind changes.
+ * `returnTo` is where to go after a save (default Today).
+ */
+export default function ActivityLogger({
+  kind,
+  returnTo = "/",
+}: {
+  kind: ActivityKind;
+  returnTo?: string;
+}) {
   const router = useRouter();
 
   const [durationMinutes, setDurationMinutes] = useState("");
@@ -26,6 +37,7 @@ export default function ActivityLogger({ kind }: { kind: ActivityKind }) {
   const [style, setStyle] = useState<YogaStyle>("flow");
   const [perceivedEffort, setPerceivedEffort] = useState<Effort>(2);
   const [notes, setNotes] = useState("");
+  const [date, setDate] = useState(() => toDateInputValue(new Date()));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +63,7 @@ export default function ActivityLogger({ kind }: { kind: ActivityKind }) {
 
     try {
       await logActivity({
-        date: new Date(),
+        date: dateFromInput(date),
         kind,
         durationMinutes: duration,
         style: kind === "yoga" ? style : null,
@@ -59,7 +71,8 @@ export default function ActivityLogger({ kind }: { kind: ActivityKind }) {
         notes: notes.trim(),
         perceivedEffort,
       });
-      router.push("/?activitySaved=1");
+      toast({ message: kind === "other" ? "Session saved" : `${label} saved` });
+      router.push(returnTo);
     } catch {
       setError("Failed to save. Please try again.");
       setSaving(false);
@@ -74,6 +87,8 @@ export default function ActivityLogger({ kind }: { kind: ActivityKind }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
+        <DateField id="activity-date" value={date} onChange={setDate} />
+
         {/* Duration */}
         <div className="space-y-1.5">
           <label htmlFor="activity-duration" className="text-sm font-medium text-foreground">
@@ -94,8 +109,8 @@ export default function ActivityLogger({ kind }: { kind: ActivityKind }) {
         {/* Yoga style */}
         {kind === "yoga" && (
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Style</label>
-            <div className="flex gap-2">
+            <span id="activity-style-label" className="block text-sm font-medium text-foreground">Style</span>
+            <div role="group" aria-labelledby="activity-style-label" className="flex gap-2">
               {YOGA_STYLES.map((value) => (
                 <button
                   key={value}
@@ -152,7 +167,7 @@ export default function ActivityLogger({ kind }: { kind: ActivityKind }) {
           />
         </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
         <Button className="w-full" size="lg" onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "SAVE"}

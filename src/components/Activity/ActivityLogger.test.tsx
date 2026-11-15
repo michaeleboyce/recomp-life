@@ -24,7 +24,7 @@ describe("ActivityLogger", () => {
     fireEvent.click(screen.getByRole("button", { name: /Hard/ }));
     fireEvent.click(screen.getByRole("button", { name: "SAVE" }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/?activitySaved=1"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
     const rows = await db.activities.toArray();
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
