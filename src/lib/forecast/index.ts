@@ -7,6 +7,8 @@ export type {
   ForecastLog,
   ForecastResolver,
   ForecastSource,
+  IndexedLog,
+  Measurement,
   ScoredForecast,
 } from "./types";
 
@@ -64,6 +66,7 @@ export {
 // ── Status and track record, derived on read ───────────────────────────────
 export type { VoidReason } from "./resolve";
 export { earliestPerSlot, resolveForecast, VOID_REASONS } from "./resolve";
+export { indexLog } from "./logIndex";
 
 export type { CalibrationBin, SdScaleChange, TrackRecord, TrackRecordSplit } from "./score";
 export {

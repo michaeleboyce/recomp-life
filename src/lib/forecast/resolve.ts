@@ -3,15 +3,18 @@
 // A forecast row holds the prediction and the event it is about; nothing here is ever
 // written back. Editing, deleting or restoring a workout therefore changes the status
 // the next time it is read, and no device can overwrite another's outcome.
+//
+// Each resolver reads the log through its index (`indexLog`): a workout is found by id
+// and estimated-max results are worked out once per log, so scoring every stored
+// forecast costs about as much as reading the history once.
 import { isNewPR } from "@/lib/e1rm";
-import { e1rmsForWorkout } from "@/lib/rebuild/e1rm";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
 import type { Forecast, ForecastKind, ForecastStatus, SetLog, WorkoutSession } from "@/types";
 import { BODYWEIGHT_MODEL, E1RM_HORIZON_MODEL } from "./coefficients";
-import { weighIns } from "./horizon";
 import { DAY_MS, hasFreeze, hasLoadDrop, isLive, lastSetOf, toMs } from "./log";
+import { indexLog, valuesAround } from "./logIndex";
 import { mean } from "./math";
-import type { ForecastLog, ForecastResolver } from "./types";
+import type { ForecastLog, ForecastResolver, IndexedLog, Measurement } from "./types";
 
 /** Why a forecast is not scored. The key is what `ForecastStatus.reason` holds. */
 export const VOID_REASONS = {
@@ -40,10 +43,8 @@ function isStatus(value: unknown): value is ForecastStatus {
 }
 
 /** The finished workout a session forecast belongs to, or the status that stands in for it. */
-function finishedWorkout(forecast: Forecast, log: ForecastLog): WorkoutSession | ForecastStatus {
-  const workout = forecast.workoutId
-    ? log.workouts.find((w) => w.id === forecast.workoutId)
-    : undefined;
+function finishedWorkout(forecast: Forecast, log: IndexedLog): WorkoutSession | ForecastStatus {
+  const workout = forecast.workoutId ? log.workoutById(forecast.workoutId) : undefined;
   if (!workout) return voided("workout-missing");
   if (!isLive(workout)) return voided("workout-deleted");
   if (workout.completedAt == null) return open;
@@ -58,7 +59,7 @@ function finishedWorkout(forecast: Forecast, log: ForecastLog): WorkoutSession |
  */
 function lastSetResult(
   forecast: Forecast,
-  log: ForecastLog
+  log: IndexedLog
 ): { workout: WorkoutSession; last: SetLog; sets: SetLog[] } | ForecastStatus {
   const workout = finishedWorkout(forecast, log);
   if (isStatus(workout)) return workout;
@@ -88,7 +89,7 @@ function insideRange(forecast: Forecast, value: number, openTop = false): boolea
 
 /** Reps logged on the last set. A range ending at the pmf's last bucket has no upper end. */
 const resolveAmrapReps: ForecastResolver = (forecast, log) => {
-  const result = lastSetResult(forecast, log);
+  const result = lastSetResult(forecast, indexLog(log));
   if (isStatus(result)) return result;
   const value = result.last.actualReps;
   const { pmf, high } = forecast.prediction;
@@ -105,11 +106,13 @@ const resolveAmrapReps: ForecastResolver = (forecast, log) => {
  * gave none (too long or too short), which is a miss: the app shows no new best.
  */
 const resolveNewBest: ForecastResolver = (forecast, log) => {
-  const result = lastSetResult(forecast, log);
+  const index = indexLog(log);
+  const result = lastSetResult(forecast, index);
   if (isStatus(result)) return result;
   const level = forecast.event.level;
   if (typeof level !== "number") return voided("not-scorable");
-  const estimates = e1rmsForWorkout(result.workout)
+  const estimates = index
+    .e1rmsOf(result.workout)
     .filter((row) => row.exerciseId === forecast.exerciseId)
     .map((row) => row.estimated1RM);
   if (estimates.length === 0) return { state: "resolved", value: 0, hit: false };
@@ -122,7 +125,7 @@ const resolveNewBest: ForecastResolver = (forecast, log) => {
  * target reps and none is marked failed. The value is the reps on the last set.
  */
 const resolveLiftPass: ForecastResolver = (forecast, log) => {
-  const result = lastSetResult(forecast, log);
+  const result = lastSetResult(forecast, indexLog(log));
   if (isStatus(result)) return result;
   const target = forecast.event.reps;
   if (typeof target !== "number") return voided("not-scorable");
@@ -132,7 +135,7 @@ const resolveLiftPass: ForecastResolver = (forecast, log) => {
 
 /** The finished workout's recorded length. Void when it was ended before the plan was done. */
 const resolveSessionLength: ForecastResolver = (forecast, log) => {
-  const workout = finishedWorkout(forecast, log);
+  const workout = finishedWorkout(forecast, indexLog(log));
   if (isStatus(workout)) return workout;
   if (workout.endedEarly) return voided("ended-early");
   const value = workout.totalDurationSeconds;
@@ -143,21 +146,20 @@ const resolveSessionLength: ForecastResolver = (forecast, log) => {
 /**
  * A forecast for a date: open until the measurement window around `dueAt` has closed,
  * then the mean of the measurements in it, or void when there are fewer than `min`.
+ * `measurements` are oldest first and are only read once the window has closed.
  */
 function resolveWindow(
   forecast: Forecast,
   now: Date,
   defaultWindowDays: number,
   min: number,
-  measurements: () => Array<{ t: number; v: number }>
+  measurements: () => readonly Measurement[]
 ): ForecastStatus {
   const dueAt = toMs(forecast.dueAt);
   const windowMs = (forecast.event.windowDays ?? defaultWindowDays) * DAY_MS;
   if (!Number.isFinite(dueAt)) return voided("not-scorable");
   if (now.getTime() < dueAt + windowMs) return open;
-  const values = measurements()
-    .filter((m) => Math.abs(m.t - dueAt) <= windowMs)
-    .map((m) => m.v);
+  const values = valuesAround(measurements(), dueAt, windowMs);
   if (values.length < min) return voided("too-few-measurements");
   const value = mean(values);
   return { state: "resolved", value, inside: insideRange(forecast, value) };
@@ -170,12 +172,7 @@ const resolveE1RM: ForecastResolver = (forecast, log, now) =>
     now,
     E1RM_HORIZON_MODEL.outcomeWindowDays,
     E1RM_HORIZON_MODEL.minOutcomeResults,
-    () =>
-      log.workouts
-        .filter(isLive)
-        .flatMap(e1rmsForWorkout)
-        .filter((row) => row.exerciseId === forecast.exerciseId)
-        .map((row) => ({ t: toMs(row.date), v: row.estimated1RM }))
+    () => (forecast.exerciseId ? indexLog(log).e1rmResultsOf(forecast.exerciseId) : [])
   );
 
 /** Mean of the weigh-ins logged within the window around the due date. */
@@ -185,7 +182,7 @@ const resolveBodyweight: ForecastResolver = (forecast, log, now) =>
     now,
     BODYWEIGHT_MODEL.outcomeWindowDays,
     BODYWEIGHT_MODEL.minOutcomeEntries,
-    () => weighIns(log.bodyweight)
+    () => indexLog(log).weighIns()
   );
 
 /** The resolver of each kind. The registry reads these; nothing else should. */
@@ -207,6 +204,9 @@ export const RESOLVERS: Record<ForecastKind, ForecastResolver> = {
  * `event.weight` (an override); the workout was ended early (session length); too few
  * measurements around a horizon date. Otherwise resolved, with the measured value and
  * whether it fell inside the range or met the event.
+ *
+ * To resolve many forecasts against one log, index it once (`indexLog`) and pass the
+ * index: `scoreForecasts` does.
  *
  * @evidence forecast-calibration
  */

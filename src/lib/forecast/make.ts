@@ -3,7 +3,7 @@
 // A row is written once, before the outcome exists, and holds only the prediction and
 // the event it is about. What became of it is worked out on read (resolve.ts).
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
-import type { Forecast, ForecastKind, Tier, WorkoutSession } from "@/types";
+import type { Forecast, ForecastKind, PrescribedEntry, Tier, WorkoutSession } from "@/types";
 import { BODYWEIGHT_MODEL, CALIBRATION, E1RM_HORIZON_MODEL } from "./coefficients";
 import { e1rmResults, forecastBodyweight, forecastE1RM, type HorizonForecast } from "./horizon";
 import { finishedBy } from "./log";
@@ -46,10 +46,24 @@ function hasRepsForecast(entry: WorkoutExerciseState): boolean {
   return entry.tier === "T1" && !entry.isWarmUp && entry.isAMRAP && entry.weight > 0;
 }
 
+/**
+ * The weight the program planned for an entry, in the terms of the exercise performed.
+ * For the lift itself that is the prescribed weight. A home substitute is planned in
+ * dumbbell terms: its own weight, scaled back by the ratio a weight edit applied to
+ * the barbell weight it stands for (`applyPlanEdits`), so an unedited one is its own.
+ */
+function plannedWeightOf(entry: WorkoutExerciseState, prescribed: PrescribedEntry): number {
+  if (entry.originalWeight == null) return prescribed.weight;
+  return entry.originalWeight > 0
+    ? (entry.weight * prescribed.weight) / entry.originalWeight
+    : entry.weight;
+}
+
 /** What the reps model saw, in the keys every row carries plus the model's own. */
 function repsInputs(
   forecast: RepsForecast,
   entry: WorkoutExerciseState,
+  plannedWeight: number,
   phase: string | null
 ): Forecast["inputs"] {
   return {
@@ -66,6 +80,7 @@ function repsInputs(
     cuttingShift: forecast.cuttingShift,
     fittedPhase: forecast.fittedPhase,
     weight: forecast.weight,
+    plannedWeight,
     targetReps: forecast.targetReps,
     stage: forecast.stage,
     performedExerciseId: entry.substituteExerciseId ?? entry.exerciseId,
@@ -82,9 +97,17 @@ function repsInputs(
  * `source` is what was known before the workout: finished workouts only. A home
  * substitute is forecast from its own past sets and gets no new-best row, because a
  * substitute's sets never count toward the lift's estimated max.
+ *
+ * `session.prescribed` is what the program planned. A lift it does not name was
+ * swapped in or added for the day and gets no rows: there is no program lift for the
+ * result to be scored against, and rows built on nothing would feed the widening
+ * rule. A lift whose weight the user changed is forecast at the weight on the bar
+ * with the strength level worked out for the prescribed weight, so a heavier bar
+ * means fewer reps, not a stronger lifter. A session stored without a prescription
+ * forecasts every T1 lift at its own weight.
  */
 export function makeSessionForecasts(
-  session: Pick<WorkoutSession, "id">,
+  session: Pick<WorkoutSession, "id" | "prescribed">,
   plan: WorkoutPlan,
   source: ForecastSource
 ): Forecast[] {
@@ -126,12 +149,18 @@ export function makeSessionForecasts(
 
   for (const entry of plan) {
     if (!hasRepsForecast(entry)) continue;
+    const prescribed = session.prescribed?.find(
+      (p) => p.exerciseId === entry.exerciseId && p.tier === entry.tier
+    );
+    if (session.prescribed && !prescribed) continue;
+    const plannedWeight = prescribed ? plannedWeightOf(entry, prescribed) : entry.weight;
     const lift = { exerciseId: entry.exerciseId, tier: entry.tier };
     const substituted = !!entry.substituteExerciseId;
     const forecast = forecastReps({
       history: lastT1Sets(source.workouts, entry.exerciseId, madeAt),
       performedExerciseId: entry.substituteExerciseId ?? entry.exerciseId,
       weight: entry.weight,
+      plannedWeight,
       targetReps: entry.targetReps,
       phase: phaseMode,
       readinessShift: source.readinessShift,
@@ -140,7 +169,7 @@ export function makeSessionForecasts(
       bestE1RM: substituted ? null : source.bestE1RMs[entry.exerciseId],
       now: madeAt,
     });
-    const inputs = repsInputs(forecast, entry, phaseMode);
+    const inputs = repsInputs(forecast, entry, plannedWeight, phaseMode);
 
     add(
       "amrapReps",

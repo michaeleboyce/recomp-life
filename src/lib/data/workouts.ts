@@ -97,10 +97,11 @@ export function prescribedFor(templateId: string, liftStates: LiftState[]): Pres
  * edit to an earlier session never rewrites this one.
  *
  * The workout also carries what the app decided and predicted for it, made from the
- * data as it stood before the workout existed: the decision traces for the plan it
- * will run are saved on the row (`decisions`), and its forecasts are written to the
- * ledger once the row is in, before any set can be logged. A failure in either is
- * logged and the workout starts all the same.
+ * data as it stood before the workout existed, in one read, and built before the
+ * write transaction opens: the decision traces for the plan it will run are saved on
+ * the row (`decisions`), and its forecasts are written to the ledger once the row is
+ * in, before any set can be logged. A failure in either is logged and the workout
+ * starts all the same.
  */
 export async function startWorkout(input: StartWorkoutInput): Promise<string> {
   const sessionId = uuidv4();
@@ -112,33 +113,35 @@ export async function startWorkout(input: StartWorkoutInput): Promise<string> {
   const records = await attemptLedgerWrite("Reading the records a workout starts from", () =>
     readLedgerRecords(startedAt)
   );
-  let forecasts: Forecast[] = [];
 
-  const tables = [db.workouts, db.readinessLogs, db.liftStates, db.favoriteWorkouts];
+  const prescribed =
+    input.prescribed ??
+    prescribedFor(input.templateId, records?.liftStates ?? (await db.liftStates.toArray()));
+  const session: WorkoutSession = {
+    id: sessionId,
+    clientId: uuidv4(),
+    templateId: input.templateId,
+    location: input.location,
+    startedAt,
+    completedAt: null,
+    totalDurationSeconds: 0,
+    includeWarmUps: input.includeWarmUps,
+    selectedAccessories: input.selectedAccessories,
+    sets: [],
+    preWorkoutPainEntries: [],
+    modifications: input.modifications ?? [],
+    prescribed,
+    ...(input.planEdits?.length ? { planEdits: input.planEdits } : {}),
+    ...(input.favoriteId ? { favoriteId: input.favoriteId } : {}),
+    ...newRowStamps(),
+  };
+  // Built here, before the write transaction opens: it reads the whole history, and
+  // a transaction must not be held open for that. Pure and guarded, it cannot throw.
+  const ledger = records ? sessionStartLedger(records, session, readiness) : undefined;
+  const forecasts: Forecast[] = ledger?.forecasts ?? [];
+
+  const tables = [db.workouts, db.readinessLogs, db.favoriteWorkouts];
   await db.transaction("rw", tables, async () => {
-    const prescribed =
-      input.prescribed ?? prescribedFor(input.templateId, await db.liftStates.toArray());
-    const session: WorkoutSession = {
-      id: sessionId,
-      clientId: uuidv4(),
-      templateId: input.templateId,
-      location: input.location,
-      startedAt,
-      completedAt: null,
-      totalDurationSeconds: 0,
-      includeWarmUps: input.includeWarmUps,
-      selectedAccessories: input.selectedAccessories,
-      sets: [],
-      preWorkoutPainEntries: [],
-      modifications: input.modifications ?? [],
-      prescribed,
-      ...(input.planEdits?.length ? { planEdits: input.planEdits } : {}),
-      ...(input.favoriteId ? { favoriteId: input.favoriteId } : {}),
-      ...newRowStamps(),
-    };
-    // Pure and guarded: it reads no table and cannot fail the transaction.
-    const ledger = records ? sessionStartLedger(records, session, readiness) : undefined;
-    forecasts = ledger?.forecasts ?? [];
     await db.workouts.add(ledger?.decisions ? { ...session, decisions: ledger.decisions } : session);
 
     const favorite = input.favoriteId

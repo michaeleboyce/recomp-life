@@ -252,6 +252,83 @@ describe("makeSessionForecasts", () => {
     expect(second.amrapReps.prediction.point).toBe(8);
   });
 
+  describe("a weight the user set before starting", () => {
+    const prescribed = [{ exerciseId: "squat", tier: "T1" as const, weight: 225, sets: 5, reps: 3 }];
+    const started = makeSession({ id: "w-today", startedAt: NOW, prescribed });
+    const at = (weight: number, from = source) =>
+      byKind(makeSessionForecasts(started, [makeEntry({ weight })], from)).amrapReps;
+
+    it.each([
+      ["no results", sourceAt(NOW)],
+      ["one result", sourceAt(NOW, { workouts: squats.slice(-1) })],
+      ["three results", sourceAt(NOW, { workouts: squats.slice(-3) })],
+    ])("does not make the lifter look stronger or weaker: %s", (_name, from) => {
+      const planned = at(225, from);
+      const heavier = at(245, from);
+      const lighter = at(205, from);
+      // The strength level is worked out for the program's weight, whatever is on the bar.
+      expect(heavier.inputs.level).toBe(planned.inputs.level);
+      expect(lighter.inputs.level).toBe(planned.inputs.level);
+      expect(heavier.inputs.scatter).toBe(planned.inputs.scatter);
+      // So a heavier bar means fewer reps, and a lighter one more.
+      expect(heavier.prediction.point).toBeLessThan(planned.prediction.point);
+      expect(lighter.prediction.point).toBeGreaterThan(planned.prediction.point);
+      // The forecast is still for the weight that will be lifted, and says what it assumed.
+      expect(heavier.event.weight).toBe(245);
+      expect(heavier.inputs).toMatchObject({ weight: 245, plannedWeight: 225 });
+      expect(planned.inputs).toMatchObject({ weight: 225, plannedWeight: 225 });
+    });
+
+    it("leaves a lift at the program's weight exactly as it was", () => {
+      expect(makeSessionForecasts(started, plan, source)).toEqual(rows);
+    });
+
+    it("reads a home substitute's planned weight in the substitute's own terms", () => {
+      // The plan gave 80 for the 225 the program asked for; the user made it 90, and
+      // the plan scaled the barbell weight it stands for to match (253).
+      const edited = makeEntry({ weight: 90, originalWeight: 253, substituteExerciseId: "goblet_squat" });
+      const plain = makeEntry({ weight: 80, originalWeight: 225, substituteExerciseId: "goblet_squat" });
+      const heavier = byKind(makeSessionForecasts(started, [edited], source)).amrapReps;
+      const planned = byKind(makeSessionForecasts(started, [plain], source)).amrapReps;
+      expect(planned.inputs.plannedWeight).toBe(80);
+      expect(heavier.inputs.plannedWeight as number).toBeCloseTo(80, 0);
+      expect(heavier.inputs.level as number).toBeCloseTo(planned.inputs.level as number, 0);
+      expect(heavier.prediction.point).toBeLessThan(planned.prediction.point);
+    });
+  });
+
+  describe("a lift that is not in the session's prescription", () => {
+    const prescribed = [{ exerciseId: "squat", tier: "T1" as const, weight: 225, sets: 5, reps: 3 }];
+    const started = makeSession({ id: "w-today", startedAt: NOW, prescribed });
+
+    it("gets no forecast rows: a swapped-in lift has nothing to be scored against", () => {
+      // Deadlift swapped into the squat's slot: a T1 entry with an open last set.
+      const swapped: WorkoutPlan = [makeEntry({ exerciseId: "deadlift", weight: 185 }), ...plan.slice(2)];
+      const made = makeSessionForecasts(started, swapped, source);
+      expect(made.map((row) => row.kind)).toEqual(["sessionLength"]);
+      // Without the fix these would be rows built on no results at all.
+      expect(made.some((row) => row.basis === "prior" && row.exerciseId === "deadlift")).toBe(false);
+    });
+
+    it("still forecasts the session's own lift beside it", () => {
+      const both: WorkoutPlan = [makeEntry({ exerciseId: "deadlift", weight: 185 }), makeEntry({ weight: 225 })];
+      const made = makeSessionForecasts(started, both, source);
+      expect(made.filter((row) => row.exerciseId).every((row) => row.exerciseId === "squat")).toBe(true);
+      expect(made.map((row) => row.kind).sort()).toEqual([
+        "amrapReps",
+        "liftPass",
+        "newBest",
+        "sessionLength",
+      ]);
+    });
+
+    it("forecasts every T1 lift of a session stored without a prescription, as before", () => {
+      const old = makeSession({ id: "w-today", startedAt: NOW });
+      const made = makeSessionForecasts(old, [makeEntry({ exerciseId: "deadlift", weight: 185 })], source);
+      expect(made.map((row) => row.kind)).toEqual(["amrapReps", "liftPass", "sessionLength"]);
+    });
+  });
+
   it("makes reps rows only for a T1 lift with a weight and an open last set", () => {
     const odd: WorkoutPlan = [
       makeEntry({ weight: 0 }),

@@ -297,6 +297,27 @@ describe("startWorkout", () => {
     expect(replayTrace(edited)).toBe(45);
   });
 
+  it("forecasts an edited weight from the program's weight, and a swapped-in lift not at all", async () => {
+    const at = await history(4);
+    const squat = (await db.liftStates.get("squat"))!;
+    const heavier = await start(at, {
+      planEdits: [{ kind: "weight", exerciseId: "squat", tier: "T1", weight: squat.t1Weight + 20 }],
+    });
+    const reps = (await sessionRows(heavier.id)).find((row) => row.kind === "amrapReps")!;
+    expect(reps.event.weight).toBe(squat.t1Weight + 20);
+    expect(reps.inputs).toMatchObject({
+      weight: squat.t1Weight + 20,
+      plannedWeight: squat.t1Weight,
+    });
+    await discardWorkout(heavier.id);
+
+    const swapped = await start(new Date(at.getTime() + MINUTE), {
+      planEdits: [{ kind: "swap", exerciseId: "squat", tier: "T1", replacementId: "deadlift" }],
+    });
+    expect(swapped.plan.find((entry) => entry.tier === "T1")!.exerciseId).toBe("deadlift");
+    expect((await sessionRows(swapped.id)).map((row) => row.kind)).toEqual(["sessionLength"]);
+  });
+
   it("keeps the saved decisions small: the workout row is re-sent on every set", async () => {
     const at = await history(8);
     const { session } = await start(at, {

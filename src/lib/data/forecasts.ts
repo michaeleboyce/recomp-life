@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 import { planForSession } from "@/components/ActiveWorkout/activeWorkoutLogic";
 import { db } from "@/db/local";
 import {
-  e1rmResults,
+  indexLog,
   makeHorizonForecasts,
   makeSessionForecasts,
   scoreForecasts,
@@ -38,6 +38,7 @@ import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
   ActivityLog,
   BodyweightLog,
+  Estimated1RM,
   Forecast,
   LiftAdjustment,
   LiftState,
@@ -200,11 +201,21 @@ export function readinessFrom(
   return score.contributions.length > 0 ? score : null;
 }
 
-/** Best estimated max per lift among the given workouts, by exercise id. */
-function bestE1RMs(workouts: WorkoutSession[]): Record<string, number> {
+/**
+ * Best estimated max per lift among the given workouts, by exercise id, from each
+ * workout's rows as `e1rmsOf` gives them (a result with no usable time is left out,
+ * as in `e1rmResults`).
+ */
+function bestE1RMs(
+  workouts: WorkoutSession[],
+  e1rmsOf: (workout: WorkoutSession) => Estimated1RM[]
+): Record<string, number> {
   const best: Record<string, number> = {};
-  for (const [exerciseId, points] of e1rmResults(workouts)) {
-    best[exerciseId] = Math.max(...points.map((point) => point.v));
+  for (const workout of workouts) {
+    for (const row of e1rmsOf(workout)) {
+      if (!Number.isFinite(timeOf(row.date))) continue;
+      best[row.exerciseId] = Math.max(best[row.exerciseId] ?? -Infinity, row.estimated1RM);
+    }
   }
   return best;
 }
@@ -215,6 +226,10 @@ function bestE1RMs(workouts: WorkoutSession[]): Record<string, number> {
  * each kind's record calls for (`sdScales` over the stored forecasts, scored as of
  * `now`). `readiness` is the score for the workout being forecast; its shift moves
  * forecasts only.
+ *
+ * This runs when a workout starts and whenever Today reads its forecast, over the
+ * whole history. The log is indexed once and shared by the scoring and the bests, so
+ * each workout's estimated-max results are worked out once.
  */
 export function forecastSourceFrom(
   records: LedgerRecords,
@@ -222,14 +237,15 @@ export function forecastSourceFrom(
   readiness?: Pick<ReadinessScore, "score" | "usual"> | null
 ): ForecastSource {
   const workouts = live(records.workouts).filter((workout) => workout.completedAt != null);
+  const log = indexLog(forecastLogFrom(records));
   return {
     workouts,
     bodyweight: live(records.bodyweight),
     liftStates: records.liftStates,
-    bestE1RMs: bestE1RMs(finishedBy(workouts, now.getTime())),
+    bestE1RMs: bestE1RMs(finishedBy(workouts, now.getTime()), log.e1rmsOf),
     settings: records.settings,
     ...(readiness ? { readinessShift: readinessLevelShift(readiness) } : {}),
-    sdScale: sdScales(scoredForecastsFrom(records, now)),
+    sdScale: sdScales(scoreForecasts(records.forecasts, log, now)),
     now,
   };
 }
