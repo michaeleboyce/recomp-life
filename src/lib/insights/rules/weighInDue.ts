@@ -33,7 +33,7 @@ export function weighInDueInsights(ctx: InsightContext): Insight[] {
       severity: "action",
       title: "Log today's weight",
       body,
-      action: { label: "Log weight", href: "/weigh-in" },
+      action: { label: "Log weight", href: "/weigh-in?from=today" },
     },
   ];
 }

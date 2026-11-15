@@ -14,7 +14,7 @@ export function painCheckInsights(ctx: InsightContext): Insight[] {
       title: `Is your ${region} pain still there?`,
       body: `You logged it ${days} days ago (severity ${entry.severity} of 5). Mark it resolved if it has cleared, or keep it if not.`,
       evidenceId: "training-with-pain",
-      action: { label: "Review", href: "/body-check" },
+      action: { label: "Review", href: "/body-check?from=today" },
     };
   });
 }
