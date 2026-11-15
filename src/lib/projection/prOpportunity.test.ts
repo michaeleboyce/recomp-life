@@ -62,6 +62,26 @@ describe("repsToBeat", () => {
       expect(repsToBeat(200, bad)).toBeNull();
     }
   });
+
+  it("with a logged effort, counts the reps left in reserve as the estimate does", () => {
+    for (const rpe of [10, 9, 8.5, 8, 7, 6, 5]) {
+      for (let weight = 95; weight <= 315; weight += 20) {
+        for (let best = 100; best <= 420; best += 9) {
+          let expected: { reps: number; e1rm: number } | null = null;
+          for (let reps = 1; reps <= E1RM_MAX_REPS && !expected; reps++) {
+            const e1rm = calculateE1RM(weight, reps, rpe);
+            if (e1rm !== null && e1rm > best) expected = { reps, e1rm };
+          }
+          expect(repsToBeat(weight, best, rpe), `${weight} vs ${best} at ${rpe}`).toEqual(expected);
+        }
+      }
+    }
+    // Six reps all-out, or four logged as two short of all-out.
+    expect(repsToBeat(200, 236)!.reps).toBe(6);
+    expect(repsToBeat(200, 236, 8)!.reps).toBe(4);
+    expect(repsToBeat(200, 236, 10)).toEqual(repsToBeat(200, 236));
+    expect(repsToBeat(200, 236, null)).toEqual(repsToBeat(200, 236));
+  });
 });
 
 describe("prChance", () => {

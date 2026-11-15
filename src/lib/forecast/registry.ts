@@ -20,7 +20,7 @@ export const FORECAST_KINDS: Record<ForecastKind, ForecastKindDef> = {
     label: "Chance of a new best",
     ruleId: "forecast-reps",
     estimand:
-      "Whether the reps logged on the last set of the lift, at the forecast weight, reach the count whose estimated max beats the best so far.",
+      "Whether this workout sets a new best estimated max for the lift: the estimate from its last set at the forecast weight, counting the effort logged with it, is above the best that stood when the forecast was made. A last set of more than 10 reps gives no estimate.",
     scope: "session",
     modelVersion: "reps-1",
     resolve: RESOLVERS.newBest,

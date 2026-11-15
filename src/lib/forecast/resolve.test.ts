@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { calculateE1RM } from "@/lib/e1rm";
-import { applyChange, type LogState } from "@/lib/rebuild";
+import { calculateE1RM, isE1RMEligibleSet, isNewPR } from "@/lib/e1rm";
+import { applyChange, e1rmsForWorkout, type LogState } from "@/lib/rebuild";
 import type { Forecast, SetStatus, WorkoutSession } from "@/types";
 import { BODYWEIGHT_MODEL, E1RM_HORIZON_MODEL } from "./coefficients";
 import { earliestPerSlot, resolveForecast, VOID_REASONS } from "./resolve";
@@ -26,10 +26,12 @@ const pass = forecastRow({
   event: { type: "repsAtLeast", weight: 200, reps: 3 },
   prediction: { point: 0.8, probability: 0.8, unit: "chance" },
 });
+/** The best estimated max that stood when the forecast was made: six all-out reps at 200 beat it. */
+const BEST_LEVEL = 236;
 const best = forecastRow({
   id: "fc:w1:newBest:squat:T1",
   kind: "newBest",
-  event: { type: "repsAtLeast", weight: 200, reps: 6 },
+  event: { type: "e1rmAbove", weight: 200, level: BEST_LEVEL },
   prediction: { point: 0.3, probability: 0.3, unit: "chance" },
 });
 const length = forecastRow({
@@ -129,21 +131,73 @@ describe("reps on the last set", () => {
 });
 
 describe("chance of a new best and of a pass", () => {
-  it("scores a new best on the raw reps of the last set", () => {
+  it("scores a new best as the app shows one: the workout's estimated max against the level", () => {
     expect(resolve(best, logOf(workout({ lastReps: 6 })))).toEqual({
       state: "resolved",
-      value: 6,
+      value: calculateE1RM(200, 6)!,
       hit: true,
     });
     expect(resolve(best, logOf(workout({ lastReps: 5 })))).toEqual({
       state: "resolved",
-      value: 5,
+      value: calculateE1RM(200, 5)!,
       hit: false,
     });
-    // A logged RPE earns no credit: five reps is five reps.
-    expect(
-      resolve(best, logOf(workout({ lastReps: 5, setOverrides: { rpe: 7 } })))
-    ).toMatchObject({ hit: false });
+    // The estimate credits a logged effort, so five reps with two left is a new best,
+    // exactly as the workout screen flashes it.
+    expect(calculateE1RM(200, 5, 8)!).toBeGreaterThan(BEST_LEVEL);
+    expect(resolve(best, logOf(workout({ lastReps: 5, setOverrides: { rpe: 8 } })))).toEqual({
+      state: "resolved",
+      value: calculateE1RM(200, 5, 8)!,
+      hit: true,
+    });
+  });
+
+  it("agrees with the app's own rows for every rep count and effort", () => {
+    for (const rpe of [undefined, 10, 9, 8, 7, 6]) {
+      for (let lastReps = 0; lastReps <= 14; lastReps++) {
+        const session = workout({ lastReps, setOverrides: { rpe } });
+        const rows = e1rmsForWorkout(session).filter((row) => row.exerciseId === "squat");
+        const estimate = rows.length > 0 ? Math.max(...rows.map((row) => row.estimated1RM)) : null;
+        const eligible = isE1RMEligibleSet("T1", true, lastReps);
+        expect(estimate !== null, `${lastReps} reps`).toBe(eligible);
+        expect(resolve(best, logOf(session)), `${lastReps} reps at ${rpe}`).toEqual({
+          state: "resolved",
+          value: estimate ?? 0,
+          hit: estimate !== null && isNewPR(estimate, [BEST_LEVEL]),
+        });
+      }
+    }
+  });
+
+  it("is a miss, not a hit, when the last set is too long or too short to give an estimate", () => {
+    // Twelve reps at 200 would be far above the level by the formula, but the app
+    // keeps no estimate for a set of more than ten reps, so it shows no new best.
+    expect(resolve(best, logOf(workout({ lastReps: 12 })))).toEqual({
+      state: "resolved",
+      value: 0,
+      hit: false,
+    });
+    expect(resolve(best, logOf(workout({ lastReps: 1 })))).toMatchObject({ value: 0, hit: false });
+  });
+
+  it("is decided against the level on the row, whatever else is in the log", () => {
+    const today = workout({ lastReps: 6 });
+    // An earlier session edited upwards afterwards does not turn the hit into a miss.
+    const earlier = t1Session({
+      id: "w0",
+      at: new Date(START.getTime() - 7 * DAY),
+      weight: 230,
+      lastReps: 8,
+    });
+    expect(resolve(best, logOf(earlier, today))).toMatchObject({ hit: true });
+    // Only an edit to this workout's own sets moves it.
+    const edited = workout({ lastReps: 4 });
+    expect(resolve(best, logOf(earlier, edited))).toMatchObject({ hit: false });
+  });
+
+  it("is void when the row does not say what level to beat", () => {
+    const unstated = forecastRow({ ...best, event: { type: "e1rmAbove", weight: 200 } });
+    expect(resolve(unstated, logOf(workout()))).toEqual({ state: "void", reason: "not-scorable" });
   });
 
   it("scores a pass by the program's rule: every set at the target", () => {

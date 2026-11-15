@@ -99,6 +99,7 @@ export type ForecastKind =
 export type ForecastEventType =
   | "amrapReps"
   | "repsAtLeast"
+  | "e1rmAbove"
   | "durationSeconds"
   | "e1rmLevel"
   | "bodyweightMean";
@@ -109,6 +110,13 @@ export interface ForecastEvent {
   weight?: number;
   /** Rep threshold for "repsAtLeast". */
   reps?: number;
+  /**
+   * For "e1rmAbove": the estimated max to beat, in lbs. It is the lift's best when the
+   * forecast was made, kept on the row so later edits to earlier workouts cannot move
+   * the outcome. The event happens when the workout's own estimated max for the lift
+   * is above it.
+   */
+  level?: number;
   /** Days either side of `dueAt` that count as the measurement window. */
   windowDays?: number;
 }

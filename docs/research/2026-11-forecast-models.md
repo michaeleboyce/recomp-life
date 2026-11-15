@@ -45,6 +45,7 @@ the number.
 | `REPS_MODEL.cuttingLevelShift` | −0.01 | −0.01 | assumption (no study of acute strength in a deficit found) |
 | `REPS_MODEL.readinessLevelShiftPerPoint` | 0.0005 | 0.0005, plus a cap: shift between **−0.03 and +0.01** | Craven 2022 for the size of a sleep-loss effect; the points-to-percent conversion and cap are assumptions (see (c)) |
 | `REPS_MODEL.maxReps` | 12 | 12 | assumption; see (b) on fitting from sets above 10 reps |
+| `NEW_BEST_MODEL.effortCreditRecentSets` | (new) | 5 | assumption (see "The chance of a new best" under "Calibration on simulated lifters") |
 | `SESSION_LENGTH_MODEL.secondsPerSet` | 45 | 45 | assumption |
 | `SESSION_LENGTH_MODEL.minSessionsForCorrection` | 3 | 3 | assumption |
 | `SESSION_LENGTH_MODEL.defaultRangeFraction` | 0.15 | 0.15 | assumption |
@@ -311,6 +312,38 @@ Before, the pool was above the 88% ceiling; after, it passes. The two changes:
   5 and 7 over the target) and 0.2 low after (1.6 high, 0.1 low, 2.1 low). That figure only
   mirrors the starting strength given to the simulated lifters, so it supports the value
   no further than the guidance does. **Grade: heuristic (program guidance, not a study).**
+
+**The chance of a new best** (added after review; `replay.test.ts`, "new-best chances match
+the app's new bests"). The forecast was first scored on logged reps alone, while the app's
+own new best counts the reps a logged effort says were left (`calculateE1RM`) and keeps no
+estimate for a set of more than 10 reps. Six reps logged as RPE 8 showed a new best in the
+app and scored a miss. The event is now the app's own: the workout's estimated max for the
+lift is above the best that stood when the forecast was made, and that best is stored on
+the row. The stated chance assumes the lifter's usual effort credit on the last set: the
+middle value over their latest five last sets (`NEW_BEST_MODEL.effortCreditRecentSets`), a
+set logged without an effort counting as none. No study covers how steadily a lifter rates
+a last set. **Grade: heuristic.**
+
+The same twelve lifters, logging no effort and then RPE 9, 8 or 7 on every last set.
+Stated chance against how often the app's new best happened:
+
+| Effort logged | All (714) | On a trend (281) | One to three results (327) | After a change (106) |
+|---|---|---|---|---|
+| None | 53.9% stated, 54.6% happened | 57.6%, 54.8% | 56.4%, 54.1% | 36.2%, 55.7% |
+| RPE 9 | 54.8%, 56.2% | 59.1%, 56.9% | 57.2%, 55.0% | 36.4%, 57.5% |
+| RPE 8 | 55.5%, 57.6% | 60.3%, 59.4% | 57.5%, 56.6% | 36.4%, 55.7% |
+| RPE 7 | 55.9%, 58.4% | 61.1%, 60.9% | 58.1%, 57.5% | 35.5%, 54.7% |
+
+Logging an effort does not change how well the chance is stated. Scored on logged reps
+alone, the RPE 8 lifters would have shown a new best in under 20% of workouts while the
+app showed one in 58%.
+
+What this does not fix, and is the reps model's own: after a stage change, reset or break
+the chance is understated by about 20 points in every row. And the pool hides opposite
+errors by lifter: twelve lifters who all gain 1% a week from 5 reps over the target had a
+new best 41% to 44% of the time on one to three results against a stated 56%, while the
+demo lifter (2% a week, 9 reps over) had one in 13 of 15 workouts against a stated 57%.
+With one to three results the model cannot yet tell a fast gainer from a slow one.
 
 **What the table still shows.** Ranges with no results yet now hold every simulated
 result: `priorSdFraction` 0.1 is wide for lifters who start as the program advises, and was

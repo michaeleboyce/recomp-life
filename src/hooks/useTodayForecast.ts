@@ -19,7 +19,13 @@ export interface TodayForecast {
     /** 0 to 1, or null while only the category is known. */
     probability: number | null;
     chance: PrChance;
+    /** The reps on the last set a new best needs, at the lifter's usual logged effort. */
     repsNeeded: number;
+    /**
+     * True when `repsNeeded` counts on an effort credit: the estimated max adds the
+     * reps a logged effort says were left, so the count is "about", not a floor.
+     */
+    approximate: boolean;
     /** The estimated max that many reps would give. */
     estimate: number;
     /** The current best estimated max. */
@@ -73,15 +79,18 @@ export function todayForecastFrom(
       )
     : undefined;
   let newBest: TodayForecast["newBest"] = null;
-  const best = row?.inputs.bestE1RM;
+  const best = row?.event.level;
   const probability = row?.prediction.probability;
-  if (t1 && typeof best === "number" && typeof probability === "number") {
-    const target = repsToBeat(t1.weight, best);
+  if (t1 && row && typeof best === "number" && typeof probability === "number") {
+    // The same count the stored chance is for: the reps needed at the usual effort.
+    const credit = typeof row.inputs.effortCredit === "number" ? row.inputs.effortCredit : 0;
+    const target = repsToBeat(t1.weight, best, 10 - credit);
     if (target) {
       newBest = {
         probability,
         chance: prChanceFromProbability(probability),
         repsNeeded: target.reps,
+        approximate: credit > 0,
         estimate: target.e1rm,
         best,
       };

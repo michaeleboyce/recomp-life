@@ -75,8 +75,8 @@ function repsInputs(
 /**
  * The forecasts for a workout that is about to start: for each T1 lift the reps on
  * its last set (a spread), the chance it passes and, when the lift has a best that
- * some rep count at today's weight would beat, the chance of a new best; and the
- * session's length. Ids are `fc:<workoutId>:<kind>[:<exerciseId>:<tier>]`, also used
+ * some rep count at today's weight would beat, the chance that the workout sets a new
+ * best estimated max (with the lifter's usual effort credit); and the session's length. Ids are `fc:<workoutId>:<kind>[:<exerciseId>:<tier>]`, also used
  * as `clientId` and `slot`, so starting the same workout twice cannot make a second row.
  *
  * `source` is what was known before the workout: finished workouts only. A home
@@ -176,14 +176,22 @@ export function makeSessionForecasts(
       add(
         "newBest",
         {
-          event: { type: "repsAtLeast", weight: entry.weight, reps: forecast.newBest.repsNeeded },
+          // The best that stood when the forecast was made is part of the event, so
+          // only an edit to this workout's own sets can move the outcome.
+          event: { type: "e1rmAbove", weight: entry.weight, level: forecast.newBest.bestE1RM },
           prediction: {
             point: forecast.newBest.chance,
             probability: forecast.newBest.chance,
             unit: "chance",
           },
           basis: forecast.basis,
-          inputs: { ...inputs, bestE1RM: forecast.newBest.bestE1RM },
+          inputs: {
+            ...inputs,
+            bestE1RM: forecast.newBest.bestE1RM,
+            repsNeeded: forecast.newBest.repsNeeded,
+            effortCredit: forecast.newBest.effortCredit,
+            effortSample: forecast.newBest.effortSample,
+          },
         },
         lift
       );

@@ -261,7 +261,14 @@ describe("startWorkout", () => {
     const newBest = rows.find((row) => row.kind === "newBest")!;
     expect(newBest.prediction.probability).toBeGreaterThan(0);
     expect(newBest.prediction.probability).toBeLessThan(1);
-    expect(newBest.event.reps).toBeGreaterThan(1);
+    // The event is the best estimated max that stood before the workout.
+    const best = Math.max(
+      ...(await db.estimated1RMs.where("exerciseId").equals("squat").toArray()).map(
+        (row) => row.estimated1RM
+      )
+    );
+    expect(newBest.event).toEqual({ type: "e1rmAbove", weight: newBest.event.weight, level: best });
+    expect(newBest.inputs.repsNeeded).toBeGreaterThan(1);
   });
 
   it("explains and forecasts the plan the session runs: a home substitute and a weight edit", async () => {

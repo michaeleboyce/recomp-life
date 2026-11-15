@@ -48,7 +48,7 @@ its reason and evidence grade, and the user can override anything.
 | G1 | Decision trace for every decided number: weight, scheme, rest, substitute, accessory cap | A contract test lists decision kinds and fails if one has no `explain*`; the trace's final value equals `buildWorkoutPlan` / `getRestSeconds` for every demo entry |
 | G2 | Progression returns its outcome (passed, stage change, reset, held, partial, not done, T3 up) with a rule id | Existing tests unchanged; golden test: `rebuildDerived(generateDemoData(...))` identical before and after; outcome kind equals today's `describeOutcomes` for every demo workout |
 | G3 | The trace shown at workout start is saved with the workout, in its own field | `WorkoutSession.decisions` present after `startWorkout`; the Log shows the same text later even after a rule constant changes |
-| G4 | Forecast registry. First kinds: reps on the last T1 set (distribution), chance of a new best, chance the lift passes, session length, estimated max in 4 weeks, bodyweight in 4 weeks | Contract test: every kind has a model, a resolver, a declared quantity and a real rule id; new-best chance equals the distribution's tail at `repsToBeat`; probabilities sum to 1 |
+| G4 | Forecast registry. First kinds: reps on the last T1 set (distribution), chance of a new best, chance the lift passes, session length, estimated max in 4 weeks, bodyweight in 4 weeks | Contract test: every kind has a model, a resolver, a declared quantity and a real rule id; new-best chance equals the distribution from `repsToBeat` (at the usual effort credit) up to the longest set that gives an estimate; probabilities sum to 1 |
 | G5 | Forecast ledger: synced, written once before any set exists, never updated; status, outcome and score are worked out on read from the log | Scripted: start → rows exist; finish → resolved; edit a set → outcome changes, row untouched; discard → void; no `update/put/modify` on the table outside the writer |
 | G6 | Track record: share of results inside the range, calibration of stated chances, average miss and bias, by kind, lift and how much history the forecast had | Unit tests; replay of demo history puts 80% ranges between 70% and 90%; changing later data leaves earlier forecasts unchanged |
 | G7 | Self-correction: a kind's range widens (bounded 1× to 2×) once about 20 resolved forecasts show it was too narrow, and the log says so | Unit test on thresholds; entry appears in the adjustment log |
@@ -100,8 +100,8 @@ type DecisionTrace = { subject: { kind: "weight" | "scheme" | "rest" | "substitu
 ```ts
 interface Forecast extends Stamped {              // write-once
   id; clientId; slot; kind; workoutId?; exerciseId?; madeAt; dueAt;
-  event: { type: "amrapReps" | "repsAtLeast" | "durationSeconds" | "e1rmLevel" | "bodyweightMean";
-           weight?: number; reps?: number; windowDays?: number };   // in raw log terms
+  event: { type: "amrapReps" | "repsAtLeast" | "e1rmAbove" | "durationSeconds" | "e1rmLevel" | "bodyweightMean";
+           weight?: number; reps?: number; level?: number; windowDays?: number };   // in raw log terms
   prediction: { point; low?; high?; probability?; pmf?: number[]; unit };
   basis: "prior" | "persistence" | "trend" | "regime-change";
   inputs: Record<string, number | string | null>; modelVersion: string; synced: boolean }
@@ -123,7 +123,11 @@ type ForecastStatus = { state: "open" } | { state: "void"; reason: string }
   matches `repsToBeat`. Level and scatter: trend fit when there are four or more same-stage
   points in eight weeks; the mean with a wider scatter for one to three; a prior for none;
   1.5× scatter after a stage change, reset or three weeks off. `P(R ≥ k)` from a normal tail;
-  new-best chance is the tail at `repsToBeat`; pass chance is the tail at the target. The
+  pass chance is the tail at the target. The new best is the app's own event (revised after
+  the wave 1 review): the workout's estimated max, with the credit for a logged effort, is
+  above the best that stood when the forecast was made (`event.level`). Its chance is the
+  spread from `repsToBeat` at the lifter's usual effort credit up to the longest set that
+  gives an estimate. The
   cutting shift applies only when the phase differs from the fitted sessions' phase.
   Cold-start numbers, the 1.5×, the readiness coefficients and normality are graded `heuristic`.
 - Hook points (short calls into a new `src/lib/data/forecasts.ts`): `startWorkout` and

@@ -378,7 +378,9 @@ describe("useTodayForecast", () => {
     const newBest = (await db.forecasts.get(sessionForecastId(id, "newBest", "squat", "T1")))!;
     const length = (await db.forecasts.get(sessionForecastId(id, "sessionLength")))!;
     expect(today.newBest!.probability).toBeCloseTo(newBest.prediction.probability!, 12);
-    expect(today.newBest!.repsNeeded).toBe(newBest.event.reps);
+    expect(today.newBest!.repsNeeded).toBe(newBest.inputs.repsNeeded);
+    expect(today.newBest!.best).toBe(newBest.event.level);
+    expect(today.newBest!.approximate).toBe((newBest.inputs.effortCredit as number) > 0);
     expect(today.session!.minutes).toBe(Math.round(length.prediction.point / 60));
   });
 

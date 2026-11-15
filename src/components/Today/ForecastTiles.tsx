@@ -51,7 +51,12 @@ export function forecastTiles(forecast: TodayForecast, newBestHref?: string): Ti
             : CHANCE_WORD[newBest.chance],
       wordy: newBest.probability === null,
       accent: true,
-      sub: known ? `needs ${newBest.repsNeeded}+ reps` : `beats ${Math.round(newBest.best)}`,
+      sub: !known
+        ? `beats ${Math.round(newBest.best)}`
+        : newBest.approximate
+          ? // The count assumes the usual logged effort, which the estimate credits.
+            `needs about ${newBest.repsNeeded} reps`
+          : `needs ${newBest.repsNeeded}+ reps`,
       href: newBestHref,
     });
   }

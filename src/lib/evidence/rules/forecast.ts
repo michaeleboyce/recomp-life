@@ -1,8 +1,10 @@
 import type { EvidenceRule } from "@/types";
 import type { SourceId } from "../sources";
+import { E1RM_MAX_REPS } from "@/lib/e1rm";
 import {
   BODYWEIGHT_MODEL as B,
   CALIBRATION as K,
+  NEW_BEST_MODEL as N,
   REPS_MODEL as R,
   SESSION_LENGTH_MODEL as S,
 } from "@/lib/forecast/coefficients";
@@ -23,19 +25,22 @@ export const FORECAST_RULES = {
     status: "planned",
     title: "How does the app forecast reps on the last set?",
     summary: "Last-set reps are forecast from your recent last sets and their scatter",
-    appBehavior: `For the last set of a T1 lift the app turns your recent last sets into a strength level and a scatter, then gives the chance of each rep count at today's weight, up to ${R.maxReps} or more. The chance of a new best and the chance of passing come from the same numbers. With at least ${R.minTrendPoints} results at the same stage in the last ${R.trendWindowWeeks} weeks it follows their trend, and the scatter is never taken as less than ${pct(R.trendSdFloorFraction)} of your level. With one to three results it uses their average and a scatter of at least ${pct(R.fewPointsSdFloorFraction)}. With none it assumes ${R.priorRepsAboveTarget} reps more than the target and a scatter of ${pct(R.priorSdFraction)}. After a stage change, a reset or ${R.regimeChangeWeeksOff} or more weeks off, the scatter is multiplied by ${R.regimeChangeSdMultiplier}. If you are cutting today but most of those sessions were not, the level is lowered by ${pct(-R.cuttingLevelShift)}. Each point your readiness score is below (or above) your usual moves the level by ${pct(R.readinessLevelShiftPerPoint)}.`,
+    appBehavior: `For the last set of a T1 lift the app turns your recent last sets into a strength level and a scatter, then gives the chance of each rep count at today's weight, up to ${R.maxReps} or more. The chance of a new best and the chance of passing come from the same numbers. A new best is what the app shows as one: the estimated max from your last set, which adds the reps a logged effort says you had left, comes out above your best so far. Its chance assumes your usual effort on the last set (the middle of your last ${N.effortCreditRecentSets} last sets, counting a set logged without an effort as all-out) and leaves out sets of more than ${E1RM_MAX_REPS} reps, which give no estimate. With at least ${R.minTrendPoints} results at the same stage in the last ${R.trendWindowWeeks} weeks it follows their trend, and the scatter is never taken as less than ${pct(R.trendSdFloorFraction)} of your level. With one to three results it uses their average and a scatter of at least ${pct(R.fewPointsSdFloorFraction)}. With none it assumes ${R.priorRepsAboveTarget} reps more than the target and a scatter of ${pct(R.priorSdFraction)}. After a stage change, a reset or ${R.regimeChangeWeeksOff} or more weeks off, the scatter is multiplied by ${R.regimeChangeSdMultiplier}. If you are cutting today but most of those sessions were not, the level is lowered by ${pct(-R.cuttingLevelShift)}. Each point your readiness score is below (or above) your usual moves the level by ${pct(R.readinessLevelShiftPerPoint)}.`,
     rationale:
       "A rep count at one weight and a different rep count at another describe the same strength, so recent sets at different weights can be pooled; estimates of a max from reps are most accurate from sets of fewer than 10 reps. Reps at a set weight change from day to day: trained lifters retested a week later typically did about one rep more or fewer (0.7 to 1.1 reps), so the forecast is a spread of rep counts, not one number. A night of short or lost sleep lowers strength a little, about 3% on average.",
     caveat:
-      "The rep study tested only the bench press, in a lab, with fresh sets; a set at the end of a training session varies more, so the smallest scatter is a judgment set above that figure. A tested max varies by more (a median 4.2% between sessions) in studies that mixed beginners and older adults. The sleep figure comes mostly from whole nights without sleep; for one short night the studies found a smaller drop that was not statistically clear, and none measured a readiness score, so the size of the readiness shift is ours. The cutting shift, the starting values with no results, the extra scatter after a change and the bell-curve shape are this app's assumptions.",
+      "The rep study tested only the bench press, in a lab, with fresh sets; a set at the end of a training session varies more, so the smallest scatter is a judgment set above that figure. A tested max varies by more (a median 4.2% between sessions) in studies that mixed beginners and older adults. The sleep figure comes mostly from whole nights without sleep; for one short night the studies found a smaller drop that was not statistically clear, and none measured a readiness score, so the size of the readiness shift is ours. The cutting shift, the starting values with no results, the extra scatter after a change and the bell-curve shape are this app's assumptions. So is the usual effort behind the new-best chance: no study covers how steadily a lifter rates a last set, and on a day you rate it harder or easier than usual that chance is off.",
     strength: "limited",
     sources: ["mitter2022", "grgic2020", "reynolds2006", "mayhew2008", "nuzzo2024", "craven2022"],
     reviewedOn: "2026-11",
     implementedIn: [
       "src/lib/forecast/coefficients.ts#REPS_MODEL",
+      "src/lib/forecast/coefficients.ts#NEW_BEST_MODEL",
       "src/lib/forecast/reps.ts#lastT1Sets",
       "src/lib/forecast/reps.ts#estimateRepsLevel",
       "src/lib/forecast/reps.ts#chanceOfAtLeast",
+      "src/lib/forecast/reps.ts#usualEffortCredit",
+      "src/lib/forecast/reps.ts#chanceOfNewBest",
       "src/lib/forecast/reps.ts#forecastReps",
       "src/lib/readiness/score.ts#readinessLevelShift",
     ],
