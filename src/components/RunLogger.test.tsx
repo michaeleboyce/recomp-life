@@ -22,7 +22,7 @@ describe("RunLogger", () => {
     fireEvent.change(screen.getByPlaceholderText("3.0"), { target: { value: "2.5" } });
     fireEvent.click(screen.getByRole("button", { name: "SAVE RUN" }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/?runSaved=1"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
     const runs = await db.runs.toArray();
     expect(runs).toHaveLength(1);
     expect(runs[0]).toMatchObject({

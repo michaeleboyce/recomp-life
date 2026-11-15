@@ -7,11 +7,16 @@ import { clearDb } from "@/lib/data/testUtils";
 import WeighInPage from "./page";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+let from: string | null = null;
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
+  useSearchParams: () => new URLSearchParams(from ? { from } : {}),
+}));
 
 describe("WeighInPage", () => {
   beforeEach(async () => {
     push.mockClear();
+    from = null;
     await clearDb();
   });
   afterEach(cleanup);
@@ -29,7 +34,7 @@ describe("WeighInPage", () => {
     expect(rows[0].clientId).toBe(rows[0].id);
   });
 
-  it("pre-fills from the latest entry and lists recent entries", async () => {
+  it("shows the latest entry as a hint, not a value, and lists recent entries", async () => {
     await db.bodyweight.add({
       id: "b1",
       clientId: "b1",
@@ -39,43 +44,24 @@ describe("WeighInPage", () => {
       synced: true,
     });
     render(<WeighInPage />);
-    expect(await screen.findByDisplayValue("190")).toBeInTheDocument();
+    const input = await screen.findByPlaceholderText("190");
+    expect(input).toHaveValue(null);
+    expect(screen.getByRole("button", { name: "Save Weight" })).toBeDisabled();
     expect(screen.getByText("Last 1 Entries")).toBeInTheDocument();
   });
 
-  it("typing over the pre-filled weight saves what was typed", async () => {
-    await db.bodyweight.add({
-      id: "b1",
-      clientId: "b1",
-      date: new Date("2026-11-01T00:00:00"),
-      weight: 190,
-      timeOfDay: "morning",
-      synced: true,
-    });
-    render(<WeighInPage />);
-    const input = await screen.findByDisplayValue("190");
-    fireEvent.change(input, { target: { value: "188.4" } });
-    expect(input).toHaveValue(188.4);
+  it("goes back to a known `from` after saving and ignores an unknown one", async () => {
+    from = "body";
+    const { unmount } = render(<WeighInPage />);
+    fireEvent.change(await screen.findByPlaceholderText("0.0"), { target: { value: "181.5" } });
     fireEvent.click(screen.getByRole("button", { name: "Save Weight" }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/progress?tab=body"));
+    expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/progress?tab=body");
+    unmount();
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
-    const rows = await db.bodyweight.toArray();
-    expect(rows.map((r) => r.weight).sort()).toEqual([188.4, 190]);
-  });
-
-  it("an emptied field goes back to the latest entry, as before", async () => {
-    await db.bodyweight.add({
-      id: "b1",
-      clientId: "b1",
-      date: new Date("2026-11-01T00:00:00"),
-      weight: 190,
-      timeOfDay: "morning",
-      synced: true,
-    });
+    from = "https://example.com";
     render(<WeighInPage />);
-    const input = await screen.findByDisplayValue("190");
-    fireEvent.change(input, { target: { value: "" } });
-    await waitFor(() => expect(input).toHaveValue(190));
+    expect(await screen.findByRole("link", { name: "Back" })).toHaveAttribute("href", "/");
   });
 
   it("with no entries the field starts empty and Save is disabled", async () => {
