@@ -53,6 +53,18 @@ describe("AdjustLiftSheet", () => {
     expect(screen.getByRole("dialog", { name: "Adjust Squat" })).toBeInTheDocument();
     expect(screen.getByText("Saved as a dated change from today on. Past sessions are not altered.")).toBeInTheDocument();
     expect(screen.getByRole("spinbutton", { name: /^Weight/ })).toHaveValue(205);
+    expect(screen.queryByTestId("weight-hint")).toBeNull();
+  });
+
+  it("explains the tier labels and says which weight it edits when asked", () => {
+    render(<AdjustLiftSheet exerciseId="squat" open onOpenChange={() => {}} weightHint="The barbell weight." />);
+    for (const tier of ["T1", "T2", "T3"]) {
+      expect(screen.getByRole("button", { name: `What does ${tier} mean?` })).toHaveAttribute(
+        "data-term",
+        tier.toLowerCase()
+      );
+    }
+    expect(screen.getByTestId("weight-hint")).toHaveTextContent("The barbell weight.");
   });
 
   it("saves a manual adjustment through the save flow", async () => {

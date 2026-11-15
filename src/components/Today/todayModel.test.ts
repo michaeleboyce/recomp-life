@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { makeSet, makeWorkout } from "@/lib/data/testUtils";
+import { getExerciseMedia } from "@/lib/exerciseMedia";
+import { HOME_SUBSTITUTE_CHAINS } from "@/lib/exercises";
 import {
   dayName,
   displayLiftName,
   formatEyebrowDate,
+  liftPageHref,
   liftReason,
+  nameInSentence,
   photoPosition,
   reasonText,
 } from "./todayModel";
@@ -45,6 +49,37 @@ describe("photoPosition", () => {
       expect(photoPosition(id, "card")).toMatch(/%/);
     }
     expect(photoPosition("db_row", "hero")).toBeUndefined();
+  });
+
+  it("frames every home substitute that has a photo", () => {
+    const withPhoto = Object.values(HOME_SUBSTITUTE_CHAINS)
+      .flat()
+      .filter((id) => getExerciseMedia(id) !== null);
+    expect(withPhoto.length).toBeGreaterThanOrEqual(8);
+    for (const id of withPhoto) {
+      expect(photoPosition(id, "hero"), id).toMatch(/^\d+% \d+%$/);
+      expect(photoPosition(id, "card"), id).toMatch(/^\d+% \d+%$/);
+    }
+  });
+});
+
+describe("liftPageHref", () => {
+  it("names the home substitute and where the page was opened from", () => {
+    expect(liftPageHref("squat")).toBe("/progress/lift/squat");
+    expect(liftPageHref("squat", { from: "today" })).toBe("/progress/lift/squat?from=today");
+    expect(liftPageHref("squat", { as: "goblet_squat", from: "today" })).toBe(
+      "/progress/lift/squat?as=goblet_squat&from=today"
+    );
+    expect(liftPageHref("squat", { as: "squat" })).toBe("/progress/lift/squat");
+  });
+});
+
+describe("nameInSentence", () => {
+  it("lower-cases the first word unless it is an acronym or a proper name", () => {
+    expect(nameInSentence("goblet_squat")).toBe("goblet squat");
+    expect(nameInSentence("db_bench")).toBe("DB bench press");
+    expect(nameInSentence("bulgarian_split_squat")).toBe("Bulgarian split squat");
+    expect(nameInSentence("ohp")).toBe("overhead press");
   });
 });
 

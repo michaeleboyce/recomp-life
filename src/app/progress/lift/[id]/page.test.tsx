@@ -9,8 +9,10 @@ import { initializeDatabase } from "@/db/init";
 import { Toaster, dismissToast } from "@/components/ui/toast";
 
 let id = "squat";
+let search = "";
 vi.mock("next/navigation", () => ({
   useParams: () => ({ id }),
+  useSearchParams: () => new URLSearchParams(search),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 vi.mock("@/components/chart-kit/LazyTrendChart", () => ({
@@ -30,6 +32,7 @@ vi.mock("@/components/chart-kit/LazyTrendChart", () => ({
 }));
 
 import LiftPage from "./page";
+import { homeVersionWeight } from "@/components/Lift/homeVersion";
 
 const demo = generateDemoData(new Date());
 
@@ -42,6 +45,7 @@ async function seedDemo() {
 
 beforeEach(async () => {
   id = "squat";
+  search = "";
   await clearDb();
   dismissToast();
 });
@@ -185,6 +189,41 @@ describe("Lift detail page", () => {
   it("shows an empty state with no data", async () => {
     render(<LiftPage />);
     expect(await screen.findByText("No squat sessions yet")).toBeInTheDocument();
+  });
+
+  it("opened as a home substitute from Today, keeps the squat's history and shows the home version", async () => {
+    await seedDemo();
+    search = "as=goblet_squat&from=today";
+    render(<LiftPage />);
+    expect(await screen.findByRole("heading", { name: "Barbell Squat" })).toBeInTheDocument();
+    expect(screen.getByTestId("home-version")).toHaveTextContent(
+      "At home: Goblet squat. It counts toward Squat."
+    );
+    expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Form and muscles" })).toHaveAttribute(
+      "href",
+      "/exercises/goblet_squat"
+    );
+
+    const squat = demo.liftStates.find((s) => s.exerciseId === "squat")!;
+    const homeWeight = homeVersionWeight("squat", "goblet_squat", squat.t1Weight, makeProfile().settings.equipment);
+    const line = await screen.findByTestId("pr-line");
+    expect(line).toHaveTextContent(`Next squat at home: goblet squat, ${homeWeight} lbs. Barbell ${squat.t1Weight}.`);
+    expect(line).not.toHaveTextContent("new best");
+    const next = screen.getByRole("region", { name: "Next session" });
+    expect(next).toHaveTextContent("Set the barbell weight; the goblet squat weight follows from it.");
+    // The history is still the squat's.
+    expect(screen.getAllByTestId("session-row").length).toBeGreaterThan(0);
+  });
+
+  it("ignores an `as` that is not one of the lift's home substitutes", async () => {
+    await seedDemo();
+    search = "as=db_bench";
+    render(<LiftPage />);
+    expect(await screen.findByTestId("pr-line")).toHaveTextContent(/^Next squat is/);
+    expect(screen.queryByTestId("home-version")).toBeNull();
+    expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/progress");
+    expect(screen.getByRole("link", { name: "Form and muscles" })).toHaveAttribute("href", "/exercises/squat");
   });
 
   it("an unknown id links back to Progress", async () => {

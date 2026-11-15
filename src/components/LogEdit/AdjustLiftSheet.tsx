@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/ui/chip-group";
+import { Term } from "@/components/ui/term";
+import { tierStyle } from "@/lib/tierStyle";
 import { useLiftStates } from "@/hooks";
 import type { LogChange } from "@/lib/rebuild";
 import type { LiftAdjustment, LiftState, T1Stage, T2Stage } from "@/types";
@@ -57,11 +59,13 @@ function AdjustForm({
   open,
   onOpenChange,
   submit,
+  weightHint,
 }: {
   exerciseId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   submit: ReturnType<typeof useCommitLogChange>["submit"];
+  weightHint?: ReactNode;
 }) {
   const state = useLiftStates()?.find((s) => s.exerciseId === exerciseId);
   const [tier, setTier] = useState<AdjustTier>("T1");
@@ -132,7 +136,32 @@ function AdjustForm({
           setStage(null);
         }}
       />
-      <StepperField label="Weight" unit="lbs" value={weightText} onChange={setWeight} step={5} max={WEIGHT_MAX} />
+      <p data-testid="tier-terms" className="-mt-1 flex flex-wrap gap-x-3 text-xs text-muted-foreground">
+        <span>
+          <Term id="t1" className={tierStyle("T1").text}>T1</Term> heavy
+        </span>
+        <span>
+          <Term id="t2" className={tierStyle("T2").text}>T2</Term> moderate
+        </span>
+        <span>
+          <Term id="t3" className={tierStyle("T3").text}>T3</Term> light
+        </span>
+      </p>
+      <StepperField
+        label="Weight"
+        unit="lbs"
+        value={weightText}
+        onChange={setWeight}
+        step={5}
+        max={WEIGHT_MAX}
+        hint={
+          weightHint ? (
+            <p data-testid="weight-hint" className="text-xs text-muted-foreground">
+              {weightHint}
+            </p>
+          ) : undefined
+        }
+      />
       {tier !== "T3" && (
         <>
           <FieldLabel>Stage</FieldLabel>
@@ -158,10 +187,13 @@ export function AdjustLiftSheet({
   exerciseId,
   open: controlledOpen,
   onOpenChange,
+  weightHint,
 }: {
   exerciseId: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Says which weight the field edits, e.g. the barbell weight behind a home substitute. */
+  weightHint?: ReactNode;
 }) {
   const [ownOpen, setOwnOpen] = useState(false);
   const open = controlledOpen ?? ownOpen;
@@ -176,7 +208,14 @@ export function AdjustLiftSheet({
           Adjust weight
         </Button>
       )}
-      <AdjustForm key={String(open)} exerciseId={exerciseId} open={open} onOpenChange={setOpen} submit={submit} />
+      <AdjustForm
+        key={String(open)}
+        exerciseId={exerciseId}
+        open={open}
+        onOpenChange={setOpen}
+        submit={submit}
+        weightHint={weightHint}
+      />
       {sheet}
     </>
   );

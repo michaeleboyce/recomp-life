@@ -50,12 +50,63 @@ export function formatEyebrowDate(date: Date): string {
  * the gym/home switch) and the Coming up cards crop top and bottom. Others centre.
  */
 const PHOTO_POSITION: Record<"hero" | "card", Record<string, string>> = {
-  hero: { deadlift: "30% 20%", squat: "80% 0%", bench: "45% 20%", ohp: "35% 0%" },
-  card: { deadlift: "60% 35%", squat: "55% 22%", bench: "55% 30%", ohp: "45% 18%" },
+  hero: {
+    deadlift: "30% 20%",
+    squat: "80% 0%",
+    bench: "45% 20%",
+    ohp: "35% 0%",
+    // Home substitutes with a photo. The Bulgarian split squat photo is portrait, so
+    // its second figure picks the band from the head to the dumbbells.
+    goblet_squat: "40% 0%",
+    bulgarian_split_squat: "60% 18%",
+    db_lunge: "55% 0%",
+    db_bench: "50% 20%",
+    db_floor_press: "40% 0%",
+    db_rdl: "45% 0%",
+    db_shoulder_press: "35% 0%",
+    db_arnold_press: "50% 0%",
+  },
+  card: {
+    deadlift: "60% 35%",
+    squat: "55% 22%",
+    bench: "55% 30%",
+    ohp: "45% 18%",
+    goblet_squat: "55% 15%",
+    bulgarian_split_squat: "65% 14%",
+    db_lunge: "55% 10%",
+    db_bench: "55% 30%",
+    db_floor_press: "50% 35%",
+    db_rdl: "55% 10%",
+    db_shoulder_press: "45% 30%",
+    db_arnold_press: "55% 30%",
+  },
 };
 
 export function photoPosition(exerciseId: string, where: "hero" | "card"): string | undefined {
   return PHOTO_POSITION[where][exerciseId];
+}
+
+/**
+ * The lift page for a row on Today or Coming up: `as` names the home substitute the
+ * row shows (the page keeps the program lift's history), `from` where to go back to.
+ */
+export function liftPageHref(
+  exerciseId: string,
+  options: { as?: string; from?: "today" } = {}
+): string {
+  const params = new URLSearchParams();
+  if (options.as && options.as !== exerciseId) params.set("as", options.as);
+  if (options.from) params.set("from", options.from);
+  const query = params.toString();
+  return `/progress/lift/${exerciseId}${query ? `?${query}` : ""}`;
+}
+
+/** A display name for use mid-sentence: "Goblet squat" -> "goblet squat", "DB bench press" stays. */
+export function nameInSentence(exerciseId: string): string {
+  const name = displayLiftName(exerciseId);
+  const [first, ...rest] = name.split(" ");
+  const keep = first === first.toUpperCase() || PROPER.has(first);
+  return [keep ? first : first.toLowerCase(), ...rest].join(" ");
 }
 
 /** How today's weight compares with the last finished workout that had the lift at this tier. */

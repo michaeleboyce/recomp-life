@@ -10,7 +10,7 @@ import type { WorkoutExerciseState } from "@/lib/workout/types";
 import type { Tier, WorkoutSession } from "@/types";
 import { Term } from "@/components/ui/term";
 import { formatLbs, formatSetsReps } from "./format";
-import { displayLiftName, liftReason, type LiftReason } from "./todayModel";
+import { displayLiftName, liftPageHref, liftReason, type LiftReason } from "./todayModel";
 
 /** One lift on Today: what it is, why it is at this weight, and the weight. */
 export interface TodayLiftRow {
@@ -65,7 +65,8 @@ function Reason({ reason }: { reason: LiftReason }) {
 
 /**
  * The day's lifts, one row each: tier, name, the reason line, weight and scheme. The
- * whole row opens the lift's page; the first tier label and the first "+" open their
+ * whole row opens the lift's page, naming the home substitute when the row shows one
+ * so the page shows that version; the first tier label and the first "+" open their
  * glossary entries instead.
  */
 export function LiftRows({ rows }: { rows: TodayLiftRow[] }) {
@@ -96,7 +97,7 @@ export function LiftRows({ rows }: { rows: TodayLiftRow[] }) {
             </span>
             <span className="min-w-0">
               <Link
-                href={`/progress/lift/${entry.exerciseId}`}
+                href={liftPageHref(entry.exerciseId, { as: entry.substituteExerciseId, from: "today" })}
                 className="block truncate text-[15px] font-bold text-foreground outline-none after:absolute after:inset-0 after:rounded-lg after:content-[''] focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
               >
                 {row.name}

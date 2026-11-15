@@ -67,7 +67,7 @@ describe("NextWorkoutHero", () => {
     working.forEach((entry, i) => {
       expect(within(rows[i]).getByRole("link", { name: displayLiftName(entry.exerciseId) })).toHaveAttribute(
         "href",
-        `/progress/lift/${entry.exerciseId}`
+        `/progress/lift/${entry.exerciseId}?from=today`
       );
       expect(within(rows[i]).getByText(String(entry.weight))).toBeInTheDocument();
       expect(within(rows[i]).getByText(entry.tier)).toBeInTheDocument();
