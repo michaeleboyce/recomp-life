@@ -648,7 +648,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `projection-rate-of-gain`
 - **Status:** Active
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`), `src/lib/forecast/horizon.ts` (`forecastE1RM`)
+- **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`), `src/lib/forecast/horizon.ts` (`forecastE1RM`), `src/lib/forecast/coefficients.ts` (`E1RM_HORIZON_MODEL`)
 - **Shown in:** `src/components/Projection/HowItWorks.tsx`
 - **Reviewed:** November 2026
 
