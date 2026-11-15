@@ -1,8 +1,19 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Minus, Plus } from "lucide-react";
+import { RepForecastBars, repForecastColumns } from "@/components/chart-kit";
 import { cn } from "@/lib/utils";
 import { MAX_REPS, MIN_REPS, repChips } from "./activeWorkoutLogic";
+
+/** A stored rep forecast as the picker draws it. */
+export interface RepForecastView {
+  pmf: number[];
+  low: number;
+  high: number;
+  firstReps: number;
+  lastReps: number;
+}
 
 interface RepPickerProps {
   targetReps: number;
@@ -11,6 +22,13 @@ interface RepPickerProps {
   onChange: (reps: number) => void;
   /** On an AMRAP set: rep counts from here up would be a new best. */
   highlightFrom?: number | null;
+  /**
+   * The forecast stored for this set: its bars sit above the rep buttons, which then
+   * follow the forecast's columns instead of the usual chips.
+   */
+  forecast?: RepForecastView | null;
+  /** Under the buttons: what the forecast says. */
+  children?: ReactNode;
 }
 
 const STEP_BUTTON =
@@ -26,6 +44,8 @@ export function RepPicker({
   value,
   onChange,
   highlightFrom = null,
+  forecast = null,
+  children,
 }: RepPickerProps) {
   return (
     <section className="flex flex-col gap-2.5" aria-label="Reps">
@@ -67,32 +87,138 @@ export function RepPicker({
         </button>
       </div>
 
-      <div className="grid grid-cols-6 gap-1.5">
-        {repChips(targetReps).map((reps) => {
-          const selected = reps === value;
-          const wouldBeBest = isAMRAP && highlightFrom != null && reps >= highlightFrom;
+      {forecast ? (
+        <ForecastButtons
+          forecast={forecast}
+          value={value}
+          onChange={onChange}
+          isBest={(reps) =>
+            isAMRAP && highlightFrom != null && reps >= highlightFrom
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-6 gap-1.5">
+          {repChips(targetReps).map((reps) => {
+            const selected = reps === value;
+            const wouldBeBest =
+              isAMRAP && highlightFrom != null && reps >= highlightFrom;
+            return (
+              <button
+                key={reps}
+                type="button"
+                aria-pressed={selected}
+                aria-label={`${reps} ${reps === 1 ? "rep" : "reps"}${wouldBeBest ? ", new best" : ""}`}
+                data-best={wouldBeBest || undefined}
+                onClick={() => onChange(reps)}
+                className={cn(
+                  "h-11 rounded-[10px] border-[1.5px] font-mono text-[15px] tabular-nums transition-colors",
+                  selected
+                    ? "border-accent-primary bg-accent-primary-soft font-bold text-foreground"
+                    : "border-transparent bg-card font-medium",
+                  !selected &&
+                    (wouldBeBest
+                      ? "font-bold text-accent-primary"
+                      : "text-foreground"),
+                  !selected && reps < targetReps && "text-muted-foreground",
+                )}
+              >
+                {reps}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
+const GAP = 8;
+
+/**
+ * The stored rep forecast as bars, each directly above the button for that count:
+ * the same columns (`repForecastColumns`) and gap, so bar and button line up. The
+ * expected range is the highlighted bars; the last button means "that many or more".
+ */
+function ForecastButtons({
+  forecast,
+  value,
+  onChange,
+  isBest,
+}: {
+  forecast: RepForecastView;
+  value: number;
+  onChange: (reps: number) => void;
+  isBest: (reps: number) => boolean;
+}) {
+  const range: [number, number] = [forecast.low, forecast.high];
+  const columns = repForecastColumns(
+    forecast.pmf,
+    forecast.firstReps,
+    range,
+    forecast.lastReps,
+  );
+  const last = columns.at(-1)?.reps;
+  return (
+    <div data-testid="rep-forecast" className="flex flex-col gap-1">
+      <div className="flex items-baseline justify-between">
+        <span className="font-display text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+          The app&apos;s forecast
+        </span>
+        <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+          <span
+            aria-hidden="true"
+            className="inline-block size-2 rounded-[2px] bg-chart-line"
+          />
+          expected range
+        </span>
+      </div>
+      <RepForecastBars
+        pmf={forecast.pmf}
+        firstReps={forecast.firstReps}
+        lastReps={forecast.lastReps}
+        range={range}
+        selected={last !== undefined && value >= last ? last : value}
+        height={44}
+        gap={GAP}
+      />
+      <div
+        className="grid"
+        style={{
+          gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
+          columnGap: GAP,
+        }}
+      >
+        {columns.map((column) => {
+          const isLast = column.reps === last;
+          const selected = isLast
+            ? value >= column.reps
+            : value === column.reps;
+          const best = isBest(column.reps);
+          const count = isLast
+            ? `${column.reps} or more reps`
+            : `${column.reps} ${column.reps === 1 ? "rep" : "reps"}`;
           return (
             <button
-              key={reps}
+              key={column.reps}
               type="button"
               aria-pressed={selected}
-              aria-label={`${reps} ${reps === 1 ? "rep" : "reps"}${wouldBeBest ? ", new best" : ""}`}
-              data-best={wouldBeBest || undefined}
-              onClick={() => onChange(reps)}
+              aria-label={`${count}${best ? ", new best" : ""}`}
+              data-best={best || undefined}
+              onClick={() => onChange(column.reps)}
               className={cn(
-                "h-11 rounded-[10px] border-[1.5px] font-mono text-[15px] tabular-nums transition-colors",
+                "mx-auto flex aspect-square w-full max-w-[52px] items-center justify-center rounded-full border-[1.5px] font-display text-[21px] leading-none font-extrabold transition-colors",
                 selected
-                  ? "border-accent-primary bg-accent-primary-soft font-bold text-foreground"
-                  : "border-transparent bg-card font-medium",
-                !selected && (wouldBeBest ? "font-bold text-accent-primary" : "text-foreground"),
-                !selected && reps < targetReps && "text-muted-foreground"
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-foreground",
+                !selected && best && "text-accent-primary",
               )}
             >
-              {reps}
+              {column.label}
             </button>
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }

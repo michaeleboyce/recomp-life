@@ -407,7 +407,7 @@ describe("resume", () => {
 });
 
 describe("rest", () => {
-  it("rests between sets of an entry for the tier's duration, and not after its last set", async () => {
+  it("rests between sets for the tier's duration, and after a lift's last set when more follows", async () => {
     // Seeded phase is cutting: T1 rest is 180 + 30.
     const hook = await mount(await start({ includeWarmUps: false }));
     await act(() => hook.result.current.logSet());
@@ -421,8 +421,17 @@ describe("rest", () => {
 
     for (let i = 0; i < 3; i++) await logSet(hook);
     await act(() => hook.result.current.logSet());
-    expect(useWorkoutStore.getState().isRestTimerActive).toBe(false);
+    // The last squat set: on to bench, after the squat's rest (the rest screen shows
+    // how that set compared with its forecast).
+    expect(useWorkoutStore.getState()).toMatchObject({ isRestTimerActive: true, restTier: "T1" });
     await waitFor(() => expect(hook.result.current.entry?.exerciseId).toBe("bench"));
+  });
+
+  it("goes straight on after a warm-up", async () => {
+    const hook = await mount(await start({ includeWarmUps: true }));
+    expect(hook.result.current.entry?.isWarmUp).toBe(true);
+    await act(() => hook.result.current.logSet());
+    expect(useWorkoutStore.getState().isRestTimerActive).toBe(false);
   });
 });
 

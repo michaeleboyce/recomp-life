@@ -409,3 +409,73 @@ describe("correcting a logged set from the overview", () => {
     expect(squat.t1Weight).toBe(190);
   });
 });
+
+describe("glass box: forecast, why and rest", () => {
+  async function toLastSquatSet() {
+    await open();
+    await logSets(4);
+    expect(screen.getByText("Set 5 of 5")).toBeInTheDocument();
+  }
+
+  it("shows the stored rep forecast as bars above the rep buttons on a T1 lift's last set", async () => {
+    await toLastSquatSet();
+    const panel = await screen.findByTestId("rep-forecast");
+    const bars = panel.querySelectorAll("[data-reps]");
+    const buttons = within(panel).getAllByRole("button");
+    // Column for column: one button per bar, in the same order.
+    expect(buttons).toHaveLength(bars.length);
+    expect(bars.length).toBe(6);
+    expect(panel.querySelectorAll("[data-in-range]").length).toBeGreaterThan(0);
+    const note = screen.getByTestId("forecast-note");
+    // No finished T1 sets yet: the forecast says it is a starting guess.
+    expect(note).toHaveTextContent(/starting guess/);
+    expect(within(note).getByRole("link", { name: "How right has this been?" })).toHaveAttribute(
+      "href",
+      "/progress/forecasts/record"
+    );
+    // The stepper stays, and a forecast button picks its count.
+    expect(screen.getByRole("button", { name: "One more rep" })).toBeInTheDocument();
+    fireEvent.click(buttons[buttons.length - 2]);
+    expect(logButton()).toHaveTextContent(`LOG ${bars[bars.length - 2].getAttribute("data-reps")} REPS`);
+  });
+
+  it("shows nothing made up when no forecast was stored for the lift", async () => {
+    nav.sessionId = await startWorkout({
+      templateId: "A1",
+      location: "gym",
+      includeWarmUps: false,
+      selectedAccessories: [],
+    });
+    await db.forecasts.clear();
+    render(<ActiveWorkoutPage />);
+    await screen.findByRole("button", { name: /^LOG/ });
+    await logSets(4);
+    expect(screen.getByText("Set 5 of 5")).toBeInTheDocument();
+    expect(screen.queryByTestId("rep-forecast")).toBeNull();
+    expect(screen.queryByTestId("forecast-note")).toBeNull();
+    // The usual chips are back.
+    expect(screen.getByRole("button", { name: "3 reps" })).toBeInTheDocument();
+  });
+
+  it("opens the saved weight trace from 'why' beside the weight", async () => {
+    await open();
+    fireEvent.click(await screen.findByRole("button", { name: "Why 190 lbs?" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent(/why this weight/i);
+    expect(sheet.querySelector('[data-slot="why-result"]')).toHaveTextContent("190");
+  });
+
+  it("after the last squat set, the rest says why it is this long and how the set compared", async () => {
+    await toLastSquatSet();
+    fireEvent.click(logButton());
+    const timer = await screen.findByRole("timer");
+    const banner = await within(timer).findByTestId("last-set-banner");
+    expect(banner).toHaveTextContent(/Forecast was \d+ \(\d+ to \d+\)\. You got 3\./);
+    expect(within(timer).getByTestId("rest-why")).toHaveTextContent("Why 3:30");
+    expect(timer.querySelector('[data-evidence="rest-cut-bonus"]')).not.toBeNull();
+    expect(within(timer).getByTestId("up-next")).toHaveTextContent("Barbell Bench Press");
+    for (const name of ["+5s", "+15s", "Skip rest"]) {
+      expect(within(timer).getByRole("button", { name })).toBeInTheDocument();
+    }
+  });
+});
