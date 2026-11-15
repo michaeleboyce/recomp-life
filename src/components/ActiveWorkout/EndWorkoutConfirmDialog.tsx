@@ -9,6 +9,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Term } from "@/components/ui/term";
+import type { TermId } from "@/lib/glossary";
 
 interface RemainingExercise {
   name: string;
@@ -20,16 +22,28 @@ interface RemainingExercise {
 interface EndWorkoutConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** End now and save what was logged. */
   onConfirm: () => void;
+  /** Leave the screen with everything kept; Today offers Resume. */
+  onLeave: () => void;
+  /** Discard the whole workout. */
   onCancel: () => void;
   remainingExercises: RemainingExercise[];
   setsLogged: number;
 }
 
+const TIER_TERM: Record<string, TermId> = { T1: "t1", T2: "t2", T3: "t3" };
+
+/**
+ * Opened by Back and by "End workout" in the overview. Keep going is the default
+ * (focused, first); leaving keeps everything for later; ending saves what was
+ * logged; discarding is last and the only destructive choice.
+ */
 export function EndWorkoutConfirmDialog({
   open,
   onOpenChange,
   onConfirm,
+  onLeave,
   onCancel,
   remainingExercises,
   setsLogged,
@@ -38,7 +52,7 @@ export function EndWorkoutConfirmDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>End Workout Early?</DialogTitle>
+          <DialogTitle>Stop here?</DialogTitle>
           <DialogDescription>
             {setsLogged === 0
               ? "You haven't logged any sets yet."
@@ -48,39 +62,54 @@ export function EndWorkoutConfirmDialog({
 
         {setsLogged > 0 && (
           <ul className="space-y-1 text-sm text-muted-foreground">
-            {remainingExercises.map((ex) => (
-              <li key={`${ex.name}-${ex.tier}`}>
-                {ex.name} ({ex.tier}) &mdash;{" "}
-                {ex.setsCompleted === 0
-                  ? "skipped"
-                  : `${ex.setsCompleted}/${ex.targetSets} sets`}
-              </li>
-            ))}
+            {remainingExercises.map((ex) => {
+              const term = TIER_TERM[ex.tier];
+              return (
+                <li key={`${ex.name}-${ex.tier}`}>
+                  {ex.name} (
+                  {term ? (
+                    <Term id={term} hideLinks>
+                      {ex.tier}
+                    </Term>
+                  ) : (
+                    ex.tier
+                  )}
+                  ) &mdash;{" "}
+                  {ex.setsCompleted === 0 ? "skipped" : `${ex.setsCompleted}/${ex.targetSets} sets`}
+                </li>
+              );
+            })}
           </ul>
         )}
 
         {setsLogged > 0 && (
           <p className="text-sm text-muted-foreground">
-            Skipped and partial exercises will be frozen &mdash; your weights and
-            stages won&apos;t change.
+            Ending now freezes skipped and partial exercises: their weights and{" "}
+            <Term id="stage" hideLinks>
+              stages
+            </Term>{" "}
+            won&apos;t change.
           </p>
         )}
 
         <DialogFooter className="flex-col gap-2 sm:flex-col">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Keep Going
+          <Button autoFocus onClick={() => onOpenChange(false)}>
+            Keep going
+          </Button>
+          <Button variant="outline" onClick={onLeave}>
+            Leave, resume later
           </Button>
           {setsLogged > 0 && (
-            <Button variant="destructive" onClick={onConfirm}>
+            <Button variant="outline" onClick={onConfirm}>
               End &amp; Save Progress
             </Button>
           )}
           <Button
-            variant="outline"
-            className="text-destructive border-destructive/50 hover:bg-destructive/10"
+            variant="ghost"
+            className="text-destructive hover:bg-destructive/10"
             onClick={onCancel}
           >
-            {setsLogged === 0 ? "Discard Workout" : "Cancel & Discard All"}
+            {setsLogged === 0 ? "Discard workout" : "Discard workout and all its sets"}
           </Button>
         </DialogFooter>
       </DialogContent>

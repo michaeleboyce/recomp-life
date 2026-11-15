@@ -211,7 +211,7 @@ describe("active workout page", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Finish & View Summary" }));
     await waitFor(() =>
-      expect(nav.push).toHaveBeenCalledWith(`/workout/summary?sessionId=${nav.sessionId}`)
+      expect(nav.replace).toHaveBeenCalledWith(`/workout/summary?sessionId=${nav.sessionId}`)
     );
     const workout = (await db.workouts.get(nav.sessionId))!;
     expect(workout.endedEarly).toBe(true);
@@ -225,6 +225,64 @@ describe("active workout page", () => {
     // With no sets the dialog only offers to keep going or discard.
     expect(await screen.findByText("You haven't logged any sets yet.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /End & Save Progress/ })).toBeNull();
+  });
+
+  it("Back opens the stop dialog: keep going is the default, leaving keeps everything", async () => {
+    await open();
+    await logSets(2);
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    const dialog = await screen.findByRole("dialog");
+    const buttons = within(dialog).getAllByRole("button").filter((b) => !b.dataset.term);
+    expect(buttons.map((b) => b.textContent)).toEqual([
+      "Keep going",
+      "Leave, resume later",
+      "End & Save Progress",
+      "Discard workout and all its sets",
+    ]);
+    expect(buttons[0]).toHaveFocus();
+    // Tier and stage words explain themselves.
+    expect(within(dialog).getAllByRole("button", { name: "What does T2 mean?" }).length).toBeGreaterThan(0);
+    expect(within(dialog).getByRole("button", { name: "What does stages mean?" })).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Leave, resume later" }));
+    expect(nav.push).toHaveBeenCalledWith("/");
+    const workout = (await db.workouts.get(nav.sessionId))!;
+    expect(workout.completedAt).toBeNull();
+    expect(workout.deletedAt).toBeFalsy();
+    expect(workout.sets).toHaveLength(2);
+  });
+
+  it("discarding from the stop dialog asks once more", async () => {
+    await open();
+    await logSets(1);
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Discard workout and all its sets" }));
+    expect(await screen.findByText(/Discarding deletes all of them/)).toBeInTheDocument();
+    expect((await db.workouts.get(nav.sessionId))!.deletedAt).toBeFalsy();
+    fireEvent.click(screen.getByRole("button", { name: "Discard Workout" }));
+    await waitFor(async () => expect((await db.workouts.get(nav.sessionId))!.deletedAt).toBeTruthy());
+  });
+
+  it("Back from the summary goes on to Today instead of reopening the summary", async () => {
+    const view = await open();
+    await logSets(2);
+    fireEvent.click(screen.getByRole("button", { name: "Workout overview" }));
+    fireEvent.click(await screen.findByRole("button", { name: "End workout" }));
+    fireEvent.click(await screen.findByRole("button", { name: /End & Save Progress/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Finish & View Summary" }));
+    await waitFor(() =>
+      expect(nav.replace).toHaveBeenCalledWith(`/workout/summary?sessionId=${nav.sessionId}`)
+    );
+    view.unmount();
+    nav.replace.mockReset();
+    // Back from the summary lands on this screen again.
+    render(<ActiveWorkoutPage />);
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/"));
+    expect(nav.push).not.toHaveBeenCalled();
   });
 
   it("resumes at the fourth set after a reload", async () => {
@@ -345,7 +403,7 @@ describe("correcting a logged set from the overview", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Finish & View Summary", hidden: true }));
-    await waitFor(() => expect(nav.push).toHaveBeenCalled());
+    await waitFor(() => expect(nav.replace).toHaveBeenCalled());
     const squat = (await db.liftStates.get("squat"))!;
     expect(squat.t1Stage).toBe("6x2");
     expect(squat.t1Weight).toBe(190);

@@ -138,9 +138,9 @@ describe("configure page", () => {
     await waitFor(() => expect(rows()[0]).toMatch(/^T1Single-Leg DB RDLin place of Barbell Deadlift/));
 
     fireEvent.click(screen.getByRole("button", { name: "START WORKOUT" }));
-    await waitFor(() => expect(nav.push).toHaveBeenCalled());
+    await waitFor(() => expect(nav.replace).toHaveBeenCalled());
     const [session] = await db.workouts.toArray();
-    expect(nav.push).toHaveBeenCalledWith(`/workout/active?sessionId=${session.id}`);
+    expect(nav.replace).toHaveBeenCalledWith(`/workout/active?sessionId=${session.id}`);
     expect(session).toMatchObject({ templateId: "B2", location: "home" });
     expect(overridesFromSession(session)).toEqual({ deadlift: "single_leg_db_rdl" });
   });
@@ -150,9 +150,9 @@ describe("configure page", () => {
     await open(`replaces=${oldId}`);
     expect((await db.workouts.get(oldId))!.deletedAt).toBeFalsy();
     fireEvent.click(screen.getByRole("button", { name: "START WORKOUT" }));
-    await waitFor(() => expect(nav.push).toHaveBeenCalled());
+    await waitFor(() => expect(nav.replace).toHaveBeenCalled());
     const fresh = (await db.workouts.toArray()).find((w) => w.id !== oldId)!;
-    expect(nav.push).toHaveBeenCalledWith(`/workout/active?sessionId=${fresh.id}`);
+    expect(nav.replace).toHaveBeenCalledWith(`/workout/active?sessionId=${fresh.id}`);
     await waitFor(async () => expect((await db.workouts.get(oldId))!.deletedAt).toBeTruthy());
     expect(fresh.deletedAt).toBeFalsy();
   });
@@ -162,7 +162,7 @@ describe("configure page", () => {
     await db.workouts.update(oldId, { completedAt: new Date() });
     await open(`replaces=${oldId}`);
     fireEvent.click(screen.getByRole("button", { name: "START WORKOUT" }));
-    await waitFor(() => expect(nav.push).toHaveBeenCalled());
+    await waitFor(() => expect(nav.replace).toHaveBeenCalled());
     expect((await db.workouts.get(oldId))!.deletedAt).toBeFalsy();
   });
 

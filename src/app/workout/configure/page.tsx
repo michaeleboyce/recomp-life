@@ -72,7 +72,9 @@ function ConfigureWorkoutContent() {
         console.error("Failed to discard the replaced workout:", err)
       );
     }
-    router.push(`/workout/active?sessionId=${sessionId}`);
+    // Replace, not push: Back from the workout (or later from its summary) never
+    // reopens this Ready screen for a workout that has already started.
+    router.replace(`/workout/active?sessionId=${sessionId}`);
   };
 
   const hasSubstitutes = setup.homeAdaptations.length > 0;

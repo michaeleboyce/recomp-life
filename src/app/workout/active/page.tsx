@@ -30,6 +30,13 @@ import {
   useWakeLock,
 } from "@/components/ActiveWorkout/useWorkoutGuards";
 
+/**
+ * Workouts finished on this screen in this visit. Back from the summary lands on the
+ * active screen again (its history entry is still there); for these it goes on to
+ * Today instead of reopening the summary, so Back never loops.
+ */
+const finishedHere = new Set<string>();
+
 function LoadingScreen() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
@@ -63,10 +70,11 @@ function ActiveWorkoutContent() {
   useLeaveGuard(status === "active" && !leaving, openEndDialog);
   const elapsed = formatClock(useElapsedSeconds(workout.workoutStartTime));
 
-  // A workout that is already saved has nothing left to log: show its summary.
+  // A workout that is already saved has nothing left to log: show its summary, or
+  // go on to Today when Back from that summary brought the user here.
   useEffect(() => {
     if (status === "finished" && session) {
-      router.replace(`/workout/summary?sessionId=${session.id}`);
+      router.replace(finishedHere.has(session.id) ? "/" : `/workout/summary?sessionId=${session.id}`);
     }
   }, [status, session, router]);
 
@@ -86,8 +94,22 @@ function ActiveWorkoutContent() {
   const handleSave = async () => {
     if (!session) return;
     if (await workout.finish()) {
-      router.push(`/workout/summary?sessionId=${session.id}`);
+      finishedHere.add(session.id);
+      router.replace(`/workout/summary?sessionId=${session.id}`);
     }
+  };
+
+  // Step away: nothing is changed or saved; Today's main button becomes Resume.
+  const handleLeave = () => {
+    setLeaving(true);
+    setShowEndDialog(false);
+    router.push("/");
+  };
+
+  // Discarding from the end dialog asks once more, in the discard dialog.
+  const confirmDiscard = () => {
+    setShowEndDialog(false);
+    setShowDiscardDialog(true);
   };
 
   const handleDiscard = async () => {
@@ -273,7 +295,8 @@ function ActiveWorkoutContent() {
         open={showEndDialog}
         onOpenChange={setShowEndDialog}
         onConfirm={handleEndEarly}
-        onCancel={handleDiscard}
+        onLeave={handleLeave}
+        onCancel={confirmDiscard}
         remainingExercises={remainingExercises}
         setsLogged={sets.length}
       />
