@@ -56,6 +56,21 @@ describe("toLocalRow", () => {
     expect(favorite.edits).toEqual([]);
   });
 
+  it("drops the null optionals of decisions, forecasts and coach events", () => {
+    const workout = toLocalRow({ id: "w1", updatedAt: 5, decisions: null });
+    expect("decisions" in workout).toBe(false);
+    const forecast = toLocalRow({
+      id: "f1", updatedAt: 5, madeAt: "2026-11-14T09:00:00.000Z",
+      workoutId: null, exerciseId: null, tier: null, inputs: { level: 1 },
+    });
+    expect(forecast.madeAt).toBeInstanceOf(Date);
+    for (const field of ["workoutId", "exerciseId", "tier"]) expect(field in forecast).toBe(false);
+    expect(forecast.inputs).toEqual({ level: 1 });
+    const event = toLocalRow({ id: "c1", updatedAt: 5, ruleId: null, data: null });
+    expect("ruleId" in event).toBe(false);
+    expect("data" in event).toBe(false);
+  });
+
   it("leaves ordinary strings alone", () => {
     expect(reviveDates({ templateId: "A1", note: "2026" })).toEqual({ templateId: "A1", note: "2026" });
   });

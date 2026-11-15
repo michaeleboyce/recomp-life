@@ -237,8 +237,10 @@ describe("clearAllData", () => {
     expect(db.tables.map((t) => t.name).sort()).toEqual([
       "activities",
       "bodyweight",
+      "coachEvents",
       "estimated1RMs",
       "favoriteWorkouts",
+      "forecasts",
       "healthDaily",
       "liftAdjustments",
       "liftStates",

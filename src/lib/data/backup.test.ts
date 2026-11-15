@@ -44,7 +44,9 @@ describe("exportBackup", () => {
       [
         "activities",
         "bodyweight",
+        "coachEvents",
         "favoriteWorkouts",
+        "forecasts",
         "healthDaily",
         "liftAdjustments",
         "painEntries",

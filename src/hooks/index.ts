@@ -19,6 +19,8 @@ export {
   useLastNightSleep,
   useLiftAdjustments,
 } from "./useRecords";
+export { useForecasts } from "./useForecasts";
+export { useCoachEvents } from "./useCoachEvents";
 export { useNextWorkout } from "./useNextWorkout";
 export { useReadinessLogs, useMetricSource, useMetric } from "./useMetric";
 export { useInsights } from "./useInsights";
