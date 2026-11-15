@@ -74,7 +74,7 @@ function SessionRow({
             <span
               key={i}
               className={cn(
-                "ml-1",
+                i === 0 && "ml-1",
                 set.amrap && "font-bold text-accent-primary",
                 set.failed && "text-warning",
               )}
@@ -86,6 +86,7 @@ function SessionRow({
                     : undefined
               }
             >
+              {i > 0 ? ", " : ""}
               {set.reps}
             </span>
           ))}

@@ -271,7 +271,12 @@ function ActiveWorkoutContent() {
         })
       : null;
   const restBanner =
-    lastSet && lastForecast ? <LastSetBanner verdict={lastSetVerdict(lastForecast, lastSet, session)} /> : null;
+    lastSet && lastForecast ? (
+      <LastSetBanner
+        verdict={lastSetVerdict(lastForecast, lastSet, session)}
+        previousBest={lastForecast.newBest?.event.level ?? null}
+      />
+    ) : null;
   const passForecast = sessionForecasts?.find(
     ({ forecast: row }) =>
       row.kind === "liftPass" &&

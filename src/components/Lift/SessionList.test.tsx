@@ -61,7 +61,7 @@ describe("SessionList", () => {
     );
     const list = screen.getByRole("region", { name: "Bulgarian split squat sessions" });
     expect(screen.queryByTestId("session-home")).toBeNull();
-    expect(screen.getByTestId("session-row")).toHaveTextContent(/^Nov 6.*40\/hand ×35/);
+    expect(screen.getByTestId("session-row")).toHaveTextContent(/^Nov 6.*40\/hand ×3, 5/);
     expect(list).toContainElement(screen.getByTestId("session-row"));
   });
 });
