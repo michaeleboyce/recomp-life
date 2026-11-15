@@ -66,6 +66,31 @@ export function combinedActivationHeat(exerciseIds: string[]): MuscleHeat {
 }
 
 /**
+ * Brightness weight by position in a workout: the first lift (T1) at full
+ * weight, the second (T2) at three quarters, the third and later at half.
+ */
+export const TIER_HEAT_WEIGHTS = [1, 0.75, 0.5] as const;
+
+/**
+ * Heat for a workout where earlier lifts matter more: each exercise's levels
+ * are scaled by its position weight (TIER_HEAT_WEIGHTS), then the highest
+ * level per muscle wins. A muscle that any exercise uses never drops below 1.
+ */
+export function tieredActivationHeat(exerciseIds: string[]): MuscleHeat {
+  const heat: MuscleHeat = {};
+  exerciseIds.forEach((id, index) => {
+    const weight = TIER_HEAT_WEIGHTS[Math.min(index, TIER_HEAT_WEIGHTS.length - 1)];
+    const one = activationHeatLevels(id);
+    for (const [muscle, base] of Object.entries(one) as [MuscleId, HeatLevel][]) {
+      if (base <= 0) continue;
+      const level = Math.min(4, Math.max(1, Math.round(base * weight))) as HeatLevel;
+      if ((heat[muscle] ?? 0) < level) heat[muscle] = level;
+    }
+  });
+  return heat;
+}
+
+/**
  * Fractional sets per muscle for a list of sets (primary 1.0, secondary 0.5).
  * Same skip rules as volume tracking.
  */
