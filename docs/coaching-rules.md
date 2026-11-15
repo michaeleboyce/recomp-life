@@ -451,16 +451,16 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `readiness-score`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/readiness/weights.ts` (`READINESS_WEIGHTS`)
+- **Implemented in:** `src/lib/readiness/weights.ts` (`READINESS_WEIGHTS`), `src/lib/readiness/score.ts` (`readinessScore`), `src/lib/readiness/usual.ts` (`readinessUsual`)
 - **Reviewed:** November 2026
 
 **In one line.** Readiness adds up sleep, stress, rest, recent activity and soreness
 
-**What the app does.** The score starts from your usual level and adds or takes points for last night's sleep, stress, days since you last trained the muscles, recent runs or other hard sessions, and soreness. It shifts the app's forecasts. It never changes a weight.
+**What the app does.** The score runs from 0 to 100 and starts from your usual level. Until you have 5 check-ins that is 70; after that it is the middle of your last 30 check-ins, each scored on its own from 70. Points are then added or taken away. Sleep: −3 for 5 to 7 hours, −6 for under 5. Energy: +4 for good, −4 for low. Rest: −4 while the muscles in today's workout are still recovering, +4 when they are fully rested. A run in the last 24 hours before a lower-body day: −2, or −4 for a hard run in the last 6 hours. Another hard session in the last 24 hours: −2. Soreness where the workout loads the body: −1 for each step of severity, −4 at most, for 72 hours. Pain there: −2 for each step, −8 at most, for 7 days. Once you have 5 check-ins, each input is measured against what it usually is for you, so an ordinary day scores your usual and only the differences show. Each point above or below your usual moves the forecast of your strength level by 0.05%. The score never changes a weight.
 
-**Why.** Each input is known to affect performance or recovery. Showing every input and its points lets you see why a day is rated the way it is.
+**Why.** Each input is known to affect performance or recovery. Showing every input and its points lets you see why a day is rated the way it is. Measuring against your own usual keeps a habit, such as lifting on one rest day, from being counted again every day when your results already reflect it.
 
-**Limits.** The inputs are research-backed, but the points given to each are this app's own weighting and have not been tested.
+**Limits.** The inputs are research-backed, but the points given to each are this app's own weighting and have not been tested. Soreness has no rule of its own, so its points rest on this rule alone.
 
 **Before this is switched on.** Switch on when the readiness screen ships.
 
