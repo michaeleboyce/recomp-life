@@ -5,6 +5,8 @@ import {
   Calculator,
   CalendarClock,
   Cloud,
+  Compass,
+  History,
   Disc,
   Dumbbell,
   FlaskConical,
@@ -94,6 +96,18 @@ export default function MorePage() {
           title="How the app coaches"
           subtitle="Every coaching rule and the research behind it"
           href="/research"
+        />
+        <MoreRow
+          icon={Compass}
+          title="How the app decides"
+          subtitle="What it reads, the models it runs, and the evidence behind each"
+          href="/more/how-it-works"
+        />
+        <MoreRow
+          icon={History}
+          title="Adjustment log"
+          subtitle="Every change to your plan, forecasts and rules, with the reason"
+          href="/more/adjustments"
         />
       </MoreGroup>
 
