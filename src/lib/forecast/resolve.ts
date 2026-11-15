@@ -152,7 +152,7 @@ function resolveWindow(
   forecast: Forecast,
   now: Date,
   defaultWindowDays: number,
-  min: number,
+  defaultMin: number,
   measurements: () => readonly Measurement[]
 ): ForecastStatus {
   const dueAt = toMs(forecast.dueAt);
@@ -160,6 +160,8 @@ function resolveWindow(
   if (!Number.isFinite(dueAt)) return voided("not-scorable");
   if (now.getTime() < dueAt + windowMs) return open;
   const values = valuesAround(measurements(), dueAt, windowMs);
+  // The minimum stored on the row, so a later change to the constant cannot void past rows.
+  const min = forecast.event.minResults ?? defaultMin;
   if (values.length < min) return voided("too-few-measurements");
   const value = mean(values);
   return { state: "resolved", value, inside: insideRange(forecast, value) };

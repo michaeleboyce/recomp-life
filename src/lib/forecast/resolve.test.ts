@@ -331,6 +331,21 @@ describe("forecasts for a date", () => {
     expect(resolve(body, { workouts: [], bodyweight: [] }, closed)).toMatchObject({ state: "void" });
   });
 
+  it("scores with the minimum stored on the row, not the constant read now", () => {
+    const one: ForecastLog = { workouts: [], bodyweight: [weighIn("a", around(0), 226)] };
+    const stored = (minResults: number): Forecast => ({
+      ...body,
+      event: { ...body.event, minResults },
+    });
+    // The constant needs more than one weigh-in; a row made with a minimum of one still scores.
+    expect(BODYWEIGHT_MODEL.minOutcomeEntries).toBeGreaterThan(1);
+    expect(resolve(stored(1), one, closed)).toMatchObject({ state: "resolved" });
+    expect(resolve(stored(2), one, closed)).toEqual({
+      state: "void",
+      reason: "too-few-measurements",
+    });
+  });
+
   const lift = forecastRow({
     id: "h2",
     slot: "e1rm4w|squat|2026-W45",

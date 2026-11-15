@@ -211,7 +211,7 @@ describe("makeSessionForecasts", () => {
       expect(Object.keys(row).filter((key) => !allowed.includes(key))).toEqual([]);
       expect(
         Object.keys(row.event).every((key) =>
-          ["type", "weight", "reps", "level", "windowDays"].includes(key)
+          ["type", "weight", "reps", "level", "windowDays", "minResults"].includes(key)
         )
       ).toBe(true);
     }
