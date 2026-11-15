@@ -16,6 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
+import { Stripes } from "@/components/ui/stripes";
 import { MoreGroup, MoreRow } from "@/components/More/MoreGroup";
 import { TrainingLocationRow } from "@/components/More/TrainingLocationRow";
 import { useHasSyncKey } from "@/components/More/useHasSyncKey";
@@ -34,7 +35,10 @@ export default function MorePage() {
 
   return (
     <PageShell className="flex flex-col gap-6">
-      <PageHeader title="More" />
+      <div className="flex flex-col gap-3">
+        <PageHeader title="More" />
+        <Stripes />
+      </div>
 
       <MoreGroup title="Training">
         <MoreRow

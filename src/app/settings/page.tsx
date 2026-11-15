@@ -8,6 +8,7 @@ import { BackButton } from "@/components/nav/BackButton";
 import type { UserProfile, UserSettings, TrainingPhase, EquipmentProfile, ExercisePreferences } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Stripes } from "@/components/ui/stripes";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -170,11 +171,14 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       {/* Header */}
-      <header className="flex items-center gap-3 mb-6">
-        <BackButton fallback="/more">
-          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-        </BackButton>
-        <h1 className="text-lg font-bold text-foreground">Settings</h1>
+      <header className="mb-6 flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <BackButton fallback="/more">
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+          </BackButton>
+          <h1 className="font-display text-xl font-bold text-foreground">Settings</h1>
+        </div>
+        <Stripes />
       </header>
 
       <div className="space-y-4">
@@ -193,7 +197,7 @@ export default function SettingsPage() {
         {/* Profile Section */}
         <Card>
           <CardContent>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            <h2 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
               Profile
             </h2>
             <div className="space-y-3">
@@ -215,7 +219,7 @@ export default function SettingsPage() {
         {/* Training Phase Section */}
         <Card>
           <CardContent>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            <h2 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
               Training Phase
             </h2>
 
@@ -291,7 +295,7 @@ export default function SettingsPage() {
         <Card>
           <CardContent className="space-y-6">
             <div data-testid="equipment-intro" className="space-y-2">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <h2 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Equipment
               </h2>
               <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
@@ -338,7 +342,7 @@ export default function SettingsPage() {
         {/* App Preferences Section */}
         <Card>
           <CardContent>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+            <h2 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">
               App Preferences
             </h2>
             <div className="space-y-4">
@@ -411,7 +415,7 @@ export default function SettingsPage() {
         {/* Data Section */}
         <Card>
           <CardContent>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+            <h2 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">
               Data
             </h2>
             <div className="space-y-2">
@@ -622,7 +626,7 @@ function SyncKeyCard() {
     // Linked from More as /settings#sync.
     <Card id="sync" className="scroll-mt-4">
       <CardContent>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+        <h2 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">
           Cloud Sync
         </h2>
         <div className="space-y-2">

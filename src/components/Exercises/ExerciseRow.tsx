@@ -56,7 +56,7 @@ export default function ExerciseRow({
   const roleLabel = getRoleLabel(exercise);
 
   return (
-    <div className="rounded-md border border-border overflow-hidden">
+    <div className="overflow-hidden rounded-2xl bg-card">
       {/* Collapsed row */}
       <div
         role="button"

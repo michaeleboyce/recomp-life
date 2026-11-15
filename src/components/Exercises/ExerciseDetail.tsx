@@ -9,10 +9,19 @@ import { formatMuscle } from "@/lib/muscles";
 import { formatRegion } from "@/lib/painModifications";
 import { useMetric } from "@/hooks";
 import { BackButton } from "@/components/nav/BackButton";
+import { Stripes } from "@/components/ui/stripes";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChartEmpty, LazyTrendChart, TrendChartSkeleton } from "@/components/chart-kit";
-import { isMainLift, LIFT_NAMES, type MainLiftId } from "@/components/Progress/lifts";
+import {
+  ChartEmpty,
+  LazyTrendChart,
+  TrendChartSkeleton,
+} from "@/components/chart-kit";
+import {
+  isMainLift,
+  LIFT_NAMES,
+  type MainLiftId,
+} from "@/components/Progress/lifts";
 import { programLiftFor } from "@/components/Lift/homeVersion";
 import { Term } from "@/components/ui/term";
 import { inSentence } from "@/components/Today/format";
@@ -28,7 +37,11 @@ const EQUIPMENT_LABELS: Record<string, string> = {
   machine: "Machine",
 };
 
-const LEVELS: { level: ActivationLevel; label: string; field: "primaryMuscles" | "secondaryMuscles" | "stabilizerMuscles" }[] = [
+const LEVELS: {
+  level: ActivationLevel;
+  label: string;
+  field: "primaryMuscles" | "secondaryMuscles" | "stabilizerMuscles";
+}[] = [
   { level: "primary", label: "Primary", field: "primaryMuscles" },
   { level: "secondary", label: "Secondary", field: "secondaryMuscles" },
   { level: "stabilizer", label: "Stabilisers", field: "stabilizerMuscles" },
@@ -80,7 +93,10 @@ export function ExerciseE1RMSection({
       {e1rm === undefined ? (
         <TrendChartSkeleton />
       ) : e1rm.series.points.length === 0 ? (
-        <ChartEmpty message="Complete an AMRAP set to see your estimated 1RM here." height={64} />
+        <ChartEmpty
+          message="Complete an AMRAP set to see your estimated 1RM here."
+          height={64}
+        />
       ) : (
         <LazyTrendChart
           series={e1rm.series}
@@ -113,14 +129,20 @@ export function countsToward(exerciseId: string): MainLiftId | undefined {
  * For a home substitute, in place of the estimated 1RM (its sets never give one):
  * "Counts toward Squat at home", opening the lift's page as this substitute.
  */
-export function CountsTowardLine({ exerciseId, lift }: { exerciseId: string; lift: MainLiftId }) {
+export function CountsTowardLine({
+  exerciseId,
+  lift,
+}: {
+  exerciseId: string;
+  lift: MainLiftId;
+}) {
   const liftLabel = LIFT_NAMES[lift].label;
   return (
     <section aria-label="Progress" className="flex flex-col gap-1.5">
       <p data-testid="counts-toward" className="text-sm text-foreground">
         At home it counts toward {liftLabel}. Its sets do not give an{" "}
-        <Term id="e1rm">estimated 1RM</Term>, so{" "}
-        {inSentence(liftLabel)} progress is tracked on the {inSentence(liftLabel)} page.
+        <Term id="e1rm">estimated 1RM</Term>, so {inSentence(liftLabel)}{" "}
+        progress is tracked on the {inSentence(liftLabel)} page.
       </p>
       <Link
         href={liftPageHref(lift, { as: exerciseId })}
@@ -141,21 +163,26 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
 
   return (
     <div className="mx-auto max-w-lg px-5 pt-5 pb-28 space-y-5">
-      <header className="flex items-center gap-3">
-        <BackButton fallback="/exercises" label="Exercises">
-          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-        </BackButton>
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-bold text-foreground">{exercise.name}</h1>
-          <div className="mt-0.5 flex items-center gap-2">
-            <Badge variant="secondary" className="text-[10px]">
-              {EQUIPMENT_LABELS[exercise.type] ?? exercise.type}
-            </Badge>
-            <span className="text-xs capitalize text-muted-foreground">
-              {exercise.muscleGroup.replace("_", " ")}
-            </span>
+      <header className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <BackButton fallback="/exercises" label="Exercises">
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+          </BackButton>
+          <div className="min-w-0">
+            <h1 className="truncate font-display text-xl font-bold text-foreground">
+              {exercise.name}
+            </h1>
+            <div className="mt-0.5 flex items-center gap-2">
+              <Badge variant="secondary" className="text-[10px]">
+                {EQUIPMENT_LABELS[exercise.type] ?? exercise.type}
+              </Badge>
+              <span className="text-xs capitalize text-muted-foreground">
+                {exercise.muscleGroup.replace("_", " ")}
+              </span>
+            </div>
           </div>
         </div>
+        <Stripes />
       </header>
 
       <ExerciseViewer exerciseId={exerciseId} />
@@ -168,7 +195,9 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
           if (muscles.length === 0) return null;
           return (
             <div key={level} className="flex items-start gap-3">
-              <span className="w-20 shrink-0 pt-0.5 text-xs text-muted-foreground">{label}</span>
+              <span className="w-20 shrink-0 pt-0.5 text-xs text-muted-foreground">
+                {label}
+              </span>
               <div className="flex flex-wrap gap-1.5">
                 {muscles.map((m) => (
                   <Badge
@@ -185,7 +214,9 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
         })}
         {exercise.painSensitiveRegions.length > 0 && (
           <div className="flex items-start gap-3">
-            <span className="w-20 shrink-0 pt-0.5 text-xs text-muted-foreground">Go easy if sore</span>
+            <span className="w-20 shrink-0 pt-0.5 text-xs text-muted-foreground">
+              Go easy if sore
+            </span>
             <p className="text-xs text-foreground">
               {exercise.painSensitiveRegions.map(formatRegion).join(", ")}
             </p>
@@ -210,8 +241,8 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
           </ol>
           {media.sourceName !== exercise.name && (
             <p className="mt-2 text-[11px] text-muted-foreground">
-              Steps and photos show &ldquo;{media.sourceName}&rdquo; from the free-exercise-db
-              public-domain set.
+              Steps and photos show &ldquo;{media.sourceName}&rdquo; from the
+              free-exercise-db public-domain set.
             </p>
           )}
         </section>
@@ -243,7 +274,10 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
           {programLift ? (
             <CountsTowardLine exerciseId={exerciseId} lift={programLift} />
           ) : (
-            <ExerciseE1RMSection exerciseId={exerciseId} exerciseName={exercise.name} />
+            <ExerciseE1RMSection
+              exerciseId={exerciseId}
+              exerciseName={exercise.name}
+            />
           )}
         </CardContent>
       </Card>

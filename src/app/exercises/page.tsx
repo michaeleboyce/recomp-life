@@ -10,6 +10,7 @@ import { getGroupedExercises, filterGroupsByMuscle } from "@/lib/exerciseCategor
 import ExerciseRow from "@/components/Exercises/ExerciseRow";
 import { MuscleFilter } from "@/components/Exercises/MuscleFilter";
 import { CurrentLocationMarks } from "@/components/Exercises/PreferenceControl";
+import { Stripes } from "@/components/ui/stripes";
 import { LocationChip } from "@/components/ui/location-chip";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useTrainingLocation } from "@/hooks";
@@ -106,11 +107,14 @@ export default function ExercisesPage() {
   return (
     <div className="mx-auto max-w-lg px-5 pt-5 pb-28">
       {/* Header */}
-      <header className="flex items-center gap-3 mb-6">
-        <BackButton fallback="/more">
-          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-        </BackButton>
-        <h1 className="text-lg font-bold text-foreground">Exercises</h1>
+      <header className="mb-6 flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <BackButton fallback="/more">
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+          </BackButton>
+          <h1 className="font-display text-xl font-bold text-foreground">Exercises</h1>
+        </div>
+        <Stripes />
       </header>
 
       {/* Filter tabs */}
@@ -153,7 +157,7 @@ export default function ExercisesPage() {
         {groups.map((group) => (
           <section key={group.label}>
             <div className="mb-2">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <h2 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {group.label}
               </h2>
               <p className="text-xs text-muted-foreground">
