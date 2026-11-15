@@ -58,7 +58,7 @@ export const ANATOMY_TOKENS = [
   /** Selected shape. */
   "selected",
   "selected-stroke",
-  /** Training load ramp, levels 1 (light) to 4 (most worked), in the accent hue. */
+  /** Training load ramp, levels 1 (least) to 4 (most worked), in burnt orange. */
   "heat-1",
   "heat-2",
   "heat-3",
@@ -68,7 +68,7 @@ export const ANATOMY_TOKENS = [
   "ready",
   "primed",
   "detraining",
-  /** Pain is red and soreness amber; red and amber are not used for load. */
+  /** Pain is red and soreness mustard; neither is used for load. */
   "pain",
   "pain-stroke",
   "sore",
@@ -81,64 +81,66 @@ export const ANATOMY_TOKENS = [
 
 export type AnatomyToken = (typeof ANATOMY_TOKENS)[number];
 export type SceneTheme = "dark" | "light";
-type Oklch = readonly [l: number, c: number, h: number];
-
-/** Dark theme: the colours the app drew before the light theme existed, unchanged. */
+/**
+ * Dark theme ("espresso", card #241b16). Neutral parts are warm browns stepping out
+ * from the card. The load ramp is burnt orange that gets lighter and brighter as load
+ * rises, from a dim rust to a bright orange that clears 3:1 on the card. Pain is red
+ * and soreness mustard; recovery labels are text colours.
+ */
 export const ANATOMY_DARK: Record<AnatomyToken, string> = {
-  outline: oklchToHex(0.45, 0.01, 260),
-  rest: oklchToHex(0.31, 0.008, 260),
-  inert: oklchToHex(0.25, 0.006, 260),
-  hair: oklchToHex(0.21, 0.006, 260),
-  seam: oklchToHex(0.18, 0.005, 260),
-  selected: "#3b82f6",
-  "selected-stroke": "#93c5fd",
-  "heat-1": oklchToHex(0.38, 0.05, 160),
-  "heat-2": oklchToHex(0.5, 0.09, 160),
-  "heat-3": oklchToHex(0.65, 0.13, 160),
-  "heat-4": oklchToHex(0.85, 0.17, 160),
-  recovering: oklchToHex(0.65, 0.18, 55),
-  ready: oklchToHex(0.7, 0.16, 85),
-  primed: oklchToHex(0.65, 0.17, 155),
-  detraining: oklchToHex(0.45, 0.02, 260),
-  pain: "#ef4444",
-  "pain-stroke": "#dc2626",
-  sore: "#f59e0b",
-  "sore-stroke": "#d97706",
-  region: "#374151",
-  "region-stroke": "#4b5563",
-  "joint-ring": "#9ca3af",
+  outline: "#7d6c5b",
+  rest: "#3b2f27",
+  inert: "#2b221d",
+  hair: "#211915",
+  seam: "#241b16",
+  selected: "#6dbdb3",
+  "selected-stroke": "#a9ddd6",
+  "heat-1": "#553224",
+  "heat-2": "#84432a",
+  "heat-3": "#bd5a31",
+  "heat-4": "#f47c45",
+  recovering: "#ef7a4a",
+  ready: "#e0a93b",
+  primed: "#6dbdb3",
+  detraining: "#988672",
+  pain: "#e8584a",
+  "pain-stroke": "#c4402f",
+  sore: "#e0a93b",
+  "sore-stroke": "#b8862a",
+  region: "#3b2f27",
+  "region-stroke": "#54443a",
+  "joint-ring": "#b8a892",
 };
 
 /**
- * Light theme, for a near-white card (--card, L 0.995). Resting muscle is a light
- * neutral at 1.5:1 or more on the card; non-muscle parts sit closer to the card and
- * the outline further from it. The heat ramp runs from pale to saturated sage,
- * darkening at every level, and the top level clears 3:1. Pain and soreness follow
- * --destructive and --warning; recovery colours are dark enough to read as text.
+ * Light theme ("paper", card #eadfca). Resting muscle is a tan a step darker than the
+ * card; non-muscle parts sit closer to the card and the outline further from it. The
+ * load ramp runs from pale peach to burnt orange, darkening at every level, and the
+ * top level clears 3:1. Recovery colours are dark enough to read as text.
  */
-export const ANATOMY_LIGHT: Record<AnatomyToken, Oklch> = {
-  outline: [0.68, 0.01, 260],
-  rest: [0.85, 0.008, 260],
-  inert: [0.91, 0.006, 260],
-  hair: [0.78, 0.008, 260],
-  seam: [0.995, 0.002, 250],
-  selected: [0.6, 0.15, 255],
-  "selected-stroke": [0.45, 0.14, 255],
-  "heat-1": [0.78, 0.06, 160],
-  "heat-2": [0.69, 0.09, 160],
-  "heat-3": [0.59, 0.11, 160],
-  "heat-4": [0.49, 0.11, 160],
-  recovering: [0.55, 0.15, 50],
-  ready: [0.53, 0.11, 85],
-  primed: [0.5, 0.12, 155],
-  detraining: [0.52, 0.015, 260],
-  pain: [0.56, 0.2, 27],
-  "pain-stroke": [0.47, 0.18, 27],
-  sore: [0.66, 0.15, 70],
-  "sore-stroke": [0.55, 0.13, 65],
-  region: [0.82, 0.015, 255],
-  "region-stroke": [0.7, 0.02, 255],
-  "joint-ring": [0.58, 0.015, 260],
+export const ANATOMY_LIGHT: Record<AnatomyToken, string> = {
+  outline: "#8a7762",
+  rest: "#d5c4a5",
+  inert: "#e2d6bf",
+  hair: "#c4b393",
+  seam: "#eadfca",
+  selected: "#2f6f6b",
+  "selected-stroke": "#1f4f4c",
+  "heat-1": "#efc9a6",
+  "heat-2": "#e6a070",
+  "heat-3": "#d67440",
+  "heat-4": "#b8472a",
+  recovering: "#9c3f1f",
+  ready: "#85590c",
+  primed: "#2a6662",
+  detraining: "#5f4f42",
+  pain: "#b83a2c",
+  "pain-stroke": "#8f2a20",
+  sore: "#9e6c10",
+  "sore-stroke": "#7a520a",
+  region: "#c9b694",
+  "region-stroke": "#a8946f",
+  "joint-ring": "#8a7762",
 };
 
 /** `var(--anatomy-<token>)`, for SVG fills, strokes and inline styles. */
@@ -148,7 +150,7 @@ export function anatomyVar(token: AnatomyToken): string {
 
 /** The concrete colour of a token in a theme, as sRGB hex. */
 export function anatomyHex(token: AnatomyToken, theme: SceneTheme): string {
-  return theme === "dark" ? ANATOMY_DARK[token] : oklchToHex(...ANATOMY_LIGHT[token]);
+  return theme === "dark" ? ANATOMY_DARK[token] : ANATOMY_LIGHT[token];
 }
 
 /** Neutral parts of the 2D figure. */
@@ -163,8 +165,8 @@ export const FIGURE_COLORS = {
 } as const;
 
 /**
- * Training load ramp in the app's accent hue (160). Index is the heat level:
- * 0 resting ... 4 most worked. Red and amber are reserved for pain/soreness.
+ * Training load ramp in burnt orange. Index is the heat level: 0 resting ... 4 most
+ * worked. Red and mustard are reserved for pain/soreness.
  */
 export const HEAT_COLORS: readonly [string, string, string, string, string] = [
   FIGURE_COLORS.muscle,
@@ -253,48 +255,49 @@ const heatHex = (theme: SceneTheme) =>
   ] as const;
 
 /**
- * Both scenes draw on a transparent canvas, so the page shows through. Dark is the
- * original scene. Light keeps the same structure on a light page: lighter neutral
- * muscle with the light heat ramp and no glow (glow washes out on white), a darker
- * mannequin so it does not vanish against the page, and a light floor disc.
+ * Both scenes draw on a transparent canvas, so the page shows through. Dark: warm
+ * brown muscle with the burnt-orange ramp and a glow on the top levels, and a cream
+ * mannequin. Light: tan muscle with the light ramp and no glow (glow washes out on
+ * cream), a brown mannequin so it does not vanish against the page, and a light
+ * floor disc.
  */
 export const SCENE_PALETTES: Record<SceneTheme, ScenePalette> = {
   dark: {
     anatomy: {
-      rest: "#6b7080",
-      other: "#565a66",
+      rest: "#7a6655",
+      other: "#5e4e42",
       heat: heatHex("dark"),
       heatEmissive: [0, 0, 0.12, 0.28],
-      bone: oklchToHex(0.82, 0.02, 85),
+      bone: oklchToHex(0.86, 0.03, 80),
       selected: ANATOMY_DARK.selected,
     },
     mannequin: {
-      body: "#cfd4de",
-      joint: "#aeb4c0",
-      steel: "#8d929c",
-      plate: "#737986",
-      pad: "#5d6370",
-      floor: "#23262e",
+      body: "#e8dcc7",
+      joint: "#c4b49c",
+      steel: "#9a8b7a",
+      plate: "#7d6c5b",
+      pad: "#5e4e42",
+      floor: "#2b221d",
       trace: ANATOMY_DARK["heat-4"],
     },
   },
   light: {
     anatomy: {
-      rest: oklchToHex(0.83, 0.008, 260),
-      other: oklchToHex(0.88, 0.006, 260),
+      rest: "#cdbd9f",
+      other: "#ddd0b8",
       heat: heatHex("light"),
       heatEmissive: [0, 0, 0, 0],
       bone: oklchToHex(0.8, 0.03, 85),
-      selected: anatomyHex("selected", "light"),
+      selected: ANATOMY_LIGHT.selected,
     },
     mannequin: {
-      body: oklchToHex(0.68, 0.012, 260),
-      joint: oklchToHex(0.58, 0.012, 260),
-      steel: oklchToHex(0.62, 0.01, 260),
-      plate: oklchToHex(0.46, 0.01, 260),
-      pad: oklchToHex(0.4, 0.01, 260),
-      floor: oklchToHex(0.92, 0.006, 250),
-      trace: anatomyHex("heat-4", "light"),
+      body: "#a08c76",
+      joint: "#8a7762",
+      steel: "#94826e",
+      plate: "#5f4f42",
+      pad: "#4f4136",
+      floor: "#e2d6bf",
+      trace: ANATOMY_LIGHT["heat-4"],
     },
   },
 };

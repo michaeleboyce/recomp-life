@@ -31,7 +31,7 @@ export function ExercisePhotos({ exerciseId, className }: ExercisePhotosProps) {
   if (!media) return null;
 
   return (
-    <div className={cn("relative overflow-hidden rounded-lg bg-black", className)}>
+    <div className={cn("relative overflow-hidden rounded-lg bg-card", className)}>
       {media.frames.map((src, i) => (
         // Plain <img>: these are small local files that must work offline.
         // eslint-disable-next-line @next/next/no-img-element
@@ -46,8 +46,8 @@ export function ExercisePhotos({ exerciseId, className }: ExercisePhotosProps) {
         />
       ))}
 
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/60 to-transparent px-2 pb-2 pt-6">
-        <div className="flex items-center gap-1 rounded-full bg-black/50 p-1">
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-background/70 to-transparent px-2 pb-2 pt-6">
+        <div className="flex items-center gap-1 rounded-full bg-background/70 p-1">
           {/* Numbered, not "start/end": the source photos are not always in that order. */}
           {(["1", "2"] as const).map((label, i) => (
             <button
@@ -61,7 +61,7 @@ export function ExercisePhotos({ exerciseId, className }: ExercisePhotosProps) {
               aria-label={`Show position ${label}`}
               className={cn(
                 "rounded-full px-2.5 py-1 text-[11px] font-medium",
-                frame === i ? "bg-white text-black" : "text-white/80"
+                frame === i ? "bg-foreground text-background" : "text-foreground/80"
               )}
             >
               {label}
@@ -72,7 +72,7 @@ export function ExercisePhotos({ exerciseId, className }: ExercisePhotosProps) {
           type="button"
           onClick={() => setPlaying((p) => !p)}
           aria-label={playing ? "Pause" : "Play"}
-          className="rounded-full bg-black/50 p-2 text-white"
+          className="rounded-full bg-background/70 p-2 text-foreground"
         >
           {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
         </button>
