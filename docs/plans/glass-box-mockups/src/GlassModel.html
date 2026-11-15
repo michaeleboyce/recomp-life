@@ -1,0 +1,50 @@
+%%XHEAD espresso How the app decides%%
+<style>
+.chip{display:inline-flex;align-items:center;height:30px;padding:0 11px;border-radius:15px;background:var(--surface);font-size:12px;font-weight:600;white-space:nowrap}
+.md{display:grid;grid-template-columns:minmax(0,1fr) 92px 12px;gap:10px;align-items:center;min-height:46px;border-top:1px solid var(--line)}
+.md b{font-size:13.5px;display:block}.md small{font-size:11.5px;color:var(--muted);display:block}
+.mix{display:flex;height:8px;border-radius:4px;overflow:hidden;gap:1px}
+.mix i{display:block;height:100%}
+.band{display:flex;align-items:center;gap:8px;padding:12px 20px 6px}
+.band .num{width:24px;height:24px;border-radius:12px;background:var(--accent);color:var(--on-cta);font:500 12px 'DM Mono',monospace;display:flex;align-items:center;justify-content:center}
+.flow{margin:0 0 0 31px;width:2px;height:10px;background:var(--accent);opacity:0.6}
+</style>
+<header style="padding: 16px 20px 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 6px"><h1 class="disp" style="font-size: 32px">How the app<br>decides</h1>%%STRIPES 84%%</div>
+<span style="margin-top: -4px; opacity: 0.9">%%BURST 64 #e0a93b%%</span>
+</header>
+<p class="muted" style="padding: 8px 20px 0; font-size: 12.5px; line-height: 1.4">Nothing is hidden. It reads eight kinds of data, runs six models built from 30 written rules, and shows its working every time.</p>
+
+<div class="band"><span class="num">1</span><span class="eyebrow">What it reads</span></div>
+<div style="padding: 0 20px; display: flex; flex-wrap: wrap; gap: 6px">
+<span class="chip">Sets and reps</span><span class="chip">Effort</span><span class="chip">Bodyweight</span><span class="chip">Sleep</span><span class="chip">Stress</span><span class="chip">Pain and soreness</span><span class="chip">Runs and activity</span><span class="chip">Apple Health</span>
+</div>
+<div class="flow" aria-hidden="true" style="margin-top: 8px"></div>
+
+<div class="band" style="padding-top: 4px"><span class="num">2</span><span class="eyebrow">How it reasons</span><span class="muted" style="margin-left: auto; font-size: 11px">evidence behind each</span></div>
+<div style="padding: 0 20px; display: flex; flex-direction: column">
+<a class="md" href="GlassWhy.dc.html" style="border-top: 0"><span><b>Progression</b><small>Weights, stages, resets, freezes · 5 rules</small></span><span class="mix" aria-label="Mostly program rules"><i style="flex: 3; background: var(--surface2)"></i><i style="flex: 1; background: var(--cool)"></i><i style="flex: 1; background: var(--hot)"></i></span><span class="chev">›</span></a>
+<a class="md" href="GlassActive.dc.html"><span><b>Strength estimate</b><small>Estimated max, new-best chance · 4 rules</small></span><span class="mix" aria-label="Moderate to limited evidence"><i style="flex: 2; background: var(--cool)"></i><i style="flex: 2; background: var(--accent)"></i></span><span class="chev">›</span></a>
+<a class="md" href="GlassAlmanac.dc.html"><span><b>Trend and projection</b><small>Where each lift and your weight are heading · 6 rules</small></span><span class="mix" aria-label="Mostly limited evidence"><i style="flex: 1; background: var(--cool)"></i><i style="flex: 5; background: var(--accent)"></i></span><span class="chev">›</span></a>
+<a class="md" href="GlassReady.dc.html"><span><b>Readiness</b><small>Sleep, stress, soreness, yesterday · 5 rules</small></span><span class="mix" aria-label="Moderate evidence with heuristics"><i style="flex: 3; background: var(--cool)"></i><i style="flex: 1; background: var(--accent)"></i><i style="flex: 1; background: var(--hot)"></i></span><span class="chev">›</span></a>
+<a class="md" href="GlassRest.dc.html"><span><b>Rest and effort</b><small>Timers, how hard the last set should be · 5 rules</small></span><span class="mix" aria-label="Moderate evidence with one heuristic"><i style="flex: 4; background: var(--cool)"></i><i style="flex: 1; background: var(--hot)"></i></span><span class="chev">›</span></a>
+<a class="md" href="#"><span><b>Recovery and fatigue</b><small>Muscle by muscle, lighter weeks · 5 rules</small></span><span class="mix" aria-label="Moderate to limited evidence"><i style="flex: 2; background: var(--cool)"></i><i style="flex: 2; background: var(--accent)"></i><i style="flex: 1; background: var(--hot)"></i></span><span class="chev">›</span></a>
+</div>
+<div class="flow" aria-hidden="true"></div>
+
+<div class="band" style="padding-top: 4px"><span class="num">3</span><span class="eyebrow">What you see</span></div>
+<div style="padding: 0 20px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+<a href="GlassToday.dc.html" class="tile" style="align-items: center; padding: 10px 4px"><b style="font-size: 15px">Plan</b><small>today</small></a>
+<a href="GlassAlmanac.dc.html" class="tile" style="align-items: center; padding: 10px 4px"><b style="font-size: 15px">14</b><small>forecasts</small></a>
+<a href="GlassLedger.dc.html" class="tile" style="align-items: center; padding: 10px 4px"><b style="font-size: 15px">Log</b><small>of changes</small></a>
+<a href="GlassTrack.dc.html" class="tile" style="align-items: center; padding: 10px 4px"><b style="font-size: 15px">82%</b><small>on target</small></a>
+</div>
+
+<div style="padding: 10px 20px 0; display: flex; flex-wrap: wrap; gap: 6px 10px; font-size: 11.5px" class="muted">
+<span><i style="display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--cool)"></i> strong or moderate · 12</span>
+<span><i style="display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--accent)"></i> limited · 12</span>
+<span><i style="display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--hot)"></i> heuristic · 4</span>
+<span><i style="display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--surface2)"></i> program rule · 2</span>
+</div>
+%%XNAV Glass more%%
+%%TAIL%%

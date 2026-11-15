@@ -16,6 +16,8 @@ import { NUTRITION_RULES } from "./nutrition";
 import { PROJECTION_RULES } from "./projection";
 import { PAIN_RULES } from "./pain";
 import { EQUIPMENT_RULES } from "./equipment";
+import { FORECAST_RULES } from "./forecast";
+import { READINESS_SCORE_RULES } from "./readinessScore";
 
 /** Rule groups in display order. Used to detect duplicate ids across files. */
 export const RULE_GROUPS = [
@@ -29,6 +31,8 @@ export const RULE_GROUPS = [
   PROJECTION_RULES,
   PAIN_RULES,
   EQUIPMENT_RULES,
+  FORECAST_RULES,
+  READINESS_SCORE_RULES,
 ] as const;
 
 export const EVIDENCE_RULES = {
@@ -42,6 +46,8 @@ export const EVIDENCE_RULES = {
   ...PROJECTION_RULES,
   ...PAIN_RULES,
   ...EQUIPMENT_RULES,
+  ...FORECAST_RULES,
+  ...READINESS_SCORE_RULES,
 };
 
 export type RuleId = keyof typeof EVIDENCE_RULES;

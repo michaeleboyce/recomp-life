@@ -1,0 +1,70 @@
+%%XHEAD espresso Active set, with forecast%%
+<style>
+.disc{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:16px;font:500 12px 'DM Mono',monospace;color:#1b1512}
+.done{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;height:42px;border-radius:12px;background:var(--surface);font:500 15px 'DM Mono',monospace}
+.done small{font:600 9px 'DM Sans',sans-serif;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase}
+.col{width:52px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.col small{font:500 10px 'DM Mono',monospace;color:var(--muted)}
+.col .bar{height:44px;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.col .bar i{display:block;width:30px;border-radius:6px 6px 2px 2px;background:var(--surface2)}
+.col .bar i.in{background:var(--cool);opacity:0.75}
+.rep{width:52px;height:52px;border-radius:26px;border:1.5px solid rgba(243,233,216,0.22);background:transparent;color:var(--ink);font:800 21px/1 'Jost',sans-serif}
+.eff{flex:1;display:flex;align-items:center;justify-content:center;height:44px;border-radius:999px;background:var(--surface);font-size:12px;font-weight:600;color:var(--muted)}
+.board a.ghost{flex:1;display:flex;align-items:center;justify-content:center;height:44px;font-size:13px;font-weight:600;color:var(--muted)}
+</style>
+<span style="position: absolute; right: -70px; top: 30px; opacity: 0.12">%%BURST 300 #e0a93b%%</span>
+
+<div class="top rel">
+<a href="GlassToday.dc.html" aria-label="Leave workout" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 24px">×</a>
+<div aria-label="Lift 1 of 3" style="display: flex; gap: 5px"><span style="width: 48px; height: 4px; border-radius: 2px; background: var(--hot)"></span><span style="width: 48px; height: 4px; border-radius: 2px; background: var(--line)"></span><span style="width: 48px; height: 4px; border-radius: 2px; background: var(--line)"></span></div>
+<span class="mono" style="font-size: 13px; width: 52px; text-align: center">18:42</span>
+</div>
+
+<div class="rel" style="padding: 2px 20px 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px">
+<div style="display: flex; flex-direction: column">
+<span class="eyebrow hot">T1 · set 5 of 5 · go for max</span>
+<h1 class="disp" style="font-size: 30px; margin-top: 6px">Deadlift</h1>
+<a href="GlassWhy.dc.html" aria-label="215 pounds. Why this weight" style="display: flex; align-items: baseline; gap: 8px">
+<span class="disp" style="font-size: 104px; line-height: 0.92; letter-spacing: -0.02em">215</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span class="disp muted" style="font-size: 18px">lb</span><span class="why" style="font-size: 12px">why</span></span>
+</a>
+</div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+<a href="#" aria-label="Muscles worked: %%PRIMARY deadlift%%" class="card" style="padding: 8px 12px; border-radius: 18px"><span class="figs" style="height: 118px">%%FIG deadlift back%%</span></a>
+<span style="display: flex; gap: 6px"><a href="#" class="pill" style="height: 30px; padding: 0 12px; font-size: 12px">Form</a><a href="#" class="pill" style="height: 30px; padding: 0 12px; font-size: 12px">Change</a></span>
+</div>
+</div>
+
+<div class="rel" style="padding: 8px 20px 0; display: flex; align-items: center; gap: 6px">
+<span class="muted" style="font-size: 12px; margin-right: 4px; white-space: nowrap">Each side</span>
+<span class="disc" style="background: #3f8f86; color: #f3e9d8">45</span><span class="disc" style="background: #e0a93b">25</span><span class="disc" style="background: #f3e9d8">10</span><span class="disc" style="background: #ef7a4a">5</span>
+<span class="mono muted" style="margin-left: auto; font-size: 12px">bar 45</span>
+</div>
+
+<div style="padding: 10px 20px 0; display: flex; gap: 6px" aria-label="Sets so far">
+<span class="done">3<small>set 1</small></span><span class="done">3<small>set 2</small></span><span class="done">3<small>set 3</small></span><span class="done">3<small>set 4</small></span>
+<span class="done" style="background: transparent; box-shadow: inset 0 0 0 1.5px var(--accent); color: var(--accent)">6<small style="color: var(--accent)">now</small></span>
+</div>
+
+<div style="padding: 10px 20px 0; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span class="eyebrow muted">Reps · the app's forecast above</span><span class="muted" style="font-size: 11px"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--cool); opacity: 0.75"></span> 80% range</span></div>
+<div style="display: flex; justify-content: space-between" role="group" aria-label="Forecast: 5 reps most likely, 4 to 6 expected">
+<span class="col"><small>12%</small><span class="bar"><i style="height: 15px"></i></span><button class="rep">3</button></span>
+<span class="col"><small>30%</small><span class="bar"><i class="in" style="height: 42px"></i></span><button class="rep">4</button></span>
+<span class="col"><small>31%</small><span class="bar"><i class="in" style="height: 44px"></i></span><button class="rep">5</button></span>
+<span class="col"><small>18%</small><span class="bar"><i class="in" style="height: 26px"></i></span><button class="rep" style="background: var(--accent); border-color: var(--accent); color: var(--on-cta)">6</button></span>
+<span class="col"><small>7%</small><span class="bar"><i style="height: 10px"></i></span><button class="rep">7</button></span>
+<span class="col"><small>2%</small><span class="bar"><i style="height: 4px"></i></span><button class="rep" aria-label="8 or more">8+</button></span>
+</div>
+<p style="font-size: 12.5px; line-height: 1.4; margin-top: 4px"><b class="acc">5 or more is a new best</b> (58% chance). 6 would put your estimated max at 258, up from 247. Built from your last six final sets, today's readiness and the cut. <a href="GlassTrack.dc.html" class="why">How right has this been?</a></p>
+</div>
+
+<div style="padding: 8px 20px 0; display: flex; gap: 6px" aria-label="How hard was it?">
+<span class="eff">Easy</span><span class="eff">Solid</span><span class="eff" style="background: #3f8f86; color: #f3e9d8; font-weight: 700">Hard</span><span class="eff">All out</span>
+</div>
+
+<div style="margin-top: auto; padding: 0 20px 6px; display: flex; flex-direction: column; gap: 0">
+<a href="GlassRest.dc.html" class="cta" style="height: 62px; font-size: 21px">Log 6 reps</a>
+<div style="display: flex"><a class="ghost" href="#">Swap lift</a><a class="ghost" href="#">Skip set</a><a class="ghost" href="#">Next: Press 65 ›</a></div>
+</div>
+%%TAIL%%

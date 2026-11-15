@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-26 active rules, 4 planned rules, 32 sources. Last reviewed against the research: November 2026.
+26 active rules, 9 planned rules, 32 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -54,6 +54,11 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `training-with-pain` | Pain | Active | Limited evidence | Smith 2017 |
 | `pain-load-changes` | Pain | Planned | Limited evidence | Smith 2017 |
 | `dumbbell-conversion` | Equipment | Active | Moderate evidence | Saeterbakken 2011 |
+| `forecast-reps` | Strength projections | Planned | Coaching heuristic | none |
+| `forecast-session-length` | Strength projections | Planned | Coaching heuristic | none |
+| `forecast-bodyweight` | Strength projections | Planned | Coaching heuristic | none |
+| `forecast-calibration` | Strength projections | Planned | Coaching heuristic | none |
+| `readiness-score` | Recovery and time off | Planned | Coaching heuristic | none |
 
 ## Program and progression
 
@@ -421,6 +426,26 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **Sources.** None: this is a coaching convention with no direct research.
 
+### How is the readiness score worked out?
+
+- **Rule id:** `readiness-score`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/readiness/weights.ts` (`READINESS_WEIGHTS`)
+- **Reviewed:** November 2026
+
+**In one line.** Readiness adds up sleep, stress, rest, recent activity and soreness
+
+**What the app does.** The score starts from your usual level and adds or takes points for last night's sleep, stress, days since you last trained the muscles, recent runs or other hard sessions, and soreness. It shifts the app's forecasts. It never changes a weight.
+
+**Why.** Each input is known to affect performance or recovery. Showing every input and its points lets you see why a day is rated the way it is.
+
+**Limits.** The inputs are research-backed, but the points given to each are this app's own weighting and have not been tested.
+
+**Before this is switched on.** Switch on when the readiness screen ships.
+
+**Sources.** None: this is a coaching convention with no direct research.
+
 ## Running
 
 ### Why does a recent run matter?
@@ -643,6 +668,86 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 - [Murphy & Koehler (2022). Energy deficiency impairs resistance training gains in lean mass but not strength: A meta-analysis and meta-regression. *Scandinavian Journal of Medicine & Science in Sports*.](https://doi.org/10.1111/sms.14075) Meta-analysis; Mostly untrained participants. Training in a calorie deficit impaired lean-mass gains but not strength gains.
 - [Helms et al. (2023). Effect of Small and Large Energy Surpluses on Strength, Muscle, and Skinfold Thickness in Resistance-Trained Individuals: A Parallel Groups Design. *Sports Medicine - Open*.](https://doi.org/10.1186/s40798-023-00651-y) Randomised trial; 17 trained lifters who finished, 8 weeks. Eating 5% or 15% above maintenance did not improve squat 1RM or muscle thickness over maintenance, and faster bodyweight gain mainly added fat. [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC10620361).
+
+### How does the app forecast reps on the last set?
+
+- **Rule id:** `forecast-reps`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/forecast/coefficients.ts` (`REPS_MODEL`)
+- **Reviewed:** November 2026
+
+**In one line.** Last-set reps are forecast from your recent last sets and their scatter
+
+**What the app does.** For the last set of a T1 lift the app turns your recent last sets into a strength level and a scatter, then gives the chance of each rep count at today's weight. The chance of a new best and the chance of passing come from the same numbers.
+
+**Why.** A rep count at one weight and a different rep count at another describe the same strength, so recent sets at different weights can be pooled. Day-to-day strength varies, so the forecast is a spread of rep counts, not one number.
+
+**Limits.** With fewer than four recent results the spread is a wide default. The starting values and the bell-curve shape are this app's assumptions.
+
+**Before this is switched on.** Switch on when the active-set forecast and the track record screens ship.
+
+**Sources.** None: this is a coaching convention with no direct research.
+
+### How does the app forecast how long a workout takes?
+
+- **Rule id:** `forecast-session-length`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/forecast/coefficients.ts` (`SESSION_LENGTH_MODEL`)
+- **Reviewed:** November 2026
+
+**In one line.** Session length comes from planned sets and rests, corrected by your history
+
+**What the app does.** The app adds up the planned sets and rests, then scales the total by how your past sessions compared with their estimates, and gives a range from how much those sessions varied.
+
+**Why.** Planned rest and set counts explain most of a session's length; the rest is personal pace.
+
+**Limits.** Until there are several finished sessions the correction is 1 and the range is a wide default.
+
+**Before this is switched on.** Switch on when Today shows the session forecast.
+
+**Sources.** None: this is a coaching convention with no direct research.
+
+### How does the app forecast your bodyweight?
+
+- **Rule id:** `forecast-bodyweight`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/forecast/coefficients.ts` (`BODYWEIGHT_MODEL`)
+- **Reviewed:** November 2026
+
+**In one line.** Bodyweight four weeks out continues your recent trend, with a range
+
+**What the app does.** The app fits a line through your recent weigh-ins and continues it four weeks, with a range from how much your weigh-ins scatter around that line.
+
+**Why.** Over a few weeks a steady deficit or surplus moves weight roughly in a straight line, while single weigh-ins bounce around it.
+
+**Limits.** Rates of loss usually slow over a long cut, so the forecast is only made four weeks ahead.
+
+**Before this is switched on.** Switch on when the Forecasts screen ships.
+
+**Sources.** None: this is a coaching convention with no direct research.
+
+### How does the app check its own forecasts?
+
+- **Rule id:** `forecast-calibration`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/forecast/coefficients.ts` (`CALIBRATION`)
+- **Reviewed:** November 2026
+
+**In one line.** Every forecast is saved before the result and scored against it afterwards
+
+**What the app does.** Each forecast is stored before the result exists and never edited. Ranges are built to hold the result 8 times in 10. Once enough forecasts of one kind have been scored and too few landed inside, the app widens that kind's range and says so in the adjustment log.
+
+**Why.** A forecast is only useful if its stated odds match what happens. Scoring them in the open shows where the app can be trusted and where it cannot.
+
+**Limits.** Forecasts are void, not misses, when you change the weight or do not reach the lift.
+
+**Before this is switched on.** Switch on when the track record screen ships.
+
+**Sources.** None: this is a coaching convention with no direct research.
 
 ## Pain
 

@@ -654,3 +654,5 @@ export interface EvidenceChange<
   change: string;
   sources: readonly SourceKey[];
 }
+
+export * from "./glass";
