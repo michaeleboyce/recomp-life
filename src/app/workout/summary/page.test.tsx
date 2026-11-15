@@ -34,7 +34,7 @@ describe("/workout/summary", () => {
     query = new URLSearchParams({ sessionId: workoutId });
     render(<WorkoutSummaryPage />);
     expect(screen.getByRole("heading", { level: 1, name: "Workout complete" })).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "Workout A1" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "A1 · Squat day" })).toBeInTheDocument();
     const did = within(await screen.findByRole("region", { name: "What it did" }));
     expect(await did.findByText(/^passed: next \d+ lbs 5x3$/)).toBeInTheDocument();
     expect(screen.getByText("How do you feel?")).toBeInTheDocument();
