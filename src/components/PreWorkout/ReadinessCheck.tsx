@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Moon, Minus, Sun, Circle } from "lucide-react";
 import { formatSleep } from "@/lib/health/sleep";
+import { shouldSuggestSkippingAccessories } from "@/lib/readiness";
 import type { SleepHours, StressLevel } from "@/types";
 
 interface ReadinessCheckProps {
@@ -19,9 +21,10 @@ interface ReadinessCheckProps {
 }
 
 /**
- * Pre-workout sleep and stress check. Suggests skipping accessories when
- * sleep was under 5 hours and energy is low. When Apple Health has last night's
- * sleep, the matching answer is already selected and can be changed.
+ * Pre-workout sleep and energy check. Suggests skipping accessories when the
+ * readiness rule says so (`shouldSuggestSkippingAccessories`: under 5 hours of sleep
+ * with low energy). When Apple Health has last night's sleep, the matching answer is
+ * already selected and can be changed. Links to the readiness screen.
  *
  * @evidence readiness
  */
@@ -34,7 +37,7 @@ export function ReadinessCheck({
   onNext,
   onSkip,
 }: ReadinessCheckProps) {
-  const showSuggestion = sleepHours === "<5" && stressLevel === "low";
+  const showSuggestion = shouldSuggestSkippingAccessories({ sleepHours, stressLevel });
 
   return (
     <div className="space-y-4">
@@ -79,7 +82,7 @@ export function ReadinessCheck({
 
       <div className="space-y-2">
         <label className="text-sm font-medium text-muted-foreground">
-          Stress / energy
+          Energy
         </label>
         <div className="flex gap-2">
           <Button
@@ -105,6 +108,13 @@ export function ReadinessCheck({
           </Button>
         </div>
       </div>
+
+      <Link
+        href="/readiness?from=ready"
+        className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline decoration-dotted underline-offset-2"
+      >
+        See what this changes
+      </Link>
 
       {showSuggestion && (
         <Alert>

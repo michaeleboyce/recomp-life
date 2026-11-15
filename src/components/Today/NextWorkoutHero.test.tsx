@@ -182,8 +182,9 @@ describe("NextWorkoutHero", () => {
     expect(within(rows[0]).getByRole("button", { name: "What does T1 mean?" })).toBeInTheDocument();
     const scheme = within(rows[0]).getByRole("button", { name: /^What does \d+×\d+\+ mean\?$/ });
     expect(scheme).toHaveAttribute("data-term", "amrap-plus");
-    // Later rows keep plain labels.
-    expect(within(rows[1]).queryByRole("button")).toBeNull();
+    // Later rows keep plain labels: their only control is the why sheet's.
+    expect(within(rows[1]).queryByRole("button", { name: /^What does/ })).toBeNull();
+    expect(within(rows[1]).getByRole("button", { name: /^Why this weight for / })).toBeInTheDocument();
     expect(document.querySelectorAll('[data-term="amrap-plus"]')).toHaveLength(1);
   });
 

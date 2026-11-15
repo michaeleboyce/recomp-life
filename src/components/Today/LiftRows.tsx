@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { EXERCISES } from "@/lib/exercises";
@@ -9,6 +10,7 @@ import { cn } from "@/lib/utils";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import type { Tier, WorkoutSession } from "@/types";
 import { Term } from "@/components/ui/term";
+import { LiftWhySheet, WhyButton } from "@/components/Why";
 import { formatLbs, formatSetsReps } from "./format";
 import { displayLiftName, liftPageHref, liftReason, type LiftReason } from "./todayModel";
 
@@ -18,8 +20,8 @@ export interface TodayLiftRow {
   name: string;
   reason: LiftReason;
   /**
-   * The decision trace's "why" link, when there is one. Empty for now; the row
-   * hides the slot while it is.
+   * Replaces the row's "why" control, which by default opens the why sheet for the
+   * lift's weight (`?why=<exerciseId>:<tier>`).
    */
   why?: React.ReactNode;
 }
@@ -67,11 +69,13 @@ function Reason({ reason }: { reason: LiftReason }) {
  * The day's lifts, one row each: tier, name, the reason line, weight and scheme. The
  * whole row opens the lift's page, naming the home substitute when the row shows one
  * so the page shows that version; the first tier label and the first "+" open their
- * glossary entries instead.
+ * glossary entries instead. The "why" beside the reason line opens the why sheet,
+ * which this list hosts; `?why=<exerciseId>:<tier>` on the page opens it too.
  */
 export function LiftRows({ rows }: { rows: TodayLiftRow[] }) {
   const firstPlus = rows.find((row) => row.entry.isAMRAP);
   return (
+    <>
     <ul aria-label="Today's lifts" className="flex flex-col px-5 pt-2">
       {rows.map((row, index) => {
         const { entry } = row;
@@ -102,13 +106,13 @@ export function LiftRows({ rows }: { rows: TodayLiftRow[] }) {
               >
                 {row.name}
               </Link>
-              <span data-testid="lift-reason" className="block truncate text-xs text-muted-foreground">
-                <Reason reason={row.reason} />
-                {row.why && (
-                  <>
-                    {" · "}
-                    <span className="relative z-10">{row.why}</span>
-                  </>
+              <span className="flex min-w-0 items-baseline gap-1 text-xs text-muted-foreground">
+                <span data-testid="lift-reason" className="min-w-0 truncate">
+                  <Reason reason={row.reason} />
+                </span>
+                <span aria-hidden="true">·</span>
+                {row.why ?? (
+                  <WhyButton exerciseId={entry.exerciseId} tier={entry.tier} liftName={row.name} />
                 )}
               </span>
             </span>
@@ -134,5 +138,10 @@ export function LiftRows({ rows }: { rows: TodayLiftRow[] }) {
         );
       })}
     </ul>
+    {/* The sheet reads the address, so in a static build it waits in Suspense. */}
+    <Suspense fallback={null}>
+      <LiftWhySheet />
+    </Suspense>
+    </>
   );
 }
