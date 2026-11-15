@@ -4,12 +4,15 @@ import Link from "next/link";
 import { Activity, ChevronRight, Dumbbell, HeartPulse, Scale, Star } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useBodyweightLog, useFavoriteWorkouts, useNextWorkout, useRuns } from "@/hooks";
-import { getExercise } from "@/lib/exercises";
 import { cn } from "@/lib/utils";
+import { workoutDisplayName } from "@/lib/workoutNames";
+import { withFrom, type FromKey } from "./backTarget";
 
 interface QuickAddSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Where the sheet was opened, so the logging screens can send the user back there. */
+  from?: FromKey | null;
 }
 
 const rowClass =
@@ -20,16 +23,13 @@ function SecondaryMono({ children }: { children?: string }) {
   return <span className="font-mono text-[13px] font-medium text-muted-foreground">{children}</span>;
 }
 
-export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
+export function QuickAddSheet({ open, onOpenChange, from }: QuickAddSheetProps) {
   const next = useNextWorkout();
   const bodyweight = useBodyweightLog();
   const runs = useRuns();
   const favorites = useFavoriteWorkouts();
 
-  const t1 = next?.template.exercises.find((e) => e.tier === "T1");
-  const nextSubtitle = next
-    ? [next.templateId, t1 ? getExercise(t1.exerciseId).name : null].filter(Boolean).join(" · ")
-    : undefined;
+  const nextSubtitle = next ? workoutDisplayName(next.templateId, true) : undefined;
 
   const lastWeight = bodyweight && bodyweight.length > 0 ? bodyweight[bodyweight.length - 1].weight : null;
   const lastRunMiles = runs?.[0]?.distanceMiles ?? null;
@@ -76,19 +76,19 @@ export function QuickAddSheet({ open, onOpenChange }: QuickAddSheetProps) {
           <SecondaryMono>{favoritesSubtitle}</SecondaryMono>
         </Link>
 
-        <Link href="/weigh-in" onClick={close} className={cn(rowClass, "border-b border-border")}>
+        <Link href={withFrom("/weigh-in", from)} onClick={close} className={cn(rowClass, "border-b border-border")}>
           <Scale className="size-5 text-muted-foreground" aria-hidden="true" />
           <span className="flex-1 text-base font-semibold">Log weight</span>
           <SecondaryMono>{lastWeight !== null ? `last ${lastWeight.toFixed(1)}` : undefined}</SecondaryMono>
         </Link>
 
-        <Link href="/run" onClick={close} className={cn(rowClass, "border-b border-border")}>
+        <Link href={withFrom("/activity", from)} onClick={close} className={cn(rowClass, "border-b border-border")}>
           <Activity className="size-5 text-muted-foreground" aria-hidden="true" />
-          <span className="flex-1 text-base font-semibold">Log run</span>
+          <span className="flex-1 text-base font-semibold">Log activity</span>
           <SecondaryMono>{lastRunMiles !== null ? `last ${lastRunMiles.toFixed(1)} mi` : undefined}</SecondaryMono>
         </Link>
 
-        <Link href="/body-check" onClick={close} className={rowClass}>
+        <Link href={withFrom("/body-check", from)} onClick={close} className={rowClass}>
           <HeartPulse className="size-5 text-muted-foreground" aria-hidden="true" />
           <span className="flex-1 text-base font-semibold">Body check</span>
           <span className="text-[13px] text-muted-foreground">pain or soreness</span>

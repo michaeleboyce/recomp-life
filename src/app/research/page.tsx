@@ -234,10 +234,10 @@ export default function ResearchPage() {
       <header className="mb-4 flex items-center gap-3">
         <Link
           href="/more"
-          aria-label="Back to Tools"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          aria-label="Back"
+          className="-m-3 p-3 text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Link>
         <h1 className="text-lg font-bold text-foreground">How the app coaches</h1>
       </header>

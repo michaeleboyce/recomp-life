@@ -40,7 +40,7 @@ export function CardioSection({
       )}
       {checkIns && (
         <ListRow
-          href="/progress?tab=runs"
+          href="/progress?tab=recovery"
           title="Readiness check-ins"
           subtitle={`${plural(checkIns.lowSleep, "low-sleep night")} · ${plural(checkIns.lowEnergy, "low-energy day")}`}
           value={checkIns.checkIns}

@@ -23,12 +23,12 @@ describe("More page", () => {
   it("groups every destination with its secondary line", async () => {
     render(<MorePage />);
     const training = group("Training");
-    expect(link(training, /Upcoming workouts/)).toHaveAttribute("href", "/progress/upcoming");
-    await waitFor(() => expect(link(training, /Upcoming workouts/)).toHaveTextContent("A1 · Squat day"));
+    expect(link(training, /Coming up/)).toHaveAttribute("href", "/progress/upcoming");
+    await waitFor(() => expect(link(training, /Coming up/)).toHaveTextContent("A1 · Squat day"));
     expect(link(training, /Favourites/)).toHaveAttribute("href", "/favorites");
     await waitFor(() => expect(link(training, /Favourites/)).toHaveTextContent("None saved yet"));
     expect(link(training, /Exercises/)).toHaveAttribute("href", "/exercises");
-    expect(link(training, /Muscles/)).toHaveAttribute("href", "/muscles");
+    expect(link(training, /Muscles/)).toHaveAttribute("href", "/progress?tab=muscles");
 
     const tools = group("Tools");
     expect(link(tools, /Plate calculator/)).toHaveAttribute("href", "/plate-calculator");
@@ -40,10 +40,10 @@ describe("More page", () => {
     expect(link(learn, /How the app coaches/)).toHaveAttribute("href", "/research");
 
     const you = group("You");
-    await waitFor(() => expect(link(you, /Settings/)).toHaveTextContent("Cutting"));
-    expect(link(you, /Settings/)).toHaveAttribute("href", "/settings");
+    await waitFor(() => expect(link(you, /^Settings/)).toHaveTextContent("Cutting"));
+    expect(link(you, /^Settings/)).toHaveAttribute("href", "/settings");
     expect(link(you, /Cloud sync/)).toHaveAttribute("href", "/settings#sync");
-    expect(link(you, /Cloud sync/)).toHaveTextContent("Off");
+    expect(link(you, /Cloud sync/)).toHaveTextContent("Off. Jumps to the sync section of Settings");
     expect(link(you, /Recently deleted/)).toHaveAttribute("href", "/more/deleted");
     expect(link(you, /Recently deleted/)).toHaveTextContent(
       "Restore entries deleted in the last 30 days"
@@ -70,6 +70,6 @@ describe("More page", () => {
       setSyncKey("secret");
       window.dispatchEvent(new Event("recomp-sync-key-changed"));
     });
-    expect(link(group("You"), /Cloud sync/)).toHaveTextContent("On this device");
+    expect(link(group("You"), /Cloud sync/)).toHaveTextContent("On. Jumps to the sync section of Settings");
   });
 });

@@ -45,11 +45,9 @@ export default function WeighInPrompt() {
               Log today&apos;s weight
             </p>
           </div>
-          <Link href="/weigh-in">
-            <Button variant="outline" size="sm">
-              Log Weight
-            </Button>
-          </Link>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/weigh-in?from=today">Log Weight</Link>
+          </Button>
         </div>
       </CardContent>
     </Card>

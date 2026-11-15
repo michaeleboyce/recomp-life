@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Ellipsis, History, House, Plus, TrendingUp, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fromForPage } from "./backTarget";
 import { QuickAddSheet } from "./QuickAddSheet";
 
 type TabId = "today" | "progress" | "log" | "more";
@@ -27,8 +28,8 @@ const PREFIXES: Record<Exclude<TabId, "today">, string[]> = {
     "/research",
     "/1rm-calculator",
     "/plate-calculator",
-    // Listed under More > Training (Today's "Coming up" line also opens it); it is
-    // not part of the Progress hub, so More is the tab it belongs to.
+    // Listed under More > Training; Today's "Coming up" line opens it with
+    // `?from=today`, which lights Today instead (see activeTab).
     "/progress/upcoming",
   ],
 };
@@ -41,8 +42,10 @@ function matchesPrefix(pathname: string, prefix: string): boolean {
  * Which tab owns this pathname, or null for routes that belong to none (e.g. /weigh-in).
  * The longest matching prefix wins, so /progress/upcoming is More's, not Progress's.
  */
-export function activeTab(pathname: string): TabId | null {
+export function activeTab(pathname: string, from?: string | null): TabId | null {
   if (pathname === "/") return "today";
+  // Coming up opened from Today stays in Today's tab.
+  if (pathname === "/progress/upcoming" && from === "today") return "today";
   let best: { id: TabId; length: number } | null = null;
   for (const id of Object.keys(PREFIXES) as Array<keyof typeof PREFIXES>) {
     for (const prefix of PREFIXES[id]) {
@@ -71,11 +74,11 @@ function TabLink({ tab, active }: { tab: (typeof TABS)[number]; active: boolean 
   );
 }
 
-export function TabBar() {
-  const pathname = usePathname() ?? "";
+function TabBarView({ pathname, search }: { pathname: string; search: URLSearchParams | null }) {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const current = activeTab(pathname);
+  const current = activeTab(pathname, search?.get("from"));
   const [today, progress, log, more] = TABS;
+  const from = fromForPage(pathname, search?.get("tab") ?? null);
 
   return (
     <>
@@ -100,7 +103,23 @@ export function TabBar() {
           <TabLink tab={more} active={current === more.id} />
         </div>
       </nav>
-      <QuickAddSheet open={quickAddOpen} onOpenChange={setQuickAddOpen} />
+      <QuickAddSheet open={quickAddOpen} onOpenChange={setQuickAddOpen} from={from} />
     </>
+  );
+}
+
+function TabBarWithSearch() {
+  const pathname = usePathname() ?? "";
+  return <TabBarView pathname={pathname} search={useSearchParams()} />;
+}
+
+export function TabBar() {
+  const pathname = usePathname() ?? "";
+  return (
+    // Reading the query string suspends while the page is prerendered; until then
+    // the bar renders without it.
+    <Suspense fallback={<TabBarView pathname={pathname} search={null} />}>
+      <TabBarWithSearch />
+    </Suspense>
   );
 }

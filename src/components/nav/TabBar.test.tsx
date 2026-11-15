@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 const pathname = vi.fn<() => string>();
-vi.mock("next/navigation", () => ({ usePathname: () => pathname() }));
+let search = "";
+vi.mock("next/navigation", () => ({
+  usePathname: () => pathname(),
+  useSearchParams: () => new URLSearchParams(search),
+}));
 vi.mock("@/hooks", () => ({
   useNextWorkout: () => undefined,
   useBodyweightLog: () => undefined,
@@ -13,8 +17,9 @@ vi.mock("@/hooks", () => ({
 
 import { TabBar, activeTab } from "./TabBar";
 
-function renderAt(path: string) {
+function renderAt(path: string, query = "") {
   pathname.mockReturnValue(path);
+  search = query;
   return render(<TabBar />);
 }
 
@@ -38,6 +43,17 @@ describe("activeTab", () => {
     ["/progressive", null],
   ])("%s -> %s", (path, tab) => {
     expect(activeTab(path)).toBe(tab);
+  });
+});
+
+describe("activeTab with from", () => {
+  it("lights Today for Coming up opened from Today", () => {
+    expect(activeTab("/progress/upcoming", "today")).toBe("today");
+  });
+  it("ignores other and unknown values", () => {
+    expect(activeTab("/progress/upcoming", "bogus")).toBe("more");
+    expect(activeTab("/progress/upcoming", null)).toBe("more");
+    expect(activeTab("/log", "today")).toBe("log");
   });
 });
 
@@ -72,6 +88,18 @@ describe("TabBar", () => {
       .filter((l) => l.getAttribute("aria-current") === "page");
     expect(current).toHaveLength(1);
     expect(current[0]).toHaveAccessibleName(label);
+  });
+
+  it("lights Today on Coming up when it was opened from Today", () => {
+    renderAt("/progress/upcoming", "from=today");
+    expect(screen.getByRole("link", { name: "Today" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "More" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("passes where quick add was opened to the logging screens", () => {
+    renderAt("/progress", "tab=body");
+    fireEvent.click(screen.getByRole("button", { name: "Quick add" }));
+    expect(screen.getByRole("link", { name: /Log weight/ })).toHaveAttribute("href", "/weigh-in?from=body");
   });
 
   it("marks no tab active on an unrelated route", () => {

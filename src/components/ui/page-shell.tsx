@@ -66,7 +66,9 @@ function PageHeader({
         <Link
           href={backHref}
           aria-label="Back"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          // A 44px tap target: the padding grows it and the negative margin cancels
+          // the growth, so the layout does not move.
+          className="-m-3 p-3 text-muted-foreground transition-colors hover:text-foreground"
         >
           <ChevronLeft className="size-5" aria-hidden="true" />
         </Link>
