@@ -3,12 +3,19 @@
 //
 // The workout row (with its sets) is the log. Lift states and e1RM rows are projections
 // of it: nothing here writes a lift state, finishing a workout just runs the rebuild.
+//
+// Starting and finishing also feed the glass-box ledger: decision traces on the workout
+// row, forecasts in their own table. Nothing the ledger needs is read or written inside
+// the workout's own transaction, and a failure there never fails the workout: see
+// `attemptLedgerWrite` and `sessionStartLedger`.
 import { v4 as uuidv4 } from "uuid";
 import { db } from "@/db/local";
 import { e1rmsForWorkout } from "@/lib/rebuild";
 import { getPrescription } from "@/lib/workout/prescription";
+import { excludeWarmUps } from "@/lib/workout/setSelectors";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
+  Forecast,
   LiftState,
   PlanEdit,
   PrescribedEntry,
@@ -21,6 +28,13 @@ import type {
   WorkoutSession,
 } from "@/types";
 import { applyRebuild, readSettings, rebuildTables } from "./derived";
+import {
+  attemptLedgerWrite,
+  readLedgerRecords,
+  recordLiftForecasts,
+  sessionStartLedger,
+  writeSessionForecasts,
+} from "./forecasts";
 import { softDelete } from "./logEdits";
 import { editStamps, newRowStamps } from "./stamp";
 
@@ -81,9 +95,24 @@ export function prescribedFor(templateId: string, liftStates: LiftState[]): Pres
  * Creates an unfinished workout (and its readiness log) and returns the session id.
  * The session always stores what the program prescribed when it started, so a later
  * edit to an earlier session never rewrites this one.
+ *
+ * The workout also carries what the app decided and predicted for it, made from the
+ * data as it stood before the workout existed: the decision traces for the plan it
+ * will run are saved on the row (`decisions`), and its forecasts are written to the
+ * ledger once the row is in, before any set can be logged. A failure in either is
+ * logged and the workout starts all the same.
  */
 export async function startWorkout(input: StartWorkoutInput): Promise<string> {
   const sessionId = uuidv4();
+  const startedAt = new Date();
+  const readiness =
+    input.readiness?.sleepHours && input.readiness.stressLevel ? input.readiness : undefined;
+
+  // Read before the workout exists; without it the workout simply has no ledger entries.
+  const records = await attemptLedgerWrite("Reading the records a workout starts from", () =>
+    readLedgerRecords(startedAt)
+  );
+  let forecasts: Forecast[] = [];
 
   const tables = [db.workouts, db.readinessLogs, db.liftStates, db.favoriteWorkouts];
   await db.transaction("rw", tables, async () => {
@@ -94,7 +123,7 @@ export async function startWorkout(input: StartWorkoutInput): Promise<string> {
       clientId: uuidv4(),
       templateId: input.templateId,
       location: input.location,
-      startedAt: new Date(),
+      startedAt,
       completedAt: null,
       totalDurationSeconds: 0,
       includeWarmUps: input.includeWarmUps,
@@ -107,7 +136,10 @@ export async function startWorkout(input: StartWorkoutInput): Promise<string> {
       ...(input.favoriteId ? { favoriteId: input.favoriteId } : {}),
       ...newRowStamps(),
     };
-    await db.workouts.add(session);
+    // Pure and guarded: it reads no table and cannot fail the transaction.
+    const ledger = records ? sessionStartLedger(records, session, readiness) : undefined;
+    forecasts = ledger?.forecasts ?? [];
+    await db.workouts.add(ledger?.decisions ? { ...session, decisions: ledger.decisions } : session);
 
     const favorite = input.favoriteId
       ? await db.favoriteWorkouts.get(input.favoriteId)
@@ -119,8 +151,7 @@ export async function startWorkout(input: StartWorkoutInput): Promise<string> {
       });
     }
 
-    const readiness = input.readiness;
-    if (readiness?.sleepHours && readiness.stressLevel) {
+    if (readiness) {
       await db.readinessLogs.add({
         id: uuidv4(),
         clientId: uuidv4(),
@@ -135,6 +166,10 @@ export async function startWorkout(input: StartWorkoutInput): Promise<string> {
       });
     }
   });
+
+  await attemptLedgerWrite("Saving the forecasts of a workout", () =>
+    writeSessionForecasts(sessionId, forecasts)
+  );
 
   return sessionId;
 }
@@ -178,12 +213,16 @@ export async function appendSet(workoutId: string, set: SetLog): Promise<void> {
  * Marks the workout finished, stores the settings progression depends on
  * (`completionContext`) and runs the rebuild, all in one transaction. Returns every
  * lift state as it stands afterwards.
+ *
+ * After the rebuild, the estimated-max forecast for each lift just trained is written
+ * to the ledger, at most one per lift per week. A failure there is logged and the
+ * workout is finished all the same.
  */
 export async function finishWorkout(
   workoutId: string,
   finish: FinishWorkoutInput
 ): Promise<LiftState[]> {
-  return db.transaction("rw", rebuildTables(), async () => {
+  const { liftStates, trained } = await db.transaction("rw", rebuildTables(), async () => {
     const workout = await db.workouts.get(workoutId);
     if (!workout) {
       throw new Error(`finishWorkout: workout ${workoutId} does not exist`);
@@ -204,8 +243,17 @@ export async function finishWorkout(
     });
 
     await applyRebuild();
-    return db.liftStates.toArray();
+    return {
+      liftStates: await db.liftStates.toArray(),
+      trained: [...new Set(excludeWarmUps(workout.sets ?? []).map((set) => set.exerciseId))],
+    };
   });
+
+  await attemptLedgerWrite("Forecasting the lifts of a finished workout", () =>
+    recordLiftForecasts(trained, new Date(finish.completedAt))
+  );
+
+  return liftStates;
 }
 
 /**

@@ -92,6 +92,7 @@ export const RECOVERY_RULES = {
     implementedIn: [
       "src/components/PreWorkout/ReadinessCheck.tsx#ReadinessCheck",
       "src/lib/health/sleep.ts#sleepBucket",
+      "src/lib/readiness/score.ts#shouldSuggestSkippingAccessories",
     ],
     surfaces: ["src/components/PreWorkout/ReadinessCheck.tsx"],
   },

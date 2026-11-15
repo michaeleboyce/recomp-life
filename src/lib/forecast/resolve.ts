@@ -195,6 +195,8 @@ export const RESOLVERS: Record<ForecastKind, ForecastResolver> = {
  * `event.weight` (an override); the workout was ended early (session length); too few
  * measurements around a horizon date. Otherwise resolved, with the measured value and
  * whether it fell inside the range or met the event.
+ *
+ * @evidence forecast-calibration
  */
 export function resolveForecast(forecast: Forecast, log: ForecastLog, now: Date): ForecastStatus {
   const resolver = RESOLVERS[forecast.kind];

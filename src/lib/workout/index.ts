@@ -8,3 +8,4 @@ export * from "./completeWorkout";
 export * from "./upcoming";
 export * from "./planEdits";
 export * from "./credit";
+export * from "./duration";

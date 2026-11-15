@@ -1,12 +1,15 @@
 import { useMemo } from "react";
-import { describePrOpportunity, type PrChance } from "@/lib/projection";
-import { estimateWorkoutMinutes } from "@/components/Today/format";
+import {
+  forecastSourceFrom,
+  nextWorkoutFrom,
+  readinessTodayFrom,
+  type LedgerRecords,
+} from "@/lib/data/forecasts";
+import { makeSessionForecasts } from "@/lib/forecast";
+import { prChanceFromProbability, repsToBeat, type PrChance } from "@/lib/projection";
 import type { ReadinessScore } from "@/types/glass";
 import type { WorkoutLocation } from "@/types";
-import { useNextWorkout } from "./useNextWorkout";
-import { useSettings } from "./useProfile";
-import { useE1RMs } from "./useRecords";
-import { useLiftStates } from "./useWorkouts";
+import { useLedgerRecords } from "./useLedgerRecords";
 
 export interface TodayForecast {
   /** How long the next workout takes. `low`/`high` only when a model gives a range. */
@@ -25,63 +28,82 @@ export interface TodayForecast {
   readiness: ReadinessScore | null;
 }
 
+const toMinutes = (seconds: number) => Math.round(seconds / 60);
+
+/**
+ * The forecast tiles for the next workout at `location`, from one snapshot of the
+ * records. The numbers are the rows `startWorkout` would store if the workout started
+ * now with this plan (`makeSessionForecasts`), so Today never shows a forecast the
+ * ledger would not keep. The sleep and energy answers are not known yet; once they
+ * are given the stored forecast can differ a little. Pure.
+ */
+export function todayForecastFrom(
+  records: LedgerRecords,
+  location?: WorkoutLocation
+): TodayForecast {
+  const now = records.readAt;
+  const { plan } = nextWorkoutFrom(records, location);
+  const readiness = readinessTodayFrom(records, { now, location });
+  const rows = makeSessionForecasts(
+    { id: "today" },
+    plan,
+    forecastSourceFrom(records, now, readiness)
+  );
+
+  const length = rows.find((row) => row.kind === "sessionLength")?.prediction;
+  const session: TodayForecast["session"] =
+    length && plan.some((entry) => !entry.isWarmUp)
+      ? {
+          minutes: Math.max(1, toMinutes(length.point)),
+          ...(length.low !== undefined && length.high !== undefined
+            ? { low: toMinutes(length.low), high: toMinutes(length.high) }
+            : {}),
+        }
+      : null;
+
+  // The first T1 lift, as the hero shows it. No row for it means no honest chance: a
+  // home substitute (a different lift), no best yet, or no rep count that beats it.
+  const t1 = plan.find((entry) => entry.tier === "T1" && !entry.isWarmUp);
+  const row = t1
+    ? rows.find(
+        (candidate) =>
+          candidate.kind === "newBest" &&
+          candidate.exerciseId === t1.exerciseId &&
+          candidate.tier === t1.tier
+      )
+    : undefined;
+  let newBest: TodayForecast["newBest"] = null;
+  const best = row?.inputs.bestE1RM;
+  const probability = row?.prediction.probability;
+  if (t1 && typeof best === "number" && typeof probability === "number") {
+    const target = repsToBeat(t1.weight, best);
+    if (target) {
+      newBest = {
+        probability,
+        chance: prChanceFromProbability(probability),
+        repsNeeded: target.reps,
+        estimate: target.e1rm,
+        best,
+      };
+    }
+  }
+
+  return { session, newBest, readiness };
+}
+
 /**
  * The forecast tiles on Today, for the next workout at `location` (the saved default
  * when omitted). `undefined` while loading; each part is null when there is nothing
  * honest to show, and the tile for it is not rendered.
  *
- * For now this is filled from what exists: the rest-time estimate for the session,
- * the PR opportunity category for a new best, and no readiness. The stored forecasts
- * replace the internals later without changing the shape.
+ * Session length comes with its range, the new best as a chance with the reps it
+ * needs, and readiness with what moved it; all three from the same models that write
+ * the forecast ledger when the workout starts.
  */
 export function useTodayForecast(location?: WorkoutLocation): TodayForecast | undefined {
-  const next = useNextWorkout(location);
-  const settings = useSettings();
-  const t1 = next?.plan.find((entry) => entry.tier === "T1" && !entry.isWarmUp);
-  // Hooks run unconditionally. Without a T1 (still loading) this reads every lift's
-  // rows, which the memo below ignores.
-  const e1rms = useE1RMs(t1?.exerciseId ?? "");
-  const liftStates = useLiftStates();
-
-  return useMemo(() => {
-    if (!next || settings === undefined || e1rms === undefined || liftStates === undefined) {
-      return undefined;
-    }
-    const working = next.plan.filter((entry) => !entry.isWarmUp);
-    const session =
-      working.length > 0
-        ? { minutes: estimateWorkoutMinutes(next.plan, settings?.trainingPhase) }
-        : null;
-
-    let newBest: TodayForecast["newBest"] = null;
-    // A home substitute is a different lift: its reps say nothing about the barbell best.
-    if (t1 && !t1.substituteExerciseId) {
-      const best = e1rms.reduce<number | null>(
-        (max, row) =>
-          Number.isFinite(row.estimated1RM) && (max === null || row.estimated1RM > max)
-            ? row.estimated1RM
-            : max,
-        null
-      );
-      const state = liftStates.find((s) => s.exerciseId === t1.exerciseId);
-      const opportunity = describePrOpportunity({
-        tier: t1.tier,
-        isAMRAP: t1.isAMRAP,
-        weight: t1.weight,
-        bestE1RM: best,
-        recentAMRAPReps: state?.recentAMRAPReps ?? [],
-      });
-      if (opportunity) {
-        newBest = {
-          probability: null,
-          chance: opportunity.chance,
-          repsNeeded: opportunity.repsNeeded,
-          estimate: opportunity.e1rmAtRepsNeeded,
-          best: opportunity.bestE1RM,
-        };
-      }
-    }
-
-    return { session, newBest, readiness: null };
-  }, [next, settings, e1rms, liftStates, t1]);
+  const records = useLedgerRecords();
+  return useMemo(
+    () => (records ? todayForecastFrom(records, location) : undefined),
+    [records, location]
+  );
 }

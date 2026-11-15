@@ -9,7 +9,11 @@ export function estimateSetSeconds(tier: Tier, phase?: TrainingPhase): number {
   return getRestSeconds(tier, phase) + SESSION_LENGTH_MODEL.secondsPerSet;
 }
 
-/** The plan's length in seconds: `estimateSetSeconds` for every planned set, unrounded. */
+/**
+ * The plan's length in seconds: `estimateSetSeconds` for every planned set, unrounded.
+ *
+ * @evidence forecast-session-length
+ */
 export function estimateWorkoutSeconds(
   plan: ReadonlyArray<Pick<WorkoutExerciseState, "tier" | "targetSets">>,
   phase?: TrainingPhase

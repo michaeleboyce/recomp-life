@@ -67,6 +67,8 @@ export function stageForReps(reps: number): T1Stage | null {
  * where the lift's last set was never reached; sessions where a T1 set of the lift
  * was skipped or lightened for pain, a run or equipment, or carries a load drop
  * (those reps do not measure strength); sets with no weight.
+ *
+ * @evidence forecast-reps
  */
 export function lastT1Sets(
   workouts: WorkoutSession[],
@@ -238,6 +240,8 @@ function finiteOr(value: number | null | undefined, fallback: number): number {
  * Then the level moves by cuttingLevelShift when today is a cut and most fitted
  * sessions were not, and by the readiness shift (kept within its limits); the scatter
  * is multiplied by the track-record widening factor (1 to 2).
+ *
+ * @evidence forecast-reps
  */
 export function estimateRepsLevel(input: RepsModelInput): RepsLevel {
   const nowMs = input.now.getTime();
@@ -341,6 +345,8 @@ export function estimateRepsLevel(input: RepsModelInput): RepsLevel {
  * Chance of logging at least `reps` reps at `weight`, given the level and scatter:
  * 1 - Phi((W x (1 + (reps - c) / 30) - m) / s), with c = REPS_MODEL.continuityReps.
  * Zero reps or fewer is certain.
+ *
+ * @evidence forecast-reps
  */
 export function chanceOfAtLeast(
   reps: number,
@@ -399,6 +405,8 @@ export function typicalReps(pmf: number[]): number {
  * (`typicalReps`), each time taking the likelier neighbour, and stops at whichever of
  * the last two sizes is nearer the target (the wider on a tie). Rep counts are whole
  * numbers, so no range holds exactly 80%; `chance` says what this one holds.
+ *
+ * @evidence forecast-calibration
  */
 export function repsRange(pmf: number[], target: number = CALIBRATION.targetCoverage): RepsRange {
   let low = typicalReps(pmf);
@@ -417,7 +425,11 @@ export function repsRange(pmf: number[], target: number = CALIBRATION.targetCove
   return { low, high, chance };
 }
 
-/** The whole reps forecast for one lift at one weight. */
+/**
+ * The whole reps forecast for one lift at one weight.
+ *
+ * @evidence forecast-reps
+ */
 export function forecastReps(input: RepsModelInput): RepsForecast {
   const estimate = estimateRepsLevel(input);
   const pmf = repsPmf(input.weight, estimate);

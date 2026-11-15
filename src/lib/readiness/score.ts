@@ -522,6 +522,8 @@ export function readinessScore(inputs: ReadinessInputs, now: Date): ReadinessSco
  * The one plan change readiness may suggest: under 5 hours of sleep together
  * with low energy. The same rule the pre-workout check applies. It is a
  * suggestion to drop optional work, and the user can ignore it.
+ *
+ * @evidence readiness
  */
 export function shouldSuggestSkippingAccessories(
   log:
@@ -535,6 +537,8 @@ export function shouldSuggestSkippingAccessories(
 /**
  * How far a forecast's strength level moves for this score, as a fraction:
  * positive above the usual, negative below, zero on a usual day.
+ *
+ * @evidence forecast-reps
  */
 export function readinessLevelShift(score: Pick<ReadinessScore, "score" | "usual">): number {
   return (score.score - score.usual) * REPS_MODEL.readinessLevelShiftPerPoint;

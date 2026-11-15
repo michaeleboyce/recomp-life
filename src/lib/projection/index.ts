@@ -3,7 +3,12 @@
 
 // ── PR opportunity ─────────────────────────────────────────────────────────
 export type { PrChance, PrOpportunity } from "./prOpportunity";
-export { repsToBeat, prChance, describePrOpportunity } from "./prOpportunity";
+export {
+  repsToBeat,
+  prChance,
+  prChanceFromProbability,
+  describePrOpportunity,
+} from "./prOpportunity";
 
 // ── Trend and projection ───────────────────────────────────────────────────
 export type { TrendFit } from "./trend";
