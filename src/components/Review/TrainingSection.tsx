@@ -3,6 +3,7 @@
 import { Award } from "lucide-react";
 import { E1RM_COMPARE_WEEKS, type WeeklyReview } from "@/lib/review";
 import { Delta } from "@/components/ui/delta";
+import { ExerciseImage } from "@/components/ui/exercise-image";
 import { ListRow } from "@/components/ui/list-row";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Term } from "@/components/ui/term";
@@ -27,7 +28,7 @@ export function TrainingSection({ review }: { review: WeeklyReview }) {
         href="/log"
         title="Sessions"
         subtitle={`${sessions.previous} the week before`}
-        value={sessions.target === null ? sessions.count : `${sessions.count} of ${sessions.target}`}
+        value={<span className="font-display text-2xl font-bold">{sessions.target === null ? sessions.count : `${sessions.count} of ${sessions.target}`}</span>}
         valueSub={<Delta value={sessions.count - sessions.previous} better="up" />}
       />
       {effort && (
@@ -58,6 +59,7 @@ export function TrainingSection({ review }: { review: WeeklyReview }) {
         <ListRow
           key={lift.id}
           href={`/progress/lift/${lift.id}`}
+          leading={<ExerciseImage exerciseId={lift.id} variant="thumb" className="size-10 rounded-full" />}
           title={lift.label}
           subtitle={
             lift.workingWeight === null
