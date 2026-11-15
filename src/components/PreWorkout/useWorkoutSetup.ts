@@ -17,6 +17,8 @@ import {
 import { ACTIVITY_NOTE_WINDOW_HOURS, evaluateActivityImpact } from "@/lib/activities";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { recordAdjustment } from "@/lib/data/adjustments";
+import { recordCoachEvent, type CoachEventInput } from "@/lib/data/coachEvents";
+import { roundToNearest5 } from "@/lib/progression";
 import { startWorkout } from "@/lib/data/workouts";
 import { ACCESSORY_IDS, EXERCISES } from "@/lib/exercises";
 import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePreferences";
@@ -54,6 +56,20 @@ const ACTIVITY_WINDOW_MS = ACTIVITY_NOTE_WINDOW_HOURS * HOUR_MS;
 const NO_LIFT_STATES: LiftState[] = [];
 const NO_EDITS: PlanEdit[] = [];
 const NO_PRESCRIBED: PrescribedEntry[] = [];
+/** "Reduce 10%" after a run: today's T1 at this share of its weight. */
+const RUN_REDUCTION = 0.9;
+
+/** What the user can do about a run advisory. */
+export type RunChoice = "proceed" | "extra_warmups" | "reduce_10" | "skip";
+
+/**
+ * Notes a choice made about a setup advisory in the coach's log, so it shows in the
+ * adjustment log. Never awaited by the choice and never throws: the workout matters
+ * more than the note.
+ */
+function noteAdvisory(input: CoachEventInput): void {
+  recordCoachEvent(input).catch((err) => console.error("Failed to record advisory choice:", err));
+}
 
 export interface RecoveryWarning {
   exerciseName: string;
@@ -334,7 +350,49 @@ export function useWorkoutSetup(
     return advisory.level === "none" ? null : advisory;
   }, [templateId, runs, runAdvisoryDismissed, trainingPhase]);
 
-  const dismissRunAdvisory = useCallback(() => setRunAdvisoryDismissed(true), []);
+  const t1Entry = plan.find((e) => e.tier === "T1" && !e.isWarmUp);
+  /**
+   * Acts on a run advisory and records the choice. Extra warm-ups turns warm-ups on;
+   * reduce lowers today's T1 weight by 10% as a plan edit (so, like any lighter
+   * lift, it is logged without changing progression); skip leaves it to the caller
+   * (who goes back to Today); proceed changes nothing.
+   */
+  const chooseRunOption = useCallback(
+    (choice: RunChoice) => {
+      setRunAdvisoryDismissed(true);
+      if (!runAdvisory) return;
+      const data: Record<string, number | string | null> = {
+        advisory: "run",
+        level: runAdvisory.level,
+        choice,
+      };
+      let title = "Run before lifting: carried on as planned";
+      if (choice === "extra_warmups") {
+        setWarmUpsChoice(true);
+        title = "Run before lifting: added warm-up sets";
+      } else if (choice === "reduce_10" && t1Entry) {
+        const lighter = roundToNearest5(t1Entry.weight * RUN_REDUCTION);
+        changeEdits((edits) => weightEdit(edits, t1Entry.exerciseId, "T1", lighter));
+        const name = EXERCISES[t1Entry.substituteExerciseId ?? t1Entry.exerciseId]?.name ?? t1Entry.exerciseId;
+        title = `Run before lifting: ${name} lowered to ${lighter} lbs for today`;
+        data.from = t1Entry.weight;
+        data.to = lighter;
+        data.exerciseId = t1Entry.exerciseId;
+      } else if (choice === "skip") {
+        title = "Run before lifting: skipped today's workout";
+      }
+      noteAdvisory({
+        kind: choice === "proceed" ? "advisoryDismissed" : "advisoryAccepted",
+        title,
+        detail: runAdvisory.message,
+        ruleId: runAdvisory.evidenceId,
+        data,
+      });
+    },
+    [runAdvisory, t1Entry, changeEdits]
+  );
+  /** Carry on as planned (the run advisory's "Proceed"). */
+  const dismissRunAdvisory = useCallback(() => chooseRunOption("proceed"), [chooseRunOption]);
 
   // A hard yoga, cycling, hiking or other session shortly before this workout.
   const activityNote = useMemo(() => {
@@ -346,7 +404,17 @@ export function useWorkoutSetup(
     if (recent.length === 0) return null;
     return evaluateActivityImpact(recent, workoutHasLowerBody(templateId), now);
   }, [templateId, activities, activityNoteDismissed]);
-  const dismissActivityNote = useCallback(() => setActivityNoteDismissed(true), []);
+  const dismissActivityNote = useCallback(() => {
+    setActivityNoteDismissed(true);
+    if (!activityNote) return;
+    noteAdvisory({
+      kind: "advisoryDismissed",
+      title: "Hard session before lifting: noted, workout unchanged",
+      detail: activityNote.message,
+      ruleId: activityNote.evidenceId,
+      data: { advisory: "activity" },
+    });
+  }, [activityNote]);
 
   const recoveryWarnings = useMemo(
     () => (template ? recoveryWarningsFor(template.exercises, liftStates, new Date()) : []),
@@ -363,9 +431,33 @@ export function useWorkoutSetup(
     ).filter((s) => !dismissedDecays.has(`${s.exerciseId}-${s.tier}`));
   }, [template, liftStates, trainingPhase, dismissedDecays]);
 
-  const dismissDecay = useCallback((exerciseId: string, tier: string) => {
+  const settleDecay = useCallback((exerciseId: string, tier: string) => {
     setDismissedDecays((prev) => new Set(prev).add(`${exerciseId}-${tier}`));
   }, []);
+
+  /** Keeps the weight after time off, and records that the suggestion was turned down. */
+  const dismissDecay = useCallback(
+    (exerciseId: string, tier: string) => {
+      settleDecay(exerciseId, tier);
+      const suggestion = decaySuggestions.find((s) => s.exerciseId === exerciseId && s.tier === tier);
+      if (!suggestion) return;
+      const name = EXERCISES[exerciseId]?.name ?? exerciseId;
+      noteAdvisory({
+        kind: "advisoryDismissed",
+        title: `Time off: kept ${name} at ${suggestion.currentWeight} lbs`,
+        detail: `The app suggested ${suggestion.suggestedWeight} lbs after ${suggestion.daysSinceLastWorkout} days away.`,
+        ruleId: suggestion.evidenceId,
+        data: {
+          advisory: "decay",
+          exerciseId,
+          tier,
+          current: suggestion.currentWeight,
+          suggested: suggestion.suggestedWeight,
+        },
+      });
+    },
+    [settleDecay, decaySuggestions]
+  );
 
   /** Lowers the stored working weight to the suggested one. */
   const acceptDecay = useCallback(
@@ -377,10 +469,11 @@ export function useWorkoutSetup(
         source: "decay",
         set: tier === "T1" ? { t1Weight: newWeight } : { t2Weight: newWeight },
       });
-      // Settled: without this the lowered weight would be offered a further cut.
-      dismissDecay(exerciseId, tier);
+      // Settled: without this the lowered weight would be offered a further cut. Its
+      // own "decay" adjustment is what the log shows, so no coach event is added.
+      settleDecay(exerciseId, tier);
     },
-    [liftStates, dismissDecay]
+    [liftStates, settleDecay]
   );
 
   const recentPainEntries = useMemo(() => {
@@ -507,6 +600,7 @@ export function useWorkoutSetup(
     homeAdaptations,
     chooseSubstitute,
     runAdvisory,
+    chooseRunOption,
     dismissRunAdvisory,
     activityNote,
     dismissActivityNote,

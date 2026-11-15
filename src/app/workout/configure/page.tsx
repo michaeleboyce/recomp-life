@@ -110,7 +110,7 @@ function ConfigureWorkoutContent() {
       {/* Needs attention: shown above the list, never tucked away. */}
       <SetupAdvisories
         runAdvisory={setup.runAdvisory}
-        onDismissRunAdvisory={setup.dismissRunAdvisory}
+        onRunChoice={setup.chooseRunOption}
         onSkipToday={() => router.push("/")}
         runEvidence={
           setup.runAdvisory?.evidenceId && <EvidenceLine ruleId={setup.runAdvisory.evidenceId} />

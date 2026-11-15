@@ -8,11 +8,12 @@ import { EXERCISES } from "@/lib/exercises";
 import type { ActivityNote } from "@/lib/activities";
 import type { RunAdvisory } from "@/lib/runRecovery";
 import type { ExerciseDecaySuggestion } from "@/lib/weightDecay";
-import type { RecoveryWarning } from "./useWorkoutSetup";
+import type { RecoveryWarning, RunChoice } from "./useWorkoutSetup";
 
 interface SetupAdvisoriesProps {
   runAdvisory: RunAdvisory | null;
-  onDismissRunAdvisory: () => void;
+  /** Acts on the run advisory and records the choice (see `chooseRunOption`). */
+  onRunChoice: (choice: RunChoice) => void;
   onSkipToday: () => void;
   activityNote: ActivityNote | null;
   onDismissActivityNote: () => void;
@@ -36,8 +37,8 @@ interface SetupAdvisoriesProps {
  */
 export function SetupAdvisories(props: SetupAdvisoriesProps) {
   const { runAdvisory, activityNote, recoveryWarnings, decaySuggestions } = props;
-  const dismissRun = (label: string) => (
-    <Button size="sm" variant="outline" onClick={props.onDismissRunAdvisory}>
+  const runButton = (label: string, choice: RunChoice) => (
+    <Button size="sm" variant="outline" onClick={() => props.onRunChoice(choice)}>
       {label}
     </Button>
   );
@@ -50,9 +51,9 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
           title="Run Fatigue Advisory"
           actions={
             <>
-              {dismissRun("Proceed")}
-              {dismissRun("Add warm-ups")}
-              {dismissRun("Reduce 10%")}
+              {runButton("Proceed", "proceed")}
+              {runButton("Add warm-ups", "extra_warmups")}
+              {runButton("Reduce 10%", "reduce_10")}
             </>
           }
         >
@@ -67,8 +68,15 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
           title="Legs may still be fatigued"
           actions={
             <>
-              {dismissRun("Proceed")}
-              <Button size="sm" variant="outline" onClick={props.onSkipToday}>
+              {runButton("Proceed", "proceed")}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  props.onRunChoice("skip");
+                  props.onSkipToday();
+                }}
+              >
                 Skip today
               </Button>
             </>
