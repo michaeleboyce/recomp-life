@@ -32,5 +32,15 @@ describe("SessionList", () => {
     render(<SessionList sessions={[session]} />);
     const link = screen.getByRole("link", { name: /open workout from nov 6/i });
     expect(link).toHaveAttribute("href", "/log/workout?id=w1");
+    expect(screen.queryByTestId("session-home")).toBeNull();
+  });
+
+  it("labels a home session with the substitute it was done as", () => {
+    render(
+      <SessionList
+        sessions={[{ ...session, key: "w2-T1-goblet_squat", weight: 60, substituteExerciseId: "goblet_squat" }]}
+      />
+    );
+    expect(screen.getByTestId("session-home")).toHaveTextContent("At home: goblet squat");
   });
 });

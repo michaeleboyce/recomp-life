@@ -5,13 +5,13 @@ import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
 import { ExerciseImage, hasExercisePhoto } from "@/components/ui/exercise-image";
 import { WorkoutFigure } from "@/components/ui/workout-figure";
 import { EYEBROW } from "@/components/Today/TodayHero";
-import { estimateWorkoutMinutes, formatLbs } from "@/components/Today/format";
+import { formatLbs } from "@/components/Today/format";
 import { dayName, displayLiftName, photoPosition } from "@/components/Today/todayModel";
 import { getExercise } from "@/lib/exercises";
 import { tierStyle } from "@/lib/tierStyle";
 import { cn } from "@/lib/utils";
 import type { UpcomingEntry, UpcomingWorkout } from "@/lib/workout/upcoming";
-import type { TrainingPhase } from "@/types";
+import type { WorkoutLocation } from "@/types";
 
 function WeightLabel({ entry }: { entry: UpcomingEntry }) {
   if (entry.weight <= 0) return <>BW</>;
@@ -60,23 +60,27 @@ function sequenceLabel(index: number): string {
  * One upcoming workout as a photo card: a photo of its main lift behind a fade, its
  * place in the sequence, code and length, the name, the three lifts with their
  * projected weights and the muscles it works. The next one is outlined and opens
- * the start screen.
+ * the start screen at the location shown, so a Home preview starts a home workout.
  */
 export function UpcomingWorkoutCard({
   workout,
   index,
-  phase,
+  minutes,
+  location,
 }: {
   workout: UpcomingWorkout;
   index: number;
-  phase?: TrainingPhase;
+  /** The session-length forecast in minutes (`upcomingMinutes`); hidden when null. */
+  minutes: number | null;
+  /** The location being shown; the next card opens the Ready screen there. */
+  location?: WorkoutLocation;
 }) {
   const isNext = index === 0;
   const t1 = workout.entries.find((e) => e.tier === "T1");
   const photoId = t1 ? t1.substituteExerciseId || t1.exerciseId : undefined;
   const photo = photoId && hasExercisePhoto(photoId) ? photoId : null;
   const name = dayName(workout.template.exercises.find((e) => e.tier === "T1")?.exerciseId, templateTitle(workout.templateId));
-  const minutes = estimateWorkoutMinutes(workout.plan, phase);
+  const startHref = location ? `/workout/configure?location=${location}` : "/workout/configure";
   const figureIds = workout.entries.map((e) => e.substituteExerciseId || e.exerciseId);
   const headingId = `upcoming-${index}-title`;
 
@@ -106,7 +110,8 @@ export function UpcomingWorkoutCard({
       <div className="absolute top-2.5 bottom-2.5 left-3.5 flex w-[212px] flex-col justify-between">
         <div>
           <p className={cn(EYEBROW, isNext ? "text-accent-primary" : "text-muted-foreground")}>
-            {sequenceLabel(index)} · {workout.templateId} · {minutes} min
+            {sequenceLabel(index)} · {workout.templateId}
+            {minutes !== null && ` · ${minutes} min`}
           </p>
           <h2
             id={headingId}
@@ -118,7 +123,7 @@ export function UpcomingWorkoutCard({
           >
             {isNext ? (
               <Link
-                href="/workout/configure"
+                href={startHref}
                 aria-label={`Start ${name}`}
                 className="outline-none after:absolute after:inset-0 after:rounded-[18px] after:content-[''] focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
               >

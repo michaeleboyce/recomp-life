@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
@@ -19,7 +19,13 @@ import { useWorkoutSetup } from "./useWorkoutSetup";
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
+const nav = vi.hoisted(() => ({ params: "" }));
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(nav.params),
+}));
+
 beforeEach(async () => {
+  nav.params = "";
   await clearDb();
   await initializeDatabase();
   useWorkoutStore.getState().reset();
@@ -76,6 +82,27 @@ describe("preview", () => {
     act(() => hook.result.current.setWarmUps(true));
     expect(hook.result.current.warmUps).toBe(true);
     expect((await db.userProfile.toCollection().first())!.settings.showWarmUps).toBe(false);
+  });
+
+  it("starts at the URL's location without saving it, until the user changes it", async () => {
+    nav.params = "location=home";
+    const hook = await mount();
+    expect(hook.result.current.location).toBe("home");
+    expect(describePlan(hook.result.current.plan).some((d) => d.includes("db_") || d.includes("goblet"))).toBe(true);
+    expect((await db.userProfile.toCollection().first())!.settings.defaultLocation ?? "gym").toBe("gym");
+
+    act(() => hook.result.current.setLocation("gym"));
+    expect(hook.result.current.location).toBe("gym");
+    act(() => hook.result.current.setLocation("home"));
+    await waitFor(async () =>
+      expect((await db.userProfile.toCollection().first())!.settings.defaultLocation).toBe("home")
+    );
+    expect(hook.result.current.location).toBe("home");
+  });
+
+  it("ignores a location in the URL that is not gym or home", async () => {
+    nav.params = "location=moon";
+    expect((await mount()).result.current.location).toBe("gym");
   });
 
   it("previews warm-ups for the T1 lift only, as the active workout performs them", async () => {

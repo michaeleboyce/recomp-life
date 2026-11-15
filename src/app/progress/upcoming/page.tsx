@@ -10,7 +10,8 @@ import { UpcomingWorkoutCard } from "@/components/Upcoming/UpcomingWorkoutCard";
 import { LocationToggle } from "@/components/Today/LocationToggle";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import type { RuleId } from "@/lib/evidence";
-import { useSettings, useTrainingLocation, useUpcomingWorkouts } from "@/hooks";
+import { useCompletedWorkouts, useSettings, useTrainingLocation, useUpcomingWorkouts } from "@/hooks";
+import { upcomingMinutes } from "@/components/Upcoming/sessionMinutes";
 import type { WorkoutLocation } from "@/types";
 
 // The forecast applies the existing progression rule under a stated assumption.
@@ -40,12 +41,15 @@ function BackLinkTo({ today }: { today: boolean }) {
 
 /**
  * Coming up: the next workouts in rotation order as photo cards, each with its
- * projected weights. The gym/home switch here previews the other location without
- * changing the saved default.
+ * projected weights and the same session-length forecast Today shows. The gym/home
+ * switch here previews the other location without changing the saved default; the
+ * next card opens the Ready screen at the location being previewed.
  */
 export default function UpcomingWorkoutsPage() {
   const { location: defaultLocation, isLoading } = useTrainingLocation();
   const settings = useSettings();
+  const finished = useCompletedWorkouts();
+  const [now] = useState(() => new Date());
   const [choice, setChoice] = useState<WorkoutLocation | null>(null);
   const location = choice ?? defaultLocation;
   const workouts = useUpcomingWorkouts(location, 5);
@@ -74,7 +78,7 @@ export default function UpcomingWorkoutsPage() {
         )}
       </header>
 
-      {isLoading || workouts === undefined ? (
+      {isLoading || workouts === undefined || finished === undefined ? (
         <div className="flex flex-col gap-2.5">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-[146px] rounded-[18px]" />
@@ -87,7 +91,8 @@ export default function UpcomingWorkoutsPage() {
               key={`${workout.templateId}-${index}`}
               workout={workout}
               index={index}
-              phase={settings?.trainingPhase}
+              minutes={upcomingMinutes(workout.plan, finished, settings?.trainingPhase, now)}
+              location={location}
             />
           ))}
         </div>

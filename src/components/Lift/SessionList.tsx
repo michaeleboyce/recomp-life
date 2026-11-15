@@ -14,13 +14,30 @@ import type { TermId } from "@/lib/glossary";
 import type { Tier } from "@/types";
 import type { LiftSession } from "./sessions";
 import { workoutDetailHref } from "@/lib/routes";
+import { EXERCISES } from "@/lib/exercises";
+import { nameInSentence } from "@/components/Today/todayModel";
 
 const FIRST_PAGE = 10;
 
-const TIER_TERM: Partial<Record<Tier, TermId>> = { T1: "t1", T2: "t2", T3: "t3" };
+const TIER_TERM: Partial<Record<Tier, TermId>> = {
+  T1: "t1",
+  T2: "t2",
+  T3: "t3",
+};
+
+/** "goblet squat"; "dumbbells" when the set did not record which substitute it was. */
+function homeName(substituteId: string): string {
+  return EXERCISES[substituteId] ? nameInSentence(substituteId) : "dumbbells";
+}
 
 /** `explainTier`: this row's tier label opens its glossary entry (first row of each tier). */
-function SessionRow({ session, explainTier }: { session: LiftSession; explainTier: boolean }) {
+function SessionRow({
+  session,
+  explainTier,
+}: {
+  session: LiftSession;
+  explainTier: boolean;
+}) {
   const style = tierStyle(session.tier);
   const term = explainTier ? TIER_TERM[session.tier] : undefined;
   return (
@@ -31,30 +48,45 @@ function SessionRow({ session, explainTier }: { session: LiftSession; explainTie
       <span className="w-[52px] shrink-0 font-mono text-xs text-muted-foreground">
         {formatShortDate(session.t)}
       </span>
-      <span className={cn("w-[18px] shrink-0 font-mono text-[10px] font-bold", style.text)}>
+      <span
+        className={cn(
+          "w-[18px] shrink-0 font-mono text-[10px] font-bold",
+          style.text,
+        )}
+      >
         {term ? <Term id={term}>{style.label}</Term> : style.label}
       </span>
-      <span className="min-w-0 flex-1 font-mono text-sm">
-        {session.weight} ×
-        {session.sets.map((set, i) => (
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="font-mono text-sm">
+          {session.weight} ×
+          {session.sets.map((set, i) => (
+            <span
+              key={i}
+              className={cn(
+                "ml-1",
+                set.amrap && "font-bold text-accent-primary",
+                set.failed && "text-warning",
+              )}
+              aria-label={
+                set.failed
+                  ? `${set.reps} reps, failed`
+                  : set.amrap
+                    ? `${set.reps} reps, last set as many as possible`
+                    : undefined
+              }
+            >
+              {set.reps}
+            </span>
+          ))}
+        </span>
+        {session.substituteExerciseId && (
           <span
-            key={i}
-            className={cn(
-              "ml-1",
-              set.amrap && "font-bold text-accent-primary",
-              set.failed && "text-warning"
-            )}
-            aria-label={
-              set.failed
-                ? `${set.reps} reps, failed`
-                : set.amrap
-                  ? `${set.reps} reps, last set as many as possible`
-                  : undefined
-            }
+            data-testid="session-home"
+            className="truncate text-xs text-muted-foreground"
           >
-            {set.reps}
+            At home: {homeName(session.substituteExerciseId)}
           </span>
-        ))}
+        )}
       </span>
       {session.best ? (
         <span className="shrink-0 rounded-md bg-accent-primary-soft px-1.5 py-0.5 text-[11px] font-medium text-accent-primary">
@@ -95,12 +127,18 @@ export function SessionList({ sessions }: { sessions: LiftSession[] }) {
           <SessionRow
             key={s.key}
             session={s}
-            explainTier={visible.findIndex((other) => other.tier === s.tier) === i}
+            explainTier={
+              visible.findIndex((other) => other.tier === s.tier) === i
+            }
           />
         ))}
       </ul>
       {!showAll && sessions.length > FIRST_PAGE && (
-        <Button variant="ghost" className="mt-2 w-full" onClick={() => setShowAll(true)}>
+        <Button
+          variant="ghost"
+          className="mt-2 w-full"
+          onClick={() => setShowAll(true)}
+        >
           Show all {sessions.length}
         </Button>
       )}

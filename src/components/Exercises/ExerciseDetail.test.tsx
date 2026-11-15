@@ -21,7 +21,7 @@ vi.mock("@/components/chart-kit/LazyTrendChart", () => ({
   TrendChartSkeleton: () => <div data-testid="chart-skeleton" />,
 }));
 
-import { ExerciseE1RMSection } from "./ExerciseDetail";
+import { CountsTowardLine, ExerciseE1RMSection, countsToward } from "./ExerciseDetail";
 
 function metric(points: Point[]): MetricResult {
   const series = {
@@ -84,5 +84,24 @@ describe("ExerciseE1RMSection", () => {
     result = metric([{ t: 0, v: 50 }]);
     render(<ExerciseE1RMSection exerciseId="db_curl" exerciseName="Dumbbell Curl" />);
     expect(screen.queryByRole("link")).toBeNull();
+  });
+});
+
+describe("a home substitute", () => {
+  it("knows which main lift it counts toward", () => {
+    expect(countsToward("goblet_squat")).toBe("squat");
+    expect(countsToward("db_floor_press")).toBe("bench");
+    expect(countsToward("squat")).toBeUndefined();
+    expect(countsToward("db_curl")).toBeUndefined();
+  });
+
+  it("says it counts toward the lift and opens the lift page as itself", () => {
+    render(<CountsTowardLine exerciseId="goblet_squat" lift="squat" />);
+    expect(screen.getByTestId("counts-toward")).toHaveTextContent("At home it counts toward Squat.");
+    expect(screen.getByRole("link", { name: /Squat progress/ })).toHaveAttribute(
+      "href",
+      "/progress/lift/squat?as=goblet_squat"
+    );
+    expect(screen.queryByText(/Complete an AMRAP set/)).toBeNull();
   });
 });

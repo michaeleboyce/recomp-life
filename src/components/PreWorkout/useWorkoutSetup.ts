@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import {
   useActivities,
@@ -194,8 +195,14 @@ export function useWorkoutSetup(
   const [pending, setPending] = useState<{ value: WorkoutLocation; over: WorkoutLocation } | null>(
     null
   );
+  // `?location=` (from Coming up's gym/home preview) is where this workout starts,
+  // without saving it as the default; a change made here then takes over as above.
+  const urlLocation = useSearchParams()?.get("location");
+  const [fromUrl, setFromUrl] = useState<WorkoutLocation | null>(() =>
+    urlLocation === "gym" || urlLocation === "home" ? urlLocation : null
+  );
   const location =
-    pending && pending.over === training.location ? pending.value : training.location;
+    pending && pending.over === training.location ? pending.value : (fromUrl ?? training.location);
   // The profile supplies the default; toggling warm-ups here is for this workout only.
   const [warmUpsChoice, setWarmUpsChoice] = useState<boolean | null>(null);
   const warmUps = warmUpsChoice ?? settings.showWarmUps ?? true;
@@ -242,6 +249,7 @@ export function useWorkoutSetup(
   const savedLocation = training.location;
   const setLocation = useCallback(
     (next: WorkoutLocation) => {
+      setFromUrl(null);
       setPending({ value: next, over: savedLocation });
       saveLocation(next).catch((err) => console.error("Failed to save training location:", err));
     },

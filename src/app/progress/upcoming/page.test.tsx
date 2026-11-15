@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import { clearDb } from "@/lib/data/testUtils";
+import { clearDb, makeSet, makeWorkout } from "@/lib/data/testUtils";
+import { estimateLoggedSeconds } from "@/lib/workout/duration";
 import UpcomingWorkoutsPage from "./page";
 
 const nav = vi.hoisted(() => ({ params: "" }));
@@ -40,7 +41,7 @@ describe("upcoming workouts page", () => {
     // The whole first card starts the workout; later ones are previews only.
     expect(within(cards()[0]).getByRole("link", { name: "Start Squat day" })).toHaveAttribute(
       "href",
-      "/workout/configure"
+      "/workout/configure?location=gym"
     );
     expect(within(cards()[1]).queryByRole("link")).toBeNull();
     expect(rowsOf(cards()[0])).toEqual([
@@ -65,6 +66,33 @@ describe("upcoming workouts page", () => {
     // Previewing does not change the saved default.
     const profile = await db.userProfile.toCollection().first();
     expect(profile?.settings.defaultLocation ?? "gym").toBe("gym");
+    // The next card starts the workout at the location being previewed.
+    expect(within(cards()[0]).getByRole("link", { name: "Start Squat day" })).toHaveAttribute(
+      "href",
+      "/workout/configure?location=home"
+    );
+  });
+
+  it("gives each card the session length Today would forecast for it", async () => {
+    // Three slow finished sessions: twice their length on paper.
+    const sets = Array.from({ length: 5 }, (_, i) => makeSet({ setNumber: i + 1 }));
+    await db.workouts.bulkPut(
+      [1, 2, 3].map((day) =>
+        makeWorkout({
+          id: `slow-${day}`,
+          startedAt: new Date(Date.UTC(2026, 9, day, 9)),
+          completedAt: new Date(Date.UTC(2026, 9, day, 10)),
+          sets,
+          totalDurationSeconds: estimateLoggedSeconds(sets) * 2,
+        })
+      )
+    );
+    render(<UpcomingWorkoutsPage />);
+    await waitFor(() => expect(cards()).toHaveLength(5));
+    const eyebrow = within(cards()[1]).getByText(/^Then · /).textContent!;
+    const minutes = Number(/(\d+) min$/.exec(eyebrow)![1]);
+    // Well over the on-paper length of a three-lift workout.
+    expect(minutes).toBeGreaterThan(60);
   });
 
   it("says when the location shown is only a preview", async () => {
