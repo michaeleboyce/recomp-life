@@ -6,5 +6,5 @@ export type { AdjustmentFeedInput, AdjustmentUndo, FeedGroup } from "./types";
 
 export { buildAdjustmentFeed, entryGrade } from "./feed";
 export { FEED_GROUPS, filterFeed, groupsOf } from "./filter";
-export { UNDO_NOTE, undoAdjustment } from "./liftAdjustments";
+export { isStartEntry, UNDO_NOTE, undoAdjustment } from "./liftAdjustments";
 export { FEED_HREFS, liftHref, ruleHref } from "./text";

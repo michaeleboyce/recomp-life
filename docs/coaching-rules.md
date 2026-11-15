@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-27 active rules, 9 planned rules, 38 sources. Last reviewed against the research: November 2026.
+30 active rules, 6 planned rules, 38 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -55,11 +55,11 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `training-with-pain` | Pain | Active | Limited evidence | Smith 2017 |
 | `pain-load-changes` | Pain | Planned | Limited evidence | Smith 2017 |
 | `dumbbell-conversion` | Equipment | Active | Moderate evidence | Saeterbakken 2011 |
-| `forecast-reps` | Strength projections | Planned | Limited evidence | Mitter 2022, Grgic 2020, Reynolds 2006, Mayhew 2008, Nuzzo 2024, Craven 2022 |
-| `forecast-session-length` | Strength projections | Planned | Coaching heuristic | none |
+| `forecast-reps` | Strength projections | Active | Limited evidence | Mitter 2022, Grgic 2020, Reynolds 2006, Mayhew 2008, Nuzzo 2024, Craven 2022 |
+| `forecast-session-length` | Strength projections | Active | Coaching heuristic | none |
 | `forecast-bodyweight` | Strength projections | Planned | Limited evidence | Schneditz 2023, Turicchi 2020, Hall 2011 |
 | `forecast-calibration` | Strength projections | Planned | Coaching heuristic | none |
-| `readiness-score` | Recovery and time off | Planned | Coaching heuristic | none |
+| `readiness-score` | Recovery and time off | Active | Coaching heuristic | none |
 
 ## Program and progression
 
@@ -449,9 +449,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How is the readiness score worked out?
 
 - **Rule id:** `readiness-score`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/readiness/weights.ts` (`READINESS_WEIGHTS`), `src/lib/readiness/score.ts` (`readinessScore`), `src/lib/readiness/usual.ts` (`readinessUsual`)
+- **Shown in:** `src/components/Today/ForecastTiles.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Readiness adds up sleep, stress, rest, recent activity and soreness
@@ -461,8 +462,6 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Why.** Each input is known to affect performance or recovery. Showing every input and its points lets you see why a day is rated the way it is. Measuring against your own usual keeps a habit, such as lifting on one rest day, from being counted again every day when your results already reflect it.
 
 **Limits.** The inputs are research-backed, but the points given to each are this app's own weighting and have not been tested. Soreness has no rule of its own, so its points rest on this rule alone.
-
-**Before this is switched on.** Switch on when the readiness screen ships.
 
 **Sources.** None: this is a coaching convention with no direct research.
 
@@ -648,7 +647,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `projection-rate-of-gain`
 - **Status:** Active
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`), `src/lib/forecast/horizon.ts` (`forecastE1RM`)
+- **Implemented in:** `src/lib/projection/coefficients.ts` (`PROJECTION_COEFFICIENTS`), `src/lib/forecast/horizon.ts` (`forecastE1RM`), `src/lib/forecast/coefficients.ts` (`E1RM_HORIZON_MODEL`)
 - **Shown in:** `src/components/Projection/HowItWorks.tsx`
 - **Reviewed:** November 2026
 
@@ -692,9 +691,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How does the app forecast reps on the last set?
 
 - **Rule id:** `forecast-reps`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/forecast/coefficients.ts` (`REPS_MODEL`), `src/lib/forecast/coefficients.ts` (`NEW_BEST_MODEL`), `src/lib/forecast/reps.ts` (`lastT1Sets`), `src/lib/forecast/reps.ts` (`estimateRepsLevel`), `src/lib/forecast/reps.ts` (`chanceOfAtLeast`), `src/lib/forecast/reps.ts` (`usualEffortCredit`), `src/lib/forecast/reps.ts` (`chanceOfNewBest`), `src/lib/forecast/reps.ts` (`forecastReps`), `src/lib/readiness/score.ts` (`readinessLevelShift`)
+- **Shown in:** `src/components/Today/ForecastTiles.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Last-set reps are forecast from your recent last sets and their scatter
@@ -704,8 +704,6 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Why.** A rep count at one weight and a different rep count at another describe the same strength, so recent sets at different weights can be pooled; estimates of a max from reps are most accurate from sets of fewer than 10 reps. Reps at a set weight change from day to day: trained lifters retested a week later typically did about one rep more or fewer (0.7 to 1.1 reps), so the forecast is a spread of rep counts, not one number. A night of short or lost sleep lowers strength a little, about 3% on average.
 
 **Limits.** The rep study tested only the bench press, in a lab, with fresh sets; a set at the end of a training session varies more, so the smallest scatter is a judgment set above that figure. A tested max varies by more (a median 4.2% between sessions) in studies that mixed beginners and older adults. The sleep figure comes mostly from whole nights without sleep; for one short night the studies found a smaller drop that was not statistically clear, and none measured a readiness score, so the size of the readiness shift is ours. The cutting shift, the starting values with no results, the extra scatter after a change and the bell-curve shape are this app's assumptions. So is the usual effort behind the new-best chance: no study covers how steadily a lifter rates a last set, and on a day you rate it harder or easier than usual that chance is off.
-
-**Before this is switched on.** Switch on when the active-set forecast and the track record screens ship.
 
 **Sources**
 
@@ -719,9 +717,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How does the app forecast how long a workout takes?
 
 - **Rule id:** `forecast-session-length`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/forecast/coefficients.ts` (`SESSION_LENGTH_MODEL`), `src/lib/forecast/sessionLength.ts` (`forecastSessionLength`), `src/lib/workout/duration.ts` (`estimateWorkoutSeconds`)
+- **Shown in:** `src/components/Today/ForecastTiles.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Session length comes from planned sets and rests, corrected by your history
@@ -731,8 +730,6 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Why.** Planned rest and set counts explain most of a session's length; the rest is personal pace, which your own history measures better than any average.
 
 **Limits.** No research covers this; the time per set and the starting range are this app's guesses, and the correction from your own sessions is what makes the forecast fit you.
-
-**Before this is switched on.** Switch on when Today shows the session forecast.
 
 **Sources.** None: this is a coaching convention with no direct research.
 
@@ -833,7 +830,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Moderate evidence
 - **Implemented in:** `src/lib/dbConversion.ts` (`barbellToDumbbell`), `src/lib/autoAdapt.ts` (`adaptExerciseForHome`)
-- **Shown in:** `src/app/workout/configure/page.tsx`
+- **Shown in:** `src/app/workout/configure/page.tsx`, `src/components/Lift/PrLine.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Dumbbell presses run about 17–20% lighter than the barbell
@@ -893,6 +890,9 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **15 November 2026** — `forecast-session-length` (How does the app forecast how long a workout takes?): Introduced: Today now shows how long the workout is expected to take, as a number of minutes with a range, from the planned sets and rests and corrected by how long your own sessions have run. Sources: .
+- **15 November 2026** — `forecast-reps` (How does the app forecast reps on the last set?): Introduced: Today now shows the chance that this workout sets a new best estimated max, worked out from your recent last sets and how much they vary. Sources: .
+- **15 November 2026** — `readiness-score` (How is the readiness score worked out?): Introduced: Today now shows a readiness score built from sleep, stress, rest, recent activity and soreness, measured against your own usual level. Sources: .
 - **15 November 2026** — `gzclp-progression` (Why does the weight go up, change stage or reset?): The deadlift and its home substitutes now count as lower-body lifts, so a pass adds the lower-body step. They had been adding the smaller upper-body step. Sources: .
 - **14 November 2026** — `off-program-credit` (Does a changed workout still count toward progression?): A lift done heavier than prescribed in every set now progresses from the heavier weight instead of the prescribed one. Missing reps at a heavier weight is not counted as a failure. Sources: .
 - **13 November 2026** — `t3-progression` (When does T3 weight go up?): T3 weight now goes up only when the last set reaches 25 reps, in every phase. Outside a cut it used to go up on 50 total reps as well; that route is removed. Sources: .
@@ -902,7 +902,7 @@ Changes made to the app because of research, newest first.
 - **12 November 2026** — `off-program-credit` (Does a changed workout still count toward progression?): You can now change a workout before starting it. Each lift you change says whether it still counts toward progression or is only logged, and a lift you skip keeps its weight. Sources: .
 - **12 November 2026** — `t3-progression` (When does T3 weight go up?): The T3 rule is now shown: each workout's page says whether its T3 lift went up (and why) or stays at the same weight, as of that workout. The rule itself is unchanged. Sources: .
 - **12 November 2026** — `gzclp-progression` (Why does the weight go up, change stage or reset?): Logged sessions can now be edited or deleted. Doing so re-runs progression from the log, so the next workout follows the corrected history; sessions logged later are kept as they were lifted. Sources: .
-- **12 November 2026** — `fatigue-detection` (How does the app spot built-up fatigue?): Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or AMRAP reps), and an easier week is offered as optional. Sources: .
+- **12 November 2026** — `fatigue-detection` (How does the app spot built-up fatigue?): Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or the reps on the last set, taken to as many as you can), and an easier week is offered as optional. Sources: .
 - **12 November 2026** — `fat-loss-stall` (What should I do when weight loss stalls?): Today now reports a weight-loss stall while cutting, but only after about three slow weeks, and suggests more daily steps before any cut in calories. Sources: .
 - **12 November 2026** — `projection-rate-of-gain` (Why does the projection curve flatten, and why is the range so wide?): Projections are more cautious: the range now includes how uncertain your rate of gain is (much wider from only a few results), horizons longer than your history are marked unreliable, and after a break the projection starts from your last result instead of extending the trend across the gap. Sources: .
 - **12 November 2026** — `projection-dose-response` (How much would more sets or sessions speed up my lift?): An alternative with no sets and no sessions of the lift no longer projects a gain. Sources: .
@@ -913,7 +913,7 @@ Changes made to the app because of research, newest first.
 - **11 November 2026** — `fat-loss-stall` (What should I do when weight loss stalls?): The stall check now averages several weigh-ins on one day into one, so a second weigh-in no longer shifts the weekly comparison. Sources: .
 - **11 November 2026** — `t3-progression` (When does T3 weight go up?): T3 weight now goes up by 5 lb after a fully completed T3 exercise whose last set reached 25 reps. The rule existed but was never applied, so T3 weight only changed when edited by hand. Sources: .
 - **11 November 2026** — `time-off` (Why lighter weights after a break?): A lift now counts as a long break after 21 days instead of 7, and suggested weight cuts after time off were reduced from 10–40% to 5–15%. Sources: Spiering 2021, Halonen 2024.
-- **11 November 2026** — `amrap-effort` (How hard should the last set be?): T1 AMRAP sets now ask you to stop about 1 rep short of failure in every phase, not only while cutting. Sources: Robinson 2024, Morán-Navarro 2017.
+- **11 November 2026** — `amrap-effort` (How hard should the last set be?): On a T1 lift, the last set, taken to as many reps as you can, now asks you to stop about 1 rep short of failure in every phase, not only while cutting. Sources: Robinson 2024, Morán-Navarro 2017.
 - **11 November 2026** — `e1rm-estimate` (How is my 1RM estimated?): Estimated 1RM now accounts for logged RPE and uses only T1 sets of 10 reps or fewer. The trend arrow was also corrected: it had been reading the history backwards. Sources: Nuzzo 2024, Halperin 2022.
 - **11 November 2026** — `rest-light` (Why 90 seconds after lighter sets?): Rest after T3 and accessory sets was raised from 60 to 90 seconds. Sources: Singer 2024.
 - **11 November 2026** — `run-interference` (Why does a recent run matter?): The strong run advisory now applies only within 6 hours of a hard run, and suggests a lighter T1 instead of resting. Sources: Robineau 2016, Markov 2021.

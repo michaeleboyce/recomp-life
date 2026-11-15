@@ -289,14 +289,22 @@ export function makeHorizonForecasts(source: ForecastSource, newId: () => string
     if (!forecast) continue;
     add("e1rm4w", exerciseId, forecast, {
       exerciseId,
-      event: { type: "e1rmLevel", windowDays: E1RM_HORIZON_MODEL.outcomeWindowDays },
+      event: {
+        type: "e1rmLevel",
+        windowDays: E1RM_HORIZON_MODEL.outcomeWindowDays,
+        minResults: E1RM_HORIZON_MODEL.minOutcomeResults,
+      },
     });
   }
 
   const bodyweight = forecastBodyweight(source);
   if (bodyweight) {
     add("bodyweight4w", BODYWEIGHT_SUBJECT, bodyweight, {
-      event: { type: "bodyweightMean", windowDays: BODYWEIGHT_MODEL.outcomeWindowDays },
+      event: {
+        type: "bodyweightMean",
+        windowDays: BODYWEIGHT_MODEL.outcomeWindowDays,
+        minResults: BODYWEIGHT_MODEL.minOutcomeEntries,
+      },
     });
   }
 

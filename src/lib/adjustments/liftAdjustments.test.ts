@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { isRuleId } from "@/lib/evidence";
 import { rebuildDerived } from "@/lib/rebuild";
 import { adjust, makeAdjustment, runSession, startSim, stateOf } from "@/lib/rebuild/testHelpers";
-import { liftAdjustmentEntries, undoAdjustment } from "./liftAdjustments";
+import { isStartEntry, liftAdjustmentEntries, undoAdjustment } from "./liftAdjustments";
 import { adjustFrom, feedInput } from "./testHelpers";
 
 const MINUTE = 60_000;
@@ -31,6 +31,14 @@ describe("liftAdjustmentEntries", () => {
     });
     expect(entries[0].undo).toBeUndefined();
     expect(entries[0].ruleId).toBeUndefined();
+  });
+
+  it("marks the starting-weights entry, and only that one, as a start", () => {
+    const sim = startSim();
+    const entries = entriesOf(feedInput(sim));
+    expect(entries.map(isStartEntry)).toEqual([true]);
+    expect(isStartEntry({ id: "progression:w1:squat:T1" })).toBe(false);
+    expect(isStartEntry({ id: "liftAdjustment:abc" })).toBe(false);
   });
 
   it("a change by hand shows the earlier and the new weight, cites nothing and can be undone", () => {

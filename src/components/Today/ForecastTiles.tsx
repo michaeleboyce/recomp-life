@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import type { PrChance } from "@/lib/projection";
 import type { TodayForecast } from "@/hooks";
 import { StatTile } from "@/components/ui/stat-tile";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
+import type { RuleId } from "@/lib/evidence";
 import { EYEBROW } from "./TodayHero";
 
 const CHANCE_WORD: Record<Exclude<PrChance, "unknown">, string> = {
@@ -21,6 +23,14 @@ interface Tile {
   accent?: boolean;
   sub: string;
   href?: string;
+  /** The coaching rule behind the figure. */
+  ruleId: RuleId;
+}
+
+/** `href` with `from=today` added, so the page it opens can come back to Today. */
+function fromToday(href: string): string {
+  if (/[?&]from=/.test(href)) return href;
+  return `${href}${href.includes("?") ? "&" : "?"}from=today`;
 }
 
 /** The tiles that have something to say; a part with no value gives no tile. */
@@ -30,6 +40,8 @@ export function forecastTiles(forecast: TodayForecast, newBestHref?: string): Ti
   if (session) {
     tiles.push({
       key: "session",
+      ruleId: "forecast-session-length",
+      href: "/progress/forecasts",
       label: "Session",
       value: `${session.minutes} min`,
       sub:
@@ -42,6 +54,7 @@ export function forecastTiles(forecast: TodayForecast, newBestHref?: string): Ti
     const known = newBest.probability !== null || newBest.chance !== "unknown";
     tiles.push({
       key: "new-best",
+      ruleId: "forecast-reps",
       label: "New best",
       value:
         newBest.probability !== null
@@ -57,12 +70,14 @@ export function forecastTiles(forecast: TodayForecast, newBestHref?: string): Ti
           ? // The count assumes the usual logged effort, which the estimate credits.
             `needs about ${newBest.repsNeeded} reps`
           : `needs ${newBest.repsNeeded}+ reps`,
-      href: newBestHref,
+      href: newBestHref ? fromToday(newBestHref) : undefined,
     });
   }
   if (readiness) {
     tiles.push({
       key: "readiness",
+      ruleId: "readiness-score",
+      href: "/readiness",
       label: "Readiness",
       value: String(Math.round(readiness.score)),
       sub: readiness.suggestSkippingAccessories ? "go lighter on extras" : "train as planned",
@@ -96,32 +111,41 @@ export function ForecastTiles({
       </h3>
       <div data-testid="forecast-tiles" className={cn("grid gap-2", COLUMNS[tiles.length])}>
         {tiles.map((tile) => (
-          <StatTile
-            key={tile.key}
-            href={tile.href}
-            className={cn(
-              "min-w-0 gap-px rounded-2xl px-[11px] py-[9px]",
-              // One tile: label and note on the left, the value large on the right.
-              single &&
-                "grid grid-cols-[1fr_auto] items-center gap-x-3 [&>*:nth-child(2)]:col-start-2 [&>*:nth-child(2)]:row-span-2 [&>*:nth-child(2)]:row-start-1"
-            )}
-            label={<span className="text-[11px] whitespace-nowrap">{tile.label}</span>}
-            value={
-              <span
-                data-testid={`forecast-${tile.key}`}
-                className={cn(
-                  "font-display leading-[1.05] font-extrabold whitespace-nowrap",
-                  tile.wordy ? "text-xl" : "text-2xl",
-                  tile.accent && "text-accent-primary"
-                )}
-              >
-                {tile.value}
-              </span>
-            }
-            delta={
-              <span className="block truncate text-[11px] text-muted-foreground">{tile.sub}</span>
-            }
-          />
+          // The icon sits beside the link, not inside it: no button inside an anchor.
+          <div key={tile.key} className="relative flex min-w-0 flex-col">
+            <StatTile
+              href={tile.href}
+              className={cn(
+                "min-w-0 flex-1 gap-px rounded-2xl px-[11px] py-[9px]",
+                // One tile: label and note on the left, the value large on the right.
+                single &&
+                  "grid grid-cols-[1fr_auto] items-center gap-x-3 pr-8 [&>*:nth-child(2)]:col-start-2 [&>*:nth-child(2)]:row-span-2 [&>*:nth-child(2)]:row-start-1"
+              )}
+              label={<span className="text-[11px] whitespace-nowrap">{tile.label}</span>}
+              value={
+                <span
+                  data-testid={`forecast-${tile.key}`}
+                  className={cn(
+                    "font-display leading-[1.05] font-extrabold whitespace-nowrap",
+                    tile.wordy ? "text-xl" : "text-2xl",
+                    tile.accent && "text-accent-primary"
+                  )}
+                >
+                  {tile.value}
+                </span>
+              }
+              delta={
+                <span className="block truncate text-[11px] text-muted-foreground">
+                  {tile.sub}
+                </span>
+              }
+            />
+            <EvidenceLine
+              ruleId={tile.ruleId}
+              variant="icon"
+              className="absolute top-1 right-1"
+            />
+          </div>
         ))}
       </div>
     </section>

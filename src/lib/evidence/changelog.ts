@@ -11,6 +11,27 @@ import type { SourceId } from "./sources";
 
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
+    date: "2026-11-15",
+    ruleId: "forecast-session-length",
+    change:
+      "Introduced: Today now shows how long the workout is expected to take, as a number of minutes with a range, from the planned sets and rests and corrected by how long your own sessions have run.",
+    sources: [],
+  },
+  {
+    date: "2026-11-15",
+    ruleId: "forecast-reps",
+    change:
+      "Introduced: Today now shows the chance that this workout sets a new best estimated max, worked out from your recent last sets and how much they vary.",
+    sources: [],
+  },
+  {
+    date: "2026-11-15",
+    ruleId: "readiness-score",
+    change:
+      "Introduced: Today now shows a readiness score built from sleep, stress, rest, recent activity and soreness, measured against your own usual level.",
+    sources: [],
+  },
+  {
     date: "2026-11-14",
     ruleId: "off-program-credit",
     change:
@@ -49,7 +70,7 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     date: "2026-11-12",
     ruleId: "fatigue-detection",
     change:
-      "Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or AMRAP reps), and an easier week is offered as optional.",
+      "Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or the reps on the last set, taken to as many as you can), and an easier week is offered as optional.",
     sources: [],
   },
   {
@@ -126,7 +147,7 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     date: "2026-11-11",
     ruleId: "amrap-effort",
     change:
-      "T1 AMRAP sets now ask you to stop about 1 rep short of failure in every phase, not only while cutting.",
+      "On a T1 lift, the last set, taken to as many reps as you can, now asks you to stop about 1 rep short of failure in every phase, not only while cutting.",
     sources: ["robinson2024", "moranNavarro2017"],
   },
   {

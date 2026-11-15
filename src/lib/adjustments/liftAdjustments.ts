@@ -2,7 +2,7 @@
 // starting weights, a change by hand, a reduction after time off, an import. An
 // adjustment only records the new values, so the earlier ones are read by replaying
 // the adjustments over the rebuild's snapshots. Pure.
-import { MAIN_LIFTS } from "@/components/Progress/lifts";
+import { MAIN_LIFTS } from "@/lib/liftNames";
 import type { RuleId } from "@/lib/evidence";
 import { emptyLiftState } from "@/lib/rebuild";
 import type {
@@ -295,6 +295,17 @@ function describeRow(row: Replayed): Pick<AdjustmentEntry, "title" | "change"> &
   };
 }
 
+/**
+ * Id prefix of the entry for starting weights. Those rows are dated 1970-01-01 in the
+ * data, so the entry's date means nothing; screens use `isStartEntry` to say so.
+ */
+export const START_ENTRY_ID_PREFIX = "liftAdjustment:start:";
+
+/** Whether `entry` is the starting-weights entry, whose date is a placeholder. */
+export function isStartEntry(entry: Pick<AdjustmentEntry, "id">): boolean {
+  return entry.id.startsWith(START_ENTRY_ID_PREFIX);
+}
+
 /** Starting weights set at the same moment, as one entry. */
 function startEntry(rows: Replayed[]): AdjustmentEntry {
   const order = (exerciseId: string) => {
@@ -314,7 +325,7 @@ function startEntry(rows: Replayed[]): AdjustmentEntry {
       ? `Heavy sets start at ${joinList(heavy)}.`
       : `Starting weights for ${joinList(rows.map((row) => liftShort(row.adjustment.exerciseId)))}.`;
   return {
-    id: `liftAdjustment:start:${rows[0].at.getTime()}`,
+    id: `${START_ENTRY_ID_PREFIX}${rows[0].at.getTime()}`,
     at: rows[0].at,
     source: "liftAdjustment",
     title: "Starting weights set",

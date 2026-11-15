@@ -113,7 +113,10 @@ export const SESSION_LENGTH_MODEL = {
   sdFloorFraction: 0.05,
 } as const;
 
-/** Estimated max a few weeks ahead, from the lift's projection (`projectE1RM`). */
+/**
+ * Estimated max a few weeks ahead, from the lift's projection (`projectE1RM`).
+ * @evidence projection-rate-of-gain
+ */
 export const E1RM_HORIZON_MODEL = {
   horizonWeeks: 4,
   /** Results within this many days of the due date are averaged as the outcome. */

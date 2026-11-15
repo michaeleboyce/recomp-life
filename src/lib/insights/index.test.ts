@@ -235,7 +235,7 @@ describe("weigh-in-due", () => {
         severity: "action",
         title: "Log today's weight",
         body: "No weight logged today. Last entry: 226.4 lbs, 2 days ago.",
-        action: { label: "Log weight", href: "/weigh-in" },
+        action: { label: "Log weight", href: "/weigh-in?from=today" },
       },
     ]);
   });
@@ -536,7 +536,7 @@ describe("pain-check", () => {
         title: "Is your left knee pain still there?",
         body: "You logged it 9 days ago (severity 2 of 5). Mark it resolved if it has cleared, or keep it if not.",
         evidenceId: "training-with-pain",
-        action: { label: "Review", href: "/body-check" },
+        action: { label: "Review", href: "/body-check?from=today" },
       },
     ]);
   });

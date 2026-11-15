@@ -119,6 +119,8 @@ export interface ForecastEvent {
   level?: number;
   /** Days either side of `dueAt` that count as the measurement window. */
   windowDays?: number;
+  /** Fewest measurements in the window for a horizon outcome to be scored, fixed when the forecast was made. */
+  minResults?: number;
 }
 
 export interface ForecastPrediction {

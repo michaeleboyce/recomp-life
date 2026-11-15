@@ -6,11 +6,11 @@ import { READINESS_WEIGHTS as W, formatPoints } from "./weights";
 describe("the readiness-score rule", () => {
   const rule = getRule("readiness-score");
 
-  it("stays planned, heuristic and unsourced until the screen ships", () => {
-    expect(rule.status).toBe("planned");
+  it("is active, heuristic and unsourced, and shown on the forecast tiles", () => {
+    expect(rule.status).toBe("active");
     expect(rule.strength).toBe("heuristic");
     expect(rule.sources).toEqual([]);
-    expect(rule.surfaces).toEqual([]);
+    expect(rule.surfaces).toEqual(["src/components/Today/ForecastTiles.tsx"]);
   });
 
   it("states the real points, read from READINESS_WEIGHTS", () => {

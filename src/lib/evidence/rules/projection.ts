@@ -59,7 +59,11 @@ export const PROJECTION_RULES = {
     strength: "limited",
     sources: ["steele2023", "latella2020", "grgic2020", "nuzzo2024"],
     reviewedOn: "2026-11",
-    implementedIn: [...IMPLEMENTED, "src/lib/forecast/horizon.ts#forecastE1RM"],
+    implementedIn: [
+      ...IMPLEMENTED,
+      "src/lib/forecast/horizon.ts#forecastE1RM",
+      "src/lib/forecast/coefficients.ts#E1RM_HORIZON_MODEL",
+    ],
     surfaces: SURFACES,
   },
   "projection-energy-deficit": {
