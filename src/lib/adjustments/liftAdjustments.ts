@@ -2,7 +2,7 @@
 // starting weights, a change by hand, a reduction after time off, an import. An
 // adjustment only records the new values, so the earlier ones are read by replaying
 // the adjustments over the rebuild's snapshots. Pure.
-import { MAIN_LIFTS } from "@/components/Progress/lifts";
+import { MAIN_LIFTS } from "@/lib/liftNames";
 import type { RuleId } from "@/lib/evidence";
 import { emptyLiftState } from "@/lib/rebuild";
 import type {

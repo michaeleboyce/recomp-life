@@ -1,6 +1,6 @@
 // Wording and link helpers for the adjustment log. Plain language: "last set", never
 // "AMRAP"; weights are bare numbers in lbs, as in the rest of the app's titles. Pure.
-import { formatStage, isMainLift, LIFT_NAMES } from "@/components/Progress/lifts";
+import { formatStage, isMainLift, LIFT_NAMES } from "@/lib/liftNames";
 import { isRuleId, type RuleId } from "@/lib/evidence";
 import { EXERCISES } from "@/lib/exercises";
 import { formatNumber } from "@/lib/metrics/helpers";
