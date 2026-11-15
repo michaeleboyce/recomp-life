@@ -32,7 +32,14 @@ import type {
 } from "@/types";
 import { findLastSession, findWeightAdjustment } from "./history";
 import { applySteps } from "./replay";
-import { homeSteps, prescribedTarget, yourChangeStep, YOUR_CHANGE_RULE } from "./substitute";
+import {
+  dumbbellLimitAtHome,
+  dumbbellLimitText,
+  homeSteps,
+  prescribedTarget,
+  yourChangeStep,
+  YOUR_CHANGE_RULE,
+} from "./substitute";
 import { change, joinList, num, regionWords, shortDay, stageWords, step } from "./text";
 import type { LastSession, PlanEntry, TraceContext } from "./types";
 
@@ -290,21 +297,36 @@ function plateSteps(entry: PlanEntry, weight: number, context: TraceContext): Tr
 // Weight
 // ---------------------------------------------------------------------------
 
-/** One step lighter, the plan, one step heavier. */
-function weightAlternatives(entry: PlanEntry, context: TraceContext): TraceAlternative[] {
+/** The step between the alternatives: the dumbbell step for a home substitute, else the lift's own. */
+function alternativeStep(entry: PlanEntry, context: TraceContext): number {
   const substitute = entry.substituteExerciseId ? EXERCISES[entry.substituteExerciseId] : undefined;
-  const increment =
-    substitute?.type === "dumbbell"
-      ? context.equipment.dumbbellIncrementLbs
-      : entry.tier === "T1" || entry.tier === "T2"
-        ? getIncrement(liftTypeOf(entry.exerciseId), context.location, context.equipment)
-        : T3_INCREMENT_LBS;
+  return substitute?.type === "dumbbell"
+    ? context.equipment.dumbbellIncrementLbs
+    : entry.tier === "T1" || entry.tier === "T2"
+      ? getIncrement(liftTypeOf(entry.exerciseId), context.location, context.equipment)
+      : T3_INCREMENT_LBS;
+}
+
+/**
+ * One step lighter, the plan, one step heavier. At home with dumbbells the heavier
+ * choice is what the dumbbells can load: it stops at the heaviest dumbbell, and there
+ * is none when the plan is already there (`dumbbellLimitAtHome`; the dumbbell step
+ * says so).
+ */
+function weightAlternatives(entry: PlanEntry, context: TraceContext): TraceAlternative[] {
+  const increment = alternativeStep(entry, context);
   const options: TraceAlternative[] = [];
   if (increment > 0 && entry.weight - increment > 0) {
     options.push({ label: "easier", value: entry.weight - increment });
   }
   options.push({ label: "the plan", value: entry.weight });
-  if (increment > 0) options.push({ label: "harder", value: entry.weight + increment });
+  if (increment > 0) {
+    const limit = dumbbellLimitAtHome(entry, increment, context);
+    if (!limit) options.push({ label: "harder", value: entry.weight + increment });
+    else if (limit.heaviest > entry.weight) {
+      options.push({ label: "harder", value: limit.heaviest, note: "heaviest dumbbell" });
+    }
+  }
   return options;
 }
 
@@ -477,6 +499,21 @@ export function explainPrescription(
   steps.push(readinessStep(context), painStep(entry, context), phaseStep(entry, context));
   steps.push(...plateSteps(entry, programWeight, context));
   steps.push(...homeSteps(entry, programWeight, context));
+  // A dumbbell lift done as itself at home has no conversion step to say it.
+  const limit = entry.substituteExerciseId
+    ? null
+    : dumbbellLimitAtHome(entry, alternativeStep(entry, context), context);
+  if (limit) {
+    steps.push(
+      step(
+        "dumbbell-limit",
+        "Heaviest dumbbell",
+        dumbbellLimitText(limit, entry.weight).trim(),
+        "none",
+        "lb"
+      )
+    );
+  }
   steps.push(...yourChangeStep(steps, entry, prescribed ?? []));
 
   return {

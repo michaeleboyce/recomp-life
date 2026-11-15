@@ -415,7 +415,7 @@ describe("explainPrescription: at home", () => {
     });
     expect(squat.steps.at(-1)).toMatchObject({
       detail:
-        "Goblet Squat would need more than your heaviest dumbbell, so Bulgarian Split Squat stands in: 80% of 200 split between two hands, rounded to 5, is 80 per hand.",
+        "Goblet Squat would need more than your heaviest dumbbell, so Bulgarian Split Squat stands in: 80% of 200 split between two hands, rounded to 5, is 80 per hand. One step heavier would need 85, more than your heaviest dumbbell (80), so nothing heavier is offered.",
       effect: { op: "set", value: 80, unit: "lb" },
     });
     expect(replayTrace(squat)).toBe(80);
@@ -431,10 +431,74 @@ describe("explainPrescription: at home", () => {
     expect(entry("squat", "T1")).toMatchObject({ substituteExerciseId: "goblet_squat", weight: max });
     const squat = weight("squat", "T1");
     expect(squat.steps.at(-1)).toMatchObject({
-      detail: `Goblet Squat: 80% of 260 in one dumbbell, rounded to 5, is 210. Your heaviest dumbbell is ${max}, so it stops there.`,
+      detail: `Goblet Squat: 80% of 260 in one dumbbell, rounded to 5, is 210. Your heaviest dumbbell is ${max}, so it stops there and nothing heavier is offered.`,
       effect: { op: "set", value: max, unit: "lb" },
     });
     expect(replayTrace(squat)).toBe(max);
+    expect(squat.alternatives!.map((a) => a.label)).toEqual(["easier", "the plan"]);
+  });
+
+  it("offers nothing heavier than your heaviest dumbbell, and says why", () => {
+    const sim = simOf({});
+    const { weight, entry } = next(sim, { location: "home" });
+    const max = sim.settings.equipment.maxDumbbellWeight;
+    // Bulgarian split squat at 80 per hand, and the heaviest dumbbell is 80.
+    expect(entry("squat", "T1")).toMatchObject({ substituteExerciseId: "bulgarian_split_squat", weight: max });
+    const squat = weight("squat", "T1");
+    expect(squat.alternatives).toEqual([
+      { label: "easier", value: max - sim.settings.equipment.dumbbellIncrementLbs },
+      { label: "the plan", value: max },
+    ]);
+    expect(squat.steps.at(-1)!.detail).toMatch(
+      new RegExp(`One step heavier would need ${max + 5}, more than your heaviest dumbbell \\(${max}\\), so nothing heavier is offered\\.$`)
+    );
+    expect(replayTrace(squat)).toBe(max);
+
+    // Where the next step fits, it is offered as before.
+    const bench = weight("bench", "T2");
+    expect(bench.alternatives!.map((a) => a.value)).toEqual([35, 40, 45]);
+    expect(bench.steps.at(-1)!.detail).not.toMatch(/heavier/);
+  });
+
+  it("stops the heavier choice at your heaviest dumbbell when a step would pass it", () => {
+    const sim = simOf({});
+    const heavy = { ...sim.settings.equipment, maxDumbbellWeight: 42.5 };
+    const { weight } = next({ ...sim, settings: { ...sim.settings, equipment: heavy } }, { location: "home" });
+    const bench = weight("bench", "T2");
+    expect(bench.result).toBe(40);
+    expect(bench.alternatives).toEqual([
+      { label: "easier", value: 35 },
+      { label: "the plan", value: 40 },
+      { label: "harder", value: 42.5, note: "heaviest dumbbell" },
+    ]);
+    expect(bench.steps.at(-1)!.detail).toMatch(
+      /One step heavier would need 45, more than your heaviest dumbbell \(42\.5\), so the heavier choice stops at 42\.5\.$/
+    );
+  });
+
+  it("holds a dumbbell lift done as itself at home to the heaviest dumbbell too, with a step that says so", () => {
+    const sim = startSim();
+    const light = { ...sim.settings.equipment, maxDumbbellWeight: 35 };
+    const { weight } = next({ ...sim, settings: { ...sim.settings, equipment: light } }, {
+      templateId: "B1",
+      location: "home",
+    });
+    const row = weight("db_row", "T3");
+    expect(row.result).toBe(35);
+    expect(row.alternatives).toEqual([
+      { label: "easier", value: 30 },
+      { label: "the plan", value: 35 },
+    ]);
+    expect(byId(row, "dumbbell-limit")).toEqual({
+      id: "dumbbell-limit",
+      title: "Heaviest dumbbell",
+      detail: "One step heavier would need 40, more than your heaviest dumbbell (35), so nothing heavier is offered.",
+      effect: { op: "none", unit: "lb" },
+    });
+    expect(replayTrace(row)).toBe(35);
+    // At the gym the dumbbells at home do not matter.
+    const gym = next({ ...sim, settings: { ...sim.settings, equipment: light } }, { templateId: "B1" });
+    expect(ids(gym.weight("db_row", "T3"))).not.toContain("dumbbell-limit");
   });
 
   it("a pass at home last time is named as the dumbbell step", () => {
