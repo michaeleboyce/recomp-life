@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Plus, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ExerciseImage } from "@/components/ui/exercise-image";
 import { SectionHeader } from "@/components/ui/section-header";
 import { TierBadge } from "@/components/ui/tier-badge";
 import { cn } from "@/lib/utils";
@@ -86,11 +87,12 @@ export function ExerciseSets({
 }) {
   const name = liftName(group.exerciseId);
   return (
-    <section aria-label={name} className="flex flex-col gap-1">
+    <section aria-label={name} className="flex flex-col gap-1.5">
       <SectionHeader
         as="h3"
         title={
           <span className="inline-flex items-center gap-2 normal-case">
+            <ExerciseImage exerciseId={group.exerciseId} variant="thumb" className="size-9 rounded-lg" />
             <span className="text-sm text-foreground">{name}</span>
             {group.tiers.map((tier) => (
               <TierBadge key={tier} tier={tier} />
