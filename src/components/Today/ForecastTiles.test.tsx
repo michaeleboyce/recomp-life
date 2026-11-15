@@ -13,7 +13,14 @@ const readiness = {
 
 const full: TodayForecast = {
   session: { minutes: 46, low: 41, high: 52 },
-  newBest: { probability: 0.58, chance: "likely", repsNeeded: 5, estimate: 251, best: 248 },
+  newBest: {
+    probability: 0.58,
+    chance: "likely",
+    repsNeeded: 5,
+    approximate: false,
+    estimate: 251,
+    best: 248,
+  },
   readiness,
 };
 
@@ -26,10 +33,26 @@ describe("forecastTiles", () => {
     ]);
   });
 
+  it("says the reps are about, not exact, when they depend on the effort you log", () => {
+    // The estimate credits a logged effort, so the count assumes the usual one.
+    const tiles = forecastTiles({
+      ...full,
+      newBest: { ...full.newBest!, repsNeeded: 4, approximate: true },
+    });
+    expect(tiles[1].sub).toBe("needs about 4 reps");
+  });
+
   it("never invents a number: no range, no probability or no history say so in words", () => {
     const tiles = forecastTiles({
       session: { minutes: 45 },
-      newBest: { probability: null, chance: "stretch", repsNeeded: 6, estimate: 251, best: 248 },
+      newBest: {
+        probability: null,
+        chance: "stretch",
+        repsNeeded: 6,
+        approximate: false,
+        estimate: 251,
+        best: 248,
+      },
       readiness: null,
     });
     expect(tiles.map((t) => [t.value, t.sub])).toEqual([
@@ -38,7 +61,14 @@ describe("forecastTiles", () => {
     ]);
     const unknown = forecastTiles({
       session: null,
-      newBest: { probability: null, chance: "unknown", repsNeeded: 6, estimate: 251, best: 248.4 },
+      newBest: {
+        probability: null,
+        chance: "unknown",
+        repsNeeded: 6,
+        approximate: false,
+        estimate: 251,
+        best: 248.4,
+      },
       readiness: null,
     });
     expect(unknown.map((t) => [t.value, t.sub])).toEqual([["6+ reps", "beats 248"]]);

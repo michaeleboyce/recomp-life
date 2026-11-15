@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
+import { repsToBeat } from "@/lib/projection/prOpportunity";
 import type { Forecast, WorkoutSession } from "@/types";
 import { CALIBRATION } from "./coefficients";
 import { toMs } from "./log";
@@ -53,9 +54,10 @@ describe("replay of the demo history", () => {
     // Always saying 50% scores a mean squared gap of 0.25.
     expect(replay.record.byKind.liftPass!.chances.brier!).toBeLessThan(0.25);
     expect(replay.record.byKind.newBest!.chances.brier!).toBeLessThan(0.25);
-    // New bests happened about as often as the stated chances said.
-    const best = replay.record.byKind.newBest!.chances;
-    expect(Math.abs(best.meanStated! - best.observed!)).toBeLessThan(0.1);
+    // Whether new bests happen as often as stated cannot be judged here: the demo has
+    // about 15 resolved new-best forecasts, and with 15 a perfectly stated chance is
+    // still off by 13 points one time in three. The simulated lifters below check it.
+    expect(replay.record.byKind.newBest!.chances.n).toBeLessThan(30);
   });
 
   it("is not biased, with or without a result behind the lift", () => {
@@ -203,20 +205,25 @@ describe("no forecast sees what came after it", () => {
 // varies and are left out. The population was fixed before the figures were looked at.
 // Do not widen these bands or pick other lifters to get a pass: a figure outside them
 // says the ranges are sized wrongly.
-describe("ranges hold what they say, pooled over simulated lifters", () => {
-  const STARTS_OVER_TARGET = [3, 5, 7];
-  const WEEKLY_GAINS = [0.01, 0.02];
-  const DAILY_VARIATION = 0.025;
+const STARTS_OVER_TARGET = [3, 5, 7];
+const WEEKLY_GAINS = [0.01, 0.02];
+const DAILY_VARIATION = 0.025;
 
+/** Lifter `seed` (1 to 12) of the calibration population. `rpe` is the effort they log. */
+const calibrationLifter = (seed: number, rpe?: number) =>
+  simulateLifter({
+    seed,
+    sessions: 64,
+    noise: DAILY_VARIATION,
+    weeklyGain: WEEKLY_GAINS[seed % WEEKLY_GAINS.length],
+    headroomReps: STARTS_OVER_TARGET[seed % STARTS_OVER_TARGET.length],
+    rpe,
+  });
+
+describe("ranges hold what they say, pooled over simulated lifters", () => {
   const pool: ScoredForecast[] = [];
   for (let seed = 1; seed <= 12; seed++) {
-    const input = simulateLifter({
-      seed,
-      sessions: 64,
-      noise: DAILY_VARIATION,
-      weeklyGain: WEEKLY_GAINS[seed % WEEKLY_GAINS.length],
-      headroomReps: STARTS_OVER_TARGET[seed % STARTS_OVER_TARGET.length],
-    });
+    const input = calibrationLifter(seed);
     pool.push(
       ...replayForecasts(input).scored.filter(
         (item) => item.forecast.kind === "amrapReps" || item.forecast.kind === "e1rm4w"
@@ -241,6 +248,73 @@ describe("ranges hold what they say, pooled over simulated lifters", () => {
   it("holds between 72% and 90% for forecasts built on a trend", () => {
     expect(onATrend.share!).toBeGreaterThanOrEqual(0.72);
     expect(onATrend.share!).toBeLessThanOrEqual(0.9);
+  });
+});
+
+// The new best is scored as the app shows it: the workout's estimated max, with the
+// credit for a logged effort, above the best that stood before. The same calibration
+// population as above, once logging no effort and once each logging every last set as
+// one, two or three reps short of all-out (RPE 9, 8, 7). Judged where the model has a
+// level to stand on: a trend, or one to three results.
+describe("new-best chances match the app's new bests, pooled over simulated lifters", () => {
+  const EFFORTS = [undefined, 9, 8, 7];
+  const pools = EFFORTS.map((rpe) => {
+    const inputs = Array.from({ length: 12 }, (_, i) => calibrationLifter(i + 1, rpe));
+    const scored = inputs.flatMap((input) =>
+      replayForecasts(input, { horizon: false }).scored.map((item) => ({ ...item, input }))
+    );
+    return { rpe, newBest: scored.filter((item) => item.forecast.kind === "newBest") };
+  });
+  const gap = (items: ScoredForecast[]) => {
+    const { chances } = summarize(items);
+    return Math.abs(chances.meanStated! - chances.observed!);
+  };
+
+  it("credits the effort the lifter logs, and none when none is logged", () => {
+    for (const { rpe, newBest } of pools) {
+      const credit = rpe === undefined ? 0 : 10 - rpe;
+      expect(newBest.length).toBeGreaterThan(500);
+      for (const { forecast } of newBest) expect(forecast.inputs.effortCredit).toBe(credit);
+    }
+  });
+
+  it("states chances within 10 points of how often a new best was set, whatever effort is logged", () => {
+    for (const { rpe, newBest } of pools) {
+      for (const basis of ["trend", "persistence"]) {
+        const items = newBest.filter((item) => item.forecast.basis === basis);
+        expect(summarize(items).chances.n, `${basis} at ${rpe}`).toBeGreaterThanOrEqual(250);
+        expect(gap(items), `${basis} at ${rpe}`).toBeLessThan(0.1);
+      }
+    }
+  });
+
+  it("is as well stated with an effort logged as without", () => {
+    const plain = gap(pools[0].newBest);
+    for (const { rpe, newBest } of pools.slice(1)) {
+      expect(Math.abs(gap(newBest) - plain), `at ${rpe}`).toBeLessThan(0.05);
+    }
+  });
+
+  it("would be far off if it were scored on logged reps alone", () => {
+    // Lifters logging two reps short of all-out. The best to beat already holds that
+    // credit, so counting only logged reps (the event as it was first built) finds far
+    // fewer new bests than the app shows.
+    const { newBest } = pools[EFFORTS.indexOf(8)];
+    let shown = 0;
+    let onLoggedReps = 0;
+    let resolved = 0;
+    for (const { forecast, status, input } of newBest) {
+      if (status.state !== "resolved") continue;
+      resolved += 1;
+      const workout = input.workouts.find((w) => w.id === forecast.workoutId)!;
+      const last = workout.sets.filter((set) => set.tier === "T1" && set.isAMRAP).at(-1)!;
+      const allOut = repsToBeat(forecast.event.weight!, forecast.event.level!);
+      if (status.hit) shown += 1;
+      if (allOut && last.actualReps >= allOut.reps) onLoggedReps += 1;
+    }
+    expect(resolved).toBeGreaterThan(500);
+    expect(shown / resolved).toBeGreaterThan(0.4);
+    expect(onLoggedReps / resolved).toBeLessThan(0.2);
   });
 });
 

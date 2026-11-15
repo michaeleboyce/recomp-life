@@ -3,6 +3,7 @@
 // A forecast row holds the prediction and the event it is about; nothing here is ever
 // written back. Editing, deleting or restoring a workout therefore changes the status
 // the next time it is read, and no device can overwrite another's outcome.
+import { isNewPR } from "@/lib/e1rm";
 import { e1rmsForWorkout } from "@/lib/rebuild/e1rm";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
 import type { Forecast, ForecastKind, ForecastStatus, SetLog, WorkoutSession } from "@/types";
@@ -58,7 +59,7 @@ function finishedWorkout(forecast: Forecast, log: ForecastLog): WorkoutSession |
 function lastSetResult(
   forecast: Forecast,
   log: ForecastLog
-): { last: SetLog; sets: SetLog[] } | ForecastStatus {
+): { workout: WorkoutSession; last: SetLog; sets: SetLog[] } | ForecastStatus {
   const workout = finishedWorkout(forecast, log);
   if (isStatus(workout)) return workout;
   if (!forecast.exerciseId) return voided("not-scorable");
@@ -75,7 +76,7 @@ function lastSetResult(
   ) {
     return voided("weight-changed");
   }
-  return { last, sets };
+  return { workout, last, sets };
 }
 
 /** Whether `value` is inside the stored range; undefined when the row has no range. */
@@ -95,14 +96,25 @@ const resolveAmrapReps: ForecastResolver = (forecast, log) => {
   return { state: "resolved", value, inside: insideRange(forecast, value, openTop) };
 };
 
-/** Whether the reps logged on the last set reached the count the forecast names. */
+/**
+ * Whether the workout set a new best estimated max for the lift, as the app itself
+ * shows one: the best of the rows the app keeps for the workout (`e1rmsForWorkout`:
+ * a last set of 2 to 10 reps of the lift itself, with the credit for a logged effort)
+ * is a new best (`isNewPR`) against `event.level`, the best that stood when the
+ * forecast was made. The value is the workout's estimated max, or 0 when its last set
+ * gave none (too long or too short), which is a miss: the app shows no new best.
+ */
 const resolveNewBest: ForecastResolver = (forecast, log) => {
   const result = lastSetResult(forecast, log);
   if (isStatus(result)) return result;
-  const needed = forecast.event.reps;
-  if (typeof needed !== "number") return voided("not-scorable");
-  const value = result.last.actualReps;
-  return { state: "resolved", value, hit: value >= needed };
+  const level = forecast.event.level;
+  if (typeof level !== "number") return voided("not-scorable");
+  const estimates = e1rmsForWorkout(result.workout)
+    .filter((row) => row.exerciseId === forecast.exerciseId)
+    .map((row) => row.estimated1RM);
+  if (estimates.length === 0) return { state: "resolved", value: 0, hit: false };
+  const value = Math.max(...estimates);
+  return { state: "resolved", value, hit: isNewPR(value, [level]) };
 };
 
 /**

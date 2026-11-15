@@ -42,6 +42,7 @@ import type {
   LiftAdjustment,
   LiftState,
   PainSorenessEntry,
+  PrescribedEntry,
   ReadinessLog,
   ReadinessScore,
   RunLog,
@@ -235,8 +236,10 @@ export function forecastSourceFrom(
 
 /**
  * What the explain functions read at `now`. `liftStates` must be the ones the plan
- * being explained was built from. The outcomes of past workouts come from a rebuild
- * of the log, the same one that produces the lift states.
+ * being explained was built from, and `prescribed` what the program prescribed for
+ * that plan's session: it decides what a weight the user set does to a lift. The
+ * outcomes of past workouts come from a rebuild of the log, the same one that
+ * produces the lift states.
  */
 export function traceContextFrom(
   records: LedgerRecords,
@@ -244,6 +247,7 @@ export function traceContextFrom(
     now: Date;
     location: WorkoutLocation;
     liftStates: LiftState[];
+    prescribed?: PrescribedEntry[];
     readiness?: TraceReadiness;
   }
 ): TraceContext {
@@ -259,6 +263,7 @@ export function traceContextFrom(
     equipment: settings.equipment,
     phase: settings.trainingPhase,
     liftStates: input.liftStates,
+    ...(input.prescribed ? { prescribed: input.prescribed } : {}),
     history: { workouts: records.workouts, outcomes, adjustments: records.liftAdjustments },
     painEntries: live(records.painEntries),
     ...(input.readiness ? { readiness: input.readiness } : {}),
@@ -402,6 +407,7 @@ export function sessionStartInputs(
     now,
     location: session.location,
     liftStates,
+    prescribed: session.prescribed,
     readiness: {
       ...(answers ? { sleepHours: answers.sleepHours, stressLevel: answers.stressLevel } : {}),
       ...(readiness ? { score: readiness.score } : {}),

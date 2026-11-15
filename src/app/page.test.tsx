@@ -1,7 +1,21 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+
+// A switch that makes the forecast models throw, to show Today still renders.
+const broken = vi.hoisted(() => ({ models: false }));
+vi.mock("@/lib/forecast", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/forecast")>();
+  return {
+    ...actual,
+    makeSessionForecasts: (...args: Parameters<typeof actual.makeSessionForecasts>) => {
+      if (broken.models) throw new Error("model bug");
+      return actual.makeSessionForecasts(...args);
+    },
+  };
+});
+
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb, makeProfile, makeWorkout } from "@/lib/data/testUtils";
@@ -28,8 +42,30 @@ vi.mock("next/navigation", () => ({
 const HOUR = 60 * 60 * 1000;
 
 beforeEach(clearDb);
+afterEach(() => {
+  broken.models = false;
+  vi.restoreAllMocks();
+});
 
 describe("Today page", () => {
+  it("keeps its Start button when the forecast cannot be worked out", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    broken.models = true;
+    await initializeDatabase();
+    render(<TodayPage />);
+    expect(await screen.findByText("Next up · A1")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Start workout" })).toHaveAttribute(
+      "href",
+      "/workout/configure"
+    );
+    await waitFor(() =>
+      expect(error).toHaveBeenCalledWith(expect.stringMatching(/forecast/i), expect.any(Error))
+    );
+    // No tile is shown for a forecast that could not be made.
+    expect(screen.queryByTestId("forecast-tiles")).toBeNull();
+    expect(screen.getByRole("link", { name: "Start workout" })).toBeInTheDocument();
+  });
+
   it("renders for an empty database: header, first workout, no attention section", async () => {
     render(<TodayPage />);
     expect(screen.getByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();

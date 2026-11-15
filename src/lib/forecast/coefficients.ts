@@ -74,6 +74,31 @@ export const REPS_MODEL = {
 } as const;
 
 /**
+ * The chance of a new best estimated max, read from the reps spread.
+ * @evidence forecast-reps
+ */
+export const NEW_BEST_MODEL = {
+  /**
+   * How many of the lift's most recent last sets give the lifter's usual effort credit.
+   *
+   * Reasoning: the app's estimated max adds the reps a logged effort says were left
+   * (10 minus the RPE, up to 4) before the formula is applied, so six reps logged as
+   * RPE 8 count as eight. Whether a workout sets a new best therefore depends on the
+   * effort logged with the last set as well as on its reps. The reps model forecasts
+   * logged reps only, so the new-best chance assumes today's last set gets the
+   * lifter's usual credit: the middle value of the credits of their latest five last
+   * sets of the lift, a set with no logged effort counting as none. A lifter who never
+   * logs an effort gets no credit; one who logs RPE 8 on most last sets needs two
+   * fewer reps. Five is the window the app already uses for "your recent last sets"
+   * (PR_CHANCE_RECENT_SETS). Grade: heuristic. No study covers how steadily a lifter
+   * rates the last set, and the model treats the credit as fixed for the day and
+   * unrelated to the reps, so on a day rated harder or easier than usual the stated
+   * chance is off by the difference.
+   */
+  effortCreditRecentSets: 5,
+} as const;
+
+/**
  * Session length from planned sets and rests, corrected by past sessions.
  * @evidence forecast-session-length
  */

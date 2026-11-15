@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
+import { E1RM_MAX_REPS } from "@/lib/e1rm";
 import { repsToBeat } from "@/lib/projection/prOpportunity";
 import { makeEntry, makeSession } from "@/lib/workout/testFixtures";
 import type { WorkoutPlan } from "@/lib/workout/types";
@@ -123,15 +124,44 @@ describe("makeSessionForecasts", () => {
     });
   });
 
-  it("states the new-best event as raw reps at the weight", () => {
+  it("states the new-best event as the estimated max to beat, at the weight", () => {
+    // The best that stood when the forecast was made is on the event itself.
+    expect(kinds.newBest.event).toEqual({ type: "e1rmAbove", weight: 225, level: 255 });
+    // No effort was logged on the earlier last sets, so the chance is the stored
+    // spread from the all-out reps needed up to the longest set that gives an estimate.
     const needed = repsToBeat(225, 255)!.reps;
-    expect(kinds.newBest.event).toEqual({ type: "repsAtLeast", weight: 225, reps: needed });
-    // The chance is the tail of the stored spread at that count.
     expect(kinds.newBest.prediction.probability).toBeCloseTo(
-      sum(kinds.amrapReps.prediction.pmf!.slice(needed)),
+      sum(kinds.amrapReps.prediction.pmf!.slice(needed, E1RM_MAX_REPS + 1)),
       12
     );
-    expect(kinds.newBest.inputs.bestE1RM).toBe(255);
+    expect(kinds.newBest.inputs).toMatchObject({
+      bestE1RM: 255,
+      repsNeeded: needed,
+      effortCredit: 0,
+      effortSample: 5,
+    });
+  });
+
+  it("counts the usual effort credit when the earlier last sets were logged with one", () => {
+    const logged = squats.map((workout) => ({
+      ...workout,
+      sets: workout.sets.map((set) => ({ ...set, rpe: 8 })),
+    }));
+    const credited = byKind(makeSessionForecasts(session, plan, { ...source, workouts: logged }));
+    const needed = repsToBeat(225, 255, 8)!.reps;
+    expect(needed).toBeLessThan(repsToBeat(225, 255)!.reps);
+    expect(credited.newBest.event).toEqual({ type: "e1rmAbove", weight: 225, level: 255 });
+    expect(credited.newBest.inputs).toMatchObject({ repsNeeded: needed, effortCredit: 2 });
+    expect(credited.newBest.prediction.probability).toBeCloseTo(
+      sum(credited.amrapReps.prediction.pmf!.slice(needed, E1RM_MAX_REPS + 1)),
+      12
+    );
+    expect(credited.newBest.prediction.probability!).toBeGreaterThan(
+      kinds.newBest.prediction.probability!
+    );
+    // The reps spread and the pass chance are about logged reps: unchanged.
+    expect(credited.amrapReps.prediction).toEqual(kinds.amrapReps.prediction);
+    expect(credited.liftPass.prediction).toEqual(kinds.liftPass.prediction);
   });
 
   it("stores the session length with its range and a due time", () => {
@@ -179,7 +209,11 @@ describe("makeSessionForecasts", () => {
     ];
     for (const row of rows) {
       expect(Object.keys(row).filter((key) => !allowed.includes(key))).toEqual([]);
-      expect(Object.keys(row.event).every((key) => ["type", "weight", "reps", "windowDays"].includes(key))).toBe(true);
+      expect(
+        Object.keys(row.event).every((key) =>
+          ["type", "weight", "reps", "level", "windowDays"].includes(key)
+        )
+      ).toBe(true);
     }
   });
 

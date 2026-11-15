@@ -14,6 +14,7 @@ export {
   BODYWEIGHT_MODEL,
   CALIBRATION,
   E1RM_HORIZON_MODEL,
+  NEW_BEST_MODEL,
   REPS_MODEL,
   SESSION_LENGTH_MODEL,
 } from "./coefficients";
@@ -31,6 +32,7 @@ export type {
 } from "./reps";
 export {
   chanceOfAtLeast,
+  chanceOfNewBest,
   estimateRepsLevel,
   forecastReps,
   lastT1Sets,
@@ -40,6 +42,7 @@ export {
   repsRange,
   stageForReps,
   typicalReps,
+  usualEffortCredit,
 } from "./reps";
 
 export type { SessionLengthForecast } from "./sessionLength";

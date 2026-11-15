@@ -4,6 +4,7 @@ import type {
   LiftAdjustment,
   LiftState,
   PainSorenessEntry,
+  PrescribedEntry,
   ProgressionOutcome,
   SleepHours,
   StressLevel,
@@ -42,6 +43,14 @@ export interface TraceContext {
   phase: TrainingPhase;
   /** The lift states the plan was built from. */
   liftStates: LiftState[];
+  /**
+   * What the program prescribed for the session the plan belongs to
+   * (`WorkoutSession.prescribed`). It decides which planned lifts are the program's and
+   * what a weight the user set does to them, exactly as finishing the workout will.
+   * Left out, a T1, T2 or T3 lift that has a lift state is taken as the program's, at
+   * what that state prescribes.
+   */
+  prescribed?: PrescribedEntry[];
   history?: TraceHistory;
   /** Pain and soreness entries; only pain that is still active is mentioned. */
   painEntries?: PainSorenessEntry[];

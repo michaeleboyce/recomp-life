@@ -5,12 +5,13 @@
 // around a level m with scatter s, and the chance of at least k reps at weight W is
 // the share of that curve at or above the index k reps would need. The chance of a
 // new best and the chance of passing are two readings of the same curve.
+import { E1RM_MAX_REPS, repsInReserveFromRPE } from "@/lib/e1rm";
 import { prChanceFromProbability, repsToBeat, type PrChance } from "@/lib/projection/prOpportunity";
 import { fitTrend, MS_PER_WEEK } from "@/lib/projection/trend";
 import { T1_STAGE_SCHEME } from "@/lib/workout/prescription";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
 import type { ForecastBasis, T1Stage, TrainingPhase, WorkoutSession } from "@/types";
-import { CALIBRATION, REPS_MODEL } from "./coefficients";
+import { CALIBRATION, NEW_BEST_MODEL, REPS_MODEL } from "./coefficients";
 import {
   finishedBy,
   hasFreeze,
@@ -19,7 +20,7 @@ import {
   performedExerciseId,
   toMs,
 } from "./log";
-import { clamp, mean, normalCdf, sampleSd } from "./math";
+import { clamp, mean, median, normalCdf, sampleSd } from "./math";
 
 type PhaseMode = TrainingPhase["mode"];
 
@@ -32,6 +33,8 @@ export interface LastSetPoint {
   weight: number;
   /** Reps logged, with no reps-in-reserve credit. */
   reps: number;
+  /** The effort (RPE) logged with the set; null or absent when none was. */
+  rpe?: number | null;
   stage: T1Stage | null;
   /** The training phase the session was finished in, when it was stored. */
   phase: PhaseMode | null;
@@ -93,6 +96,7 @@ export function lastT1Sets(
       workoutId: workout.id,
       weight,
       reps,
+      rpe: last.rpe ?? null,
       stage: stageForReps(last.targetReps) ?? ((prescribed?.stage as T1Stage) || null),
       phase: workout.completionContext?.phaseMode ?? null,
       performedExerciseId: performedExerciseId(last),
@@ -165,8 +169,21 @@ export interface RepsForecast extends RepsLevel {
   range: RepsRange;
   /** Chance the last set reaches the target reps. */
   passChance: number;
-  /** Chance of the reps a new best needs; null with no best, or when no count beats it. */
-  newBest: { repsNeeded: number; chance: number; category: PrChance; bestE1RM: number } | null;
+  /**
+   * Chance that the workout sets a new best estimated max; null with no best, or when
+   * no rep count that gives an estimate beats it.
+   */
+  newBest: {
+    /** Fewest logged reps that beat the best, given the usual effort credit. */
+    repsNeeded: number;
+    chance: number;
+    category: PrChance;
+    bestE1RM: number;
+    /** The lifter's usual effort credit on the last set, in reps (`usualEffortCredit`). */
+    effortCredit: number;
+    /** How many recent last sets that credit was read from. */
+    effortSample: number;
+  } | null;
 }
 
 export interface RepsRange {
@@ -426,7 +443,58 @@ export function repsRange(pmf: number[], target: number = CALIBRATION.targetCove
 }
 
 /**
+ * The lifter's usual effort credit on the last set of an exercise, in reps: what the
+ * estimated max adds for the effort logged with a set (`repsInReserveFromRPE`), as
+ * the middle value over the latest NEW_BEST_MODEL.effortCreditRecentSets last sets
+ * of the exercise performed, up to `now`. A set with no logged effort counts as no
+ * credit, so a lifter who does not log one gets none. `sample` is how many sets
+ * were read.
+ *
+ * @evidence forecast-reps
+ */
+export function usualEffortCredit(
+  history: LastSetPoint[],
+  exercisePerformed: string,
+  now: Date
+): { credit: number; sample: number } {
+  const nowMs = now.getTime();
+  const recent = history
+    .filter((p) => p.performedExerciseId === exercisePerformed && p.t <= nowMs)
+    .sort((a, b) => a.t - b.t || (a.workoutId < b.workoutId ? -1 : 1))
+    .slice(-NEW_BEST_MODEL.effortCreditRecentSets);
+  if (recent.length === 0) return { credit: 0, sample: 0 };
+  return {
+    credit: median(recent.map((p) => repsInReserveFromRPE(p.rpe))),
+    sample: recent.length,
+  };
+}
+
+/**
+ * Chance that the reps logged on the last set land from `repsNeeded` up to
+ * E1RM_MAX_REPS. The app keeps no estimated max for a longer set, so reps above that
+ * cannot set a best and are left out.
+ *
+ * @evidence forecast-reps
+ */
+export function chanceOfNewBest(
+  repsNeeded: number,
+  weight: number,
+  estimate: Pick<RepsLevel, "level" | "scatter">
+): number {
+  return Math.max(
+    0,
+    chanceOfAtLeast(repsNeeded, weight, estimate) -
+      chanceOfAtLeast(E1RM_MAX_REPS + 1, weight, estimate)
+  );
+}
+
+/**
  * The whole reps forecast for one lift at one weight.
+ *
+ * The new best is the event the app itself shows: the workout's estimated max for the
+ * lift, with the credit for a logged effort, above the best so far. The reps it needs
+ * are `repsToBeat` at the lifter's usual effort credit, and its chance is the spread
+ * from that count up to the longest set that gives an estimate (`chanceOfNewBest`).
  *
  * @evidence forecast-reps
  */
@@ -437,14 +505,18 @@ export function forecastReps(input: RepsModelInput): RepsForecast {
   let newBest: RepsForecast["newBest"] = null;
   const best = input.bestE1RM;
   if (typeof best === "number" && Number.isFinite(best) && best > 0) {
-    const needed = repsToBeat(input.weight, best);
+    const effort = usualEffortCredit(input.history, input.performedExerciseId, input.now);
+    // The credit as the effort that gives it, so the estimate's own function counts it.
+    const needed = repsToBeat(input.weight, best, 10 - effort.credit);
     if (needed) {
-      const chance = chanceOfAtLeast(needed.reps, input.weight, estimate);
+      const chance = chanceOfNewBest(needed.reps, input.weight, estimate);
       newBest = {
         repsNeeded: needed.reps,
         chance,
         category: prChanceFromProbability(chance),
         bestE1RM: best,
+        effortCredit: effort.credit,
+        effortSample: effort.sample,
       };
     }
   }

@@ -103,6 +103,7 @@ export const PROGRESSION_RULES = {
       "src/lib/workout/credit.ts#foldRotation",
       "src/lib/workout/completeWorkout.ts#computeCompletion",
       "src/lib/workout/buildPlan.ts#describeNextWorkout",
+      "src/lib/trace/substitute.ts#weightChangeEffect",
     ],
     surfaces: ["src/components/PreWorkout/EditWorkoutSheet.tsx"],
   },

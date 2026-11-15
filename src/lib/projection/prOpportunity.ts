@@ -40,17 +40,19 @@ function isPositiveFinite(value: number): boolean {
  * strictly above `bestE1RM`, with that estimate; null when none does or inputs are
  * not positive and finite.
  *
- * The estimate is taken without an RPE, i.e. as an all-out set: a logged RPE below
- * 10 would only raise it. `calculateE1RM` gives no estimate for a single, so the
- * answer is never 1 rep.
+ * Without `rpe` the estimate is taken as an all-out set: a logged RPE below 10 would
+ * only raise it. With `rpe` it is the fewest reps logged at that effort, the reps left
+ * in reserve counted exactly as `calculateE1RM` counts them. `calculateE1RM` gives no
+ * estimate for a single, so the answer is never 1 rep.
  */
 export function repsToBeat(
   weight: number,
-  bestE1RM: number
+  bestE1RM: number,
+  rpe?: number | null
 ): { reps: number; e1rm: number } | null {
   if (!isPositiveFinite(weight) || !isPositiveFinite(bestE1RM)) return null;
   for (let reps = 1; reps <= E1RM_MAX_REPS; reps++) {
-    const e1rm = calculateE1RM(weight, reps);
+    const e1rm = calculateE1RM(weight, reps, rpe);
     if (e1rm !== null && e1rm > bestE1RM) return { reps, e1rm };
   }
   return null;

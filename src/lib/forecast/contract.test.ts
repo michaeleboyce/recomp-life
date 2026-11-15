@@ -8,12 +8,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { E1RM_MAX_REPS, isNewPR } from "@/lib/e1rm";
 import { EVIDENCE_RULES } from "@/lib/evidence/rules";
 import { repsToBeat } from "@/lib/projection/prOpportunity";
+import { e1rmsForWorkout } from "@/lib/rebuild";
 import type { Forecast, ForecastEventType, ForecastKind } from "@/types";
 import { REPS_MODEL } from "./coefficients";
 import { FORECAST_KINDS, FORECAST_KIND_IDS } from "./registry";
 import { replayForecasts } from "./replay";
+import { lastT1Sets, usualEffortCredit } from "./reps";
 import { resolveForecast } from "./resolve";
 import { demoReplayInput, forecastRow } from "./testHelpers";
 
@@ -29,7 +32,7 @@ const ALL_KINDS: Record<ForecastKind, true> = {
 
 const EVENT_OF_KIND: Record<ForecastKind, ForecastEventType> = {
   amrapReps: "amrapReps",
-  newBest: "repsAtLeast",
+  newBest: "e1rmAbove",
   liftPass: "repsAtLeast",
   sessionLength: "durationSeconds",
   e1rm4w: "e1rmLevel",
@@ -168,15 +171,76 @@ describe("the reps kinds are three readings of one spread", () => {
     }
   });
 
-  it("makes the new-best chance the spread's tail at the reps repsToBeat names", () => {
+  /**
+   * The new-best relationship, exactly:
+   * - the event is "this workout's estimated max for the lift is above `event.level`",
+   *   the best that stood when the forecast was made (`source.bestE1RMs`);
+   * - the reps that needs are `repsToBeat(weight, level, 10 - effortCredit)`: the
+   *   fewest logged reps whose estimate, with the lifter's usual effort credit
+   *   (`usualEffortCredit` of the last sets known then), beats the level;
+   * - the stated chance is the reps spread from that count up to E1RM_MAX_REPS, the
+   *   longest set the app keeps an estimate for. Reps above that are not a new best.
+   */
+  it("makes the new-best chance the spread from the reps a new best needs, with the usual effort credit, up to the longest set that counts", () => {
     const rows = replay.forecasts.filter((row) => row.kind === "newBest");
     expect(rows.length).toBeGreaterThan(10);
+    let credited = 0;
     for (const row of rows) {
-      const needed = repsToBeat(row.event.weight!, row.inputs.bestE1RM as number)!;
-      expect(row.event.reps).toBe(needed.reps);
+      const { weight, level } = row.event;
+      expect(level).toBe(row.inputs.bestE1RM);
+      expect(row.event.reps).toBeUndefined();
+
+      const before = demo.workouts.filter(
+        (w) => w.completedAt != null && w.completedAt.getTime() <= row.madeAt.getTime()
+      );
+      const best = Math.max(
+        ...before
+          .flatMap(e1rmsForWorkout)
+          .filter((r) => r.exerciseId === row.exerciseId)
+          .map((r) => r.estimated1RM)
+      );
+      expect(level).toBe(best);
+
+      const effort = usualEffortCredit(
+        lastT1Sets(before, row.exerciseId!, row.madeAt),
+        row.exerciseId!,
+        row.madeAt
+      );
+      expect(row.inputs.effortCredit).toBe(effort.credit);
+      expect(row.inputs.effortSample).toBe(effort.sample);
+      if (effort.credit > 0) credited += 1;
+
+      const needed = repsToBeat(weight!, level!, 10 - effort.credit)!;
+      expect(row.inputs.repsNeeded).toBe(needed.reps);
+      expect(needed.reps).toBeLessThanOrEqual(E1RM_MAX_REPS);
       const pmf = sibling(row, "amrapReps")!.prediction.pmf!;
-      expect(row.prediction.probability!).toBeCloseTo(sum(pmf.slice(needed.reps)), 12);
+      expect(row.prediction.probability!).toBeCloseTo(
+        sum(pmf.slice(needed.reps, E1RM_MAX_REPS + 1)),
+        12
+      );
     }
+    // The demo lifter logs an effort on most last sets, so the credit is exercised.
+    expect(credited).toBeGreaterThan(0);
+  });
+
+  it("scores a new best exactly when the workout's own estimated max beats the level", () => {
+    const scored = replay.scored.filter(
+      (item) => item.forecast.kind === "newBest" && item.status.state === "resolved"
+    );
+    expect(scored.length).toBeGreaterThan(10);
+    let hits = 0;
+    for (const { forecast, status } of scored) {
+      if (status.state !== "resolved") continue;
+      const workout = demo.workouts.find((w) => w.id === forecast.workoutId)!;
+      const own = e1rmsForWorkout(workout)
+        .filter((r) => r.exerciseId === forecast.exerciseId)
+        .map((r) => r.estimated1RM);
+      const estimate = own.length > 0 ? Math.max(...own) : null;
+      expect(status.hit).toBe(estimate !== null && isNewPR(estimate, [forecast.event.level!]));
+      if (status.hit) hits += 1;
+    }
+    expect(hits).toBeGreaterThan(0);
+    expect(hits).toBeLessThan(scored.length);
   });
 
   it("makes the pass chance the spread's tail at the target reps", () => {

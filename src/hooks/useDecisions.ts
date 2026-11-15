@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
 import { nextWorkoutFrom, readinessTodayFrom, traceContextFrom } from "@/lib/data/forecasts";
 import { DECISIONS, explainDecision } from "@/lib/trace";
+import { prescribedFor } from "@/lib/workout/planEdits";
 import type { DecisionKind, DecisionTrace, StoredTrace, Tier, WorkoutLocation } from "@/types";
 import { liveRow } from "./liveRows";
 import { useLedgerRecords } from "./useLedgerRecords";
@@ -45,6 +46,7 @@ export function useDecisionTrace(input: {
       now,
       location: location ?? records.settings.defaultLocation ?? "gym",
       liftStates: records.liftStates,
+      prescribed: prescribedFor(next.template, records.liftStates),
       readiness: readiness ? { score: readiness.score } : undefined,
     });
     return explainDecision(kind, context, entry, next.plan);
