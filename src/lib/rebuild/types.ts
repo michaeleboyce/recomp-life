@@ -4,6 +4,7 @@ import type {
   Estimated1RM,
   LiftAdjustment,
   LiftState,
+  ProgressionOutcome,
   SetLog,
   T1Stage,
   T2Stage,
@@ -29,6 +30,19 @@ export interface RebuildResult {
   e1rms: Estimated1RM[];
   /** Lift states as they stood right after each completed workout, by workout id. */
   snapshots: Map<string, LiftState[]>;
+  /**
+   * Lift states each completed workout was evaluated against, by workout id: after
+   * the adjustments dated up to its start and its stored prescription were applied.
+   * Same keys and order as `snapshots`.
+   */
+  before: Map<string, LiftState[]>;
+  /**
+   * What the program rules did to each T1, T2 and T3 lift of each completed workout,
+   * in template order, by workout id (`computeCompletion`'s outcomes). `from` matches
+   * `before` and `to` matches `snapshots`. Empty for a workout whose template is
+   * unknown. Same keys and order as `snapshots`.
+   */
+  outcomes: Map<string, ProgressionOutcome[]>;
 }
 
 export type EditableSetFields = Partial<Pick<SetLog, "actualReps" | "weight" | "rpe">>;

@@ -1,13 +1,20 @@
 import { getExercise } from "@/lib/exercises";
 import {
-  evaluateT1Progression,
-  evaluateT2Progression,
-  evaluateT3Progression,
-  hasFreezeStatus,
+  evaluateT1,
+  evaluateT2,
+  evaluateT3,
+  getHoldReason,
+  makeOutcome,
+  outcomePoint,
   shouldFreezeProgression,
 } from "@/lib/progression";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import type { LiftState, SetLog } from "@/types";
+import type {
+  LiftState,
+  ProgressionOutcome,
+  ProgressionOutcomeKind,
+  ProgressionOutcomeReason,
+} from "@/types";
 import { classifyEntry, heavierWeightPerformed } from "./credit";
 import { workingSetsFor } from "./setSelectors";
 import type { CompletionInput, CompletionResult } from "./types";
@@ -24,13 +31,13 @@ const PROGRESSING_TIERS = {
   T1: {
     weight: "t1Weight",
     lastWorkoutDate: "t1LastWorkoutDate",
-    evaluate: evaluateT1Progression,
+    evaluate: evaluateT1,
     tracksEffort: true,
   },
   T2: {
     weight: "t2Weight",
     lastWorkoutDate: "t2LastWorkoutDate",
-    evaluate: evaluateT2Progression,
+    evaluate: evaluateT2,
     tracksEffort: false,
   },
 } as const;
@@ -40,55 +47,97 @@ function isProgressingTier(tier: string): tier is keyof typeof PROGRESSING_TIERS
 }
 
 /**
- * The lift state after a fully completed T3 exercise, or null when nothing changes:
- * the weight only moves up, and a set skipped or reduced for pain, a run or equipment
- * freezes it like any other tier. Substituted (home) sets count as performed.
+ * `computeCompletion`'s result: the lift-state updates and session patch as before,
+ * plus what the program rules did to each T1, T2 and T3 lift of the day.
  */
-function progressT3(liftState: LiftState, exerciseSets: SetLog[]): LiftState | null {
-  if (hasFreezeStatus(exerciseSets)) return null;
+export interface CompletionWithOutcomes extends CompletionResult {
+  /**
+   * One outcome per T1, T2 and T3 lift of the template that has a lift state, in
+   * template order, including the lifts that were not done, were stopped part-way or
+   * were only logged. `from` is the lift as it stood going in (what was prescribed),
+   * `to` is the lift as it stands afterwards.
+   */
+  outcomes: ProgressionOutcome[];
+}
 
-  const lastSetReps = exerciseSets[exerciseSets.length - 1].actualReps;
-  const result = evaluateT3Progression(lastSetReps, liftState.t3Weight);
-
-  return result.increased
-    ? { ...liftState, t3Weight: result.newWeight, synced: false }
-    : null;
+/**
+ * The outcome of a lift that was evaluated from a heavier weight than prescribed: it
+ * starts from what was prescribed, and says the heavier weight is why unless the
+ * rules gave a reason of their own. A T3 lift that only kept the heavier weight went
+ * up because of it.
+ */
+function fromPrescribed(
+  outcome: ProgressionOutcome,
+  prescribed: ProgressionOutcome["from"]
+): ProgressionOutcome {
+  const keptHeavier = outcome.kind === "t3Same";
+  return makeOutcome(
+    outcome.exerciseId,
+    outcome.tier,
+    keptHeavier ? "t3Up" : outcome.kind,
+    prescribed,
+    outcome.to,
+    keptHeavier ? "heavier" : (outcome.reason ?? "heavier")
+  );
 }
 
 /**
  * Everything that changes when a workout is finished, computed without touching the
  * database: new lift states (progression, or a freeze that only updates the last-
- * workout date when an exercise was partially completed) and the patch for the
- * session row. T1 and T2 share one code path; T3 only ever raises `t3Weight`, and a
- * partially completed T3 changes nothing at all.
+ * workout date when an exercise was partially completed), the patch for the session
+ * row, and the outcome for each program lift. T1 and T2 share one code path; T3 only
+ * ever raises `t3Weight`, and a partially completed T3 changes nothing at all.
  *
  * Each lift is credited on its own (`classifyEntry`): in a session that recorded what
  * the program prescribed, a lift the user edited away from that prescription changes
  * no lift state, and a lift done heavier than prescribed in every set progresses from
  * the heavier weight. Sessions without `prescribed` behave as they always have.
  *
+ * The outcomes are a by-product of the same branches that produce the lift states, so
+ * they cannot say something the states do not.
+ *
  * @evidence off-program-credit
  * @evidence t3-progression
  */
-export function computeCompletion(input: CompletionInput): CompletionResult {
+export function computeCompletion(input: CompletionInput): CompletionWithOutcomes {
   const { session, plan, sets, liftStates, settings, recentE1RMsByExercise, now } = input;
 
   // Latest version of each lift state, so a second update of one exercise builds on
   // the first. `changed` keeps the order in which exercises were first updated.
   const current = new Map<string, LiftState>(liftStates.map((ls) => [ls.exerciseId, ls]));
   const changed: string[] = [];
+  const outcomes: ProgressionOutcome[] = [];
 
   const template = WORKOUT_TEMPLATES[session.templateId];
 
   for (const templateEx of template?.exercises ?? []) {
     // Accessories do not change lift state.
     if (templateEx.tier !== "T3" && !isProgressingTier(templateEx.tier)) continue;
+    const outcomeTier = templateEx.tier;
 
     const storedLiftState = current.get(templateEx.exerciseId);
     if (!storedLiftState) continue;
 
+    const prescribedPoint = outcomePoint(storedLiftState, outcomeTier);
+    /** Records an outcome that leaves the lift exactly as it was. */
+    const unchanged = (kind: ProgressionOutcomeKind, reason?: ProgressionOutcomeReason) => {
+      outcomes.push(
+        makeOutcome(
+          templateEx.exerciseId,
+          outcomeTier,
+          kind,
+          prescribedPoint,
+          prescribedPoint,
+          reason
+        )
+      );
+    };
+
     const exerciseSets = workingSetsFor(sets, templateEx.exerciseId, templateEx.tier);
-    if (exerciseSets.length === 0) continue;
+    if (exerciseSets.length === 0) {
+      unchanged("notDone");
+      continue;
+    }
 
     const planEntry = plan.find(
       (entry) =>
@@ -102,10 +151,16 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
       session.prescribed &&
       (!planEntry || classifyEntry(planEntry, session.prescribed, sets) === "logged-only")
     ) {
+      unchanged("loggedOnly", "edited");
       continue;
     }
     const targetSets = planEntry?.targetSets ?? templateEx.sets;
     const partial = shouldFreezeProgression(exerciseSets.length, targetSets);
+    // Stopping part-way is neither a pass nor a miss. When a set was skipped or reduced
+    // for pain, a run or equipment (or a T2 load drop was accepted), that is the reason
+    // the outcome gives.
+    const holdReason = getHoldReason(outcomeTier, exerciseSets);
+    const partialOutcome = () => (holdReason ? unchanged("held", holdReason) : unchanged("partial"));
 
     // Done heavier than prescribed, every set: the heavier weight becomes the lift's
     // weight, so a pass builds from it. Missing reps at a weight the program did not
@@ -114,7 +169,10 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
       session.prescribed && !partial
         ? heavierWeightPerformed(templateEx, session.prescribed, sets)
         : null;
-    if (heavier != null && exerciseSets.some((set) => set.status === "failed")) continue;
+    if (heavier != null && exerciseSets.some((set) => set.status === "failed")) {
+      unchanged("held", "heavier");
+      continue;
+    }
     const liftState =
       heavier == null
         ? storedLiftState
@@ -124,19 +182,32 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
               ? PROGRESSING_TIERS[templateEx.tier].weight
               : "t3Weight"]: heavier,
           };
+    /** Records the outcome of a lift the rules evaluated (from `liftState`). */
+    const evaluatedOutcome = (outcome: ProgressionOutcome) => {
+      outcomes.push(heavier == null ? outcome : fromPrescribed(outcome, prescribedPoint));
+    };
 
     let next: LiftState;
     if (!isProgressingTier(templateEx.tier)) {
       // T3 has no stage, fail count or date: the weight goes up, or stays (at the
-      // heavier weight when that is what was lifted).
-      const progressed = partial
-        ? null
-        : progressT3(liftState, exerciseSets);
-      if (!progressed && heavier == null) continue;
-      next = progressed ?? { ...liftState, synced: false };
+      // heavier weight when that is what was lifted). A partially completed T3, and one
+      // with a set skipped or reduced for pain, a run or equipment, does not go up.
+      if (partial) {
+        partialOutcome();
+        continue;
+      }
+      const evaluated = evaluateT3(liftState, exerciseSets);
+      const increased = evaluated.outcome.kind === "t3Up";
+      if (!increased && heavier == null) {
+        outcomes.push(evaluated.outcome);
+        continue;
+      }
+      evaluatedOutcome(evaluated.outcome);
+      next = { ...(increased ? evaluated.state : liftState), synced: false };
     } else if (partial) {
       const tier = PROGRESSING_TIERS[templateEx.tier];
       // Partial completion: no pass, no fail, only the date moves.
+      partialOutcome();
       next = { ...liftState, [tier.lastWorkoutDate]: now, synced: false };
     } else {
       const tier = PROGRESSING_TIERS[templateEx.tier];
@@ -147,8 +218,16 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
       const previousRPEs = liftState.recentAvgRPEs || [];
       const previousAMRAPReps = liftState.recentAMRAPReps || [];
 
+      const evaluated = tier.evaluate(
+        liftState,
+        exerciseSets,
+        session.location,
+        settings.equipment,
+        liftType
+      );
+      evaluatedOutcome(evaluated.outcome);
       next = {
-        ...tier.evaluate(liftState, exerciseSets, session.location, settings.equipment, liftType),
+        ...evaluated.state,
         [tier.lastWorkoutDate]: now,
         // No entry means the caller did not look this exercise up: keep what is stored
         // instead of wiping it. An explicit empty array still clears it.
@@ -185,5 +264,6 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
       sets,
       ...(endedEarly ? { endedEarly: true as const } : {}),
     },
+    outcomes,
   };
 }

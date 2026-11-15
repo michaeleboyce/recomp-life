@@ -8,6 +8,7 @@ import type {
   LiftAdjustment,
   LiftState,
   PrescribedEntry,
+  ProgressionOutcome,
   T1Stage,
   T2Stage,
   UserSettings,
@@ -203,6 +204,8 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
     );
 
   const snapshots = new Map<string, LiftState[]>();
+  const before = new Map<string, LiftState[]>();
+  const outcomes = new Map<string, ProgressionOutcome[]>();
   let nextAdjustment = 0;
 
   for (const session of completed) {
@@ -221,7 +224,9 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
       const state = states.get(entry.exerciseId);
       if (state) states.set(entry.exerciseId, anchorToPrescription(state, entry));
     }
+    before.set(session.id, sortedStates(states));
 
+    let sessionOutcomes: ProgressionOutcome[] = [];
     const template = WORKOUT_TEMPLATES[session.templateId];
     if (template) {
       // Rule 5.
@@ -251,7 +256,7 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
         );
       }
 
-      const { liftStateUpdates } = computeCompletion({
+      const completion = computeCompletion({
         session,
         plan,
         sets: session.sets ?? [],
@@ -262,9 +267,13 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
         workoutStartTime: new Date(session.startedAt),
         now: new Date(session.completedAt!),
       });
-      for (const update of liftStateUpdates) states.set(update.exerciseId, normalise(update));
+      for (const update of completion.liftStateUpdates) {
+        states.set(update.exerciseId, normalise(update));
+      }
+      sessionOutcomes = completion.outcomes;
     }
 
+    outcomes.set(session.id, sessionOutcomes);
     snapshots.set(session.id, sortedStates(states));
   }
 
@@ -273,5 +282,5 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
     applyAdjustment(states, adjustments[nextAdjustment]);
   }
 
-  return { liftStates: sortedStates(states), e1rms, snapshots };
+  return { liftStates: sortedStates(states), e1rms, snapshots, before, outcomes };
 }
