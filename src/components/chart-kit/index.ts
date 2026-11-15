@@ -9,3 +9,7 @@ export { RangeTabs, RANGE_KEYS, RANGE_LABELS, type RangeTabsProps } from "./Rang
 export { Sparkline, type SparklineProps, type SparklineTone } from "./Sparkline";
 export type { OverlayStyle, TrendChartProps, TrendOverlay, TrendTarget } from "./TrendChart";
 export { formatNumber, formatShortDate } from "./scale";
+export { CalibrationChart, calibrationSummary, type CalibrationBin, type CalibrationChartProps } from "./CalibrationChart";
+export { Gauge, type GaugeProps } from "./Gauge";
+export { RangeBar, type RangeBarProps } from "./RangeBar";
+export { RepForecastBars, repForecastColumns, type RepColumn, type RepForecastBarsProps } from "./RepForecastBars";
