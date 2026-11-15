@@ -49,7 +49,7 @@ export function BodyTab() {
         body="Log your weight to see its trend and your rate of change."
         action={
           <Button asChild>
-            <Link href="/weigh-in">Log weight</Link>
+            <Link href="/weigh-in?from=body">Log weight</Link>
           </Button>
         }
       />
@@ -109,7 +109,7 @@ export function BodyTab() {
           subtitle={`${body.log.length} ${body.log.length === 1 ? "weigh-in" : "weigh-ins"}`}
         />
         <ListRow
-          href="/weigh-in"
+          href="/weigh-in?from=body"
           title="Log weight"
           leading={<Plus className="size-4 text-muted-foreground" aria-hidden="true" />}
         />

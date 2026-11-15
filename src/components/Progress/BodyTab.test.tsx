@@ -60,7 +60,7 @@ describe("BodyTab", () => {
     expect(screen.getByText("Rate of change")).toBeInTheDocument();
     expect(screen.getByText("Total change")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /All weigh-ins and details/ })).toHaveAttribute("href", "/progress/body");
-    expect(screen.getByRole("link", { name: /Log weight/ })).toHaveAttribute("href", "/weigh-in");
+    expect(screen.getByRole("link", { name: /Log weight/ })).toHaveAttribute("href", "/weigh-in?from=body");
     expect(await screen.findByRole("img", { name: /Bodyweight, 7-day average/ })).toBeInTheDocument();
   });
 
@@ -138,6 +138,6 @@ describe("BodyTab", () => {
     await db.userProfile.put(makeProfile());
     render(<BodyTab />);
     await waitFor(() => expect(screen.getByText("No weigh-ins yet")).toBeInTheDocument());
-    expect(screen.getByRole("link", { name: "Log weight" })).toHaveAttribute("href", "/weigh-in");
+    expect(screen.getByRole("link", { name: "Log weight" })).toHaveAttribute("href", "/weigh-in?from=body");
   });
 });

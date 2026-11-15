@@ -5,6 +5,7 @@ import { Activity } from "lucide-react";
 import { useCompletedWorkouts, usePainEntries } from "@/hooks";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { ForecastsEntry } from "@/components/Forecast/ForecastsEntry";
 import { BodyTab } from "./BodyTab";
 import { MusclesTab } from "./MusclesTab";
 import { RecoveryTab } from "./RecoveryTab";
@@ -59,6 +60,7 @@ export function ProgressHub() {
 
   return (
     <div className="flex flex-col gap-4">
+      <ForecastsEntry />
       {/* Five tabs need the compact size to fit a phone's width. */}
       <SegmentedControl value={tab} onChange={select} options={TABS} size="compact" />
       <div role="tabpanel" aria-label={TABS.find((t) => t.value === tab)!.label}>

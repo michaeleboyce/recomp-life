@@ -38,7 +38,7 @@ export function BodyDetail() {
           body="Log your weight to see its trend and your rate of change."
           action={
             <Button asChild>
-              <Link href="/weigh-in">Log weight</Link>
+              <Link href="/weigh-in?from=body">Log weight</Link>
             </Button>
           }
         />

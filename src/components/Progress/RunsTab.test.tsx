@@ -72,7 +72,7 @@ describe("RunsTab", () => {
     expect(screen.getByText("Average effort")).toBeInTheDocument();
     expect(screen.getByText("Total time")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Run distance per week/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Log a run or activity/ })).toHaveAttribute("href", "/run");
+    expect(screen.getByRole("link", { name: /Log a run or activity/ })).toHaveAttribute("href", "/activity?from=cardio");
   });
 
   it("lists other activity per kind, and hides the section when there is none", async () => {
@@ -122,6 +122,6 @@ describe("RunsTab", () => {
     await db.userProfile.put(makeProfile());
     render(<RunsTab />);
     await waitFor(() => expect(screen.getByText("No runs or activities yet")).toBeInTheDocument());
-    expect(screen.getByRole("link", { name: "Log a run or activity" })).toHaveAttribute("href", "/run");
+    expect(screen.getByRole("link", { name: "Log a run or activity" })).toHaveAttribute("href", "/activity?from=cardio");
   });
 });
