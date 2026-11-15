@@ -168,7 +168,7 @@ describe("NextWorkoutHero", () => {
     const t1 = expectedPlan("gym").plan.find((e) => e.tier === "T1" && !e.isWarmUp)!;
     expect(await screen.findByTestId("forecast-session")).toHaveTextContent(/^\d+ min$/);
     const newBest = await screen.findByTestId("forecast-new-best");
-    expect(newBest.closest("a")).toHaveAttribute("href", `/progress/lift/${t1.exerciseId}`);
+    expect(newBest.closest("a")).toHaveAttribute("href", `/progress/lift/${t1.exerciseId}?from=today`);
     // "about" when the count leans on the effort the demo lifter usually logs.
     expect(newBest.closest("a")).toHaveTextContent(/needs \d+\+ reps|needs about \d+ reps|beats \d+/);
     // The demo history has check-ins, so the readiness tile shows a score out of 100.
