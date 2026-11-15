@@ -229,6 +229,8 @@ export interface WorkoutSession extends Stamped {
   favoriteId?: string;
   /** The watch workout recorded during this session, when one was found. */
   health?: WorkoutHealth;
+  /** How each planned number was reached, as shown when the session started. Saved once. */
+  decisions?: StoredTrace[];
   synced: boolean;
 }
 
@@ -703,4 +705,5 @@ export interface EvidenceChange<
   sources: readonly SourceKey[];
 }
 
+import type { StoredTrace } from "./glass";
 export * from "./glass";
