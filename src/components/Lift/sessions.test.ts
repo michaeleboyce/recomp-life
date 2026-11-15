@@ -50,4 +50,48 @@ describe("liftSessions", () => {
       { reps: 5, amrap: true, failed: false },
     ]);
   });
+
+  it("names the home substitute on a home session and never marks it best", () => {
+    const home = makeWorkout({
+      id: "home",
+      completedAt: new Date("2026-11-08T10:00:00Z"),
+      startedAt: new Date("2026-11-08T09:00:00Z"),
+      sets: [
+        makeSet({
+          exerciseId: "squat",
+          tier: "T1",
+          weight: 60,
+          originalWeight: 215,
+          actualReps: 8,
+          isAMRAP: true,
+          isSubstituted: true,
+          substituteExerciseId: "goblet_squat",
+          location: "home",
+        }),
+      ],
+    });
+    // A stray e1RM row on the home workout must not put "best" on the dumbbell row.
+    const e1rms = [
+      { exerciseId: "squat", workoutSessionId: "home", estimated1RM: 300, date: new Date("2026-11-08") },
+    ] as Estimated1RM[];
+    const [row] = liftSessions([home], e1rms, "squat");
+    expect(row).toMatchObject({ weight: 60, substituteExerciseId: "goblet_squat", best: false });
+  });
+
+  it("keeps barbell and home sets of one tier in separate rows", () => {
+    const mixed = makeWorkout({
+      id: "mixed",
+      completedAt: new Date("2026-11-08T10:00:00Z"),
+      startedAt: new Date("2026-11-08T09:00:00Z"),
+      sets: [
+        makeSet({ exerciseId: "squat", tier: "T1", weight: 215 }),
+        makeSet({ exerciseId: "squat", tier: "T1", weight: 60, isSubstituted: true, substituteExerciseId: "goblet_squat" }),
+      ],
+    });
+    const rows = liftSessions([mixed], [], "squat");
+    expect(rows.map((r) => [r.weight, r.substituteExerciseId])).toEqual([
+      [215, undefined],
+      [60, "goblet_squat"],
+    ]);
+  });
 });

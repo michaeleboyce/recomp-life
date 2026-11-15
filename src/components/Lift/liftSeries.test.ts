@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
+import { makeSet, makeWorkout } from "@/lib/data/testUtils";
 import type { MetricSource, Point } from "@/lib/metrics/types";
 import type { LiftState } from "@/types";
 import {
@@ -59,6 +60,31 @@ describe("liftMetrics and liftStats", () => {
     const all = liftStats(liftMetrics(source, "squat", "all", now.getTime()));
     const short = liftStats(liftMetrics(source, "squat", "4w", now.getTime()));
     expect(short.working.change).not.toBe(all.working.change);
+  });
+
+  it("keeps home-substitute sets out of the barbell statistics", () => {
+    const home = makeWorkout({
+      id: "home-only",
+      startedAt: new Date(now.getTime() - DAY),
+      completedAt: new Date(now.getTime() - DAY + 3_600_000),
+      sets: [
+        makeSet({
+          exerciseId: "squat",
+          tier: "T1",
+          weight: 60,
+          originalWeight: 400,
+          actualReps: 20,
+          isAMRAP: true,
+          rpe: 4,
+          isSubstituted: true,
+          substituteExerciseId: "goblet_squat",
+        }),
+      ],
+    });
+    const m = liftMetrics({ ...source, workouts: [...source.workouts, home] }, "squat", "all", now.getTime());
+    for (const id of ["workingWeight", "amrapReps", "avgRpe", "liftVolume"] as const) {
+      expect(m[id].full.points.some((p) => p.refId === "home-only"), id).toBe(false);
+    }
   });
 
   it("gives nulls with no data", () => {

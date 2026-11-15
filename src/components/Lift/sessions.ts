@@ -1,8 +1,11 @@
 // Rows for the lift detail page's session list. Pure.
 import { excludeWarmUps } from "@/lib/workout";
-import type { Estimated1RM, Tier, WorkoutSession } from "@/types";
+import type { Estimated1RM, SetLog, Tier, WorkoutSession } from "@/types";
 
 const TIER_ORDER: Tier[] = ["T1", "T2", "T3", "accessory"];
+
+/** Stands in for a substituted set that did not record which substitute it was. */
+export const UNKNOWN_SUBSTITUTE = "home";
 
 export interface SessionSet {
   reps: number;
@@ -21,11 +24,25 @@ export interface LiftSession {
   sets: SessionSet[];
   /** Mean logged RPE, or null when none was logged. */
   rpe: number | null;
-  /** This session holds the lift's best estimated 1RM. */
+  /**
+   * This session holds the lift's best estimated 1RM. Never a home session: a
+   * substitute's weight says nothing about the barbell lift.
+   */
   best: boolean;
+  /** The home substitute these sets were done as; undefined for the lift itself. */
+  substituteExerciseId?: string;
 }
 
-/** Every session containing the lift (warm-ups excluded), newest first, one row per tier. */
+/** The home substitute a set was done as, if any. */
+function substituteOf(set: SetLog): string | undefined {
+  return set.substituteExerciseId ?? (set.isSubstituted ? UNKNOWN_SUBSTITUTE : undefined);
+}
+
+/**
+ * Every session containing the lift (warm-ups excluded), newest first, one row per
+ * tier, and a separate row for each home substitute so dumbbell and barbell weights
+ * never share a row.
+ */
 export function liftSessions(
   workouts: WorkoutSession[],
   e1rms: Estimated1RM[],
@@ -45,21 +62,29 @@ export function liftSessions(
     const mine = excludeWarmUps(workout.sets ?? []).filter((s) => s.exerciseId === exerciseId);
     let bestMarked = false;
     for (const tier of TIER_ORDER) {
-      const sets = mine.filter((s) => s.tier === tier);
-      if (sets.length === 0) continue;
-      const rpes = sets.flatMap((s) => (typeof s.rpe === "number" && Number.isFinite(s.rpe) ? [s.rpe] : []));
-      const best = workout.id === bestId && !bestMarked;
-      if (best) bestMarked = true;
-      rows.push({
-        key: `${workout.id}-${tier}`,
-        workoutId: workout.id,
-        t: new Date(workout.startedAt).getTime(),
-        tier,
-        weight: Math.max(...sets.map((s) => s.weight)),
-        sets: sets.map((s) => ({ reps: s.actualReps, amrap: s.isAMRAP, failed: s.status === "failed" })),
-        rpe: rpes.length ? rpes.reduce((a, b) => a + b, 0) / rpes.length : null,
-        best,
-      });
+      const inTier = mine.filter((s) => s.tier === tier);
+      // The barbell sets first, then each substitute's in the order first logged.
+      const seen = [...new Set(inTier.map(substituteOf))];
+      const versions = seen.includes(undefined)
+        ? [undefined, ...seen.filter((id) => id !== undefined)]
+        : seen;
+      for (const substituteExerciseId of versions) {
+        const sets = inTier.filter((s) => substituteOf(s) === substituteExerciseId);
+        const rpes = sets.flatMap((s) => (typeof s.rpe === "number" && Number.isFinite(s.rpe) ? [s.rpe] : []));
+        const best = substituteExerciseId === undefined && workout.id === bestId && !bestMarked;
+        if (best) bestMarked = true;
+        rows.push({
+          key: [workout.id, tier, substituteExerciseId].filter(Boolean).join("-"),
+          workoutId: workout.id,
+          t: new Date(workout.startedAt).getTime(),
+          tier,
+          weight: Math.max(...sets.map((s) => s.weight)),
+          sets: sets.map((s) => ({ reps: s.actualReps, amrap: s.isAMRAP, failed: s.status === "failed" })),
+          rpe: rpes.length ? rpes.reduce((a, b) => a + b, 0) / rpes.length : null,
+          best,
+          ...(substituteExerciseId ? { substituteExerciseId } : {}),
+        });
+      }
     }
   }
   return rows.sort((a, b) => b.t - a.t);

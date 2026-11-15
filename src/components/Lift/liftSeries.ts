@@ -19,7 +19,7 @@ import {
 } from "@/lib/projection";
 import { getPrescription } from "@/lib/workout";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import type { LiftState, WorkoutTemplateExercise } from "@/types";
+import type { LiftState, SetLog, WorkoutTemplateExercise } from "@/types";
 import type { TrendOverlay } from "@/components/chart-kit";
 
 const DAY_MS = 86_400_000;
@@ -46,14 +46,33 @@ export type LiftMetrics = Record<LiftMetricId, RangedMetric> & {
   weeklyVolume: Series;
 };
 
+/**
+ * The source with the lift's home-substitute sets taken out, so the lift's statistics
+ * are about the barbell lift only. A goblet squat's weight, reps and effort say
+ * nothing about the squat's (the session list still shows those sessions).
+ */
+export function barbellOnlySource(source: MetricSource, exerciseId: string): MetricSource {
+  const isHomeSet = (set: SetLog) =>
+    set.exerciseId === exerciseId && (set.isSubstituted || set.substituteExerciseId != null);
+  return {
+    ...source,
+    workouts: source.workouts.map((workout) =>
+      (workout.sets ?? []).some(isHomeSet)
+        ? { ...workout, sets: workout.sets.filter((set) => !isHomeSet(set)) }
+        : workout
+    ),
+  };
+}
+
 export function liftMetrics(
   source: MetricSource,
   exerciseId: string,
   range: RangeKey,
   now: number
 ): LiftMetrics {
+  const barbell = barbellOnlySource(source, exerciseId);
   const entries = LIFT_METRICS.map((id) => {
-    const full = computeMetric(id, source, { exerciseId });
+    const full = computeMetric(id, barbell, { exerciseId });
     const series = inRange(full, range, now);
     return [id, { full, series, summary: summarize(series) }] as const;
   });
