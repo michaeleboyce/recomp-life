@@ -22,6 +22,6 @@ export const EQUIPMENT_RULES = {
       "src/lib/dbConversion.ts#barbellToDumbbell",
       "src/lib/autoAdapt.ts#adaptExerciseForHome",
     ],
-    surfaces: ["src/app/workout/configure/page.tsx"],
+    surfaces: ["src/app/workout/configure/page.tsx", "src/components/Lift/PrLine.tsx"],
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;

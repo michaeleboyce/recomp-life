@@ -830,7 +830,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Moderate evidence
 - **Implemented in:** `src/lib/dbConversion.ts` (`barbellToDumbbell`), `src/lib/autoAdapt.ts` (`adaptExerciseForHome`)
-- **Shown in:** `src/app/workout/configure/page.tsx`
+- **Shown in:** `src/app/workout/configure/page.tsx`, `src/components/Lift/PrLine.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Dumbbell presses run about 17–20% lighter than the barbell
