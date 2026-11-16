@@ -11,8 +11,8 @@ import type { EquipmentProfile, PlannedSet, SetLog, SetRole, WorkoutLocation } f
 /**
  * How much lighter a drop set starts than the set it continues, before rounding to the
  * equipment. Only a starting point: the weight is adjusted before the drop is logged.
- *
- * @evidence drop-set-evidence
+ * Belongs to the `drop-set-evidence` rule, which does not name this default yet (the
+ * evidence package adds it, with the tag).
  */
 export const DROP_SET_LIGHTER_BY = 0.2;
 
@@ -73,8 +73,6 @@ export function minWeightFor(
  * lighter, rounded to the equipment step (a load the plates make at the gym, the
  * dumbbell step at home), and always lighter than `fromWeight` while a lighter load
  * exists. Never below the empty bar, or below 0.
- *
- * @evidence drop-set-evidence
  */
 export function dropSetWeight(
   fromWeight: number,
