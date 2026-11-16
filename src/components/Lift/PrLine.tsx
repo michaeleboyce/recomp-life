@@ -5,9 +5,9 @@ import type { TermId } from "@/lib/glossary";
 import type { PrChance, PrOpportunity } from "@/lib/projection";
 import { tierStyle } from "@/lib/tierStyle";
 import { cn } from "@/lib/utils";
-import type { Tier } from "@/types";
+import type { EquipmentProfile, Tier } from "@/types";
 import { nameInSentence } from "@/components/Today/todayModel";
-import { homeConversionText, homeScheme, type HomeNextSession } from "./homeVersion";
+import { homeScheme, homeWeightLine, type HomeNextSession } from "./homeVersion";
 
 const CHANCE_TEXT: Record<PrChance, string> = {
   likely: "Likely.",
@@ -51,23 +51,28 @@ export function PrLine({
 const TIER_TERM: Partial<Record<Tier, TermId>> = { T1: "t1", T2: "t2", T3: "t3" };
 
 /**
- * The home version's next session: its weight as lifted (the number Today shows),
- * tier and scheme, and how the weight follows from the barbell weight. No new-best
+ * The home version's next session: its own weight as lifted (the number Today shows),
+ * tier and scheme, and how the plan reached it (`homeWeightLine`: its own progression,
+ * its seed, or re-entry, and the cap policy at the heaviest dumbbell). No new-best
  * claim: a substitute's sets never give an estimated max.
  */
 export function HomeNextWeight({
+  exerciseId,
   substituteId,
   liftShort,
   next,
+  equipment,
 }: {
+  exerciseId: string;
   substituteId: string;
   liftShort: string;
   next: HomeNextSession;
+  equipment: EquipmentProfile;
 }) {
   const style = tierStyle(next.tier);
   const term = TIER_TERM[next.tier];
   const scheme = homeScheme(next);
-  const conversion = homeConversionText(liftShort, substituteId, next);
+  const line = homeWeightLine(exerciseId, liftShort, substituteId, next, equipment);
   return (
     <div data-testid="home-next" className="flex flex-col gap-2 rounded-xl bg-accent-primary-soft px-4 py-3">
       <div className="flex items-end justify-between gap-3">
@@ -97,13 +102,13 @@ export function HomeNextWeight({
           weight if you swap to {nameInSentence(substituteId)}.
         </p>
       )}
-      {conversion && (
+      {line.text && (
         <div className="flex items-start gap-2 border-t border-border pt-2">
           <House className="mt-0.5 size-4 shrink-0 text-accent-primary" aria-hidden="true" />
-          <p data-testid="home-conversion" className="flex-1 text-[13px] text-muted-foreground">
-            {conversion}
+          <p data-testid="home-weight-line" className="flex-1 text-[13px] text-muted-foreground">
+            {line.text}
           </p>
-          <EvidenceLine ruleId="dumbbell-conversion" variant="icon" />
+          <EvidenceLine ruleId={line.ruleId} variant="icon" />
         </div>
       )}
     </div>
