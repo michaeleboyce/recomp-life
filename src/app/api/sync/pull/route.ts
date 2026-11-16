@@ -3,7 +3,7 @@ import { neonSql } from '@/db/drizzle';
 import { isSyncAuthorized, buildSelectAll, fromPostgresRow, type PgRow } from '@/lib/syncGuard';
 import { SYNC_REGISTRY } from '@/lib/sync/registry';
 import type { PullResponse, WireRow } from '@/lib/sync/wire';
-import { syncJson } from '../respond';
+import { READ_FAILED_REASON, syncJson } from '../respond';
 
 /**
  * Every row of every registry table, soft-deleted rows included. Each table is read on
@@ -23,8 +23,9 @@ export async function GET(request: NextRequest) {
       const result = await neonSql.query(buildSelectAll(name));
       rows[name] = (result as PgRow[]).map((row) => fromPostgresRow(name, row));
     } catch (error) {
+      // The database error stays in the log: it can name tables, users or hosts.
       console.error(`Sync pull error (${name}):`, error);
-      errors[name] = error instanceof Error ? error.message : 'Unknown error';
+      errors[name] = READ_FAILED_REASON;
     }
   }
 

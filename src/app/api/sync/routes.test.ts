@@ -10,6 +10,7 @@ vi.mock('@/db/drizzle', () => ({ neonSql: { query: (...args: unknown[]) => query
 import { POST } from './push/route';
 import { GET } from './pull/route';
 import { GET as STATUS } from './status/route';
+import { PUSH_FAILED_MESSAGE, READ_FAILED_REASON } from './respond';
 
 const SECRET = 'test-sync-secret';
 const AUTH = { authorization: `Bearer ${SECRET}` };
@@ -114,11 +115,22 @@ describe('POST /api/sync/push', () => {
     expect(values).not.toContain('local-uuid');
   });
 
-  it('500 with the database message when a write fails', async () => {
-    query.mockRejectedValueOnce(new Error('relation "runs" does not exist'));
+  it('500 with a generic message and code when a write fails; the database error only in the log', async () => {
+    const dbError = new Error('relation "runs" does not exist');
+    query.mockRejectedValueOnce(dbError);
     const res = await POST(pushRequest({ table: 'runs', rows: [run('r1', 1)] }));
     expect(res.status).toBe(500);
-    expect((await res.json()).error).toBe('relation "runs" does not exist');
+    const text = await res.text();
+    expect(JSON.parse(text)).toEqual({ error: PUSH_FAILED_MESSAGE, code: 'push_failed' });
+    expect(text).not.toMatch(/relation|does not exist/);
+    expect(console.error).toHaveBeenCalledWith(expect.any(String), dbError);
+  });
+
+  it('a driver error that is not an Error is not returned either', async () => {
+    query.mockRejectedValueOnce({ message: 'password authentication failed for user "neondb"' });
+    const res = await POST(pushRequest({ table: 'runs', rows: [run('r1', 1)] }));
+    expect(res.status).toBe(500);
+    expect(await res.text()).not.toMatch(/password|neondb/);
   });
 });
 
@@ -178,15 +190,21 @@ describe('GET /api/sync/pull', () => {
   });
 
   it('a table that cannot be read goes into errors; the rest still arrive with 200', async () => {
+    const dbError = new Error('relation "lift_adjustments" does not exist');
     query.mockImplementation(async (text: string) => {
-      if (text.includes('"lift_adjustments"')) throw new Error('relation "lift_adjustments" does not exist');
+      if (text.includes('"lift_adjustments"')) throw dbError;
       if (text.includes('"runs"')) return [{ id: 'r1', client_id: 'r1', updated_at: '7', deleted_at: null }];
       return [];
     });
     const res = await GET(pullRequest());
     expect(res.status).toBe(200);
-    const body: PullResponse = await res.json();
-    expect(body.errors).toEqual({ liftAdjustments: 'relation "lift_adjustments" does not exist' });
+    const text = await res.text();
+    const body: PullResponse = JSON.parse(text);
+    // A generic reason with its code; the database message stays in the server log.
+    expect(body.errors).toEqual({ liftAdjustments: READ_FAILED_REASON });
+    expect(READ_FAILED_REASON).toContain('read_failed');
+    expect(text).not.toMatch(/relation|does not exist/);
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('liftAdjustments'), dbError);
     expect(body.rows.liftAdjustments).toBeUndefined();
     expect(body.rows.runs).toEqual([{ id: 'r1', clientId: 'r1', updatedAt: 7, deletedAt: null }]);
     expect(Object.keys(body.rows)).toHaveLength(SYNC_REGISTRY.length - 1);

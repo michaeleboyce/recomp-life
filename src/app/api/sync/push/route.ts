@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { neonSql } from '@/db/drizzle';
 import { isSyncAuthorized, prepareBatch, buildUpsert } from '@/lib/syncGuard';
 import type { PushRequest, PushResponse } from '@/lib/sync/wire';
-import { syncJson } from '../respond';
+import { PUSH_FAILED_MESSAGE, SYNC_ERROR_CODE, syncJson } from '../respond';
 
 /** Last-write-wins upsert of one batch of rows into one registry table. */
 export async function POST(request: NextRequest) {
@@ -37,10 +37,8 @@ export async function POST(request: NextRequest) {
     };
     return syncJson(response);
   } catch (error) {
-    console.error('Sync push error:', error);
-    return syncJson(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      500
-    );
+    // The database error stays in the log: it can name tables, users or hosts.
+    console.error(`Sync push error (${String(body.table)}):`, error);
+    return syncJson({ error: PUSH_FAILED_MESSAGE, code: SYNC_ERROR_CODE.pushFailed }, 500);
   }
 }
