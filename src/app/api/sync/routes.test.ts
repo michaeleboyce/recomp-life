@@ -12,7 +12,8 @@ import { GET } from './pull/route';
 import { GET as STATUS } from './status/route';
 import { PUSH_FAILED_MESSAGE, READ_FAILED_REASON } from './respond';
 
-const SECRET = 'test-sync-secret';
+// At least MIN_SECRET_LENGTH characters, so the short-secret warning stays out of these tests.
+const SECRET = 'test-sync-secret-long-enough';
 const AUTH = { authorization: `Bearer ${SECRET}` };
 
 function pushRequest(body: unknown, headers: Record<string, string> = AUTH) {
