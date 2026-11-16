@@ -315,7 +315,19 @@ function ActiveWorkoutContent() {
           onOpenChange={setWhyOpen}
           title={`${entry.tier} · ${shown.name} · why this weight`}
           trace={weightWhy}
-        />
+        >
+          {/* The trace was saved at start, for the planned weight. */}
+          {workout.droppedFrom !== null && (
+            <div data-testid="why-dropped" className="flex flex-col gap-1 px-4 pb-4 text-[13px] leading-snug">
+              <p>
+                Lowered during the workout from {workout.droppedFrom} to {entry.weight} lbs: you
+                accepted the drop after a hard first set. The steps above are how{" "}
+                {workout.droppedFrom} lbs was planned.
+              </p>
+              <EvidenceLine ruleId="t2-autoregulation" hideLibraryLink />
+            </div>
+          )}
+        </WhySheet>
       )}
 
       {workout.e1rmFlash !== null && (
