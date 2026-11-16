@@ -7,7 +7,7 @@ import { Sparkline, type SparklineTone } from "@/components/chart-kit";
 import { Delta, type DeltaBetter } from "@/components/ui/delta";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/ui/stat-tile";
-import { Term } from "@/components/ui/term";
+import { TermIcon } from "@/components/ui/term";
 import { paceStatus, type PaceWord } from "@/components/Progress/body/bodyMath";
 import { rangeSuffix } from "@/components/Progress/rangeText";
 import { formatLbs, shortLiftName } from "./format";
@@ -128,30 +128,32 @@ function LiftTile({ exerciseId }: { exerciseId: string }) {
   const latest = e1rm.full.points.at(-1);
   const change = e1rm.summary.change;
 
+  // The term sits beside the link, not inside it (as on the forecast tiles): no button
+  // inside an anchor, and no tap in its glossary sheet bubbling up to open the lift page.
   return (
-    <StatTile
-      href={`/progress/lift/${exerciseId}`}
-      label={
-        <>
-          {shortLiftName(exerciseId)} <Term id="e1rm">est. 1RM</Term>
-        </>
-      }
-      value={latest ? formatLbs(Math.round(latest.v)) : DASH}
-      unit={latest ? "lbs" : undefined}
-      delta={
-        !latest ? (
-          <Hint>Finish a workout to estimate it</Hint>
-        ) : change !== null ? (
-          // The real span of the points, not the nominal 3 months.
-          <Delta value={Math.round(change)} unit="lb" suffix={rangeSuffix(e1rm.series.points)} better="up" />
-        ) : undefined
-      }
-      sparkline={
-        e1rm.series.points.length > 1 ? (
-          <Sparkline points={e1rm.series.points} width={150} height={24} tone={toneFor(change, "up")} />
-        ) : undefined
-      }
-    />
+    <div className="relative flex min-w-0 flex-col">
+      <StatTile
+        href={`/progress/lift/${exerciseId}`}
+        className="flex-1"
+        label={<span className="block pr-6">{shortLiftName(exerciseId)} est. 1RM</span>}
+        value={latest ? formatLbs(Math.round(latest.v)) : DASH}
+        unit={latest ? "lbs" : undefined}
+        delta={
+          !latest ? (
+            <Hint>Finish a workout to estimate it</Hint>
+          ) : change !== null ? (
+            // The real span of the points, not the nominal 3 months.
+            <Delta value={Math.round(change)} unit="lb" suffix={rangeSuffix(e1rm.series.points)} better="up" />
+          ) : undefined
+        }
+        sparkline={
+          e1rm.series.points.length > 1 ? (
+            <Sparkline points={e1rm.series.points} width={150} height={24} tone={toneFor(change, "up")} />
+          ) : undefined
+        }
+      />
+      <TermIcon id="e1rm" label="est. 1RM" className="absolute top-1.5 right-1.5" />
+    </div>
   );
 }
 

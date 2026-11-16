@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
@@ -98,6 +98,25 @@ describe("GlanceTiles", () => {
       expect(tile).toHaveTextContent(rangeSuffix(shown));
       expect(tile).not.toHaveTextContent("3 mo");
     }
+  });
+
+  it("keeps the estimated-max term out of the lift tile's link, so its sheet never opens the lift page", async () => {
+    await seedDemo();
+    render(<GlanceTiles />);
+    const [id] = nextLifts();
+    const tile = await waitFor(() => {
+      const found = screen.getAllByRole("link").find((a) => a.getAttribute("href") === `/progress/lift/${id}`);
+      expect(found).toBeDefined();
+      return found!;
+    });
+    expect(within(tile).queryByRole("button")).toBeNull();
+    expect(tile).toHaveTextContent(/est\. 1RM/);
+    const terms = screen.getAllByRole("button", { name: /^What does .* mean\?$/ });
+    expect(terms.length).toBeGreaterThanOrEqual(2);
+    for (const term of terms) expect(term.closest("a")).toBeNull();
+    fireEvent.click(terms[0]);
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet.closest("a")).toBeNull();
   });
 
   it("hides the rate when the latest weigh-in is over two weeks old", async () => {
