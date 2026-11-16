@@ -45,6 +45,27 @@ describe("SetEditSheet", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  it("edits a home set's weight as lifted, a hand, and moves the barbell weight it stands for", async () => {
+    const home = set({
+      id: "h1",
+      location: "home",
+      isSubstituted: true,
+      substituteExerciseId: "bulgarian_split_squat",
+      weight: 80,
+      originalWeight: 245,
+    });
+    const { onSubmit } = open({ set: home });
+    expect(screen.getByText("(lbs a hand)")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Decrease weight by 5" }));
+    await save();
+    expect(onSubmit).toHaveBeenCalledWith({
+      kind: "editSet",
+      workoutId: "w1",
+      setId: "h1",
+      patch: { weight: 75, originalWeight: Math.round((245 * 75) / 80) },
+    });
+  });
+
   it("steps weight by 5, or by 2.5 when chosen", () => {
     open();
     fireEvent.click(screen.getByRole("button", { name: "Increase weight by 5" }));

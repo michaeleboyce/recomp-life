@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/ui/chip-group";
+import { EXERCISES } from "@/lib/exercises";
 import type { LogChange } from "@/lib/rebuild";
 import type { SetLog } from "@/types";
 import { EditSheetFrame } from "./EditSheetFrame";
@@ -73,6 +74,10 @@ function SetForm({
 
   const name = liftName(set.substituteExerciseId ?? set.exerciseId);
   const title = mode === "add" ? `Add set: ${name}` : `${name}, set ${set.setNumber}`;
+  // A home set's weight is as lifted: per dumbbell when there is one in each hand.
+  const perHand = Boolean(
+    set.isSubstituted && set.substituteExerciseId && EXERCISES[set.substituteExerciseId]?.grip === "per_hand"
+  );
 
   return (
     <EditSheetFrame
@@ -93,7 +98,7 @@ function SetForm({
       <StepperField label="Reps" value={reps} onChange={setReps} step={1} max={REPS_MAX} inputMode="numeric" />
       <StepperField
         label="Weight"
-        unit="lbs"
+        unit={perHand ? "lbs a hand" : "lbs"}
         value={weight}
         onChange={setWeight}
         step={fine ? 2.5 : 5}

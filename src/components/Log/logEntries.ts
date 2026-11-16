@@ -1,9 +1,11 @@
 // Pure helpers for the Log screen: one list of entries from every log table, the
 // filter, grouping by day and the month calendar. No React, no database.
 import { liftName } from "@/components/LogEdit/format";
+import { displayLiftName } from "@/components/Today/todayModel";
+import { EXERCISES } from "@/lib/exercises";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import type { ActivityLog, BodyweightLog, RunLog, WorkoutSession } from "@/types";
+import type { ActivityLog, BodyweightLog, RunLog, SetLog, WorkoutSession } from "@/types";
 
 export type LogEntry =
   | { kind: "workout"; id: string; date: Date; row: WorkoutSession }
@@ -154,8 +156,21 @@ function targetsHit(session: WorkoutSession, exerciseId: string, tier: "T1" | "T
 }
 
 /**
+ * The exercise a lift's sets were performed as: the home substitute when they were
+ * substituted (with whether its weight is per hand), else the lift itself.
+ */
+function performedAs(sets: readonly SetLog[], exerciseId: string): { name: string; perHand: boolean } {
+  const substitute = sets.find((s) => s.substituteExerciseId && EXERCISES[s.substituteExerciseId])?.substituteExerciseId;
+  return substitute
+    ? { name: displayLiftName(substitute), perHand: EXERCISES[substitute]?.grip === "per_hand" }
+    : { name: liftName(exerciseId), perHand: false };
+}
+
+/**
  * One line for a workout row: its main lifts with the top working weight, then
  * whether every target was hit, e.g. "Squat 195 lbs, Bench Press 135 lbs · all targets hit".
+ * A lift done as a home exercise is named as that exercise, at its weight as lifted:
+ * "Bulgarian split squat 80 lbs a hand".
  */
 export function workoutResultLine(session: WorkoutSession): string {
   const template = WORKOUT_TEMPLATES[session.templateId];
@@ -170,13 +185,14 @@ export function workoutResultLine(session: WorkoutSession): string {
     if (ex.tier === "T3") continue;
     const sets = workingSetsFor(session.sets ?? [], ex.exerciseId, ex.tier);
     if (sets.length === 0) continue;
-    parts.push(`${liftName(ex.exerciseId)} ${Math.max(...sets.map((s) => s.weight))} lbs`);
+    const { name, perHand } = performedAs(sets, ex.exerciseId);
+    parts.push(`${name} ${Math.max(...sets.map((s) => s.weight))} lbs${perHand ? " a hand" : ""}`);
   }
   for (const ex of lifts) {
     const hit = targetsHit(session, ex.exerciseId, ex.tier);
     if (hit === null) continue;
     anyDone = true;
-    if (!hit) missed.push(liftName(ex.exerciseId));
+    if (!hit) missed.push(performedAs(workingSetsFor(session.sets ?? [], ex.exerciseId, ex.tier), ex.exerciseId).name);
   }
   const outcome = !anyDone
     ? "no sets logged"

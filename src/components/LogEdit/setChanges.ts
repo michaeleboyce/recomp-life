@@ -37,11 +37,35 @@ export function parseSetValues(
   return { actualReps: r, weight: w, rpe: e };
 }
 
-/** An `editSet` change with only the fields that differ; null when nothing changed. */
+/**
+ * For a home set (a substitute standing in for a program lift), the barbell weight it
+ * stands for at `weight`: its `originalWeight` scaled by the same ratio as the weight,
+ * as a plan `weight` edit scales it (`applyPlanEdits`). Rotation credit reads the set's
+ * `originalWeight` and the home exercise's credit reads its weight, so moving both
+ * keeps an edit from changing one and not the other. Undefined for any other set.
+ */
+export function homeOriginalWeight(
+  set: Pick<SetLog, "isSubstituted" | "substituteExerciseId" | "weight" | "originalWeight">,
+  weight: number
+): number | undefined {
+  if (!set.isSubstituted || !set.substituteExerciseId || set.originalWeight == null || !(set.weight > 0)) {
+    return undefined;
+  }
+  return weight === set.weight ? set.originalWeight : Math.round((set.originalWeight * weight) / set.weight);
+}
+
+/**
+ * An `editSet` change with only the fields that differ; null when nothing changed. A
+ * home set's new weight carries its scaled `originalWeight` (`homeOriginalWeight`).
+ */
 export function buildSetEdit(workoutId: string, set: SetLog, values: SetValues): LogChange | null {
   const patch: EditableSetFields = {};
   if (values.actualReps !== set.actualReps) patch.actualReps = values.actualReps;
-  if (values.weight !== set.weight) patch.weight = values.weight;
+  if (values.weight !== set.weight) {
+    patch.weight = values.weight;
+    const original = homeOriginalWeight(set, values.weight);
+    if (original !== undefined) patch.originalWeight = original;
+  }
   const rpe = values.rpe ?? undefined;
   // An explicit `rpe: undefined` clears it.
   if (rpe !== set.rpe) patch.rpe = rpe;
@@ -51,7 +75,8 @@ export function buildSetEdit(workoutId: string, set: SetLog, values: SetValues):
 
 /**
  * An `addSet` change: a new set of the same exercise and tier as `like`, numbered after
- * the last one and timed just after it.
+ * the last one and timed just after it. A home set also gets the barbell weight it
+ * stands for, scaled to its weight (`homeOriginalWeight`).
  */
 export function buildAddSet(
   workoutId: string,
@@ -79,6 +104,8 @@ export function buildAddSet(
     synced: false,
   };
   if (like.substituteExerciseId) set.substituteExerciseId = like.substituteExerciseId;
+  const original = homeOriginalWeight(like, values.weight);
+  if (original !== undefined) set.originalWeight = original;
   if (values.rpe !== null) set.rpe = values.rpe;
   return { kind: "addSet", workoutId, set };
 }
