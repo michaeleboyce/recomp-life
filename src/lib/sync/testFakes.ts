@@ -6,7 +6,10 @@ import Dexie from "dexie";
 import { PROFILE_ID, SYNC_REGISTRY, getSyncTable } from "./registry";
 import {
   MAX_CLOCK_SKEW_MS,
-  type PullResponse,
+  PULL_PAGE_ROWS,
+  decodePullCursor,
+  encodePullCursor,
+  type PullPageResponse,
   type PushRequest,
   type PushResponse,
   type WireRow,
@@ -35,19 +38,28 @@ export interface FakeRequest {
   path: string;
   table?: string;
   rowCount?: number;
+  /** Pull only: the `since` and `cursor` asked for. */
+  since?: number;
+  cursor?: string;
 }
 
 export class FakeSyncServer {
   /** table name -> clientId -> row as the server stores it (JSON-safe). */
   readonly tables = new Map<string, Map<string, WireRow>>();
+  /** table name -> clientId -> the server's write stamp for that row (`clock()` when written). */
+  readonly stamps = new Map<string, Map<string, number>>();
+  /** Rows per pull page (the real server's PULL_PAGE_ROWS unless a test lowers it). */
+  pageRows = PULL_PAGE_ROWS;
   readonly requests: FakeRequest[] = [];
   /** The device whose request is being served; set with `as()`. */
   speaking: string | null = null;
   clock = () => Date.now();
   /** Push to these tables answers 500. */
   readonly failPush = new Set<string>();
-  /** Pull reports these tables in `errors` instead of `rows`. */
+  /** Pull of these tables answers 500 with this reason. */
   pullErrors: Record<string, string> = {};
+  /** Runs before a pull page is served; a test may change rows here (between pages). */
+  onPull?: (request: FakeRequest) => void | Promise<void>;
   /** Runs while a push is being served, before the response is sent. */
   onPush?: (device: string | null, request: PushRequest) => void | Promise<void>;
 
@@ -84,7 +96,14 @@ export class FakeSyncServer {
       request.rowCount = body.rows.length;
       return this.push(body);
     }
-    if (url.pathname === "/api/sync/pull" && method === "GET") return this.pull();
+    if (url.pathname === "/api/sync/pull" && method === "GET") {
+      request.table = url.searchParams.get("table") ?? undefined;
+      const since = url.searchParams.get("since");
+      if (since !== null) request.since = Number(since);
+      request.cursor = url.searchParams.get("cursor") ?? undefined;
+      await this.onPull?.(request);
+      return this.pull(request);
+    }
     return json({ error: "Not found" }, 404);
   };
 
@@ -113,7 +132,7 @@ export class FakeSyncServer {
       const existing = table.get(key);
       if (!existing || Number(row.updatedAt) >= Number(existing.updatedAt ?? 0)) {
         // An update never changes the stored id (the upsert excludes id and client_id).
-        table.set(key, existing ? { ...existing, ...row, id: existing.id } : row);
+        this.store(body.table, existing ? { ...existing, ...row, id: existing.id } : row, now);
         applied += 1;
       }
     }
@@ -121,14 +140,50 @@ export class FakeSyncServer {
     return json(response);
   }
 
-  private pull(): Response {
-    const rows: Record<string, WireRow[]> = {};
-    for (const { name } of SYNC_REGISTRY) {
-      if (name in this.pullErrors) continue;
-      // Postgres returns every column: unset optional ones arrive as null.
-      rows[name] = this.rows(name).map((row) => ({ externalId: null, deletedAt: null, ...row }));
+  /**
+   * Writes a row as the push route does, stamping it with the server's clock (or
+   * `stamp`). Tests use it to put rows on the server directly.
+   */
+  store(tableName: string, row: WireRow, stamp = this.clock()): void {
+    const table = this.tables.get(tableName) ?? new Map<string, WireRow>();
+    this.tables.set(tableName, table);
+    const stamps = this.stamps.get(tableName) ?? new Map<string, number>();
+    this.stamps.set(tableName, stamps);
+    const key = String(row.clientId);
+    table.set(key, row);
+    stamps.set(key, stamp);
+  }
+
+  /** One page of one table, as the pull route serves it: server write order, then clientId. */
+  private pull(request: FakeRequest): Response {
+    const name = request.table ?? "";
+    const def = getSyncTable(name);
+    if (!def) return json({ error: `Unknown table: ${name}` }, 400);
+    if (name in this.pullErrors) return json({ error: this.pullErrors[name], code: "read_failed" }, 500);
+    let cursor = null as ReturnType<typeof decodePullCursor>;
+    if (request.cursor !== undefined) {
+      cursor = decodePullCursor(request.cursor);
+      if (!cursor) return json({ error: "bad cursor" }, 400);
     }
-    const response: PullResponse = { rows, errors: { ...this.pullErrors }, serverTime: this.clock() };
+
+    const stamps = this.stamps.get(name) ?? new Map<string, number>();
+    const ordered = this.rows(name)
+      .map((row) => ({ row, stamp: stamps.get(String(row.clientId)) ?? 0, key: String(row.clientId) }))
+      .filter(({ stamp }) => request.since === undefined || stamp >= request.since)
+      .filter(
+        ({ stamp, key }) => !cursor || stamp > cursor.stamp || (stamp === cursor.stamp && key > cursor.clientId)
+      )
+      .sort((a, b) => a.stamp - b.stamp || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    const page = ordered.slice(0, this.pageRows);
+    const last = page[page.length - 1];
+    const response: PullPageResponse = {
+      table: name,
+      // Postgres returns every column: unset optional ones arrive as null.
+      rows: page.map(({ row }) => ({ externalId: null, deletedAt: null, ...row })),
+      nextCursor:
+        page.length === this.pageRows && last ? encodePullCursor({ stamp: last.stamp, clientId: last.key }) : null,
+      serverTime: this.clock(),
+    };
     return json(response);
   }
 }

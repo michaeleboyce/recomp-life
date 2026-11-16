@@ -9,7 +9,9 @@ import { pgTable, text, integer, real, boolean, timestamp, jsonb, bigint } from 
 /**
  * Columns every synced table carries. `updated_at` / `deleted_at` are epoch
  * milliseconds: the newest `updated_at` wins a conflict, a set `deleted_at` is a soft
- * delete. A function so each table gets its own column builders.
+ * delete. `server_updated_at` is the server's own clock when it last wrote the row
+ * (never sent by or to a device); pull pages and `since` follow it. A function so
+ * each table gets its own column builders.
  */
 function syncColumns() {
   return {
@@ -19,6 +21,7 @@ function syncColumns() {
     deletedAt: bigint('deleted_at', { mode: 'number' }),
     externalId: text('external_id'),
     synced: boolean('synced').notNull().default(true),
+    serverUpdatedAt: bigint('server_updated_at', { mode: 'number' }).notNull().default(0),
   };
 }
 

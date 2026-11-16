@@ -14,6 +14,7 @@ import {
   updateSettings,
 } from "./records";
 import { clearDb, makeE1RM, makeLiftState, makeProfile, makeWorkout } from "./testUtils";
+import { loadPullState, saveTablePullState } from "@/lib/sync/pullState";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -256,5 +257,11 @@ describe("clearAllData", () => {
     for (const table of db.tables) {
       expect(await table.count()).toBe(0);
     }
+  });
+
+  it("forgets how far sync pulled, so the next pull reads everything again", async () => {
+    saveTablePullState(db.name, "workouts", { since: 1234 });
+    await clearAllData();
+    expect(loadPullState(db.name)).toEqual({});
   });
 });

@@ -14,6 +14,8 @@
 --
 -- Stamps: updated_at / deleted_at are epoch milliseconds (bigint). The newest
 -- updated_at wins a conflict; a non-null deleted_at is a soft delete.
+-- server_updated_at is the server's own clock when it last wrote the row; pull pages
+-- and their "since" follow it.
 -- Dates are timestamp with time zone, so an ISO string with Z is stored and read back
 -- as the same instant whatever the server's time zone.
 
@@ -43,6 +45,7 @@ CREATE TABLE "workouts" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "template_id" text NOT NULL,
   "location" text NOT NULL,
   "started_at" timestamp with time zone NOT NULL,
@@ -69,6 +72,7 @@ CREATE TABLE "lift_adjustments" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "exercise_id" text NOT NULL,
   "at" timestamp with time zone NOT NULL,
   "source" text NOT NULL,
@@ -84,6 +88,7 @@ CREATE TABLE "runs" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "date" timestamp with time zone NOT NULL,
   "duration_minutes" real NOT NULL,
   "distance_miles" real,
@@ -102,6 +107,7 @@ CREATE TABLE "activities" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "date" timestamp with time zone NOT NULL,
   "kind" text NOT NULL,
   "duration_minutes" real NOT NULL,
@@ -120,6 +126,7 @@ CREATE TABLE "bodyweight" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "date" timestamp with time zone NOT NULL,
   "weight" real NOT NULL,
   "time_of_day" text NOT NULL,
@@ -134,6 +141,7 @@ CREATE TABLE "pain_entries" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "date" timestamp with time zone NOT NULL,
   "region" text NOT NULL,
   "sensation" text NOT NULL,
@@ -149,6 +157,7 @@ CREATE TABLE "readiness_logs" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "session_id" text NOT NULL,
   "sleep_hours" text NOT NULL,
   "stress_level" text NOT NULL,
@@ -164,6 +173,7 @@ CREATE TABLE "user_profile" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "name" text NOT NULL,
   "bodyweight" real NOT NULL,
   "height_inches" real NOT NULL,
@@ -178,6 +188,7 @@ CREATE TABLE "health_daily" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "day" text NOT NULL,
   "sleep_minutes" real,
   "sleep_deep_minutes" real,
@@ -201,6 +212,7 @@ CREATE TABLE "favorite_workouts" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "name" text NOT NULL,
   "template_id" text NOT NULL,
   "location" text NOT NULL,
@@ -221,6 +233,7 @@ CREATE TABLE "forecasts" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "slot" text NOT NULL,
   "kind" text NOT NULL,
   "workout_id" text,
@@ -242,6 +255,7 @@ CREATE TABLE "coach_events" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "at" timestamp with time zone NOT NULL,
   "kind" text NOT NULL,
   "title" text NOT NULL,
@@ -257,6 +271,7 @@ CREATE TABLE "imported_sessions" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "source_app" text NOT NULL,
   "started_at" timestamp with time zone NOT NULL,
   "start_is_local" boolean NOT NULL,

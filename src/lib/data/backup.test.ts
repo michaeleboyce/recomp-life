@@ -6,6 +6,7 @@ import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { exportBackup, importBackup, parseBackup } from "./backup";
 import { applyRebuild } from "./derived";
 import { clearDb } from "./testUtils";
+import { loadPullState, saveTablePullState } from "@/lib/sync/pullState";
 
 const NOW = new Date(2026, 10, 11, 12, 0, 0);
 const demo = generateDemoData(NOW);
@@ -98,6 +99,13 @@ describe("round trip", () => {
       expect(row.synced).toBe(false);
       expect(row.updatedAt!).toBeGreaterThanOrEqual(start);
     }
+  });
+
+  it("forgets how far sync pulled, so the server's rows the backup lacks come back", async () => {
+    const backup = parseBackup(JSON.stringify(await exportBackup()));
+    saveTablePullState(db.name, "workouts", { since: 1234 });
+    await importBackup(backup);
+    expect(loadPullState(db.name)).toEqual({});
   });
 
   it("rebuilds the derived tables from the restored log", async () => {

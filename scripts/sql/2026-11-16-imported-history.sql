@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS "imported_sessions" (
   "deleted_at" bigint,
   "external_id" text,
   "synced" boolean NOT NULL DEFAULT true,
+  "server_updated_at" bigint NOT NULL DEFAULT 0,
   "source_app" text NOT NULL,
   "started_at" timestamp with time zone NOT NULL,
   "start_is_local" boolean NOT NULL,
