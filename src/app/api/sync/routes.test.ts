@@ -9,6 +9,7 @@ vi.mock('@/db/drizzle', () => ({ neonSql: { query: (...args: unknown[]) => query
 
 import { POST } from './push/route';
 import { GET } from './pull/route';
+import { GET as STATUS } from './status/route';
 
 const SECRET = 'test-sync-secret';
 const AUTH = { authorization: `Bearer ${SECRET}` };
@@ -189,5 +190,32 @@ describe('GET /api/sync/pull', () => {
     expect(body.rows.liftAdjustments).toBeUndefined();
     expect(body.rows.runs).toEqual([{ id: 'r1', clientId: 'r1', updatedAt: 7, deletedAt: null }]);
     expect(Object.keys(body.rows)).toHaveLength(SYNC_REGISTRY.length - 1);
+  });
+});
+
+describe('no sync response is cached', () => {
+  const noStore = (res: Response, label: string) =>
+    expect(res.headers.get('cache-control'), label).toBe('no-store');
+
+  it('push: refused, invalid, failed and accepted', async () => {
+    noStore(await POST(pushRequest({ table: 'runs', rows: [] }, {})), '401');
+    noStore(await POST(pushRequest('{not json')), '400 json');
+    noStore(await POST(pushRequest({ table: 'nope', rows: [] })), '400 table');
+    query.mockRejectedValueOnce(new Error('boom'));
+    noStore(await POST(pushRequest({ table: 'runs', rows: [run('r1', 1)] })), '500');
+    query.mockResolvedValueOnce([{ client_id: 'r1' }]);
+    noStore(await POST(pushRequest({ table: 'runs', rows: [run('r1', 1)] })), '200');
+  });
+
+  it('pull: refused, partly failed and accepted', async () => {
+    noStore(await GET(pullRequest({})), '401');
+    query.mockRejectedValue(new Error('boom'));
+    noStore(await GET(pullRequest()), '200 with errors');
+    query.mockReset().mockResolvedValue([]);
+    noStore(await GET(pullRequest()), '200');
+  });
+
+  it('status', async () => {
+    noStore(await STATUS(), '200');
   });
 });

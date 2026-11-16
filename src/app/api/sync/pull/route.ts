@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { neonSql } from '@/db/drizzle';
 import { isSyncAuthorized, buildSelectAll, fromPostgresRow, type PgRow } from '@/lib/syncGuard';
 import { SYNC_REGISTRY } from '@/lib/sync/registry';
 import type { PullResponse, WireRow } from '@/lib/sync/wire';
+import { syncJson } from '../respond';
 
 /**
  * Every row of every registry table, soft-deleted rows included. Each table is read on
@@ -11,7 +12,7 @@ import type { PullResponse, WireRow } from '@/lib/sync/wire';
  */
 export async function GET(request: NextRequest) {
   if (!isSyncAuthorized(request.headers.get('authorization'), process.env.SYNC_SECRET)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return syncJson({ error: 'Unauthorized' }, 401);
   }
 
   const rows: Record<string, WireRow[]> = {};
@@ -28,5 +29,5 @@ export async function GET(request: NextRequest) {
   }
 
   const response: PullResponse = { rows, errors, serverTime: Date.now() };
-  return NextResponse.json(response);
+  return syncJson(response);
 }
