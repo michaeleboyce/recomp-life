@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_LIFTER, demoRepsInHand, generateDemoData } from "./generateDemoData";
+import {
+  DEMO_DROP_SET,
+  DEMO_HOME_BLOCK,
+  DEMO_LIFTER,
+  demoRepsInHand,
+  generateDemoData,
+} from "./generateDemoData";
 import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES } from "@/db/seed";
 import { E1RM_MAX_REPS, toRecentE1RMSeries } from "@/lib/e1rm";
 import { rebuildDerived } from "@/lib/rebuild";
-import { runSession, startSim, type SessionOptions } from "@/lib/rebuild/testHelpers";
+import { runSession, sortedVariants, startSim, type SessionOptions } from "@/lib/rebuild/testHelpers";
+import { workingSetsFor } from "@/lib/workout/setSelectors";
 import { WORKOUT_ROTATION } from "@/lib/workoutTemplates";
 
 const settings = DEFAULT_USER_PROFILE.settings;
@@ -33,8 +40,9 @@ describe("generateDemoData", () => {
     expect(data.bodyweight.length).toBeLessThan(56);
     expect(data.readinessLogs.length).toBeGreaterThanOrEqual(18);
     expect(data.readinessLogs.length).toBeLessThan(24);
-    // One row per T1 AMRAP set of the lift itself: the five home sessions give none.
-    expect(data.estimated1RMs).toHaveLength(19);
+    // One row per T1 AMRAP set of the lift itself: the eight home sessions give none
+    // (five scattered home sessions before 2026-11-15, so 19 rows then).
+    expect(data.estimated1RMs).toHaveLength(16);
     expect(data.liftStates).toHaveLength(Object.keys(INITIAL_LIFT_STATES).length);
   });
 
@@ -81,7 +89,8 @@ describe("generateDemoData", () => {
       expect(t1[4].actualReps).toBeGreaterThanOrEqual(3);
       expect(t1[4].actualReps).toBeLessThanOrEqual(E1RM_MAX_REPS);
       expect(t1.every((s) => typeof s.rpe === "number")).toBe(true);
-      expect(w.sets.filter((s) => s.tier === "T2")).toHaveLength(3);
+      // Working sets: the one drop set (see below) is extra.
+      expect(workingSetsFor(w.sets, w.sets.find((s) => s.tier === "T2")!.exerciseId, "T2")).toHaveLength(3);
       const t3 = w.sets.filter((s) => s.tier === "T3");
       expect(t3).toHaveLength(3);
       expect(t3[2].isAMRAP).toBe(true);
@@ -143,11 +152,16 @@ describe("generateDemoData", () => {
       expect(demoRepsInHand(200, 100, 0, 0)).toBe(E1RM_MAX_REPS);
     });
 
-    it("covers the four main lifts, six sessions each, the bar heavier every time", () => {
+    // 2026-11-15: a home session no longer raises the barbell weight, so the bar stays
+    // where it was through the home block and climbs again at the gym.
+    it("covers the four main lifts, six sessions each; the bar stays at home and climbs at the gym", () => {
       expect([...lastSets.keys()].sort()).toEqual(["bench", "deadlift", "ohp", "squat"]);
       for (const [id, sets] of lastSets) {
         expect(sets, id).toHaveLength(6);
-        for (let i = 1; i < sets.length; i++) {
+        // Two sessions at home, then four at the gym starting from the same bar.
+        expect(sets[1].bar, id).toBe(sets[0].bar);
+        expect(sets[2].bar, id).toBe(sets[0].bar);
+        for (let i = 3; i < sets.length; i++) {
           expect(sets[i].bar, id).toBeGreaterThan(sets[i - 1].bar);
         }
       }
@@ -163,18 +177,21 @@ describe("generateDemoData", () => {
       }
     });
 
-    it("has fewer reps as the bar outruns the lifter's strength", () => {
+    // 2026-11-15: the bar restarts at the gym where it was before the home block, below
+    // what the lifter can do by then, so the gym's first last sets are long (stopped at
+    // ten) and fall as the bar climbs.
+    it("has fewer reps as the bar outruns the lifter's strength at the gym", () => {
       for (const [id, sets] of lastSets) {
-        // The weights rise 17% to 29% over the demo, faster than strength does.
-        expect(sets[sets.length - 1].reps, id).toBeLessThan(sets[0].reps);
+        const gym = sets.slice(2);
+        expect(gym[gym.length - 1].reps, id).toBeLessThanOrEqual(gym[0].reps);
         // A good day after a bad one can add a rep or two on a heavier bar, never three.
-        for (let i = 1; i < sets.length; i++) {
-          expect(sets[i].reps - sets[i - 1].reps, id + " session " + (i + 1)).toBeLessThanOrEqual(2);
+        for (let i = 1; i < gym.length; i++) {
+          expect(gym[i].reps - gym[i - 1].reps, id + " gym session " + i).toBeLessThanOrEqual(2);
         }
       }
       // The press takes the biggest steps for its size and loses the most reps.
-      const ohp = lastSets.get("ohp")!;
-      expect(ohp[0].reps - ohp[5].reps).toBeGreaterThanOrEqual(4);
+      const ohp = lastSets.get("ohp")!.slice(2);
+      expect(ohp[0].reps - ohp[ohp.length - 1].reps).toBeGreaterThanOrEqual(3);
     });
   });
 
@@ -195,6 +212,61 @@ describe("generateDemoData", () => {
     expect(allSets.some((s) => s.tier === "T2" && s.targetReps === 8)).toBe(true);
   });
 
+  describe("the home block and the drop set (H15)", () => {
+    const home = data.workouts.filter((w) => w.location === "home");
+    const workingSquat = (w: (typeof data.workouts)[number]) =>
+      w.sets.filter((s) => s.exerciseId === "squat" && s.tier === "T1");
+
+    it("is the first eight workouts, about two and a half weeks at home", () => {
+      expect(home.map((w) => w.id)).toEqual(
+        data.workouts.slice(DEMO_HOME_BLOCK.first, DEMO_HOME_BLOCK.last + 1).map((w) => w.id)
+      );
+      const days = (home.at(-1)!.startedAt.getTime() - home[0].startedAt.getTime()) / DAY;
+      expect(days).toBeGreaterThanOrEqual(14);
+      expect(days).toBeLessThanOrEqual(21);
+      // Each home session stored its home exercises' own prescription.
+      expect(home.every((w) => w.prescribed!.some((p) => p.home))).toBe(true);
+    });
+
+    it("takes the split squat from 75 a hand to the heaviest pair, then on by reps", () => {
+      const squatDays = home.filter((w) => workingSquat(w).length > 0);
+      expect(squatDays.map((w) => [workingSquat(w)[0].substituteExerciseId, workingSquat(w)[0].weight, workingSquat(w)[0].targetReps])).toEqual([
+        ["bulgarian_split_squat", 75, 3],
+        ["bulgarian_split_squat", 80, 3],
+      ]);
+      const split = data.variantStates.find((v) => v.id === "squat|bulgarian_split_squat|T1")!;
+      expect(split).toMatchObject({ weight: 80, extraReps: 1, current: true });
+      // The barbell squat did not move at home: the first gym squat is the start weight.
+      const firstGym = data.workouts.find((w) => w.location === "gym" && workingSquat(w).length > 0)!;
+      expect(workingSquat(firstGym)[0].weight).toBe(INITIAL_LIFT_STATES.squat.t1Weight);
+    });
+
+    it("moves the capped dumbbell RDL to the harder single-leg version", () => {
+      const deadliftT1 = home
+        .map((w) => w.sets.find((s) => s.exerciseId === "deadlift" && s.tier === "T1"))
+        .filter((s) => s != null);
+      expect(deadliftT1.map((s) => [s!.substituteExerciseId, s!.weight])).toEqual([
+        ["db_rdl", 80],
+        ["single_leg_db_rdl", 80],
+      ]);
+    });
+
+    it("has one drop set: lighter than the set it continues, logged straight after it, with fewer reps", () => {
+      const drops = data.workouts.flatMap((w) => w.sets.filter((s) => s.role === "drop"));
+      expect(drops).toHaveLength(1);
+      const workout = data.workouts[DEMO_DROP_SET.workout];
+      const drop = drops[0];
+      const parent = workout.sets.find((s) => s.id === drop.dropOf)!;
+      expect(drop.weight).toBeLessThan(parent.weight);
+      expect(drop.actualReps).toBe(DEMO_DROP_SET.reps);
+      expect(workout.sets.indexOf(drop)).toBe(workout.sets.indexOf(parent) + 1);
+      // A missed drop does not fail the lift: that session's T2 lift passed.
+      const rebuilt = rebuildDerived({ workouts: data.workouts, adjustments: data.liftAdjustments, settings });
+      const t2 = rebuilt.outcomes.get(workout.id)!.find((o) => o.tier === "T2")!;
+      expect(t2.kind).toBe("passed");
+    });
+  });
+
   it("has no stored derived rows of its own: they are a rebuild of the log", () => {
     const rebuilt = rebuildDerived({
       workouts: data.workouts,
@@ -203,6 +275,7 @@ describe("generateDemoData", () => {
     });
     expect(data.liftStates).toEqual(rebuilt.liftStates);
     expect(data.estimated1RMs).toEqual(rebuilt.e1rms);
+    expect(data.variantStates).toEqual(rebuilt.variantStates);
     expect(data.liftAdjustments.every((a) => a.source === "start")).toBe(true);
     expect(data.estimated1RMs.length).toBeGreaterThan(0);
     // A home (substituted) set gives no e1RM row; the rest are T1 AMRAP sets.
@@ -234,6 +307,10 @@ describe("generateDemoData", () => {
       states.map((l) => [l.exerciseId, l.t1Weight, l.t1Stage, l.t2Weight, l.t2Stage, l.t3Weight]);
     const sorted = [...sim.states].sort((a, b) => (a.exerciseId < b.exerciseId ? -1 : 1));
     expect(weights(data.liftStates)).toEqual(weights(sorted));
+    // And the home exercises' own states.
+    const variants = (states: typeof data.variantStates) =>
+      states.map((v) => [v.id, v.weight, v.stage, v.extraReps, v.current, v.passesSinceGym]);
+    expect(variants(data.variantStates)).toEqual(variants(sortedVariants(sim.variants)));
   });
 
   it("uses Date objects, none in the future", () => {
@@ -298,12 +375,15 @@ describe("generateDemoData", () => {
         toRecentE1RMSeries(data.estimated1RMs.filter((e) => e.exerciseId === id))
       );
       expect(state.recentE1RMs.length).toBeGreaterThanOrEqual(4);
+      // Only the barbell sessions feed the lift's effort history since 2026-11-15: the
+      // home sessions feed their home exercise's own (`recentLastSetReps`).
+      const gymT1 = t1Workouts.filter((w) => w.location === "gym");
       expect(state.recentAMRAPReps).toEqual(
-        t1Workouts
+        gymT1
           .map((w) => w.sets.find((s) => s.exerciseId === id && s.isAMRAP)!.actualReps)
           .slice(-5)
       );
-      expect(state.recentAvgRPEs).toHaveLength(5);
+      expect(state.recentAvgRPEs).toHaveLength(gymT1.length);
       // The next T1 weight is above the last one lifted.
       const lastSet = lastT1.sets.find((s) => s.exerciseId === id && s.tier === "T1")!;
       expect(state.t1Weight).toBeGreaterThan(lastSet.originalWeight ?? lastSet.weight);

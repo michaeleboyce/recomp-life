@@ -1,8 +1,11 @@
-// Golden test for the program's core: the lift states and the per-workout snapshots
-// that `rebuildDerived` gives for the demo log at a fixed `now`, compared with a file
-// recorded before the progression code was restructured to return its outcomes.
-// A difference here means behaviour changed. Do not regenerate the file to make this
-// pass; find out why the numbers moved.
+// Golden test for the program's core: the lift states, the home exercises' states and
+// the per-workout snapshots of both that `rebuildDerived` gives for the demo log at a
+// fixed `now`, compared with a recorded file. A difference here means behaviour changed.
+// Do not regenerate the file to make this pass; find out why the numbers moved.
+//
+// Regenerated on purpose on 2026-11-15 for the strength model (home exercises progress
+// their own weight, the barbell weight does not move at home) and the demo's new home
+// block and drop set; the field-by-field diff is in that commit's message.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -51,6 +54,8 @@ describe("rebuildDerived: golden result for the demo log", () => {
     now: string;
     liftStates: unknown[];
     snapshots: Record<string, unknown[]>;
+    variantStates: unknown[];
+    variantSnapshots: Record<string, unknown[]>;
   };
 
   it("was recorded for the same now", () => {
@@ -67,6 +72,25 @@ describe("rebuildDerived: golden result for the demo log", () => {
     for (const [workoutId, states] of rebuilt.snapshots) {
       expect(plain(states), workoutId).toEqual(golden.snapshots[workoutId]);
     }
+  });
+
+  it("gives the recorded home exercises' states, and their snapshot after every workout", () => {
+    expect(plain(rebuilt.variantStates)).toEqual(golden.variantStates);
+    expect([...rebuilt.variantSnapshots.keys()]).toEqual(Object.keys(golden.variantSnapshots));
+    for (const [workoutId, states] of rebuilt.variantSnapshots) {
+      expect(plain(states), workoutId).toEqual(golden.variantSnapshots[workoutId]);
+    }
+  });
+
+  it("the recorded home block is not trivial: a dumbbell step, the cap by reps and a harder variant", () => {
+    type Row = { id: string; weight: number; extraReps: number; current: boolean };
+    const first = golden.variantSnapshots["demo-workout-01"] as Row[];
+    const last = golden.variantStates as Row[];
+    const split = (rows: Row[]) => rows.find((row) => row.id === "squat|bulgarian_split_squat|T1")!;
+    expect(split(first).weight).toBe(80);
+    expect(split(last)).toMatchObject({ weight: 80, extraReps: 1 });
+    expect(last.find((row) => row.id === "deadlift|single_leg_db_rdl|T1")).toMatchObject({ current: true });
+    expect(last.find((row) => row.id === "deadlift|db_rdl|T1")).toMatchObject({ current: false });
   });
 
   it("the recorded log is not trivial: a pass, a stage change and a T3 increase all occur", () => {

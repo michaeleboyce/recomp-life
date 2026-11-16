@@ -5,11 +5,12 @@
 // the way the live app creates one: the plan from the running lift states, the stored
 // prescription, sets through `createSetLog`. Pure: no clock, no randomness, no database.
 import { DEFAULT_USER_PROFILE, startAdjustments } from "@/db/seed";
+import { roundToStep } from "@/lib/dbConversion";
 import { E1RM_MAX_REPS } from "@/lib/e1rm";
 import { rebuildDerived } from "@/lib/rebuild";
 import { buildWorkoutPlan } from "@/lib/workout/buildPlan";
 import { createSetLog } from "@/lib/workout/logSet";
-import { getPrescription } from "@/lib/workout/prescription";
+import { prescribedFor } from "@/lib/workout/planEdits";
 import { WORKOUT_ROTATION, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
   BodyweightLog,
@@ -17,12 +18,12 @@ import type {
   LiftAdjustment,
   LiftState,
   PainSorenessEntry,
-  PrescribedEntry,
   ReadinessLog,
   RunLog,
   SetLog,
   SleepHours,
   StressLevel,
+  VariantState,
   WorkoutLocation,
   WorkoutSession,
 } from "@/types";
@@ -39,27 +40,21 @@ export interface DemoData {
   liftStates: LiftState[];
   /** Derived: `rebuildDerived` of the log above. */
   estimated1RMs: Estimated1RM[];
-}
-
-/** Same as `prescribedFor` in src/lib/data/workouts.ts, which cannot be imported without the database. */
-function prescribedFor(templateId: string, liftStates: LiftState[]): PrescribedEntry[] {
-  const entries: PrescribedEntry[] = [];
-  for (const exercise of WORKOUT_TEMPLATES[templateId]?.exercises ?? []) {
-    if (exercise.tier !== "T1" && exercise.tier !== "T2" && exercise.tier !== "T3") continue;
-    const state = liftStates.find((ls) => ls.exerciseId === exercise.exerciseId);
-    const entry: PrescribedEntry = {
-      exerciseId: exercise.exerciseId,
-      tier: exercise.tier,
-      ...getPrescription(exercise, state),
-    };
-    if (state && exercise.tier === "T1") entry.stage = state.t1Stage;
-    if (state && exercise.tier === "T2") entry.stage = state.t2Stage;
-    entries.push(entry);
-  }
-  return entries;
+  /** Derived: the home exercises' states, `rebuildDerived` of the log above. */
+  variantStates: VariantState[];
 }
 
 const WORKOUT_COUNT = 24;
+/**
+ * The workouts (0-based, inclusive) done at home: the first eight, about two and a half
+ * weeks with every day of the rotation twice. The split squat starts at 75 a hand,
+ * reaches the heaviest pair (80) and then progresses by reps; the deadlift's dumbbell
+ * version starts capped and moves to the harder single-leg version. The barbell weights
+ * do not move at home: the gym sessions after the block start from the starting weights.
+ */
+export const DEMO_HOME_BLOCK = { first: 0, last: 7 } as const;
+/** The workout (0-based) whose last T2 set is followed by one drop set, and the drop. */
+export const DEMO_DROP_SET = { workout: 21, lighterBy: 0.2, reps: 7 } as const;
 /** Days between consecutive workouts, cycled. */
 const GAP_DAYS = [2, 3, 2];
 const BODYWEIGHT_DAYS = 56;
@@ -153,8 +148,9 @@ const stamp = (date: Date) => ({ updatedAt: date.getTime(), deletedAt: null });
 /**
  * About eight weeks of plausible training ending at `now`: workouts rotating
  * A1/B1/A2/B2 every two to three days with steady progression (last-set reps start
- * high and fall as the weights climb, see `DEMO_LIFTER`) and an occasional failed T2, one
- * home session in five, near-daily morning weigh-ins trending down
+ * high and fall as the weights climb, see `DEMO_LIFTER`) and an occasional failed T2,
+ * a block of home sessions first (`DEMO_HOME_BLOCK`), one drop set (`DEMO_DROP_SET`),
+ * near-daily morning weigh-ins trending down
  * about 1 lb a week, six runs, readiness logs for most workouts and one recent
  * soreness entry. The same `now` always produces the same data (ids included), so
  * tests and screenshots are stable.
@@ -179,13 +175,22 @@ export function generateDemoData(now: Date): DemoData {
   for (let i = 0; i < WORKOUT_COUNT; i++) {
     const workoutId = `demo-workout-${pad(i + 1)}`;
     const template = WORKOUT_TEMPLATES[WORKOUT_ROTATION[i % WORKOUT_ROTATION.length]];
-    const location: WorkoutLocation = i % 5 === 3 ? "home" : "gym";
+    const location: WorkoutLocation =
+      i >= DEMO_HOME_BLOCK.first && i <= DEMO_HOME_BLOCK.last ? "home" : "gym";
     const failT2 = i % 6 === 4;
     const startedAt = at(now, daysAgo[i], 17, 30);
 
-    // What the app would show when this session starts.
-    const liftStates = rebuildDerived({ workouts, adjustments: liftAdjustments, settings }).liftStates;
-    const prescribed = prescribedFor(template.id, liftStates);
+    // What the app would show when this session starts: at home each lift is planned
+    // from its home exercise's own state, and that prescription is stored too.
+    const { liftStates, variantStates } = rebuildDerived({
+      workouts,
+      adjustments: liftAdjustments,
+      settings,
+    });
+    const prescribed =
+      location === "home"
+        ? prescribedFor(template, liftStates, { variantStates, equipment })
+        : prescribedFor(template, liftStates);
     const plan = buildWorkoutPlan({
       template,
       liftStates,
@@ -193,6 +198,7 @@ export function generateDemoData(now: Date): DemoData {
       equipment,
       includeWarmUps: true,
       selectedAccessories: [],
+      variantStates,
     });
 
     const sessionSets: SetLog[] = [];
@@ -243,6 +249,31 @@ export function generateDemoData(now: Date): DemoData {
             clientId: `c-${id}`,
           })
         );
+
+        // One drop set straight after the last T2 set: lighter, no rest, a few reps
+        // short of the target. It is extra volume and does not decide the pass.
+        if (i === DEMO_DROP_SET.workout && entry.tier === "T2" && isLast) {
+          clock += 30_000;
+          const dropId = `${workoutId}-set-${pad(sessionSets.length + 1)}`;
+          sessionSets.push({
+            ...createSetLog({
+              exercise: {
+                ...entry,
+                weight: roundToStep(entry.weight * (1 - DEMO_DROP_SET.lighterBy), equipment.gymBarbellIncrementLbs),
+                completedSets: s,
+              },
+              actualReps: DEMO_DROP_SET.reps,
+              rpe: 9.5,
+              location,
+              autoRegulated: false,
+              now: new Date(clock),
+              id: dropId,
+              clientId: `c-${dropId}`,
+            }),
+            role: "drop",
+            dropOf: id,
+          });
+        }
       }
     }
 
@@ -265,6 +296,7 @@ export function generateDemoData(now: Date): DemoData {
         phaseMode: settings.trainingPhase.mode,
         gymBarbellIncrementLbs: equipment.gymBarbellIncrementLbs,
         dumbbellIncrementLbs: equipment.dumbbellIncrementLbs,
+        maxDumbbellWeight: equipment.maxDumbbellWeight,
       },
       ...stamp(completedAt),
       synced: false,
@@ -335,5 +367,6 @@ export function generateDemoData(now: Date): DemoData {
     painEntries,
     liftStates: derived.liftStates,
     estimated1RMs: derived.e1rms,
+    variantStates: derived.variantStates,
   };
 }
