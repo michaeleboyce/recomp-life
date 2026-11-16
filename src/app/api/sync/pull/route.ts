@@ -10,6 +10,9 @@ import {
 } from '@/lib/sync/wire';
 import { READ_FAILED_REASON, SYNC_ERROR_CODE, syncJson } from '../respond';
 
+/** Seconds this route may run: one page is one query, so a minute is far more than enough. A literal: Next.js reads it from the source. */
+export const maxDuration = 60;
+
 /**
  * One page of one registry table (`?table=<name>`), soft-deleted rows included, in the
  * server's write order: from `since` (epoch ms, optional) and after `cursor` (the

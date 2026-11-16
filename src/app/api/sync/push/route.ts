@@ -4,6 +4,14 @@ import { isSyncAuthorized, prepareBatch, buildUpsert } from '@/lib/syncGuard';
 import { MAX_PUSH_ROWS, type PushRequest, type PushResponse } from '@/lib/sync/wire';
 import { PUSH_FAILED_MESSAGE, SYNC_ERROR_CODE, syncJson } from '../respond';
 
+/**
+ * Seconds this route may run: a full batch of MAX_PUSH_ROWS is one upsert per row, a
+ * few seconds against Neon, so a minute leaves plenty of room. The next pull's
+ * `since` reaches back further than this (PULL_SINCE_OVERLAP_MS). A literal: Next.js
+ * reads it from the source.
+ */
+export const maxDuration = 60;
+
 /** Last-write-wins upsert of one batch of rows into one registry table. */
 export async function POST(request: NextRequest) {
   if (!isSyncAuthorized(request.headers.get('authorization'), process.env.SYNC_SECRET)) {

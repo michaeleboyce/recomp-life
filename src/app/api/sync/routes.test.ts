@@ -5,6 +5,7 @@ import {
   MAX_PUSH_ROWS,
   PULL_PAGE_BYTES,
   PULL_PAGE_ROWS,
+  PULL_SINCE_OVERLAP_MS,
   decodePullCursor,
   encodePullCursor,
   type PullPageResponse,
@@ -15,8 +16,8 @@ import { SYNC_REGISTRY } from '@/lib/sync/registry';
 const query = vi.fn();
 vi.mock('@/db/drizzle', () => ({ neonSql: { query: (...args: unknown[]) => query(...args) } }));
 
-import { POST } from './push/route';
-import { GET } from './pull/route';
+import { POST, maxDuration as pushMaxDuration } from './push/route';
+import { GET, maxDuration as pullMaxDuration } from './pull/route';
 import { GET as STATUS } from './status/route';
 import { PUSH_FAILED_MESSAGE, READ_FAILED_REASON } from './respond';
 
@@ -280,6 +281,17 @@ describe('GET /api/sync/pull', () => {
       expect(res.status, name).toBe(200);
       expect(query.mock.calls.at(-1)?.[0], name).toContain(`FROM "${pgName}"`);
     }
+  });
+});
+
+describe('route time limits', () => {
+  it('push and pull may run a minute: a 500-row batch is one upsert per row', () => {
+    expect(pushMaxDuration).toBe(60);
+    expect(pullMaxDuration).toBe(60);
+  });
+
+  it("the next pull's overlap covers a push that runs its whole time limit", () => {
+    expect(PULL_SINCE_OVERLAP_MS).toBeGreaterThan(pushMaxDuration * 1000);
   });
 });
 
