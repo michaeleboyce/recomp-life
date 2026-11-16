@@ -167,7 +167,7 @@ export function heavierVariantWeight(
 
 /** The fields of a workout row the rotation depends on. */
 export type RotationSession = Pick<WorkoutSession, "templateId" | "startedAt" | "completedAt"> &
-  Partial<Pick<WorkoutSession, "id" | "prescribed" | "planEdits" | "sets">>;
+  Partial<Pick<WorkoutSession, "id" | "location" | "prescribed" | "planEdits" | "sets">>;
 
 /**
  * Whether a finished session advances the A1 -> B1 -> A2 -> B2 rotation, given the
@@ -175,6 +175,9 @@ export type RotationSession = Pick<WorkoutSession, "templateId" | "startedAt" | 
  * swapped out, removed, done at another scheme nor done lighter than prescribed.
  * Decided from the session row alone (its prescription, edits and logged sets). With
  * no T1 set logged, the weight is taken as prescribed, so a day ended early counts.
+ * When the T1 lift was done as its home exercise (the stored `prescribed.home`), the
+ * scheme and weight are that exercise's own, as lifted. Weight per set and a ramp in
+ * front count exactly as a plain session: only the working sets decide.
  *
  * A session without `prescribed` predates this rule and always counts, whatever its
  * day, exactly as before.
@@ -192,25 +195,43 @@ export function sessionCountsForRotation(
 
   const target = prescribed.find((p) => p.tier === "T1");
   if (!target) return false;
+  const sets = session.sets ?? [];
 
-  // The T1 slot as the program prescribed it, then as the user's structural and
-  // scheme edits left it. Weight edits are left to the logged sets.
+  // Done as its home exercise: judged against that exercise's own prescription, as
+  // completeWorkout judges it, not against the barbell lift's scheme and weight.
+  const home = target.home;
+  const performed = workingSetsFor(sets, target.exerciseId, "T1").map((set) => set.substituteExerciseId);
+  const asHome = home != null && performed.every((id) => id === home.exerciseId);
+
+  // The T1 slot as the program prescribed it, then as the user's structural, scheme and
+  // per-set edits left it. The weight is left to the logged sets (with none logged it
+  // is taken as prescribed), so weight per set and the ramp quick fill count exactly
+  // as a plain session does.
   const slot: WorkoutPlan = [
     {
       exerciseId: target.exerciseId,
+      ...(asHome ? { substituteExerciseId: home.exerciseId } : {}),
       tier: "T1",
-      targetSets: target.sets,
-      targetReps: target.reps,
-      weight: target.weight,
+      targetSets: asHome ? home.sets : target.sets,
+      targetReps: asHome ? home.reps : target.reps,
+      weight: asHome ? home.weight : target.weight,
       isAMRAP: false,
       isWarmUp: false,
       completedSets: 0,
     },
   ];
   const edits = (session.planEdits ?? []).filter((edit) => edit.kind !== "weight");
-  const t1 = applyPlanEdits(slot, edits).find((entry) => entry.tier === "T1");
-  if (!t1) return false;
-  return classifyEntry(t1, prescribed, session.sets ?? []) === "program";
+  const edited = applyPlanEdits(slot, edits).find(
+    (entry) => entry.tier === "T1" && entry.exerciseId === target.exerciseId && !entry.isWarmUp
+  );
+  if (!edited) return false;
+  const t1 = { ...edited, weight: slot[0].weight };
+
+  if (asHome) {
+    const homeTarget: VariantTarget = { weight: home.weight, sets: home.sets, reps: home.reps };
+    return classifyVariantEntry(t1, homeTarget, prescribed, sets) === "program";
+  }
+  return classifyEntry(t1, prescribed, sets) === "program";
 }
 
 export interface RotationFold {

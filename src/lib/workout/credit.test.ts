@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { PlanEdit, PrescribedEntry } from "@/types";
+import type { PlanEdit, PrescribedEntry, SetLog } from "@/types";
 import {
   classifyEntry,
   CREDIT_DECIDING_STATUSES,
@@ -224,6 +224,112 @@ describe("sessionCountsForRotation", () => {
     expect(sessionCountsForRotation(session({ prescribed: undefined, templateId: "B2" }), "A1")).toBe(
       true
     );
+  });
+
+  describe("weight per set and the ramp count as the same session", () => {
+    // The ramp quick fill: two lighter sets in front, the working sets unchanged.
+    const ramp = (weight: number, reps: number, sets: number): PlanEdit => ({
+      kind: "setWeights",
+      exerciseId: "squat",
+      tier: "T1",
+      sets: [
+        { weight: Math.round(weight * 0.8), reps, role: "ramp" },
+        { weight: Math.round(weight * 0.9), reps, role: "ramp" },
+        ...Array.from({ length: sets }, () => ({ weight, reps })),
+      ],
+    });
+    const perSet = (weight: number, reps: number, sets: number): PlanEdit => ({
+      kind: "setWeights",
+      exerciseId: "squat",
+      tier: "T1",
+      sets: Array.from({ length: sets }, () => ({ weight, reps })),
+    });
+
+    describe("at the gym", () => {
+      const logged = (edits: PlanEdit[] = []) =>
+        session({ planEdits: edits, sets: makeSets("squat", "T1", 5, 3, { weight: 190 }) });
+
+      it("with no edits", () => {
+        expect(sessionCountsForRotation(logged(), "A1")).toBe(true);
+      });
+
+      it("with weight per set at the prescribed scheme", () => {
+        expect(sessionCountsForRotation(logged([perSet(190, 3, 5)]), "A1")).toBe(true);
+      });
+
+      it("with the ramp in front", () => {
+        const ramped = session({
+          planEdits: [ramp(190, 3, 5)],
+          sets: [
+            ...makeSets("squat", "T1", 2, 3, { weight: 155, role: "ramp" }),
+            ...makeSets("squat", "T1", 5, 3, { weight: 190 }),
+          ],
+        });
+        expect(sessionCountsForRotation(ramped, "A1")).toBe(true);
+        expect(sessionCountsForRotation(session({ planEdits: [ramp(190, 3, 5)] }), "A1")).toBe(true);
+      });
+    });
+
+    describe("at home, T1 done as its home exercise", () => {
+      // The barbell lift is at 6x2; the home exercise has its own weight and scheme.
+      const HOME: PrescribedEntry[] = [
+        {
+          exerciseId: "squat", tier: "T1", weight: 205, sets: 6, reps: 2, stage: "6x2",
+          home: { exerciseId: "bulgarian_split_squat", weight: 50, perHand: true, stage: "5x3", sets: 5, reps: 3 },
+        },
+        PRESCRIBED[1],
+        PRESCRIBED[2],
+      ];
+      const homeSets = (count: number, overrides: Partial<SetLog> = {}) =>
+        makeSets("squat", "T1", count, 3, {
+          weight: 50,
+          originalWeight: 205,
+          isSubstituted: true,
+          substituteExerciseId: "bulgarian_split_squat",
+          location: "home",
+          ...overrides,
+        });
+      const atHome = (overrides: Partial<RotationSession> = {}) =>
+        session({ location: "home", prescribed: HOME, ...overrides });
+
+      it("with no edits, logged or ended before any set", () => {
+        expect(sessionCountsForRotation(atHome({ sets: homeSets(5) }), "A1")).toBe(true);
+        expect(sessionCountsForRotation(atHome(), "A1")).toBe(true);
+      });
+
+      it("with weight per set at the home exercise's own scheme", () => {
+        const edited = atHome({ planEdits: [perSet(50, 3, 5)], sets: homeSets(5) });
+        expect(sessionCountsForRotation(edited, "A1")).toBe(true);
+        expect(sessionCountsForRotation(atHome({ planEdits: [perSet(50, 3, 5)] }), "A1")).toBe(true);
+      });
+
+      it("with the ramp in front of the home exercise's working sets", () => {
+        const ramped = atHome({
+          planEdits: [ramp(50, 3, 5)],
+          sets: [
+            ...homeSets(2, { weight: 40, originalWeight: 164, role: "ramp" }),
+            ...homeSets(5),
+          ],
+        });
+        expect(sessionCountsForRotation(ramped, "A1")).toBe(true);
+      });
+
+      it("not when the home exercise was done at another scheme or lighter than its own prescription", () => {
+        expect(sessionCountsForRotation(atHome({ planEdits: [perSet(50, 8, 3)], sets: homeSets(3) }), "A1")).toBe(false);
+        expect(
+          sessionCountsForRotation(atHome({ sets: homeSets(5, { weight: 40, originalWeight: 164 }) }), "A1")
+        ).toBe(false);
+      });
+
+      it("not when the T1 lift was swapped out or removed", () => {
+        for (const edit of [
+          { kind: "swap", exerciseId: "squat", tier: "T1", replacementId: "pendulum_squat" },
+          { kind: "remove", exerciseId: "squat", tier: "T1" },
+        ] satisfies PlanEdit[]) {
+          expect(sessionCountsForRotation(atHome({ planEdits: [edit] }), "A1")).toBe(false);
+        }
+      });
+    });
   });
 });
 
