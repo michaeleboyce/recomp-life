@@ -70,6 +70,13 @@ export function describeVariantOutcome(outcome: VariantOutcome, sets: SetLog[] =
     const perHand = EXERCISES[cap.to.exerciseId]?.grip === "per_hand";
     return `${passed}: next ${nameInSentence(cap.to.exerciseId)} at ${asLifted({ weight: cap.to.weight, perHand })}`;
   }
+  // A T3 whose last set earned a heavier weight it cannot have: the cap policy adds reps.
+  if (cap?.policy === "reps" && kind === "t3Same") {
+    return (
+      `last set reached ${T3_LAST_SET_INCREASE_REPS} at your heaviest dumbbell (${formatNumber(cap.maxDumbbellWeight, 1)}): ` +
+      `stays at ${next}, sets of ${cap.repsTo} reps next (was ${cap.repsFrom})`
+    );
+  }
   switch (kind) {
     case "passed":
       return `${passed}: next ${nextWithScheme}`;

@@ -72,6 +72,24 @@ describe("describeVariantOutcome", () => {
       )
     ).toBe("passed at your heaviest dumbbell (80): next Bulgarian split squat at 40 lbs a hand");
   });
+
+  it("says plainly that a capped T3 is at the heaviest dumbbell and that its reps go up next", () => {
+    const capped = outcome({
+      variantId: "lat_pulldown|db_row|T3",
+      liftId: "lat_pulldown",
+      exerciseId: "db_row",
+      tier: "T3",
+      kind: "t3Same",
+      reason: "lastSet",
+      from: point(50, { exerciseId: "db_row", perHand: false, stage: undefined, reps: 15 }),
+      to: point(50, { exerciseId: "db_row", perHand: false, stage: undefined, reps: 17 }),
+      cap: { policy: "reps", maxDumbbellWeight: 50, repsFrom: 15, repsTo: 17 },
+    });
+    const sets = [makeSet({ exerciseId: "lat_pulldown", tier: "T3", actualReps: 27, weight: 50 })];
+    const text = describeVariantOutcome(capped, sets);
+    expect(text).toBe("last set reached 25 at your heaviest dumbbell (50): stays at 50 lbs, sets of 17 reps next (was 15)");
+    expect(text).not.toMatch(/of 25 reps/);
+  });
 });
 
 describe("describeSessionOutcomes", () => {
