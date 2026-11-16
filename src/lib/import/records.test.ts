@@ -99,10 +99,24 @@ describe("cardio rows", () => {
 
   it("leaves out an entry with no duration and counts it", () => {
     expect(cardioRow(cardio({ durationSec: null }))).toBeNull();
-    const parsed = { cardio: [cardio(), cardio({ id: "x", durationSec: null })] };
+    const parsed = { cardio: [cardio(), cardio({ id: "x", start: "2022-05-07T07:00:00", durationSec: null })] };
     const built = buildCardioRows(parsed);
     expect(built.rows).toHaveLength(1);
     expect(built.noDuration).toBe(1);
+  });
+
+  it("keeps every cardio row of one Fitbod-style workout: same-stamp rows of one exercise become one entry", () => {
+    const file = buildFitbodFile([
+      fRow({ Exercise: "Running", Reps: 0, "Weight(kg)": 0, "Duration(s)": 600, "Distance(m)": 1600 }),
+      fRow({ Exercise: "Running", Reps: 0, "Weight(kg)": 0, "Duration(s)": 300, "Distance(m)": 900 }),
+      fRow({ Exercise: "Cycling", Reps: 0, "Weight(kg)": 0, "Duration(s)": 900, "Distance(m)": 0 }),
+    ]);
+    const built = buildCardioRows(parseExport(file));
+    const runs = built.rows.filter((r) => r.table === "runs");
+    expect(runs).toHaveLength(1);
+    expect(runs[0].row.durationMinutes).toBe(15);
+    expect(runs[0].row.distanceMiles).toBeCloseTo(2500 / 1609.344, 2);
+    expect(built.rows).toHaveLength(2);
   });
 
   it("never sets an external id, so Apple Health can link to the row later", () => {

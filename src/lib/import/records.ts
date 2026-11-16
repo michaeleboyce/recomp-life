@@ -9,6 +9,7 @@
  */
 import { metresToMiles } from "@/lib/health/units";
 import { mapExercise, type ExerciseMapping, type MappingOverrides } from "@/lib/import/mapping";
+import { mergeSameStartCardio } from "./cardio";
 import type {
   CardioKind,
   ImportedCardio,
@@ -169,11 +170,14 @@ export interface CardioRows {
   noDuration: number;
 }
 
-/** Every cardio entry of a parsed export as rows, oldest first. */
+/**
+ * Every cardio entry of a parsed export as rows, oldest first. Rows of one exercise
+ * that share a start time are one entry (`mergeSameStartCardio`).
+ */
 export function buildCardioRows(parsed: Pick<ParsedExport, "cardio">): CardioRows {
   const rows: CardioRow[] = [];
   let noDuration = 0;
-  for (const entry of parsed.cardio) {
+  for (const entry of mergeSameStartCardio(parsed.cardio)) {
     const row = cardioRow(entry);
     if (row) rows.push(row);
     else noDuration += 1;
