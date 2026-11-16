@@ -22,6 +22,24 @@ interface LogDockProps {
   restBanner?: ReactNode;
   /** While resting: what comes next, as a card. */
   restUpNext?: ReactNode;
+  /** While resting: go straight on from the set just logged at a lighter weight. */
+  onDropSet?: () => void;
+  /** The drop button's words, e.g. "Drop to 150 lbs". */
+  dropSetLabel?: string;
+}
+
+/** The rest screen's drop button: one tap goes on from the set at a lighter weight. */
+export function DropSetButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-14 w-full shrink-0 rounded-full border-[1.5px] border-primary font-display text-[17px] leading-none font-extrabold tracking-[0.12em] text-foreground uppercase transition-colors active:bg-card"
+    >
+      <span aria-hidden="true">↳ </span>
+      {label}
+    </button>
+  );
 }
 
 /**
@@ -40,6 +58,8 @@ export function LogDock({
   restWhy,
   restBanner,
   restUpNext,
+  onDropSet,
+  dropSetLabel,
 }: LogDockProps) {
   const isResting = useWorkoutStore((s) => s.isRestTimerActive);
 
@@ -60,6 +80,11 @@ export function LogDock({
             why={restWhy}
             banner={restBanner}
             upNext={restUpNext}
+            action={
+              onDropSet && dropSetLabel ? (
+                <DropSetButton label={dropSetLabel} onClick={onDropSet} />
+              ) : undefined
+            }
           />
         </div>
       </div>

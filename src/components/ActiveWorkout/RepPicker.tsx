@@ -27,6 +27,8 @@ interface RepPickerProps {
    * follow the forecast's columns instead of the usual chips.
    */
   forecast?: RepForecastView | null;
+  /** Under the count in place of "target N" (a drop set has no target). */
+  caption?: string;
   /** Under the buttons: what the forecast says. */
   children?: ReactNode;
 }
@@ -45,6 +47,7 @@ export function RepPicker({
   onChange,
   highlightFrom = null,
   forecast = null,
+  caption,
   children,
 }: RepPickerProps) {
   return (
@@ -72,8 +75,12 @@ export function RepPicker({
             {value}
           </span>
           <span className="text-xs text-muted-foreground">
-            target {targetReps}
-            {isAMRAP ? "+" : ""}
+            {caption ?? (
+              <>
+                target {targetReps}
+                {isAMRAP ? "+" : ""}
+              </>
+            )}
           </span>
         </div>
         <button

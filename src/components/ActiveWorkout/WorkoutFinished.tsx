@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { WorkoutComplete } from "@/components/ui/workout-complete";
+import { DropSetButton } from "./LogDock";
 
 interface WorkoutFinishedProps {
   setsLogged: number;
@@ -11,6 +12,10 @@ interface WorkoutFinishedProps {
   onSave: () => void;
   onDiscard: () => void;
   error?: string | null;
+  /** Go straight on from the last set at a lighter weight (a drop set). */
+  onDropSet?: () => void;
+  /** The drop button's words, e.g. "Drop to 70 lbs". */
+  dropSetLabel?: string;
 }
 
 /**
@@ -24,6 +29,8 @@ export function WorkoutFinished({
   onSave,
   onDiscard,
   error,
+  onDropSet,
+  dropSetLabel,
 }: WorkoutFinishedProps) {
   if (setsLogged === 0) {
     return (
@@ -58,6 +65,9 @@ export function WorkoutFinished({
         <p role="alert" className="text-center text-sm text-destructive">
           {error}
         </p>
+      )}
+      {onDropSet && dropSetLabel && !isSaving && (
+        <DropSetButton label={dropSetLabel} onClick={onDropSet} />
       )}
       <Button className="h-14 w-full text-base font-bold" onClick={onSave} disabled={isSaving}>
         {isSaving ? "Saving..." : "Finish & View Summary"}

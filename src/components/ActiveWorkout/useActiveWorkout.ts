@@ -66,6 +66,8 @@ interface DropState {
   parentId: string;
   weight: number;
   reps: number;
+  /** The reps the drop was set up with (the set before's), for the rep chips. */
+  suggestedReps: number;
 }
 
 const DEFAULT_PHASE: TrainingPhase = { mode: "maintaining" };
@@ -372,6 +374,7 @@ export function useActiveWorkout(
       drops: chain.drops,
       weight: activeDrop.weight,
       reps: activeDrop.reps,
+      suggestedReps: activeDrop.suggestedReps,
       /** The drop as an entry, for the weight display. */
       exercise,
       step: weightStepFor(performedId(root), root.location, equipment),
@@ -394,12 +397,14 @@ export function useActiveWorkout(
         ? (attachDrops(sets).find((row) => row.drops.some((d) => d.id === dropFrom.id))?.set.id ??
           dropFrom.id)
         : dropFrom.id;
+    const reps = dropFrom.actualReps > 0 ? dropFrom.actualReps : dropFrom.targetReps;
     setDropState({
       sessionId: session.id,
       rootId,
       parentId: dropFrom.id,
       weight: dropPreview,
-      reps: dropFrom.actualReps > 0 ? dropFrom.actualReps : dropFrom.targetReps,
+      reps,
+      suggestedReps: reps,
     });
   }, [session, dropFrom, dropPreview, tapGuardMs, sets]);
 
@@ -447,12 +452,8 @@ export function useActiveWorkout(
       return;
     }
     const next = dropSetWeight(drop.weight, performedId(drop), drop.location, equipment);
-    setDropState({
-      ...activeDrop,
-      parentId: drop.id,
-      weight: next,
-      reps: drop.actualReps > 0 ? drop.actualReps : activeDrop.reps,
-    });
+    const reps = drop.actualReps > 0 ? drop.actualReps : activeDrop.reps;
+    setDropState({ ...activeDrop, parentId: drop.id, weight: next, reps, suggestedReps: reps });
   }, [session, activeDrop, equipment, isSaving, tapGuardMs, sets]);
 
   /** No more drops: the rest that follows the set starts, when anything is left to do. */
@@ -693,6 +694,8 @@ export function useActiveWorkout(
     setChips,
     /** The next set's weight as changed on the spot; null when it is as planned. */
     weightOverride,
+    /** The next set's weight as planned. */
+    plannedNextWeight: planEntry ? nextSetView(planEntry, null).weight : 0,
     setNextWeight,
     /** What a weight on screen moves by (plate or dumbbell step), and its lightest value. */
     weightStep,
@@ -725,6 +728,8 @@ export function useActiveWorkout(
     clearCorrectionError,
     jumpTo,
     endEarly,
+    /** True once the user chose to end before the plan was done. */
+    endedEarly: endedAtIndex != null,
     finish,
     discard,
     isCompleting,
