@@ -132,7 +132,6 @@ function Body({
       ],
       other: make(palette.other),
       bone: make(palette.bone, { roughness: 0.9 }),
-      custom: new Map<string, THREE.MeshStandardMaterial>(),
       selected: make(palette.selected, {
         emissive: palette.selected,
         emissiveIntensity: 0.45,
@@ -140,44 +139,44 @@ function Body({
     };
   }, [theme]);
 
-  // Free a theme's materials once they are replaced, and on unmount.
+  // One material per colour the caller passes (palette variables, e.g. recovery
+  // colours, or hex), made when the colours or the theme change.
+  const customMaterials = useMemo(() => {
+    const byHex = new Map<string, THREE.MeshStandardMaterial>();
+    for (const color of Object.values(colors ?? {})) {
+      if (!color) continue;
+      const hex = sceneColor(color, theme);
+      if (!byHex.has(hex)) {
+        byHex.set(hex, new THREE.MeshStandardMaterial({ color: hex, roughness: 0.62, metalness: 0.05 }));
+      }
+    }
+    return byHex;
+  }, [colors, theme]);
+
+  // Free a theme's materials once they are replaced, and on unmount; the same for the
+  // colours' materials.
   useEffect(
     () => () => {
       [...materials.heat, materials.other, materials.bone, materials.selected].forEach((m) =>
         m.dispose()
       );
-      materials.custom.forEach((m) => m.dispose());
     },
     [materials]
   );
+  useEffect(() => () => customMaterials.forEach((m) => m.dispose()), [customMaterials]);
 
-  useEffect(() => {
-    for (const mesh of prepared.muscles) {
-      const muscle = mesh.userData.m as MuscleId;
-      let material: THREE.Material;
-      if (selected === muscle) {
-        material = materials.selected;
-      } else if (colors) {
-        const color = colors[muscle];
-        if (color) {
-          // Callers pass palette variables (e.g. recovery colours) or hex.
-          const hex = sceneColor(color, theme);
-          let m = materials.custom.get(hex);
-          if (!m) {
-            m = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.62, metalness: 0.05 });
-            materials.custom.set(hex, m);
-          }
-          material = m;
-        } else {
-          material = materials.heat[0];
-        }
-      } else {
-        material = materials.heat[heat?.[muscle] ?? 0];
-      }
-      mesh.material = material;
+  /** The material a muscle is drawn with: selected, its colour, or its heat. */
+  const materialFor = (muscle: MuscleId): THREE.Material => {
+    if (selected === muscle) return materials.selected;
+    if (colors) {
+      const color = colors[muscle];
+      return (color && customMaterials.get(sceneColor(color, theme))) || materials.heat[0];
     }
-    invalidate();
-  }, [prepared, materials, heat, colors, selected, theme, invalidate]);
+    return materials.heat[heat?.[muscle] ?? 0];
+  };
+
+  // The scene draws on demand: redraw when what the muscles look like changes.
+  useEffect(() => invalidate(), [materials, customMaterials, heat, colors, selected, invalidate]);
 
   useEffect(() => {
     onReady?.();
@@ -203,7 +202,7 @@ function Body({
     <group position={[0, -MODEL_CENTER_Y, 0]}>
       <group onClick={handleClick}>
         {prepared.muscles.map((mesh) => (
-          <primitive key={mesh.uuid} object={mesh} />
+          <primitive key={mesh.uuid} object={mesh} material={materialFor(mesh.userData.m as MuscleId)} />
         ))}
       </group>
       {prepared.otherMuscles && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import {
@@ -284,6 +284,9 @@ export function useWorkoutSetup(
     setSelectedAccessories(favorite.selectedAccessories);
     setOverrides(favorite.overrides);
     setEditState({ templateId: favorite.templateId, edits: favorite.planEdits });
+    // Its location is this workout's, as if chosen here (saved as the default below).
+    setFromUrl(null);
+    setPending({ value: favorite.location, over: training.location });
   }
   const favoriteId = seededFrom?.favoriteId;
 
@@ -364,12 +367,14 @@ export function useWorkoutSetup(
     });
   }, [template, location, liftStates, equipment, plan]);
 
-  const favoriteLocation = seededFrom?.location;
+  // A favourite's location is saved as the default too, once per favourite applied: the
+  // user may change the location afterwards.
+  const savedFavoriteLocation = useRef<ResolvedFavorite | null>(null);
   useEffect(() => {
-    if (favoriteLocation) setLocation(favoriteLocation);
-    // Only when a favourite is applied: the user may change the location afterwards.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seededFrom]);
+    if (!seededFrom || savedFavoriteLocation.current === seededFrom) return;
+    savedFavoriteLocation.current = seededFrom;
+    saveLocation(seededFrom.location).catch((err) => console.error("Failed to save training location:", err));
+  }, [seededFrom, saveLocation]);
 
   const chooseSubstitute = useCallback((templateExerciseId: string, substituteId: string) => {
     setOverrides((prev) => ({ ...prev, [templateExerciseId]: substituteId }));

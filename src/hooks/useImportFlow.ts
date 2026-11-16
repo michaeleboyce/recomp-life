@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
   countStoredImportedSessions,
@@ -77,6 +77,14 @@ export interface ImportFlow {
   reset: () => void;
 }
 
+const noSubscription = () => () => {};
+
+/** What this device remembers, as the server renders it: nothing. */
+const NOTHING_STORED: { overrides: MappingOverrides; lastImport: ImportUndoRecord | null } = {
+  overrides: {},
+  lastImport: null,
+};
+
 /**
  * The import screen's steps: pick a file, read and preview it (nothing written), review
  * the names, import in chunks with progress, then the result with undo. The file is
@@ -84,15 +92,20 @@ export interface ImportFlow {
  */
 export function useImportFlow(): ImportFlow {
   const [state, setState] = useState<ImportState>({ step: "pick" });
-  const [overrides, setOverrides] = useState<MappingOverrides>({});
-  const [lastImport, setLastImport] = useState<ImportUndoRecord | null>(null);
   const busy = useRef(false);
 
-  useEffect(() => {
-    // Device storage is read after mounting, so the first render matches the server's.
-    setOverrides(loadMappingOverrides());
-    setLastImport(loadLastImport());
-  }, []);
+  // Device storage is read once the page has hydrated (false on the server and while
+  // hydrating), so the first render matches the server's. What this screen changes
+  // afterwards is held here, and saved to storage as it is made.
+  const hydrated = useSyncExternalStore(noSubscription, () => true, () => false);
+  const stored = useMemo(
+    () => (hydrated ? { overrides: loadMappingOverrides(), lastImport: loadLastImport() } : NOTHING_STORED),
+    [hydrated]
+  );
+  const [chosenOverrides, setOverrides] = useState<MappingOverrides | null>(null);
+  const [changedLastImport, setLastImport] = useState<{ record: ImportUndoRecord | null } | null>(null);
+  const overrides = chosenOverrides ?? stored.overrides;
+  const lastImport = changedLastImport ? changedLastImport.record : stored.lastImport;
 
   const parsed = state.step === "preview" ? state.parsed : null;
   const preview = useMemo(() => (parsed ? buildImportPreview(parsed, overrides) : null), [parsed, overrides]);
@@ -134,12 +147,13 @@ export function useImportFlow(): ImportFlow {
   }, []);
 
   const chooseMapping = useCallback((name: string, choice: MappingOverride | null) => {
-    setOverrides((current) => {
+    setOverrides((chosen) => {
+      const current = chosen ?? stored.overrides;
       const next = choice ? rememberMapping(current, name, choice) : forgetMapping(current, name);
       saveMappingOverrides(next);
       return next;
     });
-  }, []);
+  }, [stored]);
 
   const runImport = useCallback(async () => {
     if (state.step !== "preview" || busy.current) return;
@@ -165,7 +179,7 @@ export function useImportFlow(): ImportFlow {
       const anything = sessionsAdded + written.runIds.length + written.activityIds.length > 0;
       if (anything) {
         saveLastImport(undo);
-        setLastImport(undo);
+        setLastImport({ record: undo });
       }
       const totals = await importBatchTotals(batchId);
       setState({
@@ -203,7 +217,7 @@ export function useImportFlow(): ImportFlow {
       try {
         const undone = await undoImport(target);
         clearLastImport();
-        setLastImport(null);
+        setLastImport({ record: null });
         setState({ step: "undone", sessions: undone.sessions, cardio: undone.runs + undone.activities });
       } catch (error) {
         console.error("Undoing an import failed:", error);
