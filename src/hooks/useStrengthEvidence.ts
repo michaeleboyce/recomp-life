@@ -7,9 +7,11 @@ import { useCompletedWorkouts } from "./useWorkouts";
 
 /**
  * Every set as strength evidence: the finished workouts' and the imported sessions'
- * (`strengthEvidenceOf`), for the strength estimate, the learned ratios, the muscle
- * strength index and starting-weight suggestions. Planning reads `useStrengthSets`
- * (the log alone) instead, so an import never moves a planned weight by itself.
+ * (`strengthEvidenceOf`), for what the app shows about strength (the muscle strength
+ * index, `useMuscleStrength`) and for starting-weight suggestions. Planning, and the
+ * estimates that explain a planned weight (seeding, re-entry, the "why" trace), read
+ * `useStrengthSets` (the log alone) instead, so an import never moves a planned weight
+ * by itself.
  * Imported names are mapped as of now (the remembered choices win). The same array
  * while nothing it reads changes. `undefined` while loading.
  */

@@ -72,10 +72,11 @@ export function strengthSetsOf(
  * (`importedStrengthSets`: mapped exercises only, warm-ups and drops kept as such,
  * weighted for recency by the library's half-life like every other session).
  *
- * For the strength estimate, the learned ratios and the muscle strength index, and for
- * the starting weights suggested from imported history. Not for planning: the plan,
- * re-entry and the rebuild read `strengthSetsOf` alone, so imported history never moves
- * a planned weight until the lifter confirms a starting weight from it. Imported names
+ * For what is shown about strength (the muscle strength index, `useMuscleStrength`) and
+ * for the starting weights suggested from imported history. Not for planning: the
+ * plan, seeding, re-entry, the rebuild and the estimates that explain a planned weight
+ * read `strengthSetsOf` alone, so imported history never moves a planned weight until
+ * the lifter confirms a starting weight from it. Imported names
  * are mapped as of now: a choice remembered since the import (`overrides`) wins.
  */
 export function strengthEvidenceOf(
