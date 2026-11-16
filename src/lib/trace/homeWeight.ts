@@ -30,8 +30,10 @@ export const TRANSFER_RATIO_RULE = "transfer-ratio";
  * (`WorkoutExerciseState.reentry`, a `PlanReentry`, which has these fields and more).
  */
 export interface ReentryTrace {
-  /** `ReentryResult.rule`. */
-  rule: ReentryRule;
+  /** `ReentryResult.rule`, or "hand": set by hand since, so re-entry left it. */
+  rule: ReentryRule | "hand";
+  /** For "hand": when the weight was set by hand. */
+  setByHandAt?: Date | string;
   /** `ReentryResult.weight`: the weight the plan took. */
   weight: number;
   /** `ReentryResult.fromSteps`. */
@@ -234,6 +236,23 @@ function capStep(variant: VariantState, context: HomeContext, cap: VariantCapAct
 /** "Back at the gym" / "Back at home": which re-entry rule decided the weight. */
 function reentryStep(reentry: ReentryTrace, entry: PlanEntry): TraceStep {
   const gym = (reentry.location ?? "gym") === "gym";
+  const applied = reentry.weight === entry.weight;
+  if (reentry.rule === "hand") {
+    const at = reentry.setByHandAt != null ? new Date(reentry.setByHandAt) : null;
+    const when =
+      at && Number.isFinite(at.getTime())
+        ? ` on ${at.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+        : "";
+    return step(
+      "reentry",
+      gym ? "Back at the gym" : "Back at home",
+      `You set this weight by hand${when}, after your last ${gym ? "home" : "barbell"} session, so re-entry leaves it as it is.`,
+      applied ? "set" : "none",
+      "lb",
+      applied ? reentry.weight : undefined,
+      STRENGTH_POOLING_RULE
+    );
+  }
   const bounds: string[] = [];
   if (reentry.fromSteps !== null) {
     const earned = reentry.stepsEarned;
@@ -251,7 +270,6 @@ function reentryStep(reentry: ReentryTrace, entry: PlanEntry): TraceStep {
       : reentry.rule === "estimate"
         ? "The estimate is the smaller, so it decides."
         : "Both are more than your heaviest dumbbell, so it stops at the cap.";
-  const applied = reentry.weight === entry.weight;
   return step(
     "reentry",
     gym ? "Back at the gym" : "Back at home",

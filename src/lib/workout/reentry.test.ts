@@ -16,9 +16,11 @@ import {
   pooledLiftEstimate,
   type StrengthSet,
 } from "@/lib/strength";
+import { DEFAULT_USER_PROFILE } from "@/db/seed";
+import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, VariantState } from "@/types";
-import { buildWorkoutPlan } from "./buildPlan";
+import { buildWorkoutPlan, describeNextWorkout } from "./buildPlan";
 import { markReentries, reentryKey, resolveReentry } from "./reentry";
 import { planWorkoutStart } from "./startPlan";
 import { strengthSetsOf } from "./strength";
@@ -160,6 +162,108 @@ describe("resolveReentry at home (H6)", () => {
       equipment: EQUIPMENT,
     });
     expect(since.reentries.size).toBe(0);
+  });
+});
+
+describe("a weight set by hand has the final say", () => {
+  // A barbell squat session that puts the estimate well under the home weights below.
+  const gymSets = t1Session("gym", "squat", 205, 3, 5);
+
+  it("at home: a split squat weight set by hand after the barbell session is planned as set", () => {
+    const liftStates = [squat({ t1Weight: 245, t1LastWorkoutDate: at(5) })];
+    const before = split({ weight: 65, lastSessionDate: at(0), gymPassesSinceHome: 0 });
+    const input = { liftStates, location: "home" as const, equipment: EQUIPMENT, strengthSets: gymSets };
+    // Without the hand-set date the estimate would take it lower.
+    const bounded = resolveReentry({ ...input, variantStates: [before] }).reentries.get(reentryKey("squat", "T1"))!;
+    expect(bounded.weight).toBeLessThan(65);
+
+    const resolved = resolveReentry({ ...input, variantStates: [{ ...before, setByHandAt: at(6) }] });
+    expect(variantOf(resolved.variantStates, "squat|bulgarian_split_squat|T1").weight).toBe(65);
+    expect(resolved.reentries.get(reentryKey("squat", "T1"))).toMatchObject({
+      rule: "hand",
+      weight: 65,
+      location: "home",
+      exerciseId: "bulgarian_split_squat",
+      setByHandAt: at(6),
+    });
+  });
+
+  it("at the gym: a barbell weight set by hand after the last home session is planned as set", () => {
+    const variants = [split({ weight: 55, lastSessionDate: at(10), passesSinceGym: 2 })];
+    const sets = [...t1Session("gym", "squat", 190, 8, 0), ...t1Session("home", "bulgarian_split_squat", 55, 8, 10, true)];
+    const liftStates = [squat({ t1Weight: 200, t1LastWorkoutDate: at(0), t1SetByHandAt: at(11) })];
+    const resolved = resolveReentry({ liftStates, variantStates: variants, location: "gym", equipment: EQUIPMENT, strengthSets: sets });
+    expect(stateOf(resolved.liftStates, "squat").t1Weight).toBe(200);
+    expect(resolved.reentries.get(reentryKey("squat", "T1"))).toMatchObject({
+      rule: "hand",
+      weight: 200,
+      location: "gym",
+      setByHandAt: at(11),
+    });
+  });
+
+  it("a later session at the other location brings re-entry back", () => {
+    // Set by hand on day 11, then a home session on day 12: back at the gym, re-entry decides again.
+    const variants = [split({ weight: 55, lastSessionDate: at(12), passesSinceGym: 2 })];
+    const liftStates = [squat({ t1Weight: 190, t1LastWorkoutDate: at(0), t1SetByHandAt: at(11) })];
+    const gym = resolveReentry({ liftStates, variantStates: variants, location: "gym", equipment: EQUIPMENT });
+    expect(gym.reentries.get(reentryKey("squat", "T1"))).toMatchObject({ rule: "steps", weight: 210 });
+
+    // At home: set by hand on day 6, the barbell done again on day 8.
+    const home = resolveReentry({
+      liftStates: [squat({ t1Weight: 245, t1LastWorkoutDate: at(8) })],
+      variantStates: [split({ weight: 65, lastSessionDate: at(0), setByHandAt: at(6) })],
+      location: "home",
+      equipment: EQUIPMENT,
+      strengthSets: gymSets,
+    });
+    expect(home.reentries.get(reentryKey("squat", "T1"))?.rule).not.toBe("hand");
+  });
+
+  it("the demo at home: the split squat set to five more by hand is what the next home workout plans", () => {
+    const now = new Date();
+    const demo = generateDemoData(now);
+    const settings = DEFAULT_USER_PROFILE.settings;
+    const input = { workouts: demo.workouts, adjustments: demo.liftAdjustments, settings };
+    const completed = demo.workouts.filter((w) => w.completedAt);
+    const nextHomeSquat = (rebuilt: ReturnType<typeof rebuildDerived>) =>
+      describeNextWorkout({
+        completedWorkouts: completed,
+        templates: WORKOUT_TEMPLATES,
+        liftStates: rebuilt.liftStates,
+        plan: {
+          location: "home",
+          equipment: settings.equipment,
+          includeWarmUps: false,
+          selectedAccessories: [],
+          variantStates: rebuilt.variantStates,
+          strengthSets: strengthSetsOf(completed),
+        },
+        reentry: true,
+      }).plan.find((e) => e.exerciseId === "squat" && !e.isWarmUp)!;
+    const before = rebuildDerived(input);
+    const planned = nextHomeSquat(before);
+    expect(planned).toMatchObject({ tier: "T1", substituteExerciseId: "bulgarian_split_squat" });
+    // The demo's next home squat re-enters after barbell sessions, bounded by the estimate.
+    expect(planned.reentry?.location).toBe("home");
+
+    const target = planned.weight + settings.equipment.dumbbellIncrementLbs;
+    const hand = {
+      id: "hand",
+      clientId: "hand",
+      exerciseId: "squat",
+      at: now,
+      source: "manual" as const,
+      set: { t1Weight: target },
+      variant: { exerciseId: "bulgarian_split_squat", tier: "T1" as const },
+      synced: false,
+    };
+    const after = rebuildDerived({ ...input, adjustments: [...input.adjustments, hand] });
+    const next = nextHomeSquat(after);
+    expect(next.weight).toBe(target);
+    expect(next.reentry).toMatchObject({ rule: "hand", location: "home" });
+    // The barbell squat is untouched.
+    expect(stateOf(after.liftStates, "squat").t1Weight).toBe(stateOf(before.liftStates, "squat").t1Weight);
   });
 });
 

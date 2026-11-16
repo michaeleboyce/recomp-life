@@ -128,6 +128,32 @@ describe("homeWeightSteps", () => {
     expect(step.ruleId).toBe("strength-pooling");
     expect(applySteps([step]).lb).toBe(215);
   });
+
+  it("says a weight set by hand since the other location's last session stays as set", () => {
+    const e: PlanEntry = { ...entry(variant()), substituteExerciseId: undefined, variantId: undefined, weight: 200 };
+    const setByHandAt = new Date(2026, 10, 16, 9);
+    const [gym] = homeWeightSteps(e, {
+      ...context({ location: "gym" }),
+      home: {
+        reentry: { rule: "hand", weight: 200, fromSteps: null, fromEstimate: null, location: "gym", setByHandAt },
+      },
+    });
+    expect(gym.title).toBe("Back at the gym");
+    expect(gym.detail).toBe(
+      "You set this weight by hand on Nov 16, after your last home session, so re-entry leaves it as it is."
+    );
+    expect(applySteps([gym]).lb).toBe(200);
+
+    const v = variant({ weight: 65 });
+    const home = homeWeightSteps(entry(v, { weight: 65 }), {
+      ...context(),
+      home: {
+        variantStates: [v],
+        reentry: { rule: "hand", weight: 65, fromSteps: null, fromEstimate: null, location: "home", setByHandAt },
+      },
+    }).find((s) => s.title === "Back at home")!;
+    expect(home.detail).toContain("set this weight by hand on Nov 16, after your last barbell session");
+  });
 });
 
 describe("capNextStep", () => {

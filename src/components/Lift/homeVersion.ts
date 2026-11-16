@@ -287,7 +287,13 @@ export function homeWeightLine(
   let ruleId: HomeWeightLine["ruleId"] = "home-progression";
   const { reentry, seed } = next;
 
-  if (reentry) {
+  if (reentry?.rule === "hand") {
+    const at = reentry.setByHandAt ? new Date(reentry.setByHandAt) : null;
+    const when = at ? ` on ${at.toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "";
+    parts.push(
+      `You set it by hand${when}, after your last barbell session, so it stays at ${lbsText(next.weight, next.perHand)}.`
+    );
+  } else if (reentry) {
     ruleId = "strength-pooling";
     const bounds: string[] = [];
     if (reentry.fromSteps !== null) {
@@ -330,7 +336,7 @@ export function homeWeightLine(
   }
   if (next.atCap) {
     parts.push(capText(substituteId, exerciseId, next, equipment));
-    if (!reentry) ruleId = "cap-progression";
+    if (!reentry || reentry.rule === "hand") ruleId = "cap-progression";
   }
   return { text: parts.join(" "), ruleId };
 }

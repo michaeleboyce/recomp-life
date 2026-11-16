@@ -100,13 +100,26 @@ const VARIANT_FIELDS = {
 } as const satisfies Record<VariantState["tier"], Partial<Record<string, AdjustableField>>>;
 
 /**
+ * When an adjustment set a weight by hand: a manual change or starting weights, with a
+ * real date (seeded starting weights are dated at the epoch, before everything, and
+ * carry no date). Null for a time-off reduction, an import, or no date.
+ */
+function handSetDate(adjustment: LiftAdjustment): Date | null {
+  if (adjustment.source !== "manual" && adjustment.source !== "start") return null;
+  const at = new Date(adjustment.at);
+  return Number.isFinite(at.getTime()) && at.getTime() > 0 ? at : null;
+}
+
+/**
  * An adjustment sets the fields it lists to absolute values; nothing else moves.
  *
  * One for a home exercise (`variant`) sets that exercise's own state from its tier's
  * fields (t1Weight is its weight at T1, and so on), creating the state from its seed
  * when it has none; a weight set by hand replaces the steps gym passes had earned for
  * it. One for the barbell lift that sets a tier's weight replaces the steps home passes
- * had earned at that tier: the weight is the user's, re-entry adds nothing to it.
+ * had earned at that tier: the weight is the user's, re-entry adds nothing to it. A
+ * weight set by hand (`handSetDate`) records when (`setByHandAt`, `t1SetByHandAt`,
+ * `t2SetByHandAt`), so re-entry leaves it as it is until the other location is trained.
  */
 function applyAdjustment(
   states: Map<string, LiftState>,
@@ -116,6 +129,7 @@ function applyAdjustment(
 ): void {
   const set = adjustment.set ?? {};
   const target = adjustment.variant;
+  const byHand = handSetDate(adjustment);
   if (target) {
     if (!isVariantTier(target.tier)) return;
     const tier = target.tier;
@@ -136,7 +150,10 @@ function applyAdjustment(
       const value = set[field];
       if (value !== undefined) next = { ...next, [key]: value };
     }
-    if (fields.weight && set[fields.weight] !== undefined) next = withoutGymPasses(next);
+    if (fields.weight && set[fields.weight] !== undefined) {
+      next = withoutGymPasses(next);
+      if (byHand) next = { ...next, setByHandAt: byHand };
+    }
     variants.set(id, next);
     return;
   }
@@ -147,6 +164,8 @@ function applyAdjustment(
     const value = set[field];
     if (value !== undefined) next[field] = value;
   }
+  if (byHand && set.t1Weight !== undefined) next.t1SetByHandAt = byHand;
+  if (byHand && set.t2Weight !== undefined) next.t2SetByHandAt = byHand;
   states.set(adjustment.exerciseId, next as unknown as LiftState);
 
   for (const [tier, fields] of Object.entries(VARIANT_FIELDS)) {

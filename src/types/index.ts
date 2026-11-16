@@ -154,6 +154,13 @@ export interface LiftState {
   t2LastResetWeight: number | null;
   t1LastWorkoutDate: Date | null;
   t2LastWorkoutDate: Date | null;
+  /**
+   * When the T1 / T2 barbell weight was last set by hand (a manual or starting-weight
+   * adjustment with a real date). Re-entry at the gym leaves a weight set by hand after
+   * the last home session as it is. Absent when it never was. Derived by the rebuild.
+   */
+  t1SetByHandAt?: Date;
+  t2SetByHandAt?: Date;
   deloadActive: boolean;
   deloadSessionsRemaining: number;
   preDeloadT1Weight: number | null;
@@ -233,6 +240,12 @@ export interface VariantState {
    * Absent means 0 (rows rebuilt before it was counted).
    */
   gymPassesSinceHome?: number;
+  /**
+   * When the weight was last set by hand (a manual adjustment for this exercise).
+   * Re-entry leaves a weight set by hand after the barbell lift's last session as it
+   * is: the user has the final say. Absent when it never was.
+   */
+  setByHandAt?: Date;
   seed: VariantSeed;
 }
 

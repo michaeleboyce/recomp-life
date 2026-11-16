@@ -59,8 +59,11 @@ export interface WorkoutExerciseState {
  * match the "why" trace's `ReentryTrace`.
  */
 export interface PlanReentry {
-  /** "steps", "estimate" or "cap" (`ReentryResult.rule`). */
-  rule: ReentryRule;
+  /**
+   * "steps", "estimate" or "cap" (`ReentryResult.rule`), or "hand": the weight was set
+   * by hand after the other location's last session, so re-entry leaves it as it is.
+   */
+  rule: ReentryRule | "hand";
   /** The weight the rule gave: barbell terms at the gym, as lifted at home. */
   weight: number;
   /** The last weight plus the steps earned, rounded to the equipment; null with no last weight. */
@@ -81,6 +84,8 @@ export interface PlanReentry {
   ratio?: number | null;
   /** At home: the home exercise the weight is for. */
   exerciseId?: string;
+  /** For "hand": when the weight was set by hand. */
+  setByHandAt?: Date;
 }
 
 export type WorkoutPlan = WorkoutExerciseState[];

@@ -228,6 +228,25 @@ describe("homeWeightLine", () => {
     );
   });
 
+  it("says a weight set by hand since the barbell session stays as set", () => {
+    const reentry = {
+      rule: "hand" as const,
+      weight: 65,
+      fromSteps: null,
+      fromEstimate: null,
+      stepsEarned: 4,
+      targetReps: 3,
+      location: "home" as const,
+      lastWeight: 65,
+      estimate: null,
+      setByHandAt: new Date(2026, 10, 16),
+    };
+    expect(line({ weight: 65, reentry, variant: bss({ weight: 65 }) })).toEqual({
+      text: "You set it by hand on Nov 16, after your last barbell session, so it stays at 65 lbs a hand.",
+      ruleId: "home-progression",
+    });
+  });
+
   it("is empty with no weight", () => {
     expect(line({ weight: 0 }).text).toBe("");
   });

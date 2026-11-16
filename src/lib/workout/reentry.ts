@@ -102,6 +102,15 @@ function toPlanReentry(
   };
 }
 
+/** The decision for a weight set by hand since the other location's last session: it stays. */
+function handReentry(
+  weight: number,
+  setByHandAt: Date,
+  extra: Omit<PlanReentry, "rule" | "weight" | "fromSteps" | "fromEstimate" | "setByHandAt">
+): PlanReentry {
+  return { rule: "hand", weight, fromSteps: null, fromEstimate: null, ...extra, setByHandAt };
+}
+
 /**
  * The states a plan at `location` is built from, with the first weight after a stretch
  * at the other location in place (spec decision 3). Only T1 and T2 lifts, the tiers
@@ -120,6 +129,11 @@ function toPlanReentry(
  * estimate allows through the exercise's learned ratio, rounded down to the dumbbell
  * step and capped at the heaviest dumbbell. A home exercise never used is seeded
  * instead (H3), so it is left alone here.
+ *
+ * A weight set by hand (`t1SetByHandAt`/`t2SetByHandAt` on the lift, `setByHandAt` on
+ * the home exercise) at or after the other location's last session is the user's: it
+ * stays as set, and the decision says so (rule "hand"). A later session at the other
+ * location brings re-entry back.
  *
  * Every other state is returned as given. The estimate is the program lift's
  * `pooledLiftEstimate` over `strengthSets`, which every set feeds (home sets through
@@ -145,6 +159,21 @@ export function resolveReentry(input: ReentryInput): ReentryResolution {
       const lastWeight = tier === "T1" ? liftState.t1Weight : liftState.t2Weight;
       const targetReps = stageReps(liftState, tier);
       const stepsEarned = homeStepsEarned(input.variantStates, liftId, tier);
+      const handAt = timeOf(tier === "T1" ? liftState.t1SetByHandAt : liftState.t2SetByHandAt);
+      if (handAt != null && handAt >= homeAt) {
+        // Set by hand since the last home session: the user's weight stands.
+        reentries.set(
+          reentryKey(liftId, tier),
+          handReentry(lastWeight, new Date(handAt), {
+            stepsEarned,
+            targetReps,
+            location: "gym",
+            lastWeight: lastWeight > 0 ? lastWeight : null,
+            estimate: null,
+          })
+        );
+        continue;
+      }
       const estimate = estimateOf(liftId);
       const result = barbellReentryWeight({
         lastWeight: lastWeight > 0 ? lastWeight : null,
@@ -188,6 +217,22 @@ export function resolveReentry(input: ReentryInput): ReentryResolution {
     if (homeAt == null || barbellAt <= homeAt) continue;
     const stepsEarned = variant.gymPassesSinceHome ?? 0;
     const targetReps = variantScheme(variant).reps;
+    const handAt = timeOf(variant.setByHandAt);
+    if (handAt != null && handAt >= barbellAt) {
+      // Set by hand since the barbell lift's last session: the user's weight stands.
+      reentries.set(
+        reentryKey(liftId, tier),
+        handReentry(choice.weight, new Date(handAt), {
+          stepsEarned,
+          targetReps,
+          location: "home",
+          lastWeight: variant.weight,
+          estimate: null,
+          exerciseId: variant.exerciseId,
+        })
+      );
+      continue;
+    }
     const estimate = estimateOf(liftId);
     const ratio = strengthSets
       ? (transferRatioOf(strengthSets, liftId, variant.exerciseId)?.ratio ?? null)
