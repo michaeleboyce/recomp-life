@@ -32,5 +32,11 @@ export interface PullResponse {
   serverTime: number;
 }
 
+/**
+ * The most rows one push may carry. The server refuses a larger batch (413); the
+ * client sends a table's dirty rows in batches of at most this many.
+ */
+export const MAX_PUSH_ROWS = 500;
+
 /** A client stamp further ahead of the server clock than this is clamped to it. */
 export const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;

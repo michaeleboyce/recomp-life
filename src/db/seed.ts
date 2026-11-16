@@ -81,12 +81,18 @@ export function startAdjustments(): LiftAdjustment[] {
   });
 }
 
+/**
+ * A new device's starting profile: neutral placeholders, no personal details (this
+ * file is public). It is seeded with SEED_STAMP, so it never wins a sync conflict:
+ * a synced profile on the server replaces it on the first pull and is never
+ * overwritten by it.
+ */
 export const DEFAULT_USER_PROFILE: Omit<UserProfile, 'id' | 'createdAt'> = {
   clientId: PROFILE_ID,
   synced: false,
-  name: "Michael",
-  bodyweight: 226,
-  heightInches: 74,
+  name: "",
+  bodyweight: 180,
+  heightInches: 70,
   settings: {
     theme: "dark",
     restTimerAudio: true,
@@ -97,8 +103,6 @@ export const DEFAULT_USER_PROFILE: Omit<UserProfile, 'id' | 'createdAt'> = {
     weighInReminderTime: "07:00",
     trainingPhase: {
       mode: "cutting",
-      dailyDeficit: 750,
-      proteinGramsPerDay: 160,
     },
     equipment: {
       maxDumbbellWeight: 80,

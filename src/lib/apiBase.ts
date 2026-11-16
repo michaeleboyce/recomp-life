@@ -27,3 +27,18 @@ export function nativeAppCorsHeaders(): { key: string; value: string }[] {
     { key: "Vary", value: "Origin" },
   ];
 }
+
+/**
+ * The Cache-Control of every sync response. Pulled rows and passphrase checks must
+ * never be kept by a browser, a proxy or the CDN, refusals and errors included.
+ */
+export const SYNC_CACHE_CONTROL = "no-store";
+
+/**
+ * Headers for every response under /api/sync (applied in next.config.ts, so the
+ * preflight and responses the routes do not build themselves get them too): the
+ * iPhone app's CORS rule, and no caching.
+ */
+export function syncApiHeaders(): { key: string; value: string }[] {
+  return [...nativeAppCorsHeaders(), { key: "Cache-Control", value: SYNC_CACHE_CONTROL }];
+}

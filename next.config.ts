@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { nativeAppCorsHeaders } from "./src/lib/apiBase";
+import { syncApiHeaders } from "./src/lib/apiBase";
 
 // BUILD_TARGET=native produces the static files bundled into the iPhone app
 // (see scripts/build-native.mjs). Without it this is the normal web build.
@@ -14,9 +14,9 @@ const nextConfig: NextConfig = native
       images: { unoptimized: true },
     }
   : {
-      // The iPhone app calls the sync API from its own origin.
+      // The iPhone app calls the sync API from its own origin; nothing under it is cached.
       async headers() {
-        return [{ source: "/api/sync/:path*", headers: nativeAppCorsHeaders() }];
+        return [{ source: "/api/sync/:path*", headers: syncApiHeaders() }];
       },
     };
 

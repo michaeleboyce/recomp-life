@@ -9,6 +9,28 @@ import { SYNC_REGISTRY, PROFILE_ID, type SyncTableDef } from '@/lib/sync/registr
 import { MAX_CLOCK_SKEW_MS, type WireRow } from '@/lib/sync/wire';
 
 /**
+ * The shortest SYNC_SECRET the guard should accept.
+ *
+ * For now a shorter secret is only warned about (once per server instance, never
+ * printing the secret or its length), not refused: refusing it could lock the owner
+ * out if his current passphrase is shorter. Once he confirms a passphrase of at least
+ * this length, switch refusal on by returning false from `isSyncAuthorized` when
+ * `secret.length < MIN_SECRET_LENGTH`.
+ */
+export const MIN_SECRET_LENGTH = 20;
+
+let warnedShortSecret = false;
+
+function warnIfShortSecret(secret: string): void {
+  if (warnedShortSecret || secret.length >= MIN_SECRET_LENGTH) return;
+  warnedShortSecret = true;
+  console.warn(
+    `SYNC_SECRET is shorter than ${MIN_SECRET_LENGTH} characters. Set a longer passphrase: ` +
+      'short ones will be refused in a later release.'
+  );
+}
+
+/**
  * Checks an `Authorization: Bearer <passphrase>` header against the server's
  * SYNC_SECRET. Fails closed: if no secret is configured, nothing is authorized.
  */
@@ -17,6 +39,8 @@ export function isSyncAuthorized(
   secret: string | undefined
 ): boolean {
   if (!secret) return false;
+  // Warn only, for now: see MIN_SECRET_LENGTH.
+  warnIfShortSecret(secret);
   if (!authHeader || !authHeader.startsWith('Bearer ')) return false;
 
   const provided = authHeader.slice('Bearer '.length);
