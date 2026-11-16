@@ -22,6 +22,7 @@ export {
 } from "./useRecords";
 export { useVariantStates } from "./useVariantStates";
 export { useStrengthSets } from "./useStrengthSets";
+export { useMuscleStrength } from "./useMuscleStrength";
 export { useForecasts } from "./useForecasts";
 export { useCoachEvents } from "./useCoachEvents";
 export { useAdjustmentFeed, type AdjustmentFeed } from "./useAdjustmentFeed";

@@ -23,6 +23,9 @@ export interface WorkoutStartPlan extends ReentryResolution {
  * home exercises never used are seeded from `strengthSets` (H3), and the prescription
  * is built from the same states and choices as the plan, so the rebuild credits the
  * session against what was planned.
+ *
+ * @evidence strength-pooling
+ * @evidence home-progression
  */
 export function planWorkoutStart(input: Omit<BuildPlanInput, "reentries">): WorkoutStartPlan {
   const { template, location, equipment, overrides, strengthSets } = input;

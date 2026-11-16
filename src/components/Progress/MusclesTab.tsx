@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MuscleId, RecoveryStatus, TrainingPhase } from "@/types";
-import { useCompletedWorkouts, usePainEntries, useSettings } from "@/hooks";
+import { useCompletedWorkouts, useMuscleStrength, usePainEntries, useSettings } from "@/hooks";
 import { getMonday } from "@/lib/dates";
 import {
   getMuscleLastTrained,
@@ -22,16 +22,18 @@ import { Anatomy3D } from "@/components/Anatomy/Anatomy3D";
 import { MuscleLegend } from "@/components/Anatomy/MuscleLegend";
 import { MuscleInfoSheet } from "@/components/Anatomy/MuscleInfoSheet";
 import BodyMapSVG from "@/components/BodyMap/BodyMapSVG";
+import { MuscleStrengthList } from "@/components/Muscles/MuscleStrengthList";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SkeletonCard } from "@/components/ui/skeleton";
 
-type Mode = "volume" | "recovery" | "pain";
+type Mode = "volume" | "recovery" | "strength" | "pain";
 
 const MODES: { value: Mode; label: string }[] = [
   { value: "volume", label: "This Week" },
   { value: "recovery", label: "Recovery" },
+  { value: "strength", label: "Strength" },
   { value: "pain", label: "Pain" },
 ];
 
@@ -55,6 +57,7 @@ export function MusclesTab() {
   const [selected, setSelected] = useState<MuscleId | null>(null);
 
   const workouts = useCompletedWorkouts();
+  const strengthIndex = useMuscleStrength();
   const settings = useSettings();
   const allPain = usePainEntries();
   const painEntries = useMemo(() => {
@@ -96,7 +99,12 @@ export function MusclesTab() {
     <div data-testid="muscles-tab">
       <SegmentedControl value={mode} onChange={setMode} options={MODES} className="mb-4" />
 
-      {mode === "pain" ? (
+      {mode === "strength" ? (
+        <section>
+          {strengthIndex === undefined ? <SkeletonCard /> : <MuscleStrengthList index={strengthIndex} />}
+          <EvidenceLine ruleId="strength-pooling" className="mt-4" />
+        </section>
+      ) : mode === "pain" ? (
         <section className="space-y-4">
           <BodyMapSVG
             activeEntries={painEntries}

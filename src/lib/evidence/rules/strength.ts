@@ -49,12 +49,14 @@ const range = (values: number[]) => {
 };
 
 const STUDIED_COUNT = studied.length;
-const ACTIVATION =
-  "Switch on when the pooled estimate is wired into re-entry, the home lift page, new bests and the why trace.";
+const TRANSFER_ACTIVATION =
+  "Switch on when the home lift page (src/components/Lift) and the workout trace show the ratio and how many of your pairs it rests on, with an evidence line on each.";
+const DROP_ACTIVATION =
+  "Switch on when the set logger (src/components/Log or ActiveWorkout) shows how a drop counts, with an evidence line.";
 
 /**
- * Rules behind the one strength model for gym and home. Registered as planned until the
- * model is wired into the screens. Research: docs/research/2026-11-strength-transfer.md.
+ * Rules behind the one strength model for gym and home. Pooling is active on the Muscles tab; the
+ * others stay planned until a screen shows them. Research: docs/research/2026-11-strength-transfer.md.
  * Spec: docs/plans/2026-11-15-strength-model-design.md
  */
 export const STRENGTH_RULES = {
@@ -78,11 +80,11 @@ export const STRENGTH_RULES = {
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
     surfaces: [],
-    activationNotes: ACTIVATION,
+    activationNotes: TRANSFER_ACTIVATION,
   },
   "strength-pooling": {
     area: "effort",
-    status: "planned",
+    status: "active",
     title: "How do gym and home sessions combine into one strength estimate?",
     summary: "Barbell and home sessions pool into one estimate; home ones count less",
     appBehavior: `Every session gives an estimated max with the same formula and limits as the barbell lift (T1 sets taken as far as you can, ${E1RM_MAX_REPS} reps or fewer), on the total weight moved: both dumbbells when you hold one in each hand, the single dumbbell for a goblet squat. A lift's estimate starts from its latest barbell session; with only barbell sessions it is exactly your latest estimated 1RM. Home sessions after it are converted through the exercise's ratio and added, each counting ${pct(P.transferWeight)} as much as a barbell session, and a session's weight halves for every ${P.evidenceHalfLifeDays} days it is older than the newest one. The range assumes one session's estimate is off by about ${pct(P.sessionSdFraction)}, a home session by more, plus the uncertainty of the ratio. Back at the gym after home sessions, the barbell weight is the smaller of your last barbell weight plus the steps your home passes earned and the heaviest weight at which the estimate says the stage's reps are possible, rounded down to plates you can load; the first home weight after gym sessions follows the same rule, capped by your heaviest dumbbell. Each muscle's trend averages every exercise that works it, a primary muscle at ${M.primary} and a secondary one at ${M.secondary}, each exercise against its own earlier sessions; an exercise not done for ${I.staleAfterDays} days drops out until you do it again.`,
@@ -102,10 +104,11 @@ export const STRENGTH_RULES = {
       "src/lib/strength/muscleIndex.ts#muscleStrengthIndex",
       "src/lib/strength/reentry.ts#barbellReentryWeight",
       "src/lib/strength/reentry.ts#homeReentryWeight",
+      "src/lib/workout/reentry.ts#resolveReentry",
+      "src/lib/workout/startPlan.ts#planWorkoutStart",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
-    surfaces: [],
-    activationNotes: ACTIVATION,
+    surfaces: ["src/components/Progress/MusclesTab.tsx"],
   },
   "drop-set-evidence": {
     area: "effort",
@@ -128,6 +131,6 @@ export const STRENGTH_RULES = {
       "src/lib/workout/setSelectors.ts#isWorkingSet",
     ],
     surfaces: [],
-    activationNotes: ACTIVATION,
+    activationNotes: DROP_ACTIVATION,
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;
