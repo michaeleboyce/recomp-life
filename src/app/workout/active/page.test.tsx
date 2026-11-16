@@ -293,6 +293,15 @@ describe("active workout page", () => {
     expect(nav.push).not.toHaveBeenCalled();
   });
 
+  it("a workout finished elsewhere, or before a reload, goes on to Today, not its summary again", async () => {
+    nav.sessionId = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+    await db.workouts.update(nav.sessionId, { completedAt: new Date() });
+    render(<ActiveWorkoutPage />);
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/"));
+    expect(nav.replace).not.toHaveBeenCalledWith(expect.stringContaining("/workout/summary"));
+    expect(nav.push).not.toHaveBeenCalled();
+  });
+
   it("resumes at the fourth set after a reload", async () => {
     const first = await open();
     await logSets(3);

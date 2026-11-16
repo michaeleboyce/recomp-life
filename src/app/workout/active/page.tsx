@@ -44,13 +44,6 @@ import { WhySheet } from "@/components/ui/why-sheet";
 import { useSessionForecasts, useStoredDecisions } from "@/hooks";
 import { findStoredDecision } from "@/lib/trace";
 
-/**
- * Workouts finished on this screen in this visit. Back from the summary lands on the
- * active screen again (its history entry is still there); for these it goes on to
- * Today instead of reopening the summary, so Back never loops.
- */
-const finishedHere = new Set<string>();
-
 function LoadingScreen() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
@@ -89,12 +82,11 @@ function ActiveWorkoutContent() {
   const decisions = useStoredDecisions(session?.id) ?? undefined;
   const [whyOpen, setWhyOpen] = useState(false);
 
-  // A workout that is already saved has nothing left to log: show its summary, or
-  // go on to Today when Back from that summary brought the user here.
+  // A workout that is already saved has nothing left to log: go on to Today. This is
+  // how Back from its summary lands (the summary replaced this screen, but the leave
+  // guard's entry is still under it), also after a reload, so Back never loops.
   useEffect(() => {
-    if (status === "finished" && session) {
-      router.replace(finishedHere.has(session.id) ? "/" : `/workout/summary?sessionId=${session.id}`);
-    }
+    if (status === "finished" && session) router.replace("/");
   }, [status, session, router]);
 
   const remainingExercises = useMemo(
@@ -113,7 +105,6 @@ function ActiveWorkoutContent() {
   const handleSave = async () => {
     if (!session) return;
     if (await workout.finish()) {
-      finishedHere.add(session.id);
       router.replace(`/workout/summary?sessionId=${session.id}`);
     }
   };
