@@ -142,6 +142,7 @@ export function cardioRow(entry: ImportedCardio, batchId?: string): CardioRow | 
     durationMinutes: Math.round((entry.durationSec / 60) * 10) / 10,
     distanceMiles: entry.distanceM !== null && entry.distanceM > 0 ? metresToMiles(entry.distanceM) : null,
     perceivedEffort: null,
+    source: "import" as const,
     sourceName: SOURCE_APP_NAMES[entry.sourceApp],
     ...(batchId ? { importBatchId: batchId } : {}),
     updatedAt: 0,

@@ -125,6 +125,11 @@ describe("cardio rows", () => {
     expect(buildCardioRows({ cardio: [cardio()] }, "b1").rows[0].row.importBatchId).toBe("b1");
   });
 
+  it("marks every row as imported, with the app it came from, so it never reads as entered by hand", () => {
+    expect(cardioRow(cardio())?.row).toMatchObject({ source: "import", sourceName: "Gravl" });
+    expect(cardioRow(cardio({ sourceApp: "fitbod", kind: "run" }))?.row).toMatchObject({ source: "import", sourceName: "Fitbod" });
+  });
+
   it("never sets an external id, so Apple Health can link to the row later", () => {
     const row = cardioRow(cardio())!.row as unknown as Record<string, unknown>;
     expect("externalId" in row).toBe(false);

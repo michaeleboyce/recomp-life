@@ -49,7 +49,8 @@ export interface Stamped {
 }
 
 /** Where a log row came from. Absent means the user entered it by hand. */
-export type RecordSource = "manual" | "apple_health";
+/** Where a row came from: entered by hand, Apple Health, or another app's export ("import", the app in `sourceName`). */
+export type RecordSource = "manual" | "apple_health" | "import";
 
 /** Heart rate and energy from the watch workout recorded during a lifting session. */
 export interface WorkoutHealth {
