@@ -4,6 +4,7 @@ import type Dexie from "dexie";
 import { makeProfile, makeSet, makeWorkout } from "@/lib/data/testUtils";
 import { PROFILE_ID, SYNC_REGISTRY } from "@/lib/sync/registry";
 import { FakeSyncServer, TEST_PASSPHRASE, makeDeviceDb } from "@/lib/sync/testFakes";
+import { MAX_PUSH_ROWS } from "@/lib/sync/wire";
 import {
   REBUILD_TABLES,
   SYNC_UNAUTHORIZED,
@@ -153,6 +154,77 @@ describe("pushUnsynced", () => {
     const result = await pushUnsynced(database);
     expect(result.errors).toEqual({ runs: "Failed to fetch" });
     expect((await runs().get("r1")).synced).toBe(false);
+  });
+
+  describe("batches of at most MAX_PUSH_ROWS", () => {
+    const dirtyRuns = (count: number) =>
+      runs().bulkAdd(
+        Array.from({ length: count }, (_, i) => ({ id: `r${i}`, clientId: `c-r${i}`, synced: false, updatedAt: 1 }))
+      );
+    const acceptAll = () =>
+      vi.fn(async (_url: string, init: RequestInit) => pushOk(JSON.parse(init.body as string).rows.length));
+
+    it("sends 1,200 rows in three requests and marks every row synced", async () => {
+      expect(MAX_PUSH_ROWS).toBe(500);
+      await dirtyRuns(1200);
+      const fetchMock = acceptAll();
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await pushUnsynced(database);
+
+      const sent = bodies(fetchMock);
+      expect(sent.map((b) => b.rows.length)).toEqual([500, 500, 200]);
+      expect(sent.every((b) => b.table === "runs")).toBe(true);
+      // Every row exactly once.
+      const ids = sent.flatMap((b) => b.rows.map((r: { id: string }) => r.id));
+      expect(new Set(ids).size).toBe(1200);
+      expect(result).toMatchObject({ pushed: 1200, applied: 1200, skipped: 0, marked: 1200, errors: {} });
+      expect(await runs().filter((r) => r.synced !== true).count()).toBe(0);
+    });
+
+    it("sends exactly MAX_PUSH_ROWS rows in one request", async () => {
+      await dirtyRuns(MAX_PUSH_ROWS);
+      const fetchMock = acceptAll();
+      vi.stubGlobal("fetch", fetchMock);
+      await pushUnsynced(database);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("a failed batch stops its table: earlier batches stay synced, the rest stays dirty for next time", async () => {
+      await dirtyRuns(1200);
+      await workouts().add(makeWorkout({ id: "w1", synced: false }));
+      let runCalls = 0;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_url: string, init: RequestInit) => {
+          const body = JSON.parse(init.body as string);
+          if (body.table === "runs" && ++runCalls === 2) return reply({ error: "Server error" }, 500);
+          return pushOk(body.rows.length);
+        })
+      );
+
+      const result = await pushUnsynced(database);
+
+      expect(runCalls).toBe(2);
+      expect(result.errors).toEqual({ runs: "500 Server error" });
+      expect(result.pushed).toBe(501);
+      expect(await runs().filter((r) => r.synced === true).count()).toBe(500);
+      expect(await runs().filter((r) => r.synced !== true).count()).toBe(700);
+      expect((await workouts().get("w1")).synced).toBe(true);
+    });
+
+    it("a 401 on a later batch still stops everything", async () => {
+      await dirtyRuns(600);
+      let calls = 0;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_url: string, init: RequestInit) =>
+          ++calls === 2 ? reply({ error: "Unauthorized" }, 401) : pushOk(JSON.parse(init.body as string).rows.length)
+        )
+      );
+      await expect(pushUnsynced(database)).rejects.toThrow(SYNC_UNAUTHORIZED);
+      expect(await runs().filter((r) => r.synced !== true).count()).toBe(100);
+    });
   });
 
   it("surfaces the server's applied and skipped counts", async () => {

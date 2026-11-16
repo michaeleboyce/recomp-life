@@ -5,7 +5,7 @@ import type Dexie from "dexie";
 import { db } from "@/db/local";
 import { applyRebuild } from "@/lib/data/derived";
 import { PROFILE_ID, SYNC_REGISTRY, type SyncTableDef } from "@/lib/sync/registry";
-import type { PullResponse, PushRequest, PushResponse, WireRow } from "@/lib/sync/wire";
+import { MAX_PUSH_ROWS, type PullResponse, type PushRequest, type PushResponse, type WireRow } from "@/lib/sync/wire";
 import { decidePull, stampOf, toLocalRow } from "@/lib/sync/revive";
 import { syncRequest } from "@/lib/sync/request";
 
@@ -65,58 +65,69 @@ async function dirtyRows(database: Dexie, def: SyncTableDef): Promise<Row[]> {
 }
 
 /**
- * Sends every dirty row of every registry table, one request per table. A row is
- * marked synced only if its `updatedAt` is still the value that was sent. A 401 stops
- * everything (throws SYNC_UNAUTHORIZED); other failures are recorded per table.
+ * Sends every dirty row of every registry table, in requests of at most
+ * MAX_PUSH_ROWS rows (the server refuses larger ones), so a first sync or a large
+ * backup import still uploads everything. A row is marked synced only if its
+ * `updatedAt` is still the value that was sent. A 401 stops everything (throws
+ * SYNC_UNAUTHORIZED); another failure is recorded for its table and ends that
+ * table's push: batches already accepted stay synced, the rest stays dirty for the
+ * next sync, and the other tables still run.
  */
 export async function pushUnsynced(database: Dexie = db): Promise<PushResult> {
   const result: PushResult = { pushed: 0, applied: 0, skipped: 0, marked: 0, errors: {} };
 
   for (const def of SYNC_REGISTRY) {
     const rows = await dirtyRows(database, def);
-    if (rows.length === 0) continue;
-
-    const body: PushRequest = { table: def.name, rows: rows as WireRow[] };
-    const sentStamps = new Map(rows.map((row) => [row.id, row.updatedAt]));
-
-    let response: Response;
-    try {
-      response = await syncRequest("/api/sync/push", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    } catch (err) {
-      result.errors[def.name] = message(err);
-      continue;
+    for (let start = 0; start < rows.length; start += MAX_PUSH_ROWS) {
+      const accepted = await pushBatch(database, def, rows.slice(start, start + MAX_PUSH_ROWS), result);
+      if (!accepted) break;
     }
-
-    if (response.status === 401) throw new Error(SYNC_UNAUTHORIZED);
-    if (!response.ok) {
-      const detail = (await response.json().catch(() => null)) as { error?: string } | null;
-      result.errors[def.name] = `${response.status}${detail?.error ? ` ${detail.error}` : ""}`;
-      continue;
-    }
-
-    const reply = (await response.json().catch(() => null)) as Partial<PushResponse> | null;
-    result.pushed += rows.length;
-    result.applied += Number(reply?.applied ?? 0);
-    result.skipped += Number(reply?.skipped ?? 0);
-
-    // Only rows unchanged since they were read: a later edit carries a new stamp.
-    await database
-      .table<Row>(def.name)
-      .where("id")
-      .anyOf([...sentStamps.keys()] as string[])
-      .modify((row) => {
-        if (row.synced !== true && row.updatedAt === sentStamps.get(row.id)) {
-          row.synced = true;
-          result.marked += 1;
-        }
-      });
   }
 
   return result;
+}
+
+/** Sends one batch of a table's dirty rows. False when it failed (recorded in `result.errors`). */
+async function pushBatch(database: Dexie, def: SyncTableDef, rows: Row[], result: PushResult): Promise<boolean> {
+  const body: PushRequest = { table: def.name, rows: rows as WireRow[] };
+  const sentStamps = new Map(rows.map((row) => [row.id, row.updatedAt]));
+
+  let response: Response;
+  try {
+    response = await syncRequest("/api/sync/push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    result.errors[def.name] = message(err);
+    return false;
+  }
+
+  if (response.status === 401) throw new Error(SYNC_UNAUTHORIZED);
+  if (!response.ok) {
+    const detail = (await response.json().catch(() => null)) as { error?: string } | null;
+    result.errors[def.name] = `${response.status}${detail?.error ? ` ${detail.error}` : ""}`;
+    return false;
+  }
+
+  const reply = (await response.json().catch(() => null)) as Partial<PushResponse> | null;
+  result.pushed += rows.length;
+  result.applied += Number(reply?.applied ?? 0);
+  result.skipped += Number(reply?.skipped ?? 0);
+
+  // Only rows unchanged since they were read: a later edit carries a new stamp.
+  await database
+    .table<Row>(def.name)
+    .where("id")
+    .anyOf([...sentStamps.keys()] as string[])
+    .modify((row) => {
+      if (row.synced !== true && row.updatedAt === sentStamps.get(row.id)) {
+        row.synced = true;
+        result.marked += 1;
+      }
+    });
+  return true;
 }
 
 interface MergeCounts {

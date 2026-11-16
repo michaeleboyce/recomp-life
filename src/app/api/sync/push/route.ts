@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { neonSql } from '@/db/drizzle';
 import { isSyncAuthorized, prepareBatch, buildUpsert } from '@/lib/syncGuard';
-import type { PushRequest, PushResponse } from '@/lib/sync/wire';
+import { MAX_PUSH_ROWS, type PushRequest, type PushResponse } from '@/lib/sync/wire';
 import { PUSH_FAILED_MESSAGE, SYNC_ERROR_CODE, syncJson } from '../respond';
 
 /** Last-write-wins upsert of one batch of rows into one registry table. */
@@ -15,6 +15,17 @@ export async function POST(request: NextRequest) {
     body = (await request.json()) as Partial<PushRequest>;
   } catch {
     return syncJson({ error: 'Invalid JSON body' }, 400);
+  }
+
+  // One request does at most MAX_PUSH_ROWS upserts; the client sends larger tables in batches.
+  if (Array.isArray(body?.rows) && body.rows.length > MAX_PUSH_ROWS) {
+    return syncJson(
+      {
+        error: `Too many rows in one push: ${body.rows.length}. Send at most ${MAX_PUSH_ROWS} rows per request.`,
+        code: SYNC_ERROR_CODE.pushTooLarge,
+      },
+      413
+    );
   }
 
   // The whole batch is validated (table, every column of every row) before any write.

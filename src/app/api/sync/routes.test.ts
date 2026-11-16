@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import type { PullResponse, PushResponse } from '@/lib/sync/wire';
+import { MAX_PUSH_ROWS, type PullResponse, type PushResponse } from '@/lib/sync/wire';
 import { SYNC_REGISTRY } from '@/lib/sync/registry';
 
 const query = vi.fn();
@@ -94,6 +94,31 @@ describe('POST /api/sync/push', () => {
     expect(text).toContain('WHERE COALESCE(EXCLUDED."updated_at", 0) >= COALESCE("runs"."updated_at", 0)');
     expect(text).toMatch(/RETURNING "client_id"$/);
     expect(values).toContain('r1');
+  });
+
+  it(`accepts a batch of exactly ${MAX_PUSH_ROWS} rows`, async () => {
+    expect(MAX_PUSH_ROWS).toBe(500);
+    query.mockResolvedValue([{ client_id: 'x' }]);
+    const rows = Array.from({ length: MAX_PUSH_ROWS }, (_, i) => run(`r${i}`, 1));
+    const res = await POST(pushRequest({ table: 'runs', rows }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true, applied: MAX_PUSH_ROWS, skipped: 0 });
+  });
+
+  it('413 for a batch over the limit, with a clear message, and nothing is written', async () => {
+    const rows = Array.from({ length: MAX_PUSH_ROWS + 1 }, (_, i) => run(`r${i}`, 1));
+    const res = await POST(pushRequest({ table: 'runs', rows }));
+    expect(res.status).toBe(413);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    const body = await res.json();
+    expect(body.code).toBe('push_too_large');
+    expect(body.error).toBe(`Too many rows in one push: 501. Send at most 500 rows per request.`);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('the limit is checked after the passphrase', async () => {
+    const rows = Array.from({ length: MAX_PUSH_ROWS + 1 }, (_, i) => run(`r${i}`, 1));
+    expect((await POST(pushRequest({ table: 'runs', rows }, {}))).status).toBe(401);
   });
 
   it('an empty batch writes nothing', async () => {

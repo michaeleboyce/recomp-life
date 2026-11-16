@@ -16,6 +16,7 @@ export function syncJson(body: unknown, status = 200): NextResponse {
  */
 export const SYNC_ERROR_CODE = {
   pushFailed: 'push_failed',
+  pushTooLarge: 'push_too_large',
   readFailed: 'read_failed',
 } as const;
 
