@@ -36,6 +36,7 @@ async function seedDemo() {
   await db.workouts.bulkPut(demo.workouts);
   await db.estimated1RMs.bulkPut(demo.estimated1RMs);
   await db.liftStates.bulkPut(demo.liftStates);
+  await db.variantStates.bulkPut(demo.variantStates);
   await db.userProfile.put(makeProfile());
 }
 
@@ -78,7 +79,10 @@ describe("LiftWhySheet", () => {
     render(<LiftWhySheet />);
     const dialog = await screen.findByRole("dialog", {}, { timeout: 5000 });
     expect(within(dialog).getByText(/At home:/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/why this weight/)).toHaveTextContent(/Goblet squat/i);
+    // The demo's home block left the split squat current for the squat (the cap policy
+    // never swaps it for a lighter goblet squat, H2), at its own weight.
+    expect(within(dialog).getByText(/why this weight/)).toHaveTextContent(/Bulgarian split squat/i);
+    expect(dialog).toHaveTextContent(/weight of its own|Back at home/);
   });
 
   it("stays closed for a lift that is not in the next workout", async () => {

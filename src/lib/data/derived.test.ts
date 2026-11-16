@@ -208,10 +208,11 @@ describe("home exercises' states (H1)", () => {
       setNow
     );
     const stored = await db.variantStates.toArray();
+    // The split squat started at its ratio (0.5 x 190, 50 a hand, H3) and passed.
     expect(stored.map((v) => [v.id, v.weight, v.current])).toEqual([
       ["bench|db_bench|T2", 45, true],
       ["lat_pulldown|db_row|T3", 35, true],
-      ["squat|bulgarian_split_squat|T1", 80, true],
+      ["squat|bulgarian_split_squat|T1", 55, true],
     ]);
     // The barbell squat did not move.
     expect((await db.liftStates.get("squat"))!.t1Weight).toBe(190);
@@ -230,7 +231,7 @@ describe("home exercises' states (H1)", () => {
     expect(report.consistent).toBe(false);
     expect(report.variantStatesToPut?.map((v) => v.id)).toEqual(["squat|bulgarian_split_squat|T1"]);
     await applyRebuild();
-    expect((await db.variantStates.get("squat|bulgarian_split_squat|T1"))!.weight).toBe(80);
+    expect((await db.variantStates.get("squat|bulgarian_split_squat|T1"))!.weight).toBe(55);
   });
 });
 

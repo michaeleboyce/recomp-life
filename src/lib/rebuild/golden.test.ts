@@ -5,7 +5,9 @@
 //
 // Regenerated on purpose on 2026-11-15 for the strength model (home exercises progress
 // their own weight, the barbell weight does not move at home) and the demo's new home
-// block and drop set; the field-by-field diff is in that commit's message.
+// block and drop set; the field-by-field diff is in that commit's message. Regenerated
+// on purpose again on 2026-11-16 for seeding from the strength estimate (H3) and
+// re-entry (H6); see that commit's message.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -82,15 +84,34 @@ describe("rebuildDerived: golden result for the demo log", () => {
     }
   });
 
-  it("the recorded home block is not trivial: a dumbbell step, the cap by reps and a harder variant", () => {
-    type Row = { id: string; weight: number; extraReps: number; current: boolean };
+  // Regenerated on purpose on 2026-11-16 (H3, H6): the demo plans as the Ready screen
+  // does, so a first home weight is the exercise's starting ratio (from the strength
+  // estimate once there is one) and the first gym session after the block takes its
+  // re-entry weight; gym passes then earn the home exercises steps for their next home
+  // session. The cap policy is covered by the fold and variant tests.
+  it("the recorded home block is not trivial: dumbbell steps, a seed from the estimate, steps the gym earned", () => {
+    type Row = {
+      id: string;
+      weight: number;
+      current: boolean;
+      passesSinceGym: number;
+      gymPassesSinceHome?: number;
+      seed: { source: string };
+    };
     const first = golden.variantSnapshots["demo-workout-01"] as Row[];
+    const lastHome = golden.variantSnapshots["demo-workout-08"] as Row[];
     const last = golden.variantStates as Row[];
-    const split = (rows: Row[]) => rows.find((row) => row.id === "squat|bulgarian_split_squat|T1")!;
-    expect(split(first).weight).toBe(80);
-    expect(split(last)).toMatchObject({ weight: 80, extraReps: 1 });
-    expect(last.find((row) => row.id === "deadlift|single_leg_db_rdl|T1")).toMatchObject({ current: true });
-    expect(last.find((row) => row.id === "deadlift|db_rdl|T1")).toMatchObject({ current: false });
+    const split = (rows: Row[], tier = "T1") => rows.find((row) => row.id === `squat|bulgarian_split_squat|${tier}`)!;
+    expect(split(first)).toMatchObject({ weight: 55, seed: { source: "ratio" } });
+    expect(split(lastHome)).toMatchObject({ weight: 60, passesSinceGym: 2 });
+    expect(split(lastHome, "T2").seed.source).toBe("estimate");
+    expect(split(last)).toMatchObject({ weight: 60, current: true, passesSinceGym: 0 });
+    expect(split(last).gymPassesSinceHome).toBeGreaterThan(0);
+    const squatAfterBlock = (golden.snapshots["demo-workout-09"] as Array<{ exerciseId: string; t1Weight: number }>).find(
+      (row) => row.exerciseId === "squat"
+    )!;
+    // Re-entry put the bar at 210 (190 plus two home steps) and the gym pass added 10.
+    expect(squatAfterBlock.t1Weight).toBe(220);
   });
 
   it("the recorded log is not trivial: a pass, a stage change and a T3 increase all occur", () => {

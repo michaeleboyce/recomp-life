@@ -11,8 +11,10 @@ import {
   usePainEntries,
   useRuns,
   useSettings,
+  useStrengthSets,
   useTrainingLocation,
   useLastNightSleep,
+  useVariantStates,
 } from "@/hooks";
 import { ACTIVITY_NOTE_WINDOW_HOURS, evaluateActivityImpact } from "@/lib/activities";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
@@ -23,16 +25,11 @@ import { startWorkout } from "@/lib/data/workouts";
 import { ACCESSORY_IDS, EXERCISES } from "@/lib/exercises";
 import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePreferences";
 import { lastLoggedWeights, type ResolvedFavorite } from "@/lib/favorites";
-import { RECOVERY_HOURS } from "@/lib/recovery";
+import { RECOVERY_HOURS, lastTrainedDates } from "@/lib/recovery";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
 import { sleepBucket } from "@/lib/health/sleep";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
-import {
-  buildWorkoutPlan,
-  getPrescription,
-  prescribedFor,
-  substituteModification,
-} from "@/lib/workout";
+import { getPrescription, planWorkoutStart, substituteModification } from "@/lib/workout";
 import { ACCESSORY_RECOMMENDATIONS, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { addEdit, removeEdit, schemeEdit, swapEdit, weightEdit } from "./editList";
 import { computeImpact } from "./impact";
@@ -44,6 +41,7 @@ import type {
   Tier,
   SleepHours,
   StressLevel,
+  VariantState,
   WorkoutLocation,
   WorkoutModification,
   WorkoutTemplateExercise,
@@ -54,6 +52,7 @@ const PAIN_WINDOW_MS = 7 * 24 * HOUR_MS;
 const RUN_WINDOW_MS = 24 * HOUR_MS;
 const ACTIVITY_WINDOW_MS = ACTIVITY_NOTE_WINDOW_HOURS * HOUR_MS;
 const NO_LIFT_STATES: LiftState[] = [];
+const NO_VARIANT_STATES: VariantState[] = [];
 const NO_EDITS: PlanEdit[] = [];
 const NO_PRESCRIBED: PrescribedEntry[] = [];
 /** "Reduce 10%" after a run: today's T1 at this share of its weight. */
@@ -86,16 +85,19 @@ export interface HomeAdaptation {
   chosenExerciseId: string | undefined;
 }
 
+/** Lifts trained within `RECOVERY_HOURS.ready`, as the barbell lift or as a home exercise. */
 function recoveryWarningsFor(
   exercises: WorkoutTemplateExercise[],
   liftStates: LiftState[],
+  variantStates: readonly VariantState[],
   now: Date
 ): RecoveryWarning[] {
   const warnings: RecoveryWarning[] = [];
   for (const templateEx of exercises) {
     const ls = liftStates.find((l) => l.exerciseId === templateEx.exerciseId);
     if (!ls) continue;
-    const dates = [ls.t1LastWorkoutDate, ls.t2LastWorkoutDate]
+    const { t1, t2 } = lastTrainedDates(ls, variantStates);
+    const dates = [t1, t2]
       .filter((d): d is Date => d != null)
       .map((d) => new Date(d).getTime());
     if (dates.length === 0) continue;
@@ -134,9 +136,12 @@ export function useWorkoutSetup(
   const runs = useRuns();
   const activities = useActivities();
   const completedWorkouts = useCompletedWorkouts();
+  const loadedVariantStates = useVariantStates();
+  const strengthSets = useStrengthSets();
 
   const settings = loadedSettings ?? DEFAULT_USER_PROFILE.settings;
   const liftStates = loadedLiftStates ?? NO_LIFT_STATES;
+  const variantStates = loadedVariantStates ?? NO_VARIANT_STATES;
   const { equipment, trainingPhase } = settings;
 
   // A day picked on this screen wins, then the URL's, then the rotation's next day.
@@ -272,11 +277,16 @@ export function useWorkoutSetup(
     [saveLocation, savedLocation]
   );
 
-  /** Exactly what the active workout will perform. */
-  const plan = useMemo(
+  /**
+   * Exactly what the active workout will perform, and what the program prescribes for
+   * the day's lifts before any edit (stored on the session): at home each lift's home
+   * exercise at its own weight (a first one seeded from the strength estimate, H3), and
+   * the first session back at a location at its re-entry weight (H6).
+   */
+  const startPlan = useMemo(
     () =>
       template
-        ? buildWorkoutPlan({
+        ? planWorkoutStart({
             template,
             liftStates,
             location,
@@ -285,16 +295,14 @@ export function useWorkoutSetup(
             selectedAccessories,
             overrides,
             edits,
+            variantStates,
+            ...(strengthSets ? { strengthSets } : {}),
           })
-        : [],
-    [template, liftStates, location, equipment, warmUps, selectedAccessories, overrides, edits]
+        : null,
+    [template, liftStates, location, equipment, warmUps, selectedAccessories, overrides, edits, variantStates, strengthSets]
   );
-
-  /** What the program prescribes for the day's lifts, before any edit. */
-  const prescribed = useMemo(
-    () => (template ? prescribedFor(template, liftStates) : NO_PRESCRIBED),
-    [template, liftStates]
-  );
+  const plan = useMemo(() => startPlan?.plan ?? [], [startPlan]);
+  const prescribed = startPlan?.prescribed ?? NO_PRESCRIBED;
   /** Per program lift: counts toward progression, logged only, or not done. Empty without edits. */
   const impact = useMemo(() => computeImpact(plan, prescribed, edits), [plan, prescribed, edits]);
 
@@ -417,19 +425,22 @@ export function useWorkoutSetup(
   }, [activityNote]);
 
   const recoveryWarnings = useMemo(
-    () => (template ? recoveryWarningsFor(template.exercises, liftStates, new Date()) : []),
-    [template, liftStates]
+    () =>
+      template ? recoveryWarningsFor(template.exercises, liftStates, variantStates, new Date()) : [],
+    [template, liftStates, variantStates]
   );
 
+  // A lift trained at home was not away: its home sessions count as training it.
   const decaySuggestions = useMemo(() => {
     if (!template) return [];
     return getExerciseDecaySuggestions(
       template.exercises,
       liftStates,
       trainingPhase,
-      new Date()
+      new Date(),
+      variantStates
     ).filter((s) => !dismissedDecays.has(`${s.exerciseId}-${s.tier}`));
-  }, [template, liftStates, trainingPhase, dismissedDecays]);
+  }, [template, liftStates, variantStates, trainingPhase, dismissedDecays]);
 
   const settleDecay = useCallback((exerciseId: string, tier: string) => {
     setDismissedDecays((prev) => new Set(prev).add(`${exerciseId}-${tier}`));
@@ -564,7 +575,11 @@ export function useWorkoutSetup(
 
   return {
     isLoading:
-      loadedSettings === undefined || loadedLiftStates === undefined || templateId === undefined,
+      loadedSettings === undefined ||
+      loadedLiftStates === undefined ||
+      loadedVariantStates === undefined ||
+      strengthSets === undefined ||
+      templateId === undefined,
     templateId,
     setTemplateId,
     dueTemplateId,

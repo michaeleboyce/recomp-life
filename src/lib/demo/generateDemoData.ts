@@ -8,9 +8,12 @@ import { DEFAULT_USER_PROFILE, startAdjustments } from "@/db/seed";
 import { roundToStep } from "@/lib/dbConversion";
 import { E1RM_MAX_REPS } from "@/lib/e1rm";
 import { rebuildDerived } from "@/lib/rebuild";
-import { buildWorkoutPlan } from "@/lib/workout/buildPlan";
+import { externalLoad, priorFor } from "@/lib/strength";
 import { createSetLog } from "@/lib/workout/logSet";
-import { prescribedFor } from "@/lib/workout/planEdits";
+import { planWorkoutStart } from "@/lib/workout/startPlan";
+import { strengthSetsOf } from "@/lib/workout/strength";
+import type { WorkoutExerciseState } from "@/lib/workout/types";
+import { isPerHandExercise } from "@/lib/workout/variant";
 import { WORKOUT_ROTATION, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
   BodyweightLog,
@@ -47,10 +50,11 @@ export interface DemoData {
 const WORKOUT_COUNT = 24;
 /**
  * The workouts (0-based, inclusive) done at home: the first eight, about two and a half
- * weeks with every day of the rotation twice. The split squat starts at 75 a hand,
- * reaches the heaviest pair (80) and then progresses by reps; the deadlift's dumbbell
- * version starts capped and moves to the harder single-leg version. The barbell weights
- * do not move at home: the gym sessions after the block start from the starting weights.
+ * weeks with every day of the rotation twice. Each home exercise starts at its starting
+ * ratio to the lift (the split squat at 0.5 of the 190 squat, 50 a hand; later ones from
+ * the strength estimate, H3) and progresses by its own passes. The barbell weights do
+ * not move at home: the first gym session of each lift after the block takes its
+ * re-entry weight (the squat 190 plus the two steps the split squat earned, 210; H6).
  */
 export const DEMO_HOME_BLOCK = { first: 0, last: 7 } as const;
 /** The workout (0-based) whose last T2 set is followed by one drop set, and the drop. */
@@ -103,6 +107,23 @@ export function demoRepsInHand(
   const startLevel = startWeight * (1 + DEMO_LIFTER.startReps / 30);
   const today = startLevel * (1 + DEMO_LIFTER.weeklyGain * weeks) * (1 + swing);
   return Math.min(E1RM_MAX_REPS, Math.max(0, Math.floor(30 * (today / weight - 1))));
+}
+
+/**
+ * The barbell weight a planned entry is as hard as for the demo lifter: the weight itself
+ * for the lift, and for a home exercise its total load divided by the exercise's
+ * starting ratio to the lift (the strength model's own assumption, so the demo's home
+ * sets say what the model expects them to). A home exercise with no ratio stands for the
+ * barbell weight the program asked for.
+ */
+export function demoBarbellEquivalent(
+  entry: Pick<WorkoutExerciseState, "exerciseId" | "substituteExerciseId" | "weight" | "originalWeight">
+): number {
+  const performed = entry.substituteExerciseId;
+  if (!performed) return entry.weight;
+  const ratio = priorFor(entry.exerciseId, performed)?.ratio;
+  if (!ratio) return entry.originalWeight ?? entry.weight;
+  return externalLoad({ exerciseId: performed, weight: entry.weight, perHand: isPerHandExercise(performed) }) / ratio;
 }
 
 const SLEEP_CYCLE: SleepHours[] = ["7+", "7+", "5-7", "7+", "5-7", "7+", "<5"];
@@ -180,18 +201,17 @@ export function generateDemoData(now: Date): DemoData {
     const failT2 = i % 6 === 4;
     const startedAt = at(now, daysAgo[i], 17, 30);
 
-    // What the app would show when this session starts: at home each lift is planned
-    // from its home exercise's own state, and that prescription is stored too.
+    // What the app would show when this session starts (`planWorkoutStart`, as the
+    // Ready screen plans): at home each lift is planned from its home exercise's own
+    // state, a first one seeded from the strength estimate of the sets so far (H3); the
+    // first session back at the gym takes its re-entry weight (H6). That prescription is
+    // stored too.
     const { liftStates, variantStates } = rebuildDerived({
       workouts,
       adjustments: liftAdjustments,
       settings,
     });
-    const prescribed =
-      location === "home"
-        ? prescribedFor(template, liftStates, { variantStates, equipment })
-        : prescribedFor(template, liftStates);
-    const plan = buildWorkoutPlan({
+    const { plan, prescribed } = planWorkoutStart({
       template,
       liftStates,
       location,
@@ -199,6 +219,7 @@ export function generateDemoData(now: Date): DemoData {
       includeWarmUps: true,
       selectedAccessories: [],
       variantStates,
+      strengthSets: strengthSetsOf(workouts),
     });
 
     const sessionSets: SetLog[] = [];
@@ -212,12 +233,13 @@ export function generateDemoData(now: Date): DemoData {
 
         if (entry.tier === "T1") {
           if (entry.isAMRAP && isLast) {
-            // At home the substitute stands in for the barbell weight the program asked for.
-            const barWeight = entry.originalWeight ?? entry.weight;
-            if (!startWeights.has(entry.exerciseId)) startWeights.set(entry.exerciseId, barWeight);
+            // The lifter's level is set by the barbell weight the program first asked for;
+            // at home it meets what is on the dumbbells (`demoBarbellEquivalent`).
+            const programWeight = entry.originalWeight ?? entry.weight;
+            if (!startWeights.has(entry.exerciseId)) startWeights.set(entry.exerciseId, programWeight);
             actualReps = demoRepsInHand(
               startWeights.get(entry.exerciseId)!,
-              barWeight,
+              demoBarbellEquivalent(entry),
               (daysAgo[0] - daysAgo[i]) / 7,
               bellDraw(i * 31 + 7) * DEMO_LIFTER.dailyVariation
             );

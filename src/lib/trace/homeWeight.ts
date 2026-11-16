@@ -19,8 +19,8 @@ export const TRANSFER_RATIO_RULE = "transfer-ratio";
 
 /**
  * Which re-entry rule decided the first weight after a stretch at the other location, as
- * `barbellReentryWeight` or `homeReentryWeight` returned it. The plan does not carry it
- * yet; when it does, it comes in here.
+ * `barbellReentryWeight` or `homeReentryWeight` returned it. The plan entry carries it
+ * (`WorkoutExerciseState.reentry`, a `PlanReentry`, which has these fields and more).
  */
 export interface ReentryTrace {
   /** `ReentryResult.rule`. */
@@ -138,7 +138,7 @@ function homeSetSteps(estimate: PooledEstimate, sets: readonly StrengthSet[]): T
         : `starting ratio ${r.ratio.ratio.toFixed(2)}, none of your pairs yet`;
     const both = best?.perHand && best.load !== best.weight ? " (a dumbbell in each hand)" : "";
     return step(
-      `home-set-${r.exerciseId}`,
+      `home-set-${r.exerciseId.replace(/_/g, "-")}`,
       `From home sets: ${nameOf(r.exerciseId)} ${sample} ≈ ${lift} ${num(Math.round(r.liftEquivalent))} (${basis})`,
       `That session's estimated max${both} is ${num(Math.round(r.strength))}; divided by the ratio it says ${num(Math.round(r.liftEquivalent))} for the ${lift}. It counts ${Math.round(r.weight * 100) / 100} of a barbell session.`,
       "none",
@@ -219,7 +219,10 @@ function reentryStep(reentry: ReentryTrace, entry: PlanEntry): TraceStep {
  */
 export function homeWeightSteps(entry: PlanEntry, context: HomeContext): TraceStep[] {
   const home = context.home;
-  if (!home) return [];
+  // The plan entry says which re-entry rule decided it (`resolveReentry`); the context's
+  // is for a caller that worked one out itself.
+  const reentry = entry.reentry ?? home?.reentry;
+  if (!home) return reentry ? [reentryStep(reentry, entry)] : [];
   const out: TraceStep[] = [];
 
   if (context.location === "home" && entry.variantId) {
@@ -238,6 +241,6 @@ export function homeWeightSteps(entry: PlanEntry, context: HomeContext): TraceSt
     }
   }
 
-  if (home.reentry) out.push(reentryStep(home.reentry, entry));
+  if (reentry) out.push(reentryStep(reentry, entry));
   return out;
 }

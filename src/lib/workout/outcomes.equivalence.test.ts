@@ -10,7 +10,10 @@
 // exercise is now "held" (its barbell weight does not move at home; the home exercise
 // progresses instead), and the demo log has a home block. Every gym line of the
 // scripted log that changed did so only because the home sessions before it no longer
-// raised or lowered the barbell weight.
+// raised or lowered the barbell weight. The demo lines were regenerated on purpose again
+// on 2026-11-16: the demo now plans as the Ready screen does, so its first gym session
+// of each lift after the home block takes the re-entry weight (H6) and every later gym
+// weight follows from that. The scripted lines did not change.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";

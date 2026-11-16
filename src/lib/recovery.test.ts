@@ -6,6 +6,7 @@ import {
   generateRampUpSuggestion,
   adjustRecoveryForRun,
   getMostRecent,
+  lastTrainedDates,
 } from "./recovery";
 import type { TrainingPhase, RecoveryStatus, RunLog } from "@/types";
 
@@ -23,6 +24,23 @@ const cuttingPhase: TrainingPhase = { mode: "cutting" };
 const bulkingPhase: TrainingPhase = { mode: "bulking" };
 
 const NOW = new Date("2026-02-14T12:00:00Z");
+
+describe("lastTrainedDates", () => {
+  it("is the later of the barbell lift's date and its home exercises' at each tier", () => {
+    const lift = { exerciseId: "squat", t1LastWorkoutDate: daysAgo(10, NOW), t2LastWorkoutDate: daysAgo(2, NOW) };
+    const variants = [
+      { liftId: "squat", tier: "T1" as const, lastSessionDate: daysAgo(4, NOW) },
+      { liftId: "squat", tier: "T2" as const, lastSessionDate: daysAgo(6, NOW) },
+      { liftId: "bench", tier: "T1" as const, lastSessionDate: daysAgo(1, NOW) },
+      { liftId: "squat", tier: "T3" as const, lastSessionDate: daysAgo(1, NOW) },
+    ];
+    expect(lastTrainedDates(lift, variants)).toEqual({ t1: daysAgo(4, NOW), t2: daysAgo(2, NOW) });
+    expect(lastTrainedDates(lift)).toEqual({ t1: daysAgo(10, NOW), t2: daysAgo(2, NOW) });
+    expect(
+      lastTrainedDates({ exerciseId: "squat", t1LastWorkoutDate: null, t2LastWorkoutDate: null }, variants.slice(0, 1))
+    ).toEqual({ t1: daysAgo(4, NOW), t2: null });
+  });
+});
 
 describe("getMostRecent", () => {
   it("returns the more recent of two dates", () => {

@@ -4,12 +4,14 @@ import { projectUpcomingWorkouts, type UpcomingWorkout } from "@/lib/workout/upc
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { WorkoutLocation } from "@/types";
 import { useSettings } from "./useProfile";
+import { useStrengthSets } from "./useStrengthSets";
+import { useVariantStates } from "./useVariantStates";
 import { useCompletedWorkouts, useLiftStates } from "./useWorkouts";
 
 /**
  * The next `count` workouts at `location`: the first exactly as `useNextWorkout`
- * describes it, the rest projected assuming every set is completed. `undefined`
- * while loading.
+ * describes it (home exercises at their own weights, re-entry applied), the rest
+ * projected assuming every set is completed. `undefined` while loading.
  */
 export function useUpcomingWorkouts(
   location: WorkoutLocation,
@@ -17,10 +19,18 @@ export function useUpcomingWorkouts(
 ): UpcomingWorkout[] | undefined {
   const completedWorkouts = useCompletedWorkouts();
   const liftStates = useLiftStates();
+  const variantStates = useVariantStates();
+  const strengthSets = useStrengthSets();
   const loadedSettings = useSettings();
 
   return useMemo(() => {
-    if (completedWorkouts === undefined || liftStates === undefined || loadedSettings === undefined) {
+    if (
+      completedWorkouts === undefined ||
+      liftStates === undefined ||
+      variantStates === undefined ||
+      strengthSets === undefined ||
+      loadedSettings === undefined
+    ) {
       return undefined;
     }
     // No profile (not yet seeded, or just cleared): plan with the seed defaults.
@@ -36,6 +46,9 @@ export function useUpcomingWorkouts(
       settings,
       // Only stamps the simulated workouts' dates; nothing shown depends on it.
       now: new Date(0),
+      variantStates,
+      strengthSets,
+      reentry: true,
     });
-  }, [completedWorkouts, liftStates, loadedSettings, location, count]);
+  }, [completedWorkouts, liftStates, variantStates, strengthSets, loadedSettings, location, count]);
 }

@@ -5,6 +5,8 @@ import { buildWorkoutPlan, describeNextWorkout } from "./buildPlan";
 import { computeCompletion } from "./completeWorkout";
 import { EQUIPMENT, SETTINGS, makeSession, makeSets, seedLiftStates } from "./testFixtures";
 import { projectUpcomingWorkouts, simulateCompletedWorkout } from "./upcoming";
+import { seedVariantState } from "./variant";
+import type { VariantState } from "@/types";
 
 const NOW = new Date("2026-11-12T12:00:00Z");
 
@@ -40,6 +42,24 @@ describe("projectUpcomingWorkouts", () => {
     expect(first.plan).toEqual(expected.plan);
     expect(first.projected).toBe(false);
     expect(first.entries.every((e) => !e.assumed)).toBe(true);
+  });
+
+  it("with re-entry, the first gym session after home takes its re-entry weight once, and the rest follow from it (H6)", () => {
+    const split: VariantState = {
+      ...seedVariantState({ liftId: "squat", exerciseId: "bulgarian_split_squat", tier: "T1", liftState: seedLiftStates().find((l) => l.exerciseId === "squat"), equipment: EQUIPMENT }),
+      current: true,
+      lastSessionDate: new Date("2026-11-10T10:00:00Z"),
+      passesSinceGym: 2,
+    };
+    const upcoming = projectUpcomingWorkouts(input({ variantStates: [split], reentry: true, count: 5 }));
+    const squatDays = upcoming.filter((w) => w.templateId === "A1");
+    // A1 now and A1 again four workouts later: 190 + 2 steps of 10 = 210, then a pass.
+    expect(t1(squatDays[0])).toMatchObject({ exerciseId: "squat", weight: 210 });
+    expect(squatDays[0].plan.find((e) => e.tier === "T1" && !e.isWarmUp)!.reentry).toMatchObject({ rule: "steps", weight: 210 });
+    expect(t1(squatDays[1])).toMatchObject({ weight: 220 });
+    expect(squatDays[1].plan.find((e) => e.tier === "T1" && !e.isWarmUp)!.reentry).toBeUndefined();
+    // Without it, as before.
+    expect(t1(projectUpcomingWorkouts(input({ variantStates: [split] }))[0]).weight).toBe(190);
   });
 
   it("follows the rotation and wraps", () => {

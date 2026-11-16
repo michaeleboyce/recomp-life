@@ -1,7 +1,8 @@
 import { afterEach, describe, it, expect } from "vitest";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import type { LiftState, SetLog, WorkoutSession } from "@/types";
+import type { LiftState, SetLog, VariantState, WorkoutSession } from "@/types";
 import { buildWorkoutPlan } from "./buildPlan";
+import { seedVariantState } from "./variant";
 import { computeCompletion } from "./completeWorkout";
 import { createSetLog } from "./logSet";
 import { applyPlanEdits } from "./planEdits";
@@ -438,14 +439,15 @@ describe("computeCompletion: session patch", () => {
 describe("computeCompletion: home-adapted workout", () => {
   // 2026-11-15 (strength model, decision 1): substituted sets used to raise the barbell
   // lift by the dumbbell increment (squat 190 -> 195, bench 100 -> 105). They now raise
-  // each home exercise's own weight; the lift states do not change at all.
+  // each home exercise's own weight; the lift states do not change at all. 2026-11-16
+  // (H3): the split squat starts at its ratio, 0.5 x 190 = 95, 47.5 a hand, rounded to 50.
   it("substituted sets progress the home exercises by the dumbbell step, not the lift states", () => {
     const session = makeSession({ location: "home" });
     const liftStates = seedLiftStates();
     const plan = planFor(session, liftStates);
     expect(plan[0]).toMatchObject({
       substituteExerciseId: "bulgarian_split_squat",
-      weight: 75,
+      weight: 50,
       variantId: "squat|bulgarian_split_squat|T1",
       perHand: true,
     });
@@ -455,14 +457,14 @@ describe("computeCompletion: home-adapted workout", () => {
       isSubstituted: true,
     };
     const sets = [
-      ...squatT1(6, { ...home, weight: 75, originalWeight: 190, substituteExerciseId: "bulgarian_split_squat" }),
+      ...squatT1(6, { ...home, weight: 50, originalWeight: 190, substituteExerciseId: "bulgarian_split_squat" }),
       ...benchT2({ ...home, weight: 40, originalWeight: 100, substituteExerciseId: "db_bench" }),
     ];
     const result = computeCompletion(completion({ session, liftStates, plan, sets }));
 
     expect(result.liftStateUpdates).toEqual([]);
     expect(result.variantStateUpdates.map((v) => [v.id, v.weight, v.recentLastSetReps])).toEqual([
-      ["squat|bulgarian_split_squat|T1", 80, [6]],
+      ["squat|bulgarian_split_squat|T1", 55, [6]],
       ["bench|db_bench|T2", 45, [10]],
     ]);
     expect(result.variantStateUpdates.every((v) => v.current && v.lastSessionDate === NOW)).toBe(true);
@@ -485,11 +487,78 @@ describe("computeCompletion: home-adapted workout", () => {
     });
     const liftStates = seedLiftStates();
     const plan = planFor(session, liftStates);
-    const sets = squatT1(5, { location: "home", isSubstituted: true, weight: 70, originalWeight: 177, substituteExerciseId: "bulgarian_split_squat" });
+    const sets = squatT1(5, { location: "home", isSubstituted: true, weight: 45, originalWeight: 171, substituteExerciseId: "bulgarian_split_squat" });
     const result = computeCompletion(completion({ session, liftStates, plan, sets }));
     expect(result.outcomes[0]).toMatchObject({ kind: "loggedOnly", reason: "edited" });
-    expect(result.variantOutcomes[0]).toMatchObject({ kind: "loggedOnly", from: { weight: 75 } });
+    expect(result.variantOutcomes[0]).toMatchObject({ kind: "loggedOnly", from: { weight: 50 } });
     expect(result.variantStateUpdates).toEqual([]);
+  });
+});
+
+describe("computeCompletion: the steps each location earns for re-entry (H6)", () => {
+  const split = (overrides: Partial<VariantState> = {}): VariantState => ({
+    ...seedVariantState({
+      liftId: "squat",
+      exerciseId: "bulgarian_split_squat",
+      tier: "T1",
+      liftState: seedLiftStates().find((ls) => ls.exerciseId === "squat"),
+      equipment: EQUIPMENT,
+    }),
+    current: true,
+    lastSessionDate: START,
+    ...overrides,
+  });
+  const updated = (result: ReturnType<typeof computeCompletion>) =>
+    result.variantStateUpdates.find((v) => v.id === "squat|bulgarian_split_squat|T1");
+
+  it("a barbell pass at the gym earns the lift's home exercise at that tier one step, and uses up its home steps", () => {
+    const result = computeCompletion(
+      completion({ sets: squatT1(5), variantStates: [split({ passesSinceGym: 2, gymPassesSinceHome: 1 })] })
+    );
+    expect(updated(result)).toMatchObject({ passesSinceGym: 0, gymPassesSinceHome: 2 });
+  });
+
+  it("a barbell miss earns nothing", () => {
+    const result = computeCompletion(completion({ sets: squatT1(2), variantStates: [split({ passesSinceGym: 2 })] }));
+    expect(updated(result)?.gymPassesSinceHome).toBeUndefined();
+  });
+
+  it("a stored barbell prescription at the gym uses up the home steps even when the lift is not done", () => {
+    const session = makeSession({
+      prescribed: [{ exerciseId: "squat", tier: "T1", weight: 210, sets: 5, reps: 3, stage: "5x3" }],
+    });
+    const result = computeCompletion(completion({ session, sets: [], variantStates: [split({ passesSinceGym: 2 })] }));
+    expect(updated(result)?.passesSinceGym).toBe(0);
+  });
+
+  it("a stored home prescription uses up the gym steps, and so does doing the exercise", () => {
+    const session = makeSession({
+      location: "home",
+      prescribed: [
+        {
+          exerciseId: "squat",
+          tier: "T1",
+          weight: 190,
+          sets: 5,
+          reps: 3,
+          stage: "5x3",
+          home: { exerciseId: "bulgarian_split_squat", weight: 60, perHand: true, stage: "5x3", sets: 5, reps: 3 },
+        },
+      ],
+    });
+    const notDone = computeCompletion(completion({ session, sets: [], variantStates: [split({ gymPassesSinceHome: 2 })] }));
+    expect(updated(notDone)).toBeDefined();
+    expect(updated(notDone)!.gymPassesSinceHome).toBeUndefined();
+
+    const done = computeCompletion(
+      completion({
+        session: makeSession({ location: "home" }),
+        sets: squatT1(5, { location: "home", isSubstituted: true, weight: 50, originalWeight: 190, substituteExerciseId: "bulgarian_split_squat" }),
+        variantStates: [split({ weight: 50, gymPassesSinceHome: 2 })],
+      })
+    );
+    expect(updated(done)).toMatchObject({ weight: 55 });
+    expect(updated(done)!.gymPassesSinceHome).toBeUndefined();
   });
 });
 

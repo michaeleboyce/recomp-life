@@ -253,26 +253,58 @@ describe("a full A1 workout at home", () => {
     // Intended change: a substitute's AMRAP set records no e1RM for the barbell lift.
     expect(await db.estimated1RMs.count()).toBe(0);
 
-    // Home-adapted workouts count as passes.
+    // The session stored each home exercise's own prescription, as planned.
+    expect(workout.prescribed!.find((p) => p.exerciseId === "squat")!.home).toMatchObject({
+      exerciseId: working[0].substituteExerciseId,
+      weight: working[0].weight,
+    });
+
+    // 2026-11-15 (H1): a home session progresses each home exercise's own weight by the
+    // dumbbell step and leaves the barbell lifts as they were (they used to take the
+    // step: squat 190 -> 195, bench 100 -> 105). It still counts for the rotation.
     const after = await liftStatesById();
-    expect(after.squat).toEqual({
-      ...evaluateT1Progression(before.squat, squatSets, "home", equipment, "lower"),
-      t1LastWorkoutDate: workout.completedAt,
-      recentE1RMs: [],
-      recentAvgRPEs: [],
-      recentAMRAPReps: [3],
-      synced: true,
+    expect(after.squat).toEqual(before.squat);
+    expect(after.bench).toEqual(before.bench);
+    const variants = Object.fromEntries((await db.variantStates.toArray()).map((v) => [v.id, v]));
+    const step = equipment.dumbbellIncrementLbs;
+    expect(variants[`squat|${working[0].substituteExerciseId}|T1`]).toMatchObject({
+      weight: working[0].weight + step,
+      current: true,
+      passesSinceGym: 1,
+      lastSessionDate: workout.completedAt,
     });
-    expect(after.bench).toEqual({
-      ...evaluateT2Progression(before.bench, benchSets, "home", equipment, "upper"),
-      t2LastWorkoutDate: workout.completedAt,
-      recentE1RMs: [],
-      recentAvgRPEs: [],
-      recentAMRAPReps: [],
-      synced: true,
+    expect(variants["bench|db_bench|T2"]).toMatchObject({ weight: working[1].weight + step, current: true });
+    // Every lift was credited as planned (a pass), not only logged.
+    expect(squatSets.every((s) => s.status === "completed")).toBe(true);
+    expect(benchSets).toHaveLength(3);
+  });
+
+  it("plans a second home workout from the home exercise's own weight and credits it", async () => {
+    const first = await mount(await start({ location: "home", includeWarmUps: false }));
+    const firstSquat = first.result.current.plan.find((e) => e.tier === "T1")!;
+    await logEverything(first);
+    await act(async () => {
+      await first.result.current.finish();
     });
-    expect(after.squat.t1Weight).toBe(195);
-    expect(after.bench.t2Weight).toBe(105);
+    first.unmount();
+    useWorkoutStore.getState().reset();
+
+    // Not the conversion of the unchanged barbell weight: the split squat's own weight.
+    const second = await mount(await start({ location: "home", includeWarmUps: false }));
+    const secondSquat = second.result.current.plan.find((e) => e.tier === "T1")!;
+    const step = (await db.userProfile.toCollection().first())!.settings.equipment.dumbbellIncrementLbs;
+    expect(secondSquat).toMatchObject({
+      substituteExerciseId: firstSquat.substituteExerciseId,
+      weight: firstSquat.weight + step,
+      originalWeight: firstSquat.originalWeight,
+    });
+    await logEverything(second);
+    await act(async () => {
+      await second.result.current.finish();
+    });
+    const variant = await db.variantStates.get(`squat|${firstSquat.substituteExerciseId}|T1`);
+    expect(variant).toMatchObject({ weight: firstSquat.weight + 2 * step, passesSinceGym: 2 });
+    expect((await liftStatesById()).squat.t1Weight).toBe(firstSquat.originalWeight);
   });
 
   it("performs the substitute that was chosen on Configure", async () => {

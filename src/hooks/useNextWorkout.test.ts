@@ -9,6 +9,8 @@ vi.mock("@/lib/workout/buildPlan", () => ({
 }));
 
 import { db } from "@/db/local";
+import { strengthSetsOf } from "@/lib/workout/strength";
+import { seedVariantState } from "@/lib/workout/variant";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { useNextWorkout } from "./index";
 import { clearDb, makeLiftState, makeProfile, makeWorkout } from "@/lib/data/testUtils";
@@ -49,12 +51,30 @@ describe("useNextWorkout", () => {
     expect(input.templates).toBe(WORKOUT_TEMPLATES);
     expect(input.completedWorkouts.map((w: { id: string }) => w.id)).toEqual(["done"]);
     expect(input.liftStates.map((l: { exerciseId: string }) => l.exerciseId)).toEqual(["squat"]);
+    // At home each lift is planned from its home exercise's own state, a first one seeded
+    // from the finished workouts' sets (H3), and re-entry applies (H6).
+    const done = (await db.workouts.get("done"))!;
     expect(input.plan).toEqual({
       location: "home",
       equipment: profile.settings.equipment,
       includeWarmUps: false,
       selectedAccessories: [],
+      variantStates: [],
+      strengthSets: strengthSetsOf([done]),
     });
+    expect(input.reentry).toBe(true);
+  });
+
+  it("plans from the stored home exercises' states", async () => {
+    await seed();
+    const split = {
+      ...seedVariantState({ liftId: "squat", exerciseId: "bulgarian_split_squat", tier: "T1", liftState: undefined, equipment: makeProfile().settings.equipment }),
+      current: true,
+    };
+    await db.variantStates.put(split);
+    const r = renderHook(() => useNextWorkout("home"));
+    await waitFor(() => expect(r.result.current).toBe(DESCRIPTION));
+    expect(describeNextWorkout.mock.calls.at(-1)![0].plan.variantStates).toEqual([split]);
   });
 
   it("defaults the location to the profile's default location", async () => {

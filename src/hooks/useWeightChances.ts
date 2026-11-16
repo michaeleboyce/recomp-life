@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import {
   forecastSourceFrom,
+  nextPrescriptionFrom,
   nextWorkoutFrom,
   readinessTodayFrom,
   type LedgerRecords,
 } from "@/lib/data/forecasts";
 import { makeSessionForecasts } from "@/lib/forecast";
-import { prescribedFor } from "@/lib/workout/planEdits";
 import type { Tier, WorkoutLocation } from "@/types";
 import { useLedgerRecords } from "./useLedgerRecords";
 
@@ -40,7 +40,7 @@ export function weightChancesFrom(
     if (!entry || entry.substituteExerciseId || input.weights.length === 0) return chances;
     const readiness = readinessTodayFrom(records, { now, location: input.location });
     const source = forecastSourceFrom(records, now, readiness);
-    const session = { id: "why", prescribed: prescribedFor(next.template, records.liftStates) };
+    const session = { id: "why", prescribed: nextPrescriptionFrom(records, next, input.location) };
     for (const weight of input.weights) {
       const rows = makeSessionForecasts(session, [{ ...entry, weight }], source);
       const row = rows.find(

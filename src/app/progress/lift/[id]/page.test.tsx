@@ -32,8 +32,8 @@ vi.mock("@/components/chart-kit/LazyTrendChart", () => ({
 }));
 
 import LiftPage from "./page";
-import { homeVersionWeight } from "@/components/Lift/homeVersion";
 import { describeNextWorkout } from "@/lib/workout/buildPlan";
+import { strengthSetsOf } from "@/lib/workout/strength";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 
 const demo = generateDemoData(new Date());
@@ -42,6 +42,7 @@ async function seedDemo() {
   await db.workouts.bulkPut(demo.workouts);
   await db.estimated1RMs.bulkPut(demo.estimated1RMs);
   await db.liftStates.bulkPut(demo.liftStates);
+  await db.variantStates.bulkPut(demo.variantStates);
   await db.userProfile.put(makeProfile());
 }
 
@@ -196,14 +197,21 @@ describe("Lift detail page", () => {
 
   describe("opened as a home version", () => {
     const equipment = makeProfile().settings.equipment;
-    const squat = demo.liftStates.find((s) => s.exerciseId === "squat")!;
-    /** The next workout at home, as Today plans it. */
+    /** The next workout at home, as Today plans it (home exercises at their own weights, re-entry applied). */
     const nextAtHome = () =>
       describeNextWorkout({
         completedWorkouts: demo.workouts.filter((w) => w.completedAt),
         templates: WORKOUT_TEMPLATES,
         liftStates: demo.liftStates,
-        plan: { location: "home", equipment, includeWarmUps: true, selectedAccessories: [] },
+        plan: {
+          location: "home",
+          equipment,
+          includeWarmUps: true,
+          selectedAccessories: [],
+          variantStates: demo.variantStates,
+          strengthSets: strengthSetsOf(demo.workouts),
+        },
+        reentry: true,
       })!;
     /** Workouts with working sets done as the substitute, newest first. */
     const sessionsAs = (substituteId: string) =>
@@ -239,17 +247,15 @@ describe("Lift detail page", () => {
         expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       }
 
-      // The demo's next home workout does squat as a goblet squat, so this is the
-      // weight of the next T1 done as a Bulgarian split squat, and the page says so.
-      expect(nextAtHome().plan.find((e) => e.exerciseId === "squat")?.substituteExerciseId).toBe("goblet_squat");
-      const weight = homeVersionWeight("squat", "bulgarian_split_squat", squat.t1Weight, equipment);
-      expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(weight));
+      // The demo's next home workout does squat as a Bulgarian split squat, the home
+      // exercise of its home block (the cap policy never swaps it for a lighter goblet
+      // squat, H2), so this is that plan entry: its own weight, as Today shows it.
+      const planned = nextAtHome().plan.find((e) => !e.isWarmUp && e.exerciseId === "squat")!;
+      expect(planned.substituteExerciseId).toBe("bulgarian_split_squat");
+      expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(planned.weight));
       expect(within(next).getByTestId("home-next")).toHaveTextContent("lbs a hand");
       expect(within(next).getByTestId("home-next")).toHaveTextContent("T15×3+");
-      expect(within(next).getByTestId("home-planned-as")).toHaveTextContent("has goblet squat for squat");
-      expect(within(next).getByTestId("home-conversion")).toHaveTextContent(
-        `80% of the ${squat.t1Weight} lbs barbell squat`
-      );
+      expect(within(next).queryByTestId("home-planned-as")).toBeNull();
       expect(next).not.toHaveTextContent("new best");
       expect(next).toHaveTextContent("Set the barbell weight; the Bulgarian split squat weight follows from it.");
 
@@ -276,14 +282,15 @@ describe("Lift detail page", () => {
 
     it("gives the weight Today shows when the next home workout has this substitute", async () => {
       await seedDemo();
-      search = "as=goblet_squat&from=today";
+      // Since the strength model the demo's next home squat is the split squat (H1, H2).
+      search = "as=bulgarian_split_squat&from=today";
       render(<LiftPage />);
-      expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent(/^Goblet squat$/);
+      expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent(/^Bulgarian split squat$/);
       const entry = nextAtHome().plan.find((e) => !e.isWarmUp && e.exerciseId === "squat")!;
-      expect(entry.substituteExerciseId).toBe("goblet_squat");
+      expect(entry.substituteExerciseId).toBe("bulgarian_split_squat");
       const next = await screen.findByTestId("home-next");
       expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(entry.weight));
-      expect(next).not.toHaveTextContent("a hand");
+      expect(next).toHaveTextContent("a hand");
       expect(screen.queryByTestId("home-planned-as")).toBeNull();
     });
 

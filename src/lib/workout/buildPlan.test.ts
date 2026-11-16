@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { EXERCISES } from "@/lib/exercises";
+import { generateWarmUpSets } from "@/lib/warmups";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { EquipmentProfile, LiftState, WorkoutTemplate } from "@/types";
 import {
@@ -12,6 +13,7 @@ import {
 } from "./buildPlan";
 import type { BuildPlanInput } from "./types";
 import { EQUIPMENT, makeSession, seedLiftStates } from "./testFixtures";
+import { seedVariantWeight } from "./variant";
 
 function input(overrides: Partial<BuildPlanInput> = {}): BuildPlanInput {
   return {
@@ -180,26 +182,28 @@ describe("buildWorkoutPlan accessories", () => {
   });
 });
 
-describe("buildWorkoutPlan at home (D5: same adaptation as Configure)", () => {
+describe("buildWorkoutPlan at home (D5: same exercise as Configure; H3: seeded weight)", () => {
   it("A1 uses adaptExerciseForHome's choice, not the raw dumbbellAlternative", () => {
     const plan = buildWorkoutPlan(input({ location: "home" }));
     // Squat 190: goblet squat needs 150 (max 80), so the chain's first fit is chosen.
     // Since 2026-11-15 the entry also names the home exercise's own state (variantId)
-    // and whether its weight is per hand; with no home history it is seeded from the
-    // same conversion, so the weight and scheme are unchanged.
+    // and whether its weight is per hand. Since 2026-11-16 (H3) a first weight is the
+    // exercise's starting ratio times the barbell weight (no strength sets given here):
+    // 0.5 x 190 = 95, 47.5 a hand, rounded to 50; the entry says how it was seeded.
     expect(plan[0]).toEqual({
       exerciseId: "squat",
       substituteExerciseId: "bulgarian_split_squat",
       tier: "T1",
       targetSets: 5,
       targetReps: 3,
-      weight: 75,
+      weight: 50,
       originalWeight: 190,
       isAMRAP: true,
       isWarmUp: false,
       completedSets: 0,
       variantId: "squat|bulgarian_split_squat|T1",
       perHand: true,
+      seed: { source: "ratio", barbellWeight: 190, ratio: 0.5 },
     });
     expect(plan[1]).toMatchObject({
       exerciseId: "bench",
@@ -215,7 +219,7 @@ describe("buildWorkoutPlan at home (D5: same adaptation as Configure)", () => {
     });
   });
 
-  it("agrees with adaptExerciseForHome for every template", () => {
+  it("picks adaptExerciseForHome's exercise for every template, at its seed", () => {
     for (const template of Object.values(WORKOUT_TEMPLATES)) {
       const liftStates = seedLiftStates();
       const plan = buildWorkoutPlan(input({ template, liftStates, location: "home" }));
@@ -231,8 +235,18 @@ describe("buildWorkoutPlan at home (D5: same adaptation as Configure)", () => {
           exercise.dumbbellAlternative ? EXERCISES[exercise.dumbbellAlternative] : undefined
         );
         const substituted = adaptation.adaptedExercise.id !== exercise.id;
+        const seeded = substituted
+          ? seedVariantWeight({
+              liftId: templateEx.exerciseId,
+              exerciseId: adaptation.adaptedExercise.id,
+              tier: templateEx.tier as "T1" | "T2" | "T3",
+              barbellWeight: weight,
+              targetReps: plan[i].targetReps,
+              equipment: EQUIPMENT,
+            }).weight
+          : weight;
         expect(plan[i].exerciseId).toBe(templateEx.exerciseId);
-        expect(plan[i].weight).toBe(adaptation.adaptedWeight);
+        expect(plan[i].weight).toBe(seeded);
         expect(plan[i].substituteExerciseId).toBe(
           substituted ? adaptation.adaptedExercise.id : undefined
         );
@@ -260,34 +274,24 @@ describe("buildWorkoutPlan at home (D5: same adaptation as Configure)", () => {
 
   it("warm-ups are generated from the adapted weight and carry the substitute and original weight", () => {
     const plan = buildWorkoutPlan(input({ location: "home", includeWarmUps: true }));
-    expect(plan.slice(0, 2)).toEqual([
-      {
+    const warmUps = generateWarmUpSets(50, "home", EQUIPMENT);
+    expect(warmUps.length).toBeGreaterThan(0);
+    expect(plan.slice(0, warmUps.length)).toEqual(
+      warmUps.map((w) => ({
         exerciseId: "squat",
         substituteExerciseId: "bulgarian_split_squat",
         tier: "warmup",
         targetSets: 1,
-        targetReps: 10,
-        weight: 30,
+        targetReps: w.reps,
+        weight: w.weight,
         originalWeight: 190,
         isAMRAP: false,
         isWarmUp: true,
         completedSets: 0,
-      },
-      {
-        exerciseId: "squat",
-        substituteExerciseId: "bulgarian_split_squat",
-        tier: "warmup",
-        targetSets: 1,
-        targetReps: 5,
-        weight: 55,
-        originalWeight: 190,
-        isAMRAP: false,
-        isWarmUp: true,
-        completedSets: 0,
-      },
-    ]);
-    expect(plan[2]).toMatchObject({ tier: "T1", weight: 75 });
-    expect(plan).toHaveLength(5);
+      }))
+    );
+    expect(plan[warmUps.length]).toMatchObject({ tier: "T1", weight: 50 });
+    expect(plan).toHaveLength(warmUps.length + 3);
   });
 
   describe("overrides (R3)", () => {
@@ -338,8 +342,10 @@ describe("buildWorkoutPlan at home (D5: same adaptation as Configure)", () => {
   });
 
   describe("edge cases follow adaptExerciseForHome", () => {
-    it('"exceeds": the primary substitute capped at the max dumbbell weight', () => {
-      // Deadlift 220 -> DB RDL needs 90/hand; nothing in the chain fits an 80 lb max.
+    it('"exceeds": the primary substitute, at its seed', () => {
+      // Deadlift 220 -> by the flat conversion DB RDL needs 90/hand; nothing in the chain
+      // fits an 80 lb max, so the conversion keeps DB RDL. Its seed (H3) is its starting
+      // ratio: 0.6 x 220 = 132, 66 a hand, rounded to 65, which fits.
       const deadlift = EXERCISES.deadlift;
       const adaptation = adaptExerciseForHome(deadlift, 220, EQUIPMENT, EXERCISES.db_rdl);
       expect(adaptation.adaptationStatus).toBe("exceeds");
@@ -351,9 +357,10 @@ describe("buildWorkoutPlan at home (D5: same adaptation as Configure)", () => {
         tier: "T1",
         targetSets: 5,
         targetReps: 3,
-        weight: 80,
+        weight: 65,
         originalWeight: 220,
       });
+      expect(plan[0].cappedFrom).toBeUndefined();
     });
 
     it('"exceeds" with no fallback chain: the substitute capped at the max dumbbell weight', () => {
@@ -396,9 +403,12 @@ describe("buildWorkoutPlan at home (D5: same adaptation as Configure)", () => {
     });
 
     it("respects the equipment profile it is given", () => {
+      // With a 150 lb dumbbell the goblet squat fits; its seed is 0.45 x 190 = 85.5, rounded to 85.
       const bigDumbbells: EquipmentProfile = { ...EQUIPMENT, maxDumbbellWeight: 150 };
       const plan = buildWorkoutPlan(input({ location: "home", equipment: bigDumbbells }));
-      expect(plan[0]).toMatchObject({ substituteExerciseId: "goblet_squat", weight: 150 });
+      expect(plan[0]).toMatchObject({ substituteExerciseId: "goblet_squat", weight: 85 });
+      const small = buildWorkoutPlan(input({ location: "home", equipment: { ...EQUIPMENT, maxDumbbellWeight: 40 } }));
+      expect(small[0]).toMatchObject({ weight: 40, cappedFrom: 50 });
     });
   });
 });

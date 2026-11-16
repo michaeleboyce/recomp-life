@@ -6,7 +6,7 @@ import {
   MAX_DECAY,
 } from "./weightDecay";
 import { LONG_BREAK_DAYS } from "./recovery";
-import type { LiftState, TrainingPhase } from "@/types";
+import type { LiftState, TrainingPhase, VariantState } from "@/types";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -185,6 +185,18 @@ describe("calculateWeightDecay", () => {
 
 describe("getExerciseDecaySuggestions", () => {
   const now = new Date("2026-02-14T12:00:00Z");
+
+  it("counts a home session of the lift at that tier as training it", () => {
+    const day = 24 * 60 * 60 * 1000;
+    const ls = makeLiftState({ exerciseId: "squat", t1LastWorkoutDate: new Date(now.getTime() - 30 * day) });
+    const home = { liftId: "squat", tier: "T1" as const, lastSessionDate: new Date(now.getTime() - 3 * day) } as VariantState;
+    const t2Only = { ...home, tier: "T2" as const };
+    const tmpl = [{ exerciseId: "squat", tier: "T1" }];
+    expect(getExerciseDecaySuggestions(tmpl, [ls], maintaining, now)).toHaveLength(1);
+    expect(getExerciseDecaySuggestions(tmpl, [ls], maintaining, now, [home])).toHaveLength(0);
+    // A home session at the other tier says nothing about this one.
+    expect(getExerciseDecaySuggestions(tmpl, [ls], maintaining, now, [t2Only])).toHaveLength(1);
+  });
 
   it("returns empty for recent workouts", () => {
     const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);

@@ -725,14 +725,17 @@ describe("every metric over the demo data", () => {
   }
 
   it("the lift series have the expected sizes", () => {
-    expect(computeMetric("e1rm", src, { exerciseId: "squat" }).points).toHaveLength(5); // the home session gives no e1RM row
+    // Six T1 squat sessions, the first two in the demo's home block: those give no e1RM row.
+    expect(computeMetric("e1rm", src, { exerciseId: "squat" }).points).toHaveLength(4);
     expect(computeMetric("workingWeight", src, { exerciseId: "squat" }).points).toHaveLength(6);
     expect(computeMetric("amrapReps", src, { exerciseId: "squat" }).points).toHaveLength(6);
-    // Home sessions plot at the barbell-equivalent weight, so T1 squat never dips.
+    // Home sessions plot at the barbell weight they stand for, which does not move at home
+    // (it moves at re-entry), so T1 squat never dips.
     const t1 = computeMetric("workingWeight", src, { exerciseId: "squat" }).points.filter((p) =>
       p.label?.startsWith("T1")
     );
-    for (let i = 1; i < t1.length; i++) expect(t1[i].v).toBeGreaterThan(t1[i - 1].v);
+    for (let i = 1; i < t1.length; i++) expect(t1[i].v).toBeGreaterThanOrEqual(t1[i - 1].v);
+    expect(t1.at(-1)!.v).toBeGreaterThan(t1[0].v);
   });
 
   for (const muscleGroup of MUSCLE_GROUP_ORDER) {

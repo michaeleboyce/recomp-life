@@ -32,6 +32,7 @@ import {
   unchangedVariantOutcome,
   variantKey,
   variantScheme,
+  withoutGymPasses,
 } from "./variant";
 
 /** How many entries each tracking array keeps. */
@@ -215,7 +216,41 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
         tier: outcomeTier,
         liftState: storedLiftState,
         equipment: settings.equipment,
+        ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
       });
+
+    /** The lift done as itself at this tier: the steps its home exercises earned are used up. */
+    const spendHomeSteps = () => {
+      for (const variant of variants.values()) {
+        if (
+          variant.liftId === templateEx.exerciseId &&
+          variant.tier === outcomeTier &&
+          variant.passesSinceGym > 0
+        ) {
+          putVariant({ ...variant, passesSinceGym: 0 });
+        }
+      }
+    };
+    // At the gym, a stored barbell prescription for this lift and tier already took in
+    // the steps its home exercises earned (re-entry, H6): they are used up whether or
+    // not the lift is then done as prescribed.
+    if (
+      session.location === "gym" &&
+      session.prescribed?.some(
+        (p) => p.exerciseId === templateEx.exerciseId && p.tier === outcomeTier && !p.home
+      )
+    ) {
+      spendHomeSteps();
+    }
+    // The same at home: a stored home prescription took in the steps the gym earned for
+    // that exercise (`anchorVariant` does it when the rebuild lays it over the state).
+    const homePrescribed = session.prescribed?.find(
+      (p) => p.exerciseId === templateEx.exerciseId && p.tier === outcomeTier && p.home
+    )?.home;
+    if (homePrescribed) {
+      const prescribedVariant = variants.get(variantKey(templateEx.exerciseId, homePrescribed.exerciseId, outcomeTier));
+      if (prescribedVariant?.gymPassesSinceHome !== undefined) putVariant(withoutGymPasses(prescribedVariant));
+    }
 
     if (exerciseSets.length === 0) {
       unchanged("notDone");
@@ -262,6 +297,7 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
         variantStates: [...variants.values()],
         t3Scheme,
         now,
+        ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
       });
       liftHeld(evaluation.outcome.kind, evaluation.outcome.reason);
       variantOutcomes.push(evaluation.outcome);
@@ -296,15 +332,7 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
 
     // The barbell lift itself, done at this tier: the steps its home exercises earned
     // are used up (re-entry reads them before this session; see `homeStepsEarned`).
-    for (const variant of variants.values()) {
-      if (
-        variant.liftId === templateEx.exerciseId &&
-        variant.tier === outcomeTier &&
-        variant.passesSinceGym > 0
-      ) {
-        putVariant({ ...variant, passesSinceGym: 0 });
-      }
-    }
+    spendHomeSteps();
 
     const targetSets = planEntry ? workingTargetSets(planEntry) : templateEx.sets;
     const partial = shouldFreezeProgression(exerciseSets.length, targetSets);
@@ -377,6 +405,15 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
         liftType
       );
       evaluatedOutcome(evaluated.outcome);
+      // A pass at the gym earns each home exercise of this lift and tier one dumbbell
+      // step for its next home session (re-entry, H6).
+      if (evaluated.outcome.kind === "passed") {
+        for (const variant of variants.values()) {
+          if (variant.liftId === templateEx.exerciseId && variant.tier === outcomeTier) {
+            putVariant({ ...variant, gymPassesSinceHome: (variant.gymPassesSinceHome ?? 0) + 1 });
+          }
+        }
+      }
       next = {
         ...evaluated.state,
         [tier.lastWorkoutDate]: now,

@@ -20,6 +20,7 @@ export {
   useLiftAdjustments,
 } from "./useRecords";
 export { useVariantStates } from "./useVariantStates";
+export { useStrengthSets } from "./useStrengthSets";
 export { useForecasts } from "./useForecasts";
 export { useCoachEvents } from "./useCoachEvents";
 export { useAdjustmentFeed, type AdjustmentFeed } from "./useAdjustmentFeed";

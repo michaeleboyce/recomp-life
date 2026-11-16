@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
+import { roundToStep } from "@/lib/dbConversion";
 import { EXERCISES, HOME_SUBSTITUTE_CHAINS } from "@/lib/exercises";
+import { TRANSFER_PRIORS, asLifted, priorFor, type StrengthSet } from "@/lib/strength";
 import type { EquipmentProfile, LiftState, SetLog, VariantState } from "@/types";
 import { EQUIPMENT, makeSets, seedLiftStates } from "./testFixtures";
 import {
@@ -17,6 +19,7 @@ import {
   variantKey,
   variantScheme,
   type EvaluateVariantInput,
+  type VariantSeedInput,
 } from "./variant";
 
 const NOW = new Date("2026-11-15T18:00:00Z");
@@ -102,15 +105,64 @@ describe("variant ids, loads and schemes", () => {
   });
 });
 
-describe("seeding (H3 seam): with no home history it equals today's conversion", () => {
-  it("seedVariantWeight is adaptExerciseForHome's arithmetic, capped and recorded", () => {
-    expect(seedVariantWeight({ liftId: "squat", exerciseId: "bulgarian_split_squat", tier: "T1", barbellWeight: 190, equipment: EQUIPMENT })).toEqual({ weight: 75, source: "conversion" });
-    expect(seedVariantWeight({ liftId: "squat", exerciseId: "goblet_squat", tier: "T1", barbellWeight: 190, equipment: EQUIPMENT })).toEqual({ weight: 80, cappedFrom: 150, source: "conversion" });
+/** One barbell T1 squat session with a last set of `reps` at `weight`, as strength evidence. */
+function barbellSquat(weight: number, reps: number, date = "2026-11-01T18:00:00Z"): StrengthSet[] {
+  return [
+    { id: "s1", sessionId: "w1", exerciseId: "squat", weight, perHand: false, reps: 3, role: "working", tier: "T1", isAMRAP: false, date },
+    { id: "s2", sessionId: "w1", exerciseId: "squat", weight, perHand: false, reps, role: "working", tier: "T1", isAMRAP: true, date },
+  ];
+}
+
+describe("seeding (H3): the pooled estimate through the exercise's starting ratio", () => {
+  const seed = (exerciseId: string, barbellWeight: number, extra: Partial<VariantSeedInput> = {}) =>
+    seedVariantWeight({ liftId: "squat", exerciseId, tier: "T1", barbellWeight, targetReps: 3, equipment: EQUIPMENT, ...extra });
+
+  it("with no estimate it equals the barbell weight times the starting ratio, rounded to the dumbbell step and capped", () => {
+    // 0.5 x 190 = 95 in all, 47.5 a hand, rounded to 5: 50.
+    expect(seed("bulgarian_split_squat", 190)).toEqual({ weight: 50, source: "ratio", ratio: 0.5 });
+    // 0.45 x 190 = 85.5 in one dumbbell, rounded to 85: more than the heaviest (80).
+    expect(seed("goblet_squat", 190)).toEqual({ weight: 80, cappedFrom: 85, source: "ratio", ratio: 0.45 });
     const fine = { ...EQUIPMENT, dumbbellIncrementLbs: 2.5 };
-    expect(seedVariantWeight({ liftId: "bench", exerciseId: "db_bench", tier: "T1", barbellWeight: 145, equipment: fine }).weight).toBe(57.5);
+    // 0.83 x 145 = 120.35, 60.2 a hand, rounded to 2.5: 60.
+    expect(seedVariantWeight({ liftId: "bench", exerciseId: "db_bench", tier: "T1", barbellWeight: 145, targetReps: 3, equipment: fine }).weight).toBe(60);
+
+    for (const [liftId, table] of Object.entries(TRANSFER_PRIORS)) {
+      for (const [exerciseId, prior] of Object.entries(table)) {
+        for (const weight of [60, 95, 145, 190, 245]) {
+          const wanted = roundToStep(asLifted(prior.ratio * weight, exerciseId), EQUIPMENT.dumbbellIncrementLbs);
+          const got = seedVariantWeight({ liftId, exerciseId, tier: "T2", barbellWeight: weight, targetReps: 10, equipment: EQUIPMENT });
+          expect(got.weight, `${exerciseId} ${weight}`).toBe(Math.min(wanted, EQUIPMENT.maxDumbbellWeight));
+          expect(got.source).toBe("ratio");
+        }
+      }
+    }
   });
 
-  it("chooseHomeVariant with no variant states picks the conversion's exercise and weight", () => {
+  it("with an estimate it is the heaviest weight the estimate allows for the stage's reps, rounded down and capped", () => {
+    // 200 x 8: estimated max round(200 x (1 + 8/30)) = 253. Split squat: 253 x 0.5 = 126.5,
+    // for 3 reps / 1.1 = 115 in all, 57.5 a hand, rounded down: 55.
+    const sets = barbellSquat(200, 8);
+    expect(seed("bulgarian_split_squat", 200, { strengthSets: sets })).toEqual({
+      weight: 55,
+      source: "estimate",
+      ratio: 0.5,
+      estimate: 253,
+    });
+    // For 10 reps (T2): 126.5 / (1 + 10/30) = 94.9 in all, 47.4 a hand: 45.
+    expect(seed("bulgarian_split_squat", 200, { strengthSets: sets, targetReps: 10, tier: "T2" }).weight).toBe(45);
+    // Goblet squat: 253 x 0.45 / 1.1 = 103.5 in one dumbbell, capped at 80.
+    expect(seed("goblet_squat", 200, { strengthSets: sets })).toMatchObject({ weight: 80, cappedFrom: 100, source: "estimate" });
+    // No set that gives an estimate: back to the ratio and the barbell weight.
+    expect(seed("bulgarian_split_squat", 200, { strengthSets: [] }).source).toBe("ratio");
+  });
+
+  it("an exercise with no starting ratio keeps the flat conversion", () => {
+    const pulldown = EXERCISES.lat_pulldown.dumbbellAlternative!;
+    expect(priorFor("lat_pulldown", pulldown)).toBeNull();
+    expect(seedVariantWeight({ liftId: "lat_pulldown", exerciseId: pulldown, tier: "T3", barbellWeight: 100, targetReps: 15, equipment: EQUIPMENT }).source).toBe("conversion");
+  });
+
+  it("chooseHomeVariant with no variant states picks the conversion's exercise at its seed", () => {
     for (const liftId of ["squat", "bench", "deadlift", "ohp", "lat_pulldown"]) {
       for (const weight of [60, 95, 145, 190, 210, 245, 300]) {
         for (const equipment of [EQUIPMENT, { ...EQUIPMENT, maxDumbbellWeight: 50 }]) {
@@ -118,13 +170,22 @@ describe("seeding (H3 seam): with no home history it equals today's conversion",
           const exercise = EXERCISES[liftId];
           const expected = adaptExerciseForHome(exercise, weight, equipment, EXERCISES[exercise.dumbbellAlternative!]);
           const choice = chooseHomeVariant({ liftId, tier: "T1", liftState, variantStates: [], equipment })!;
-          expect(choice.state.exerciseId, `${liftId} ${weight}`).toBe(expected.adaptedExercise.id);
-          expect(choice.weight, `${liftId} ${weight}`).toBe(expected.adaptedWeight);
+          const exerciseId = expected.adaptedExercise.id;
+          const seeded = seedVariantWeight({ liftId, exerciseId, tier: "T1", barbellWeight: weight, targetReps: 3, equipment });
+          expect(choice.state.exerciseId, `${liftId} ${weight}`).toBe(exerciseId);
+          expect(choice.weight, `${liftId} ${weight}`).toBe(seeded.weight);
           expect(choice.seeded).toBe(true);
-          expect(choice.cappedFrom).toBe(expected.cappedFrom);
+          expect(choice.cappedFrom).toBe(seeded.cappedFrom);
+          expect(choice.state.seed.source).toBe(seeded.source);
         }
       }
     }
+  });
+
+  it("chooseHomeVariant seeds from the strength sets it is given", () => {
+    const choice = chooseHomeVariant({ liftId: "squat", tier: "T1", liftState: squat({ t1Weight: 200 }), variantStates: [], equipment: EQUIPMENT, strengthSets: barbellSquat(200, 8) })!;
+    expect(choice).toMatchObject({ weight: 55, seeded: true });
+    expect(choice.state.seed).toEqual({ source: "estimate", barbellWeight: 200, ratio: 0.5, estimate: 253, targetReps: 3 });
   });
 
   it("a first variant takes the program lift's stage and fail count", () => {
@@ -136,7 +197,8 @@ describe("seeding (H3 seam): with no home history it equals today's conversion",
       equipment: EQUIPMENT,
     });
     expect(seeded).toMatchObject({ stage: "6x2", failCount: 1, extraReps: 0, current: false, passesSinceGym: 0 });
-    expect(seeded.seed).toEqual({ source: "conversion", barbellWeight: 190 });
+    expect(seeded.seed).toEqual({ source: "ratio", barbellWeight: 190, ratio: 0.5 });
+    expect(seeded.gymPassesSinceHome).toBeUndefined();
   });
 
   it("is null for a lift that works at home", () => {

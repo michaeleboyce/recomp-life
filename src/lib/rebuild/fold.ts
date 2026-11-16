@@ -1,8 +1,16 @@
 import { toRecentE1RMSeries } from "@/lib/e1rm";
+import type { StrengthSet } from "@/lib/strength";
+import { strengthSetOf } from "@/lib/workout/strength";
 import { buildWorkoutPlan, overridesFromSession } from "@/lib/workout/buildPlan";
 import { computeCompletion } from "@/lib/workout/completeWorkout";
 import { T1_STAGE_SCHEME, T2_STAGE_SCHEME } from "@/lib/workout/prescription";
-import { anchorVariant, isVariantTier, seedVariantState, variantKey } from "@/lib/workout/variant";
+import {
+  anchorVariant,
+  isVariantTier,
+  seedVariantState,
+  variantKey,
+  withoutGymPasses,
+} from "@/lib/workout/variant";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
   AdjustableField,
@@ -84,15 +92,71 @@ function normalise(state: LiftState): LiftState {
   return { ...state, clientId: state.exerciseId, synced: true };
 }
 
-/** An adjustment sets the fields it lists to absolute values; nothing else moves. */
-function applyAdjustment(states: Map<string, LiftState>, adjustment: LiftAdjustment): void {
+/** The lift-state fields of a tier that a home exercise's adjustment reads. */
+const VARIANT_FIELDS = {
+  T1: { weight: "t1Weight", stage: "t1Stage", failCount: "t1FailCount", lastResetWeight: "t1LastResetWeight" },
+  T2: { weight: "t2Weight", stage: "t2Stage", failCount: "t2FailCount", lastResetWeight: "t2LastResetWeight" },
+  T3: { weight: "t3Weight" },
+} as const satisfies Record<VariantState["tier"], Partial<Record<string, AdjustableField>>>;
+
+/**
+ * An adjustment sets the fields it lists to absolute values; nothing else moves.
+ *
+ * One for a home exercise (`variant`) sets that exercise's own state from its tier's
+ * fields (t1Weight is its weight at T1, and so on), creating the state from its seed
+ * when it has none; a weight set by hand replaces the steps gym passes had earned for
+ * it. One for the barbell lift that sets a tier's weight replaces the steps home passes
+ * had earned at that tier: the weight is the user's, re-entry adds nothing to it.
+ */
+function applyAdjustment(
+  states: Map<string, LiftState>,
+  variants: Map<string, VariantState>,
+  adjustment: LiftAdjustment,
+  settings: UserSettings
+): void {
+  const set = adjustment.set ?? {};
+  const target = adjustment.variant;
+  if (target) {
+    if (!isVariantTier(target.tier)) return;
+    const tier = target.tier;
+    const id = variantKey(adjustment.exerciseId, target.exerciseId, tier);
+    const current =
+      variants.get(id) ??
+      seedVariantState({
+        liftId: adjustment.exerciseId,
+        exerciseId: target.exerciseId,
+        tier,
+        liftState: states.get(adjustment.exerciseId),
+        equipment: settings.equipment,
+      });
+    const fields: Partial<Record<"weight" | "stage" | "failCount" | "lastResetWeight", AdjustableField>> =
+      VARIANT_FIELDS[tier];
+    let next: VariantState = { ...current };
+    for (const [key, field] of Object.entries(fields) as Array<[keyof typeof fields, AdjustableField]>) {
+      const value = set[field];
+      if (value !== undefined) next = { ...next, [key]: value };
+    }
+    if (fields.weight && set[fields.weight] !== undefined) next = withoutGymPasses(next);
+    variants.set(id, next);
+    return;
+  }
+
   const current = states.get(adjustment.exerciseId) ?? emptyLiftState(adjustment.exerciseId);
   const next: Record<string, unknown> = { ...current };
   for (const field of ADJUSTABLE_FIELDS) {
-    const value = adjustment.set?.[field];
+    const value = set[field];
     if (value !== undefined) next[field] = value;
   }
   states.set(adjustment.exerciseId, next as unknown as LiftState);
+
+  for (const [tier, fields] of Object.entries(VARIANT_FIELDS)) {
+    if (set[fields.weight] === undefined) continue;
+    for (const variant of variants.values()) {
+      if (variant.liftId === adjustment.exerciseId && variant.tier === tier && variant.passesSinceGym > 0) {
+        variants.set(variant.id, { ...variant, passesSinceGym: 0 });
+      }
+    }
+  }
 }
 
 function stageFromReps<S extends string>(
@@ -186,7 +250,8 @@ function anchorHomePrescriptions(
   variants: Map<string, VariantState>,
   states: Map<string, LiftState>,
   session: WorkoutSession,
-  settings: UserSettings
+  settings: UserSettings,
+  strengthSets: readonly StrengthSet[]
 ): Map<string, VariantState> {
   const forSession = new Map(variants);
   const template = WORKOUT_TEMPLATES[session.templateId];
@@ -195,6 +260,8 @@ function anchorHomePrescriptions(
     const tier = entry.tier;
     const id = variantKey(entry.exerciseId, entry.home.exerciseId, tier);
     const existing = variants.get(id);
+    // Seeded from the sets before the session, as the plan seeded it (its weight is then
+    // the stored one; the seed says how the plan got there).
     const going =
       existing ??
       seedVariantState({
@@ -203,6 +270,7 @@ function anchorHomePrescriptions(
         tier,
         liftState: states.get(entry.exerciseId),
         equipment: settings.equipment,
+        strengthSets,
       });
     const slot = template?.exercises.find(
       (ex) => ex.exerciseId === entry.exerciseId && ex.tier === tier
@@ -267,17 +335,24 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
   const variantSnapshots = new Map<string, VariantState[]>();
   const variantOutcomes = new Map<string, VariantOutcome[]>();
   let nextAdjustment = 0;
+  // Strength evidence of the sessions folded so far, with when each was finished: the
+  // plan of a session saw the sets of those finished before it started (H3).
+  const foldedSets: StrengthSet[] = [];
+  const foldedEnds: Array<{ completedAt: number; setCount: number }> = [];
 
   for (const session of completed) {
     const startedAt = timeOf(session.startedAt);
     const completedAt = timeOf(session.completedAt!);
+    let known = foldedEnds.length;
+    while (known > 0 && foldedEnds[known - 1].completedAt > startedAt) known -= 1;
+    const strengthSets = foldedSets.slice(0, known > 0 ? foldedEnds[known - 1].setCount : 0);
 
     // Rule 4: adjustments first, then the stored prescription on top.
     while (
       nextAdjustment < adjustments.length &&
       timeOf(adjustments[nextAdjustment].at) <= startedAt
     ) {
-      applyAdjustment(states, adjustments[nextAdjustment]);
+      applyAdjustment(states, variants, adjustments[nextAdjustment], input.settings);
       nextAdjustment += 1;
     }
     for (const entry of session.prescribed ?? []) {
@@ -285,7 +360,7 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
       if (state) states.set(entry.exerciseId, anchorToPrescription(state, entry));
     }
     const settings = settingsFor(input.settings, session);
-    const sessionVariants = anchorHomePrescriptions(variants, states, session, settings);
+    const sessionVariants = anchorHomePrescriptions(variants, states, session, settings, strengthSets);
     before.set(session.id, sortedStates(states));
 
     let sessionOutcomes: ProgressionOutcome[] = [];
@@ -331,6 +406,7 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
         workoutStartTime: new Date(session.startedAt),
         now: new Date(session.completedAt!),
         variantStates,
+        strengthSets,
       });
       for (const update of completion.liftStateUpdates) {
         states.set(update.exerciseId, normalise(update));
@@ -344,11 +420,13 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
     snapshots.set(session.id, sortedStates(states));
     variantOutcomes.set(session.id, sessionVariantOutcomes);
     variantSnapshots.set(session.id, sortedVariants(variants));
+    for (const set of session.sets ?? []) foldedSets.push(strengthSetOf(set, session.id));
+    foldedEnds.push({ completedAt, setCount: foldedSets.length });
   }
 
   // Rule 8.
   for (; nextAdjustment < adjustments.length; nextAdjustment += 1) {
-    applyAdjustment(states, adjustments[nextAdjustment]);
+    applyAdjustment(states, variants, adjustments[nextAdjustment], input.settings);
   }
 
   return {

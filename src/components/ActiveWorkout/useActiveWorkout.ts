@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { useE1RMs, useLiftStates, useSettings, useWorkout } from "@/hooks";
+import {
+  useE1RMs,
+  useLiftStates,
+  useSettings,
+  useStrengthSets,
+  useVariantStates,
+  useWorkout,
+} from "@/hooks";
 import { liftName } from "@/components/LogEdit/format";
 import { toast } from "@/components/ui/toast";
 import { commitLogChange } from "@/lib/data/logEdits";
@@ -72,6 +79,8 @@ export function useActiveWorkout(
   const session = useWorkout(sessionId);
   const settings = useSettings();
   const liftStates = useLiftStates();
+  const variantStates = useVariantStates();
+  const strengthSets = useStrengthSets();
 
   const viewedEntryIndex = useWorkoutStore((s) => s.viewedEntryIndex);
   const pendingDrop = useWorkoutStore((s) => s.pendingDrop);
@@ -93,14 +102,30 @@ export function useActiveWorkout(
   const template = session ? WORKOUT_TEMPLATES[session.templateId] : undefined;
   const trainingPhase = settings?.trainingPhase ?? DEFAULT_PHASE;
 
-  // The plan as prescribed when the workout started (its stored prescription; the
-  // current lift states only for a session that has none). Frozen per session so that
-  // saving the workout (which moves the lift states) cannot reshuffle it.
+  // The plan as prescribed when the workout started (its stored prescription, home
+  // exercises' included; the current lift and home-exercise states only for a session
+  // that has none). Frozen per session so that saving the workout (which moves the
+  // states) cannot reshuffle it, so it waits for every state it reads.
   const [frozen, setFrozen] = useState<{ sessionId: string; plan: WorkoutPlan } | null>(null);
-  if (session && settings && liftStates && template && frozen?.sessionId !== session.id) {
+  if (
+    session &&
+    settings &&
+    liftStates &&
+    variantStates &&
+    strengthSets &&
+    template &&
+    frozen?.sessionId !== session.id
+  ) {
     setFrozen({
       sessionId: session.id,
-      plan: planForSession({ session, template, liftStates, equipment: settings.equipment }),
+      plan: planForSession({
+        session,
+        template,
+        liftStates,
+        equipment: settings.equipment,
+        variantStates,
+        strengthSets,
+      }),
     });
   }
   const basePlan = session && frozen?.sessionId === session.id ? frozen.plan : null;
@@ -436,7 +461,13 @@ export function useActiveWorkout(
   }, [sessionId]);
 
   let status: ActiveWorkoutStatus;
-  if (session === undefined || settings === undefined || liftStates === undefined) {
+  if (
+    session === undefined ||
+    settings === undefined ||
+    liftStates === undefined ||
+    variantStates === undefined ||
+    strengthSets === undefined
+  ) {
     status = "loading";
   } else if (session === null || !template) {
     status = "missing";

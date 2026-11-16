@@ -5,6 +5,7 @@
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { barbellToBothHands, barbellToDumbbell, ceilToStep, roundToStep } from "@/lib/dbConversion";
 import { EXERCISES, HOME_SUBSTITUTE_CHAINS } from "@/lib/exercises";
+import { asLifted, homeReentryWeight, priorFor, type StrengthSet } from "@/lib/strength";
 import {
   RESET_FACTOR,
   T1_NEXT_STAGE,
@@ -29,6 +30,7 @@ import type {
   VariantState,
 } from "@/types";
 import { T1_STAGE_SCHEME, T2_STAGE_SCHEME } from "./prescription";
+import { pooledEstimateOf } from "./strength";
 
 export type VariantTier = VariantState["tier"];
 
@@ -125,42 +127,81 @@ export interface VariantSeedInput {
   tier: VariantTier;
   /** The program lift's weight at this tier, in barbell terms. */
   barbellWeight: number;
+  /** Reps per set of the stage the variant starts at (the estimate rule is worked for them). */
+  targetReps: number;
   equipment: EquipmentProfile;
+  /** Every logged set as strength evidence (`strengthSetsOf`); left out, no estimate is used. */
+  strengthSets?: readonly StrengthSet[];
 }
 
 export interface VariantSeedWeight {
   /** As lifted: per hand for a per-hand exercise. */
   weight: number;
-  /** What the conversion asked for when it was more than the heaviest dumbbell. */
+  /** What the seed asked for when it was more than the heaviest dumbbell. */
   cappedFrom?: number;
-  source: "conversion";
+  source: "estimate" | "ratio" | "conversion";
+  /** For "estimate" and "ratio": the exercise's starting ratio to the lift. */
+  ratio?: number;
+  /** For "estimate": the pooled strength estimate it was worked from. */
+  estimate?: number;
 }
 
 /**
- * The first weight of a home exercise nothing has been logged for.
+ * The first weight of a home exercise nothing has been logged for (H3).
  *
- * This is the seam for seeding from the pooled strength estimate (H3): another package
- * will make it read the estimate. For now it is today's conversion, the arithmetic of
- * `adaptExerciseForHome`: 80% of the barbell weight, split between two hands for a
- * per-hand exercise, rounded to the dumbbell step and capped at the heaviest dumbbell.
+ * With a starting ratio for the exercise (`TRANSFER_PRIORS`) and a pooled strength
+ * estimate for the program lift (from `strengthSets`): the heaviest weight at which the
+ * estimate, through that ratio, says the stage's reps are possible, rounded down to the
+ * dumbbell step (`homeReentryWeight` with no last weight; source "estimate"). With the
+ * ratio and no estimate (no barbell or home T1 set yet): the ratio times the barbell
+ * working weight, as lifted, rounded to the dumbbell step (source "ratio"). An exercise
+ * with no starting ratio keeps the flat conversion, 80% of the barbell weight (source
+ * "conversion"). Every one is capped at the heaviest dumbbell.
+ *
+ * @evidence home-progression
  */
 export function seedVariantWeight(input: VariantSeedInput): VariantSeedWeight {
-  const { exerciseId, barbellWeight, equipment } = input;
+  const { liftId, exerciseId, barbellWeight, targetReps, equipment, strengthSets } = input;
   const step = equipment.dumbbellIncrementLbs;
-  const wanted =
-    EXERCISES[exerciseId]?.grip === "both_hands"
-      ? barbellToBothHands(barbellWeight, step)
-      : barbellToDumbbell(barbellWeight, step);
-  if (wanted > equipment.maxDumbbellWeight) {
-    return { weight: equipment.maxDumbbellWeight, cappedFrom: wanted, source: "conversion" };
+  const capped = (wanted: number, seed: Omit<VariantSeedWeight, "weight" | "cappedFrom">): VariantSeedWeight =>
+    wanted > equipment.maxDumbbellWeight
+      ? { weight: equipment.maxDumbbellWeight, cappedFrom: wanted, ...seed }
+      : { weight: wanted, ...seed };
+
+  const prior = priorFor(liftId, exerciseId);
+  if (!prior) {
+    const wanted =
+      EXERCISES[exerciseId]?.grip === "both_hands"
+        ? barbellToBothHands(barbellWeight, step)
+        : barbellToDumbbell(barbellWeight, step);
+    return capped(wanted, { source: "conversion" });
   }
-  return { weight: wanted, source: "conversion" };
+
+  const estimate = strengthSets ? (pooledEstimateOf(strengthSets, liftId)?.value ?? null) : null;
+  if (estimate != null && estimate > 0) {
+    const fromEstimate = homeReentryWeight({
+      lastWeight: null,
+      stepsEarned: 0,
+      estimate,
+      ratio: prior.ratio,
+      exerciseId,
+      targetReps,
+      // Uncapped here: the cap is applied below, so `cappedFrom` says what was asked.
+      equipment: { ...equipment, maxDumbbellWeight: Infinity },
+    });
+    if (fromEstimate) {
+      return capped(fromEstimate.weight, { source: "estimate", ratio: prior.ratio, estimate });
+    }
+  }
+  const total = prior.ratio * barbellWeight;
+  const wanted = total > 0 ? roundToStep(asLifted(total, exerciseId), step) : 0;
+  return capped(wanted, { source: "ratio", ratio: prior.ratio });
 }
 
 /**
- * A variant the first time it is used: its weight from `seedVariantWeight`, its stage
- * and fail count from the program lift's, so a first home session prescribes exactly
- * what today's conversion would. Not current and not stored until a session uses it.
+ * A variant the first time it is used: its weight from `seedVariantWeight` (for the
+ * stage the lift is at), its stage and fail count from the program lift's. Not current
+ * and not stored until a session uses it.
  */
 export function seedVariantState(input: {
   liftId: string;
@@ -168,10 +209,23 @@ export function seedVariantState(input: {
   tier: VariantTier;
   liftState: LiftState | undefined;
   equipment: EquipmentProfile;
+  /** Every logged set as strength evidence; left out, the seed uses no estimate. */
+  strengthSets?: readonly StrengthSet[];
 }): VariantState {
-  const { liftId, exerciseId, tier, liftState, equipment } = input;
+  const { liftId, exerciseId, tier, liftState, equipment, strengthSets } = input;
   const barbellWeight = liftWeightAt(liftState, tier);
-  const seed = seedVariantWeight({ liftId, exerciseId, tier, barbellWeight, equipment });
+  const stage: VariantState["stage"] =
+    tier === "T1" ? (liftState?.t1Stage ?? "5x3") : tier === "T2" ? (liftState?.t2Stage ?? "3x10") : null;
+  const targetReps = variantScheme({ tier, stage, extraReps: 0 }).reps;
+  const seed = seedVariantWeight({
+    liftId,
+    exerciseId,
+    tier,
+    barbellWeight,
+    targetReps,
+    equipment,
+    ...(strengthSets ? { strengthSets } : {}),
+  });
   return {
     id: variantKey(liftId, exerciseId, tier),
     liftId,
@@ -179,7 +233,7 @@ export function seedVariantState(input: {
     tier,
     weight: seed.weight,
     perHand: isPerHandExercise(exerciseId),
-    stage: tier === "T1" ? (liftState?.t1Stage ?? "5x3") : tier === "T2" ? (liftState?.t2Stage ?? "3x10") : null,
+    stage,
     failCount: tier === "T1" ? (liftState?.t1FailCount ?? 0) : tier === "T2" ? (liftState?.t2FailCount ?? 0) : 0,
     extraReps: 0,
     lastResetWeight: null,
@@ -188,9 +242,11 @@ export function seedVariantState(input: {
     current: false,
     passesSinceGym: 0,
     seed: {
-      source: "conversion",
+      source: seed.source,
       barbellWeight,
       ...(seed.cappedFrom != null ? { cappedFrom: seed.cappedFrom } : {}),
+      ...(seed.ratio != null ? { ratio: seed.ratio } : {}),
+      ...(seed.estimate != null ? { estimate: seed.estimate, targetReps } : {}),
     },
   };
 }
@@ -203,6 +259,8 @@ export interface HomeVariantInput {
   equipment: EquipmentProfile;
   /** The substitute picked on Configure for this lift, if any. */
   overrideId?: string;
+  /** Every logged set as strength evidence, for seeding a variant never used (H3). */
+  strengthSets?: readonly StrengthSet[];
 }
 
 export interface HomeVariantChoice {
@@ -224,12 +282,13 @@ export interface HomeVariantChoice {
  * The exercise: a substitute picked on Configure (one of the conversion's alternatives,
  * as before), else the lift's current variant at this tier, else today's conversion
  * pick. The weight: the variant's own, or for a variant never used, its seed
- * (`seedVariantWeight`), so with no home history the plan is exactly today's conversion.
+ * (`seedVariantWeight`: the pooled estimate through the exercise's starting ratio when
+ * `strengthSets` give one, else the ratio times the barbell weight).
  *
  * @evidence home-progression
  */
 export function chooseHomeVariant(input: HomeVariantInput): HomeVariantChoice | null {
-  const { liftId, tier, liftState, variantStates, equipment, overrideId } = input;
+  const { liftId, tier, liftState, variantStates, equipment, overrideId, strengthSets } = input;
   const exercise = EXERCISES[liftId];
   if (!exercise) return null;
   const adaptation = adaptExerciseForHome(
@@ -248,7 +307,16 @@ export function chooseHomeVariant(input: HomeVariantInput): HomeVariantChoice | 
   const exerciseId = overridden ?? current?.exerciseId ?? adaptation.adaptedExercise.id;
 
   const stored = variantStates.find((v) => v.id === variantKey(liftId, exerciseId, tier));
-  const state = stored ?? seedVariantState({ liftId, exerciseId, tier, liftState, equipment });
+  const state =
+    stored ??
+    seedVariantState({
+      liftId,
+      exerciseId,
+      tier,
+      liftState,
+      equipment,
+      ...(strengthSets ? { strengthSets } : {}),
+    });
   const max = equipment.maxDumbbellWeight;
   const weight = Math.min(state.weight, max);
   const cappedFrom = state.weight > max ? state.weight : stored ? undefined : state.seed.cappedFrom;
@@ -281,7 +349,8 @@ export function homePrescriptionOf(
 /**
  * A variant with a session's stored home prescription laid over it (rule 4 for home
  * exercises): its weight, stage and reps become what was prescribed. The fail count
- * follows the stage as `anchorToPrescription` does for a lift.
+ * follows the stage as `anchorToPrescription` does for a lift. The steps gym passes had
+ * earned for it are used up: the prescription already took them in (re-entry, H6).
  */
 export function anchorVariant(
   state: VariantState,
@@ -299,13 +368,21 @@ export function anchorVariant(
   }
   const baseReps = variantScheme({ tier: state.tier, stage, extraReps: 0 }, t3Scheme).reps;
   return {
-    ...state,
+    ...withoutGymPasses(state),
     weight: home.weight,
     perHand: home.perHand,
     stage,
     failCount,
     extraReps: Math.max(0, home.reps - baseReps),
   };
+}
+
+/** The variant with no steps earned at the gym: absent means 0. */
+export function withoutGymPasses(state: VariantState): VariantState {
+  if (state.gymPassesSinceHome === undefined) return state;
+  const rest: VariantState = { ...state };
+  delete rest.gymPassesSinceHome;
+  return rest;
 }
 
 /**
@@ -340,6 +417,8 @@ export interface EvaluateVariantInput {
   /** T3's sets and reps (the template's). */
   t3Scheme?: { sets: number; reps: number };
   now: Date;
+  /** Strength sets before the session, for seeding a harder variant never used (H3). */
+  strengthSets?: readonly StrengthSet[];
 }
 
 export interface VariantEvaluation {
@@ -430,7 +509,8 @@ export function evaluateVariant(input: EvaluateVariantInput): VariantEvaluation 
     ...(switchedTo ? { switchedTo } : {}),
   });
 
-  const performed: VariantState = { ...start, current: true, lastSessionDate: now };
+  // Done at home: any steps the gym had earned for it are behind it now.
+  const performed: VariantState = { ...withoutGymPasses(start), current: true, lastSessionDate: now };
   const hold = getHoldReason(tier, sets);
   if (partial) return result(performed, hold ? "held" : "partial", hold ?? undefined);
 
@@ -521,7 +601,7 @@ export function evaluateVariant(input: EvaluateVariantInput): VariantEvaluation 
 function harderVariantFor(capped: VariantState, input: EvaluateVariantInput): VariantState | null {
   const harderId = HARDER_HOME_VARIANT[capped.exerciseId];
   if (!harderId || !homeOptionsFor(capped.liftId).includes(harderId)) return null;
-  const { equipment, liftState, variantStates } = input;
+  const { equipment, liftState, variantStates, strengthSets } = input;
   const max = equipment.maxDumbbellWeight;
   const perHand = isPerHandExercise(harderId);
   const notLighter = ceilToStep(
@@ -539,6 +619,7 @@ function harderVariantFor(capped: VariantState, input: EvaluateVariantInput): Va
       tier: capped.tier,
       liftState,
       equipment,
+      ...(strengthSets ? { strengthSets } : {}),
     }),
     stage: capped.stage,
     failCount: capped.failCount,

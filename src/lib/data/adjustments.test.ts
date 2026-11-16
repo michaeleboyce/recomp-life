@@ -52,6 +52,24 @@ describe("recordAdjustment (E9)", () => {
     expect(await db.liftStates.get("squat")).toMatchObject({ t1Weight: 170, t2Weight: 135, t1Stage: "5x3" });
   });
 
+  it("for a home exercise: stores the target and sets that exercise's own state, not the barbell lift", async () => {
+    const diff = await recordAdjustment({
+      exerciseId: "squat",
+      source: "manual",
+      set: { t1Weight: 65 },
+      variant: { exerciseId: "bulgarian_split_squat", tier: "T1" },
+    });
+    const row = (await db.liftAdjustments.toArray()).find((a) => a.source === "manual")!;
+    expect(row).toMatchObject({ exerciseId: "squat", variant: { exerciseId: "bulgarian_split_squat", tier: "T1" } });
+    expect(diff.variantStatesToPut?.map((v) => v.id)).toEqual(["squat|bulgarian_split_squat|T1"]);
+    expect(await db.variantStates.get("squat|bulgarian_split_squat|T1")).toMatchObject({ weight: 65 });
+    expect((await db.liftStates.get("squat"))!.t1Weight).toBe(190);
+    // A plain adjustment has no target.
+    await recordAdjustment({ exerciseId: "bench", source: "manual", set: { t2Weight: 90 } });
+    const plainRow = (await db.liftAdjustments.toArray()).find((a) => a.exerciseId === "bench" && a.source === "manual")!;
+    expect("variant" in plainRow).toBe(false);
+  });
+
   it("keeps the given date and note", async () => {
     const at = new Date("2026-02-20T12:00:00Z");
     await recordAdjustment({ exerciseId: "bench", source: "manual", set: { t2Weight: 90 }, at, note: "shoulder" });
