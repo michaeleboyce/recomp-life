@@ -1,7 +1,8 @@
 import type { Motion } from "./archetypes";
 import {
-  backExtension, calfRaise, curl, facePull, hinge, hipThrust, legMachine, overhead,
-  pendulumSquat, pulldown, raise, rollout, row, split, squat, supine, triceps,
+  backExtension, benchDip, bentRow, cableRow, calfRaise, curl, facePull, hinge, hipThrust,
+  legMachine, legPress, overhead, pendulumSquat, pulldown, pushUp, raise, rollout, row, situp,
+  split, squat, supine, triceps,
 } from "./archetypes";
 import type { MotionInfo } from "./sample";
 
@@ -212,5 +213,67 @@ export const MOTIONS: Record<string, MotionSpec> = {
     info: { repSeconds: 4.2, view: "side", trace: "handL", caption: "Back on the pad, sink deep as the pad swings down and back and the knees travel forward, then drive up." },
     eccentricFirst: true,
     motion: pendulumSquat(),
+  },
+
+  // ─── Added for imported history ────────────────────────────────────────────
+  db_fly: {
+    info: { repSeconds: 4, view: "front", trace: "handL", caption: "On a flat bench, open the arms wide in an arc with a soft elbow bend, then squeeze back together over the chest." },
+    eccentricFirst: true,
+    motion: supine({ surface: "bench", mode: "fly", implement: "dumbbells" }),
+  },
+  db_bent_over_row: {
+    info: { repSeconds: 3.2, view: "side", trace: "handL", caption: "Hinged forward with a flat back, pull both dumbbells to the hips with the elbows close, lower to a full stretch." },
+    eccentricFirst: false,
+    motion: bentRow({ support: "none" }),
+  },
+  incline_db_row: {
+    info: { repSeconds: 3.2, view: "side", trace: "handL", caption: "Chest on an incline bench, pull both dumbbells up beside the ribs, squeeze the shoulder blades, lower slowly." },
+    eccentricFirst: false,
+    motion: bentRow({ support: "incline" }),
+  },
+  cable_row: {
+    info: { repSeconds: 3.4, view: "side", trace: "handL", caption: "Seated with the feet on the plate, pull the handle to the waist while sitting tall, then reach forward again." },
+    eccentricFirst: false,
+    motion: cableRow(),
+  },
+  db_squat: {
+    info: { repSeconds: 4, view: "threeQuarter", caption: "A dumbbell in each hand at the sides, squat until the hips reach knee level, then stand back up." },
+    eccentricFirst: true,
+    motion: squat({ load: "dumbbells", bottomY: 0.5, pitchTop: 3, pitchBottom: 30 }),
+  },
+  leg_press: {
+    info: { repSeconds: 4, view: "side", caption: "Back flat on the pad, lower the sled until the knees come toward the chest, then press it back up without locking out." },
+    eccentricFirst: true,
+    motion: legPress(),
+  },
+  lunge: {
+    info: { repSeconds: 4.2, view: "side", caption: "Hands on the hips, step back into a lunge until both knees bend to about 90 degrees, push through the front foot to stand." },
+    eccentricFirst: true,
+    motion: split({ rear: "step", bodyweight: true }),
+  },
+  barbell_curl: {
+    info: { repSeconds: 3, view: "side", trace: "barCenter", caption: "Elbows stay at the sides; curl the bar to the shoulders, lower slowly." },
+    eccentricFirst: false,
+    motion: curl({ grip: "supinated", implement: "barbell" }),
+  },
+  push_up: {
+    info: { repSeconds: 3, view: "side", caption: "Body in a straight line from head to heels, lower the chest toward the floor, then push back up." },
+    eccentricFirst: true,
+    motion: pushUp(),
+  },
+  bench_dip: {
+    info: { repSeconds: 3.2, view: "side", caption: "Hands on the bench edge behind, bend the elbows to lower the hips, then press back up until the arms are straight." },
+    eccentricFirst: true,
+    motion: benchDip(),
+  },
+  sit_up: {
+    info: { repSeconds: 3.4, view: "side", caption: "Lying with the knees bent, curl the torso all the way up toward the knees, then lower back down under control." },
+    eccentricFirst: false,
+    motion: situp({ mode: "situp" }),
+  },
+  crunch: {
+    info: { repSeconds: 2.8, view: "side", caption: "Lying with the knees bent, curl the shoulders off the floor by tightening the abs, then lower slowly." },
+    eccentricFirst: false,
+    motion: situp({ mode: "crunch" }),
   },
 };
