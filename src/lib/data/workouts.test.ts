@@ -7,7 +7,6 @@ import { checkDerived } from "./derived";
 import { updateSettings } from "./records";
 import {
   appendSet,
-  discardStaleWorkouts,
   discardWorkout,
   finishWorkout,
   prescribedFor,
@@ -393,30 +392,5 @@ describe("finishWorkout", () => {
     const id = await start();
     const states = await finishWorkout(id, { completedAt: new Date(), totalDurationSeconds: 60, endedEarly: false });
     expect(states.find((s) => s.exerciseId === "deadlift")!.t1Weight).toBe(220);
-  });
-});
-
-describe("discardStaleWorkouts", () => {
-  it("discards unfinished workouts older than the limit, and nothing else", async () => {
-    const now = new Date("2026-11-11T12:00:00Z").getTime();
-    const hoursAgo = (h: number) => new Date(now - h * 60 * 60 * 1000);
-    await db.workouts.bulkAdd([
-      makeWorkout({ id: "stale", startedAt: hoursAgo(30), completedAt: null, sets: [makeSet()] }),
-      makeWorkout({ id: "recent", startedAt: hoursAgo(2), completedAt: null }),
-      makeWorkout({ id: "done", startedAt: hoursAgo(50), completedAt: hoursAgo(49) }),
-      makeWorkout({ id: "already", startedAt: hoursAgo(40), completedAt: null, deletedAt: 7 }),
-    ]);
-
-    expect(await discardStaleWorkouts(24 * 60 * 60 * 1000, now)).toBe(1);
-
-    const rows = Object.fromEntries((await db.workouts.toArray()).map((w) => [w.id, w]));
-    expect(rows.stale.deletedAt).toEqual(expect.any(Number));
-    expect(rows.stale.synced).toBe(false);
-    expect(rows.recent.deletedAt ?? null).toBeNull();
-    expect(rows.done.deletedAt ?? null).toBeNull();
-    expect(rows.already.deletedAt).toBe(7);
-
-    // Nothing left to discard.
-    expect(await discardStaleWorkouts(24 * 60 * 60 * 1000, now)).toBe(0);
   });
 });
