@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
-import type { PlanEdit } from "@/types";
+import type { PlanEdit, PlannedSet } from "@/types";
 import {
+  RAMP_UP_FRACTIONS,
+  addBackOffSet,
   addEdit,
   editedKeys,
+  plannedSetsOf,
+  rampUpSets,
   removeEdit,
   schemeEdit,
+  setWeightsEdit,
   swapEdit,
   weightEdit,
+  workingSetNumbers,
 } from "./editList";
 
 const NEW_ACC = { sets: 3, reps: 12, weight: 25, isAMRAP: false };
@@ -117,5 +123,105 @@ describe("editedKeys", () => {
     let edits = swapEdit([], "lat_pulldown", "T3", "face_pulls");
     edits = weightEdit(edits, "squat", "T1", 200);
     expect([...editedKeys(edits)].sort()).toEqual(["face_pulls|T3", "squat|T1"]);
+  });
+});
+
+describe("per-set weights", () => {
+  const FIVE_BY_THREE: PlannedSet[] = Array.from({ length: 5 }, () => ({ weight: 190, reps: 3 }));
+
+  it("set every set of an entry, replacing an earlier per-set edit, keeping roles other than work", () => {
+    let edits = setWeightsEdit([], "squat", "T1", FIVE_BY_THREE);
+    edits = setWeightsEdit(edits, "squat", "T1", [
+      { weight: 150, reps: 3, role: "ramp" },
+      { weight: 190, reps: 3, role: "work" },
+      { weight: -5, reps: 0, role: "backoff" },
+    ]);
+    expect(edits).toEqual([
+      {
+        kind: "setWeights",
+        exerciseId: "squat",
+        tier: "T1",
+        sets: [
+          { weight: 150, reps: 3, role: "ramp" },
+          { weight: 190, reps: 3 },
+          { weight: 0, reps: 1, role: "backoff" },
+        ],
+      },
+    ]);
+  });
+
+  it("go back to the entry's sets, reps and weight when cleared", () => {
+    let edits = schemeEdit([], "squat", "T1", 4, 3);
+    edits = setWeightsEdit(edits, "squat", "T1", FIVE_BY_THREE);
+    expect(setWeightsEdit(edits, "squat", "T1", null)).toEqual([
+      { kind: "scheme", exerciseId: "squat", tier: "T1", sets: 4, reps: 3 },
+    ]);
+  });
+
+  it("are dropped by a later scheme or weight edit, a removal or a swap of the entry", () => {
+    const perSet = setWeightsEdit([], "squat", "T1", FIVE_BY_THREE);
+    expect(schemeEdit(perSet, "squat", "T1", 5, 3)).toEqual([
+      { kind: "scheme", exerciseId: "squat", tier: "T1", sets: 5, reps: 3 },
+    ]);
+    expect(weightEdit(perSet, "squat", "T1", 185)).toEqual([
+      { kind: "weight", exerciseId: "squat", tier: "T1", weight: 185 },
+    ]);
+    expect(removeEdit(perSet, "squat", "T1")).toEqual([{ kind: "remove", exerciseId: "squat", tier: "T1" }]);
+    expect(swapEdit(perSet, "squat", "T1", "leg_press")).toEqual([
+      { kind: "swap", exerciseId: "squat", tier: "T1", replacementId: "leg_press" },
+    ]);
+    const swapped = setWeightsEdit(swapEdit([], "squat", "T1", "leg_press"), "leg_press", "T1", FIVE_BY_THREE);
+    expect(swapEdit(swapped, "leg_press", "T1", "pendulum_squat")).toEqual([
+      { kind: "swap", exerciseId: "squat", tier: "T1", replacementId: "pendulum_squat" },
+    ]);
+  });
+
+  it("count as an edit of their entry", () => {
+    expect(editedKeys(setWeightsEdit([], "squat", "T1", FIVE_BY_THREE))).toEqual(new Set(["squat|T1"]));
+  });
+});
+
+describe("per-set quick fills", () => {
+  const working: PlannedSet[] = Array.from({ length: 5 }, () => ({ weight: 190, reps: 3 }));
+
+  it("ramp up to the working weight with lighter sets first, rounded to the step", () => {
+    const ramped = rampUpSets(working, 5);
+    expect(ramped.slice(0, RAMP_UP_FRACTIONS.length)).toEqual([
+      { weight: 150, reps: 3, role: "ramp" },
+      { weight: 170, reps: 3, role: "ramp" },
+    ]);
+    expect(ramped.slice(RAMP_UP_FRACTIONS.length)).toEqual(working);
+    // Again: the ramp is replaced, not doubled.
+    expect(rampUpSets(ramped, 5)).toEqual(ramped);
+  });
+
+  it("leaves out a ramp set that would not be lighter, or would be below the lightest load", () => {
+    // 10 x 0.8 = 8 -> 10 and 10 x 0.9 = 9 -> 10: neither is lighter.
+    expect(rampUpSets([{ weight: 10, reps: 10 }], 5)).toEqual([{ weight: 10, reps: 10 }]);
+    // 50 x 0.8 = 40 is below the 45 lb bar; 50 x 0.9 = 45 is the bar.
+    expect(rampUpSets([{ weight: 50, reps: 5 }], 5, 45)).toEqual([
+      { weight: 45, reps: 5, role: "ramp" },
+      { weight: 50, reps: 5 },
+    ]);
+  });
+
+  it("add a back-off set after, lighter than the working weight", () => {
+    expect(addBackOffSet(working, 5).at(-1)).toEqual({ weight: 150, reps: 3, role: "backoff" });
+    expect(addBackOffSet(addBackOffSet(working, 5), 5)).toHaveLength(7);
+  });
+
+  it("number the working sets", () => {
+    expect(workingSetNumbers(rampUpSets(working, 5))).toEqual([3, 4, 5, 6, 7]);
+    expect(workingSetNumbers(addBackOffSet(working, 5))).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("start from the entry's own sets", () => {
+    expect(plannedSetsOf({ targetSets: 3, targetReps: 10, weight: 100 })).toEqual([
+      { weight: 100, reps: 10 },
+      { weight: 100, reps: 10 },
+      { weight: 100, reps: 10 },
+    ]);
+    const perSet = [{ weight: 80, reps: 10, role: "ramp" as const }, { weight: 100, reps: 10 }];
+    expect(plannedSetsOf({ targetSets: 2, targetReps: 10, weight: 100, perSet })).toEqual(perSet);
   });
 });
