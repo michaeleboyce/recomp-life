@@ -1,7 +1,7 @@
 // Pure derivations for the active workout screen. No React, no database.
 import { evaluateT2AutoRegulation } from "@/lib/progression";
 import { applyChange, type LogChange } from "@/lib/rebuild";
-import { workingSetsFor } from "@/lib/workout/setSelectors";
+import { entrySetsFor, workingSetsFor } from "@/lib/workout/setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
 import type {
   SetLog,
@@ -102,9 +102,12 @@ export function correctedSet(session: WorkoutSession, change: LogChange): SetLog
   return edited.sets.find((set) => set.id === change.setId) ?? null;
 }
 
-/** True when `set` is the last one logged for its exercise and tier. */
+/**
+ * True when `set` is the last one logged for its exercise and tier, whatever it was for:
+ * a set followed by a back-off or a drop is not the last one, the drop is.
+ */
 export function isLatestSetOfEntry(sets: SetLog[], set: SetLog): boolean {
-  return workingSetsFor(sets, set.exerciseId, set.tier).at(-1)?.id === set.id;
+  return entrySetsFor(sets, set.exerciseId, set.tier).at(-1)?.id === set.id;
 }
 
 /** Index of the working (non-warm-up) plan entry a set was logged against, else -1. */
@@ -129,7 +132,8 @@ export function dropSuggestionFor(
   sets: SetLog[],
   phase: TrainingPhase
 ): DropSuggestion | null {
-  if (entry.tier !== "T2" || entry.completedSets !== 1) return null;
+  // With a weight per set the lifter chose every weight already; nothing to suggest.
+  if (entry.tier !== "T2" || entry.completedSets !== 1 || entry.perSet) return null;
   const first = workingSetsFor(sets, entry.exerciseId, entry.tier)[0];
   if (!first || first.rpe == null) return null;
   const result = evaluateT2AutoRegulation(first.rpe, phase, first.weight);

@@ -21,12 +21,12 @@ import {
   createSetLog,
   isNextSetAMRAP,
   nextStep,
-  rehydratePlan,
+  type WorkoutExerciseState,
   type WorkoutPlan,
 } from "@/lib/workout";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { useWorkoutStore } from "@/stores/workoutStore";
-import type { TrainingPhase } from "@/types";
+import type { SetLog, TrainingPhase } from "@/types";
 import {
   clampReps,
   correctedSet,
@@ -40,6 +40,33 @@ import {
   resolveActiveIndex,
 } from "./activeWorkoutLogic";
 import { getPrOpportunity } from "./prOpportunity";
+import {
+  attachDrops,
+  buildDropSet,
+  dropSetWeight,
+  exerciseForLog,
+  minWeightFor,
+  nextSetView,
+  screenPlan,
+  setChipsFor,
+  weightStepFor,
+} from "./setPlan";
+
+/** The exercise a set was done with: the substitute when there was one. */
+const performedId = (set: Pick<SetLog, "exerciseId" | "substituteExerciseId">) =>
+  set.substituteExerciseId || set.exerciseId;
+
+/**
+ * Drop sets in progress (UI state; every drop logged is on the workout row): the set
+ * the drops continue, the set the next drop continues, and its weight and reps.
+ */
+interface DropState {
+  sessionId: string;
+  rootId: string;
+  parentId: string;
+  weight: number;
+  reps: number;
+}
 
 const DEFAULT_PHASE: TrainingPhase = { mode: "maintaining" };
 const E1RM_FLASH_MS = 3000;
@@ -92,6 +119,9 @@ export function useActiveWorkout(
   const [endedAtIndex, setEndedAtIndex] = useState<number | null>(null);
   const [repsChoice, setRepsChoice] = useState<{ key: string; reps: number } | null>(null);
   const [rpeChoice, setRpeChoice] = useState<{ key: string; rpe: number } | null>(null);
+  // The next set's weight changed on the spot from the set chips, for that set only.
+  const [weightChoice, setWeightChoice] = useState<{ key: string; weight: number } | null>(null);
+  const [dropState, setDropState] = useState<DropState | null>(null);
   const [e1rmFlash, setE1rmFlash] = useState<number | null>(null);
   // Id of a set that has been written but is not yet visible on the live record.
   const [awaitingSetId, setAwaitingSetId] = useState<string | null>(null);
@@ -139,9 +169,11 @@ export function useActiveWorkout(
 
   const sets = useMemo(() => session?.sets ?? [], [session]);
 
+  // Drop sets continue a set and are not sets of their entry; a per-set entry keeps its
+  // working weight (each set's own is in `perSet`).
   const plan = useMemo<WorkoutPlan>(() => {
     if (!basePlan) return [];
-    const rehydrated = rehydratePlan(basePlan, sets).plan;
+    const rehydrated = screenPlan(basePlan, sets);
     if (!storeReady || !pendingDrop) return rehydrated;
     return rehydrated.map((entry, i) =>
       i === pendingDrop.entryIndex && entry.completedSets < entry.targetSets
@@ -152,14 +184,31 @@ export function useActiveWorkout(
 
   const naturalIndex = resolveActiveIndex(plan, storeReady ? viewedEntryIndex : null);
   const activeIndex = endedAtIndex != null ? plan.length : naturalIndex;
-  const entry = plan[activeIndex];
+  const planEntry = plan[activeIndex];
   const baseEntry = basePlan?.[activeIndex];
-  const isAMRAPSet = entry ? isNextSetAMRAP(entry) : false;
+  const isAMRAPSet = planEntry ? isNextSetAMRAP(planEntry) : false;
 
-  const setKey = entry ? `${activeIndex}:${entry.completedSets}` : "";
+  const setKey = planEntry ? `${activeIndex}:${planEntry.completedSets}` : "";
+  const weightOverride = planEntry && weightChoice?.key === setKey ? weightChoice.weight : null;
+  // The entry as its next set is done: that set's own weight and reps (per-set weights,
+  // or a weight changed on the spot).
+  const entry = useMemo(
+    () => (planEntry ? nextSetView(planEntry, weightOverride) : undefined),
+    [planEntry, weightOverride]
+  );
   const selectedReps =
     entry && repsChoice?.key === setKey ? repsChoice.reps : (entry?.targetReps ?? 0);
   const selectedRPE = rpeChoice?.key === setKey ? rpeChoice.rpe : null;
+
+  const equipment = settings?.equipment;
+  const location = session?.location ?? "gym";
+  const weightStep =
+    entry && equipment ? weightStepFor(performedId(entry), location, equipment) : 5;
+  const minWeight = entry && equipment ? minWeightFor(performedId(entry), location, equipment) : 0;
+  const setChips = useMemo(
+    () => (planEntry && !planEntry.isWarmUp ? setChipsFor(planEntry, sets, weightOverride) : []),
+    [planEntry, sets, weightOverride]
+  );
 
   const dropAccepted =
     !!entry &&
@@ -195,15 +244,18 @@ export function useActiveWorkout(
   const isSaving = awaitingSetId != null && !sets.some((set) => set.id === awaitingSetId);
 
   const logSet = useCallback(async () => {
-    if (!session || !entry || !baseEntry || isSaving) return;
+    if (!session || !entry || !planEntry || !baseEntry || isSaving) return;
     if (Date.now() - lastLogAt.current < tapGuardMs) return;
     lastLogAt.current = Date.now();
     setError(null);
 
-    // An accepted drop records what the weight was dropped from.
+    // The set's own weight, reps and role come from the plan entry (per-set weights),
+    // with a weight changed on the spot on this set. An accepted drop records what the
+    // weight was dropped from.
+    const forLog = exerciseForLog(planEntry, weightOverride);
     const exercise = dropAccepted
-      ? { ...entry, originalWeight: entry.originalWeight ?? baseEntry.weight }
-      : entry;
+      ? { ...forLog, originalWeight: forLog.originalWeight ?? baseEntry.weight }
+      : forLog;
     const now = new Date();
     const set = createSetLog({
       exercise,
@@ -221,7 +273,7 @@ export function useActiveWorkout(
     // The row itself is written by appendSet; this is only the number to flash.
     const e1rm =
       !entry.substituteExerciseId && isE1RMEligibleSet(entry.tier, set.isAMRAP, selectedReps)
-        ? calculateE1RM(entry.weight, selectedReps, selectedRPE)
+        ? calculateE1RM(set.weight, selectedReps, selectedRPE)
         : null;
 
     setAwaitingSetId(set.id);
@@ -263,6 +315,8 @@ export function useActiveWorkout(
     tapGuardMs,
     session,
     entry,
+    planEntry,
+    weightOverride,
     baseEntry,
     isSaving,
     dropAccepted,
@@ -272,6 +326,145 @@ export function useActiveWorkout(
     plan,
     trainingPhase,
   ]);
+
+  /** Changes the next set's weight on the spot; null goes back to the planned weight. */
+  const setNextWeight = useCallback(
+    (weight: number | null) =>
+      setWeightChoice(weight == null ? null : { key: setKey, weight: Math.max(minWeight, weight) }),
+    [setKey, minWeight]
+  );
+
+  // --- Drop sets -------------------------------------------------------------------
+
+  // The set a drop would continue: the latest set logged, when it is not a warm-up.
+  const latestSet = sets.at(-1);
+  const dropFrom = latestSet && latestSet.tier !== "warmup" ? latestSet : null;
+  const dropStart =
+    dropFrom && equipment
+      ? dropSetWeight(dropFrom.weight, performedId(dropFrom), dropFrom.location, equipment)
+      : null;
+  /** The weight a drop after the latest set starts at; null when no lighter drop is possible. */
+  const dropPreview =
+    dropFrom && dropStart != null && dropStart < dropFrom.weight ? dropStart : null;
+
+  const activeDrop = dropState && session && dropState.sessionId === session.id ? dropState : null;
+  const dropSet = useMemo(() => {
+    if (!activeDrop || !equipment) return null;
+    const chain = attachDrops(sets).find((row) => row.set.id === activeDrop.rootId);
+    if (!chain) return null;
+    const root = chain.set;
+    const planned = plan[entryIndexForSet(plan, root)];
+    const exercise: WorkoutExerciseState = {
+      exerciseId: root.exerciseId,
+      ...(root.substituteExerciseId ? { substituteExerciseId: root.substituteExerciseId } : {}),
+      tier: root.tier,
+      targetSets: 1,
+      targetReps: activeDrop.reps,
+      weight: activeDrop.weight,
+      ...(planned?.originalWeight != null ? { originalWeight: planned.originalWeight } : {}),
+      isAMRAP: false,
+      isWarmUp: false,
+      completedSets: 0,
+    };
+    return {
+      /** The set the drops continue, and the drops logged after it so far. */
+      root,
+      drops: chain.drops,
+      weight: activeDrop.weight,
+      reps: activeDrop.reps,
+      /** The drop as an entry, for the weight display. */
+      exercise,
+      step: weightStepFor(performedId(root), root.location, equipment),
+      minWeight: minWeightFor(performedId(root), root.location, equipment),
+    };
+  }, [activeDrop, equipment, sets, plan]);
+
+  /**
+   * Goes on from the latest set at a lighter weight (`dropPreview`): the rest stops and
+   * the drop is set up, to be adjusted and logged.
+   */
+  const startDropSet = useCallback(() => {
+    if (!session || !dropFrom || dropPreview == null) return;
+    if (Date.now() - lastLogAt.current < tapGuardMs) return;
+    lastLogAt.current = Date.now();
+    useWorkoutStore.getState().skipRest();
+    setE1rmFlash(null);
+    const rootId =
+      dropFrom.role === "drop"
+        ? (attachDrops(sets).find((row) => row.drops.some((d) => d.id === dropFrom.id))?.set.id ??
+          dropFrom.id)
+        : dropFrom.id;
+    setDropState({
+      sessionId: session.id,
+      rootId,
+      parentId: dropFrom.id,
+      weight: dropPreview,
+      reps: dropFrom.actualReps > 0 ? dropFrom.actualReps : dropFrom.targetReps,
+    });
+  }, [session, dropFrom, dropPreview, tapGuardMs, sets]);
+
+  const setDropWeight = useCallback(
+    (weight: number) =>
+      setDropState((drop) =>
+        drop ? { ...drop, weight: Math.max(dropSet?.minWeight ?? 0, weight) } : drop
+      ),
+    [dropSet?.minWeight]
+  );
+  const setDropReps = useCallback(
+    (reps: number) => setDropState((drop) => (drop ? { ...drop, reps: clampReps(reps) } : drop)),
+    []
+  );
+
+  /**
+   * Logs the drop: a row with role "drop" continuing the set before it. No rest starts;
+   * the next drop is set up from this one, about as much lighter again.
+   */
+  const logDropSet = useCallback(async () => {
+    if (!session || !activeDrop || !equipment || isSaving) return;
+    if (Date.now() - lastLogAt.current < tapGuardMs) return;
+    const parent = sets.find((set) => set.id === activeDrop.parentId);
+    if (!parent) return;
+    lastLogAt.current = Date.now();
+    setError(null);
+
+    const drop = buildDropSet({
+      parent,
+      weight: activeDrop.weight,
+      actualReps: activeDrop.reps,
+      rpe: null,
+      now: new Date(),
+      id: uuidv4(),
+      clientId: uuidv4(),
+    });
+    setAwaitingSetId(drop.id);
+    try {
+      await appendSet(session.id, drop);
+    } catch (err) {
+      console.error("Failed to save drop set:", err);
+      setAwaitingSetId(null);
+      lastLogAt.current = 0;
+      setError("That drop could not be saved. Try again.");
+      return;
+    }
+    const next = dropSetWeight(drop.weight, performedId(drop), drop.location, equipment);
+    setDropState({
+      ...activeDrop,
+      parentId: drop.id,
+      weight: next,
+      reps: drop.actualReps > 0 ? drop.actualReps : activeDrop.reps,
+    });
+  }, [session, activeDrop, equipment, isSaving, tapGuardMs, sets]);
+
+  /** No more drops: the rest that follows the set starts, when anything is left to do. */
+  const endDropSets = useCallback(() => {
+    if (!activeDrop) return;
+    lastLogAt.current = Date.now();
+    const root = sets.find((set) => set.id === activeDrop.rootId);
+    setDropState(null);
+    if (root && root.tier !== "warmup" && endedAtIndex == null && nextIncompleteIndex(plan) !== -1) {
+      useWorkoutStore.getState().startRestTimer(getRestSeconds(root.tier, trainingPhase), root.tier);
+    }
+  }, [activeDrop, sets, endedAtIndex, plan, trainingPhase]);
 
   const setSelectedReps = useCallback(
     (reps: number) => setRepsChoice({ key: setKey, reps: clampReps(reps) }),
@@ -491,8 +684,28 @@ export function useActiveWorkout(
     plan,
     sets,
     activeIndex,
+    /** The entry on screen as its next set is done: that set's own weight and reps. */
     entry,
+    /** The entry on screen as planned (its working weight; each set's own in `perSet`). */
+    planEntry,
     isAMRAPSet,
+    /** Every set of the entry on screen, done and to do, for the set chips. */
+    setChips,
+    /** The next set's weight as changed on the spot; null when it is as planned. */
+    weightOverride,
+    setNextWeight,
+    /** What a weight on screen moves by (plate or dumbbell step), and its lightest value. */
+    weightStep,
+    minWeight,
+    /** The weight a drop after the latest set starts at; null when none can be done. */
+    dropPreview,
+    /** The drop sets in progress; null when none is. */
+    dropSet,
+    startDropSet,
+    setDropWeight,
+    setDropReps,
+    logDropSet,
+    endDropSets,
     selectedReps,
     setSelectedReps,
     selectedRPE,
