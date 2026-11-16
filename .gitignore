@@ -42,3 +42,8 @@ next-env.d.ts
 
 # native build
 /.native-build/
+
+# Local tooling output that can contain personal data: never commit
+.playwright-mcp/
+/*.png
+.claude/
