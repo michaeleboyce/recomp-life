@@ -149,19 +149,50 @@ describe("configure page", () => {
     expect(overridesFromSession(session)).toEqual({ deadlift: "single_leg_db_rdl" });
   });
 
-  it("started from Today's 'Start a new one', discards the open workout once the new one starts", async () => {
-    const oldId = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
-    await open(`replaces=${oldId}`);
-    expect((await db.workouts.get(oldId))!.deletedAt).toBeFalsy();
-    fireEvent.click(screen.getByRole("button", { name: "START WORKOUT" }));
-    await waitFor(() => expect(nav.replace).toHaveBeenCalled());
-    const fresh = (await db.workouts.toArray()).find((w) => w.id !== oldId)!;
-    expect(nav.replace).toHaveBeenCalledWith(`/workout/active?sessionId=${fresh.id}`);
-    await waitFor(async () => expect((await db.workouts.get(oldId))!.deletedAt).toBeTruthy());
-    expect(fresh.deletedAt).toBeFalsy();
+  describe("with a workout already open", () => {
+    const openWorkout = () =>
+      startWorkout({ templateId: "A2", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+
+    it("offers Resume it or Start a new one instead, and never shows START while it loads", async () => {
+      const oldId = await openWorkout();
+      nav.params = "";
+      render(<ConfigureWorkoutPage />);
+      // The first frame with the plan already knows about the open workout.
+      await screen.findByRole("heading", { name: "A1 · Squat day" });
+      expect(screen.queryByRole("button", { name: "START WORKOUT" })).toBeNull();
+      expect(screen.getByRole("link", { name: "Resume it" })).toHaveAttribute(
+        "href",
+        `/workout/active?sessionId=${oldId}`
+      );
+      expect(screen.getByTestId("open-workout-note")).toHaveTextContent(
+        "Bench day is still open. Starting a new one discards it once the new one has started."
+      );
+    });
+
+    it("Start a new one instead starts the new workout, then discards the open one", async () => {
+      const oldId = await openWorkout();
+      render(<ConfigureWorkoutPage />);
+      fireEvent.click(await screen.findByRole("button", { name: "Start a new one instead" }));
+      await waitFor(() => expect(nav.replace).toHaveBeenCalled());
+      const fresh = (await db.workouts.toArray()).find((w) => w.id !== oldId)!;
+      expect(nav.replace).toHaveBeenCalledWith(`/workout/active?sessionId=${fresh.id}`);
+      await waitFor(async () => expect((await db.workouts.get(oldId))!.deletedAt).toBeTruthy());
+      expect(fresh.deletedAt).toBeFalsy();
+    });
+
+    it("works the same from any way in: a favourite, Coming up's day or a stale ?replaces=", async () => {
+      const oldId = await openWorkout();
+      nav.params = "templateId=B2&location=home&replaces=nonsense";
+      render(<ConfigureWorkoutPage />);
+      expect(await screen.findByRole("link", { name: "Resume it" })).toHaveAttribute(
+        "href",
+        `/workout/active?sessionId=${oldId}`
+      );
+      expect(screen.queryByRole("button", { name: "START WORKOUT" })).toBeNull();
+    });
   });
 
-  it("never discards a finished workout named by replaces", async () => {
+  it("starts normally when nothing is open, whatever ?replaces= says", async () => {
     const oldId = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
     await db.workouts.update(oldId, { completedAt: new Date() });
     await open(`replaces=${oldId}`);

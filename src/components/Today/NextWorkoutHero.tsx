@@ -98,7 +98,7 @@ function ResumeOpen({ session }: { session: WorkoutSession }) {
       </Link>
       <p className="pt-1 text-center text-[13px] text-muted-foreground">
         <Link
-          href={`/workout/configure?replaces=${session.id}`}
+          href="/workout/configure"
           className="font-semibold text-accent-primary underline decoration-dotted underline-offset-4"
         >
           Start a new one

@@ -1,9 +1,12 @@
 "use client";
 
 import { Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useWorkout } from "@/hooks";
-import { discardWorkout } from "@/lib/data/workouts";
+import { useUnfinishedWorkout } from "@/hooks";
+import { discardIfUnfinished } from "@/lib/data/unfinished";
+import { workoutDisplayName } from "@/lib/workoutNames";
+import type { WorkoutSession } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
@@ -50,7 +53,9 @@ export default function ConfigureWorkoutPage() {
 function ConfigureWorkoutContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const replaced = useWorkout(params.get("replaces"));
+  // Every way in (Today, Coming up, quick add, a favourite, a why sheet) lands here,
+  // so this screen is the one place that knows a workout is already open.
+  const open = useUnfinishedWorkout();
   const fromUrl = useFavoriteFromUrl(params.get("favorite"), params.get("mode"));
   const setup = useWorkoutSetup(
     params.get("templateId"),
@@ -58,18 +63,26 @@ function ConfigureWorkoutContent() {
   );
   const length = useReadyLength(setup.plan, setup.trainingPhase);
 
-  // Wait for the favourite too, so the rotation's day is never flashed first.
-  if (fromUrl.status === "loading" || setup.isLoading || !setup.templateId || !setup.template) {
+  // Wait for the favourite too, so the rotation's day is never flashed first, and for
+  // the open workout, so START never shows for a moment before Resume replaces it.
+  if (
+    open === undefined ||
+    fromUrl.status === "loading" ||
+    setup.isLoading ||
+    !setup.templateId ||
+    !setup.template
+  ) {
     return <LoadingScreen />;
   }
 
   const handleStart = async () => {
+    // "Start a new one instead": the open workout goes once the new one exists, and
+    // only while it is still unfinished. A failure here never blocks the start.
+    const replacing = open;
     const sessionId = await setup.start();
     if (!sessionId) return;
-    // Today's "Start a new one": the open workout goes once the new one exists,
-    // and only while it is still unfinished. A failure here never blocks the start.
-    if (replaced && replaced.completedAt == null && replaced.id !== sessionId) {
-      await discardWorkout(replaced.id).catch((err) =>
+    if (replacing && replacing.id !== sessionId) {
+      await discardIfUnfinished(replacing.id).catch((err) =>
         console.error("Failed to discard the replaced workout:", err)
       );
     }
@@ -81,7 +94,7 @@ function ConfigureWorkoutContent() {
   const hasSubstitutes = setup.homeAdaptations.length > 0;
 
   return (
-    <PageShell className="space-y-4">
+    <PageShell className={open ? "space-y-4 pb-56" : "space-y-4"}>
       <div>
         <p className="text-sm text-muted-foreground">Ready?</p>
         <PageHeader
@@ -217,15 +230,47 @@ function ConfigureWorkoutContent() {
               {setup.error}
             </p>
           )}
-          <Button
-            className="h-14 w-full rounded-2xl text-lg font-extrabold tracking-wide"
-            onClick={handleStart}
-            disabled={setup.isStarting}
-          >
-            {setup.isStarting ? "Starting..." : "START WORKOUT"}
-          </Button>
+          {open ? (
+            <OpenWorkoutChoice session={open} onStartNew={handleStart} isStarting={setup.isStarting} />
+          ) : (
+            <Button className={START_BUTTON} onClick={handleStart} disabled={setup.isStarting}>
+              {setup.isStarting ? "Starting..." : "START WORKOUT"}
+            </Button>
+          )}
         </div>
       </div>
     </PageShell>
+  );
+}
+
+const START_BUTTON = "h-14 w-full rounded-2xl text-lg font-extrabold tracking-wide";
+
+/**
+ * A workout is already open: resuming it is the main action, so no way into this
+ * screen can leave a second one behind. Starting a new one is still possible and says
+ * what happens to the open one.
+ */
+function OpenWorkoutChoice({
+  session,
+  onStartNew,
+  isStarting,
+}: {
+  session: WorkoutSession;
+  onStartNew: () => void;
+  isStarting: boolean;
+}) {
+  return (
+    <>
+      <p data-testid="open-workout-note" className="text-center text-[13px] text-muted-foreground">
+        <span className="font-semibold text-foreground">{workoutDisplayName(session.templateId)}</span>{" "}
+        is still open. Starting a new one discards it once the new one has started.
+      </p>
+      <Button asChild className={START_BUTTON}>
+        <Link href={`/workout/active?sessionId=${session.id}`}>Resume it</Link>
+      </Button>
+      <Button variant="outline" className="h-11 w-full" onClick={onStartNew} disabled={isStarting}>
+        {isStarting ? "Starting..." : "Start a new one instead"}
+      </Button>
+    </>
   );
 }

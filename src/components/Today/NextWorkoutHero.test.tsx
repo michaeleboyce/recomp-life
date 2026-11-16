@@ -171,7 +171,7 @@ describe("NextWorkoutHero", () => {
     expect(resume).toHaveAttribute("href", "/workout/active?sessionId=open-1");
     expect(screen.queryByRole("link", { name: "Start workout" })).toBeNull();
     const fresh = screen.getByRole("link", { name: /Start a new one/ });
-    expect(fresh).toHaveAttribute("href", "/workout/configure?replaces=open-1");
+    expect(fresh).toHaveAttribute("href", "/workout/configure");
     expect(screen.getByTestId("replaces-note")).toHaveTextContent(/discarded when the new one starts/);
   });
 

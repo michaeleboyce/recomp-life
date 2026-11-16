@@ -3,13 +3,27 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/db/local";
 import { clearDb, makeSet, makeWorkout } from "./testUtils";
 import { leftWorkoutEnd } from "@/lib/unfinishedWorkout";
-import { discardEmptyStaleWorkouts, saveLeftWorkout } from "./unfinished";
+import { discardEmptyStaleWorkouts, discardIfUnfinished, saveLeftWorkout } from "./unfinished";
 
 const HOUR = 60 * 60 * 1000;
 const NOW = new Date("2026-11-15T12:00:00Z").getTime();
 const hoursAgo = (h: number) => new Date(NOW - h * HOUR);
 
 beforeEach(clearDb);
+
+describe("discardIfUnfinished", () => {
+  it("discards an open workout and leaves a finished one alone", async () => {
+    await db.workouts.bulkAdd([
+      makeWorkout({ id: "open", startedAt: hoursAgo(1), sets: [makeSet()] }),
+      makeWorkout({ id: "done", startedAt: hoursAgo(2), completedAt: hoursAgo(1), sets: [makeSet()] }),
+    ]);
+    expect(await discardIfUnfinished("open")).toBe(true);
+    expect(await discardIfUnfinished("done")).toBe(false);
+    expect(await discardIfUnfinished("missing")).toBe(false);
+    expect((await db.workouts.get("open"))!.deletedAt).toEqual(expect.any(Number));
+    expect((await db.workouts.get("done"))!.deletedAt ?? null).toBeNull();
+  });
+});
 
 describe("discardEmptyStaleWorkouts", () => {
   it("discards only stale unfinished workouts with no working set", async () => {

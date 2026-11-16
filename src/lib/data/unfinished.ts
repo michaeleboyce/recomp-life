@@ -51,3 +51,14 @@ export async function saveLeftWorkout(workoutId: string): Promise<void> {
     endedEarly: true,
   });
 }
+
+/**
+ * Discards a workout only while it is still unfinished and not deleted: the open
+ * workout a new one replaces, which may have been finished elsewhere meanwhile.
+ */
+export async function discardIfUnfinished(workoutId: string): Promise<boolean> {
+  const workout = await db.workouts.get(workoutId);
+  if (!workout || !isOpen(workout)) return false;
+  await discardWorkout(workoutId);
+  return true;
+}
