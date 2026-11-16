@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useReadinessToday, useTrainingLocation } from "@/hooks";
 import { getRule } from "@/lib/evidence";
+import { SLEEP_SHORT_HOURS } from "@/lib/health/sleep";
 import type { ReadinessScore } from "@/types";
 import { Gauge } from "@/components/chart-kit";
 import { GradeChip } from "@/components/ui/grade-chip";
@@ -75,8 +76,8 @@ export function ReadinessView({ score }: { score: ReadinessScore }) {
           <li>
             <b>Accessories:</b>{" "}
             {score.suggestSkippingAccessories
-              ? "after under 5 hours of sleep with low energy, the app suggests skipping them today, and you can still say no."
-              : "as planned. The app suggests skipping them only after under 5 hours of sleep with low energy, and you can still say no."}
+              ? `after under ${SLEEP_SHORT_HOURS} hours of sleep with low energy, the app suggests skipping them today, and you can still say no.`
+              : `as planned. The app suggests skipping them only after under ${SLEEP_SHORT_HOURS} hours of sleep with low energy, and you can still say no.`}
           </li>
         </ul>
       </section>
@@ -114,7 +115,7 @@ export function ReadinessEmpty() {
   );
 }
 
-function ReadinessSkeleton() {
+export function ReadinessSkeleton() {
   return (
     <div aria-busy="true" className="flex flex-col gap-3">
       <Skeleton className="h-24 w-full rounded-2xl" />

@@ -171,6 +171,7 @@ function ConfigureWorkoutContent() {
             onSleepChange={setup.setSleepHours}
             onStressChange={setup.setStressLevel}
             healthSleepMinutes={setup.healthSleepMinutes}
+            location={setup.location}
           />
         </SetupExpander>
 
