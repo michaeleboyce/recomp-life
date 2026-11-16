@@ -1,3 +1,4 @@
+import type { StrengthSet } from "@/lib/strength";
 import { getNextWorkoutId } from "@/lib/workoutTemplates";
 import type {
   EquipmentProfile,
@@ -13,6 +14,7 @@ import type {
 import { buildWorkoutPlan, describeNextWorkout } from "./buildPlan";
 import { computeCompletion } from "./completeWorkout";
 import { createSetLog } from "./logSet";
+import { resolveReentry } from "./reentry";
 import type { WorkoutPlan } from "./types";
 
 export interface UpcomingEntry {
@@ -56,6 +58,14 @@ export interface ProjectUpcomingInput {
   now: Date;
   /** The home exercises' states; at home each lift is planned from its own. */
   variantStates?: VariantState[];
+  /** Every logged set as strength evidence: seeds home exercises never used (H3). */
+  strengthSets?: readonly StrengthSet[];
+  /**
+   * Resolve the states for a first session back at `location` once, before the first
+   * workout (`resolveReentry`, H6), as `describeNextWorkout` does with `reentry`; the
+   * projected workouts then follow from those states.
+   */
+  reentry?: boolean;
 }
 
 export interface SimulateCompletedWorkoutInput {
@@ -172,22 +182,50 @@ export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWo
   if (count <= 0) return [];
 
   const settings: UserSettings = { ...input.settings, equipment };
-  const planOptions = { location, equipment, includeWarmUps, selectedAccessories: [] };
+  const planOptions = {
+    location,
+    equipment,
+    includeWarmUps,
+    selectedAccessories: [],
+    ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
+  };
+  // Re-entry is worked out once, for every lift, from the real states: the simulated
+  // sessions after it carry its weights on, and their made-up dates must not trigger it
+  // again.
+  const resolved = input.reentry
+    ? resolveReentry({
+        liftStates: input.liftStates,
+        variantStates: input.variantStates ?? [],
+        location,
+        equipment,
+        ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
+      })
+    : null;
   const first = describeNextWorkout({
     completedWorkouts,
     templates,
-    liftStates: input.liftStates,
-    plan: { ...planOptions, variantStates: input.variantStates },
+    liftStates: resolved?.liftStates ?? input.liftStates,
+    plan: {
+      ...planOptions,
+      variantStates: resolved?.variantStates ?? input.variantStates,
+      ...(resolved ? { reentries: resolved.reentries } : {}),
+    },
   });
 
   const advanced = new Set<string>();
   const result: UpcomingWorkout[] = [
-    { ...first, entries: toEntries(first.plan, advanced), projected: false },
+    {
+      templateId: first.templateId,
+      template: first.template,
+      plan: first.plan,
+      entries: toEntries(first.plan, advanced),
+      projected: false,
+    },
   ];
 
-  let previous = first;
-  let liftStates = input.liftStates;
-  let variantStates = input.variantStates ?? [];
+  let previous = { templateId: first.templateId, template: first.template, plan: first.plan };
+  let liftStates = first.liftStates ?? input.liftStates;
+  let variantStates = first.variantStates ?? input.variantStates ?? [];
   while (result.length < count) {
     ({ liftStates, variantStates } = simulateCompletedWorkoutStates({
       template: previous.template,

@@ -17,7 +17,8 @@ vi.mock("@/lib/rebuild", async (importOriginal) => ({
 vi.mock("@/lib/data/derived", () => ({ loadRebuildInput, checkDerived, applyRebuild }));
 vi.mock("@/lib/data/logEdits", () => ({ listDeleted }));
 
-import { useDerivedCheck, useLogChangePreview, useRecentlyDeleted } from "./useLogEdit";
+import { countDifferences, useDerivedCheck, useLogChangePreview, useRecentlyDeleted } from "./useLogEdit";
+import type { VariantState } from "@/types";
 
 const INPUT = { workouts: [], adjustments: [], settings: {} } as unknown as RebuildInput;
 const PREVIEW: ChangePreview = { nextWorkout: [], prChanges: [], e1rmChanges: 1, unaffected: false };
@@ -82,6 +83,12 @@ describe("useDerivedCheck", () => {
     expect(result.current).toMatchObject({ status: "inconsistent", differences: 1 });
     await act(() => result.current.rebuild());
     expect(result.current).toMatchObject({ status: "rebuilt", differences: 1 });
+  });
+
+  it("counts the home exercises' rows that differ too", () => {
+    const variant = { id: "squat|bulgarian_split_squat|T1" } as VariantState;
+    expect(countDifferences(DIFF)).toBe(1);
+    expect(countDifferences({ ...DIFF, variantStatesToPut: [variant], variantStateIdsToDelete: ["a", "b"] })).toBe(4);
   });
 
   it("reports consistency and errors", async () => {

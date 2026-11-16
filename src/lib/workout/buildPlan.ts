@@ -10,6 +10,7 @@ import type {
 import { foldRotation, type RotationSession } from "./credit";
 import { applyPlanEdits } from "./planEdits";
 import { getPrescription } from "./prescription";
+import { markReentries, resolveReentry } from "./reentry";
 import type {
   BuildPlanInput,
   NextWorkoutDescription,
@@ -39,7 +40,8 @@ export const WARM_UP_TIERS: readonly Tier[] = ["T1"];
  * is never adapted for home.
  */
 export function buildWorkoutPlan(input: BuildPlanInput): WorkoutPlan {
-  const { template, liftStates, location, equipment, includeWarmUps, selectedAccessories } = input;
+  const { template, liftStates, location, equipment, includeWarmUps, selectedAccessories, strengthSets } =
+    input;
   const overrides = input.overrides ?? {};
   const variantStates = input.variantStates ?? [];
 
@@ -56,13 +58,13 @@ export function buildWorkoutPlan(input: BuildPlanInput): WorkoutPlan {
     let targetSets = prescription.sets;
     let targetReps = prescription.reps;
     let originalWeight: number | undefined;
-    let home: Pick<WorkoutExerciseState, "variantId" | "perHand" | "cappedFrom"> = {};
+    let home: Pick<WorkoutExerciseState, "variantId" | "perHand" | "cappedFrom" | "seed"> = {};
 
     if (location === "home" && isVariantTier(templateEx.tier)) {
       // The lift's home exercise with its own weight and scheme. The exercise is picked
       // with the same conversion and override rule as the Configure screen; a variant
-      // never used is seeded from that conversion, so with no home history this is
-      // exactly what Configure previews.
+      // never used is seeded (H3) from the lift's strength estimate through the
+      // exercise's starting ratio, or from that ratio and the barbell weight.
       const choice = chooseHomeVariant({
         liftId: templateEx.exerciseId,
         tier: templateEx.tier,
@@ -70,6 +72,7 @@ export function buildWorkoutPlan(input: BuildPlanInput): WorkoutPlan {
         variantStates,
         equipment,
         overrideId: overrides[templateEx.exerciseId],
+        ...(strengthSets ? { strengthSets } : {}),
       });
       // Null for "no_substitute" and for exercises that already work at home: nothing
       // is substituted.
@@ -84,6 +87,7 @@ export function buildWorkoutPlan(input: BuildPlanInput): WorkoutPlan {
           variantId: choice.state.id,
           perHand: choice.state.perHand,
           ...(choice.cappedFrom != null ? { cappedFrom: choice.cappedFrom } : {}),
+          ...(choice.seeded ? { seed: choice.state.seed } : {}),
         };
       }
     }
@@ -134,7 +138,8 @@ export function buildWorkoutPlan(input: BuildPlanInput): WorkoutPlan {
     });
   }
 
-  return input.edits?.length ? applyPlanEdits(plan, input.edits) : plan;
+  const marked = markReentries(plan, input.reentries);
+  return input.edits?.length ? applyPlanEdits(marked, input.edits) : marked;
 }
 
 // `WorkoutModification` has no field for the substitute's id, so it travels in the
@@ -186,6 +191,10 @@ export function overridesFromSession(
  * and neither do sessions `foldRotation` finds did not count (a day pulled out of
  * order, or one whose T1 lift was not done as prescribed).
  *
+ * With `reentry`, the states are first resolved for the first session back at a
+ * location (`resolveReentry`, H6) and the entries it decided are marked; the returned
+ * `liftStates` and `variantStates` are the ones the plan was built from.
+ *
  * @evidence off-program-credit
  */
 export function describeNextWorkout(input: {
@@ -193,8 +202,9 @@ export function describeNextWorkout(input: {
   templates: Record<string, WorkoutTemplate>;
   liftStates: LiftState[];
   plan: Omit<BuildPlanInput, "template" | "liftStates">;
+  reentry?: boolean;
 }): NextWorkoutDescription {
-  const { completedWorkouts, templates, liftStates, plan } = input;
+  const { completedWorkouts, templates, plan } = input;
 
   const templateId = foldRotation(completedWorkouts).dueTemplateId;
   const template = templates[templateId];
@@ -202,9 +212,27 @@ export function describeNextWorkout(input: {
     throw new Error(`Workout template not found: ${templateId}`);
   }
 
+  let liftStates = input.liftStates;
+  let variantStates = plan.variantStates ?? [];
+  let reentries = plan.reentries;
+  if (input.reentry) {
+    const resolved = resolveReentry({
+      liftStates,
+      variantStates,
+      location: plan.location,
+      equipment: plan.equipment,
+      template,
+      ...(plan.strengthSets ? { strengthSets: plan.strengthSets } : {}),
+      ...(plan.overrides ? { overrides: plan.overrides } : {}),
+    });
+    ({ liftStates, variantStates, reentries } = resolved);
+  }
+
   return {
     templateId,
     template,
-    plan: buildWorkoutPlan({ ...plan, template, liftStates }),
+    plan: buildWorkoutPlan({ ...plan, template, liftStates, variantStates, reentries }),
+    liftStates,
+    variantStates,
   };
 }

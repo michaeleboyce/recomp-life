@@ -1,8 +1,10 @@
 import type {
+  LiftState,
   RecoveryStatus,
   RecoveryState,
   TrainingPhase,
   RunLog,
+  VariantState,
 } from "@/types";
 
 /**
@@ -14,6 +16,27 @@ export function getMostRecent(a: Date | null, b: Date | null): Date | null {
   if (a === null) return b;
   if (b === null) return a;
   return a.getTime() >= b.getTime() ? a : b;
+}
+
+/**
+ * When a lift was last trained at T1 and at T2: the later of the barbell lift's own date
+ * and the last session of any home exercise standing in for it at that tier. A lift
+ * trained at home has been trained.
+ */
+export function lastTrainedDates(
+  liftState: Pick<LiftState, "exerciseId" | "t1LastWorkoutDate" | "t2LastWorkoutDate">,
+  variantStates: readonly Pick<VariantState, "liftId" | "tier" | "lastSessionDate">[] = []
+): { t1: Date | null; t2: Date | null } {
+  const asDate = (d: Date | string | null | undefined) => (d == null ? null : new Date(d));
+  let t1 = asDate(liftState.t1LastWorkoutDate);
+  let t2 = asDate(liftState.t2LastWorkoutDate);
+  for (const variant of variantStates) {
+    if (variant.liftId !== liftState.exerciseId) continue;
+    const date = asDate(variant.lastSessionDate);
+    if (variant.tier === "T1") t1 = getMostRecent(t1, date);
+    else if (variant.tier === "T2") t2 = getMostRecent(t2, date);
+  }
+  return { t1, t2 };
 }
 
 /**

@@ -1,4 +1,5 @@
 // Shared types for the pure workout domain (src/lib/workout). No React, no database.
+import type { ReentryRule, StrengthSet } from "@/lib/strength";
 import type {
   EquipmentProfile,
   LiftState,
@@ -7,6 +8,7 @@ import type {
   SetLog,
   Tier,
   UserSettings,
+  VariantSeed,
   VariantState,
   WorkoutLocation,
   WorkoutSession,
@@ -40,6 +42,45 @@ export interface WorkoutExerciseState {
    * dumbbell (a borderline or over-the-limit conversion, or a lower limit set since).
    */
   cappedFrom?: number;
+  /**
+   * At home, for an exercise never done for this lift and tier: how its first weight was
+   * chosen (`seedVariantWeight`, H3). Absent when the variant has a weight of its own.
+   */
+  seed?: VariantSeed;
+  /**
+   * The first session at a location after a stretch at the other (H6): which re-entry
+   * rule decided `weight`, as `resolveReentry` worked it out. Absent otherwise.
+   */
+  reentry?: PlanReentry;
+}
+
+/**
+ * Which re-entry rule decided a weight (spec decision 3), with both bounds. The fields
+ * match the "why" trace's `ReentryTrace`.
+ */
+export interface PlanReentry {
+  /** "steps", "estimate" or "cap" (`ReentryResult.rule`). */
+  rule: ReentryRule;
+  /** The weight the rule gave: barbell terms at the gym, as lifted at home. */
+  weight: number;
+  /** The last weight plus the steps earned, rounded to the equipment; null with no last weight. */
+  fromSteps: number | null;
+  /** The heaviest weight the estimate allows for `targetReps`, rounded; null with no estimate. */
+  fromEstimate: number | null;
+  /** Steps the other location's passes earned since. */
+  stepsEarned: number;
+  /** Reps per set of the stage the estimate rule was worked for. */
+  targetReps: number;
+  /** "gym": the barbell lift back at the gym; "home": the home exercise back at home. */
+  location: WorkoutLocation;
+  /** The weight before re-entry: the last barbell weight, or the home exercise's own. */
+  lastWeight: number | null;
+  /** The program lift's pooled strength estimate used; null with none. */
+  estimate: number | null;
+  /** At home: the exercise's ratio to the lift that was used; null with none. */
+  ratio?: number | null;
+  /** At home: the home exercise the weight is for. */
+  exerciseId?: string;
 }
 
 export type WorkoutPlan = WorkoutExerciseState[];
@@ -76,6 +117,18 @@ export interface BuildPlanInput {
    * this out plans exactly what the conversion gives. Ignored at the gym.
    */
   variantStates?: VariantState[];
+  /**
+   * Every logged set as strength evidence (`strengthSetsOf`). At home, a variant never
+   * used is seeded from the program lift's pooled estimate through them (H3); left out,
+   * from its starting ratio times the barbell weight.
+   */
+  strengthSets?: readonly StrengthSet[];
+  /**
+   * The re-entry decisions `resolveReentry` made for the states given here, by
+   * `reentryKey(liftId, tier)`: each matching entry carries its `reentry`. The states
+   * must already be the resolved ones.
+   */
+  reentries?: ReadonlyMap<string, PlanReentry>;
 }
 
 export interface RehydratedPlan {
@@ -119,6 +172,12 @@ export interface CompletionInput {
    * states; a variant performed for the first time is seeded as the plan seeded it.
    */
   variantStates?: VariantState[];
+  /**
+   * The strength sets of the workouts finished before this one, as the plan had them:
+   * a variant seeded here (first done with no stored home prescription, or the harder
+   * variant the cap policy moves to) is seeded from them as the plan would (H3).
+   */
+  strengthSets?: readonly StrengthSet[];
 }
 
 export interface CompletionResult {
@@ -143,4 +202,11 @@ export interface NextWorkoutDescription {
   templateId: string;
   template: WorkoutTemplate;
   plan: WorkoutPlan;
+  /**
+   * The lift states the plan was built from (after re-entry, when it was asked for).
+   * `describeNextWorkout` always sets it.
+   */
+  liftStates?: LiftState[];
+  /** The home exercises' states the plan was built from. `describeNextWorkout` always sets it. */
+  variantStates?: VariantState[];
 }

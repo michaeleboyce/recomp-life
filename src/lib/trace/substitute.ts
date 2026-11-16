@@ -2,8 +2,9 @@
 // `adaptExerciseForHome`, called exactly as `buildWorkoutPlan` calls it; this file
 // only reads which of its options the plan took.
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
-import { DUMBBELL_LOAD_FACTOR, barbellToBothHands, barbellToDumbbell } from "@/lib/dbConversion";
+import { DUMBBELL_LOAD_FACTOR, barbellToBothHands, barbellToDumbbell, roundToStep } from "@/lib/dbConversion";
 import { EXERCISES } from "@/lib/exercises";
+import { asLifted, impliedWeightForReps, roundDownToDumbbell } from "@/lib/strength";
 import { CREDIT_TIERS, classifyEntry } from "@/lib/workout/credit";
 import type {
   DecisionTrace,
@@ -11,16 +12,21 @@ import type {
   PrescribedEntry,
   TraceAlternative,
   TraceStep,
+  VariantSeed,
 } from "@/types";
 import { applySteps } from "./replay";
 import { num, step } from "./text";
 import type { PlanEntry, TraceContext } from "./types";
 
 const CONVERSION_RULE = "dumbbell-conversion";
+/** Rule for a first home weight seeded from the exercise's starting ratio (H3). */
+const TRANSFER_RATIO_RULE = "transfer-ratio";
+/** Rule for a home exercise that keeps a weight of its own (H1). */
+const HOME_PROGRESSION_RULE = "home-progression";
 /** Rule for a lift done differently from its prescription. */
 export const YOUR_CHANGE_RULE = "off-program-credit";
 
-type HomeContext = Pick<TraceContext, "location" | "equipment">;
+type HomeContext = Pick<TraceContext, "location" | "equipment"> & Partial<Pick<TraceContext, "home">>;
 type Prescribed = readonly PrescribedEntry[] | undefined;
 
 /** The adaptation for a gym-only lift at home, or null when nothing is adapted. */
@@ -77,7 +83,8 @@ export function dumbbellLimitText(limit: { needed: number; heaviest: number } | 
  * at home.
  */
 export function homeSteps(
-  entry: Pick<PlanEntry, "exerciseId" | "substituteExerciseId">,
+  entry: Pick<PlanEntry, "exerciseId" | "substituteExerciseId"> &
+    Partial<Pick<PlanEntry, "seed" | "variantId" | "weight" | "reentry">>,
   barbellWeight: number,
   context: HomeContext
 ): TraceStep[] {
@@ -105,6 +112,17 @@ export function homeSteps(
   ].find((option) => option.exercise.id === entry.substituteExerciseId);
   // A substitute the conversion does not offer was chosen some other way.
   if (!chosen) return [];
+
+  // A first session of this exercise seeded from its starting ratio (H3).
+  const seed = entry.seed;
+  if (seed && (seed.source === "ratio" || seed.source === "estimate") && seed.ratio != null) {
+    return [seedStep(entry, chosen.exercise, adaptation, seed, context)];
+  }
+  // An exercise done here before keeps a weight of its own (H1), not a conversion.
+  if (entry.variantId && !seed) {
+    const own = ownWeightOf(entry, context);
+    if (own != null) return [ownWeightStep(entry, chosen.exercise, adaptation, own, context)];
+  }
 
   const oneDumbbell = chosen.exercise.grip === "both_hands";
   const converted = oneDumbbell
@@ -145,6 +163,107 @@ export function homeSteps(
       CONVERSION_RULE
     ),
   ];
+}
+
+/**
+ * The weight a seed gave (`seedVariantWeight`), from what the seed records: the ratio
+ * times the barbell weight, rounded to the dumbbell step; or what the estimate allows
+ * for the stage's reps through the ratio, rounded down; capped at the heaviest dumbbell.
+ */
+function seededWeight(seed: VariantSeed, exerciseId: string, context: HomeContext): number {
+  const step = context.equipment.dumbbellIncrementLbs;
+  const max = context.equipment.maxDumbbellWeight;
+  const ratio = seed.ratio ?? 0;
+  const wanted =
+    seed.source === "estimate" && seed.estimate != null
+      ? roundDownToDumbbell(asLifted(impliedWeightForReps(seed.estimate * ratio, seed.targetReps ?? 1), exerciseId), step)
+      : ratio * seed.barbellWeight > 0
+        ? roundToStep(asLifted(ratio * seed.barbellWeight, exerciseId), step)
+        : 0;
+  return Math.min(wanted, max);
+}
+
+/** "At home with dumbbells" for an exercise seeded from its starting ratio (H3). */
+function seedStep(
+  entry: Pick<PlanEntry, "exerciseId" | "substituteExerciseId">,
+  exercise: { id: string; name: string; grip?: string },
+  adaptation: ExerciseAdaptation,
+  seed: VariantSeed,
+  context: HomeContext
+): TraceStep {
+  const weight = seededWeight(seed, exercise.id, context);
+  const ratio = seed.ratio ?? 0;
+  const perHand = exercise.grip === "per_hand";
+  const each = perHand ? " per hand" : "";
+  const lift = (EXERCISES[entry.exerciseId]?.name ?? entry.exerciseId).replace(/^barbell /i, "").toLowerCase();
+  const usual = adaptation.originalExercise.dumbbellAlternative
+    ? EXERCISES[adaptation.originalExercise.dumbbellAlternative]
+    : undefined;
+  const lead =
+    usual && usual.id !== exercise.id
+      ? `${usual.name} would need more than your heaviest dumbbell, so ${exercise.name} stands in`
+      : exercise.name;
+  const increment = context.equipment.dumbbellIncrementLbs;
+  const atLimit = dumbbellLimitAtHome(entry, increment, context, weight);
+  const capped =
+    seed.cappedFrom != null
+      ? ` Your heaviest dumbbell is ${num(context.equipment.maxDumbbellWeight)}, so it stops there${atLimit ? " and nothing heavier is offered" : ""}.`
+      : "";
+  const limit = capped ? "" : dumbbellLimitText(atLimit, weight);
+  const asked = seed.cappedFrom ?? weight;
+  const share = perHand ? " in all, split between two hands" : " in one dumbbell";
+  const r = ratio.toFixed(2);
+  const detail =
+    seed.source === "estimate" && seed.estimate != null
+      ? `${lead}: a first time here, so it starts from your ${lift} strength estimate, ${num(seed.estimate)}, at ${r} of it: the heaviest weight for ${seed.targetReps ?? 1} reps, rounded down to ${num(increment)}, is ${num(asked)}${each}.${capped}${limit}`
+      : `${lead}: a first time here, so it starts at ${r} of your ${lift}: ${r} × ${num(seed.barbellWeight)} is ${num(Math.round((ratio * seed.barbellWeight + 1e-9) * 10) / 10)}${share}, rounded to ${num(increment)}, is ${num(asked)}${each}.${capped}${limit}`;
+  return step("dumbbell", "At home with dumbbells", detail, "set", "lb", weight, TRANSFER_RATIO_RULE);
+}
+
+/**
+ * The program's weight for a home exercise with a weight of its own: the re-entry
+ * weight when re-entry decided it, else the exercise's own (from the home exercises'
+ * states in the context, capped at the heaviest dumbbell), else the planned weight.
+ */
+function ownWeightOf(
+  entry: Partial<Pick<PlanEntry, "variantId" | "weight" | "reentry">>,
+  context: HomeContext
+): number | null {
+  if (entry.reentry?.location === "home") return entry.reentry.weight;
+  const variant = context.home?.variantStates?.find((v) => v.id === entry.variantId);
+  if (variant) return Math.min(variant.weight, context.equipment.maxDumbbellWeight);
+  return entry.weight ?? null;
+}
+
+/** "At home with dumbbells" for a home exercise done here before: its own weight. */
+function ownWeightStep(
+  entry: Pick<PlanEntry, "exerciseId" | "substituteExerciseId">,
+  exercise: { id: string; name: string; grip?: string },
+  adaptation: ExerciseAdaptation,
+  weight: number,
+  context: HomeContext
+): TraceStep {
+  const each = exercise.grip === "per_hand" ? " per hand" : "";
+  const usual = adaptation.originalExercise.dumbbellAlternative
+    ? EXERCISES[adaptation.originalExercise.dumbbellAlternative]
+    : undefined;
+  const lead =
+    usual && usual.id !== exercise.id
+      ? `${usual.name} would need more than your heaviest dumbbell, so ${exercise.name} stands in`
+      : exercise.name;
+  const limit = dumbbellLimitText(
+    dumbbellLimitAtHome(entry, context.equipment.dumbbellIncrementLbs, context, weight),
+    weight
+  );
+  return step(
+    "dumbbell",
+    "At home with dumbbells",
+    `${lead}: it has a weight of its own from your sessions at home, ${num(weight)}${each}.${limit}`,
+    "set",
+    "lb",
+    weight,
+    HOME_PROGRESSION_RULE
+  );
 }
 
 /** What the session's prescription says for a planned entry, when it names it. */

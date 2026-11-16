@@ -286,9 +286,13 @@ describe("a home substitute", () => {
     expect(started.lastStep("bench", "T2").detail).toMatch(
       /^You set 50 for today, heavier than the program asks for\. If every set is done that heavy, progression carries on from what you lift\./
     );
-    const { outcome } = finish(started);
-    expect(outcome("bench", "T2")).toMatchObject({ kind: "passed", reason: "heavier" });
-    expect(outcome("bench", "T2")!.to.weight).toBeGreaterThan(entry.originalWeight!);
+    // 2026-11-15 (H1): at home the home exercise passes from the heavier weight; the
+    // barbell lift it stands in for is held (it moves at re-entry).
+    const { outcome, result } = finish(started);
+    expect(outcome("bench", "T2")).toMatchObject({ kind: "held" });
+    const home = result.variantOutcomes.find((o) => o.liftId === "bench" && o.tier === "T2");
+    expect(home).toMatchObject({ exerciseId: "db_bench", kind: "passed", reason: "heavier" });
+    expect(home!.to.weight).toBeGreaterThan(50);
   });
 });
 

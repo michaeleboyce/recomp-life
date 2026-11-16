@@ -8,6 +8,8 @@ import { computeCompletion } from "@/lib/workout/completeWorkout";
 import { createSetLog } from "@/lib/workout/logSet";
 import { prescribedFor as planPrescribedFor } from "@/lib/workout/planEdits";
 import { getPrescription } from "@/lib/workout/prescription";
+import { planWorkoutStart } from "@/lib/workout/startPlan";
+import { strengthSetsOf } from "@/lib/workout/strength";
 import { SETTINGS, makeSession, seedLiftStates } from "@/lib/workout/testFixtures";
 import { WORKOUT_ROTATION, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
@@ -56,6 +58,13 @@ export interface SessionOptions {
   t3?: TierOutcome;
   /** At home: store the home exercises' prescription (default true, as the live app). */
   storeHome?: boolean;
+  /**
+   * Plan as the Ready screen does now (`planWorkoutStart`): the first session back at a
+   * location takes its re-entry weight (H6). Default false: the plan and prescription
+   * come straight from the running states. Either way a home exercise never done is
+   * seeded from the strength sets of the workouts so far (H3).
+   */
+  live?: boolean;
 }
 
 export interface Sim {
@@ -125,6 +134,16 @@ export function adjust(
   at: Date
 ): LiftAdjustment {
   sim.states = sim.states.map((ls) => (ls.exerciseId === exerciseId ? { ...ls, ...set } : ls));
+  // As the rebuild applies it: a barbell weight set by hand replaces the steps the home
+  // passes earned at that tier.
+  const tiers = [
+    ...(set.t1Weight !== undefined ? ["T1"] : []),
+    ...(set.t2Weight !== undefined ? ["T2"] : []),
+    ...(set.t3Weight !== undefined ? ["T3"] : []),
+  ];
+  sim.variants = sim.variants.map((v) =>
+    v.liftId === exerciseId && tiers.includes(v.tier) && v.passesSinceGym > 0 ? { ...v, passesSinceGym: 0 } : v
+  );
   sim.ids += 1;
   const adjustment = makeAdjustment(exerciseId, set, at, {
     id: `adj-${sim.ids}`,
@@ -171,21 +190,14 @@ export function runSession(sim: Sim, options: SessionOptions = {}): WorkoutSessi
 
   // At home the stored prescription also records each lift's home exercise, as the
   // live app does when it plans from the variant states.
+  // Home exercises never done are seeded from the sets of the workouts so far, as the
+  // live app and the rebuild seed them (H3).
+  const strengthSets = strengthSetsOf(sim.workouts);
   const home =
     location === "home" && options.storeHome !== false
-      ? { variantStates: sim.variants, equipment: settings.equipment }
+      ? { variantStates: sim.variants, equipment: settings.equipment, strengthSets }
       : undefined;
-  const session = makeSession({
-    id: `w${index + 1}`,
-    clientId: `w${index + 1}`,
-    templateId,
-    location,
-    startedAt,
-    prescribed: home
-      ? planPrescribedFor(template, sim.states, home)
-      : prescribedFor(templateId, sim.states),
-  });
-  const plan = buildWorkoutPlan({
+  const planInput = {
     template,
     liftStates: sim.states,
     location,
@@ -193,7 +205,27 @@ export function runSession(sim: Sim, options: SessionOptions = {}): WorkoutSessi
     includeWarmUps: false,
     selectedAccessories: [],
     variantStates: sim.variants,
+    strengthSets,
+  };
+  // Live: the states the plan is built from are the re-entered ones, which is what the
+  // rebuild gets by anchoring the stored prescription.
+  const live = options.live ? planWorkoutStart(planInput) : null;
+  const session = makeSession({
+    id: `w${index + 1}`,
+    clientId: `w${index + 1}`,
+    templateId,
+    location,
+    startedAt,
+    prescribed: live
+      ? live.prescribed
+      : home
+        ? planPrescribedFor(template, sim.states, home)
+        : prescribedFor(templateId, sim.states),
   });
+  const plan = live ? live.plan : buildWorkoutPlan(planInput);
+  const goingIn = live
+    ? { liftStates: live.liftStates, variantStates: live.variantStates }
+    : { liftStates: sim.states, variantStates: sim.variants };
 
   const sets: SetLog[] = [];
   let clock = startedAt.getTime();
@@ -263,18 +295,19 @@ export function runSession(sim: Sim, options: SessionOptions = {}): WorkoutSessi
     session,
     plan,
     sets,
-    liftStates: sim.states,
+    liftStates: goingIn.liftStates,
     settings,
     recentE1RMsByExercise,
     currentExerciseIndex: plan.length,
     workoutStartTime: startedAt,
     now: new Date(clock + 5 * MINUTE),
-    variantStates: sim.variants,
+    variantStates: goingIn.variantStates,
+    strengthSets,
   });
 
   const updated = new Map(result.liftStateUpdates.map((ls) => [ls.exerciseId, ls]));
-  sim.states = sim.states.map((ls) => updated.get(ls.exerciseId) ?? ls);
-  const variants = new Map(sim.variants.map((v) => [v.id, v]));
+  sim.states = goingIn.liftStates.map((ls) => updated.get(ls.exerciseId) ?? ls);
+  const variants = new Map(goingIn.variantStates.map((v) => [v.id, v]));
   for (const v of result.variantStateUpdates) variants.set(v.id, v);
   sim.variants = [...variants.values()];
 

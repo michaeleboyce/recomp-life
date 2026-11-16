@@ -3,14 +3,19 @@ import {
   DEMO_DROP_SET,
   DEMO_HOME_BLOCK,
   DEMO_LIFTER,
+  demoBarbellEquivalent,
   demoRepsInHand,
   generateDemoData,
 } from "./generateDemoData";
 import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES } from "@/db/seed";
+import { roundToStep } from "@/lib/dbConversion";
 import { E1RM_MAX_REPS, toRecentE1RMSeries } from "@/lib/e1rm";
 import { rebuildDerived } from "@/lib/rebuild";
 import { runSession, sortedVariants, startSim, type SessionOptions } from "@/lib/rebuild/testHelpers";
+import { barbellReentryWeight, pooledLiftEstimate } from "@/lib/strength";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
+import { strengthSetsOf } from "@/lib/workout/strength";
+import { homeStepsEarned } from "@/lib/workout/variant";
 import { WORKOUT_ROTATION } from "@/lib/workoutTemplates";
 
 const settings = DEFAULT_USER_PROFILE.settings;
@@ -99,15 +104,20 @@ describe("generateDemoData", () => {
   });
 
   describe("the lifter's last sets follow from one strength level per lift", () => {
-    /** Per T1 lift, oldest first: the bar weight the program asked for, the reps, the strength they imply. */
-    type LastSet = { bar: number; reps: number; strength: number; weeks: number };
+    /**
+     * Per T1 lift, oldest first: the barbell weight the program asked for, the barbell
+     * weight the set was as hard as (at home the dumbbells through the exercise's
+     * starting ratio, `demoBarbellEquivalent`), the reps, the strength they imply.
+     */
+    type LastSet = { program: number; bar: number; reps: number; strength: number; weeks: number };
     const lastSets = new Map<string, LastSet[]>();
     const firstStart = data.workouts[0].startedAt.getTime();
     for (const w of data.workouts) {
       const last = w.sets.find((s) => s.tier === "T1" && s.isAMRAP)!;
-      const bar = last.originalWeight ?? last.weight;
+      const bar = demoBarbellEquivalent(last);
       const list = lastSets.get(last.exerciseId) ?? [];
       list.push({
+        program: last.originalWeight ?? last.weight,
         bar,
         reps: last.actualReps,
         strength: bar * (1 + last.actualReps / 30),
@@ -119,7 +129,7 @@ describe("generateDemoData", () => {
 
     /** The reps the lifter has for a set on a day `sds` standard deviations from average. */
     const repsOnADay = (sets: LastSet[], set: LastSet, sds: number) =>
-      demoRepsInHand(sets[0].bar, set.bar, set.weeks, sds * DEMO_LIFTER.dailyVariation);
+      demoRepsInHand(sets[0].program, set.bar, set.weeks, sds * DEMO_LIFTER.dailyVariation);
 
     it("logs the reps the lifter's strength allows at the weight on the bar", () => {
       let withinOne = 0;
@@ -153,16 +163,18 @@ describe("generateDemoData", () => {
     });
 
     // 2026-11-15: a home session no longer raises the barbell weight, so the bar stays
-    // where it was through the home block and climbs again at the gym.
+    // where it was through the home block. 2026-11-16 (H6): the first gym session takes
+    // the re-entry weight, here the bar plus the steps the home passes earned, and the
+    // bar climbs from there.
     it("covers the four main lifts, six sessions each; the bar stays at home and climbs at the gym", () => {
       expect([...lastSets.keys()].sort()).toEqual(["bench", "deadlift", "ohp", "squat"]);
       for (const [id, sets] of lastSets) {
         expect(sets, id).toHaveLength(6);
-        // Two sessions at home, then four at the gym starting from the same bar.
-        expect(sets[1].bar, id).toBe(sets[0].bar);
-        expect(sets[2].bar, id).toBe(sets[0].bar);
+        // Two sessions at home, then four at the gym starting from the re-entry weight.
+        expect(sets[1].program, id).toBe(sets[0].program);
+        expect(sets[2].program, id).toBeGreaterThan(sets[1].program);
         for (let i = 3; i < sets.length; i++) {
-          expect(sets[i].bar, id).toBeGreaterThan(sets[i - 1].bar);
+          expect(sets[i].program, id).toBeGreaterThan(sets[i - 1].program);
         }
       }
     });
@@ -177,13 +189,14 @@ describe("generateDemoData", () => {
       }
     });
 
-    // 2026-11-15: the bar restarts at the gym where it was before the home block, below
-    // what the lifter can do by then, so the gym's first last sets are long (stopped at
-    // ten) and fall as the bar climbs.
+    // 2026-11-16 (H6): the bar comes back from the home block with the steps the home
+    // passes earned, near what the lifter can do by then, so the gym's first last sets
+    // are ordinary (none stopped at ten, as when the bar restarted below the lifter), and
+    // the reps fall as the bar outruns the lifter's strength.
     it("has fewer reps as the bar outruns the lifter's strength at the gym", () => {
       for (const [id, sets] of lastSets) {
         const gym = sets.slice(2);
-        expect(gym[gym.length - 1].reps, id).toBeLessThanOrEqual(gym[0].reps);
+        expect(gym[0].reps, id).toBeLessThan(E1RM_MAX_REPS);
         // A good day after a bad one can add a rep or two on a heavier bar, never three.
         for (let i = 1; i < gym.length; i++) {
           expect(gym[i].reps - gym[i - 1].reps, id + " gym session " + i).toBeLessThanOrEqual(2);
@@ -228,26 +241,52 @@ describe("generateDemoData", () => {
       expect(home.every((w) => w.prescribed!.some((p) => p.home))).toBe(true);
     });
 
-    it("takes the split squat from 75 a hand to the heaviest pair, then on by reps", () => {
+    // 2026-11-16 (H3): a first home weight is the exercise's starting ratio to the lift.
+    // The demo starts at home, so the first split squat has no estimate to go by: 0.5 x the
+    // 190 barbell squat, 47.5 a hand, rounded to 50 (it was 80% of it, 75, before).
+    it("seeds the split squat from its starting ratio and progresses it by its own passes", () => {
       const squatDays = home.filter((w) => workingSquat(w).length > 0);
       expect(squatDays.map((w) => [workingSquat(w)[0].substituteExerciseId, workingSquat(w)[0].weight, workingSquat(w)[0].targetReps])).toEqual([
-        ["bulgarian_split_squat", 75, 3],
-        ["bulgarian_split_squat", 80, 3],
+        ["bulgarian_split_squat", 50, 3],
+        ["bulgarian_split_squat", 55, 3],
       ]);
       const split = data.variantStates.find((v) => v.id === "squat|bulgarian_split_squat|T1")!;
-      expect(split).toMatchObject({ weight: 80, extraReps: 1, current: true });
-      // The barbell squat did not move at home: the first gym squat is the start weight.
-      const firstGym = data.workouts.find((w) => w.location === "gym" && workingSquat(w).length > 0)!;
-      expect(workingSquat(firstGym)[0].weight).toBe(INITIAL_LIFT_STATES.squat.t1Weight);
+      expect(split).toMatchObject({ weight: 60, extraReps: 0, current: true, seed: { source: "ratio", barbellWeight: 190, ratio: 0.5 } });
+      expect(split.weight).toBe(roundToStep((0.5 * INITIAL_LIFT_STATES.squat.t1Weight) / 2, 5) + 2 * 5);
+      // The T2 split squat comes later, after a T1 session gave an estimate: it is
+      // seeded from the estimate, and the stored seed says so.
+      const splitT2 = data.variantStates.find((v) => v.id === "squat|bulgarian_split_squat|T2")!;
+      expect(splitT2.seed).toMatchObject({ source: "estimate", ratio: 0.5, targetReps: 10 });
+      const firstT2 = home.find((w) => w.sets.some((s) => s.exerciseId === "squat" && s.tier === "T2"))!;
+      expect(firstT2.prescribed!.find((p) => p.exerciseId === "squat")!.home).toMatchObject({ exerciseId: "bulgarian_split_squat", weight: 45 });
     });
 
-    it("moves the capped dumbbell RDL to the harder single-leg version", () => {
+    it("the first gym session after the block takes the re-entry weight (H6)", () => {
+      const firstGym = data.workouts.find((w) => w.location === "gym" && workingSquat(w).length > 0)!;
+      const before = data.workouts.slice(0, data.workouts.indexOf(firstGym));
+      const states = rebuildDerived({ workouts: before, adjustments: data.liftAdjustments, settings });
+      const squat = states.liftStates.find((s) => s.exerciseId === "squat")!;
+      const expected = barbellReentryWeight({
+        lastWeight: squat.t1Weight,
+        stepsEarned: homeStepsEarned(states.variantStates, "squat", "T1"),
+        stepLbs: settings.equipment.gymBarbellIncrementLbs * 2,
+        estimate: pooledLiftEstimate("squat", strengthSetsOf(before))!.value,
+        targetReps: 3,
+        equipment: settings.equipment,
+      })!;
+      // 190 plus the two steps the split squat's passes earned; the estimate allowed more.
+      expect(expected).toMatchObject({ weight: 210, rule: "steps", fromSteps: 210 });
+      expect(workingSquat(firstGym)[0].weight).toBe(expected.weight);
+      expect(firstGym.prescribed!.find((p) => p.exerciseId === "squat")!.weight).toBe(210);
+    });
+
+    it("progresses the dumbbell RDL by its own passes from its ratio (0.6 x 220, 65 a hand)", () => {
       const deadliftT1 = home
         .map((w) => w.sets.find((s) => s.exerciseId === "deadlift" && s.tier === "T1"))
         .filter((s) => s != null);
       expect(deadliftT1.map((s) => [s!.substituteExerciseId, s!.weight])).toEqual([
-        ["db_rdl", 80],
-        ["single_leg_db_rdl", 80],
+        ["db_rdl", 65],
+        ["db_rdl", 70],
       ]);
     });
 
@@ -297,6 +336,8 @@ describe("generateDemoData", () => {
         templateId: w.templateId,
         location: w.location,
         startedAt: w.startedAt,
+        // Planned as the Ready screen plans, re-entry included, as the demo is.
+        live: true,
         t1: { lastReps: t1AmrapReps(t1[0].exerciseId), rpe: null },
         t2: { reps: w.sets.filter((s) => s.tier === "T2").map((s) => s.actualReps) },
         t3: { lastReps: w.sets.filter((s) => s.tier === "T3").at(-1)!.actualReps },

@@ -8,7 +8,8 @@ import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { isRuleId } from "@/lib/evidence";
 import { rebuildDerived } from "@/lib/rebuild";
 import { getRestSeconds } from "@/lib/restTimes";
-import { buildWorkoutPlan } from "@/lib/workout/buildPlan";
+import { planWorkoutStart } from "@/lib/workout/startPlan";
+import { strengthSetsOf } from "@/lib/workout/strength";
 import { WORKOUT_ROTATION, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { DecisionKind, DecisionTrace, TrainingPhase, WorkoutLocation } from "@/types";
 import {
@@ -40,19 +41,26 @@ const KINDS = Object.keys({
 
 const PHASES: TrainingPhase[] = [{ mode: "cutting" }, { mode: "maintaining" }, { mode: "bulking" }];
 
-/** The plan and context of demo workout `index` as it stood when that workout started. */
+/**
+ * The plan and context of demo workout `index` as it stood when that workout started,
+ * planned as the Ready screen plans it (home exercises at their own weights, a first one
+ * seeded from the strength sets so far, re-entry applied).
+ */
 function demoStart(index: number, overrides: Partial<TraceContext> = {}) {
   const workout = data.workouts[index];
   const prior = data.workouts.slice(0, index);
   const rebuilt = rebuildDerived({ workouts: prior, adjustments: data.liftAdjustments, settings });
   const location = overrides.location ?? workout.location;
-  const plan = buildWorkoutPlan({
+  const sets = strengthSetsOf(prior);
+  const { plan } = planWorkoutStart({
     template: WORKOUT_TEMPLATES[workout.templateId],
     liftStates: rebuilt.liftStates,
     location,
     equipment: settings.equipment,
     includeWarmUps: true,
     selectedAccessories: [],
+    variantStates: rebuilt.variantStates,
+    strengthSets: sets,
   });
   const context: TraceContext = {
     now: workout.startedAt,
@@ -62,6 +70,9 @@ function demoStart(index: number, overrides: Partial<TraceContext> = {}) {
     liftStates: rebuilt.liftStates,
     history: { workouts: prior, outcomes: rebuilt.outcomes, adjustments: data.liftAdjustments },
     painEntries: data.painEntries,
+    // As saved when a workout starts: the home exercises' states, not every set (the
+    // saved decisions stay small; the why sheet adds the sets).
+    home: { variantStates: rebuilt.variantStates },
     ...overrides,
   };
   return { workout, plan, context };
@@ -75,13 +86,16 @@ function demoNext(location: WorkoutLocation, phase: TrainingPhase) {
     settings,
   });
   const template = WORKOUT_TEMPLATES[WORKOUT_ROTATION[data.workouts.length % WORKOUT_ROTATION.length]];
-  const plan = buildWorkoutPlan({
+  const sets = strengthSetsOf(data.workouts);
+  const { plan } = planWorkoutStart({
     template,
     liftStates: rebuilt.liftStates,
     location,
     equipment: settings.equipment,
     includeWarmUps: true,
     selectedAccessories: ["face_pulls", "bicep_curls"],
+    variantStates: rebuilt.variantStates,
+    strengthSets: sets,
   });
   const context: TraceContext = {
     now: NOW,
@@ -92,6 +106,7 @@ function demoNext(location: WorkoutLocation, phase: TrainingPhase) {
     history: { workouts: data.workouts, outcomes: rebuilt.outcomes, adjustments: data.liftAdjustments },
     painEntries: data.painEntries,
     readiness: { sleepHours: "<5", stressLevel: "low", score: 48 },
+    home: { variantStates: rebuilt.variantStates, sets },
   };
   return { plan, context };
 }

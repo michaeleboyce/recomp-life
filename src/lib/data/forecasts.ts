@@ -32,7 +32,11 @@ import {
 } from "@/lib/readiness";
 import { anchorToPrescription, emptyLiftState, rebuildDerived } from "@/lib/rebuild";
 import { buildSessionDecisions, type TraceContext, type TraceReadiness } from "@/lib/trace";
-import { describeNextWorkout } from "@/lib/workout/buildPlan";
+import type { StrengthSet } from "@/lib/strength";
+import { describeNextWorkout, overridesFromSession } from "@/lib/workout/buildPlan";
+import { prescribedFor } from "@/lib/workout/planEdits";
+import { markReentries, resolveReentry } from "@/lib/workout/reentry";
+import { strengthSetsOf } from "@/lib/workout/strength";
 import type { NextWorkoutDescription, WorkoutPlan } from "@/lib/workout/types";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
@@ -49,6 +53,7 @@ import type {
   RunLog,
   StoredTrace,
   UserSettings,
+  VariantState,
   WorkoutLocation,
   WorkoutSession,
 } from "@/types";
@@ -115,6 +120,11 @@ export interface LedgerRecords {
   runs: RunLog[];
   activities: ActivityLog[];
   painEntries: PainSorenessEntry[];
+  /**
+   * The home exercises' states as the rebuild last wrote them. Left out (records built
+   * by hand), home lifts are planned from their seeds.
+   */
+  variantStates?: VariantState[];
   /** The profile's settings, or the defaults before the database has been seeded. */
   settings: UserSettings;
 }
@@ -131,6 +141,7 @@ export function ledgerTables(): Table[] {
     db.runs,
     db.activities,
     db.painEntries,
+    db.variantStates,
     db.userProfile,
   ];
 }
@@ -148,8 +159,26 @@ export async function readLedgerRecords(readAt: Date = new Date()): Promise<Ledg
     runs: await db.runs.toArray(),
     activities: await db.activities.toArray(),
     painEntries: await db.painEntries.toArray(),
+    variantStates: (await db.variantStates.toArray()).sort((a, b) =>
+      a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+    ),
     settings: await readSettings(),
   }));
+}
+
+const strengthSetsCache = new WeakMap<readonly WorkoutSession[], StrengthSet[]>();
+
+/**
+ * Every set of the finished, live workouts in the records as strength evidence
+ * (`strengthSetsOf`), worked out once per read so the estimates made from it are kept.
+ */
+export function strengthSetsFrom(records: Pick<LedgerRecords, "workouts">): StrengthSet[] {
+  let sets = strengthSetsCache.get(records.workouts);
+  if (!sets) {
+    sets = strengthSetsOf(records.workouts);
+    strengthSetsCache.set(records.workouts, sets);
+  }
+  return sets;
 }
 
 function live<T extends { deletedAt?: number | null }>(rows: readonly T[]): T[] {
@@ -251,11 +280,12 @@ export function forecastSourceFrom(
 }
 
 /**
- * What the explain functions read at `now`. `liftStates` must be the ones the plan
- * being explained was built from, and `prescribed` what the program prescribed for
- * that plan's session: it decides what a weight the user set does to a lift. The
- * outcomes of past workouts come from a rebuild of the log, the same one that
- * produces the lift states.
+ * What the explain functions read at `now`. `liftStates` (and `variantStates`) must be
+ * the ones the plan being explained was built from, and `prescribed` what the program
+ * prescribed for that plan's session: it decides what a weight the user set does to a
+ * lift. The outcomes of past workouts come from a rebuild of the log, the same one that
+ * produces the lift states. The home-weight steps read the home exercises' states and
+ * every set as strength evidence (`TraceContext.home`).
  */
 export function traceContextFrom(
   records: LedgerRecords,
@@ -263,8 +293,14 @@ export function traceContextFrom(
     now: Date;
     location: WorkoutLocation;
     liftStates: LiftState[];
+    variantStates?: VariantState[];
     prescribed?: PrescribedEntry[];
     readiness?: TraceReadiness;
+    /**
+     * Also explain the strength estimate behind a home weight and the home sets in it
+     * (the why sheet). Left out for the decisions saved on a workout, which must stay small.
+     */
+    withStrengthSets?: boolean;
   }
 ): TraceContext {
   const { settings } = records;
@@ -283,13 +319,19 @@ export function traceContextFrom(
     history: { workouts: records.workouts, outcomes, adjustments: records.liftAdjustments },
     painEntries: live(records.painEntries),
     ...(input.readiness ? { readiness: input.readiness } : {}),
+    home: {
+      variantStates: input.variantStates ?? records.variantStates ?? [],
+      ...(input.withStrengthSets ? { sets: strengthSetsFrom(records) } : {}),
+    },
   };
 }
 
 /**
  * The upcoming workout in the rotation with its plan, as `useNextWorkout` describes
  * it: at `location` (else the saved default, else the gym), warm-ups as the settings
- * say, no accessories.
+ * say, no accessories; home exercises at their own weights (a first one seeded from
+ * the strength estimate) and the first session back at a location at its re-entry
+ * weight. Its `liftStates` and `variantStates` are the ones the plan was built from.
  */
 export function nextWorkoutFrom(
   records: LedgerRecords,
@@ -305,8 +347,34 @@ export function nextWorkoutFrom(
       equipment: settings.equipment,
       includeWarmUps: settings.showWarmUps,
       selectedAccessories: [],
+      variantStates: records.variantStates ?? [],
+      strengthSets: strengthSetsFrom(records),
     },
+    reentry: true,
   });
+}
+
+/**
+ * What the program prescribes for the next workout's lifts, before edits, from the
+ * states its plan was built from (`nextWorkoutFrom`): what starting it would store.
+ */
+export function nextPrescriptionFrom(
+  records: LedgerRecords,
+  next: NextWorkoutDescription,
+  location?: WorkoutLocation
+): PrescribedEntry[] {
+  const at = location ?? records.settings.defaultLocation ?? "gym";
+  return prescribedFor(
+    next.template,
+    next.liftStates ?? records.liftStates,
+    at === "home"
+      ? {
+          variantStates: next.variantStates ?? records.variantStates ?? [],
+          equipment: records.settings.equipment,
+          strengthSets: strengthSetsFrom(records),
+        }
+      : undefined
+  );
 }
 
 /**
@@ -370,24 +438,38 @@ export function readinessTodayFrom(
 /**
  * The plan a session runs and the lift states it is built from: the stored lift
  * states with the session's own prescription laid on top, exactly as `planForSession`
- * does it, so the traces read the same numbers the plan did. An unknown template
- * gives an empty plan.
+ * does it (home exercises' included), so the traces read the same numbers the plan
+ * did. The entries a re-entry rule decided are marked with it, worked out from the
+ * records as they stand (before the session is finished they are what it started
+ * from). An unknown template gives an empty plan.
  */
 function sessionPlan(
   records: LedgerRecords,
   session: WorkoutSession
-): { plan: WorkoutPlan; liftStates: LiftState[] } {
+): { plan: WorkoutPlan; liftStates: LiftState[]; variantStates: VariantState[] } {
   const byId = new Map(records.liftStates.map((state) => [state.exerciseId, state]));
   for (const entry of session.prescribed ?? []) {
     const state = byId.get(entry.exerciseId) ?? emptyLiftState(entry.exerciseId);
     byId.set(entry.exerciseId, anchorToPrescription(state, entry));
   }
   const liftStates = [...byId.values()];
+  const variantStates = records.variantStates ?? [];
   const template = WORKOUT_TEMPLATES[session.templateId];
-  const plan = template
-    ? planForSession({ session, template, liftStates, equipment: records.settings.equipment })
-    : [];
-  return { plan, liftStates };
+  if (!template) return { plan: [], liftStates, variantStates };
+  const equipment = records.settings.equipment;
+  const strengthSets = strengthSetsFrom(records);
+  const planned = planForSession({ session, template, liftStates, equipment, variantStates, strengthSets });
+  const { reentries } = resolveReentry({
+    liftStates: records.liftStates,
+    variantStates,
+    location: session.location,
+    equipment,
+    template,
+    strengthSets,
+    overrides: overridesFromSession(session),
+  });
+  // The trace says whether the planned weight is the re-entry one (an edit may differ).
+  return { plan: markReentries(planned, reentries), liftStates, variantStates };
 }
 
 /** Everything the start of a session is explained and forecast from. */
@@ -412,7 +494,7 @@ export function sessionStartInputs(
 ): SessionStartInputs | null {
   if (!WORKOUT_TEMPLATES[session.templateId]) return null;
   const now = new Date(session.startedAt);
-  const { plan, liftStates } = sessionPlan(records, session);
+  const { plan, liftStates, variantStates } = sessionPlan(records, session);
   answers ??= live(records.readinessLogs).find((log) => log.sessionId === session.id);
   const readiness = readinessFrom(
     records,
@@ -423,6 +505,7 @@ export function sessionStartInputs(
     now,
     location: session.location,
     liftStates,
+    variantStates,
     prescribed: session.prescribed,
     readiness: {
       ...(answers ? { sleepHours: answers.sleepHours, stressLevel: answers.stressLevel } : {}),

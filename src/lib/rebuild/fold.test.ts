@@ -142,15 +142,17 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
   // 2026-11-15 (strength model, decision 1): a home pass used to raise the barbell
   // weight by the dumbbell step (squat 190 -> 195). It now raises the home exercise's own
   // weight and leaves the barbell lift as it was; the session still counts for the rotation.
+  // 2026-11-16 (H3): the split squat's first weight is its starting ratio times the
+  // barbell weight, 0.5 x 190 = 95, 47.5 a hand, rounded to 50 (it was 80% of it, 75).
   it("a home session progresses the home exercise's own weight and leaves the barbell lift alone (H1)", () => {
     const sim = startSim();
     const w = runSession(sim, { templateId: "A1", location: "home" });
     const squatSets = w.sets.filter((s) => s.exerciseId === "squat");
-    expect(squatSets.every((s) => s.isSubstituted && s.weight === 75)).toBe(true);
+    expect(squatSets.every((s) => s.isSubstituted && s.weight === 50)).toBe(true);
     const { liftStates, e1rms, variantStates, variantOutcomes, outcomes } = rebuilt(sim);
     expect(stateOf(liftStates, "squat")).toMatchObject({ t1Weight: 190, t1Stage: "5x3", t1LastWorkoutDate: null });
     expect(variantOf(variantStates, "squat|bulgarian_split_squat|T1")).toMatchObject({
-      weight: 80,
+      weight: 55,
       perHand: true,
       stage: "5x3",
       current: true,
@@ -158,7 +160,7 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
       lastSessionDate: w.completedAt,
     });
     expect(outcomes.get(w.id)![0]).toMatchObject({ exerciseId: "squat", kind: "held", from: { weight: 190 }, to: { weight: 190 } });
-    expect(variantOutcomes.get(w.id)![0]).toMatchObject({ variantId: "squat|bulgarian_split_squat|T1", kind: "passed", from: { weight: 75 }, to: { weight: 80 } });
+    expect(variantOutcomes.get(w.id)![0]).toMatchObject({ variantId: "squat|bulgarian_split_squat|T1", kind: "passed", from: { weight: 50 }, to: { weight: 55 } });
     // A substitute's weight says nothing about the barbell lift.
     expect(e1rms).toEqual([]);
     // It counts for the rotation: B1 is next.
@@ -166,26 +168,38 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
   });
 
   it("two split squat passes raise it one dumbbell step each; the barbell weight does not move (H1)", () => {
-    const sim = startSim();
+    // The heaviest pair is 55: 50 -> 55 reaches it, and the second pass adds a rep instead.
+    const sim = startSim({ ...SETTINGS, equipment: { ...SETTINGS.equipment, maxDumbbellWeight: 55 } });
     runSession(sim, { templateId: "A1", location: "home", t1: { lastReps: 6 } });
     runSession(sim, { templateId: "A1", location: "home", t1: { lastReps: 5 } });
     const { liftStates, variantStates, variantSnapshots } = rebuilt(sim);
     const split = "squat|bulgarian_split_squat|T1";
-    expect(variantOf(variantSnapshots.get("w1")!, split).weight).toBe(80);
-    // 75 -> 80 is the heaviest pair: the second pass progresses by reps instead.
-    expect(variantOf(variantStates, split)).toMatchObject({ weight: 80, extraReps: 1, recentLastSetReps: [6, 5], passesSinceGym: 2 });
+    expect(variantOf(variantSnapshots.get("w1")!, split).weight).toBe(55);
+    expect(variantOf(variantStates, split)).toMatchObject({ weight: 55, extraReps: 1, recentLastSetReps: [6, 5], passesSinceGym: 2 });
     expect(stateOf(liftStates, "squat").t1Weight).toBe(190);
 
-    const lighter = startSim({ ...SETTINGS, equipment: { ...SETTINGS.equipment, maxDumbbellWeight: 100 } });
-    runSession(lighter, { templateId: "A1", location: "home" });
-    runSession(lighter, { templateId: "A1", location: "home" });
-    expect(variantOf(rebuilt(lighter).variantStates, split).weight).toBe(85);
-    expect(stateOf(rebuilt(lighter).liftStates, "squat").t1Weight).toBe(190);
+    const heavier = startSim({ ...SETTINGS, equipment: { ...SETTINGS.equipment, maxDumbbellWeight: 100 } });
+    runSession(heavier, { templateId: "A1", location: "home" });
+    runSession(heavier, { templateId: "A1", location: "home" });
+    expect(variantOf(rebuilt(heavier).variantStates, split).weight).toBe(60);
+    expect(stateOf(rebuilt(heavier).liftStates, "squat").t1Weight).toBe(190);
   });
 
   it("squat 245 with 80 lb dumbbells never plans goblet squat at 80 after a split squat pass at 80 a hand (H2)", () => {
     const sim = startSim();
     adjust(sim, "squat", { t1Weight: 245 }, new Date(SIM_START.getTime() + 1000));
+    // The split squat set to 80 a hand by hand (a home exercise's own adjustment): its
+    // seed from the ratio would be 60.
+    sim.adjustments.push(
+      makeAdjustment("squat", { t1Weight: 80 }, new Date(SIM_START.getTime() + 2000), {
+        id: "adj-split",
+        clientId: "adj-split",
+        source: "manual",
+        variant: { exerciseId: "bulgarian_split_squat", tier: "T1" },
+      })
+    );
+    sim.variants = rebuilt(sim).variantStates;
+    expect(stateOf(rebuilt(sim).liftStates, "squat").t1Weight).toBe(245);
     const first = runSession(sim, { templateId: "A1", location: "home" });
     expect(first.sets.find((s) => s.tier === "T1")).toMatchObject({ substituteExerciseId: "bulgarian_split_squat", weight: 80 });
     const second = runSession(sim, { templateId: "A1", location: "home" });
@@ -194,6 +208,55 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
     // The cap policy: 5x3 -> 5x4 at the heaviest pair.
     expect(t1.map((s) => s.targetReps)).toEqual([4, 4, 4, 4, 4]);
     expect(rebuilt(sim).variantOutcomes.get(first.id)![0].cap).toEqual({ policy: "reps", maxDumbbellWeight: 80, repsFrom: 3, repsTo: 4 });
+  });
+
+  it("an adjustment for a home exercise sets that exercise's own state, not the barbell lift's", () => {
+    const sim = startSim();
+    runSession(sim, { templateId: "A1", location: "home" });
+    runSession(sim, { templateId: "B1" });
+    runSession(sim, { templateId: "A2" });
+    runSession(sim, { templateId: "B2" });
+    runSession(sim, { templateId: "A1" }); // a squat T1 pass at the gym: one step for the split squat
+    const split = "squat|bulgarian_split_squat|T1";
+    expect(variantOf(rebuilt(sim).variantStates, split)).toMatchObject({ weight: 55, gymPassesSinceHome: 1 });
+    const at = new Date(sim.workouts.at(-1)!.completedAt!.getTime() + 60_000);
+    sim.adjustments.push(
+      makeAdjustment("squat", { t1Weight: 70, t1Stage: "6x2" }, at, {
+        id: "adj-v",
+        clientId: "adj-v",
+        source: "manual",
+        variant: { exerciseId: "bulgarian_split_squat", tier: "T1" },
+      })
+    );
+    const after = rebuilt(sim);
+    const state = variantOf(after.variantStates, split);
+    expect(state).toMatchObject({ weight: 70, stage: "6x2" });
+    // The weight is the user's: the gym steps are not added on top of it.
+    expect(state.gymPassesSinceHome).toBeUndefined();
+    expect(stateOf(after.liftStates, "squat")).toMatchObject({ t1Weight: 200, t1Stage: "5x3" });
+
+    // One for a home exercise never done is seeded first, then set.
+    sim.adjustments.push(
+      makeAdjustment("squat", { t2Weight: 40 }, at, {
+        id: "adj-w",
+        clientId: "adj-w",
+        source: "manual",
+        variant: { exerciseId: "db_lunge", tier: "T2" },
+      })
+    );
+    expect(variantOf(rebuilt(sim).variantStates, "squat|db_lunge|T2")).toMatchObject({ weight: 40, current: false });
+  });
+
+  it("a barbell weight set by hand replaces the steps the home passes earned at that tier", () => {
+    const sim = startSim();
+    runSession(sim, { templateId: "A1", location: "home" });
+    const split = "squat|bulgarian_split_squat|T1";
+    expect(variantOf(rebuilt(sim).variantStates, split).passesSinceGym).toBe(1);
+    adjust(sim, "squat", { t2Weight: 150 }, new Date(sim.workouts[0].completedAt!.getTime() + 60_000));
+    expect(variantOf(rebuilt(sim).variantStates, split).passesSinceGym).toBe(1);
+    adjust(sim, "squat", { t1Weight: 210 }, new Date(sim.workouts[0].completedAt!.getTime() + 120_000));
+    expect(variantOf(rebuilt(sim).variantStates, split).passesSinceGym).toBe(0);
+    expect(variantOf(sim.variants, split).passesSinceGym).toBe(0);
   });
 
   it("a session of the barbell lift itself uses up the steps earned at home", () => {
@@ -206,7 +269,8 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
     runSession(sim, { templateId: "B2" });
     runSession(sim, { templateId: "A1" });
     const after = rebuilt(sim);
-    expect(variantOf(after.variantStates, split)).toMatchObject({ passesSinceGym: 0, weight: 80, current: true });
+    // The gym pass in turn earns the split squat a step for its next home session (H6).
+    expect(variantOf(after.variantStates, split)).toMatchObject({ passesSinceGym: 0, gymPassesSinceHome: 1, weight: 55, current: true });
     // The barbell weight moved only by its own pass at the gym.
     expect(stateOf(after.liftStates, "squat").t1Weight).toBe(200);
   });
@@ -218,7 +282,7 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
     const log = { workouts: sim.workouts, adjustments: sim.adjustments };
     const lastSet = w.sets.filter((s) => s.tier === "T1").at(-1)!;
     const missed = applyChange(log, { kind: "editSet", workoutId: w.id, setId: lastSet.id, patch: { actualReps: 1 } });
-    expect(variantOf(rebuildDerived({ ...missed, settings: SETTINGS }).variantStates, split)).toMatchObject({ weight: 75, stage: "6x2" });
+    expect(variantOf(rebuildDerived({ ...missed, settings: SETTINGS }).variantStates, split)).toMatchObject({ weight: 50, stage: "6x2" });
     const gone = applyChange(log, { kind: "deleteWorkout", workoutId: w.id });
     expect(rebuildDerived({ ...gone, settings: SETTINGS }).variantStates).toEqual([]);
   });
@@ -229,12 +293,12 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
     expect(w.completionContext?.maxDumbbellWeight).toBe(80);
     const split = "squat|bulgarian_split_squat|T1";
     const lighter = { ...SETTINGS, equipment: { ...SETTINGS.equipment, maxDumbbellWeight: 50 } };
-    expect(variantOf(rebuilt(sim, lighter).variantStates, split).weight).toBe(80);
-    // A session from before the setting was stored is rebuilt with today's: 75 a hand is
-    // over today's 50, so the pass cannot add weight and the cap policy adds a rep.
+    expect(variantOf(rebuilt(sim, lighter).variantStates, split).weight).toBe(55);
+    // A session from before the setting was stored is rebuilt with today's: 50 a hand is
+    // today's heaviest (50), so the pass cannot add weight and the cap policy adds a rep.
     const old = { ...w, completionContext: { ...w.completionContext!, maxDumbbellWeight: undefined } };
     const rebuiltOld = rebuildDerived({ workouts: [old], adjustments: sim.adjustments, settings: lighter });
-    expect(variantOf(rebuiltOld.variantStates, split)).toMatchObject({ weight: 75, extraReps: 1 });
+    expect(variantOf(rebuiltOld.variantStates, split)).toMatchObject({ weight: 50, extraReps: 1 });
   });
 
   it("raises T3 when the last AMRAP set reaches 25, and not otherwise", () => {

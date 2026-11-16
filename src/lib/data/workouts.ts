@@ -11,8 +11,10 @@
 import { v4 as uuidv4 } from "uuid";
 import { db } from "@/db/local";
 import { e1rmsForWorkout } from "@/lib/rebuild";
+import { overridesFromSession } from "@/lib/workout/buildPlan";
 import { getPrescription } from "@/lib/workout/prescription";
 import { excludeWarmUps } from "@/lib/workout/setSelectors";
+import { planWorkoutStart } from "@/lib/workout/startPlan";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
   Forecast,
@@ -33,6 +35,7 @@ import {
   readLedgerRecords,
   recordLiftForecasts,
   sessionStartLedger,
+  strengthSetsFrom,
   writeSessionForecasts,
 } from "./forecasts";
 import { softDelete } from "./logEdits";
@@ -114,9 +117,25 @@ export async function startWorkout(input: StartWorkoutInput): Promise<string> {
     readLedgerRecords(startedAt)
   );
 
+  const template = WORKOUT_TEMPLATES[input.templateId];
+  // Left out, the prescription the Ready screen would store: re-entry applied and, at
+  // home, each lift's home exercise at its own (or seeded) weight. Without the records,
+  // the plain prescription from the stored lift states.
   const prescribed =
     input.prescribed ??
-    prescribedFor(input.templateId, records?.liftStates ?? (await db.liftStates.toArray()));
+    (records && template
+      ? planWorkoutStart({
+          template,
+          liftStates: records.liftStates,
+          location: input.location,
+          equipment: records.settings.equipment,
+          includeWarmUps: input.includeWarmUps,
+          selectedAccessories: input.selectedAccessories,
+          overrides: overridesFromSession({ modifications: input.modifications ?? [] }),
+          variantStates: records.variantStates ?? [],
+          strengthSets: strengthSetsFrom(records),
+        }).prescribed
+      : prescribedFor(input.templateId, records?.liftStates ?? (await db.liftStates.toArray())));
   const session: WorkoutSession = {
     id: sessionId,
     clientId: uuidv4(),

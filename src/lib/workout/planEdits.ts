@@ -1,4 +1,5 @@
 import { DEFAULT_ACCESSORY_WEIGHTS, EXERCISES } from "@/lib/exercises";
+import type { StrengthSet } from "@/lib/strength";
 import type {
   EquipmentProfile,
   FavoriteSnapshotEntry,
@@ -153,6 +154,8 @@ export interface HomePrescriptionContext {
   equipment: EquipmentProfile;
   /** Home substitutes picked on Configure (template exerciseId -> substitute id). */
   overrides?: Record<string, string>;
+  /** Every logged set as strength evidence: seeds a variant never used as the plan does (H3). */
+  strengthSets?: readonly StrengthSet[];
 }
 
 /**
@@ -188,6 +191,7 @@ export function prescribedFor(
             variantStates: home.variantStates,
             equipment: home.equipment,
             overrideId: home.overrides?.[templateEx.exerciseId],
+            ...(home.strengthSets ? { strengthSets: home.strengthSets } : {}),
           })
         : null;
     prescribed.push({

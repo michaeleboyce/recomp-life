@@ -14,8 +14,8 @@
  */
 
 import { roundToNearest5 } from "./progression";
-import { LONG_BREAK_DAYS } from "./recovery";
-import type { TrainingPhase, LiftState } from "@/types";
+import { LONG_BREAK_DAYS, lastTrainedDates } from "./recovery";
+import type { TrainingPhase, LiftState, VariantState } from "@/types";
 import type { RuleId } from "./evidence/rules";
 
 // ---------------------------------------------------------------------------
@@ -108,13 +108,15 @@ export function calculateWeightDecay(
  * Compute decay suggestions for each exercise in a workout template.
  * Only returns suggestions for lifts not trained for LONG_BREAK_DAYS or more,
  * and only when the suggested weight actually differs after rounding.
- * Skips exercises with an active deload.
+ * Skips exercises with an active deload. A session of a home exercise standing in for
+ * the lift at that tier counts as training it (`variantStates`' last session dates).
  */
 export function getExerciseDecaySuggestions(
   templateExercises: { exerciseId: string; tier: string }[],
   liftStates: LiftState[],
   phase: TrainingPhase,
-  now: Date
+  now: Date,
+  variantStates: readonly VariantState[] = []
 ): ExerciseDecaySuggestion[] {
   const suggestions: ExerciseDecaySuggestion[] = [];
   const liftMap = new Map(liftStates.map((ls) => [ls.exerciseId, ls]));
@@ -125,8 +127,8 @@ export function getExerciseDecaySuggestions(
     const ls = liftMap.get(tmpl.exerciseId);
     if (!ls || ls.deloadActive) continue;
 
-    const lastDate =
-      tmpl.tier === "T1" ? ls.t1LastWorkoutDate : ls.t2LastWorkoutDate;
+    const trained = lastTrainedDates(ls, variantStates);
+    const lastDate = tmpl.tier === "T1" ? trained.t1 : trained.t2;
     if (!lastDate) continue;
 
     const daysSince = Math.floor(

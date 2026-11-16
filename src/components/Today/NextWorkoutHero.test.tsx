@@ -7,6 +7,7 @@ import { initializeDatabase } from "@/db/init";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { describeNextWorkout } from "@/lib/workout/buildPlan";
+import { strengthSetsOf } from "@/lib/workout/strength";
 import { getNextWorkoutId, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { WorkoutLocation } from "@/types";
@@ -32,9 +33,11 @@ async function seedDemo() {
   await db.estimated1RMs.bulkPut(demo.estimated1RMs);
   await db.bodyweight.bulkPut(demo.bodyweight);
   await db.liftStates.bulkPut(demo.liftStates);
+  await db.variantStates.bulkPut(demo.variantStates);
   await db.userProfile.put(makeProfile());
 }
 
+/** The next workout as `useNextWorkout` plans it: home exercises at their own weights, re-entry applied. */
 function expectedPlan(location: WorkoutLocation) {
   const settings = DEFAULT_USER_PROFILE.settings;
   return describeNextWorkout({
@@ -46,7 +49,10 @@ function expectedPlan(location: WorkoutLocation) {
       equipment: settings.equipment,
       includeWarmUps: false,
       selectedAccessories: [],
+      variantStates: demo.variantStates,
+      strengthSets: strengthSetsOf(demo.workouts),
     },
+    reentry: true,
   });
 }
 

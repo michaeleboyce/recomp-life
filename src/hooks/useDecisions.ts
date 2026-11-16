@@ -3,9 +3,13 @@
 import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
-import { nextWorkoutFrom, readinessTodayFrom, traceContextFrom } from "@/lib/data/forecasts";
+import {
+  nextPrescriptionFrom,
+  nextWorkoutFrom,
+  readinessTodayFrom,
+  traceContextFrom,
+} from "@/lib/data/forecasts";
 import { DECISIONS, explainDecision } from "@/lib/trace";
-import { prescribedFor } from "@/lib/workout/planEdits";
 import type { DecisionKind, DecisionTrace, StoredTrace, Tier, WorkoutLocation } from "@/types";
 import { liveRow } from "./liveRows";
 import { useLedgerRecords } from "./useLedgerRecords";
@@ -45,9 +49,13 @@ export function useDecisionTrace(input: {
     const context = traceContextFrom(records, {
       now,
       location: location ?? records.settings.defaultLocation ?? "gym",
+      // The stored states, and what starting the workout would store. An entry whose
+      // weight re-entry decided says so itself (`entry.reentry`), so the trace goes from
+      // the stored weight to it.
       liftStates: records.liftStates,
-      prescribed: prescribedFor(next.template, records.liftStates),
+      prescribed: nextPrescriptionFrom(records, next, location),
       readiness: readiness ? { score: readiness.score } : undefined,
+      withStrengthSets: true,
     });
     return explainDecision(kind, context, entry, next.plan);
   }, [records, exerciseId, tier, kind, location]);

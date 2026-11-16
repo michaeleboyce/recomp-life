@@ -168,17 +168,26 @@ export interface LiftState {
 /** How a home variant's first weight was chosen. */
 export interface VariantSeed {
   /**
-   * "conversion": today's barbell-to-dumbbell conversion (`seedVariantWeight`, the seam
-   * the pooled strength estimate will take over). "harderVariant": the cap policy moved
-   * here from a variant that had reached the heaviest dumbbell.
+   * How `seedVariantWeight` worked it out. "estimate": the program lift's pooled
+   * strength estimate through the exercise's starting ratio, for the stage's reps (H3).
+   * "ratio": no estimate yet, so the starting ratio times the barbell working weight.
+   * "conversion": an exercise with no starting ratio, by the flat dumbbell conversion
+   * (80% of the barbell weight). "harderVariant": the cap policy moved here from a
+   * variant that had reached the heaviest dumbbell.
    */
-  source: "conversion" | "harderVariant";
+  source: "conversion" | "harderVariant" | "estimate" | "ratio";
   /** The program lift's weight the seed was worked out from, in barbell terms. */
   barbellWeight: number;
-  /** The weight the conversion asked for when it was more than the heaviest dumbbell. */
+  /** The weight the seed asked for when it was more than the heaviest dumbbell. */
   cappedFrom?: number;
   /** For "harderVariant": the variant the cap policy moved on from. */
   fromVariantId?: string;
+  /** For "estimate" and "ratio": the exercise's starting ratio to the program lift. */
+  ratio?: number;
+  /** For "estimate": the program lift's pooled strength estimate, lbs. */
+  estimate?: number;
+  /** For "estimate": the reps per set the weight was worked out for. */
+  targetReps?: number;
 }
 
 /**
@@ -218,6 +227,12 @@ export interface VariantState {
    * barbell lift itself: the steps the home sessions earned for re-entry (H6).
    */
   passesSinceGym: number;
+  /**
+   * Passes of the barbell lift at this tier since this variant was last done (or since
+   * a session prescribed it): the steps the gym sessions earned for its re-entry (H6).
+   * Absent means 0 (rows rebuilt before it was counted).
+   */
+  gymPassesSinceHome?: number;
   seed: VariantSeed;
 }
 
@@ -451,6 +466,13 @@ export interface LiftAdjustment extends Stamped {
   at: Date;
   source: "start" | "manual" | "decay" | "import";
   set: Partial<Pick<LiftState, AdjustableField>>;
+  /**
+   * Set when the adjustment is for a home exercise standing in for `exerciseId` at a
+   * tier: the rebuild applies it to that exercise's own state (its weight, stage and
+   * fail count, read from the tier's fields of `set`) instead of the barbell lift.
+   * Absent or null: the barbell lift.
+   */
+  variant?: { exerciseId: string; tier: Tier } | null;
   note?: string;
   synced: boolean;
 }

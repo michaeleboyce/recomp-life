@@ -4,6 +4,7 @@
 // data. Pure.
 import { anchorToPrescription, rebuildDerived } from "@/lib/rebuild";
 import { buildWorkoutPlan, overridesFromSession } from "@/lib/workout/buildPlan";
+import { anchorHomePrescriptions } from "@/lib/workout/planForSession";
 import type { WorkoutPlan } from "@/lib/workout/types";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
@@ -13,6 +14,7 @@ import type {
   LiftAdjustment,
   LiftState,
   UserSettings,
+  VariantState,
   WorkoutSession,
 } from "@/types";
 import { e1rmResults } from "./horizon";
@@ -94,11 +96,11 @@ export function replayForecasts(input: ReplayInput, options: ReplayOptions = {})
     (a, b) => toMs(a.startedAt) - toMs(b.startedAt) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
   );
   const liveAdjustments = input.adjustments.filter(isLive);
-  const snapshots = rebuildDerived({
+  const { snapshots, variantSnapshots } = rebuildDerived({
     workouts: finished,
     adjustments: liveAdjustments,
     settings: input.settings,
-  }).snapshots;
+  });
 
   const forecasts: Forecast[] = [];
   const slots = new Set<string>();
@@ -117,10 +119,13 @@ export function replayForecasts(input: ReplayInput, options: ReplayOptions = {})
     });
 
     let liftStates: LiftState[];
+    let variantStates: VariantState[];
     if (workout.prescribed && before.length > 0) {
-      liftStates = snapshots.get(before[before.length - 1].id) ?? [];
+      const lastId = before[before.length - 1].id;
+      liftStates = snapshots.get(lastId) ?? [];
+      variantStates = variantSnapshots.get(lastId) ?? [];
     } else {
-      liftStates = rebuildDerived({ workouts: before, adjustments, settings }).liftStates;
+      ({ liftStates, variantStates } = rebuildDerived({ workouts: before, adjustments, settings }));
     }
     for (const entry of workout.prescribed ?? []) {
       liftStates = liftStates.map((state) =>
@@ -155,6 +160,8 @@ export function replayForecasts(input: ReplayInput, options: ReplayOptions = {})
 
     const template = WORKOUT_TEMPLATES[workout.templateId];
     if (template) {
+      // At home each lift is planned as its home exercise from the variant states, with
+      // the session's stored home prescription laid on top, as the rebuild plans it.
       const plan: WorkoutPlan = buildWorkoutPlan({
         template,
         liftStates,
@@ -163,6 +170,13 @@ export function replayForecasts(input: ReplayInput, options: ReplayOptions = {})
         includeWarmUps: workout.includeWarmUps,
         selectedAccessories: workout.selectedAccessories ?? [],
         overrides: overridesFromSession(workout),
+        variantStates: anchorHomePrescriptions({
+          variantStates,
+          session: workout,
+          template,
+          liftStates,
+          equipment: settings.equipment,
+        }).variantStates,
       });
       forecasts.push(...makeSessionForecasts(workout, plan, source));
     }

@@ -71,6 +71,40 @@ describe("startWorkout", () => {
     ]);
   });
 
+  it("at home, also stores each home exercise's own prescription, as the plan has it (H3)", async () => {
+    await initializeDatabase();
+    const id = await startWorkout({ templateId: "A1", location: "home", includeWarmUps: false, selectedAccessories: [] });
+    const squat = (await db.workouts.get(id))!.prescribed!.find((p) => p.exerciseId === "squat")!;
+    // The barbell prescription is unchanged; the split squat starts at 0.5 x 190, 50 a hand.
+    expect(squat).toMatchObject({ weight: 190, sets: 5, reps: 3, stage: "5x3" });
+    expect(squat.home).toEqual({ exerciseId: "bulgarian_split_squat", weight: 50, perHand: true, stage: "5x3", sets: 5, reps: 3 });
+  });
+
+  it("back at the gym after home sessions, stores the re-entry weight (H6)", async () => {
+    await initializeDatabase();
+    const finishedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    await db.variantStates.put({
+      id: "squat|bulgarian_split_squat|T1",
+      liftId: "squat",
+      exerciseId: "bulgarian_split_squat",
+      tier: "T1",
+      weight: 55,
+      perHand: true,
+      stage: "5x3",
+      failCount: 0,
+      extraReps: 0,
+      lastResetWeight: null,
+      lastSessionDate: finishedAt,
+      recentLastSetReps: [5],
+      current: true,
+      passesSinceGym: 2,
+      seed: { source: "ratio", barbellWeight: 190, ratio: 0.5 },
+    });
+    const id = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+    // No estimate yet (no T1 set logged): the steps rule, 190 plus two lower-body steps.
+    expect((await db.workouts.get(id))!.prescribed!.find((p) => p.exerciseId === "squat")!.weight).toBe(210);
+  });
+
   it("stores a given prescription as it is", async () => {
     await initializeDatabase();
     const prescribed = [

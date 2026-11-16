@@ -390,48 +390,51 @@ describe("explainPrescription: T3, accessories, warm-ups and lifts swapped in", 
 });
 
 describe("explainPrescription: at home", () => {
-  it("ends with the dumbbell conversion, and says so when your dumbbells cap it", () => {
+  // 2026-11-16 (H3): a first home weight is the exercise's starting ratio to the lift
+  // (here with no strength sets given, so ratio x the barbell weight), not 80% of it.
+  it("ends with the home exercise's first weight from its starting ratio", () => {
     const sim = simOf({});
     const { weight, entry } = next(sim, { location: "home" });
 
     const bench = weight("bench", "T2");
-    expect(entry("bench", "T2")).toMatchObject({ substituteExerciseId: "db_bench", weight: 40 });
+    expect(entry("bench", "T2")).toMatchObject({ substituteExerciseId: "db_bench", weight: 45 });
     expect(bench.steps.at(-1)).toEqual({
       id: "dumbbell",
       title: "At home with dumbbells",
-      detail: "DB Bench Press: 80% of 105 split between two hands, rounded to 5, is 40 per hand.",
-      effect: { op: "set", value: 40, unit: "lb" },
-      ruleId: "dumbbell-conversion",
+      detail:
+        "DB Bench Press: a first time here, so it starts at 0.83 of your bench press: 0.83 × 105 is 87.2 in all, split between two hands, rounded to 5, is 45 per hand.",
+      effect: { op: "set", value: 45, unit: "lb" },
+      ruleId: "transfer-ratio",
     });
     expect(ids(bench)).not.toContain("plates");
-    expect(bench.result).toBe(40);
-    expect(bench.alternatives!.map((a) => a.value)).toEqual([35, 40, 45]);
+    expect(bench.result).toBe(45);
+    expect(bench.alternatives!.map((a) => a.value)).toEqual([40, 45, 50]);
 
     // 200 on the bar is too much for one dumbbell, so the next exercise that fits stands in.
     const squat = weight("squat", "T1");
     expect(entry("squat", "T1")).toMatchObject({
       substituteExerciseId: "bulgarian_split_squat",
-      weight: 80,
+      weight: 50,
     });
     expect(squat.steps.at(-1)).toMatchObject({
       detail:
-        "Goblet Squat would need more than your heaviest dumbbell, so Bulgarian Split Squat stands in: 80% of 200 split between two hands, rounded to 5, is 80 per hand. One step heavier would need 85, more than your heaviest dumbbell (80), so nothing heavier is offered.",
-      effect: { op: "set", value: 80, unit: "lb" },
+        "Goblet Squat would need more than your heaviest dumbbell, so Bulgarian Split Squat stands in: a first time here, so it starts at 0.50 of your squat: 0.50 × 200 is 100 in all, split between two hands, rounded to 5, is 50 per hand.",
+      effect: { op: "set", value: 50, unit: "lb" },
     });
-    expect(replayTrace(squat)).toBe(80);
+    expect(replayTrace(squat)).toBe(50);
     // The steps before it are still about the barbell weight.
     expect(byId(squat, "progression").effect).toEqual({ op: "add", value: 10, unit: "lb" });
   });
 
-  it("when nothing fits, the usual substitute is capped at your heaviest dumbbell", () => {
+  it("when even the substitute's first weight is too heavy, it is capped at your heaviest dumbbell", () => {
     const sim = simOf({});
-    adjust(sim, "squat", { t1Weight: 260 }, new Date(sim.workouts[0].completedAt!.getTime() + 60_000));
+    adjust(sim, "squat", { t1Weight: 340 }, new Date(sim.workouts[0].completedAt!.getTime() + 60_000));
     const { weight, entry } = next(sim, { location: "home" });
     const max = sim.settings.equipment.maxDumbbellWeight;
-    expect(entry("squat", "T1")).toMatchObject({ substituteExerciseId: "goblet_squat", weight: max });
+    expect(entry("squat", "T1")).toMatchObject({ substituteExerciseId: "bulgarian_split_squat", weight: max, cappedFrom: 85 });
     const squat = weight("squat", "T1");
     expect(squat.steps.at(-1)).toMatchObject({
-      detail: `Goblet Squat: 80% of 260 in one dumbbell, rounded to 5, is 210. Your heaviest dumbbell is ${max}, so it stops there and nothing heavier is offered.`,
+      detail: `Goblet Squat would need more than your heaviest dumbbell, so Bulgarian Split Squat stands in: a first time here, so it starts at 0.50 of your squat: 0.50 × 340 is 170 in all, split between two hands, rounded to 5, is 85 per hand. Your heaviest dumbbell is ${max}, so it stops there and nothing heavier is offered.`,
       effect: { op: "set", value: max, unit: "lb" },
     });
     expect(replayTrace(squat)).toBe(max);
@@ -440,9 +443,10 @@ describe("explainPrescription: at home", () => {
 
   it("offers nothing heavier than your heaviest dumbbell, and says why", () => {
     const sim = simOf({});
+    adjust(sim, "squat", { t1Weight: 320 }, new Date(sim.workouts[0].completedAt!.getTime() + 60_000));
     const { weight, entry } = next(sim, { location: "home" });
     const max = sim.settings.equipment.maxDumbbellWeight;
-    // Bulgarian split squat at 80 per hand, and the heaviest dumbbell is 80.
+    // Bulgarian split squat at 0.5 x 320, 80 per hand, and the heaviest dumbbell is 80.
     expect(entry("squat", "T1")).toMatchObject({ substituteExerciseId: "bulgarian_split_squat", weight: max });
     const squat = weight("squat", "T1");
     expect(squat.alternatives).toEqual([
@@ -456,12 +460,14 @@ describe("explainPrescription: at home", () => {
 
     // Where the next step fits, it is offered as before.
     const bench = weight("bench", "T2");
-    expect(bench.alternatives!.map((a) => a.value)).toEqual([35, 40, 45]);
+    expect(bench.alternatives!.map((a) => a.value)).toEqual([40, 45, 50]);
     expect(bench.steps.at(-1)!.detail).not.toMatch(/heavier/);
   });
 
   it("stops the heavier choice at your heaviest dumbbell when a step would pass it", () => {
     const sim = simOf({});
+    // Bench T2 at 100: DB bench 0.83 x 100 = 83, 41.5 a hand, rounded to 40.
+    adjust(sim, "bench", { t2Weight: 100 }, new Date(sim.workouts[0].completedAt!.getTime() + 60_000));
     const heavy = { ...sim.settings.equipment, maxDumbbellWeight: 42.5 };
     const { weight } = next({ ...sim, settings: { ...sim.settings, equipment: heavy } }, { location: "home" });
     const bench = weight("bench", "T2");
@@ -501,14 +507,17 @@ describe("explainPrescription: at home", () => {
     expect(ids(gym.weight("db_row", "T3"))).not.toContain("dumbbell-limit");
   });
 
-  it("a pass at home last time is named as the dumbbell step", () => {
+  // 2026-11-15 (H1): a home session progresses the home exercise's own weight and holds
+  // the barbell lift; it used to add the dumbbell step to the barbell weight.
+  it("a home session last time holds the barbell lift", () => {
     const sim = simOf({ location: "home" });
     const trace = next(sim).weight("squat", "T1");
     expect(byId(trace, "last-session").detail).toContain("with dumbbells at home.");
     expect(byId(trace, "progression")).toMatchObject({
-      detail: "A pass at home adds your dumbbell step.",
-      effect: { op: "add", value: sim.settings.equipment.dumbbellIncrementLbs, unit: "lb" },
+      detail: "A held lift is neither a pass nor a miss: the weight stays.",
+      effect: { op: "none", unit: "lb" },
     });
+    expect(trace.result).toBe(190);
   });
 
   it("a lift that already works at home has no conversion step", () => {

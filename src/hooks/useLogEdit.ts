@@ -51,13 +51,15 @@ export interface DerivedCheck {
   rebuild: () => Promise<void>;
 }
 
-/** Lift-state and e1RM rows a diff would add, change or remove. */
+/** Lift-state, e1RM and home-exercise rows a diff would add, change or remove. */
 export function countDifferences(diff: DerivedDiff): number {
   return (
     diff.liftStatesToPut.length +
     diff.liftStateIdsToDelete.length +
     diff.e1rmsToPut.length +
-    diff.e1rmIdsToDelete.length
+    diff.e1rmIdsToDelete.length +
+    (diff.variantStatesToPut?.length ?? 0) +
+    (diff.variantStateIdsToDelete?.length ?? 0)
   );
 }
 
