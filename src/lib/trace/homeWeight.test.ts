@@ -5,7 +5,7 @@ import { day, t1Session } from "@/lib/strength/testHelpers";
 import { seedVariantState, variantKey } from "@/lib/workout/variant";
 import type { VariantState } from "@/types";
 import { applySteps } from "./replay";
-import { homeWeightSteps } from "./homeWeight";
+import { capNextStep, homeWeightSteps } from "./homeWeight";
 import type { PlanEntry, TraceContext } from "./types";
 
 const equipment = { ...DEFAULT_USER_PROFILE.settings.equipment, maxDumbbellWeight: 80 };
@@ -91,6 +91,29 @@ describe("homeWeightSteps", () => {
     expect(homeWeightSteps(entry(below), context({ home: { variantStates: [below] } })).some((s) => s.title === "At the dumbbell cap")).toBe(false);
   });
 
+  it("says how the first weight was seeded, for every seed source", () => {
+    const own = (seed: VariantState["seed"]) => {
+      const v = variant({ seed });
+      return homeWeightSteps(entry(v), context({ home: { variantStates: [v] } }))[0].detail;
+    };
+    expect(own({ source: "estimate", barbellWeight: 245, ratio: 0.78, estimate: 262, targetReps: 3 })).toContain(
+      "It started from your squat strength estimate, 262, at 0.78 of it: the heaviest for 3 reps."
+    );
+    expect(own({ source: "ratio", barbellWeight: 245, ratio: 0.7 })).toContain(
+      "It started at 0.70 of the program's 245 barbell weight (the exercise's starting ratio)."
+    );
+    expect(own({ source: "conversion", barbellWeight: 245 })).toContain(
+      "It started from the program's 245 barbell weight, converted to dumbbells (80%)."
+    );
+    expect(own({ source: "harderVariant", barbellWeight: 245, fromVariantId: "squat|goblet_squat|T1" })).toContain(
+      "It started here when Goblet Squat reached the heaviest dumbbell, at a load no lighter."
+    );
+    // A seed that asked for more than the heaviest dumbbell says so.
+    expect(own({ source: "ratio", barbellWeight: 300, ratio: 0.7, cappedFrom: 105 })).toContain(
+      "That asked for 105, so it started at your heaviest dumbbell."
+    );
+  });
+
   it("says which re-entry rule decided back at the gym, and skips the step when none is given", () => {
     const e: PlanEntry = { ...entry(variant()), substituteExerciseId: undefined, variantId: undefined, weight: 215 };
     const gym = context({ location: "gym" });
@@ -104,5 +127,39 @@ describe("homeWeightSteps", () => {
     expect(step.detail).toContain("The estimate is the smaller, so it decides.");
     expect(step.ruleId).toBe("strength-pooling");
     expect(applySteps([step]).lb).toBe(215);
+  });
+});
+
+describe("capNextStep", () => {
+  const at = (exerciseId: string, weight: number, tier: "T1" | "T2" | "T3" = "T1") => ({
+    liftId: "squat",
+    exerciseId,
+    tier,
+    weight,
+    perHand: exerciseId !== "goblet_squat",
+  });
+
+  it("moves a capped exercise to its harder variant when the dumbbells give it a load no lighter", () => {
+    expect(capNextStep(at("goblet_squat", 80), equipment)).toEqual({
+      policy: "harderVariant",
+      exerciseId: "bulgarian_split_squat",
+    });
+  });
+
+  it("adds reps when there is no harder variant", () => {
+    expect(capNextStep(at("bulgarian_split_squat", 80), equipment)).toEqual({ policy: "reps", reps: 1 });
+    expect(capNextStep(at("bulgarian_split_squat", 80, "T2"), equipment)).toEqual({ policy: "reps", reps: 2 });
+  });
+
+  it("adds reps when the harder variant could not be loaded as heavy", () => {
+    // A goblet squat with one 80 lb dumbbell needs 40 a hand on the split squat: more than 35.
+    expect(capNextStep(at("goblet_squat", 80), { ...equipment, maxDumbbellWeight: 35 })).toEqual({
+      policy: "reps",
+      reps: 1,
+    });
+  });
+
+  it("keeps T3 at as many reps as you can", () => {
+    expect(capNextStep(at("bulgarian_split_squat", 80, "T3"), equipment)).toEqual({ policy: "none" });
   });
 });
