@@ -1,8 +1,10 @@
 // Pure helpers for the Today and Coming up screens: display names, the date line,
 // photo framing and the one-line reason under each lift. No React, no database.
-import type { Tier, WorkoutSession } from "@/types";
-import { formatLbs, shortLiftName } from "./format";
+import type { EquipmentProfile, Tier, WorkoutSession } from "@/types";
+import { EXERCISES } from "@/lib/exercises";
 import { isMainLift } from "@/lib/liftNames";
+import { capNextStep, type CapNext } from "@/lib/trace/homeWeight";
+import { formatLbs, shortLiftName } from "./format";
 
 /** Plain names for lifts whose stored name is an abbreviation. */
 const PLAIN_NAME: Record<string, string> = {
@@ -113,10 +115,14 @@ export function nameInSentence(exerciseId: string): string {
   return [keep ? first : first.toLowerCase(), ...rest].join(" ");
 }
 
-/** How today's weight compares with the last finished workout that had the lift at this tier. */
+/**
+ * How today's weight compares with the last finished workout that had the lift at this
+ * tier. "capped": held at the heaviest dumbbell, with what a pass does there instead.
+ */
 export type LiftReason =
   | { kind: "up" | "down"; change: number; from: number }
   | { kind: "held"; weight: number }
+  | { kind: "capped"; weight: number; next: CapNext }
   | { kind: "first" };
 
 export interface ReasonEntry {
@@ -168,6 +174,41 @@ export function liftReason(
   return { kind: "first" };
 }
 
+/**
+ * A held home weight that is the heaviest dumbbell says so, with the cap policy's next
+ * step (`capNextStep`: the harder exercise, or more reps a set). Any other reason, and
+ * any lift not done as a home exercise, is returned as it is.
+ */
+export function atDumbbellCap(
+  entry: ReasonEntry & { perHand?: boolean },
+  reason: LiftReason,
+  equipment: Pick<EquipmentProfile, "maxDumbbellWeight" | "dumbbellIncrementLbs">
+): LiftReason {
+  if (reason.kind !== "held" || !entry.substituteExerciseId) return reason;
+  if (entry.tier !== "T1" && entry.tier !== "T2" && entry.tier !== "T3") return reason;
+  if (entry.weight < equipment.maxDumbbellWeight) return reason;
+  const next = capNextStep(
+    {
+      liftId: entry.exerciseId,
+      exerciseId: entry.substituteExerciseId,
+      tier: entry.tier,
+      weight: entry.weight,
+      perHand: entry.perHand ?? EXERCISES[entry.substituteExerciseId]?.grip === "per_hand",
+    },
+    equipment
+  );
+  return { kind: "capped", weight: reason.weight, next };
+}
+
+/** "A pass adds 1 rep a set", "A pass moves to Bulgarian split squat"; null when not capped. */
+export function capNextText(reason: LiftReason): string | null {
+  if (reason.kind !== "capped") return null;
+  const { next } = reason;
+  if (next.policy === "harderVariant") return `A pass moves to ${nameInSentence(next.exerciseId)}`;
+  if (next.policy === "reps") return `A pass adds ${next.reps} ${next.reps === 1 ? "rep" : "reps"} a set`;
+  return "The last set asks for as many reps as you can";
+}
+
 /** The reason as plain text, e.g. "▲ 10 from 205", "Held at 65", "First time". */
 export function reasonText(reason: LiftReason): string {
   switch (reason.kind) {
@@ -177,6 +218,8 @@ export function reasonText(reason: LiftReason): string {
       return `▼ ${formatLbs(reason.change)} from ${formatLbs(reason.from)}`;
     case "held":
       return `Held at ${formatLbs(reason.weight)}`;
+    case "capped":
+      return `Held at ${formatLbs(reason.weight)}, your heaviest dumbbell`;
     case "first":
       return "First time";
   }

@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { makeSet, makeWorkout } from "@/lib/data/testUtils";
 import { getExerciseMedia } from "@/lib/exerciseMedia";
 import { HOME_SUBSTITUTE_CHAINS } from "@/lib/exercises";
 import {
+  atDumbbellCap,
+  capNextText,
   dayName,
   displayLiftName,
   formatEyebrowDate,
@@ -207,5 +210,40 @@ describe("liftReason", () => {
       ],
     });
     expect(reasonText(liftReason(home, [homeBefore]))).toBe("Held at 50");
+  });
+});
+
+describe("atDumbbellCap", () => {
+  const equipment = DEFAULT_USER_PROFILE.settings.equipment; // heaviest dumbbell 80, steps of 5
+  const held = { kind: "held" as const, weight: 80 };
+  const bss = {
+    exerciseId: "squat",
+    substituteExerciseId: "bulgarian_split_squat",
+    tier: "T1" as const,
+    weight: 80,
+    perHand: true,
+  };
+
+  it("says a held home weight is the heaviest dumbbell, and what a pass does instead", () => {
+    const reason = atDumbbellCap(bss, held, equipment);
+    expect(reason).toEqual({ kind: "capped", weight: 80, next: { policy: "reps", reps: 1 } });
+    expect(reasonText(reason)).toBe("Held at 80, your heaviest dumbbell");
+    expect(capNextText(reason)).toBe("A pass adds 1 rep a set");
+  });
+
+  it("names the harder exercise when the cap policy moves on", () => {
+    const goblet = { ...bss, substituteExerciseId: "goblet_squat", perHand: false };
+    const reason = atDumbbellCap(goblet, held, equipment);
+    expect(capNextText(reason)).toBe("A pass moves to Bulgarian split squat");
+  });
+
+  it("leaves every other reason alone", () => {
+    expect(atDumbbellCap({ ...bss, weight: 75 }, { kind: "held", weight: 75 }, equipment)).toEqual({ kind: "held", weight: 75 });
+    const up = { kind: "up" as const, change: 5, from: 75 };
+    expect(atDumbbellCap(bss, up, equipment)).toBe(up);
+    // At the gym nothing is capped by a dumbbell.
+    const barbell = { exerciseId: "squat", tier: "T1" as const, weight: 80 };
+    expect(atDumbbellCap(barbell, held, equipment)).toBe(held);
+    expect(capNextText(held)).toBeNull();
   });
 });
