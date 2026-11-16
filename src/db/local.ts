@@ -2,7 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type {
   WorkoutSession, RunLog, ActivityLog, BodyweightLog,
   FavoriteWorkout, PainSorenessEntry, Estimated1RM, LiftState, UserProfile, ReadinessLog, LiftAdjustment,
-  HealthDailyLog, Forecast, CoachEvent
+  HealthDailyLog, Forecast, CoachEvent, VariantState
 } from '@/types';
 
 /** The current database. A fresh name: the schema started clean on 12 Nov 2026. */
@@ -31,6 +31,8 @@ export class RecompDatabase extends Dexie {
   // Projections of the log: written only by applyRebuild (src/lib/data/derived.ts).
   liftStates!: Table<LiftState>;
   estimated1RMs!: Table<Estimated1RM>;
+  /** Home exercises' own weights and progression. Local only: never synced. */
+  variantStates!: Table<VariantState>;
 
   constructor() {
     super(DATABASE_NAME);
@@ -56,6 +58,10 @@ export class RecompDatabase extends Dexie {
     this.version(3).stores({
       forecasts: 'id, clientId, slot, kind, workoutId, exerciseId, madeAt',
       coachEvents: 'id, clientId, at, kind',
+    });
+    // 15 Nov 2026: home exercises' own states, derived like liftStates. Only the new table.
+    this.version(4).stores({
+      variantStates: 'id, liftId',
     });
   }
 }

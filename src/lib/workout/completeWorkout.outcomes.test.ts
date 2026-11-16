@@ -136,7 +136,14 @@ describe("computeCompletion outcomes", () => {
 
   it("is additive: the lift-state updates and the session patch are what they were", () => {
     const { result } = run();
-    expect(Object.keys(result).sort()).toEqual(["liftStateUpdates", "outcomes", "sessionPatch"]);
+    // 2026-11-15: the home exercises' updates and outcomes were added beside them.
+    expect(Object.keys(result).sort()).toEqual([
+      "liftStateUpdates",
+      "outcomes",
+      "sessionPatch",
+      "variantOutcomes",
+      "variantStateUpdates",
+    ]);
     expect(result.liftStateUpdates.map((ls) => ls.exerciseId)).toEqual(["squat", "bench"]);
   });
 

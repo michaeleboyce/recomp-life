@@ -3,9 +3,11 @@ import type {
   EquipmentProfile,
   LiftState,
   PlanEdit,
+  PlannedSet,
   SetLog,
   Tier,
   UserSettings,
+  VariantState,
   WorkoutLocation,
   WorkoutSession,
   WorkoutTemplate,
@@ -23,6 +25,21 @@ export interface WorkoutExerciseState {
   isAMRAP: boolean;
   isWarmUp: boolean;
   completedSets: number;
+  /**
+   * Each set's own weight and rep target, in order, when they differ (a ramp, a back-off
+   * set). Absent: every set is `targetReps` at `weight`, as always. When present,
+   * `targetSets` is its length and `weight` and `targetReps` are its heaviest working set.
+   */
+  perSet?: PlannedSet[];
+  /** At home: the id of the variant state this entry's weight and scheme come from. */
+  variantId?: string;
+  /** At home: true when `weight` is per hand (two dumbbells), false for one dumbbell. */
+  perHand?: boolean;
+  /**
+   * At home: the weight the plan asked for when `weight` is capped at the heaviest
+   * dumbbell (a borderline or over-the-limit conversion, or a lower limit set since).
+   */
+  cappedFrom?: number;
 }
 
 export type WorkoutPlan = WorkoutExerciseState[];
@@ -52,6 +69,13 @@ export interface BuildPlanInput {
    * the program's.
    */
   edits?: PlanEdit[];
+  /**
+   * The home exercises' own states (`rebuildDerived().variantStates`). At home each
+   * program lift is planned from its current variant's weight and scheme; a lift with
+   * no variant yet is seeded from today's conversion (`seedVariantWeight`), so leaving
+   * this out plans exactly what the conversion gives. Ignored at the gym.
+   */
+  variantStates?: VariantState[];
 }
 
 export interface RehydratedPlan {
@@ -90,11 +114,22 @@ export interface CompletionInput {
   currentExerciseIndex: number;
   workoutStartTime: Date | null;
   now: Date;
+  /**
+   * The home exercises' states going in. A home session progresses these, not the lift
+   * states; a variant performed for the first time is seeded as the plan seeded it.
+   */
+  variantStates?: VariantState[];
 }
 
 export interface CompletionResult {
   /** Full replacement rows for every lift state that changed, already `synced: false`. */
   liftStateUpdates: LiftState[];
+  /**
+   * Full replacement rows for every variant state that changed or was created: the
+   * variants performed at home, the one a cap policy moved to, and the variants whose
+   * steps earned at home were used up by a session of the barbell lift itself.
+   */
+  variantStateUpdates: VariantState[];
   sessionPatch: {
     completedAt: Date;
     totalDurationSeconds: number;

@@ -5,6 +5,7 @@ import type {
   SetLog,
   Tier,
   UserSettings,
+  VariantState,
   WorkoutLocation,
   WorkoutSession,
   WorkoutTemplate,
@@ -53,6 +54,8 @@ export interface ProjectUpcomingInput {
   settings: UserSettings;
   /** Timestamp given to every simulated workout, so the result is deterministic. */
   now: Date;
+  /** The home exercises' states; at home each lift is planned from its own. */
+  variantStates?: VariantState[];
 }
 
 export interface SimulateCompletedWorkoutInput {
@@ -62,6 +65,8 @@ export interface SimulateCompletedWorkoutInput {
   settings: UserSettings;
   location: WorkoutLocation;
   now: Date;
+  /** The home exercises' states going in. */
+  variantStates?: VariantState[];
 }
 
 /**
@@ -71,7 +76,19 @@ export interface SimulateCompletedWorkoutInput {
  * included. Warm-ups and accessories are not logged: neither changes lift state.
  */
 export function simulateCompletedWorkout(input: SimulateCompletedWorkoutInput): LiftState[] {
+  return simulateCompletedWorkoutStates(input).liftStates;
+}
+
+/**
+ * `simulateCompletedWorkout` with the home exercises' states too: at home the plan's
+ * home exercises progress, not the lift states.
+ */
+export function simulateCompletedWorkoutStates(input: SimulateCompletedWorkoutInput): {
+  liftStates: LiftState[];
+  variantStates: VariantState[];
+} {
   const { template, plan, liftStates, settings, location, now } = input;
+  const variantStates = input.variantStates ?? [];
   const sets: SetLog[] = [];
   for (const entry of plan) {
     if (entry.isWarmUp || entry.tier === "accessory") continue;
@@ -108,7 +125,7 @@ export function simulateCompletedWorkout(input: SimulateCompletedWorkoutInput): 
     synced: false,
   };
 
-  const { liftStateUpdates } = computeCompletion({
+  const { liftStateUpdates, variantStateUpdates } = computeCompletion({
     session,
     plan,
     sets,
@@ -118,9 +135,15 @@ export function simulateCompletedWorkout(input: SimulateCompletedWorkoutInput): 
     currentExerciseIndex: plan.length,
     workoutStartTime: null,
     now,
+    variantStates,
   });
   const updated = new Map(liftStateUpdates.map((ls) => [ls.exerciseId, ls]));
-  return liftStates.map((ls) => updated.get(ls.exerciseId) ?? ls);
+  const variants = new Map(variantStates.map((v) => [v.id, v]));
+  for (const update of variantStateUpdates) variants.set(update.id, update);
+  return {
+    liftStates: liftStates.map((ls) => updated.get(ls.exerciseId) ?? ls),
+    variantStates: [...variants.values()],
+  };
 }
 
 function toEntries(plan: WorkoutPlan, advanced: Set<string>): UpcomingEntry[] {
@@ -154,7 +177,7 @@ export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWo
     completedWorkouts,
     templates,
     liftStates: input.liftStates,
-    plan: planOptions,
+    plan: { ...planOptions, variantStates: input.variantStates },
   });
 
   const advanced = new Set<string>();
@@ -164,15 +187,17 @@ export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWo
 
   let previous = first;
   let liftStates = input.liftStates;
+  let variantStates = input.variantStates ?? [];
   while (result.length < count) {
-    liftStates = simulateCompletedWorkout({
+    ({ liftStates, variantStates } = simulateCompletedWorkoutStates({
       template: previous.template,
       plan: previous.plan,
       liftStates,
       settings,
       location,
       now,
-    });
+      variantStates,
+    }));
     for (const e of previous.plan) {
       if (!e.isWarmUp && (e.tier === "T1" || e.tier === "T2")) {
         advanced.add(`${e.exerciseId}:${e.tier}`);
@@ -181,7 +206,7 @@ export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWo
     const templateId = getNextWorkoutId(previous.templateId);
     const template = templates[templateId];
     if (!template) throw new Error(`Workout template not found: ${templateId}`);
-    const plan = buildWorkoutPlan({ ...planOptions, template, liftStates });
+    const plan = buildWorkoutPlan({ ...planOptions, template, liftStates, variantStates });
     result.push({ templateId, template, plan, entries: toEntries(plan, advanced), projected: true });
     previous = { templateId, template, plan };
   }

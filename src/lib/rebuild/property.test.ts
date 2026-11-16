@@ -13,6 +13,7 @@ import {
   progressionView,
   rebuildInput,
   runSession,
+  sortedVariants,
   startSim,
 } from "./testHelpers";
 
@@ -65,10 +66,17 @@ function settingsAt(index: number): UserSettings {
       equipment: { ...SETTINGS.equipment, gymBarbellIncrementLbs: 2.5 },
     };
   }
+  // Lighter dumbbells late on (2026-11-15): a rebuild must use the heaviest dumbbell
+  // stored with each session, not today's.
   return {
     ...SETTINGS,
     trainingPhase: { ...SETTINGS.trainingPhase, mode: "maintaining" },
-    equipment: { ...SETTINGS.equipment, gymBarbellIncrementLbs: 10, dumbbellIncrementLbs: 2.5 },
+    equipment: {
+      ...SETTINGS.equipment,
+      gymBarbellIncrementLbs: 10,
+      dumbbellIncrementLbs: 2.5,
+      maxDumbbellWeight: 60,
+    },
   };
 }
 
@@ -122,6 +130,11 @@ describe("finish equals rebuild (E2)", () => {
       );
       const last = s.workouts[s.workouts.length - 1];
       expect(progressionView(result.snapshots.get(last.id)!)).toEqual(progressionView(s.states));
+      // The home exercises' states too.
+      expect(result.variantStates, `seed ${seed}, workout ${index + 1}`).toEqual(
+        sortedVariants(s.variants)
+      );
+      expect(result.variantSnapshots.get(last.id)).toEqual(sortedVariants(s.variants));
       // The same estimates the live path wrote while logging.
       expect(result.e1rms.map((row) => [row.setId, row.exerciseId, row.estimated1RM, row.date])).toEqual(
         s.e1rms.map((row) => [row.id.replace("live-", ""), row.exerciseId, row.estimated1RM, row.date])
@@ -166,12 +179,15 @@ describe("finish equals rebuild (E2)", () => {
     expect(second).toEqual(first);
     expect([...second.snapshots.entries()]).toEqual([...first.snapshots.entries()]);
 
+    // The home exercises' states are compared too (added with them, 2026-11-15).
     const diff = diffDerived(first, second);
     expect(diff).toEqual({
       liftStatesToPut: [],
       liftStateIdsToDelete: [],
       e1rmsToPut: [],
       e1rmIdsToDelete: [],
+      variantStatesToPut: [],
+      variantStateIdsToDelete: [],
       consistent: true,
     });
 

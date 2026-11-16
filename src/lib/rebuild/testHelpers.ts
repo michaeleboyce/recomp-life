@@ -6,6 +6,7 @@ import { roundToNearest5 } from "@/lib/progression";
 import { buildWorkoutPlan } from "@/lib/workout/buildPlan";
 import { computeCompletion } from "@/lib/workout/completeWorkout";
 import { createSetLog } from "@/lib/workout/logSet";
+import { prescribedFor as planPrescribedFor } from "@/lib/workout/planEdits";
 import { getPrescription } from "@/lib/workout/prescription";
 import { SETTINGS, makeSession, seedLiftStates } from "@/lib/workout/testFixtures";
 import { WORKOUT_ROTATION, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
@@ -17,6 +18,7 @@ import type {
   PrescribedEntry,
   SetLog,
   UserSettings,
+  VariantState,
   WorkoutLocation,
   WorkoutSession,
 } from "@/types";
@@ -52,12 +54,16 @@ export interface SessionOptions {
   t1?: TierOutcome;
   t2?: TierOutcome;
   t3?: TierOutcome;
+  /** At home: store the home exercises' prescription (default true, as the live app). */
+  storeHome?: boolean;
 }
 
 export interface Sim {
   settings: UserSettings;
   /** Lift states kept incrementally, as the live app stores them. */
   states: LiftState[];
+  /** Home exercises' states kept incrementally the same way. */
+  variants: VariantState[];
   workouts: WorkoutSession[];
   adjustments: LiftAdjustment[];
   /** e1RM rows as the live app writes them while logging. */
@@ -99,6 +105,7 @@ export function startSim(settings: UserSettings = SETTINGS): Sim {
   return {
     settings,
     states: seedLiftStates(),
+    variants: [],
     workouts: [],
     adjustments: startAdjustments(),
     e1rms: [],
@@ -162,13 +169,21 @@ export function runSession(sim: Sim, options: SessionOptions = {}): WorkoutSessi
   const startedAt = options.startedAt ?? nextStart(sim);
   const { settings } = sim;
 
+  // At home the stored prescription also records each lift's home exercise, as the
+  // live app does when it plans from the variant states.
+  const home =
+    location === "home" && options.storeHome !== false
+      ? { variantStates: sim.variants, equipment: settings.equipment }
+      : undefined;
   const session = makeSession({
     id: `w${index + 1}`,
     clientId: `w${index + 1}`,
     templateId,
     location,
     startedAt,
-    prescribed: prescribedFor(templateId, sim.states),
+    prescribed: home
+      ? planPrescribedFor(template, sim.states, home)
+      : prescribedFor(templateId, sim.states),
   });
   const plan = buildWorkoutPlan({
     template,
@@ -177,6 +192,7 @@ export function runSession(sim: Sim, options: SessionOptions = {}): WorkoutSessi
     equipment: settings.equipment,
     includeWarmUps: false,
     selectedAccessories: [],
+    variantStates: sim.variants,
   });
 
   const sets: SetLog[] = [];
@@ -253,10 +269,14 @@ export function runSession(sim: Sim, options: SessionOptions = {}): WorkoutSessi
     currentExerciseIndex: plan.length,
     workoutStartTime: startedAt,
     now: new Date(clock + 5 * MINUTE),
+    variantStates: sim.variants,
   });
 
   const updated = new Map(result.liftStateUpdates.map((ls) => [ls.exerciseId, ls]));
   sim.states = sim.states.map((ls) => updated.get(ls.exerciseId) ?? ls);
+  const variants = new Map(sim.variants.map((v) => [v.id, v]));
+  for (const v of result.variantStateUpdates) variants.set(v.id, v);
+  sim.variants = [...variants.values()];
 
   const finished: WorkoutSession = {
     ...session,
@@ -265,6 +285,7 @@ export function runSession(sim: Sim, options: SessionOptions = {}): WorkoutSessi
       phaseMode: settings.trainingPhase.mode,
       gymBarbellIncrementLbs: settings.equipment.gymBarbellIncrementLbs,
       dumbbellIncrementLbs: settings.equipment.dumbbellIncrementLbs,
+      maxDumbbellWeight: settings.equipment.maxDumbbellWeight,
     },
   };
   sim.workouts.push(finished);
@@ -295,6 +316,17 @@ export function progressionView(states: LiftState[]): Record<string, Record<stri
     view[ls.exerciseId] = Object.fromEntries(PROGRESSION_FIELDS.map((f) => [f, ls[f]]));
   }
   return view;
+}
+
+/** Variant states sorted by id, as the rebuild returns them. */
+export function sortedVariants(variants: VariantState[]): VariantState[] {
+  return [...variants].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+
+export function variantOf(variants: VariantState[], id: string): VariantState {
+  const state = variants.find((v) => v.id === id);
+  if (!state) throw new Error(`No variant state ${id}`);
+  return state;
 }
 
 export function stateOf(states: LiftState[], exerciseId: string): LiftState {

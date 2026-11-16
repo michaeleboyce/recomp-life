@@ -263,7 +263,9 @@ describe("computeCompletion credits each lift on its own", () => {
     expect(added.changed).toEqual(plain.changed);
   });
 
-  it("a home substitute still credits the program lift", () => {
+  // 2026-11-15 (strength model): the credit now goes to the home exercise's own state
+  // (`variantStateUpdates`), not to the barbell lift's (`liftStateUpdates`).
+  it("a home substitute still earns credit: its own state progresses", () => {
     const liftStates = seedLiftStates();
     const session = makeSession({
       location: "home",
@@ -284,7 +286,9 @@ describe("computeCompletion credits each lift on its own", () => {
       workoutStartTime: NOW,
       now: NOW,
     });
-    expect(result.liftStateUpdates.map((ls) => ls.exerciseId)).toContain("bench");
+    expect(result.liftStateUpdates.map((ls) => ls.exerciseId)).not.toContain("bench");
+    expect(result.variantStateUpdates.map((v) => v.id)).toContain("bench|db_bench|T2");
+    expect(result.variantOutcomes.find((o) => o.liftId === "bench")?.kind).toBe("passed");
   });
 
   it("correcting finished sets to below the prescription removes the lift's credit", () => {

@@ -19,6 +19,7 @@ export {
   useLastNightSleep,
   useLiftAdjustments,
 } from "./useRecords";
+export { useVariantStates } from "./useVariantStates";
 export { useForecasts } from "./useForecasts";
 export { useCoachEvents } from "./useCoachEvents";
 export { useAdjustmentFeed, type AdjustmentFeed } from "./useAdjustmentFeed";

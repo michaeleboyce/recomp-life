@@ -9,3 +9,4 @@ export * from "./upcoming";
 export * from "./planEdits";
 export * from "./credit";
 export * from "./duration";
+export * from "./variant";

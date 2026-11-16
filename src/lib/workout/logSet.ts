@@ -1,18 +1,40 @@
 import type { SetLog } from "@/types";
+import { isWorkingSet } from "./setSelectors";
 import type { CreateSetLogInput, NextStep, WorkoutExerciseState, WorkoutPlan } from "./types";
 
-/** True when the next set of this entry is its AMRAP set (the last set of an AMRAP entry). */
+/**
+ * True when the next set of this entry is its AMRAP set: the last set of an AMRAP entry,
+ * or with per-set weights its last working set (a back-off set after it is not).
+ */
 export function isNextSetAMRAP(exercise: WorkoutExerciseState): boolean {
-  return exercise.isAMRAP && exercise.completedSets + 1 === exercise.targetSets;
+  if (!exercise.isAMRAP) return false;
+  const index = exercise.completedSets;
+  if (exercise.perSet) {
+    const lastWorking = exercise.perSet.reduce(
+      (last, set, i) => (isWorkingSet(set) ? i : last),
+      -1
+    );
+    return index === lastWorking;
+  }
+  return index + 1 === exercise.targetSets;
 }
 
 /**
  * The SetLog for the next set of `exercise`. Status is "autoregulated_load_drop" for
  * an accepted T2 drop, otherwise "completed" when reps meet the target, else "failed".
- * `synced` is false and `restAfterSeconds` is 0.
+ * `synced` is false and `restAfterSeconds` is 0. With per-set weights the set takes its
+ * own weight, rep target and role from `perSet` (and a home substitute's program weight
+ * is scaled to it); without, every set is the entry's weight and reps, as always.
  */
 export function createSetLog(input: CreateSetLogInput): SetLog {
   const { exercise, actualReps, rpe, location, autoRegulated, now, id, clientId } = input;
+  const planned = exercise.perSet?.[exercise.completedSets];
+  const weight = planned?.weight ?? exercise.weight;
+  const targetReps = planned?.reps ?? exercise.targetReps;
+  const originalWeight =
+    planned && exercise.originalWeight != null && exercise.weight > 0
+      ? Math.round((exercise.originalWeight * weight) / exercise.weight)
+      : exercise.originalWeight;
 
   return {
     id,
@@ -20,23 +42,24 @@ export function createSetLog(input: CreateSetLogInput): SetLog {
     exerciseId: exercise.exerciseId,
     tier: exercise.tier,
     setNumber: exercise.completedSets + 1,
-    targetReps: exercise.targetReps,
+    targetReps,
     actualReps,
-    weight: exercise.weight,
+    weight,
     isAMRAP: isNextSetAMRAP(exercise),
     completedAt: now,
     restAfterSeconds: 0,
     status:
       autoRegulated && exercise.tier === "T2"
         ? "autoregulated_load_drop"
-        : actualReps >= exercise.targetReps
+        : actualReps >= targetReps
           ? "completed"
           : "failed",
-    originalWeight: exercise.originalWeight,
+    originalWeight,
     isSubstituted: !!exercise.substituteExerciseId,
     substituteExerciseId: exercise.substituteExerciseId,
     rpe: rpe ?? undefined,
     location,
+    ...(planned?.role ? { role: planned.role } : {}),
     synced: false,
   };
 }

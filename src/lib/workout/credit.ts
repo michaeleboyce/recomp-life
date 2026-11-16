@@ -1,6 +1,6 @@
 import { getNextWorkoutId } from "@/lib/workoutTemplates";
 import type { PrescribedEntry, SetLog, SetStatus, Tier, WorkoutSession } from "@/types";
-import { applyPlanEdits } from "./planEdits";
+import { applyPlanEdits, workingTargetSets } from "./planEdits";
 import { workingSetsFor } from "./setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "./types";
 
@@ -26,7 +26,8 @@ export const CREDIT_DECIDING_STATUSES: readonly SetStatus[] = ["completed", "fai
 type CreditEntry = Pick<
   WorkoutExerciseState,
   "exerciseId" | "tier" | "targetSets" | "targetReps" | "weight" | "originalWeight" | "isWarmUp"
->;
+> &
+  Partial<Pick<WorkoutExerciseState, "perSet">>;
 
 /**
  * Whether one plan entry counts toward the program's progression.
@@ -48,6 +49,10 @@ type CreditEntry = Pick<
  * all "program". The answer depends only on the arguments, never on how an edit was
  * made, so replaying a past session gives the same result.
  *
+ * Only working sets count (`workingSetsFor`, `workingTargetSets`): a ramp before them
+ * or a back-off or drop set after them neither changes the scheme nor makes the lift
+ * lighter.
+ *
  * @evidence off-program-credit
  */
 export function classifyEntry(
@@ -62,7 +67,9 @@ export function classifyEntry(
     (p) => p.exerciseId === entry.exerciseId && p.tier === entry.tier
   );
   if (!target) return "logged-only";
-  if (entry.targetSets !== target.sets || entry.targetReps !== target.reps) return "logged-only";
+  if (workingTargetSets(entry) !== target.sets || entry.targetReps !== target.reps) {
+    return "logged-only";
+  }
 
   const required = target.weight * CREDIT_MIN_WEIGHT_RATIO;
   const deciding = workingSetsFor(sets ?? [], entry.exerciseId, entry.tier).filter((set) =>
@@ -99,6 +106,62 @@ export function heavierWeightPerformed(
   );
   if (deciding.length === 0) return null;
   const lightest = Math.min(...deciding.map((set) => set.originalWeight ?? set.weight));
+  return lightest > target.weight ? lightest : null;
+}
+
+/** A home exercise's prescription, in its own weight (as lifted) and scheme. */
+export interface VariantTarget {
+  weight: number;
+  sets: number;
+  reps: number;
+}
+
+/**
+ * `classifyEntry` for a lift done as its home exercise: judged against the exercise's
+ * own prescription (`target`) and by the weight as lifted, not the barbell weight it
+ * stands for. A lift the edits removed, or one done at another scheme or lighter than
+ * the home exercise's prescription, is only logged. Without `prescribed` (a session
+ * from before the rule), always "program".
+ *
+ * @evidence off-program-credit
+ */
+export function classifyVariantEntry(
+  entry: CreditEntry | undefined,
+  target: VariantTarget,
+  prescribed: PrescribedEntry[] | undefined,
+  sets: SetLog[]
+): EntryCredit {
+  if (!prescribed) return "program";
+  if (!entry || entry.isWarmUp) return "logged-only";
+  if (workingTargetSets(entry) !== target.sets || entry.targetReps !== target.reps) {
+    return "logged-only";
+  }
+  const deciding = workingSetsFor(sets, entry.exerciseId, entry.tier).filter((set) =>
+    CREDIT_DECIDING_STATUSES.includes(set.status)
+  );
+  const reached =
+    deciding.length > 0
+      ? deciding.some((set) => set.weight >= target.weight)
+      : entry.weight >= target.weight;
+  return reached ? "program" : "logged-only";
+}
+
+/**
+ * `heavierWeightPerformed` for a home exercise: the lightest deciding working set, as
+ * lifted, when every one of them was heavier than the exercise's prescribed weight.
+ *
+ * @evidence off-program-credit
+ */
+export function heavierVariantWeight(
+  entry: Pick<CreditEntry, "exerciseId" | "tier">,
+  target: Pick<VariantTarget, "weight">,
+  sets: SetLog[]
+): number | null {
+  const deciding = workingSetsFor(sets, entry.exerciseId, entry.tier).filter((set) =>
+    CREDIT_DECIDING_STATUSES.includes(set.status)
+  );
+  if (deciding.length === 0) return null;
+  const lightest = Math.min(...deciding.map((set) => set.weight));
   return lightest > target.weight ? lightest : null;
 }
 

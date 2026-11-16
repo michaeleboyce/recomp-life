@@ -2,6 +2,7 @@ import { toRecentE1RMSeries } from "@/lib/e1rm";
 import { buildWorkoutPlan, overridesFromSession } from "@/lib/workout/buildPlan";
 import { computeCompletion } from "@/lib/workout/completeWorkout";
 import { T1_STAGE_SCHEME, T2_STAGE_SCHEME } from "@/lib/workout/prescription";
+import { anchorVariant, isVariantTier, seedVariantState, variantKey } from "@/lib/workout/variant";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
   AdjustableField,
@@ -12,6 +13,8 @@ import type {
   T1Stage,
   T2Stage,
   UserSettings,
+  VariantOutcome,
+  VariantState,
   WorkoutSession,
 } from "@/types";
 import { e1rmsForWorkout, sortE1RMs, timeOf } from "./e1rm";
@@ -143,8 +146,12 @@ export function anchorToPrescription(state: LiftState, entry: PrescribedEntry): 
   return state;
 }
 
-/** Current settings with the session's stored completion context laid over them. */
-function settingsFor(settings: UserSettings, session: WorkoutSession): UserSettings {
+/**
+ * Current settings with the session's stored completion context laid over them. The
+ * heaviest dumbbell is the one stored with the session; a session finished before it
+ * was stored is rebuilt with the current setting.
+ */
+export function settingsFor(settings: UserSettings, session: WorkoutSession): UserSettings {
   const context = session.completionContext;
   if (!context) return settings;
   return {
@@ -154,8 +161,57 @@ function settingsFor(settings: UserSettings, session: WorkoutSession): UserSetti
       ...settings.equipment,
       gymBarbellIncrementLbs: context.gymBarbellIncrementLbs,
       dumbbellIncrementLbs: context.dumbbellIncrementLbs,
+      ...(context.maxDumbbellWeight != null
+        ? { maxDumbbellWeight: context.maxDumbbellWeight }
+        : {}),
     },
   };
+}
+
+/** Fresh copies sorted by id, safe to hand out. */
+function sortedVariants(variants: Map<string, VariantState>): VariantState[] {
+  return [...variants.values()]
+    .map((v) => ({ ...v, recentLastSetReps: [...v.recentLastSetReps], seed: { ...v.seed } }))
+    .sort((a, b) => compareStrings(a.id, b.id));
+}
+
+/**
+ * Rule 4 for home exercises: a session that stored a home prescription for a lift takes
+ * it as a fact, so the variant takes the stored weight and scheme before the session is
+ * evaluated. A variant that already exists keeps the anchored values (in `variants`); one
+ * the session would use for the first time is anchored only in the returned map, and is
+ * stored only if the session performed it, as the live app stores it.
+ */
+function anchorHomePrescriptions(
+  variants: Map<string, VariantState>,
+  states: Map<string, LiftState>,
+  session: WorkoutSession,
+  settings: UserSettings
+): Map<string, VariantState> {
+  const forSession = new Map(variants);
+  const template = WORKOUT_TEMPLATES[session.templateId];
+  for (const entry of session.prescribed ?? []) {
+    if (!entry.home || !isVariantTier(entry.tier)) continue;
+    const tier = entry.tier;
+    const id = variantKey(entry.exerciseId, entry.home.exerciseId, tier);
+    const existing = variants.get(id);
+    const going =
+      existing ??
+      seedVariantState({
+        liftId: entry.exerciseId,
+        exerciseId: entry.home.exerciseId,
+        tier,
+        liftState: states.get(entry.exerciseId),
+        equipment: settings.equipment,
+      });
+    const slot = template?.exercises.find(
+      (ex) => ex.exerciseId === entry.exerciseId && ex.tier === tier
+    );
+    const anchored = anchorVariant(going, entry.home, slot ? { sets: slot.sets, reps: slot.reps } : undefined);
+    if (existing) variants.set(id, anchored);
+    forSession.set(id, anchored);
+  }
+  return forSession;
 }
 
 /** Fresh, normalised copies sorted by exerciseId, safe to hand out. */
@@ -206,6 +262,10 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
   const snapshots = new Map<string, LiftState[]>();
   const before = new Map<string, LiftState[]>();
   const outcomes = new Map<string, ProgressionOutcome[]>();
+  // Home exercises: one state per lift, exercise performed and tier, folded alongside.
+  const variants = new Map<string, VariantState>();
+  const variantSnapshots = new Map<string, VariantState[]>();
+  const variantOutcomes = new Map<string, VariantOutcome[]>();
   let nextAdjustment = 0;
 
   for (const session of completed) {
@@ -224,14 +284,17 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
       const state = states.get(entry.exerciseId);
       if (state) states.set(entry.exerciseId, anchorToPrescription(state, entry));
     }
+    const settings = settingsFor(input.settings, session);
+    const sessionVariants = anchorHomePrescriptions(variants, states, session, settings);
     before.set(session.id, sortedStates(states));
 
     let sessionOutcomes: ProgressionOutcome[] = [];
+    let sessionVariantOutcomes: VariantOutcome[] = [];
     const template = WORKOUT_TEMPLATES[session.templateId];
     if (template) {
       // Rule 5.
-      const settings = settingsFor(input.settings, session);
       const anchored = [...states.values()];
+      const variantStates = [...sessionVariants.values()];
       const plan = buildWorkoutPlan({
         template,
         liftStates: anchored,
@@ -241,6 +304,7 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
         selectedAccessories: session.selectedAccessories ?? [],
         overrides: overridesFromSession(session),
         edits: session.planEdits,
+        variantStates,
       });
 
       // Rule 6. The series is what the live app reads at finish: every row that existed
@@ -266,15 +330,20 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
         currentExerciseIndex: plan.length,
         workoutStartTime: new Date(session.startedAt),
         now: new Date(session.completedAt!),
+        variantStates,
       });
       for (const update of completion.liftStateUpdates) {
         states.set(update.exerciseId, normalise(update));
       }
+      for (const update of completion.variantStateUpdates) variants.set(update.id, update);
       sessionOutcomes = completion.outcomes;
+      sessionVariantOutcomes = completion.variantOutcomes;
     }
 
     outcomes.set(session.id, sessionOutcomes);
     snapshots.set(session.id, sortedStates(states));
+    variantOutcomes.set(session.id, sessionVariantOutcomes);
+    variantSnapshots.set(session.id, sortedVariants(variants));
   }
 
   // Rule 8.
@@ -282,5 +351,14 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
     applyAdjustment(states, adjustments[nextAdjustment]);
   }
 
-  return { liftStates: sortedStates(states), e1rms, snapshots, before, outcomes };
+  return {
+    liftStates: sortedStates(states),
+    e1rms,
+    snapshots,
+    before,
+    outcomes,
+    variantStates: sortedVariants(variants),
+    variantSnapshots,
+    variantOutcomes,
+  };
 }

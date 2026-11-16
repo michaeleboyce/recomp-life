@@ -4,11 +4,13 @@ import type { PlanEdit } from "@/types";
 import { buildWorkoutPlan } from "./buildPlan";
 import {
   applyPlanEdits,
+  heaviestWorkingSet,
   pinSnapshot,
   prescribedFor,
   snapshotOfPlan,
   snapshotOfSets,
   structuralEdits,
+  workingTargetSets,
 } from "./planEdits";
 import { EQUIPMENT, makeSets, seedLiftStates } from "./testFixtures";
 import type { WorkoutPlan } from "./types";
@@ -235,5 +237,91 @@ describe("snapshots", () => {
     });
     const replayed = applyPlanEdits(later, pinSnapshot(edits, snapshot));
     expect(snapshotOfPlan(replayed)).toEqual(snapshot);
+  });
+});
+
+describe("per-set weights (H10 data shape)", () => {
+  const rampSets = [
+    { weight: 150, reps: 3, role: "ramp" as const },
+    { weight: 190, reps: 3 },
+    { weight: 190, reps: 3 },
+    { weight: 190, reps: 3 },
+    { weight: 190, reps: 3 },
+    { weight: 190, reps: 3 },
+    { weight: 165, reps: 6, role: "backoff" as const },
+  ];
+  const ramp: PlanEdit = { kind: "setWeights", exerciseId: "squat", tier: "T1", sets: rampSets };
+
+  it("gives each set its own weight and reps; the entry reads as its heaviest working set", () => {
+    const squat = applyPlanEdits(plan(), [ramp])[0];
+    expect(squat).toMatchObject({ targetSets: 7, targetReps: 3, weight: 190 });
+    expect(squat.perSet?.map((s) => s.weight)).toEqual([150, 190, 190, 190, 190, 190, 165]);
+    expect(workingTargetSets(squat)).toBe(5);
+    expect(heaviestWorkingSet(rampSets)).toEqual({ weight: 190, reps: 3 });
+  });
+
+  it("a later scheme or weight edit makes the sets uniform again", () => {
+    const weight = applyPlanEdits(plan(), [
+      ramp,
+      { kind: "weight", exerciseId: "squat", tier: "T1", weight: 185 },
+    ])[0];
+    expect(weight.perSet).toBeUndefined();
+    const scheme = applyPlanEdits(plan(), [
+      ramp,
+      { kind: "scheme", exerciseId: "squat", tier: "T1", sets: 5, reps: 3 },
+    ])[0];
+    expect(scheme.perSet).toBeUndefined();
+    expect(workingTargetSets(scheme)).toBe(5);
+  });
+
+  it("scales a home substitute's program weight to the heaviest working set", () => {
+    const base = plan({ location: "home" });
+    const bench = base.find((e) => e.exerciseId === "bench")!;
+    const edited = applyPlanEdits(base, [
+      {
+        kind: "setWeights",
+        exerciseId: "bench",
+        tier: "T2",
+        sets: [
+          { weight: 30, reps: 10, role: "ramp" },
+          ...Array.from({ length: 3 }, () => ({ weight: bench.weight, reps: 10 })),
+        ],
+      },
+    ]).find((e) => e.exerciseId === "bench")!;
+    expect(edited.originalWeight).toBe(bench.originalWeight);
+    expect(edited.targetSets).toBe(4);
+    expect(workingTargetSets(edited)).toBe(3);
+  });
+
+  it("an entry without a per-set list behaves exactly as before", () => {
+    const squat = plan()[0];
+    expect(squat.perSet).toBeUndefined();
+    expect(workingTargetSets(squat)).toBe(squat.targetSets);
+  });
+});
+
+describe("prescribedFor at home", () => {
+  it("records each home exercise's own prescription, exactly as the plan builds it", () => {
+    const liftStates = seedLiftStates();
+    const prescribed = prescribedFor(WORKOUT_TEMPLATES.A1, liftStates, {
+      variantStates: [],
+      equipment: EQUIPMENT,
+    });
+    const homePlan = plan({ location: "home" });
+    expect(prescribed[0]).toMatchObject({ exerciseId: "squat", weight: 190, sets: 5, reps: 3 });
+    expect(prescribed.map((p) => p.home)).toEqual(
+      homePlan
+        .filter((e) => e.substituteExerciseId)
+        .map((e) => ({
+          exerciseId: e.substituteExerciseId,
+          weight: e.weight,
+          perHand: e.perHand,
+          ...(e.tier === "T1" ? { stage: "5x3" } : e.tier === "T2" ? { stage: "3x10" } : {}),
+          sets: e.targetSets,
+          reps: e.targetReps,
+        }))
+    );
+    // Without the home context (the gym) nothing is added.
+    expect(prescribedFor(WORKOUT_TEMPLATES.A1, liftStates).every((p) => p.home === undefined)).toBe(true);
   });
 });

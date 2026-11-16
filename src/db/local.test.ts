@@ -13,12 +13,12 @@ async function makeLegacyDatabase() {
 }
 
 describe("the local database", () => {
-  it("is one fresh database, at version 3 since forecasts, with no sets table or synced index", async () => {
+  it("is one fresh database, at version 4 since home exercises' states, with no sets table or synced index", async () => {
     const { db, DATABASE_NAME } = await import("./local");
     expect(DATABASE_NAME).toBe("recomp-life-2");
     expect(db.name).toBe("recomp-life-2");
     await db.open();
-    expect(db.verno).toBe(3);
+    expect(db.verno).toBe(4);
 
     const schema = Object.fromEntries(
       db.tables.map((t) => [
@@ -41,7 +41,14 @@ describe("the local database", () => {
       favoriteWorkouts: "id, clientId",
       forecasts: "id, clientId, slot, kind, workoutId, exerciseId, madeAt",
       coachEvents: "id, clientId, at, kind",
+      variantStates: "id, liftId",
     });
+  });
+
+  it("keeps the variant states out of sync: no table of the sync registry names them", async () => {
+    const { SYNC_REGISTRY } = await import("@/lib/sync/registry");
+    expect(SYNC_REGISTRY.map((t) => t.name)).not.toContain("variantStates");
+    expect(SYNC_REGISTRY.map((t) => t.name)).not.toContain("liftStates");
   });
 });
 

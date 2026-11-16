@@ -1,4 +1,4 @@
-import type { Estimated1RM, LiftState } from "@/types";
+import type { Estimated1RM, LiftState, VariantState } from "@/types";
 import type { DerivedDiff, RebuildResult } from "./types";
 
 /**
@@ -45,9 +45,21 @@ function sameRow<T extends { synced: boolean }>(a: T, b: T): boolean {
  * missing or differ are put, stored rows the rebuild no longer produces are deleted.
  */
 export function diffDerived(
-  rebuilt: Pick<RebuildResult, "liftStates" | "e1rms">,
-  stored: { liftStates: LiftState[]; e1rms: Estimated1RM[] }
+  rebuilt: Pick<RebuildResult, "liftStates" | "e1rms"> &
+    Partial<Pick<RebuildResult, "variantStates">>,
+  stored: { liftStates: LiftState[]; e1rms: Estimated1RM[]; variantStates?: VariantState[] }
 ): DerivedDiff {
+  const storedVariants = new Map((stored.variantStates ?? []).map((v) => [v.id, v]));
+  const rebuiltVariants = rebuilt.variantStates ?? [];
+  const variantStatesToPut = rebuiltVariants.filter((v) => {
+    const existing = storedVariants.get(v.id);
+    return !existing || !sameValue(v, existing);
+  });
+  const rebuiltVariantIds = new Set(rebuiltVariants.map((v) => v.id));
+  const variantStateIdsToDelete = [...storedVariants.keys()]
+    .filter((id) => !rebuiltVariantIds.has(id))
+    .sort();
+
   const storedStates = new Map(stored.liftStates.map((ls) => [ls.exerciseId, ls]));
   const liftStatesToPut = rebuilt.liftStates.filter((ls) => {
     const existing = storedStates.get(ls.exerciseId);
@@ -75,10 +87,14 @@ export function diffDerived(
     liftStateIdsToDelete,
     e1rmsToPut,
     e1rmIdsToDelete,
+    variantStatesToPut,
+    variantStateIdsToDelete,
     consistent:
       liftStatesToPut.length === 0 &&
       liftStateIdsToDelete.length === 0 &&
       e1rmsToPut.length === 0 &&
-      e1rmIdsToDelete.length === 0,
+      e1rmIdsToDelete.length === 0 &&
+      variantStatesToPut.length === 0 &&
+      variantStateIdsToDelete.length === 0,
   };
 }

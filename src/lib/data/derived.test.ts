@@ -128,11 +128,14 @@ describe("finish equals rebuild (E2)", () => {
       vi.spyOn(db.estimated1RMs, "bulkDelete"),
     ];
     try {
+      // The home exercises' states are part of the diff since 2026-11-15.
       expect(await applyRebuild()).toEqual({
         liftStatesToPut: [],
         liftStateIdsToDelete: [],
         e1rmsToPut: [],
         e1rmIdsToDelete: [],
+        variantStatesToPut: [],
+        variantStateIdsToDelete: [],
         consistent: true,
       });
       for (const spy of writes) expect(spy).not.toHaveBeenCalled();
@@ -198,6 +201,39 @@ describe("applyRebuild and checkDerived", () => {
   });
 });
 
+describe("home exercises' states (H1)", () => {
+  it("are written with the lift states, local only, and rebuilt when a home workout is deleted", async () => {
+    const { workoutId } = await runSession(
+      { templateId: "A1", location: "home", startedAt: new Date(FIRST) },
+      setNow
+    );
+    const stored = await db.variantStates.toArray();
+    expect(stored.map((v) => [v.id, v.weight, v.current])).toEqual([
+      ["bench|db_bench|T2", 45, true],
+      ["lat_pulldown|db_row|T3", 35, true],
+      ["squat|bulgarian_split_squat|T1", 80, true],
+    ]);
+    // The barbell squat did not move.
+    expect((await db.liftStates.get("squat"))!.t1Weight).toBe(190);
+    expect((await checkDerived()).consistent).toBe(true);
+
+    await db.workouts.update(workoutId, { deletedAt: Date.now() });
+    const diff = await applyRebuild();
+    expect(diff.variantStateIdsToDelete).toHaveLength(3);
+    expect(await db.variantStates.count()).toBe(0);
+  });
+
+  it("checkDerived reports a corrupted variant state and applyRebuild fixes it", async () => {
+    await runSession({ templateId: "A1", location: "home", startedAt: new Date(FIRST) }, setNow);
+    await db.variantStates.update("squat|bulgarian_split_squat|T1", { weight: 999 });
+    const report = await checkDerived();
+    expect(report.consistent).toBe(false);
+    expect(report.variantStatesToPut?.map((v) => v.id)).toEqual(["squat|bulgarian_split_squat|T1"]);
+    await applyRebuild();
+    expect((await db.variantStates.get("squat|bulgarian_split_squat|T1"))!.weight).toBe(80);
+  });
+});
+
 describe("a finished workout is a fact (E3)", () => {
   it("stores prescribed and completionContext, and a later change of phase or increments does not change its outcome", async () => {
     const { workoutId } = await runSession(
@@ -210,10 +246,12 @@ describe("a finished workout is a fact (E3)", () => {
       { exerciseId: "bench", tier: "T2", weight: 100, sets: 3, reps: 10, stage: "3x10" },
       { exerciseId: "lat_pulldown", tier: "T3", weight: 90, sets: 3, reps: 15 },
     ]);
+    // The heaviest dumbbell is stored too since 2026-11-15.
     expect(row.completionContext).toEqual({
       phaseMode: "cutting",
       gymBarbellIncrementLbs: 5,
       dumbbellIncrementLbs: 5,
+      maxDumbbellWeight: 80,
     });
 
     const before = await db.liftStates.toArray();

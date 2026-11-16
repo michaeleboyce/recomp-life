@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { excludeWarmUps, isWarmUpSet, workingSetsFor } from "./setSelectors";
+import {
+  entrySetsFor,
+  excludeWarmUps,
+  isWarmUpSet,
+  isWorkingSet,
+  workingSetsFor,
+} from "./setSelectors";
 import { makeSet } from "./testFixtures";
 
 describe("isWarmUpSet", () => {
@@ -57,6 +63,18 @@ describe("workingSetsFor", () => {
 
   it("returns an empty array when nothing matches", () => {
     expect(workingSetsFor([], "squat", "T1")).toEqual([]);
+  });
+
+  it("leaves out ramp, back-off and drop sets; a set without a role is a working set (H12)", () => {
+    const ramp = makeSet("squat", "T1", { role: "ramp", weight: 150 });
+    const old = makeSet("squat", "T1");
+    const work = makeSet("squat", "T1", { role: "work" });
+    const backoff = makeSet("squat", "T1", { role: "backoff", weight: 160 });
+    const drop = makeSet("squat", "T1", { role: "drop", dropOf: work.id, weight: 150 });
+    const all = [ramp, old, work, backoff, drop];
+    expect(workingSetsFor(all, "squat", "T1")).toEqual([old, work]);
+    expect(entrySetsFor(all, "squat", "T1")).toEqual(all);
+    expect(all.map(isWorkingSet)).toEqual([false, true, true, false, false]);
   });
 });
 

@@ -14,10 +14,25 @@ import type {
   ProgressionOutcome,
   ProgressionOutcomeKind,
   ProgressionOutcomeReason,
+  VariantOutcome,
+  VariantState,
 } from "@/types";
-import { classifyEntry, heavierWeightPerformed } from "./credit";
+import {
+  classifyEntry,
+  classifyVariantEntry,
+  heavierVariantWeight,
+  heavierWeightPerformed,
+} from "./credit";
+import { workingTargetSets } from "./planEdits";
 import { workingSetsFor } from "./setSelectors";
 import type { CompletionInput, CompletionResult } from "./types";
+import {
+  evaluateVariant,
+  seedVariantState,
+  unchangedVariantOutcome,
+  variantKey,
+  variantScheme,
+} from "./variant";
 
 /** How many entries each tracking array keeps. */
 const TRACKING_WINDOW = 5;
@@ -68,10 +83,26 @@ export interface CompletionWithOutcomes extends CompletionResult {
    * One outcome per T1, T2 and T3 lift of the template that has a lift state, in
    * template order, including the lifts that were not done, were stopped part-way or
    * were only logged. `from` is the lift as it stood going in (what was prescribed),
-   * `to` is the lift as it stands afterwards.
+   * `to` is the lift as it stands afterwards. A lift done as a home exercise is "held"
+   * with no reason (or "partial", "loggedOnly", or held for pain, a run or equipment):
+   * its barbell weight does not move at home.
    */
   outcomes: ProgressionOutcome[];
+  /**
+   * One outcome per lift done (or planned) as a home exercise, in template order: what
+   * the program rules did to that exercise's own weight and scheme.
+   */
+  variantOutcomes: VariantOutcome[];
 }
+
+/** Variant outcome kinds that leave the barbell lift "held": the home exercise was evaluated. */
+const EVALUATED_KINDS: ReadonlySet<ProgressionOutcomeKind> = new Set([
+  "passed",
+  "stageDown",
+  "reset",
+  "t3Up",
+  "t3Same",
+]);
 
 /**
  * The outcome of a lift that was evaluated from a heavier weight than prescribed: it
@@ -109,6 +140,16 @@ function fromPrescribed(
  * The outcomes are a by-product of the same branches that produce the lift states, so
  * they cannot say something the states do not.
  *
+ * Pass or fail is judged on working sets only (`workingSetsFor`): ramp, back-off and
+ * drop sets never turn a pass into a fail.
+ *
+ * At home, a lift done as its home exercise (its working sets name a substitute)
+ * progresses that exercise's own variant state (`evaluateVariant`), credited against the
+ * exercise's own prescription; the lift state is left exactly as it was, and the session
+ * still counts for the rotation. A variant used for the first time is seeded as the plan
+ * seeded it (`seedVariantState`). A lift done at its own tier as the barbell lift uses up
+ * the steps its home exercises earned (`passesSinceGym` back to 0).
+ *
  * @evidence off-program-credit
  * @evidence t3-progression
  */
@@ -120,6 +161,17 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
   const current = new Map<string, LiftState>(liftStates.map((ls) => [ls.exerciseId, ls]));
   const changed: string[] = [];
   const outcomes: ProgressionOutcome[] = [];
+
+  // The same for variant states.
+  const variants = new Map<string, VariantState>(
+    (input.variantStates ?? []).map((v) => [v.id, v])
+  );
+  const changedVariants: string[] = [];
+  const variantOutcomes: VariantOutcome[] = [];
+  const putVariant = (state: VariantState) => {
+    variants.set(state.id, state);
+    if (!changedVariants.includes(state.id)) changedVariants.push(state.id);
+  };
 
   const template = WORKOUT_TEMPLATES[session.templateId];
 
@@ -147,17 +199,91 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
     };
 
     const exerciseSets = workingSetsFor(sets, templateEx.exerciseId, templateEx.tier);
-    if (exerciseSets.length === 0) {
-      unchanged("notDone");
-      continue;
-    }
-
     const planEntry = plan.find(
       (entry) =>
         entry.exerciseId === templateEx.exerciseId &&
         entry.tier === templateEx.tier &&
         !entry.isWarmUp
     );
+    const t3Scheme = { sets: templateEx.sets, reps: templateEx.reps };
+    /** The variant a home entry reads: stored, or seeded the way the plan seeded it. */
+    const variantFor = (exerciseId: string): VariantState =>
+      variants.get(variantKey(templateEx.exerciseId, exerciseId, outcomeTier)) ??
+      seedVariantState({
+        liftId: templateEx.exerciseId,
+        exerciseId,
+        tier: outcomeTier,
+        liftState: storedLiftState,
+        equipment: settings.equipment,
+      });
+
+    if (exerciseSets.length === 0) {
+      unchanged("notDone");
+      if (planEntry?.substituteExerciseId && planEntry.variantId) {
+        variantOutcomes.push(
+          unchangedVariantOutcome(variantFor(planEntry.substituteExerciseId), "notDone", undefined, t3Scheme)
+        );
+      }
+      continue;
+    }
+
+    // Done as a home exercise: that exercise progresses, the lift state does not.
+    const performedId = exerciseSets.find((set) => set.substituteExerciseId)?.substituteExerciseId;
+    if (performedId) {
+      const going = variantFor(performedId);
+      const max = settings.equipment.maxDumbbellWeight;
+      const prescribedVariant: VariantState = { ...going, weight: Math.min(going.weight, max) };
+      const scheme = variantScheme(prescribedVariant, t3Scheme);
+      const target = { weight: prescribedVariant.weight, sets: scheme.sets, reps: scheme.reps };
+      /** The lift's own outcome: held when the home exercise was evaluated, else the same hold. */
+      const liftHeld = (kind: ProgressionOutcomeKind, reason?: ProgressionOutcomeReason) =>
+        EVALUATED_KINDS.has(kind) ? unchanged("held") : unchanged(kind, reason);
+
+      if (classifyVariantEntry(planEntry, target, session.prescribed, sets) === "logged-only") {
+        unchanged("loggedOnly", "edited");
+        variantOutcomes.push(unchangedVariantOutcome(prescribedVariant, "loggedOnly", "edited", t3Scheme));
+        continue;
+      }
+      const partial = shouldFreezeProgression(
+        exerciseSets.length,
+        planEntry ? workingTargetSets(planEntry) : scheme.sets
+      );
+      const heavier =
+        session.prescribed && !partial
+          ? heavierVariantWeight(templateEx, target, sets)
+          : null;
+      const evaluation = evaluateVariant({
+        state: prescribedVariant,
+        sets: exerciseSets,
+        partial,
+        heavier,
+        equipment: settings.equipment,
+        liftState: storedLiftState,
+        variantStates: [...variants.values()],
+        t3Scheme,
+        now,
+      });
+      liftHeld(evaluation.outcome.kind, evaluation.outcome.reason);
+      variantOutcomes.push(evaluation.outcome);
+
+      // One current variant per lift and tier: the one performed, or the one moved to.
+      const nowCurrent = evaluation.switchedTo?.id ?? evaluation.state.id;
+      for (const other of variants.values()) {
+        if (
+          other.liftId === templateEx.exerciseId &&
+          other.tier === outcomeTier &&
+          other.current &&
+          other.id !== nowCurrent &&
+          other.id !== evaluation.state.id
+        ) {
+          putVariant({ ...other, current: false });
+        }
+      }
+      putVariant(evaluation.state);
+      if (evaluation.switchedTo) putVariant(evaluation.switchedTo);
+      continue;
+    }
+
     // A session that recorded its prescription may have been edited: a lift that was
     // removed or swapped out, or done lighter or at another scheme, is only logged.
     if (
@@ -167,7 +293,20 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
       unchanged("loggedOnly", "edited");
       continue;
     }
-    const targetSets = planEntry?.targetSets ?? templateEx.sets;
+
+    // The barbell lift itself, done at this tier: the steps its home exercises earned
+    // are used up (re-entry reads them before this session; see `homeStepsEarned`).
+    for (const variant of variants.values()) {
+      if (
+        variant.liftId === templateEx.exerciseId &&
+        variant.tier === outcomeTier &&
+        variant.passesSinceGym > 0
+      ) {
+        putVariant({ ...variant, passesSinceGym: 0 });
+      }
+    }
+
+    const targetSets = planEntry ? workingTargetSets(planEntry) : templateEx.sets;
     const partial = shouldFreezeProgression(exerciseSets.length, targetSets);
     // Stopping part-way is neither a pass nor a miss. When a set was skipped or reduced
     // for pain, a run or equipment (or a T2 load drop was accepted), that is the reason
@@ -270,6 +409,8 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
 
   return {
     liftStateUpdates: changed.map((exerciseId) => current.get(exerciseId)!),
+    variantStateUpdates: changedVariants.map((id) => variants.get(id)!),
+    variantOutcomes,
     sessionPatch: {
       completedAt: now,
       totalDurationSeconds,

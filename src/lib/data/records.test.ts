@@ -248,6 +248,8 @@ describe("clearAllData", () => {
       "readinessLogs",
       "runs",
       "userProfile",
+      // 2026-11-15: the home exercises' derived states (database version 4).
+      "variantStates",
       "workouts",
     ]);
     for (const table of db.tables) {
