@@ -123,8 +123,10 @@ function toPlanReentry(
  *
  * Every other state is returned as given. The estimate is the program lift's
  * `pooledLiftEstimate` over `strengthSets`, which every set feeds (home sets through
- * their ratio, drops discounted). Rules: strength-pooling and home-progression (the
- * evidence rules do not list this file yet, so it carries no tag).
+ * their ratio, drops discounted).
+ *
+ * @evidence strength-pooling
+ * @evidence home-progression
  */
 export function resolveReentry(input: ReentryInput): ReentryResolution {
   const { location, equipment, strengthSets } = input;

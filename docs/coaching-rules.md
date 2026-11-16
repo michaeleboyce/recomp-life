@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-35 active rules, 9 planned rules, 42 sources. Last reviewed against the research: November 2026.
+36 active rules, 8 planned rules, 42 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -36,7 +36,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `t2-autoregulation` | Effort and estimates | Active | Moderate evidence | Zhang 2021, Halperin 2022 |
 | `e1rm-estimate` | Effort and estimates | Active | Limited evidence | Nuzzo 2024, Halperin 2022 |
 | `transfer-ratio` | Effort and estimates | Planned | Limited evidence | Saeterbakken 2011, Saeterbakken 2013, Speirs 2016 |
-| `strength-pooling` | Effort and estimates | Planned | Coaching heuristic | none |
+| `strength-pooling` | Effort and estimates | Active | Coaching heuristic | none |
 | `drop-set-evidence` | Effort and estimates | Planned | Limited evidence | Havers 2026, Sødal 2023 |
 | `rest-heavy` | Rest between sets | Active | Moderate evidence | Grgic 2018, Singer 2024 |
 | `rest-light` | Rest between sets | Active | Moderate evidence | Singer 2024 |
@@ -178,7 +178,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `home-progression`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Program rule
-- **Implemented in:** `src/lib/workout/variant.ts` (`chooseHomeVariant`), `src/lib/workout/variant.ts` (`evaluateVariant`), `src/lib/workout/variant.ts` (`homeStepsEarned`), `src/lib/workout/credit.ts` (`sessionCountsForRotation`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Implemented in:** `src/lib/workout/variant.ts` (`chooseHomeVariant`), `src/lib/workout/variant.ts` (`evaluateVariant`), `src/lib/workout/variant.ts` (`homeStepsEarned`), `src/lib/workout/credit.ts` (`sessionCountsForRotation`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
 - **Reviewed:** November 2026
 
 **In one line.** Home sessions progress their own weight; the barbell moves when you return
@@ -319,7 +319,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **Limits.** Only 3 of the 9 pairs have a study, and each is one small study: the bench press (12 trained men), the shoulder press (15 men) and a split squat loaded with a barbell rather than dumbbells (18 rugby players; the half is our reading of their averages). The other starting ratios are assumptions. A ratio between estimated maxes also shifts with rep range and fatigue, and two sessions up to 14 days apart include some real change in strength.
 
-**Before this is switched on.** Switch on when the pooled estimate is wired into re-entry, the home lift page, new bests and the why trace.
+**Before this is switched on.** Switch on when the home lift page (src/components/Lift) and the workout trace show the ratio and how many of your pairs it rests on, with an evidence line on each.
 
 **Sources**
 
@@ -330,9 +330,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How do gym and home sessions combine into one strength estimate?
 
 - **Rule id:** `strength-pooling`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Shown in:** `src/components/Progress/MusclesTab.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Barbell and home sessions pool into one estimate; home ones count less
@@ -342,8 +343,6 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Why.** A barbell session measures the lift itself; a home session measures the same muscles through a different movement, so it says something about the lift, but less. Counting it for less keeps one good home day from moving the barbell weight much, while a run of home sessions still shows. Taking the smaller of the two re-entry rules means the barbell weight never jumps past what either your passes or your measured strength supports.
 
 **Limits.** No research gives these weights. The share a home session counts follows the app's projection rule, where a set of another exercise for the same muscles counts that much toward training the lift, which is a related but different question. The half-life, the scatter and the reading of a muscle's trend from several exercises are this app's assumptions.
-
-**Before this is switched on.** Switch on when the pooled estimate is wired into re-entry, the home lift page, new bests and the why trace.
 
 **Sources.** None: this is a coaching convention with no direct research.
 
@@ -363,7 +362,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **Limits.** The fatigue allowance and both weights are this app's judgment. The reps reported in two protocols put a drop a fifth to a third below fresh strength by the app's formula (our arithmetic), and nobody has measured this for a lifter's estimated max. Counting a drop as half a set is cautious: in one study, one set with three drops grew muscle as much as three full sets.
 
-**Before this is switched on.** Switch on when the pooled estimate is wired into re-entry, the home lift page, new bests and the why trace.
+**Before this is switched on.** Switch on when the set logger (src/components/Log or ActiveWorkout) shows how a drop counts, with an evidence line.
 
 **Sources**
 
@@ -1064,6 +1063,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **16 November 2026** — `strength-pooling` (How do gym and home sessions combine into one strength estimate?): Switched on: the Muscles tab shows a strength trend for each muscle from every exercise that works it, barbell and home, a primary muscle at full weight and a secondary one at half. It is an index starting at 100, not a weight. Sources: .
 - **16 November 2026** — `home-progression` (What does a home session do to your weights?): Added: a home session now moves its own exercise's weight (in dumbbell steps) and no longer raises the barbell weight, which moves when you are back at the gym; before, a home pass raised the barbell weight. It still counts for the rotation and as evidence for the lift. Sources: .
 - **16 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): Added as a planned rule (not active yet): at your heaviest dumbbell, a pass moves to a harder exercise at a load no lighter, or adds reps, instead of stalling. Sources: .
 - **16 November 2026** — `dumbbell-conversion` (How are barbell weights converted to dumbbells?): Fixed: converting a dumbbell weight back to the barbell now divides by 0.8 (the inverse of the barbell-to-dumbbell conversion) instead of multiplying by 1.2, so a weight converted there and back lands where it began. Sources: Saeterbakken 2011.
