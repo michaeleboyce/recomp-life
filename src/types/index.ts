@@ -386,6 +386,12 @@ export interface FavoriteSnapshotEntry {
   reps: number;
   weight: number;
   isAMRAP: boolean;
+  /**
+   * At home: the home exercise the lift was done as, whose weight (as lifted) `weight`
+   * is. Absent at the gym, for a lift done as itself, and on favourites saved before it
+   * was recorded.
+   */
+  performedAs?: string;
 }
 
 /** A saved workout: a base day, the user's choices and edits, and a frozen copy of the plan. */
