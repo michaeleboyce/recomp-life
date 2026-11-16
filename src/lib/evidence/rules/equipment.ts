@@ -20,6 +20,7 @@ export const EQUIPMENT_RULES = {
     reviewedOn: "2026-11",
     implementedIn: [
       "src/lib/dbConversion.ts#barbellToDumbbell",
+      "src/lib/dbConversion.ts#dumbbellToBarbell",
       "src/lib/autoAdapt.ts#adaptExerciseForHome",
     ],
     surfaces: ["src/app/workout/configure/page.tsx", "src/components/Lift/PrLine.tsx"],

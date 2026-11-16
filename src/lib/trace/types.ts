@@ -13,6 +13,7 @@ import type {
   WorkoutSession,
 } from "@/types";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
+import type { HomeTraceInputs } from "./homeWeight";
 
 /** One entry of a workout plan, as `buildWorkoutPlan` returns it. */
 export type PlanEntry = WorkoutExerciseState;
@@ -55,6 +56,11 @@ export interface TraceContext {
   /** Pain and soreness entries; only pain that is still active is mentioned. */
   painEntries?: PainSorenessEntry[];
   readiness?: TraceReadiness;
+  /**
+   * What the home-weight steps read (variant states, strength sets, the re-entry rule).
+   * Left out, no home-weight step is added.
+   */
+  home?: HomeTraceInputs;
 }
 
 /** The last finished session that had a lift at a tier, with what it did to it. */

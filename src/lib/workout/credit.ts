@@ -180,6 +180,7 @@ export type RotationSession = Pick<WorkoutSession, "templateId" | "startedAt" | 
  * day, exactly as before.
  *
  * @evidence off-program-credit
+ * @evidence home-progression
  */
 export function sessionCountsForRotation(
   session: RotationSession,

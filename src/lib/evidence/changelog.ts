@@ -12,6 +12,34 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-16",
+    ruleId: "home-progression",
+    change:
+      "Added: a home session now moves its own exercise's weight (in dumbbell steps) and no longer raises the barbell weight, which moves when you are back at the gym; before, a home pass raised the barbell weight. It still counts for the rotation and as evidence for the lift.",
+    sources: [],
+  },
+  {
+    date: "2026-11-16",
+    ruleId: "cap-progression",
+    change:
+      "Added as a planned rule (not active yet): at your heaviest dumbbell, a pass moves to a harder exercise at a load no lighter, or adds reps, instead of stalling.",
+    sources: [],
+  },
+  {
+    date: "2026-11-16",
+    ruleId: "dumbbell-conversion",
+    change:
+      "Fixed: converting a dumbbell weight back to the barbell now divides by 0.8 (the inverse of the barbell-to-dumbbell conversion) instead of multiplying by 1.2, so a weight converted there and back lands where it began.",
+    sources: ["saeterbakken2011"],
+  },
+  {
+    date: "2026-11-16",
+    ruleId: "transfer-ratio",
+    change:
+      "Changed (when switched on): a home exercise's first weight comes from its own starting ratio to the barbell lift, and later from your own pairs, instead of a flat 80% of the barbell weight for every exercise.",
+    sources: ["saeterbakken2011", "saeterbakken2013", "speirs2016"],
+  },
+  {
+    date: "2026-11-16",
     ruleId: "transfer-ratio",
     change:
       "Added as a planned rule (not active yet): each home exercise gets a starting ratio to its barbell lift, from a study where one exists, and learns your own ratio from home and gym sessions done close together.",
