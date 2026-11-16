@@ -348,14 +348,17 @@ export interface HomeAdjustment {
   tier: VariantTier;
   weight: number;
   stage?: T1Stage | T2Stage | null;
+  /** When it is set; defaults to now. */
+  at?: Date;
 }
 
 /**
  * The home exercises' states with a manual change applied as the rebuild applies a
  * `LiftAdjustment` with `variant` (`applyAdjustment` in src/lib/rebuild/fold.ts): the
- * exercise's state (seeded when it has none) takes the weight and stage, and the steps
- * gym passes had earned for it are dropped. The lift states are not touched. Used to
- * preview the next home session before saving.
+ * exercise's state (seeded when it has none) takes the weight and stage, the steps gym
+ * passes had earned for it are dropped, and it records when it was set by hand (so
+ * re-entry leaves it). The lift states are not touched. Used to preview the next home
+ * session before saving.
  */
 export function withHomeAdjustment(
   variantStates: readonly VariantState[],
@@ -377,6 +380,7 @@ export function withHomeAdjustment(
     ...current,
     weight: change.weight,
     ...(change.stage && change.tier !== "T3" ? { stage: change.stage } : {}),
+    setByHandAt: change.at ?? new Date(),
   });
   const others = variantStates.filter((v) => v.id !== id);
   return [...others, next].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));

@@ -270,6 +270,21 @@ describe("withHomeAdjustment", () => {
     expect(homeNextSession("squat", "bulgarian_split_squat", ctx)).toMatchObject({ weight: 75, sets: 6, reps: 2 });
   });
 
+  it("previews a weight set by hand as planned, even where re-entry would bound it", () => {
+    const liftStates = [lift({ t1Weight: 245, t1LastWorkoutDate: new Date(2026, 10, 5) })];
+    const variantStates = [bss({ weight: 60, gymPassesSinceHome: 2 })];
+    const next = withHomeAdjustment(variantStates, liftStates, equipment, {
+      liftId: "squat",
+      exerciseId: "bulgarian_split_squat",
+      tier: "T1",
+      weight: 75,
+      at: new Date(2026, 10, 16),
+    });
+    expect(next[0].setByHandAt).toEqual(new Date(2026, 10, 16));
+    const session = homeNextSession("squat", "bulgarian_split_squat", context({ liftStates, variantStates: next }));
+    expect(session).toMatchObject({ weight: 75, reentry: { rule: "hand" } });
+  });
+
   it("seeds an exercise with no state of its own", () => {
     const next = withHomeAdjustment([], [lift()], equipment, {
       liftId: "squat",
