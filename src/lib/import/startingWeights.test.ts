@@ -6,7 +6,10 @@ import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES } from "@/db/seed";
 import { recordAdjustment } from "@/lib/data/adjustments";
 import { clearDb } from "@/lib/data/testUtils";
 import { impliedWeightForReps, roundDownToPlates, TRANSFER_PRIORS } from "@/lib/strength";
-import { strengthEvidenceOf } from "@/lib/workout/strength";
+import { describeNextWorkout } from "@/lib/workout/buildPlan";
+import { strengthEvidenceOf, strengthSetsOf } from "@/lib/workout/strength";
+import { makeSession, makeSets } from "@/lib/workout/testFixtures";
+import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { STARTING_WEIGHT_RULES, adjustmentFor, formatAge, suggestStartingWeights } from "./startingWeights";
 import { importDay, importedSession, importedSet } from "./testRecords";
 
@@ -73,6 +76,47 @@ describe("suggestStartingWeights", () => {
       variant: { exerciseId: "db_bench", tier: "T1" },
       set: { t1Weight: home.suggested },
     });
+  });
+
+  it("gives as the home weight planned now exactly what Today plans: seeded from the log's evidence", () => {
+    // A bench press logged at the gym, lighter than the stored T2 weight: Today seeds a
+    // home exercise never used from its estimate, not from the stored weight.
+    const gymBench = makeSession({
+      id: "w-bench",
+      location: "gym",
+      startedAt: importDay(1),
+      completedAt: importDay(1),
+      sets: makeSets("bench", "T1", 5, 3, { weight: 115, isAMRAP: true, completedAt: importDay(1) }),
+    });
+    const planSets = strengthSetsOf([gymBench]);
+    const imported = benchHistory();
+    const liftStates = Object.values(INITIAL_LIFT_STATES);
+    const home = suggestStartingWeights({
+      sets: strengthEvidenceOf([gymBench], imported),
+      planStrengthSets: planSets,
+      liftStates,
+      variantStates: [],
+      equipment,
+      phase: maintaining,
+      now: importDay(3),
+    }).find((s) => s.id === "bench|T2|home")!;
+    const today = describeNextWorkout({
+      completedWorkouts: [],
+      templates: WORKOUT_TEMPLATES,
+      liftStates,
+      plan: {
+        location: "home",
+        equipment,
+        includeWarmUps: false,
+        selectedAccessories: [],
+        variantStates: [],
+        strengthSets: planSets,
+      },
+      reentry: true,
+    });
+    const planned = today.plan.find((e) => e.exerciseId === "bench" && e.tier === "T2")!;
+    expect(home.exerciseId).toBe(planned.substituteExerciseId);
+    expect(home.current).toBe(planned.weight);
   });
 
   it("gives nothing for a lift with no evidence", () => {
@@ -155,5 +199,16 @@ describe("confirming a suggestion (I11)", () => {
     const variant = (await db.variantStates.toArray()).find((v) => v.exerciseId === "db_bench" && v.tier === "T1");
     expect(variant?.weight).toBe(home.suggested);
     expect((await db.liftStates.get("bench"))!.t1Weight).toBe(INITIAL_LIFT_STATES.bench.t1Weight);
+  });
+
+  it("makes a confirmed home weight the lift's current home exercise, so a conversion flip cannot pass it by", async () => {
+    // Confirm a Bulgarian split squat weight, then a goblet squat one, for the same lift and tier.
+    await recordAdjustment(adjustmentFor({ liftId: "squat", tier: "T1", location: "home", exerciseId: "bulgarian_split_squat" }, 60));
+    let variants = (await db.variantStates.toArray()).filter((v) => v.liftId === "squat" && v.tier === "T1");
+    expect(variants.find((v) => v.exerciseId === "bulgarian_split_squat")).toMatchObject({ weight: 60, current: true });
+
+    await recordAdjustment(adjustmentFor({ liftId: "squat", tier: "T1", location: "home", exerciseId: "goblet_squat" }, 70));
+    variants = (await db.variantStates.toArray()).filter((v) => v.liftId === "squat" && v.tier === "T1");
+    expect(variants.filter((v) => v.current).map((v) => v.exerciseId)).toEqual(["goblet_squat"]);
   });
 });

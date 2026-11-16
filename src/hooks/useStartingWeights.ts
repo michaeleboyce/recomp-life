@@ -4,6 +4,7 @@ import { suggestStartingWeights, type StartingWeightSuggestion } from "@/lib/imp
 import { useImportedSessions } from "./useImportedSessions";
 import { useSettings } from "./useProfile";
 import { useStrengthEvidence } from "./useStrengthEvidence";
+import { useStrengthSets } from "./useStrengthSets";
 import { useVariantStates } from "./useVariantStates";
 import { useLiftStates } from "./useWorkouts";
 
@@ -14,6 +15,7 @@ import { useLiftStates } from "./useWorkouts";
  */
 export function useStartingWeights(now?: Date): StartingWeightSuggestion[] | undefined {
   const sets = useStrengthEvidence();
+  const planSets = useStrengthSets();
   const imported = useImportedSessions();
   const liftStates = useLiftStates();
   const variantStates = useVariantStates();
@@ -22,6 +24,7 @@ export function useStartingWeights(now?: Date): StartingWeightSuggestion[] | und
   return useMemo(() => {
     if (
       sets === undefined ||
+      planSets === undefined ||
       imported === undefined ||
       liftStates === undefined ||
       variantStates === undefined ||
@@ -32,6 +35,7 @@ export function useStartingWeights(now?: Date): StartingWeightSuggestion[] | und
     const settings = loadedSettings ?? DEFAULT_USER_PROFILE.settings;
     return suggestStartingWeights({
       sets,
+      planStrengthSets: planSets,
       liftStates,
       variantStates,
       equipment: settings.equipment,
@@ -39,5 +43,5 @@ export function useStartingWeights(now?: Date): StartingWeightSuggestion[] | und
       now: at === undefined ? new Date() : new Date(at),
       importedSessionIds: new Set(imported.map((s) => s.id)),
     });
-  }, [sets, imported, liftStates, variantStates, loadedSettings, at]);
+  }, [sets, planSets, imported, liftStates, variantStates, loadedSettings, at]);
 }

@@ -116,7 +116,9 @@ function handSetDate(adjustment: LiftAdjustment): Date | null {
  * One for a home exercise (`variant`) sets that exercise's own state from its tier's
  * fields (t1Weight is its weight at T1, and so on), creating the state from its seed
  * when it has none; a weight set by hand replaces the steps gym passes had earned for
- * it. One for the barbell lift that sets a tier's weight replaces the steps home passes
+ * it, and the exercise becomes the lift's current one at that tier (the others of the
+ * lift and tier stop being current), so the plan uses the confirmed weight and a
+ * conversion flip cannot pass it by. One for the barbell lift that sets a tier's weight replaces the steps home passes
  * had earned at that tier: the weight is the user's, re-entry adds nothing to it. A
  * weight set by hand (`handSetDate`) records when (`setByHandAt`, `t1SetByHandAt`,
  * `t2SetByHandAt`), so re-entry leaves it as it is until the other location is trained.
@@ -151,8 +153,13 @@ function applyAdjustment(
       if (value !== undefined) next = { ...next, [key]: value };
     }
     if (fields.weight && set[fields.weight] !== undefined) {
-      next = withoutGymPasses(next);
+      next = { ...withoutGymPasses(next), current: true };
       if (byHand) next = { ...next, setByHandAt: byHand };
+      for (const other of variants.values()) {
+        if (other.id !== id && other.liftId === adjustment.exerciseId && other.tier === tier && other.current) {
+          variants.set(other.id, { ...other, current: false });
+        }
+      }
     }
     variants.set(id, next);
     return;

@@ -244,7 +244,14 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
         variant: { exerciseId: "db_lunge", tier: "T2" },
       })
     );
-    expect(variantOf(rebuilt(sim).variantStates, "squat|db_lunge|T2")).toMatchObject({ weight: 40, current: false });
+    // The weight set for it makes it the lift's current home exercise at that tier.
+    const final = rebuilt(sim).variantStates;
+    expect(variantOf(final, "squat|db_lunge|T2")).toMatchObject({ weight: 40, current: true });
+    expect(final.filter((v) => v.liftId === "squat" && v.tier === "T2" && v.current).map((v) => v.id)).toEqual([
+      "squat|db_lunge|T2",
+    ]);
+    // And the split squat, whose weight was set last at T1, is current there.
+    expect(variantOf(final, split)).toMatchObject({ current: true });
   });
 
   it("records when a weight was set by hand, for a home exercise and for a barbell tier", () => {
