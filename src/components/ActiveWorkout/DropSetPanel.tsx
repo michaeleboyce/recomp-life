@@ -1,6 +1,7 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { getExercise } from "@/lib/exercises";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import type { EquipmentProfile, SetLog, WorkoutLocation } from "@/types";
@@ -69,8 +70,12 @@ export function DropSetPanel({
   return (
     <>
       <section data-testid="drop-set" className="flex flex-col gap-1.5">
-        <p className="font-display text-[12px] font-semibold tracking-[0.16em] text-accent-primary uppercase">
-          ↳ Drop {number} · after set {root.setNumber} · no rest
+        <p className="flex items-center gap-1.5 font-display text-[12px] font-semibold tracking-[0.16em] text-accent-primary uppercase">
+          <span>
+            ↳ Drop {number} · after set {root.setNumber} · no rest
+          </span>
+          {/* How a drop counts: volume, a little strength evidence, never a pass or a fail. */}
+          <EvidenceLine ruleId="drop-set-evidence" variant="icon" hideLibraryLink />
         </p>
         <h1 className="line-clamp-2 min-w-0 font-display text-[30px] leading-[0.95] font-extrabold break-words uppercase">
           {info.name}

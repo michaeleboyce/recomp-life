@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import type { EquipmentProfile, Tier, WorkoutSession } from "@/types";
 import { Term } from "@/components/ui/term";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { LiftWhySheet, WhyButton } from "@/components/Why";
 import { formatLbs, formatSetsReps } from "./format";
 import {
@@ -140,8 +141,12 @@ export function LiftRows({ rows }: { rows: TodayLiftRow[] }) {
                 )}
               </span>
               {capNext && (
-                <span data-testid="lift-cap-next" className="block truncate text-xs text-muted-foreground">
-                  {capNext}
+                <span className="flex min-w-0 items-center gap-1">
+                  <span data-testid="lift-cap-next" className="block min-w-0 truncate text-xs text-muted-foreground">
+                    {capNext}
+                  </span>
+                  {/* Above the row's link, like the why button. */}
+                  <EvidenceLine ruleId="cap-progression" variant="icon" className="z-10" />
                 </span>
               )}
             </span>

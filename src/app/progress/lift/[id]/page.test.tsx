@@ -263,6 +263,11 @@ describe("Lift detail page", () => {
       expect(next).toHaveTextContent("Set the Bulgarian split squat weight; the barbell squat stays as it is.");
       // How the weight was reached comes from the plan entry, never the flat 80% conversion.
       expect(within(next).getByTestId("home-weight-line")).not.toHaveTextContent("80% of");
+      // With its rule (home progression, its seed's ratio, re-entry or the cap policy).
+      const homeRule = within(next).getByTestId("home-weight-line").parentElement!.querySelector("[data-evidence]");
+      expect(["home-progression", "cap-progression", "transfer-ratio", "strength-pooling", "dumbbell-conversion"]).toContain(
+        homeRule?.getAttribute("data-evidence")
+      );
 
       // Its own sessions, newest first, with no "At home" line on each.
       const own = sessionsAs("bulgarian_split_squat");

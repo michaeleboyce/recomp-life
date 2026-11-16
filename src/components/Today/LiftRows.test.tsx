@@ -63,6 +63,7 @@ describe("LiftRows", () => {
     render(<LiftRows rows={buildLiftRows([capped], [before])} />);
     expect(await screen.findByText("Held at 80, your heaviest dumbbell")).toBeInTheDocument();
     expect(screen.getByTestId("lift-cap-next")).toHaveTextContent("A pass adds 1 rep a set");
+    expect(screen.getByTestId("lift-cap-next").parentElement!.querySelector('[data-evidence="cap-progression"]')).not.toBeNull();
     await clearDb();
   });
 

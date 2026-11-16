@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
 import { LocationChip } from "@/components/ui/location-chip";
@@ -111,6 +112,7 @@ export function StartingWeights() {
           Worked out from your recent sessions of each lift, older ones counting less. Nothing changes until you choose
           a weight; you can edit it first.
         </p>
+        <EvidenceLine ruleId="starting-weights" />
       </div>
       {gym.length > 0 && (
         <div className="rounded-xl bg-card px-4 pt-3">
@@ -123,8 +125,12 @@ export function StartingWeights() {
         </div>
       )}
       {home.length > 0 && (
-        <div className="rounded-xl bg-card px-4 pt-3">
-          <LocationChip location="home" />
+        <div className="rounded-xl bg-card px-4 pt-3" data-testid="starting-weights-home">
+          {/* A home exercise's weight goes through its ratio to the lift. */}
+          <div className="flex items-center justify-between gap-2">
+            <LocationChip location="home" />
+            <EvidenceLine ruleId="transfer-ratio" variant="icon" />
+          </div>
           <ul>
             {home.map((s) => (
               <SuggestionRow key={s.id} suggestion={s} />

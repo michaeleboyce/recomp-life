@@ -368,6 +368,7 @@ describe("a weight per set and drop sets", () => {
     fireEvent.click(await within(timer).findByRole("button", { name: "Drop to 150 lbs" }));
     expect(screen.queryByRole("timer")).toBeNull();
     expect(screen.getByTestId("drop-set")).toHaveTextContent("Drop 1 · after set 1 · no rest");
+    expect(screen.getByTestId("drop-set").querySelector('[data-evidence="drop-set-evidence"]')).not.toBeNull();
     expect(screen.getByTestId("weight")).toHaveTextContent("150");
     expect(screen.getByTestId("loading-line")).toHaveTextContent("per side: 45 · 5 · 2.5");
 

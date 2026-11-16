@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-36 active rules, 8 planned rules, 42 sources. Last reviewed against the research: November 2026.
+41 active rules, 5 planned rules, 42 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -29,15 +29,17 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `t3-progression` | Program and progression | Active | Program rule | Robinson 2024, Halperin 2022 |
 | `accessory-progression` | Program and progression | Planned | Moderate evidence | Robinson 2024 |
 | `off-program-credit` | Program and progression | Active | Coaching heuristic | none |
-| `home-progression` | Program and progression | Planned | Program rule | none |
-| `cap-progression` | Program and progression | Planned | Coaching heuristic | none |
+| `home-progression` | Program and progression | Active | Program rule | none |
+| `cap-progression` | Program and progression | Active | Coaching heuristic | none |
+| `starting-weights` | Program and progression | Active | Program rule | none |
 | `amrap-effort` | Effort and estimates | Active | Moderate evidence | Robinson 2024, ACSM 2026, Morán-Navarro 2017 |
 | `rpe-logging` | Effort and estimates | Active | Moderate evidence | Halperin 2022 |
 | `t2-autoregulation` | Effort and estimates | Active | Moderate evidence | Zhang 2021, Halperin 2022 |
 | `e1rm-estimate` | Effort and estimates | Active | Limited evidence | Nuzzo 2024, Halperin 2022 |
-| `transfer-ratio` | Effort and estimates | Planned | Limited evidence | Saeterbakken 2011, Saeterbakken 2013, Speirs 2016 |
+| `transfer-ratio` | Effort and estimates | Active | Limited evidence | Saeterbakken 2011, Saeterbakken 2013, Speirs 2016 |
 | `strength-pooling` | Effort and estimates | Active | Coaching heuristic | none |
-| `drop-set-evidence` | Effort and estimates | Planned | Limited evidence | Havers 2026, Sødal 2023 |
+| `drop-set-evidence` | Effort and estimates | Active | Limited evidence | Havers 2026, Sødal 2023 |
+| `import-effort-words` | Effort and estimates | Planned | Coaching heuristic | none |
 | `rest-heavy` | Rest between sets | Active | Moderate evidence | Grgic 2018, Singer 2024 |
 | `rest-light` | Rest between sets | Active | Moderate evidence | Singer 2024 |
 | `rest-cut-bonus` | Rest between sets | Active | Coaching heuristic | none |
@@ -176,9 +178,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### What does a home session do to your weights?
 
 - **Rule id:** `home-progression`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Program rule
 - **Implemented in:** `src/lib/workout/variant.ts` (`chooseHomeVariant`), `src/lib/workout/variant.ts` (`evaluateVariant`), `src/lib/workout/variant.ts` (`homeStepsEarned`), `src/lib/workout/credit.ts` (`sessionCountsForRotation`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Shown in:** `src/components/Lift/PrLine.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/WorkoutSummary/WhatItChanged.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Home sessions progress their own weight; the barbell moves when you return
@@ -189,16 +192,15 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **Limits.** This is a convention of this app and part of no program or study. How many steps a home pass is worth at re-entry, and how far home evidence may move the barbell, are this app's judgment.
 
-**Before this is switched on.** Switch on when the home lift page, Today and the workout trace show it, with an evidence line on each.
-
 **Sources.** None: this comes from the GZCLP program design.
 
 ### What happens at your heaviest dumbbell?
 
 - **Rule id:** `cap-progression`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/workout/variant.ts` (`CAP_REP_STEP`), `src/lib/workout/variant.ts` (`HARDER_HOME_VARIANT`), `src/lib/workout/variant.ts` (`evaluateVariant`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Shown in:** `src/components/Today/LiftRows.tsx`, `src/components/Lift/PrLine.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/WorkoutSummary/WhatItChanged.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** At the heaviest dumbbell a pass moves to a harder exercise or adds reps
@@ -209,9 +211,26 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **Limits.** Which exercise is harder, and how many reps to add, are this app's choices, not research findings. Added reps do not make the lift heavier, so they say less about barbell strength than added weight.
 
-**Before this is switched on.** Switch on when the home lift page, Today and the workout trace show it, with an evidence line on each.
-
 **Sources.** None: this is a coaching convention with no direct research.
+
+### Where do the suggested starting weights come from?
+
+- **Rule id:** `starting-weights`
+- **Status:** Active
+- **Evidence:** Program rule
+- **Implemented in:** `src/lib/import/startingWeights.ts` (`STARTING_WEIGHT_RULES`), `src/lib/import/startingWeights.ts` (`suggestStartingWeights`)
+- **Shown in:** `src/components/Import/StartingWeights.tsx`
+- **Reviewed:** November 2026
+
+**In one line.** Starting weights from your history: T1 at 85% of a 5-rep max
+
+**What the app does.** After an import, each program lift the imported history informs gets a suggested starting weight, worked out from the lift's strength estimate: its latest session, home sessions after it through their ratios, older sessions counting less. T1 (5×3) starts at 85% of the 5-rep max the estimate implies and T2 (3×10) at 65% of it; T3 starts at the weight the estimate says you could lift about 20 times. When the newest session is old, the time-off rule takes its share off. Barbell weights are rounded down to plates you can load. A home exercise's weight goes through its ratio to the lift, is rounded down to the dumbbell step (per hand where it is per hand) and is capped at your heaviest dumbbell. Each suggestion shows its working. Nothing changes until you confirm a weight, which you can edit first; confirming records a starting-weight change that shows in the adjustment log and can be changed like any other.
+
+**Why.** The GZCLP guide starts T1 at about 85% of a 5-rep max and T2 at about 65%, so the first weeks are submaximal and leave room to progress. Starting from what your history shows, rather than from a guess, puts those weeks near your real strength, and taking off for time away keeps a long break from starting you too heavy.
+
+**Limits.** The guide's percentages are of a rep max you have tested; here it is estimated from your history, often from dumbbell exercises converted through a ratio, so it can be off either way. The T3 rep target, the rounding and the use of the time-off rule are this app's choices.
+
+**Sources.** None: this comes from the GZCLP program design.
 
 ## Effort and estimates
 
@@ -306,9 +325,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How does a home exercise count toward a barbell lift?
 
 - **Rule id:** `transfer-ratio`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/strength/coefficients.ts` (`TRANSFER_PRIORS`), `src/lib/strength/coefficients.ts` (`TRANSFER_RATIO`), `src/lib/strength/ratio.ts` (`pairSessions`), `src/lib/strength/ratio.ts` (`learnTransferRatio`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Shown in:** `src/components/Lift/PrLine.tsx`, `src/components/Import/StartingWeights.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Home exercises convert to the barbell lift by a ratio learned from you
@@ -318,8 +338,6 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Why.** Lifters handle less weight with dumbbells than with a barbell: in trained men the dumbbell bench press 1RM was about 17% below the barbell bench press, and the standing dumbbell shoulder press about 7% below the standing barbell press. In academy rugby players a rear-foot-elevated split squat 1RM, on one leg, was about half the back squat 1RM. How much less differs between people, so your own sessions become the better guide once there are a few of them.
 
 **Limits.** Only 3 of the 9 pairs have a study, and each is one small study: the bench press (12 trained men), the shoulder press (15 men) and a split squat loaded with a barbell rather than dumbbells (18 rugby players; the half is our reading of their averages). The other starting ratios are assumptions. A ratio between estimated maxes also shifts with rep range and fatigue, and two sessions up to 14 days apart include some real change in strength.
-
-**Before this is switched on.** Switch on when the home lift page (src/components/Lift) and the workout trace show the ratio and how many of your pairs it rests on, with an evidence line on each.
 
 **Sources**
 
@@ -333,7 +351,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
-- **Shown in:** `src/components/Progress/MusclesTab.tsx`
+- **Shown in:** `src/components/Progress/MusclesTab.tsx`, `src/components/Lift/PrLine.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Barbell and home sessions pool into one estimate; home ones count less
@@ -349,25 +367,44 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How do drop sets count?
 
 - **Rule id:** `drop-set-evidence`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/strength/coefficients.ts` (`DROP_SETS`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/volume.ts` (`volumeCredits`), `src/lib/strength/volume.ts` (`muscleVolume`), `src/lib/workout/setSelectors.ts` (`isWorkingSet`)
+- **Implemented in:** `src/lib/strength/coefficients.ts` (`DROP_SETS`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/volume.ts` (`volumeCredits`), `src/lib/strength/volume.ts` (`muscleVolume`), `src/lib/workout/setSelectors.ts` (`isWorkingSet`), `src/components/ActiveWorkout/setPlan.ts` (`dropSetWeight`)
+- **Shown in:** `src/components/ActiveWorkout/DropSetPanel.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Drops add volume and a little strength evidence, never a new best
 
-**What the app does.** A drop follows a set with no rest, so its reps understate your strength. Only the first drop after each set is used for the strength estimate: its estimated max is taken as 25% below fresh (divided by 0.75), and the first drops together count 25% as much as the session's best set. A drop never makes an estimated max or a new best, and a session with only drops gives no estimate. Ramp and back-off sets count like any other set, at their own weight. For muscle volume each drop counts as 0.5 of a set, and the drops after one set add at most 1 set. A drop is never part of a pass or a fail: a missed drop does not turn a pass into a miss.
+**What the app does.** A drop follows a set with no rest and starts about 20% lighter than the set before, rounded to your plates or dumbbell step; you can change it before logging. Its reps understate your strength. Only the first drop after each set is used for the strength estimate: its estimated max is taken as 25% below fresh (divided by 0.75), and the first drops together count 25% as much as the session's best set. A drop never makes an estimated max or a new best, and a session with only drops gives no estimate. Ramp and back-off sets count like any other set, at their own weight. For muscle volume each drop counts as 0.5 of a set, and the drops after one set add at most 1 set. A drop is never part of a pass or a fail: a missed drop does not turn a pass into a miss.
 
 **Why.** Drop sets built about as much muscle and strength over weeks as traditional sets, in less time, and felt harder in the moment, with more lactate. In the studies' protocols the reps after a drop were far fewer than the lighter weight allows fresh, and maximal force fell more after drop sets than after traditional sets.
 
 **Limits.** The fatigue allowance and both weights are this app's judgment. The reps reported in two protocols put a drop a fifth to a third below fresh strength by the app's formula (our arithmetic), and nobody has measured this for a lifter's estimated max. Counting a drop as half a set is cautious: in one study, one set with three drops grew muscle as much as three full sets.
 
-**Before this is switched on.** Switch on when the set logger (src/components/Log or ActiveWorkout) shows how a drop counts, with an evidence line.
-
 **Sources**
 
 - [Havers et al. (2026). Acute and Chronic Effects of Drop-Set Training: A Meta-Analysis and Systematic Review. *Sports Medicine - Open*.](https://doi.org/10.1186/s40798-026-01012-1) Meta-analysis; 12 studies, 274 participants. Drop sets felt harder and raised blood lactate more than traditional sets in the moment, and gave similar long-term gains in muscle size and strength. [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC13043944).
 - [Sødal et al. (2023). Effects of Drop Sets on Skeletal Muscle Hypertrophy: A Systematic Review and Meta-analysis. *Sports Medicine - Open*.](https://doi.org/10.1186/s40798-023-00620-5) Meta-analysis; 6 studies, 142 participants. Drop sets and traditional sets increased muscle size by similar amounts, and some drop-set protocols took a half to a third of the time. [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC10390395).
+
+### How are effort words from other apps read?
+
+- **Rule id:** `import-effort-words`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/import/evidence.ts` (`EFFORT_WORD_RPE`), `src/lib/import/evidence.ts` (`effortRpe`), `src/lib/import/evidence.ts` (`importedSessionStrengthSets`)
+- **Reviewed:** November 2026
+
+**In one line.** An imported set's effort word becomes an approximate RPE
+
+**What the app does.** Sets imported from another app can carry an effort word. When those sets feed the strength estimate, each word is read as an approximate RPE: Easy 7, Ideal 8, Moderate 8, Hard 9, Max 10, Failure 10, Failed 10. The reps left in reserve are then 10 minus that RPE, at most 4, as for an RPE you log yourself: a set marked Easy counts as 3 reps short of failure. A set with no word, or a word not in the list, is read as taken to its limit, which gives the lower estimate. Warm-ups give no estimate, and a drop counts as drops do.
+
+**Why.** An estimated max from a set depends on how close to failure it went. The other apps record that in words, not reps, so the words are mapped to the nearest RPE that matches their usual meaning, and a set with no word is read the cautious way.
+
+**Limits.** The apps do not say what their words mean in reps; the mapping is this app's reading of them, not a research finding. Imported sets with these words also count less as they age, like any other session.
+
+**Before this is switched on.** Switch on when the import screen (src/components/Import) says how the file's effort words are read, with an evidence line.
+
+**Sources.** None: this is a coaching convention with no direct research.
 
 ## Rest between sets
 
@@ -1063,6 +1100,12 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **16 November 2026** — `home-progression` (What does a home session do to your weights?): Switched on: the home lift page cites it for a home exercise's own weight, and the Log's "What it did" and the workout summary cite it for a home session's outcome instead of the plain GZCLP rule. Sources: .
+- **16 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): Switched on: Today shows it on a home lift held at your heaviest dumbbell, beside what a pass does there; the home lift page, "What it did" and the workout summary cite it when the cap policy acted. Sources: .
+- **16 November 2026** — `transfer-ratio` (How does a home exercise count toward a barbell lift?): Switched on: the home lift page cites it for a home exercise's first weight, and the import screen for the home starting weights it suggests. Sources: Saeterbakken 2011, Saeterbakken 2013, Speirs 2016.
+- **16 November 2026** — `drop-set-evidence` (How do drop sets count?): Switched on: the drop set screen in a workout shows how a drop counts. The rule now also states the weight a drop starts at (about a fifth lighter), read from the code. Sources: Havers 2026, Sødal 2023.
+- **16 November 2026** — `starting-weights` (Where do the suggested starting weights come from?): Added: after an import, each program lift the history informs gets a suggested starting weight from its strength estimate (T1 at the GZCLP guide's share of a five-rep max), shown with its working and used only once you confirm it. Sources: .
+- **16 November 2026** — `import-effort-words` (How are effort words from other apps read?): Added as a planned rule (not active yet): effort words in another app's export (Easy, Ideal, Hard and others) are read as an approximate RPE when imported sets feed the strength estimate. Sources: .
 - **16 November 2026** — `strength-pooling` (How do gym and home sessions combine into one strength estimate?): Switched on: the Muscles tab shows a strength trend for each muscle from every exercise that works it, barbell and home, a primary muscle at full weight and a secondary one at half. It is an index starting at 100, not a weight. Sources: .
 - **16 November 2026** — `home-progression` (What does a home session do to your weights?): Added: a home session now moves its own exercise's weight (in dumbbell steps) and no longer raises the barbell weight, which moves when you are back at the gym; before, a home pass raised the barbell weight. It still counts for the rotation and as evidence for the lift. Sources: .
 - **16 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): Added as a planned rule (not active yet): at your heaviest dumbbell, a pass moves to a harder exercise at a load no lighter, or adds reps, instead of stalling. Sources: .

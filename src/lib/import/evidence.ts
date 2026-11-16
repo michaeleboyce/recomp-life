@@ -21,6 +21,8 @@ import type { ImportedSessionRecord, ImportedSetRecord, MuscleId } from "@/types
  * credited by the app's estimate (10 − RPE). Graded heuristic: the apps do not say what
  * their words mean in reps. A set without a word is read as taken to its limit, which
  * gives the lower estimate.
+ *
+ * @evidence import-effort-words
  */
 export const EFFORT_WORD_RPE: Readonly<Record<string, number>> = {
   easy: 7,

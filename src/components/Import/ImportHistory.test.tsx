@@ -81,6 +81,9 @@ describe("ImportHistory", () => {
     // Starting weights are only suggested.
     const weights = await screen.findByTestId("starting-weights");
     expect(within(weights).getAllByTestId("starting-weight").length).toBeGreaterThan(0);
+    // The rules behind them: the starting weights, and the ratio a home exercise goes through.
+    expect(weights.querySelector('[data-evidence="starting-weights"]')).not.toBeNull();
+    expect(within(weights).getByTestId("starting-weights-home").querySelector('[data-evidence="transfer-ratio"]')).not.toBeNull();
     const benchBefore = (await db.liftStates.get("bench"))!.t1Weight;
     expect(benchBefore).toBeGreaterThan(0);
 
