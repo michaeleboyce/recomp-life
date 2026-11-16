@@ -8,6 +8,7 @@ import {
 } from "@/lib/strength";
 import { strengthEvidenceOf, strengthSetsOf } from "@/lib/workout/strength";
 import {
+  addImportedVolume,
   addMuscleValues,
   effortRpe,
   importedMuscleLastTrained,
@@ -179,6 +180,27 @@ describe("imported muscle work", () => {
     const last = importedMuscleLastTrained([early, late, warmOnly]);
     expect(last.biceps?.toISOString()).toBe("2024-03-05T10:00:00.000Z");
     expect(last.calves).toBeUndefined();
+  });
+
+  it("adds imported sets to the app's direct and indirect sets per muscle, in the week only", () => {
+    const own = { chest: { directSets: 2, indirectSets: 0, totalFractional: 2 } };
+    const week = importedSession(
+      [
+        importedSet({ id: "b1", mappedExerciseId: "bench", exerciseName: "Bench" }),
+        importedSet({ id: "b2", mappedExerciseId: "bench", exerciseName: "Bench" }),
+        importedSet({ id: "bw", mappedExerciseId: "bench", exerciseName: "Bench", role: "warmup" }),
+      ],
+      { startedAt: new Date("2024-03-05T10:00:00Z") }
+    );
+    const before = importedSession([importedSet({ mappedExerciseId: "bench" })], {
+      startedAt: new Date("2024-02-20T10:00:00Z"),
+    });
+    const sum = addImportedVolume(own, [week, before], monday, nextMonday);
+    expect(sum.chest).toEqual({ directSets: 4, indirectSets: 0, totalFractional: 4 });
+    expect(sum.triceps).toEqual({ directSets: 0, indirectSets: 2, totalFractional: 1 });
+    // The app's own numbers are not changed in place.
+    expect(own.chest.directSets).toBe(2);
+    expect(addImportedVolume(own, [], monday, nextMonday)).toEqual(own);
   });
 
   it("merges with the app's own muscle values and dates", () => {

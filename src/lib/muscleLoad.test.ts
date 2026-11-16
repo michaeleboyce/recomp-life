@@ -11,6 +11,7 @@ import {
   relativeHeatLevels,
   getMuscleLastTrained,
   getMuscleRecovery,
+  recoveryFromLastTrained,
   exercisesForMuscle,
   loadFromSetCounts,
   bestViewForExercise,
@@ -286,6 +287,17 @@ describe("getMuscleRecovery (R3)", () => {
   it("treats never-trained muscles as detraining", () => {
     const r = getMuscleRecovery(workouts, hoursAfter(trainedAt, 1), maintaining);
     expect(r.biceps).toBe("detraining");
+  });
+
+  it("is recoveryFromLastTrained of the workouts' last-trained dates", () => {
+    const now = hoursAfter(trainedAt, 30);
+    expect(getMuscleRecovery(workouts, now, cutting)).toEqual(
+      recoveryFromLastTrained(getMuscleLastTrained(workouts), now, cutting)
+    );
+    // Any source of dates: a muscle trained 10 hours ago is recovering.
+    const r = recoveryFromLastTrained({ biceps: hoursAfter(now, -10) }, now, maintaining);
+    expect(r.biceps).toBe("recovering");
+    expect(r.quads).toBe("detraining");
   });
 });
 

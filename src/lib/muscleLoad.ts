@@ -222,7 +222,18 @@ export function getMuscleRecovery(
   now: Date,
   phase: TrainingPhase
 ): Record<MuscleId, RecoveryStatus> {
-  const last = getMuscleLastTrained(workouts);
+  return recoveryFromLastTrained(getMuscleLastTrained(workouts), now, phase);
+}
+
+/**
+ * Recovery status for every muscle from when each was last trained (from workouts,
+ * imported sessions, or both), with the same thresholds as `getMuscleRecovery`.
+ */
+export function recoveryFromLastTrained(
+  last: Partial<Record<MuscleId, Date>>,
+  now: Date,
+  phase: TrainingPhase
+): Record<MuscleId, RecoveryStatus> {
   const result = {} as Record<MuscleId, RecoveryStatus>;
   for (const muscle of MUSCLE_IDS) {
     result[muscle] = calculateRecoveryStatus(last[muscle] ?? null, null, now, phase);

@@ -7,12 +7,25 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MuscleId, RecoveryStatus, TrainingPhase } from "@/types";
-import { useCompletedWorkouts, useMuscleStrength, usePainEntries, useSettings } from "@/hooks";
+import {
+  useCompletedWorkouts,
+  useImportedSessions,
+  useMuscleStrength,
+  usePainEntries,
+  useSettings,
+} from "@/hooks";
 import { getMonday } from "@/lib/dates";
 import {
+  addImportedVolume,
+  addMuscleValues,
+  importedMuscleLastTrained,
+  importedMuscleLoad,
+  latestPerMuscle,
+} from "@/lib/import/evidence";
+import {
   getMuscleLastTrained,
-  getMuscleRecovery,
   getWeeklyMuscleLoad,
+  recoveryFromLastTrained,
   weeklyHeatLevels,
 } from "@/lib/muscleLoad";
 import { getWeeklyVolumeSummary } from "@/lib/volumeTracking";
@@ -57,6 +70,9 @@ export function MusclesTab() {
   const [selected, setSelected] = useState<MuscleId | null>(null);
 
   const workouts = useCompletedWorkouts();
+  // Sessions imported from other apps count for this week's load and for recovery, as
+  // they do for strength; they never touch the rotation or progression.
+  const imported = useImportedSessions();
   const strengthIndex = useMuscleStrength();
   const settings = useSettings();
   const allPain = usePainEntries();
@@ -68,24 +84,31 @@ export function MusclesTab() {
 
   const data = useMemo(() => {
     const list = workouts ?? [];
+    const sessions = imported ?? [];
     const now = new Date();
     const monday = getMonday(now);
+    const nextMonday = new Date(monday);
+    nextMonday.setDate(nextMonday.getDate() + 7);
     const phase: TrainingPhase = settings?.trainingPhase ?? { mode: "maintaining" };
-    const weekLoad = getWeeklyMuscleLoad(list, monday);
-    const recovery = getMuscleRecovery(list, now, phase);
+    const weekLoad = addMuscleValues(
+      getWeeklyMuscleLoad(list, monday),
+      importedMuscleLoad(sessions, monday, nextMonday)
+    );
+    const lastTrained = latestPerMuscle(getMuscleLastTrained(list), importedMuscleLastTrained(sessions));
+    const recovery = recoveryFromLastTrained(lastTrained, now, phase);
     return {
       weekLoad,
       weekHeat: weeklyHeatLevels(weekLoad),
-      weekVolume: getWeeklyVolumeSummary(list, monday).muscleGroups,
-      lastTrained: getMuscleLastTrained(list),
+      weekVolume: addImportedVolume(getWeeklyVolumeSummary(list, monday).muscleGroups, sessions, monday, nextMonday),
+      lastTrained,
       recovery,
       recoveryColors: Object.fromEntries(
         Object.entries(recovery).map(([m, status]) => [m, RECOVERY_COLORS[status]])
       ) as Record<MuscleId, string>,
     };
-  }, [workouts, settings]);
+  }, [workouts, imported, settings]);
 
-  if (workouts === undefined) {
+  if (workouts === undefined || imported === undefined) {
     return (
       <div className="space-y-4">
         <div className="h-9 rounded-lg bg-muted animate-pulse mb-4" />
