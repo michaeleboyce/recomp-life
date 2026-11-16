@@ -128,7 +128,9 @@ export function nextSetView(
  * The entry to log the next set from (`createSetLog`): with a weight changed on the
  * spot, a per-set entry carries it on that set alone (its working weight stays, so a
  * home substitute's program weight scales from it), a uniform entry takes it as its
- * weight. The entry itself without a change.
+ * weight, with a home substitute's program weight (`originalWeight`) scaled by the same
+ * ratio, as a weight edit before the workout or in the Log scales it. Credit then does
+ * not depend on where the weight was changed. The entry itself without a change.
  */
 export function exerciseForLog(
   entry: WorkoutExerciseState,
@@ -141,7 +143,11 @@ export function exerciseForLog(
     );
     return { ...entry, perSet };
   }
-  return { ...entry, weight: weightOverride };
+  const originalWeight =
+    entry.originalWeight != null && entry.weight > 0
+      ? Math.round((entry.originalWeight * weightOverride) / entry.weight)
+      : entry.originalWeight;
+  return { ...entry, weight: weightOverride, ...(originalWeight !== undefined ? { originalWeight } : {}) };
 }
 
 /** One set of an entry as the set chips show it. */

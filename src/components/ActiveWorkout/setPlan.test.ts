@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
+import { createSetLog } from "@/lib/workout/logSet";
+import { applyPlanEdits } from "@/lib/workout/planEdits";
 import type { SetLog } from "@/types";
 import {
   DROP_SET_LIGHTER_BY,
@@ -168,6 +170,26 @@ describe("exerciseForLog", () => {
     expect(exerciseForLog(entry(), 185).weight).toBe(185);
     const plain = entry();
     expect(exerciseForLog(plain, null)).toBe(plain);
+  });
+
+  it("moves a home substitute's barbell-equivalent weight with a weight changed on the spot", () => {
+    // Bulgarian split squat at 50 a hand standing in for a 205 squat; changed to 40 on the spot.
+    const home = entry({ substituteExerciseId: "bulgarian_split_squat", weight: 50, originalWeight: 205 });
+    const changed = exerciseForLog(home, 40);
+    expect(changed.weight).toBe(40);
+    expect(changed.originalWeight).toBe(164);
+    // The same as a weight edit in the Log or before the workout (applyPlanEdits) gives.
+    expect(applyPlanEdits([home], [{ kind: "weight", exerciseId: "squat", tier: "T1", weight: 40 }])[0].originalWeight).toBe(
+      changed.originalWeight
+    );
+    // And the set logged from it carries that weight, as a per-set change does.
+    const logged = createSetLog({ exercise: changed, actualReps: 3, rpe: null, location: "home", autoRegulated: false, now: new Date(), id: "s", clientId: "s" });
+    expect(logged.originalWeight).toBe(164);
+    const perSet = exerciseForLog({ ...home, perSet: [{ weight: 50, reps: 3 }, { weight: 50, reps: 3 }], targetSets: 2 }, 40);
+    expect(
+      createSetLog({ exercise: perSet, actualReps: 3, rpe: null, location: "home", autoRegulated: false, now: new Date(), id: "p", clientId: "p" })
+        .originalWeight
+    ).toBe(164);
   });
 });
 
