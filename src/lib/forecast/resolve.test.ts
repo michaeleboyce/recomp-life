@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateE1RM, isE1RMEligibleSet, isNewPR } from "@/lib/e1rm";
 import { applyChange, e1rmsForWorkout, type LogState } from "@/lib/rebuild";
-import type { Forecast, SetStatus, WorkoutSession } from "@/types";
+import type { Forecast, SetLog, SetStatus, WorkoutSession } from "@/types";
 import { BODYWEIGHT_MODEL, E1RM_HORIZON_MODEL } from "./coefficients";
 import { earliestPerSlot, resolveForecast, VOID_REASONS } from "./resolve";
 import { DAY, forecastRow, t1Session, weighIn } from "./testHelpers";
@@ -210,6 +210,69 @@ describe("chance of a new best and of a pass", () => {
     // The last set made it but an earlier one did not.
     const earlierMiss = workout({ lastReps: 4, earlierReps: [3, 3, 2, 3] });
     expect(resolve(pass, logOf(earlierMiss))).toEqual({ state: "resolved", value: 4, hit: false });
+  });
+});
+
+describe("sets that are not working sets (H14)", () => {
+  /**
+   * The workout with a lighter ramp set before the 5x3 at 200, and after it two drops
+   * (the second missed) and a missed back-off set. The drop is even flagged as the
+   * as-many-as-you-can set, as an imported row might be.
+   */
+  function withExtras(base: WorkoutSession = workout()): WorkoutSession {
+    const last = base.sets.at(-1)!;
+    const at = (minutes: number) => new Date(START.getTime() + minutes * 60_000);
+    const extra = (id: string, overrides: Partial<SetLog>): SetLog => ({
+      ...last,
+      id,
+      clientId: id,
+      isAMRAP: false,
+      status: "completed",
+      ...overrides,
+    });
+    const ramp = extra("w1-ramp", { role: "ramp", setNumber: 0, weight: 160, actualReps: 3, completedAt: at(2) });
+    const d1 = extra("w1-d1", {
+      role: "drop",
+      dropOf: last.id,
+      setNumber: 6,
+      weight: 160,
+      actualReps: 9,
+      isAMRAP: true,
+      completedAt: at(21),
+    });
+    const d2 = extra("w1-d2", {
+      role: "drop",
+      dropOf: d1.id,
+      setNumber: 6,
+      weight: 130,
+      actualReps: 0,
+      status: "failed",
+      completedAt: at(22),
+    });
+    const backoff = extra("w1-bo", {
+      role: "backoff",
+      setNumber: 7,
+      weight: 160,
+      actualReps: 1,
+      status: "failed",
+      completedAt: at(25),
+    });
+    return { ...base, sets: [ramp, ...base.sets, d1, d2, backoff] };
+  }
+
+  it("scores the last set's reps, the pass and a new best on the working sets alone", () => {
+    for (const lastReps of [2, 3, 5, 6]) {
+      for (const row of [reps, pass, best]) {
+        expect(resolve(row, logOf(withExtras(workout({ lastReps }))))).toEqual(
+          resolve(row, logOf(workout({ lastReps })))
+        );
+      }
+    }
+  });
+
+  it("is not voided by lighter extra sets, and a missed drop or back-off is not a missed pass", () => {
+    expect(resolve(reps, logOf(withExtras()))).toEqual({ state: "resolved", value: 5, inside: true });
+    expect(resolve(pass, logOf(withExtras()))).toEqual({ state: "resolved", value: 5, hit: true });
   });
 });
 
