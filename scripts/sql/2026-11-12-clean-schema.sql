@@ -34,6 +34,7 @@ DROP TABLE IF EXISTS "health_daily";
 DROP TABLE IF EXISTS "favorite_workouts";
 DROP TABLE IF EXISTS "forecasts";
 DROP TABLE IF EXISTS "coach_events";
+DROP TABLE IF EXISTS "imported_sessions";
 
 CREATE TABLE "workouts" (
   "id" text PRIMARY KEY,
@@ -72,7 +73,8 @@ CREATE TABLE "lift_adjustments" (
   "at" timestamp with time zone NOT NULL,
   "source" text NOT NULL,
   "set" jsonb NOT NULL,
-  "note" text
+  "note" text,
+  "variant" jsonb
 );
 
 CREATE TABLE "runs" (
@@ -246,6 +248,23 @@ CREATE TABLE "coach_events" (
   "detail" text NOT NULL,
   "rule_id" text,
   "data" jsonb
+);
+
+CREATE TABLE "imported_sessions" (
+  "id" text PRIMARY KEY,
+  "client_id" text NOT NULL UNIQUE,
+  "updated_at" bigint NOT NULL,
+  "deleted_at" bigint,
+  "external_id" text,
+  "synced" boolean NOT NULL DEFAULT true,
+  "source_app" text NOT NULL,
+  "started_at" timestamp with time zone NOT NULL,
+  "start_is_local" boolean NOT NULL,
+  "ended_at" timestamp with time zone,
+  "title" text NOT NULL,
+  "notes" text NOT NULL,
+  "import_batch_id" text NOT NULL,
+  "sets" jsonb NOT NULL
 );
 
 COMMIT;

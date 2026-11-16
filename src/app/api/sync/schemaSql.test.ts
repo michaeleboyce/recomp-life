@@ -49,6 +49,7 @@ describe('scripts/sql/2026-11-12-clean-schema.sql', () => {
     for (const table of [
       'workouts', 'sets', 'runs', 'activities', 'bodyweight', 'pain_entries', 'estimated_1rms',
       'lift_states', 'user_profile', 'readiness_logs', 'lift_adjustments', 'health_daily', 'favorite_workouts', 'forecasts', 'coach_events',
+      'imported_sessions',
     ]) {
       const drop = SQL.indexOf(`DROP TABLE IF EXISTS "${table}";`);
       expect(drop, table).toBeGreaterThan(-1);
@@ -114,5 +115,30 @@ describe('scripts/sql/2026-11-14-glass-box.sql', () => {
     }
     expect(ADDITIVE).toMatch(/ADD COLUMN IF NOT EXISTS "decisions" jsonb;/);
     expect(sqlTables.get('workouts')!.get('decisions')).toMatchObject({ type: 'jsonb', notNull: false });
+  });
+});
+
+describe('scripts/sql/2026-11-16-imported-history.sql', () => {
+  const ADDITIVE = readFileSync(join(process.cwd(), 'scripts/sql/2026-11-16-imported-history.sql'), 'utf8');
+  const statements = ADDITIVE.split('\n').filter((l) => /^(ALTER TABLE|CREATE TABLE)/.test(l));
+
+  it('says what it does, changes no existing row and is safe to run twice', () => {
+    expect(ADDITIVE.trim()).toMatch(/^--[\s\S]*\nBEGIN;[\s\S]*\nCOMMIT;$/);
+    expect(ADDITIVE).toMatch(/imported_sessions/);
+    expect(ADDITIVE).toMatch(/changes no existing row/);
+    expect(ADDITIVE).toMatch(/safe to run more than once/);
+    expect(ADDITIVE).not.toMatch(/\b(DROP|DELETE|UPDATE|TRUNCATE) /);
+  });
+
+  it('uses IF NOT EXISTS on every statement', () => {
+    expect(statements).toHaveLength(2);
+    for (const line of statements) expect(line, line).toMatch(/IF NOT EXISTS/);
+  });
+
+  it('creates the same table and column as the clean-schema script', () => {
+    const additive = parseCreateTables(ADDITIVE.replace(/CREATE TABLE IF NOT EXISTS/g, 'CREATE TABLE'));
+    expect(additive.get('imported_sessions')).toEqual(sqlTables.get('imported_sessions'));
+    expect(ADDITIVE).toMatch(/ADD COLUMN IF NOT EXISTS "variant" jsonb;/);
+    expect(sqlTables.get('lift_adjustments')!.get('variant')).toMatchObject({ type: 'jsonb', notNull: false });
   });
 });

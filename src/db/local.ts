@@ -2,7 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type {
   WorkoutSession, RunLog, ActivityLog, BodyweightLog,
   FavoriteWorkout, PainSorenessEntry, Estimated1RM, LiftState, UserProfile, ReadinessLog, LiftAdjustment,
-  HealthDailyLog, Forecast, CoachEvent, VariantState
+  HealthDailyLog, Forecast, CoachEvent, VariantState, ImportedSessionRecord
 } from '@/types';
 
 /** The current database. A fresh name: the schema started clean on 12 Nov 2026. */
@@ -25,6 +25,8 @@ export class RecompDatabase extends Dexie {
   /** Daily values imported from Apple Health; display only. */
   healthDaily!: Table<HealthDailyLog>;
   /** Stored predictions. Write-once: see src/lib/data/forecasts.ts. */
+  /** Sessions imported from other apps' exports. History only; add-only. */
+  importedSessions!: Table<ImportedSessionRecord>;
   forecasts!: Table<Forecast>;
   /** Changes that cannot be worked out from the rest of the data. */
   coachEvents!: Table<CoachEvent>;
@@ -62,6 +64,10 @@ export class RecompDatabase extends Dexie {
     // 15 Nov 2026: home exercises' own states, derived like liftStates. Only the new table.
     this.version(4).stores({
       variantStates: 'id, liftId',
+    });
+    // 16 Nov 2026: sessions imported from other apps' exports. Only the new table.
+    this.version(5).stores({
+      importedSessions: 'id, clientId, startedAt, importBatchId',
     });
   }
 }

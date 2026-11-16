@@ -242,6 +242,7 @@ describe("clearAllData", () => {
       "favoriteWorkouts",
       "forecasts",
       "healthDaily",
+      "importedSessions",
       "liftAdjustments",
       "liftStates",
       "painEntries",
