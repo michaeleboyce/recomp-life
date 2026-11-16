@@ -46,6 +46,8 @@ export function RecentlyDeleted({ now }: { now?: number } = {}) {
   const items = useRecentlyDeleted();
   const { submit, sheet } = useCommitLogChange();
   const [restoring, setRestoring] = useState<string | null>(null);
+  // "Today" and "yesterday" are read once, when the list opens, not on every render.
+  const [openedAt] = useState(() => Date.now());
 
   if (items === undefined) {
     return <p className="py-10 text-center text-sm text-muted-foreground">Loading...</p>;
@@ -88,7 +90,7 @@ export function RecentlyDeleted({ now }: { now?: number } = {}) {
 
   return (
     <div className="flex flex-col gap-5">
-      {groupByDeletionDay(items, now ?? Date.now()).map((group) => (
+      {groupByDeletionDay(items, now ?? openedAt).map((group) => (
         <section key={group.key} aria-label={group.label}>
           <SectionHeader as="h3" title={group.label} />
           {group.items.map((item) => (

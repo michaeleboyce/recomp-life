@@ -27,6 +27,9 @@ import { evaluateRunImpact } from "@/lib/runRecovery";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
 import { evaluateT2AutoRegulation } from "@/lib/progression";
 import { getRestEvidenceId } from "@/lib/restTimes";
+import { DROP_SET_LIGHTER_BY } from "@/components/ActiveWorkout/setPlan";
+import { EFFORT_WORD_RPE } from "@/lib/import/evidence";
+import { STARTING_WEIGHT_RULES } from "@/lib/import/startingWeights";
 import type { LiftState, RunLog, Tier } from "@/types";
 
 const rules = getAllRules();
@@ -233,6 +236,26 @@ describe("formatting", () => {
 });
 
 describe("live values in rule text", () => {
+  it("the drop-set rule states the default drop share the code uses", () => {
+    expect(getRule("drop-set-evidence").appBehavior).toContain(
+      `about ${Math.round(DROP_SET_LIGHTER_BY * 100)}% lighter`
+    );
+  });
+
+  it("the starting-weight rule states the numbers the suggestions are worked from", () => {
+    const text = getRule("starting-weights").appBehavior;
+    expect(text).toContain(`${Math.round(STARTING_WEIGHT_RULES.t1FractionOfFiveRepMax * 100)}% of the ${STARTING_WEIGHT_RULES.fiveRepMaxReps}-rep max`);
+    expect(text).toContain(`${Math.round(STARTING_WEIGHT_RULES.t2FractionOfFiveRepMax * 100)}%`);
+    expect(text).toContain(`about ${STARTING_WEIGHT_RULES.t3Reps} times`);
+  });
+
+  it("the import effort-word rule gives each word's approximate RPE", () => {
+    const text = getRule("import-effort-words").appBehavior;
+    for (const [word, rpe] of Object.entries(EFFORT_WORD_RPE)) {
+      expect(text).toContain(`${word[0].toUpperCase()}${word.slice(1)} ${rpe}`);
+    }
+  });
+
   it("rest rules state the real rest times", () => {
     expect(getRule("rest-heavy").appBehavior).toContain("3:00");
     expect(getRule("rest-heavy").appBehavior).toContain("2:00");

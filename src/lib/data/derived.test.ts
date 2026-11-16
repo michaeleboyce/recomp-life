@@ -10,7 +10,7 @@ import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState } from "@/types";
 import { applyRebuild, checkDerived, loadRebuildInput, readSettings, rebuildTables } from "./derived";
 import { updateSettings } from "./records";
-import { clearDb, runSession, type ScriptedSession } from "./testUtils";
+import { clearDb, runSession, type ScriptedSession, seedFixtureStartingWeights } from "./testUtils";
 
 const DAY = 24 * 60 * 60 * 1000;
 const FIRST = new Date("2026-03-02T09:00:00Z").getTime();
@@ -23,6 +23,7 @@ beforeEach(async () => {
   vi.setSystemTime(new Date("2026-03-01T08:00:00Z"));
   await clearDb();
   await initializeDatabase();
+  await seedFixtureStartingWeights();
 });
 
 afterEach(() => {

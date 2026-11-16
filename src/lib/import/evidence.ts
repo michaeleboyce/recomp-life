@@ -14,13 +14,15 @@
 import { EXERCISES } from "@/lib/exercises";
 import { isMuscleId } from "@/lib/muscles";
 import { MUSCLE_WEIGHTS, volumeCredits, type StrengthSet, type StrengthSetRole } from "@/lib/strength";
-import type { ImportedSessionRecord, ImportedSetRecord, MuscleId } from "@/types";
+import type { ImportedSessionRecord, ImportedSetRecord, MuscleGroupVolume, MuscleId } from "@/types";
 
 /**
  * The effort words other apps log, as an approximate RPE: the reps left in reserve are
  * credited by the app's estimate (10 − RPE). Graded heuristic: the apps do not say what
  * their words mean in reps. A set without a word is read as taken to its limit, which
  * gives the lower estimate.
+ *
+ * @evidence import-effort-words
  */
 export const EFFORT_WORD_RPE: Readonly<Record<string, number>> = {
   easy: 7,
@@ -192,17 +194,51 @@ export function importedMuscleLoad(
   from: Date,
   to: Date
 ): MuscleValues {
-  const inRange = sessions.filter((s) => {
-    const t = sessionTime(s);
-    return t >= from.getTime() && t < to.getTime();
-  });
   const load: MuscleValues = {};
-  for (const set of importedMuscleSets(inRange)) {
+  for (const set of importedMuscleSets(sessionsIn(sessions, from, to))) {
     if (set.credit <= 0) continue;
     for (const m of set.primary) load[m] = (load[m] ?? 0) + set.credit * MUSCLE_WEIGHTS.primary;
     for (const m of set.secondary) load[m] = (load[m] ?? 0) + set.credit * MUSCLE_WEIGHTS.secondary;
   }
   return load;
+}
+
+const sessionsIn = (sessions: readonly ImportedSessionRecord[], from: Date, to: Date) =>
+  sessions.filter((s) => {
+    const t = sessionTime(s);
+    return t >= from.getTime() && t < to.getTime();
+  });
+
+/**
+ * The app's direct and indirect sets per muscle (`calculateMuscleGroupVolume`) with the
+ * imported sessions started in [from, to) added: each set at its credit, as direct sets
+ * for its primary muscles and indirect sets for its secondary ones, with
+ * `totalFractional` weighted as `importedMuscleLoad` weights it. Returns a new record.
+ */
+export function addImportedVolume(
+  volume: Readonly<Record<string, MuscleGroupVolume>>,
+  sessions: readonly ImportedSessionRecord[],
+  from: Date,
+  to: Date
+): Record<string, MuscleGroupVolume> {
+  const out: Record<string, MuscleGroupVolume> = Object.fromEntries(
+    Object.entries(volume).map(([muscle, v]) => [muscle, { ...v }])
+  );
+  const add = (muscle: MuscleId) => (out[muscle] ??= { directSets: 0, indirectSets: 0, totalFractional: 0 });
+  for (const set of importedMuscleSets(sessionsIn(sessions, from, to))) {
+    if (set.credit <= 0) continue;
+    for (const m of set.primary) {
+      const v = add(m);
+      v.directSets += set.credit;
+      v.totalFractional += set.credit * MUSCLE_WEIGHTS.primary;
+    }
+    for (const m of set.secondary) {
+      const v = add(m);
+      v.indirectSets += set.credit;
+      v.totalFractional += set.credit * MUSCLE_WEIGHTS.secondary;
+    }
+  }
+  return out;
 }
 
 /** When each muscle was last worked by an imported set that counts (not a warm-up): the session's start. */

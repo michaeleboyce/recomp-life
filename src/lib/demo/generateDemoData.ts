@@ -1,10 +1,11 @@
 // A deterministic sample LOG for tests, screenshots and local development: workouts
-// (with their sets), starting-weight adjustments, runs, bodyweight, readiness and pain
+// (with their sets), starting-weight adjustments (the demo lifter's, src/lib/demo/demoLifter.ts), runs, bodyweight, readiness and pain
 // entries. Lift states and e1RM rows are not hand-built: they come from `rebuildDerived`
 // on the log, so they are by construction what the app shows. Each session is created
 // the way the live app creates one: the plan from the running lift states, the stored
 // prescription, sets through `createSetLog`. Pure: no clock, no randomness, no database.
 import { DEFAULT_USER_PROFILE, startAdjustments } from "@/db/seed";
+import { DEMO_LIFT_STATES } from "./demoLifter";
 import { roundToStep } from "@/lib/dbConversion";
 import { E1RM_MAX_REPS } from "@/lib/e1rm";
 import { rebuildDerived } from "@/lib/rebuild";
@@ -179,7 +180,8 @@ const stamp = (date: Date) => ({ updatedAt: date.getTime(), deletedAt: null });
 export function generateDemoData(now: Date): DemoData {
   const settings = DEFAULT_USER_PROFILE.settings;
   const equipment = settings.equipment;
-  const liftAdjustments = startAdjustments();
+  // The demo lifter's own starting weights, not a new account's empty-bar defaults.
+  const liftAdjustments = startAdjustments(DEMO_LIFT_STATES);
 
   // Day offsets, oldest workout first; the last one is yesterday.
   const daysAgo: number[] = new Array(WORKOUT_COUNT);

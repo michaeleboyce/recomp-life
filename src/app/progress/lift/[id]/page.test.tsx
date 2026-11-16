@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
-import { clearDb, makeProfile } from "@/lib/data/testUtils";
+import { clearDb, makeProfile, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { initializeDatabase } from "@/db/init";
 import { Toaster, dismissToast } from "@/components/ui/toast";
@@ -147,6 +147,7 @@ describe("Lift detail page", () => {
 
   it("adjusts the next weight from the screen and lists the change under Weight changes", async () => {
     await initializeDatabase();
+    await seedFixtureStartingWeights();
     render(
       <>
         <LiftPage />
@@ -263,6 +264,11 @@ describe("Lift detail page", () => {
       expect(next).toHaveTextContent("Set the Bulgarian split squat weight; the barbell squat stays as it is.");
       // How the weight was reached comes from the plan entry, never the flat 80% conversion.
       expect(within(next).getByTestId("home-weight-line")).not.toHaveTextContent("80% of");
+      // With its rule (home progression, its seed's ratio, re-entry or the cap policy).
+      const homeRule = within(next).getByTestId("home-weight-line").parentElement!.querySelector("[data-evidence]");
+      expect(["home-progression", "cap-progression", "transfer-ratio", "strength-pooling", "dumbbell-conversion"]).toContain(
+        homeRule?.getAttribute("data-evidence")
+      );
 
       // Its own sessions, newest first, with no "At home" line on each.
       const own = sessionsAs("bulgarian_split_squat");
@@ -324,6 +330,7 @@ describe("Lift detail page", () => {
 
     it("adjusts the home exercise's own weight: the next home plan follows, the barbell does not", async () => {
       await initializeDatabase();
+      await seedFixtureStartingWeights();
       const profile = await db.userProfile.toCollection().first();
       const equipment = profile!.settings.equipment;
       /** The next home plan, from what is stored now. */
@@ -389,6 +396,7 @@ describe("Lift detail page", () => {
 
     it("opened from the barbell page, the sheet still edits the barbell", async () => {
       await initializeDatabase();
+      await seedFixtureStartingWeights();
       render(<LiftPage />);
       const next = await screen.findByRole("region", { name: "Next session" });
       fireEvent.click(within(next).getByRole("button", { name: "Adjust weight" }));

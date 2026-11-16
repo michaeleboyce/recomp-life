@@ -1,14 +1,13 @@
 import { House, TrendingUp } from "lucide-react";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Term } from "@/components/ui/term";
-import { getRule } from "@/lib/evidence";
 import type { TermId } from "@/lib/glossary";
 import type { PrChance, PrOpportunity } from "@/lib/projection";
 import { tierStyle } from "@/lib/tierStyle";
 import { cn } from "@/lib/utils";
 import type { EquipmentProfile, Tier } from "@/types";
 import { nameInSentence } from "@/components/Today/todayModel";
-import { homeScheme, homeWeightLine, type HomeNextSession } from "./homeVersion";
+import { homeScheme, homeWeightLine, type HomeNextSession, type HomeWeightLine } from "./homeVersion";
 
 const CHANCE_TEXT: Record<PrChance, string> = {
   likely: "Likely.",
@@ -50,6 +49,25 @@ export function PrLine({
 }
 
 const TIER_TERM: Partial<Record<Tier, TermId>> = { T1: "t1", T2: "t2", T3: "t3" };
+
+/**
+ * The rule behind the home weight line, each with its own literal id, so the evidence
+ * registry knows this is where it is shown.
+ */
+function HomeLineEvidence({ ruleId }: { ruleId: HomeWeightLine["ruleId"] }) {
+  switch (ruleId) {
+    case "home-progression":
+      return <EvidenceLine ruleId="home-progression" variant="icon" />;
+    case "cap-progression":
+      return <EvidenceLine ruleId="cap-progression" variant="icon" />;
+    case "transfer-ratio":
+      return <EvidenceLine ruleId="transfer-ratio" variant="icon" />;
+    case "strength-pooling":
+      return <EvidenceLine ruleId="strength-pooling" variant="icon" />;
+    case "dumbbell-conversion":
+      return <EvidenceLine ruleId="dumbbell-conversion" variant="icon" />;
+  }
+}
 
 /**
  * The home version's next session: its own weight as lifted (the number Today shows),
@@ -109,8 +127,7 @@ export function HomeNextWeight({
           <p data-testid="home-weight-line" className="flex-1 text-[13px] text-muted-foreground">
             {line.text}
           </p>
-          {/* A rule still planned in the evidence registry is not shown anywhere. */}
-          {getRule(line.ruleId).status !== "planned" && <EvidenceLine ruleId={line.ruleId} variant="icon" />}
+          <HomeLineEvidence ruleId={line.ruleId} />
         </div>
       )}
     </div>

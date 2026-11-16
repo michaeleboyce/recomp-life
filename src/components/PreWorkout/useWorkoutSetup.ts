@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import {
@@ -23,7 +23,12 @@ import { recordCoachEvent, type CoachEventInput } from "@/lib/data/coachEvents";
 import { startWorkout } from "@/lib/data/workouts";
 import { ACCESSORY_IDS, EXERCISES } from "@/lib/exercises";
 import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePreferences";
-import { lastLoggedWeights, type ResolvedFavorite } from "@/lib/favorites";
+import {
+  favoriteEditsAt,
+  favoritePinNote,
+  lastLoggedWeights,
+  type ResolvedFavorite,
+} from "@/lib/favorites";
 import { RECOVERY_HOURS, lastTrainedDates } from "@/lib/recovery";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
 import { sleepBucket } from "@/lib/health/sleep";
@@ -279,8 +284,22 @@ export function useWorkoutSetup(
     setSelectedAccessories(favorite.selectedAccessories);
     setOverrides(favorite.overrides);
     setEditState({ templateId: favorite.templateId, edits: favorite.planEdits });
+    // Its location is this workout's, as if chosen here (saved as the default below).
+    setFromUrl(null);
+    setPending({ value: favorite.location, over: training.location });
   }
   const favoriteId = seededFrom?.favoriteId;
+
+  // A favourite's weights pinned at the other location are left out here (a dumbbell
+  // weight would land on the barbell lift, a barbell weight on the home exercise), and
+  // put back if the location changes back. `edits` keeps them; `pinned` is what applies.
+  const favoritePins = useMemo(
+    () => (seededFrom ? favoriteEditsAt(seededFrom, location, edits) : null),
+    [seededFrom, location, edits]
+  );
+  const pinned = favoritePins?.edits ?? edits;
+  /** Why some of the favourite's weights are not used at this location; null when all are. */
+  const favoriteNote = favoritePins ? favoritePinNote(favoritePins.dropped, location) : null;
 
   const savedLocation = training.location;
   const setLocation = useCallback(
@@ -309,17 +328,17 @@ export function useWorkoutSetup(
             includeWarmUps: warmUps,
             selectedAccessories,
             overrides,
-            edits,
+            edits: pinned,
             variantStates,
             ...(strengthSets ? { strengthSets } : {}),
           })
         : null,
-    [template, liftStates, location, equipment, warmUps, selectedAccessories, overrides, edits, variantStates, strengthSets]
+    [template, liftStates, location, equipment, warmUps, selectedAccessories, overrides, pinned, variantStates, strengthSets]
   );
   const plan = useMemo(() => startPlan?.plan ?? [], [startPlan]);
   const prescribed = startPlan?.prescribed ?? NO_PRESCRIBED;
   /** Per program lift: counts toward progression, logged only, or not done. Empty without edits. */
-  const impact = useMemo(() => computeImpact(plan, prescribed, edits), [plan, prescribed, edits]);
+  const impact = useMemo(() => computeImpact(plan, prescribed, pinned), [plan, prescribed, pinned]);
 
   const homeAdaptations = useMemo<HomeAdaptation[]>(() => {
     if (!template || location !== "home") return [];
@@ -348,12 +367,14 @@ export function useWorkoutSetup(
     });
   }, [template, location, liftStates, equipment, plan]);
 
-  const favoriteLocation = seededFrom?.location;
+  // A favourite's location is saved as the default too, once per favourite applied: the
+  // user may change the location afterwards.
+  const savedFavoriteLocation = useRef<ResolvedFavorite | null>(null);
   useEffect(() => {
-    if (favoriteLocation) setLocation(favoriteLocation);
-    // Only when a favourite is applied: the user may change the location afterwards.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seededFrom]);
+    if (!seededFrom || savedFavoriteLocation.current === seededFrom) return;
+    savedFavoriteLocation.current = seededFrom;
+    saveLocation(seededFrom.location).catch((err) => console.error("Failed to save training location:", err));
+  }, [seededFrom, saveLocation]);
 
   const chooseSubstitute = useCallback((templateExerciseId: string, substituteId: string) => {
     setOverrides((prev) => ({ ...prev, [templateExerciseId]: substituteId }));
@@ -621,7 +642,7 @@ export function useWorkoutSetup(
     try {
       sessionId = await startWorkout({
         prescribed,
-        planEdits: edits,
+        planEdits: pinned,
         favoriteId,
         templateId,
         location,
@@ -646,7 +667,7 @@ export function useWorkoutSetup(
       return null;
     }
     // The choices made on this screen, now that they belong to a real workout.
-    for (const note of notesToWrite(pendingNotes, { sessionId, templateId, edits })) {
+    for (const note of notesToWrite(pendingNotes, { sessionId, templateId, edits: pinned })) {
       noteAdvisory(note);
     }
     setPendingNotes([]);
@@ -664,7 +685,7 @@ export function useWorkoutSetup(
     sleepHours,
     stressLevel,
     prescribed,
-    edits,
+    pinned,
     favoriteId,
     sleepIsFromHealth,
     healthSleepMinutes,
@@ -682,10 +703,12 @@ export function useWorkoutSetup(
     dueTemplateId,
     template,
     plan,
-    edits,
+    /** The edits in effect at this location (a favourite's pins from the other one left out). */
+    edits: pinned,
     prescribed,
     impact,
     favoriteId,
+    favoriteNote,
     lastWeights,
     swapExercise,
     removeExercise,

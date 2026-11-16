@@ -66,13 +66,14 @@ export default function SettingsPage() {
   const handlePhaseChange = useCallback(
     async (mode: TrainingPhase["mode"]) => {
       if (!profile || profile.settings.trainingPhase.mode === mode) return;
+      // Cutting keeps the targets already set; none is made up until the user sets one.
+      const { dailyDeficit, proteinGramsPerDay } = profile.settings.trainingPhase;
       const newPhase: TrainingPhase = {
         mode,
         ...(mode === "cutting"
           ? {
-              dailyDeficit: profile.settings.trainingPhase.dailyDeficit ?? 750,
-              proteinGramsPerDay:
-                profile.settings.trainingPhase.proteinGramsPerDay ?? 160,
+              ...(dailyDeficit != null ? { dailyDeficit } : {}),
+              ...(proteinGramsPerDay != null ? { proteinGramsPerDay } : {}),
             }
           : {}),
       };
@@ -267,7 +268,7 @@ export default function SettingsPage() {
               <div className="mt-4 space-y-3">
                 <NumberField
                   label="Daily deficit"
-                  value={settings.trainingPhase.dailyDeficit ?? 750}
+                  value={settings.trainingPhase.dailyDeficit}
                   suffix="cal"
                   onSave={(value) =>
                     updateSettings({
@@ -280,7 +281,7 @@ export default function SettingsPage() {
                 />
                 <NumberField
                   label="Protein target"
-                  value={settings.trainingPhase.proteinGramsPerDay ?? 160}
+                  value={settings.trainingPhase.proteinGramsPerDay}
                   suffix="g/day"
                   onSave={(value) =>
                     updateSettings({
@@ -539,6 +540,7 @@ function ProfileField({
   );
 }
 
+/** A number setting; with no value yet it says "Not set" and starts empty when edited. */
 function NumberField({
   label,
   value,
@@ -546,12 +548,12 @@ function NumberField({
   onSave,
 }: {
   label: string;
-  value: number;
+  value: number | undefined;
   suffix: string;
   onSave: (value: number) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(String(value));
+  const [draft, setDraft] = useState(value == null ? "" : String(value));
 
   const handleSave = () => {
     const parsed = parseInt(draft, 10);
@@ -574,7 +576,7 @@ function NumberField({
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSave();
               if (e.key === "Escape") {
-                setDraft(String(value));
+                setDraft(value == null ? "" : String(value));
                 setEditing(false);
               }
             }}
@@ -592,13 +594,18 @@ function NumberField({
       <span className="text-sm text-muted-foreground">{label}</span>
       <button
         type="button"
+        aria-label={`${label}: ${value == null ? "not set" : `${value} ${suffix}`}`}
         onClick={() => {
-          setDraft(String(value));
+          setDraft(value == null ? "" : String(value));
           setEditing(true);
         }}
-        className="text-sm font-medium text-foreground hover:text-primary transition-colors font-mono tabular-nums"
+        className={
+          value == null
+            ? "text-sm text-muted-foreground hover:text-primary transition-colors"
+            : "text-sm font-medium text-foreground hover:text-primary transition-colors font-mono tabular-nums"
+        }
       >
-        {value} {suffix}
+        {value == null ? "Not set" : `${value} ${suffix}`}
       </button>
     </div>
   );

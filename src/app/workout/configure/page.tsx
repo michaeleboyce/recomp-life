@@ -109,6 +109,11 @@ function ConfigureWorkoutContent() {
           From favourite: {fromUrl.name} · {fromUrl.mode === "as-saved" ? "Exactly as saved" : "Today's weights"}
         </p>
       )}
+      {setup.favoriteNote && (
+        <p data-testid="favorite-pin-note" className="text-sm text-muted-foreground">
+          {setup.favoriteNote}
+        </p>
+      )}
       {fromUrl.status === "missing" && <Callout variant="warning">That favourite no longer exists.</Callout>}
       <FavouriteActions
         setup={setup}

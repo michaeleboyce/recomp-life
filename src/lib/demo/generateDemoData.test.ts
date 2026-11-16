@@ -7,7 +7,8 @@ import {
   demoRepsInHand,
   generateDemoData,
 } from "./generateDemoData";
-import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES } from "@/db/seed";
+import { DEFAULT_USER_PROFILE } from "@/db/seed";
+import { DEMO_LIFT_STATES } from "./demoLifter";
 import { roundToStep } from "@/lib/dbConversion";
 import { E1RM_MAX_REPS, toRecentE1RMSeries } from "@/lib/e1rm";
 import { rebuildDerived } from "@/lib/rebuild";
@@ -48,7 +49,7 @@ describe("generateDemoData", () => {
     // One row per T1 AMRAP set of the lift itself: the eight home sessions give none
     // (five scattered home sessions before 2026-11-15, so 19 rows then).
     expect(data.estimated1RMs).toHaveLength(16);
-    expect(data.liftStates).toHaveLength(Object.keys(INITIAL_LIFT_STATES).length);
+    expect(data.liftStates).toHaveLength(Object.keys(DEMO_LIFT_STATES).length);
   });
 
   it("spans roughly 8 weeks with 2-3 days between workouts", () => {
@@ -252,7 +253,7 @@ describe("generateDemoData", () => {
       ]);
       const split = data.variantStates.find((v) => v.id === "squat|bulgarian_split_squat|T1")!;
       expect(split).toMatchObject({ weight: 60, extraReps: 0, current: true, seed: { source: "ratio", barbellWeight: 190, ratio: 0.5 } });
-      expect(split.weight).toBe(roundToStep((0.5 * INITIAL_LIFT_STATES.squat.t1Weight) / 2, 5) + 2 * 5);
+      expect(split.weight).toBe(roundToStep((0.5 * DEMO_LIFT_STATES.squat.t1Weight) / 2, 5) + 2 * 5);
       // The T2 split squat comes later, after a T1 session gave an estimate: it is
       // seeded from the estimate, and the stored seed says so.
       const splitT2 = data.variantStates.find((v) => v.id === "squat|bulgarian_split_squat|T2")!;
@@ -404,7 +405,7 @@ describe("generateDemoData", () => {
     const byId = Object.fromEntries(data.liftStates.map((l) => [l.exerciseId, l]));
     for (const id of ["squat", "bench", "deadlift", "ohp"]) {
       const state = byId[id];
-      const init = INITIAL_LIFT_STATES[id];
+      const init = DEMO_LIFT_STATES[id];
       expect(state.t1Weight).toBeGreaterThan(init.t1Weight);
       const t1Workouts = data.workouts.filter((w) =>
         w.sets.some((s) => s.exerciseId === id && s.tier === "T1")

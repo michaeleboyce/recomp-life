@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { INITIAL_LIFT_STATES } from "@/db/seed";
+import { FIXTURE_LIFT_STATES } from "./testFixtures";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, T1Stage, T2Stage, WorkoutTemplateExercise } from "@/types";
 import { getPrescription, T1_STAGE_SCHEME, T2_STAGE_SCHEME } from "./prescription";
 
 const [squatT1, benchT2, latT3] = WORKOUT_TEMPLATES.A1.exercises;
-const squat = INITIAL_LIFT_STATES.squat;
-const bench = INITIAL_LIFT_STATES.bench;
+const squat = FIXTURE_LIFT_STATES.squat;
+const bench = FIXTURE_LIFT_STATES.bench;
 
 describe("stage schemes", () => {
   it("match the GZCLP stage tables", () => {
@@ -51,7 +51,7 @@ describe("getPrescription", () => {
   });
 
   it("T3 uses t3Weight with the template's sets and reps", () => {
-    expect(getPrescription(latT3, INITIAL_LIFT_STATES.lat_pulldown)).toEqual({
+    expect(getPrescription(latT3, FIXTURE_LIFT_STATES.lat_pulldown)).toEqual({
       weight: 90,
       sets: 3,
       reps: 15,

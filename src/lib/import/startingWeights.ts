@@ -19,7 +19,9 @@
  *   dumbbell step, as lifted (per hand where it is per hand) and capped at the heaviest
  *   dumbbell; a home exercise goes through its ratio to the lift (learned, else the
  *   starting ratio).
- * Each fraction is a coaching heuristic, not a research finding.
+ * The T1 and T2 fractions are the GZCLP guide's; the T3 reps and the rest are this app's.
+ *
+ * @evidence starting-weights
  */
 import type { NewAdjustment } from "@/lib/data/adjustments";
 import { EXERCISES } from "@/lib/exercises";

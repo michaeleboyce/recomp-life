@@ -12,6 +12,48 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-16",
+    ruleId: "home-progression",
+    change:
+      "Switched on: the home lift page cites it for a home exercise's own weight, and the Log's \"What it did\" and the workout summary cite it for a home session's outcome instead of the plain GZCLP rule.",
+    sources: [],
+  },
+  {
+    date: "2026-11-16",
+    ruleId: "cap-progression",
+    change:
+      "Switched on: Today shows it on a home lift held at your heaviest dumbbell, beside what a pass does there; the home lift page, \"What it did\" and the workout summary cite it when the cap policy acted.",
+    sources: [],
+  },
+  {
+    date: "2026-11-16",
+    ruleId: "transfer-ratio",
+    change:
+      "Switched on: the home lift page cites it for a home exercise's first weight, and the import screen for the home starting weights it suggests.",
+    sources: ["saeterbakken2011", "saeterbakken2013", "speirs2016"],
+  },
+  {
+    date: "2026-11-16",
+    ruleId: "drop-set-evidence",
+    change:
+      "Switched on: the drop set screen in a workout shows how a drop counts. The rule now also states the weight a drop starts at (about a fifth lighter), read from the code.",
+    sources: ["havers2026", "sodal2023"],
+  },
+  {
+    date: "2026-11-16",
+    ruleId: "starting-weights",
+    change:
+      "Added: after an import, each program lift the history informs gets a suggested starting weight from its strength estimate (T1 at the GZCLP guide's share of a five-rep max), shown with its working and used only once you confirm it.",
+    sources: [],
+  },
+  {
+    date: "2026-11-16",
+    ruleId: "import-effort-words",
+    change:
+      "Added as a planned rule (not active yet): effort words in another app's export (Easy, Ideal, Hard and others) are read as an approximate RPE when imported sets feed the strength estimate.",
+    sources: [],
+  },
+  {
+    date: "2026-11-16",
     ruleId: "strength-pooling",
     change:
       "Switched on: the Muscles tab shows a strength trend for each muscle from every exercise that works it, barbell and home, a primary muscle at full weight and a secondary one at half. It is an index starting at 100, not a weight.",

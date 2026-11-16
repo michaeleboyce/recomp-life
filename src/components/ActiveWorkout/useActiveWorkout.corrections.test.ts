@@ -7,7 +7,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { recordAdjustment, type NewAdjustment } from "@/lib/data/adjustments";
-import { clearDb } from "@/lib/data/testUtils";
+import { clearDb, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { startWorkout, type StartWorkoutInput } from "@/lib/data/workouts";
 import type { ToastOptions } from "@/components/ui/toast";
 import { foldRotation } from "@/lib/workout";
@@ -22,6 +22,7 @@ vi.mock("@/lib/projection", () => ({ describePrOpportunity: () => null }));
 beforeEach(async () => {
   await clearDb();
   await initializeDatabase();
+  await seedFixtureStartingWeights();
   useWorkoutStore.getState().reset();
   toast.mockReset();
 });

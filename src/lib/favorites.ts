@@ -224,7 +224,8 @@ const sameEdit = (a: PlanEdit, b: PlanEdit) => a === b || JSON.stringify(a) === 
  * home exercise), and, at home with the `plan` known, a weight saved for another home
  * exercise than the one planned. Those lifts take today's plan weight instead. Every
  * other edit in `edits` (structural edits, other pins, the user's own changes since)
- * is kept, in order. `dropped` says which lifts lost a pin, for `favoritePinNote`.
+ * is kept, in order. `dropped` says which lifts lost a pin, for `favoritePinNote`; a pin
+ * none of whose edits is still in `edits` (reset, or another day) lost nothing.
  */
 export function favoriteEditsAt(
   favorite: Pick<ResolvedFavorite, "templateId" | "location" | "planEdits" | "pins">,
@@ -235,6 +236,7 @@ export function favoriteEditsAt(
   const dropped: DroppedPin[] = [];
   const drop: PlanEdit[] = [];
   for (const pin of favorite.pins ?? []) {
+    if (!pin.edits.some((pinned) => edits.some((edit) => sameEdit(pinned, edit)))) continue;
     let reason: DroppedPin["reason"] | null = null;
     if (location !== favorite.location) {
       if (locationBound(favorite.templateId, pin)) reason = "otherLocation";

@@ -1,7 +1,9 @@
 import type { EvidenceRule } from "@/types";
 import type { SourceId } from "../sources";
-import { E1RM_MAX_REPS } from "@/lib/e1rm";
+import { DROP_SET_LIGHTER_BY } from "@/components/ActiveWorkout/setPlan";
+import { E1RM_MAX_REPS, E1RM_MAX_REPS_IN_RESERVE } from "@/lib/e1rm";
 import { EXERCISES } from "@/lib/exercises";
+import { EFFORT_WORD_RPE } from "@/lib/import/evidence";
 import {
   DROP_SETS as D,
   MUSCLE_INDEX as I,
@@ -49,20 +51,23 @@ const range = (values: number[]) => {
 };
 
 const STUDIED_COUNT = studied.length;
-const TRANSFER_ACTIVATION =
-  "Switch on when the home lift page (src/components/Lift) and the workout trace show the ratio and how many of your pairs it rests on, with an evidence line on each.";
-const DROP_ACTIVATION =
-  "Switch on when the set logger (src/components/Log or ActiveWorkout) shows how a drop counts, with an evidence line.";
+
+/** "Easy 7, Ideal 8, Hard 9" for every effort word an import reads. */
+const EFFORT_WORDS = Object.entries(EFFORT_WORD_RPE)
+  .map(([word, rpe]) => `${word[0].toUpperCase()}${word.slice(1)} ${rpe}`)
+  .join(", ");
+const easyRpe = EFFORT_WORD_RPE.easy;
 
 /**
- * Rules behind the one strength model for gym and home. Pooling is active on the Muscles tab; the
- * others stay planned until a screen shows them. Research: docs/research/2026-11-strength-transfer.md.
+ * Rules behind the one strength model for gym and home, each shown where the app acts on
+ * it; the import's effort words stay planned until a screen says how they are read.
+ * Research: docs/research/2026-11-strength-transfer.md.
  * Spec: docs/plans/2026-11-15-strength-model-design.md
  */
 export const STRENGTH_RULES = {
   "transfer-ratio": {
     area: "effort",
-    status: "planned",
+    status: "active",
     title: "How does a home exercise count toward a barbell lift?",
     summary: "Home exercises convert to the barbell lift by a ratio learned from you",
     appBehavior: `Each home exercise has a starting ratio to its barbell lift: its estimated max divided by the lift's, counting both dumbbells when you hold one in each hand. ${PRIOR_LIST}. The ratio is then learned from your own sessions: a home session and a barbell session of the same lift at most ${R.pairWindowDays} days apart form a pair, and the learned ratio is a weighted average of the starting ratio and your pairs (on a log scale). A starting ratio from a study counts like ${range(studied)} of your pairs and an assumed one like ${range(assumed)}, so a few of your own pairs soon outweigh it. From ${R.minPairsForOwnSpread} pairs on, pairs that disagree with each other widen the ratio's range. The app says how many pairs a ratio rests on.`,
@@ -79,8 +84,7 @@ export const STRENGTH_RULES = {
       "src/lib/strength/ratio.ts#learnTransferRatio",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
-    surfaces: [],
-    activationNotes: TRANSFER_ACTIVATION,
+    surfaces: ["src/components/Lift/PrLine.tsx", "src/components/Import/StartingWeights.tsx"],
   },
   "strength-pooling": {
     area: "effort",
@@ -108,14 +112,14 @@ export const STRENGTH_RULES = {
       "src/lib/workout/startPlan.ts#planWorkoutStart",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
-    surfaces: ["src/components/Progress/MusclesTab.tsx"],
+    surfaces: ["src/components/Progress/MusclesTab.tsx", "src/components/Lift/PrLine.tsx"],
   },
   "drop-set-evidence": {
     area: "effort",
-    status: "planned",
+    status: "active",
     title: "How do drop sets count?",
     summary: "Drops add volume and a little strength evidence, never a new best",
-    appBehavior: `A drop follows a set with no rest, so its reps understate your strength. Only the first drop after each set is used for the strength estimate: its estimated max is taken as ${pct(D.fatigueDiscount)} below fresh (divided by ${1 - D.fatigueDiscount}), and the first drops together count ${pct(D.evidenceWeight)} as much as the session's best set. A drop never makes an estimated max or a new best, and a session with only drops gives no estimate. Ramp and back-off sets count like any other set, at their own weight. For muscle volume each drop counts as ${D.volumeCredit} of a set, and the drops after one set add at most ${D.maxExtraSetsPerWorkingSet} set. A drop is never part of a pass or a fail: a missed drop does not turn a pass into a miss.`,
+    appBehavior: `A drop follows a set with no rest and starts about ${pct(DROP_SET_LIGHTER_BY)} lighter than the set before, rounded to your plates or dumbbell step; you can change it before logging. Its reps understate your strength. Only the first drop after each set is used for the strength estimate: its estimated max is taken as ${pct(D.fatigueDiscount)} below fresh (divided by ${1 - D.fatigueDiscount}), and the first drops together count ${pct(D.evidenceWeight)} as much as the session's best set. A drop never makes an estimated max or a new best, and a session with only drops gives no estimate. Ramp and back-off sets count like any other set, at their own weight. For muscle volume each drop counts as ${D.volumeCredit} of a set, and the drops after one set add at most ${D.maxExtraSetsPerWorkingSet} set. A drop is never part of a pass or a fail: a missed drop does not turn a pass into a miss.`,
     rationale:
       "Drop sets built about as much muscle and strength over weeks as traditional sets, in less time, and felt harder in the moment, with more lactate. In the studies' protocols the reps after a drop were far fewer than the lighter weight allows fresh, and maximal force fell more after drop sets than after traditional sets.",
     caveat:
@@ -129,8 +133,30 @@ export const STRENGTH_RULES = {
       "src/lib/strength/volume.ts#volumeCredits",
       "src/lib/strength/volume.ts#muscleVolume",
       "src/lib/workout/setSelectors.ts#isWorkingSet",
+      "src/components/ActiveWorkout/setPlan.ts#dropSetWeight",
+    ],
+    surfaces: ["src/components/ActiveWorkout/DropSetPanel.tsx"],
+  },
+  "import-effort-words": {
+    area: "effort",
+    status: "planned",
+    title: "How are effort words from other apps read?",
+    summary: "An imported set's effort word becomes an approximate RPE",
+    appBehavior: `Sets imported from another app can carry an effort word. When those sets feed the strength estimate, each word is read as an approximate RPE: ${EFFORT_WORDS}. The reps left in reserve are then 10 minus that RPE, at most ${E1RM_MAX_REPS_IN_RESERVE}, as for an RPE you log yourself: a set marked Easy counts as ${10 - easyRpe} reps short of failure. A set with no word, or a word not in the list, is read as taken to its limit, which gives the lower estimate. Warm-ups give no estimate, and a drop counts as drops do.`,
+    rationale:
+      "An estimated max from a set depends on how close to failure it went. The other apps record that in words, not reps, so the words are mapped to the nearest RPE that matches their usual meaning, and a set with no word is read the cautious way.",
+    caveat:
+      "The apps do not say what their words mean in reps; the mapping is this app's reading of them, not a research finding. Imported sets with these words also count less as they age, like any other session.",
+    strength: "heuristic",
+    sources: [],
+    reviewedOn: "2026-11",
+    implementedIn: [
+      "src/lib/import/evidence.ts#EFFORT_WORD_RPE",
+      "src/lib/import/evidence.ts#effortRpe",
+      "src/lib/import/evidence.ts#importedSessionStrengthSets",
     ],
     surfaces: [],
-    activationNotes: DROP_ACTIVATION,
+    activationNotes:
+      "Switch on when the import screen (src/components/Import) says how the file's effort words are read, with an evidence line.",
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;

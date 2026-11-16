@@ -9,17 +9,17 @@ import {
 import { CREDIT_MIN_WEIGHT_RATIO } from "@/lib/workout/credit";
 import { CAP_REP_STEP, HARDER_HOME_VARIANT } from "@/lib/workout/variant";
 import { EXERCISES } from "@/lib/exercises";
+import { STARTING_WEIGHT_RULES as SW } from "@/lib/import/startingWeights";
 
 const exerciseName = (id: string) => EXERCISES[id]?.name ?? id;
 const HARDER_LIST = Object.entries(HARDER_HOME_VARIANT)
   .map(([from, to]) => `${exerciseName(from)} to ${exerciseName(to)}`)
   .join(", ");
-const HOME_ACTIVATION =
-  "Switch on when the home lift page, Today and the workout trace show it, with an evidence line on each.";
 
 const [t1, t2, t3] = WORKOUT_TEMPLATES.A1.exercises;
 const resetPercent = Math.round(RESET_FACTOR * 100);
 const creditPercent = Math.round(CREDIT_MIN_WEIGHT_RATIO * 100);
+const startPercent = (fraction: number) => `${Math.round(fraction * 100)}%`;
 
 export const PROGRESSION_RULES = {
   "tier-structure": {
@@ -118,7 +118,7 @@ export const PROGRESSION_RULES = {
   },
   "home-progression": {
     area: "progression",
-    status: "planned",
+    status: "active",
     title: "What does a home session do to your weights?",
     summary: "Home sessions progress their own weight; the barbell moves when you return",
     appBehavior:
@@ -139,12 +139,15 @@ export const PROGRESSION_RULES = {
       "src/lib/workout/startPlan.ts#planWorkoutStart",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
-    surfaces: [],
-    activationNotes: HOME_ACTIVATION,
+    surfaces: [
+      "src/components/Lift/PrLine.tsx",
+      "src/components/Log/WhatItDid.tsx",
+      "src/components/WorkoutSummary/WhatItChanged.tsx",
+    ],
   },
   "cap-progression": {
     area: "progression",
-    status: "planned",
+    status: "active",
     title: "What happens at your heaviest dumbbell?",
     summary: "At the heaviest dumbbell a pass moves to a harder exercise or adds reps",
     appBehavior: `A pass never takes a home exercise past your heaviest dumbbell. At that weight the pass moves you on instead. If the exercise has a harder version your dumbbells can load at a total no lighter (${HARDER_LIST}), the next session uses it, starting at the lightest weight that keeps the total load. Otherwise every set asks for more reps at the same weight: ${CAP_REP_STEP.T1} more for the heavy lift (5 sets of 3 become 5 of 4) and ${CAP_REP_STEP.T2} more for the moderate lift (3 sets of 10 become 3 of 12). The light lift adds none and keeps asking for as many reps as you can on its last set. A miss or a reset clears the added reps.`,
@@ -161,7 +164,29 @@ export const PROGRESSION_RULES = {
       "src/lib/workout/variant.ts#evaluateVariant",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
-    surfaces: [],
-    activationNotes: HOME_ACTIVATION,
+    surfaces: [
+      "src/components/Today/LiftRows.tsx",
+      "src/components/Lift/PrLine.tsx",
+      "src/components/Log/WhatItDid.tsx",
+      "src/components/WorkoutSummary/WhatItChanged.tsx",
+    ],
+  },
+  "starting-weights": {
+    area: "progression",
+    status: "active",
+    title: "Where do the suggested starting weights come from?",
+    summary: `Starting weights from your history: T1 at ${startPercent(SW.t1FractionOfFiveRepMax)} of a ${SW.fiveRepMaxReps}-rep max`,
+    appBehavior: `After an import, each program lift the imported history informs gets a suggested starting weight, worked out from the lift's strength estimate: its latest session, home sessions after it through their ratios, older sessions counting less. T1 (${t1.sets}×${t1.reps}) starts at ${startPercent(SW.t1FractionOfFiveRepMax)} of the ${SW.fiveRepMaxReps}-rep max the estimate implies and T2 (${t2.sets}×${t2.reps}) at ${startPercent(SW.t2FractionOfFiveRepMax)} of it; T3 starts at the weight the estimate says you could lift about ${SW.t3Reps} times. When the newest session is old, the time-off rule takes its share off. Barbell weights are rounded down to plates you can load. A home exercise's weight goes through its ratio to the lift, is rounded down to the dumbbell step (per hand where it is per hand) and is capped at your heaviest dumbbell. Each suggestion shows its working. Nothing changes until you confirm a weight, which you can edit first; confirming records a starting-weight change that shows in the adjustment log and can be changed like any other.`,
+    rationale: `The GZCLP guide starts T1 at about ${startPercent(SW.t1FractionOfFiveRepMax)} of a ${SW.fiveRepMaxReps}-rep max and T2 at about ${startPercent(SW.t2FractionOfFiveRepMax)}, so the first weeks are submaximal and leave room to progress. Starting from what your history shows, rather than from a guess, puts those weeks near your real strength, and taking off for time away keeps a long break from starting you too heavy.`,
+    caveat:
+      "The guide's percentages are of a rep max you have tested; here it is estimated from your history, often from dumbbell exercises converted through a ratio, so it can be off either way. The T3 rep target, the rounding and the use of the time-off rule are this app's choices.",
+    strength: "program",
+    sources: [],
+    reviewedOn: "2026-11",
+    implementedIn: [
+      "src/lib/import/startingWeights.ts#STARTING_WEIGHT_RULES",
+      "src/lib/import/startingWeights.ts#suggestStartingWeights",
+    ],
+    surfaces: ["src/components/Import/StartingWeights.tsx"],
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;

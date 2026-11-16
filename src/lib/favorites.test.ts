@@ -290,6 +290,18 @@ describe("favourites across locations", () => {
     expect(edits).toContainEqual(mine);
     expect(favoritePinNote([], "gym")).toBeNull();
   });
+
+  it("reports no dropped pin once its edits are gone (reset, or another day)", () => {
+    const resolved = resolveFavorite(savedAt("home"), "as-saved");
+    expect(favoriteEditsAt(resolved, "gym", [])).toEqual({ edits: [], dropped: [] });
+    const squatPins = resolved.pins!.find((p) => p.exerciseId === "squat")!.edits.map((e) => JSON.stringify(e));
+    const { dropped } = favoriteEditsAt(
+      resolved,
+      "gym",
+      resolved.planEdits.filter((e) => !squatPins.includes(JSON.stringify(e)))
+    );
+    expect(dropped.map((d) => d.exerciseId)).toEqual(["bench", "lat_pulldown"]);
+  });
 });
 
 describe("listing", () => {

@@ -7,13 +7,12 @@ import { checkDerived } from "./derived";
 import { updateSettings } from "./records";
 import {
   appendSet,
-  discardStaleWorkouts,
   discardWorkout,
   finishWorkout,
   prescribedFor,
   startWorkout,
 } from "./workouts";
-import { clearDb, makeE1RM, makeLiftState, makeSet, makeWorkout } from "./testUtils";
+import { clearDb, makeE1RM, makeLiftState, makeSet, makeWorkout, seedFixtureStartingWeights } from "./testUtils";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -55,6 +54,7 @@ describe("startWorkout", () => {
 
   it("stores the prescription read from the current lift states, with the stage for T1 and T2", async () => {
     await initializeDatabase();
+    await seedFixtureStartingWeights();
     await db.liftStates.update("ohp", { t1Weight: 90, t1Stage: "6x2" });
     const id = await startWorkout({
       templateId: "B1",
@@ -73,6 +73,7 @@ describe("startWorkout", () => {
 
   it("at home, also stores each home exercise's own prescription, as the plan has it (H3)", async () => {
     await initializeDatabase();
+    await seedFixtureStartingWeights();
     const id = await startWorkout({ templateId: "A1", location: "home", includeWarmUps: false, selectedAccessories: [] });
     const squat = (await db.workouts.get(id))!.prescribed!.find((p) => p.exerciseId === "squat")!;
     // The barbell prescription is unchanged; the split squat starts at 0.5 x 190, 50 a hand.
@@ -82,6 +83,7 @@ describe("startWorkout", () => {
 
   it("back at the gym after home sessions, stores the re-entry weight (H6)", async () => {
     await initializeDatabase();
+    await seedFixtureStartingWeights();
     const finishedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
     await db.variantStates.put({
       id: "squat|bulgarian_split_squat|T1",
@@ -107,6 +109,7 @@ describe("startWorkout", () => {
 
   it("stores a given prescription as it is", async () => {
     await initializeDatabase();
+    await seedFixtureStartingWeights();
     const prescribed = [
       { exerciseId: "squat", tier: "T1" as const, weight: 150, sets: 5, reps: 3, stage: "5x3" as const },
     ];
@@ -248,6 +251,7 @@ describe("appendSet", () => {
 
   it("a set added to a finished workout re-runs progression", async () => {
     await initializeDatabase();
+    await seedFixtureStartingWeights();
     const id = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
     for (let i = 1; i <= 4; i++) {
       await appendSet(id, makeSet({ id: `s${i}`, setNumber: i }));
@@ -324,7 +328,10 @@ describe("finishWorkout", () => {
   const start = () =>
     startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
 
-  beforeEach(initializeDatabase);
+  beforeEach(async () => {
+    await initializeDatabase();
+    await seedFixtureStartingWeights();
+  });
 
   it("marks the workout complete, runs the rebuild and returns the lift states after it", async () => {
     const id = await start();
@@ -385,30 +392,5 @@ describe("finishWorkout", () => {
     const id = await start();
     const states = await finishWorkout(id, { completedAt: new Date(), totalDurationSeconds: 60, endedEarly: false });
     expect(states.find((s) => s.exerciseId === "deadlift")!.t1Weight).toBe(220);
-  });
-});
-
-describe("discardStaleWorkouts", () => {
-  it("discards unfinished workouts older than the limit, and nothing else", async () => {
-    const now = new Date("2026-11-11T12:00:00Z").getTime();
-    const hoursAgo = (h: number) => new Date(now - h * 60 * 60 * 1000);
-    await db.workouts.bulkAdd([
-      makeWorkout({ id: "stale", startedAt: hoursAgo(30), completedAt: null, sets: [makeSet()] }),
-      makeWorkout({ id: "recent", startedAt: hoursAgo(2), completedAt: null }),
-      makeWorkout({ id: "done", startedAt: hoursAgo(50), completedAt: hoursAgo(49) }),
-      makeWorkout({ id: "already", startedAt: hoursAgo(40), completedAt: null, deletedAt: 7 }),
-    ]);
-
-    expect(await discardStaleWorkouts(24 * 60 * 60 * 1000, now)).toBe(1);
-
-    const rows = Object.fromEntries((await db.workouts.toArray()).map((w) => [w.id, w]));
-    expect(rows.stale.deletedAt).toEqual(expect.any(Number));
-    expect(rows.stale.synced).toBe(false);
-    expect(rows.recent.deletedAt ?? null).toBeNull();
-    expect(rows.done.deletedAt ?? null).toBeNull();
-    expect(rows.already.deletedAt).toBe(7);
-
-    // Nothing left to discard.
-    expect(await discardStaleWorkouts(24 * 60 * 60 * 1000, now)).toBe(0);
   });
 });

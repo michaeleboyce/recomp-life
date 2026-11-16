@@ -6,8 +6,10 @@ import type { TermId } from "@/lib/glossary";
 import { TierKey } from "@/components/Upcoming/TierKey";
 import { getExercise } from "@/lib/exercises";
 import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
+import { isNextSetAMRAP } from "@/lib/workout/logSet";
+import { isWorkingSet } from "@/lib/workout/setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
-import type { Tier, TrainingPhase } from "@/types";
+import type { PlannedSet, Tier, TrainingPhase } from "@/types";
 import { ImpactLine } from "./ImpactLine";
 import type { ImpactItem } from "./impact";
 
@@ -47,6 +49,40 @@ function weightLabel(entry: WorkoutExerciseState): string {
   return info.grip === "per_hand" ? `${entry.weight} lbs/hand` : `${entry.weight} lbs`;
 }
 
+const setText = (set: PlannedSet, amrap: boolean) => `${set.weight}×${set.reps}${amrap ? "+" : ""}`;
+
+/**
+ * How an entry's sets read: "5×3+" (sets × reps, as always), and with a weight per set
+ * the working sets the same way (the ones pass or fail is judged on, at the weight shown)
+ * with the extra sets listed by role under the name, as the active screen's set chips
+ * have them: "ramp: 200×3 · 225×3", "back-off: 200×8". Working sets that differ are
+ * listed too ("working: 240×3 · 250×3+"), the AMRAP on the last one.
+ */
+function setsView(entry: WorkoutExerciseState): { scheme: string; lines: string[] } {
+  const amrap = entry.isAMRAP ? "+" : "";
+  if (!entry.perSet) return { scheme: `${entry.targetSets}×${entry.targetReps}${amrap}`, lines: [] };
+  const sets = entry.perSet;
+  const working = sets.filter(isWorkingSet);
+  const uniform =
+    working.length > 0 && working.every((s) => s.weight === working[0].weight && s.reps === working[0].reps);
+  const line = (label: string, pick: (set: PlannedSet) => boolean) => {
+    const listed = sets.flatMap((set, i) => (pick(set) ? [setText(set, isNextSetAMRAP({ ...entry, completedSets: i }))] : []));
+    return listed.length > 0 ? [`${label}: ${listed.join(" · ")}`] : [];
+  };
+  return {
+    scheme: uniform
+      ? `${working.length}×${working[0].reps}${amrap}`
+      : working.length > 0
+        ? `${working.length} working ${working.length === 1 ? "set" : "sets"}`
+        : `${sets.length} ${sets.length === 1 ? "set" : "sets"}`,
+    lines: [
+      ...line("ramp", (set) => set.role === "ramp"),
+      ...(uniform ? [] : line("working", isWorkingSet)),
+      ...line("back-off", (set) => set.role === "backoff"),
+    ],
+  };
+}
+
 /**
  * The workout exactly as it will be performed: tier, exercise, weight, sets x reps,
  * and the rest the timer will run after each of its sets.
@@ -64,6 +100,7 @@ export function PlannedExerciseList({ plan, trainingPhase, impact = [] }: Planne
           const info = getExercise(entry.substituteExerciseId || entry.exerciseId);
           const original = entry.substituteExerciseId ? getExercise(entry.exerciseId) : null;
           const rest = formatRestDuration(getRestSeconds(entry.tier, trainingPhase));
+          const sets = setsView(entry);
           const entryImpact = impact.find(
             (item) =>
               item.edited &&
@@ -103,14 +140,20 @@ export function PlannedExerciseList({ plan, trainingPhase, impact = [] }: Planne
                     warm-up: {warmUps.map((w) => `${w.weight}×${w.targetReps}`).join(" · ")}
                   </p>
                 )}
+                {sets.lines.map((line) => (
+                  <p
+                    key={line}
+                    data-testid="planned-sets"
+                    className="font-mono text-xs break-words tabular-nums text-muted-foreground"
+                  >
+                    {line}
+                  </p>
+                ))}
               </div>
               <div className="shrink-0 text-right font-mono tabular-nums">
                 <p className="text-sm font-semibold">{weightLabel(entry)}</p>
                 <p className="text-xs text-muted-foreground">
-                  {entry.targetSets}
-                  {"×"}
-                  {entry.targetReps}
-                  {entry.isAMRAP ? "+" : ""}
+                  <span data-testid="planned-scheme">{sets.scheme}</span>
                   <span data-testid="planned-rest"> · rest {rest}</span>
                 </p>
               </div>

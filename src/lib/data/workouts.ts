@@ -287,23 +287,3 @@ export async function finishWorkout(
 export async function discardWorkout(workoutId: string): Promise<void> {
   await softDelete("workouts", workoutId);
 }
-
-/**
- * Discards every unfinished workout started at least `maxAgeMs` ago and returns how
- * many were removed.
- */
-export async function discardStaleWorkouts(
-  maxAgeMs: number,
-  now: number = Date.now()
-): Promise<number> {
-  const stale = (await db.workouts.toArray()).filter(
-    (w) =>
-      w.deletedAt == null &&
-      w.completedAt == null &&
-      now - new Date(w.startedAt).getTime() >= maxAgeMs
-  );
-  for (const workout of stale) {
-    await discardWorkout(workout.id);
-  }
-  return stale.length;
-}

@@ -96,24 +96,31 @@ function SheetContent({
   showCloseButton?: boolean
 }) {
   const bottom = side === "bottom"
-  const drag = useSheetDrag()
+  // The drag's refs and handlers go straight to the elements they belong to.
+  const {
+    contentRef: dragContentRef,
+    handleRef,
+    onHandleClick,
+    onPointerDown: dragPointerDown,
+    onPointerMove: dragPointerMove,
+    onPointerUp: dragPointerUp,
+    onPointerCancel: dragPointerCancel,
+  } = useSheetDrag()
   const contentRef = React.useCallback(
     (el: HTMLDivElement | null) => {
-      if (bottom) drag.contentRef(el)
+      if (bottom) dragContentRef(el)
       if (typeof ref === "function") ref(el)
       else if (ref) ref.current = el
     },
-    // drag.contentRef is stable.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bottom, ref]
+    [bottom, ref, dragContentRef]
   )
   // Only a bottom sheet is dragged; the other sides keep their handlers as given.
   const pointer = bottom
     ? {
-        onPointerDown: compose(onPointerDown, drag.onPointerDown),
-        onPointerMove: compose(onPointerMove, drag.onPointerMove),
-        onPointerUp: compose(onPointerUp, drag.onPointerUp),
-        onPointerCancel: compose(onPointerCancel, drag.onPointerCancel),
+        onPointerDown: compose(onPointerDown, dragPointerDown),
+        onPointerMove: compose(onPointerMove, dragPointerMove),
+        onPointerUp: compose(onPointerUp, dragPointerUp),
+        onPointerCancel: compose(onPointerCancel, dragPointerCancel),
       }
     : { onPointerDown, onPointerMove, onPointerUp, onPointerCancel }
 
@@ -139,7 +146,7 @@ function SheetContent({
         {...props}
         {...pointer}
       >
-        {bottom && <SheetHandle ref={drag.handleRef} onClick={drag.onHandleClick} />}
+        {bottom && <SheetHandle ref={handleRef} onClick={onHandleClick} />}
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-1.5 right-1.5 inline-flex size-11 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">

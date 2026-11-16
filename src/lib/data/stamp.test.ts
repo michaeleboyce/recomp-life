@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { initializeDatabase } from "@/db/init";
+import { SEED_STAMP } from "@/db/seed";
 import { db } from "@/db/local";
 import { recordAdjustment } from "./adjustments";
 import { commitLogChange, restore, softDelete, updateActivity, updateRun } from "./logEdits";
@@ -184,7 +185,7 @@ describe("every writer stamps its row, even with a frozen clock", () => {
   it("the profile: updateSettings and updateProfile", async () => {
     const profile = (await db.userProfile.toCollection().first())!;
     // The seeded profile is older than any real write, so a default never wins a sync conflict.
-    expect(profile).toMatchObject({ updatedAt: 1, deletedAt: null, synced: false });
+    expect(profile).toMatchObject({ updatedAt: SEED_STAMP, deletedAt: null, synced: false });
     await updateSettings({ showRPE: false });
     await expectStamped(
       () => db.userProfile.get(profile.id),

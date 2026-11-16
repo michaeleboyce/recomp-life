@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import { clearDb } from "@/lib/data/testUtils";
+import { clearDb, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { updateSettings } from "@/lib/data/records";
 import { startWorkout } from "@/lib/data/workouts";
 import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
@@ -28,6 +28,7 @@ beforeEach(async () => {
   cleanup();
   await clearDb();
   await initializeDatabase();
+  await seedFixtureStartingWeights();
   nav.params = "";
   nav.push.mockReset();
   nav.replace.mockReset();
@@ -302,6 +303,17 @@ describe("configure page: favourites", () => {
     await open("favorite=fav-1&mode=as-saved");
     expect(screen.getByText("From favourite: Heavy bench · Exactly as saved")).toBeInTheDocument();
     expect(rows()[1]).toMatch(/^T2Barbell Bench PressLogged only, progression paused80 lbs/);
+  });
+
+  it("says so when a favourite's weights from the other location are not used", async () => {
+    await addFavorite(80);
+    await open("favorite=fav-1&mode=as-saved");
+    expect(screen.queryByTestId("favorite-pin-note")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Home" }));
+    expect(await screen.findByTestId("favorite-pin-note")).toHaveTextContent(
+      /^Saved at the gym: at home each lift uses its home exercise's own weight for Squat, Bench Press/
+    );
+    expect(rows()[1]).not.toMatch(/80 lbs/);
   });
 
   it("falls back to the normal screen with one line when the favourite is gone", async () => {
