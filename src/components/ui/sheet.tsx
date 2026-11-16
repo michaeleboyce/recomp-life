@@ -54,14 +54,22 @@ function compose<E>(theirs: ((event: E) => void) | undefined, ours: (event: E) =
 
 /**
  * The grab bar at the top of a bottom sheet. It is the sheet's close button for
- * pointer and screen-reader users (a tap closes, as does a drag down; see
+ * pointer and screen-reader users (a real tap on it closes, as does a drag down; see
  * useSheetDrag), but it is left out of the tab order: keyboard users have Escape
- * and the close button, and the sheet's first focus stays where it was.
+ * and the close button, and the sheet's first focus stays where it was. The sheet's
+ * top padding keeps its 44 px strip clear, so no title or control sits under it.
  */
-function SheetHandle({ ref }: { ref: React.Ref<HTMLButtonElement> }) {
+function SheetHandle({
+  ref,
+  onClick,
+}: {
+  ref: React.Ref<HTMLButtonElement>
+  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
+}) {
   return (
     <SheetPrimitive.Close
       ref={ref}
+      onClick={onClick}
       data-slot="sheet-handle"
       tabIndex={-1}
       aria-label="Drag down to close"
@@ -123,14 +131,15 @@ function SheetContent({
             "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
           side === "top" &&
             "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b",
+          // pt-7 plus a header's 16 px clears the 44 px handle strip.
           side === "bottom" &&
-            "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
+            "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t pt-7",
           className
         )}
         {...props}
         {...pointer}
       >
-        {bottom && <SheetHandle ref={drag.handleRef} />}
+        {bottom && <SheetHandle ref={drag.handleRef} onClick={drag.onHandleClick} />}
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">

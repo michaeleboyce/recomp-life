@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "./sheet";
-import { shouldDismiss } from "./sheet-drag";
+import { shouldDismiss, SLOP_PX } from "./sheet-drag";
 
 const SHEET_HEIGHT = 400;
 let clock = 0;
@@ -137,6 +137,61 @@ describe("the bottom sheet's grab handle", () => {
     const { onOpenChange } = renderSheet();
     fireEvent.click(screen.getByRole("button", { name: "Drag down to close" }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("a real tap that starts and ends on the handle closes the sheet", () => {
+    const { onOpenChange } = renderSheet();
+    const handle = screen.getByRole("button", { name: "Drag down to close" });
+    fireEvent.pointerDown(handle, { pointerId: 1, clientX: 200, clientY: 10 });
+    fireEvent.pointerUp(handle, { pointerId: 1, clientX: 200, clientY: 10 });
+    fireEvent.click(handle, { detail: 1 });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("a pointer click on the handle that did not start there does not close the sheet", () => {
+    const { onOpenChange } = renderSheet();
+    const handle = screen.getByRole("button", { name: "Drag down to close" });
+    fireEvent.pointerDown(screen.getByText("Why this weight"), { pointerId: 1, clientX: 200, clientY: 60 });
+    fireEvent.pointerUp(handle, { pointerId: 1, clientX: 200, clientY: 60 });
+    fireEvent.click(handle, { detail: 1 });
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps the handle's strip clear: nothing in the sheet starts under it", () => {
+    const { content } = renderSheet();
+    const handle = screen.getByRole("button", { name: "Drag down to close" });
+    // The handle is 44 px tall (h-11); the sheet's own top padding plus the header's
+    // 16 px reach past it.
+    expect(handle).toHaveClass("h-11");
+    expect(content).toHaveClass("pt-7");
+    cleanup();
+    const { content: side } = renderSheet("right");
+    expect(side).not.toHaveClass("pt-7");
+  });
+
+  it(`a tap that drifts down less than ${SLOP_PX} px is still a tap, not a drag`, () => {
+    const onTap = vi.fn();
+    const { onOpenChange, content } = renderSheet(
+      "bottom",
+      <button type="button" onClick={onTap}>
+        Choose
+      </button>
+    );
+    const button = screen.getByRole("button", { name: "Choose" });
+    fireEvent.pointerDown(button, { pointerId: 1, clientX: 200, clientY: 100 });
+    fireEvent.pointerMove(button, { pointerId: 1, clientX: 201, clientY: 108 });
+    fireEvent.pointerUp(button, { pointerId: 1, clientX: 201, clientY: 108 });
+    expect(content.style.transform).toBe("");
+    fireEvent.click(button, { detail: 1 });
+    expect(onTap).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).not.toHaveBeenCalled();
+    // Past the slop it is a drag: the sheet follows and the click is swallowed.
+    fireEvent.pointerDown(button, { pointerId: 2, clientX: 200, clientY: 100 });
+    fireEvent.pointerMove(button, { pointerId: 2, clientX: 200, clientY: 100 + SLOP_PX + 4 });
+    expect(content.style.transform).toBe(`translateY(${SLOP_PX + 4}px)`);
+    fireEvent.pointerUp(button, { pointerId: 2, clientX: 200, clientY: 100 + SLOP_PX + 4 });
+    fireEvent.click(button, { detail: 1 });
+    expect(onTap).toHaveBeenCalledTimes(1);
   });
 
   it("does not drag a right-hand sheet", () => {
