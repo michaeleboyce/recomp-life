@@ -66,6 +66,14 @@ export async function countStoredImportedSessions(ids: readonly string[]): Promi
   return rows.filter((row) => row !== undefined).length;
 }
 
+/** The live sessions one import added, and their sets. */
+export async function importBatchTotals(batchId: string): Promise<{ sessions: number; sets: number }> {
+  const rows = (await db.importedSessions.where("importBatchId").equals(batchId).toArray()).filter(
+    (row) => row.deletedAt == null
+  );
+  return { sessions: rows.length, sets: rows.reduce((n, row) => n + row.sets.length, 0) };
+}
+
 /** Sessions per write: small enough that each transaction is short, large enough to be quick. */
 export const IMPORT_CHUNK_SIZE = 100;
 

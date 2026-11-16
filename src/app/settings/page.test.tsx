@@ -40,6 +40,14 @@ describe("settings page", () => {
     expect(intro).toHaveTextContent(/full barbell setup/);
   });
 
+  it("links to the import screen once, next to Apple Health", async () => {
+    render(<SettingsPage />);
+    const imports = await screen.findByRole("region", { name: "Imports" });
+    const links = within(imports).getAllByRole("link");
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/settings/health", "/settings/import"]);
+    expect(screen.getAllByRole("link", { name: /Import history/ })).toHaveLength(1);
+  });
+
   it("gives the cloud sync card the id the More screen links to", async () => {
     render(<SettingsPage />);
     await screen.findByText("Cloud Sync");
