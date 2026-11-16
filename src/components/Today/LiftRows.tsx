@@ -29,7 +29,7 @@ export interface TodayLiftRow {
 /** Rows for the working entries, reasons taken from the finished workouts (newest first). */
 export function buildLiftRows(
   working: WorkoutExerciseState[],
-  finishedNewestFirst: Pick<WorkoutSession, "completedAt" | "sets">[]
+  finishedNewestFirst: Pick<WorkoutSession, "completedAt" | "sets" | "prescribed">[]
 ): TodayLiftRow[] {
   return working.map((entry) => ({
     entry,

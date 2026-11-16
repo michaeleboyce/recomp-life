@@ -5,17 +5,23 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import {
   useCompletedWorkouts,
+  useLiftStates,
   useNextWorkout,
+  useOpenWorkoutForecast,
   usePainEntries,
+  useSettings,
   useTodayForecast,
   useTrainingLocation,
   useUnfinishedWorkout,
 } from "@/hooks";
+import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { EXERCISES } from "@/lib/exercises";
 import { getExpiredPainEntries } from "@/lib/painAutoClear";
 import { formatRegion } from "@/lib/painModifications";
-import type { WorkoutExerciseState } from "@/lib/workout/types";
+import { planForSession } from "@/lib/workout/planForSession";
+import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
 import { workoutDisplayName } from "@/lib/workoutNames";
+import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { PainSorenessEntry, WorkoutLocation, WorkoutSession } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ComingUpLine } from "./ComingUpLine";
@@ -33,32 +39,45 @@ import { dayName } from "./todayModel";
 export function NextWorkoutHero() {
   const { location, setLocation } = useTrainingLocation();
   const next = useNextWorkout(location);
-  const forecast = useTodayForecast(location);
+  const nextForecast = useTodayForecast(location);
   const finished = useCompletedWorkouts();
   const open = useUnfinishedWorkout();
+  const openPlan = useOpenPlan(open);
+  const openForecast = useOpenWorkoutForecast(open, openPlan);
   const changeLocation = (value: WorkoutLocation) => {
     setLocation(value).catch((err) => console.error("Failed to save training location:", err));
   };
 
-  const working = useMemo(() => next?.plan.filter((entry) => !entry.isWarmUp) ?? [], [next]);
+  // While a workout is open, Today shows that workout as the workout screen runs it
+  // (its stored plan and forecasts), not the next one worked out again.
+  const openTemplate = open ? WORKOUT_TEMPLATES[open.templateId] : undefined;
+  const showOpen = Boolean(open && openTemplate && openPlan);
+  const plan = showOpen ? openPlan : next?.plan;
+  const working = useMemo(() => plan?.filter((entry) => !entry.isWarmUp) ?? [], [plan]);
   const rows = useMemo(() => buildLiftRows(working, finished ?? []), [working, finished]);
 
-  if (!next) return <NextWorkoutHeroSkeleton />;
+  // Until it is known whether a workout is open, neither Start nor Resume is shown.
+  if (!next || open === undefined || (open && openTemplate && !openPlan)) {
+    return <NextWorkoutHeroSkeleton />;
+  }
 
+  const template = showOpen ? openTemplate! : next.template;
+  const templateId = showOpen ? open!.templateId : next.templateId;
   const t1 = working.find((entry) => entry.tier === "T1");
-  const title = dayName(next.template.exercises.find((e) => e.tier === "T1")?.exerciseId, next.template.name);
+  const title = dayName(template.exercises.find((e) => e.tier === "T1")?.exerciseId, template.name);
 
   return (
     <div className="flex flex-col">
       <TodayHero
-        templateId={next.templateId}
+        templateId={templateId}
         title={title}
         working={working}
-        location={location}
-        onLocationChange={changeLocation}
+        location={showOpen ? open!.location : location}
+        onLocationChange={showOpen ? undefined : changeLocation}
+        eyebrow={showOpen ? "In progress" : "Next up"}
       />
       <ForecastTiles
-        forecast={forecast}
+        forecast={showOpen ? openForecast : nextForecast}
         newBestHref={t1 && !t1.substituteExerciseId ? `/progress/lift/${t1.exerciseId}` : undefined}
       />
       <LiftRows rows={rows} />
@@ -76,6 +95,21 @@ export function NextWorkoutHero() {
       </div>
     </div>
   );
+}
+
+/**
+ * The plan of the open workout as the workout screen rebuilds it (`planForSession`),
+ * `undefined` while loading or when no workout is open.
+ */
+function useOpenPlan(open: WorkoutSession | null | undefined): WorkoutPlan | undefined {
+  const liftStates = useLiftStates();
+  const settings = useSettings();
+  return useMemo(() => {
+    const template = open ? WORKOUT_TEMPLATES[open.templateId] : undefined;
+    if (!open || !template || !liftStates || settings === undefined) return undefined;
+    const equipment = (settings ?? DEFAULT_USER_PROFILE.settings).equipment;
+    return planForSession({ session: open, template, liftStates, equipment });
+  }, [open, liftStates, settings]);
 }
 
 const MAIN_BUTTON =
