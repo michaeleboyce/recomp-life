@@ -1,7 +1,6 @@
 "use client";
 
 import { AMRAPGlow } from "@/components/ui/amrap-glow";
-import { dumbbellToBarbell } from "@/lib/dbConversion";
 import { getExercise } from "@/lib/exercises";
 import { describePlateLoad } from "@/lib/plates";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
@@ -34,14 +33,28 @@ function loadingLine(
   }
 
   if (info.type === "dumbbell") {
-    const hold = info.grip === "per_hand" ? "per hand" : "one dumbbell, both hands";
-    // A home substitute for a barbell lift: say what it stands in for.
-    return location === "home" && exercise.substituteExerciseId
-      ? `${hold} · = ${dumbbellToBarbell(exercise.weight)} lbs barbell equiv.`
-      : hold;
+    return info.grip === "per_hand"
+      ? "per hand"
+      : info.grip === "single"
+        ? "one dumbbell"
+        : "one dumbbell, both hands";
   }
 
   return null;
+}
+
+/**
+ * At home, for an exercise standing in for a barbell lift: the barbell weight the
+ * program holds for that lift (the plan entry's `originalWeight`), which home sets do
+ * not move. Null otherwise. Nothing is converted: the number shown above is the home
+ * exercise's own weight.
+ */
+function programLine(exercise: WorkoutExerciseState, location: WorkoutLocation): string | null {
+  if (location !== "home" || !exercise.substituteExerciseId || exercise.originalWeight == null) {
+    return null;
+  }
+  const lift = getExercise(exercise.exerciseId).name;
+  return `${lift} in the program: ${exercise.originalWeight} lbs`;
 }
 
 /** The weight for the set on screen, as the largest thing on it. */
@@ -53,6 +66,7 @@ export function WeightDisplay({
   onWhy,
 }: WeightDisplayProps) {
   const line = loadingLine(exercise, location, equipment);
+  const program = programLine(exercise, location);
 
   return (
     <AMRAPGlow
@@ -83,6 +97,11 @@ export function WeightDisplay({
       {line && (
         <p data-testid="loading-line" className="font-mono text-sm font-medium text-foreground/80">
           {line}
+        </p>
+      )}
+      {program && (
+        <p data-testid="program-line" className="text-center text-[13px] text-muted-foreground">
+          {program}
         </p>
       )}
     </AMRAPGlow>

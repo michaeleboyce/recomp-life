@@ -154,6 +154,78 @@ describe("the edit sheet", () => {
   });
 });
 
+describe("weight per set", () => {
+  const perSetList = (sheet: HTMLElement) =>
+    within(sheet).getByRole("list", { name: "Barbell Squat sets" });
+  const setWeights = (sheet: HTMLElement) =>
+    [...sheet.querySelectorAll("[data-stepper-value^='Barbell Squat set'][data-stepper-value$='weight']")].map(
+      (el) => Number.parseFloat(el.textContent!)
+    );
+
+  async function perSetSheet() {
+    const sheet = await openSheet();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Weight per set: Barbell Squat" }));
+    return sheet;
+  }
+
+  it("gives each set its own weight and reps, prefilled from the plan, and names the working sets", async () => {
+    const sheet = await perSetSheet();
+    expect(within(sheet).getByRole("button", { name: "Weight per set: Barbell Squat" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    expect(within(perSetList(sheet)).getAllByRole("listitem")).toHaveLength(5);
+    expect(setWeights(sheet)).toEqual([190, 190, 190, 190, 190]);
+    expect(within(sheet).getByTestId("working-sets")).toHaveTextContent(
+      "Sets 1 to 5 are the working sets: pass or fail is judged on them."
+    );
+    expect(within(sheet).getByText("Counts toward progression")).toBeInTheDocument();
+  });
+
+  it("ramps up to the working weight, and the lift still counts", async () => {
+    const sheet = await perSetSheet();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Ramp up" }));
+    expect(setWeights(sheet)).toEqual([150, 170, 190, 190, 190, 190, 190]);
+    expect(within(sheet).getByRole("button", { name: "Set 1: ramp" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(sheet).getByTestId("working-sets")).toHaveTextContent("Sets 3 to 7 are the working sets");
+    expect(within(sheet).getByText("Counts toward progression")).toBeInTheDocument();
+  });
+
+  it("adds a back-off set after the working sets", async () => {
+    const sheet = await perSetSheet();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Back-off set" }));
+    expect(setWeights(sheet)).toEqual([190, 190, 190, 190, 190, 150]);
+    expect(within(sheet).getByRole("button", { name: "Set 6: back-off" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(sheet).getByText("Counts toward progression")).toBeInTheDocument();
+  });
+
+  it("changes one set by the plate step, and a working set turned into a ramp leaves the lift logged only", async () => {
+    const sheet = await perSetSheet();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Decrease Barbell Squat set 1 weight" }));
+    expect(setWeights(sheet)).toEqual([185, 190, 190, 190, 190]);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Set 1: ramp" }));
+    expect(within(sheet).getByTestId("working-sets")).toHaveTextContent("Sets 2 to 5 are the working sets");
+    expect(within(sheet).getByText("Logged only, progression paused")).toBeInTheDocument();
+  });
+
+  it("removes and adds sets", async () => {
+    const sheet = await perSetSheet();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Remove set 5 of Barbell Squat" }));
+    expect(setWeights(sheet)).toHaveLength(4);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Add a set to Barbell Squat" }));
+    expect(setWeights(sheet)).toHaveLength(5);
+  });
+
+  it("goes back to one weight for every set when switched off", async () => {
+    const sheet = await perSetSheet();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Ramp up" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Weight per set: Barbell Squat" }));
+    expect(within(sheet).queryByRole("list", { name: "Barbell Squat sets" })).toBeNull();
+    expect(within(sheet).getByText("5", { selector: "[data-stepper-value='Barbell Squat sets']" })).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Reset to program" })).toBeDisabled();
+  });
+});
+
 describe("the day selector", () => {
   it("marks the due day and explains when another day is chosen", async () => {
     render(<Harness templateId="A1" />);

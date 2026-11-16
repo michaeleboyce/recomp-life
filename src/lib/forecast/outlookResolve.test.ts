@@ -84,6 +84,29 @@ describe("the chance of a stall, checked", () => {
     expect(resolve(stall(), logOf(drop))).toEqual({ state: "void", reason: "load-drop" });
   });
 
+  it("reads a session's working sets alone: a lighter ramp, a missed drop or back-off changes nothing (H14)", () => {
+    const withExtras = (base: WorkoutSession): WorkoutSession => {
+      const last = base.sets.at(-1)!;
+      const extra = (id: string, role: "ramp" | "drop" | "backoff", weight: number, actualReps: number) => ({
+        ...last,
+        id: `${base.id}-${id}`,
+        clientId: `${base.id}-${id}`,
+        role,
+        weight,
+        actualReps,
+        isAMRAP: false,
+        status: actualReps > 0 ? ("completed" as const) : ("failed" as const),
+        ...(role === "drop" ? { dropOf: last.id } : {}),
+      });
+      return {
+        ...base,
+        sets: [extra("r", "ramp", 160, 3), ...base.sets, extra("d", "drop", 160, 0), extra("b", "backoff", 170, 1)],
+      };
+    };
+    const log = logOf(withExtras(session("a", 2, 200, 5)), withExtras(session("b", 11, 210, 3)));
+    expect(resolve(stall(), log)).toEqual({ state: "resolved", value: 0, hit: false });
+  });
+
   it("counts a home session with the dumbbell substitute, as progression does", () => {
     const home = session("h", 2, 200, 5, {
       overrides: { location: "home" },

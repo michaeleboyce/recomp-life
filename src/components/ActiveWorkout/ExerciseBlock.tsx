@@ -9,6 +9,7 @@ import { TermIcon } from "@/components/ui/term";
 import type { TermId } from "@/lib/glossary";
 import type { Tier, WorkoutLocation } from "@/types";
 import { AMRAPIndicator } from "./AMRAPIndicator";
+import { roleLabel } from "./setPlan";
 
 /** The glossary entry for each tier badge; warm-ups and accessories have one too. */
 const TIER_TERM: Record<Tier, TermId> = {
@@ -33,6 +34,8 @@ interface ExerciseBlockProps {
 export function ExerciseBlock({ exercise, location, isAMRAPSet = false }: ExerciseBlockProps) {
   const exerciseInfo = getExercise(exercise.substituteExerciseId || exercise.exerciseId);
   const currentSet = Math.min(exercise.completedSets + 1, exercise.targetSets);
+  // A ramp or back-off set says so; a working set reads as always.
+  const role = roleLabel(exercise.perSet?.[exercise.completedSets]?.role);
 
   return (
     <section className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
@@ -43,7 +46,7 @@ export function ExerciseBlock({ exercise, location, isAMRAPSet = false }: Exerci
           <span className="font-display text-[12px] font-semibold tracking-[0.16em] uppercase">
             {exercise.isWarmUp
               ? `Warm-up · ${exercise.targetReps} ${exercise.targetReps === 1 ? "rep" : "reps"}`
-              : `Set ${currentSet} of ${exercise.targetSets}`}
+              : `Set ${currentSet} of ${exercise.targetSets}${role ? ` · ${role}` : ""}`}
           </span>
         </p>
         {/* Long names wrap to a second line rather than being cut off. */}

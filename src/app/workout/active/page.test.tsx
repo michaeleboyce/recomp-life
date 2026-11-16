@@ -9,6 +9,7 @@ import { startWorkout, type StartWorkoutInput } from "@/lib/data/workouts";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { Toaster, dismissToast } from "@/components/ui/toast";
 import { logTapGuard } from "@/components/ActiveWorkout/useActiveWorkout";
+import type { PlanEdit } from "@/types";
 import ActiveWorkoutPage from "./page";
 
 const nav = vi.hoisted(() => ({
@@ -313,6 +314,113 @@ describe("active workout page", () => {
     expect(screen.getByRole("img", { name: "3 of 11 sets done" })).toBeInTheDocument();
     expect(document.querySelectorAll('[data-state="done"]')).toHaveLength(3);
     expect(logButton()).toHaveTextContent("LOG 3 REPS");
+  });
+});
+
+describe("a weight per set and drop sets", () => {
+  const RAMP_EDIT: PlanEdit = {
+    kind: "setWeights",
+    exerciseId: "squat",
+    tier: "T1",
+    sets: [
+      { weight: 150, reps: 3, role: "ramp" },
+      { weight: 170, reps: 3, role: "ramp" },
+      ...Array.from({ length: 5 }, () => ({ weight: 190, reps: 3 })),
+    ],
+  };
+  const chips = () => screen.getByRole("region", { name: "Sets of Barbell Squat" });
+  const logDrop = () => screen.getByRole("button", { name: /^Log drop/ });
+
+  it("shows each set's own weight and plates, says which sets ramp, and logs each at its weight", async () => {
+    await open({ planEdits: [RAMP_EDIT] });
+    expect(screen.getByText("Set 1 of 7 · Ramp")).toBeInTheDocument();
+    expect(screen.getByTestId("weight")).toHaveTextContent("150");
+    expect(screen.getByTestId("loading-line")).toHaveTextContent("per side: 45 · 5 · 2.5");
+    expect(within(chips()).getAllByRole("listitem")).toHaveLength(7);
+    expect(chips().querySelectorAll("[data-role='ramp']")).toHaveLength(2);
+
+    await logSets(2);
+    expect(screen.getByText("Set 3 of 7")).toBeInTheDocument();
+    expect(screen.getByTestId("weight")).toHaveTextContent("190");
+    expect((await loggedSets()).map((s) => [s.weight, s.role])).toEqual([
+      [150, "ramp"],
+      [170, "ramp"],
+    ]);
+  });
+
+  it("changes the next set's weight on the spot from its chip, with the plates to match", async () => {
+    await open();
+    fireEvent.click(within(chips()).getByRole("button", { name: /^Set 1: 190 lbs × 3, next/ }));
+    fireEvent.click(screen.getByRole("button", { name: "5 lbs lighter" }));
+    expect(screen.getByTestId("weight")).toHaveTextContent("185");
+    expect(screen.getByTestId("loading-line")).toHaveTextContent("per side: 45 · 25");
+    fireEvent.click(screen.getByRole("button", { name: "Back to the planned 190 lbs" }));
+    expect(screen.getByTestId("weight")).toHaveTextContent("190");
+    fireEvent.click(screen.getByRole("button", { name: "5 lbs lighter" }));
+    fireEvent.click(logButton());
+    await waitFor(async () => expect((await loggedSets())[0]?.weight).toBe(185));
+  });
+
+  it("drops from the rest screen in one tap, with no rest between drops, as often as wanted, then rests", async () => {
+    await open();
+    fireEvent.click(logButton());
+    const timer = await screen.findByRole("timer");
+    fireEvent.click(await within(timer).findByRole("button", { name: "Drop to 150 lbs" }));
+    expect(screen.queryByRole("timer")).toBeNull();
+    expect(screen.getByTestId("drop-set")).toHaveTextContent("Drop 1 · after set 1 · no rest");
+    expect(screen.getByTestId("weight")).toHaveTextContent("150");
+    expect(screen.getByTestId("loading-line")).toHaveTextContent("per side: 45 · 5 · 2.5");
+
+    // Adjusted before logging.
+    fireEvent.click(screen.getByRole("button", { name: "5 lbs heavier" }));
+    expect(screen.getByTestId("weight")).toHaveTextContent("155");
+    fireEvent.click(screen.getByRole("button", { name: "One more rep" }));
+    fireEvent.click(logDrop());
+    await waitFor(async () => expect(await loggedSets()).toHaveLength(2));
+    await waitFor(() => expect(screen.getByTestId("drop-set")).toHaveTextContent("Drop 2"));
+    expect(screen.queryByRole("timer")).toBeNull();
+    expect(screen.getByTestId("drop-chain")).toHaveTextContent("190×3 → 155×4");
+    // 155 x 0.8 = 124 -> 125.
+    expect(screen.getByTestId("weight")).toHaveTextContent("125");
+
+    await waitFor(() => expect(logDrop()).toBeEnabled());
+    fireEvent.click(logDrop());
+    await waitFor(async () => expect(await loggedSets()).toHaveLength(3));
+    await waitFor(() => expect(screen.getByTestId("drop-set")).toHaveTextContent("Drop 3"));
+    expect(screen.queryByRole("timer")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Done · rest" }));
+    const rest = await screen.findByRole("timer");
+    expect(rest).toHaveTextContent("3:30");
+    const sets = await loggedSets();
+    expect(sets.map((s) => [s.weight, s.actualReps, s.role ?? "work", s.dropOf ?? null])).toEqual([
+      [190, 3, "work", null],
+      [155, 4, "drop", sets[0].id],
+      [125, 4, "drop", sets[1].id],
+    ]);
+
+    // Drops are not sets of the lift: set 2 of 5 is next.
+    fireEvent.click(within(rest).getByRole("button", { name: "Skip rest" }));
+    expect(screen.getByText("Set 2 of 5")).toBeInTheDocument();
+  });
+
+  it("lists drops under their set in the overview, each one correctable", async () => {
+    await open();
+    fireEvent.click(logButton());
+    fireEvent.click(
+      await within(await screen.findByRole("timer")).findByRole("button", { name: "Drop to 150 lbs" })
+    );
+    fireEvent.click(logDrop());
+    await waitFor(async () => expect(await loggedSets()).toHaveLength(2));
+    fireEvent.click(await screen.findByRole("button", { name: "Done · rest" }));
+    fireEvent.click(within(await screen.findByRole("timer")).getByRole("button", { name: "Skip rest" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Workout overview" }));
+    const list = screen.getByRole("list", { name: "Barbell Squat logged sets" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(2);
+    expect(
+      within(list).getByRole("button", { name: /^Correct drop after set 1 of Barbell Squat: 3 reps at 150 lbs/ })
+    ).toHaveTextContent("150×3");
   });
 });
 

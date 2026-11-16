@@ -126,6 +126,26 @@ describe("makeSessionForecasts", () => {
     });
   });
 
+  it("forecasts the working sets of a lift with a weight per set: ramp and back-off sets change nothing (H14)", () => {
+    const perSet = plan.map((entry) =>
+      entry.tier === "T1"
+        ? {
+            ...entry,
+            targetSets: 8,
+            perSet: [
+              { weight: 185, reps: 3, role: "ramp" as const },
+              { weight: 205, reps: 3, role: "ramp" as const },
+              ...Array.from({ length: 5 }, () => ({ weight: 225, reps: 3 })),
+              { weight: 185, reps: 5, role: "backoff" as const },
+            ],
+          }
+        : entry
+    );
+    const strip = (rows: Forecast[]) =>
+      rows.filter((row) => row.kind !== "sessionLength").map(({ id, event, prediction }) => ({ id, event, prediction }));
+    expect(strip(makeSessionForecasts(session, perSet, source))).toEqual(strip(rows));
+  });
+
   it("states the new-best event as the estimated max to beat, at the weight", () => {
     // The best that stood when the forecast was made is on the event itself.
     expect(kinds.newBest.event).toEqual({ type: "e1rmAbove", weight: 225, level: 255 });

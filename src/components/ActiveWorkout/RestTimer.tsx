@@ -52,6 +52,8 @@ interface RestTimerProps {
   banner?: ReactNode;
   /** In place of `nextLabel`: a card for what comes next. */
   upNext?: ReactNode;
+  /** Above "Skip rest": another way on from the set just logged (a drop set). */
+  action?: ReactNode;
 }
 
 /** A trace step's grade chip that opens the rule behind it. */
@@ -134,6 +136,7 @@ export function RestTimer({
   why,
   banner,
   upNext,
+  action,
 }: RestTimerProps) {
   const isRestTimerActive = useWorkoutStore((s) => s.isRestTimerActive);
   const restTimeRemaining = useWorkoutStore((s) => s.restTimeRemaining);
@@ -310,13 +313,16 @@ export function RestTimer({
           <p className="font-mono text-[13px] tabular-nums text-muted-foreground">{nextLabel}</p>
         ))}
 
-      <button
-        type="button"
-        onClick={handleSkip}
-        className="mt-auto h-[60px] w-full shrink-0 rounded-full bg-primary font-display text-[19px] leading-none font-extrabold tracking-[0.14em] text-primary-foreground uppercase transition-transform active:scale-[0.99]"
-      >
-        Skip rest
-      </button>
+      <div className="mt-auto flex shrink-0 flex-col gap-2">
+        {action}
+        <button
+          type="button"
+          onClick={handleSkip}
+          className="h-[60px] w-full shrink-0 rounded-full bg-primary font-display text-[19px] leading-none font-extrabold tracking-[0.14em] text-primary-foreground uppercase transition-transform active:scale-[0.99]"
+        >
+          Skip rest
+        </button>
+      </div>
     </div>
   );
 }

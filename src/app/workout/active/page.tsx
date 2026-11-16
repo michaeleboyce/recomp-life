@@ -10,6 +10,8 @@ import { Term } from "@/components/ui/term";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { AutoRegCallout } from "@/components/ActiveWorkout/AutoRegCallout";
 import { DiscardWorkoutDialog } from "@/components/ActiveWorkout/DiscardWorkoutDialog";
+import { DropSetPanel } from "@/components/ActiveWorkout/DropSetPanel";
+import { SetChips } from "@/components/ActiveWorkout/SetChips";
 import { EndWorkoutConfirmDialog } from "@/components/ActiveWorkout/EndWorkoutConfirmDialog";
 import { ExerciseBlock } from "@/components/ActiveWorkout/ExerciseBlock";
 import { LogDock } from "@/components/ActiveWorkout/LogDock";
@@ -162,6 +164,45 @@ function ActiveWorkoutContent() {
   const title = templateTitle(session.templateId);
   const isOver = status === "complete" || !entry;
 
+  // A drop after the latest set: one tap from the rest screen (or the finished screen).
+  const latestSet = sets.at(-1);
+  const dropUnit =
+    latestSet?.substituteExerciseId && getExercise(latestSet.substituteExerciseId).grip === "per_hand"
+      ? "lbs/hand"
+      : "lbs";
+  const dropSetLabel =
+    workout.dropPreview != null ? `Drop to ${workout.dropPreview} ${dropUnit}` : undefined;
+  const onDropSet = workout.dropPreview != null ? workout.startDropSet : undefined;
+
+  // Drop sets in progress: the screen is the drop, with no rest and no other way off.
+  const dropSet = workout.dropSet;
+  if (dropSet) {
+    return (
+      <div className="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background px-5 pt-4 pb-44">
+        <WorkoutHeader title={title} location={session.location} elapsed={elapsed} exercises={plan} currentExerciseIndex={activeIndex} />
+        <DropSetPanel
+          root={dropSet.root}
+          drops={dropSet.drops}
+          exercise={dropSet.exercise}
+          location={session.location}
+          equipment={settings.equipment}
+          weight={dropSet.weight}
+          step={dropSet.step}
+          minWeight={dropSet.minWeight}
+          onWeight={workout.setDropWeight}
+          reps={dropSet.reps}
+          suggestedReps={dropSet.suggestedReps}
+          onReps={workout.setDropReps}
+          onLog={workout.logDropSet}
+          onDone={workout.endDropSets}
+          restFollows={!isOver}
+          disabled={workout.isSaving}
+          message={workout.error}
+        />
+      </div>
+    );
+  }
+
   // The overview stays reachable once the workout is over, so the last set can still
   // be corrected before saving; jumping and ending early no longer apply then.
   const overview = (
@@ -207,6 +248,8 @@ function ActiveWorkoutContent() {
           onSave={handleSave}
           onDiscard={handleDiscard}
           error={workout.error}
+          onDropSet={workout.endedEarly ? undefined : onDropSet}
+          dropSetLabel={dropSetLabel}
         />
         {overview}
       </div>
@@ -215,11 +258,8 @@ function ActiveWorkoutContent() {
 
   const showEffort = settings.showRPE && !entry.isWarmUp;
   const shown = getExercise(entry.substituteExerciseId || entry.exerciseId);
-  const nextLabel = restNextLabel(
-    entry,
-    shown.name,
-    !!entry.substituteExerciseId && shown.grip === "per_hand"
-  );
+  const perHand = !!entry.substituteExerciseId && shown.grip === "per_hand";
+  const nextLabel = restNextLabel(entry, shown.name, perHand);
 
   // The last set of a T1 lift: the rep forecast stored at start, when there is one.
   // No row (a first session, a swapped-in lift, another weight) means nothing is shown.
@@ -250,8 +290,9 @@ function ActiveWorkoutContent() {
     ? undefined
     : findStoredDecision(decisions, "weight", entry.exerciseId, entry.tier);
 
-  // The rest screen: the set just logged is the most recent one.
-  const lastSet = sets.at(-1);
+  // The rest screen: the set just logged is the most recent one (after drops, the set
+  // they continued: drops have no forecast of their own).
+  const lastSet = [...sets].reverse().find((set) => set.role !== "drop");
   const restWhy = lastSet ? findStoredDecision(decisions, "rest", lastSet.exerciseId, lastSet.tier) : undefined;
   const lastForecast =
     lastSet && lastSet.isAMRAP && lastSet.tier === "T1"
@@ -268,12 +309,14 @@ function ActiveWorkoutContent() {
         previousBest={lastForecast.newBest?.event.level ?? null}
       />
     ) : null;
+  // The lift's chance to pass is about its working weight, whatever the next set weighs.
+  const workingWeight = workout.planEntry?.weight ?? entry.weight;
   const passForecast = sessionForecasts?.find(
     ({ forecast: row }) =>
       row.kind === "liftPass" &&
       row.exerciseId === entry.exerciseId &&
       row.tier === entry.tier &&
-      row.event.weight === entry.weight
+      row.event.weight === workingWeight
   )?.forecast;
 
   return (
@@ -299,6 +342,16 @@ function ActiveWorkoutContent() {
         equipment={settings.equipment}
         isAMRAPSet={workout.isAMRAPSet}
         onWhy={weightWhy ? () => setWhyOpen(true) : undefined}
+      />
+      <SetChips
+        name={shown.name}
+        chips={workout.setChips}
+        unit={perHand ? "lbs/hand" : "lbs"}
+        step={workout.weightStep}
+        minWeight={workout.minWeight}
+        override={workout.weightOverride}
+        plannedWeight={workout.plannedNextWeight}
+        onChange={workout.setNextWeight}
       />
       {weightWhy && (
         <WhySheet
@@ -380,6 +433,8 @@ function ActiveWorkoutContent() {
         restWhy={restWhy}
         restBanner={restBanner}
         restUpNext={<UpNextCard entry={entry} label={nextLabel} passForecast={passForecast} />}
+        onDropSet={onDropSet}
+        dropSetLabel={dropSetLabel}
       />
 
       {overview}

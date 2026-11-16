@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ArrowRight, Check, Circle, Pencil } from "lucide-react";
 import { getExercise } from "@/lib/exercises";
 import type { LogChange } from "@/lib/rebuild";
-import { workingSetsFor } from "@/lib/workout/setSelectors";
+import { entrySetsFor } from "@/lib/workout/setSelectors";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { TierBadge } from "@/components/ui/tier-badge";
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sheet";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import type { SetLog } from "@/types";
+import { attachDrops, isDropSet, roleLabel } from "./setPlan";
 
 interface WorkoutOverviewSheetProps {
   open: boolean;
@@ -112,7 +113,11 @@ export function WorkoutOverviewSheet({
               const isCurrent = originalIndex === currentExerciseIndex;
               const isCompleted = exercise.completedSets >= exercise.targetSets;
               const weightLabel = perHand ? `${exercise.weight}/h` : `${exercise.weight} lbs`;
-              const logged = workingSetsFor(sets, exercise.exerciseId, exercise.tier);
+              // Every set logged for the entry (ramp and back-off sets too), each followed
+              // by its drops, so any of them can be corrected.
+              const logged = attachDrops(entrySetsFor(sets, exercise.exerciseId, exercise.tier)).flatMap(
+                (row) => [row.set, ...row.drops]
+              );
 
               const rowClass = cn(
                 "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors",
@@ -171,9 +176,21 @@ export function WorkoutOverviewSheet({
                       className="flex flex-wrap gap-2 pt-1 pr-3 pb-2 pl-11"
                     >
                       {logged.map((set) => {
-                        const text = (
+                        const drop = isDropSet(set);
+                        const role = roleLabel(set.role);
+                        const text = drop ? (
                           <>
-                            <span className="text-muted-foreground">Set {set.setNumber}</span>
+                            <span aria-hidden="true" className="text-muted-foreground">↳</span>
+                            <span className="font-semibold text-foreground">
+                              {set.weight}×{set.actualReps}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-muted-foreground">
+                              Set {set.setNumber}
+                              {role ? ` · ${role.toLowerCase()}` : ""}
+                            </span>
                             <span className="font-semibold text-foreground">
                               {set.actualReps} {set.actualReps === 1 ? "rep" : "reps"}
                             </span>
@@ -182,6 +199,9 @@ export function WorkoutOverviewSheet({
                             )}
                           </>
                         );
+                        const what = drop
+                          ? `drop after set ${set.setNumber}`
+                          : `set ${set.setNumber}${role ? ` (${role.toLowerCase()})` : ""}`;
                         const chipClass =
                           "flex min-h-11 items-center gap-2 rounded-lg bg-muted px-3 font-mono text-xs tabular-nums";
                         return (
@@ -189,7 +209,7 @@ export function WorkoutOverviewSheet({
                             {canCorrect ? (
                               <button
                                 type="button"
-                                aria-label={`Correct set ${set.setNumber} of ${exerciseInfo.name}: ${setSummary(set, perHand)}`}
+                                aria-label={`Correct ${what} of ${exerciseInfo.name}: ${setSummary(set, perHand)}`}
                                 onClick={() => {
                                   onCorrectionStart?.();
                                   setEditing(set);

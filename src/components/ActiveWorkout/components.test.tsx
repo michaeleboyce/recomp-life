@@ -83,7 +83,7 @@ describe("WeightDisplay", () => {
     expect(screen.getByTestId("loading-line")).toHaveTextContent("bar only");
   });
 
-  it("says 'per hand' with the barbell equivalent for a home dumbbell substitute", () => {
+  it("shows a home substitute's own weight per hand, and the barbell weight the program holds", () => {
     render(
       <WeightDisplay
         exercise={entry({
@@ -97,9 +97,41 @@ describe("WeightDisplay", () => {
         equipment={EQUIPMENT}
       />
     );
-    expect(screen.getByTestId("loading-line")).toHaveTextContent(
-      /^per hand · = \d+ lbs barbell equiv\.$/
+    expect(screen.getByTestId("weight")).toHaveTextContent("40");
+    expect(screen.getByTestId("loading-line")).toHaveTextContent(/^per hand$/);
+    expect(screen.getByTestId("program-line")).toHaveTextContent(
+      "Barbell Bench Press in the program: 100 lbs"
     );
+    expect(screen.queryByText(/equiv/)).toBeNull();
+  });
+
+  it("says one dumbbell held in both hands, with no per-hand conversion, for a goblet squat", () => {
+    render(
+      <WeightDisplay
+        exercise={entry({
+          exerciseId: "squat",
+          substituteExerciseId: "goblet_squat",
+          weight: 60,
+          originalWeight: 190,
+        })}
+        location="home"
+        equipment={EQUIPMENT}
+      />
+    );
+    expect(screen.getByTestId("weight")).toHaveTextContent("60");
+    expect(screen.getByTestId("loading-line")).toHaveTextContent(/^one dumbbell, both hands$/);
+    expect(screen.getByTestId("program-line")).toHaveTextContent("Barbell Squat in the program: 190 lbs");
+  });
+
+  it("names no program weight for a dumbbell exercise that stands in for nothing", () => {
+    render(
+      <WeightDisplay
+        exercise={entry({ exerciseId: "db_row", tier: "T3", weight: 50 })}
+        location="home"
+        equipment={EQUIPMENT}
+      />
+    );
+    expect(screen.queryByTestId("program-line")).toBeNull();
   });
 
   it("adds nothing for a cable exercise", () => {

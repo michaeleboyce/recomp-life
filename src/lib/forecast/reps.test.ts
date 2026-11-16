@@ -27,6 +27,7 @@ import {
   type RepsModelInput,
 } from "./reps";
 import { DAY, t1Session } from "./testHelpers";
+import type { SetLog } from "@/types";
 
 const NOW = new Date("2026-11-14T17:00:00Z");
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * DAY);
@@ -93,6 +94,33 @@ describe("lastT1Sets", () => {
     expect(points[0].performedExerciseId).toBe("squat");
     // The time is the set's own.
     expect(points[1].t).toBe(daysAgo(3).getTime() + 5 * 4 * 60_000);
+  });
+
+  it("reads the working last set, never a ramp, back-off or drop set around it (H14)", () => {
+    const base = t1Session({ id: "a", at: daysAgo(3), weight: 200, lastReps: 5 });
+    const last = base.sets.at(-1)!;
+    const extra = (id: string, overrides: Partial<SetLog>): SetLog => ({
+      ...last,
+      id,
+      clientId: id,
+      setNumber: 6,
+      // Even flagged as the as-many-as-you-can set, as an imported row might be.
+      isAMRAP: true,
+      completedAt: new Date(new Date(last.completedAt).getTime() + 60_000),
+      ...overrides,
+    });
+    const withExtras = {
+      ...base,
+      sets: [
+        extra("ramp", { role: "ramp", weight: 160, actualReps: 9, setNumber: 0, completedAt: base.startedAt }),
+        ...base.sets,
+        extra("drop", { role: "drop", dropOf: last.id, weight: 160, actualReps: 7 }),
+        extra("backoff", { role: "backoff", weight: 170, actualReps: 8, setNumber: 7 }),
+      ],
+    };
+    const [point] = lastT1Sets([withExtras], "squat", NOW);
+    expect([point.weight, point.reps]).toEqual([200, 5]);
+    expect(lastT1Sets([withExtras], "squat", NOW)).toHaveLength(1);
   });
 
   it("takes the stage from the set's target reps", () => {

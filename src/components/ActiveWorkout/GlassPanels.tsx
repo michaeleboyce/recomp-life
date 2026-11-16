@@ -8,9 +8,11 @@ import { ExerciseMuscleThumb } from "@/components/Anatomy/ExerciseMuscleThumb";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Term } from "@/components/ui/term";
 import { getExercise } from "@/lib/exercises";
+import { isNextSetAMRAP } from "@/lib/workout/logSet";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import type { Forecast } from "@/types";
 import type { ForecastNote, LastSetVerdict } from "./glassForecast";
+import { roleLabel } from "./setPlan";
 
 /** Where the forecast track record lives. */
 export const TRACK_RECORD_HREF = "/progress/forecasts/record";
@@ -93,6 +95,7 @@ export function UpNextCard({
 }) {
   const info = getExercise(entry.substituteExerciseId || entry.exerciseId);
   const set = Math.min(entry.completedSets + 1, entry.targetSets);
+  const role = roleLabel(entry.perSet?.[entry.completedSets]?.role);
   const chance = passForecast?.prediction.probability;
   return (
     <div
@@ -101,7 +104,10 @@ export function UpNextCard({
     >
       <div className="flex min-w-0 flex-col gap-1">
         <span className="font-display text-[12px] font-semibold tracking-[0.16em] text-accent-primary uppercase">
-          Up next · {entry.isWarmUp ? "warm-up" : `${entry.tier} · set ${set} of ${entry.targetSets}`}
+          Up next ·{" "}
+          {entry.isWarmUp
+            ? "warm-up"
+            : `${entry.tier} · set ${set} of ${entry.targetSets}${role ? ` · ${role}` : ""}`}
         </span>
         <span className="line-clamp-2 font-display text-2xl leading-[0.95] font-extrabold break-words uppercase">
           {info.name}
@@ -110,7 +116,7 @@ export function UpNextCard({
           <span className="font-display text-[40px] leading-none font-extrabold tabular-nums">{entry.weight}</span>
           <span className="font-display text-base font-extrabold text-muted-foreground uppercase">
             {info.grip === "per_hand" ? "lbs/hand" : "lbs"} × {entry.targetReps}
-            {entry.isAMRAP && entry.completedSets + 1 === entry.targetSets ? "+" : ""}
+            {isNextSetAMRAP(entry) ? "+" : ""}
           </span>
         </span>
         {typeof chance === "number" && (
