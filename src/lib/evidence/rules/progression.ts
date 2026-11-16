@@ -7,6 +7,15 @@ import {
   T3_LAST_SET_INCREASE_REPS,
 } from "@/lib/progression";
 import { CREDIT_MIN_WEIGHT_RATIO } from "@/lib/workout/credit";
+import { CAP_REP_STEP, HARDER_HOME_VARIANT } from "@/lib/workout/variant";
+import { EXERCISES } from "@/lib/exercises";
+
+const exerciseName = (id: string) => EXERCISES[id]?.name ?? id;
+const HARDER_LIST = Object.entries(HARDER_HOME_VARIANT)
+  .map(([from, to]) => `${exerciseName(from)} to ${exerciseName(to)}`)
+  .join(", ");
+const HOME_ACTIVATION =
+  "Switch on when the home lift page, Today and the workout trace show it, with an evidence line on each.";
 
 const [t1, t2, t3] = WORKOUT_TEMPLATES.A1.exercises;
 const resetPercent = Math.round(RESET_FACTOR * 100);
@@ -106,5 +115,51 @@ export const PROGRESSION_RULES = {
       "src/lib/trace/substitute.ts#weightChangeEffect",
     ],
     surfaces: ["src/components/PreWorkout/EditWorkoutSheet.tsx"],
+  },
+  "home-progression": {
+    area: "progression",
+    status: "planned",
+    title: "What does a home session do to your weights?",
+    summary: "Home sessions progress their own weight; the barbell moves when you return",
+    appBehavior:
+      "At home, each exercise keeps its own weight, stage and reps: a Bulgarian split squat done for the squat has its own working weight, and the same pass, miss and reset rules move it in dumbbell steps. A home session counts for the rotation like any other, so the next workout is still the next one in the order. The barbell weight does not move at home: that session is held for the barbell lift. Home sessions still count as evidence for the program lift, through the strength estimate, and the first barbell weight back at the gym is the smaller of the last barbell weight plus the steps your home passes earned and what the estimate allows, rounded down to plates you can load.",
+    rationale:
+      "A home exercise is a different movement with its own load, so a pass on it says the movement went well, not that the barbell is ready for more. Letting it progress by itself keeps home training moving, while moving the barbell only at re-entry, and never past what your passes or your measured strength support, keeps a run of home sessions from over- or under-loading the bar.",
+    caveat:
+      "This is a convention of this app and part of no program or study. How many steps a home pass is worth at re-entry, and how far home evidence may move the barbell, are this app's judgment.",
+    strength: "program",
+    sources: [],
+    reviewedOn: "2026-11",
+    implementedIn: [
+      "src/lib/workout/variant.ts#chooseHomeVariant",
+      "src/lib/workout/variant.ts#evaluateVariant",
+      "src/lib/workout/variant.ts#homeStepsEarned",
+      "src/lib/workout/credit.ts#sessionCountsForRotation",
+      "src/lib/trace/homeWeight.ts#homeWeightSteps",
+    ],
+    surfaces: [],
+    activationNotes: HOME_ACTIVATION,
+  },
+  "cap-progression": {
+    area: "progression",
+    status: "planned",
+    title: "What happens at your heaviest dumbbell?",
+    summary: "At the heaviest dumbbell a pass moves to a harder exercise or adds reps",
+    appBehavior: `A pass never takes a home exercise past your heaviest dumbbell. At that weight the pass moves you on instead. If the exercise has a harder version your dumbbells can load at a total no lighter (${HARDER_LIST}), the next session uses it, starting at the lightest weight that keeps the total load. Otherwise every set asks for more reps at the same weight: ${CAP_REP_STEP.T1} more for the heavy lift (5 sets of 3 become 5 of 4) and ${CAP_REP_STEP.T2} more for the moderate lift (3 sets of 10 become 3 of 12). The light lift adds none and keeps asking for as many reps as you can on its last set. A miss or a reset clears the added reps.`,
+    rationale:
+      "Once the dumbbells run out, load cannot rise, but difficulty can: a harder exercise at the same load, or more reps, still gives the muscles more to do. Muscle growth is similar across a wide range of loads when sets end near failure, which is why more reps at a fixed weight is a fair way to keep progressing.",
+    caveat:
+      "Which exercise is harder, and how many reps to add, are this app's choices, not research findings. Added reps do not make the lift heavier, so they say less about barbell strength than added weight.",
+    strength: "heuristic",
+    sources: [],
+    reviewedOn: "2026-11",
+    implementedIn: [
+      "src/lib/workout/variant.ts#CAP_REP_STEP",
+      "src/lib/workout/variant.ts#HARDER_HOME_VARIANT",
+      "src/lib/workout/variant.ts#evaluateVariant",
+      "src/lib/trace/homeWeight.ts#homeWeightSteps",
+    ],
+    surfaces: [],
+    activationNotes: HOME_ACTIVATION,
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;

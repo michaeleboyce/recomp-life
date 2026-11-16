@@ -11,6 +11,8 @@ export const EXTRA_SET_ROLES: readonly SetRole[] = ["ramp", "backoff", "drop"];
 /**
  * True for a working set of the program: no role (every row logged before roles) or
  * "work". Ramp, back-off and drop sets are extra volume.
+ *
+ * @evidence drop-set-evidence
  */
 export function isWorkingSet(set: Pick<SetLog, "role">): boolean {
   return set.role == null || set.role === "work";

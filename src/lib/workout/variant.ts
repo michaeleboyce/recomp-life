@@ -43,6 +43,8 @@ export const DEFAULT_T3_SCHEME = { sets: 3, reps: 15 } as const;
  * gap between the first two stages' reps, so T2 goes 3x10 -> 3x12 (one stage's reps up)
  * and T1 5x3 -> 5x4. T3 already asks for as many reps as you can on its last set, so it
  * adds none and stays at the heaviest dumbbell.
+ *
+ * @evidence cap-progression
  */
 export const CAP_REP_STEP: Readonly<Record<VariantTier, number>> = {
   T1: T1_STAGE_SCHEME["5x3"].reps - T1_STAGE_SCHEME["6x2"].reps,
@@ -57,6 +59,8 @@ export const CAP_REP_STEP: Readonly<Record<VariantTier, number>> = {
  * floor press is easier than a bench press, a lunge than a split squat), so the harder
  * one is named here. A heuristic; an exercise not listed has no harder variant and, at
  * the cap, progresses by reps.
+ *
+ * @evidence cap-progression
  */
 export const HARDER_HOME_VARIANT: Readonly<Record<string, string>> = {
   goblet_squat: "bulgarian_split_squat",
@@ -221,6 +225,8 @@ export interface HomeVariantChoice {
  * as before), else the lift's current variant at this tier, else today's conversion
  * pick. The weight: the variant's own, or for a variant never used, its seed
  * (`seedVariantWeight`), so with no home history the plan is exactly today's conversion.
+ *
+ * @evidence home-progression
  */
 export function chooseHomeVariant(input: HomeVariantInput): HomeVariantChoice | null {
   const { liftId, tier, liftState, variantStates, equipment, overrideId } = input;
@@ -302,7 +308,11 @@ export function anchorVariant(
   };
 }
 
-/** Passes at home since the lift was last done at this tier as itself: steps re-entry may add (H6). */
+/**
+ * Passes at home since the lift was last done at this tier as itself: steps re-entry may add (H6).
+ *
+ * @evidence home-progression
+ */
 export function homeStepsEarned(
   variantStates: readonly VariantState[],
   liftId: string,
@@ -385,6 +395,9 @@ export function unchangedVariantOutcome(
  * the next harder variant (HARDER_HOME_VARIANT) at a weight whose total load is not
  * lighter, when the dumbbells allow one; otherwise CAP_REP_STEP more reps a set. A pass
  * of any kind counts one step earned at home (`passesSinceGym`).
+ *
+ * @evidence home-progression
+ * @evidence cap-progression
  */
 export function evaluateVariant(input: EvaluateVariantInput): VariantEvaluation {
   const { sets, partial, heavier, equipment, now, t3Scheme } = input;

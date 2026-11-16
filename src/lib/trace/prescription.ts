@@ -31,6 +31,7 @@ import type {
   WorkoutTemplateExercise,
 } from "@/types";
 import { findLastSession, findWeightAdjustment } from "./history";
+import { homeWeightSteps } from "./homeWeight";
 import { applySteps } from "./replay";
 import {
   dumbbellLimitAtHome,
@@ -499,6 +500,7 @@ export function explainPrescription(
   steps.push(readinessStep(context), painStep(entry, context), phaseStep(entry, context));
   steps.push(...plateSteps(entry, programWeight, context));
   steps.push(...homeSteps(entry, programWeight, context));
+  steps.push(...homeWeightSteps(entry, context));
   // A dumbbell lift done as itself at home has no conversion step to say it.
   const limit = entry.substituteExerciseId
     ? null

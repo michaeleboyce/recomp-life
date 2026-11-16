@@ -75,6 +75,7 @@ export const STRENGTH_RULES = {
       "src/lib/strength/coefficients.ts#TRANSFER_RATIO",
       "src/lib/strength/ratio.ts#pairSessions",
       "src/lib/strength/ratio.ts#learnTransferRatio",
+      "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
     surfaces: [],
     activationNotes: ACTIVATION,
@@ -101,6 +102,7 @@ export const STRENGTH_RULES = {
       "src/lib/strength/muscleIndex.ts#muscleStrengthIndex",
       "src/lib/strength/reentry.ts#barbellReentryWeight",
       "src/lib/strength/reentry.ts#homeReentryWeight",
+      "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
     surfaces: [],
     activationNotes: ACTIVATION,
@@ -110,7 +112,7 @@ export const STRENGTH_RULES = {
     status: "planned",
     title: "How do drop sets count?",
     summary: "Drops add volume and a little strength evidence, never a new best",
-    appBehavior: `A drop follows a set with no rest, so its reps understate your strength. Only the first drop after each set is used for the strength estimate: its estimated max is taken as ${pct(D.fatigueDiscount)} below fresh (divided by ${1 - D.fatigueDiscount}), and the first drops together count ${pct(D.evidenceWeight)} as much as the session's best set. A drop never makes an estimated max or a new best, and a session with only drops gives no estimate. Ramp and back-off sets count like any other set, at their own weight. For muscle volume each drop counts as ${D.volumeCredit} of a set, and the drops after one set add at most ${D.maxExtraSetsPerWorkingSet} set.`,
+    appBehavior: `A drop follows a set with no rest, so its reps understate your strength. Only the first drop after each set is used for the strength estimate: its estimated max is taken as ${pct(D.fatigueDiscount)} below fresh (divided by ${1 - D.fatigueDiscount}), and the first drops together count ${pct(D.evidenceWeight)} as much as the session's best set. A drop never makes an estimated max or a new best, and a session with only drops gives no estimate. Ramp and back-off sets count like any other set, at their own weight. For muscle volume each drop counts as ${D.volumeCredit} of a set, and the drops after one set add at most ${D.maxExtraSetsPerWorkingSet} set. A drop is never part of a pass or a fail: a missed drop does not turn a pass into a miss.`,
     rationale:
       "Drop sets built about as much muscle and strength over weeks as traditional sets, in less time, and felt harder in the moment, with more lactate. In the studies' protocols the reps after a drop were far fewer than the lighter weight allows fresh, and maximal force fell more after drop sets than after traditional sets.",
     caveat:
@@ -123,6 +125,7 @@ export const STRENGTH_RULES = {
       "src/lib/strength/estimate.ts#sessionEstimates",
       "src/lib/strength/volume.ts#volumeCredits",
       "src/lib/strength/volume.ts#muscleVolume",
+      "src/lib/workout/setSelectors.ts#isWorkingSet",
     ],
     surfaces: [],
     activationNotes: ACTIVATION,

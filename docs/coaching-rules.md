@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-35 active rules, 7 planned rules, 42 sources. Last reviewed against the research: November 2026.
+35 active rules, 9 planned rules, 42 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -29,6 +29,8 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `t3-progression` | Program and progression | Active | Program rule | Robinson 2024, Halperin 2022 |
 | `accessory-progression` | Program and progression | Planned | Moderate evidence | Robinson 2024 |
 | `off-program-credit` | Program and progression | Active | Coaching heuristic | none |
+| `home-progression` | Program and progression | Planned | Program rule | none |
+| `cap-progression` | Program and progression | Planned | Coaching heuristic | none |
 | `amrap-effort` | Effort and estimates | Active | Moderate evidence | Robinson 2024, ACSM 2026, Morán-Navarro 2017 |
 | `rpe-logging` | Effort and estimates | Active | Moderate evidence | Halperin 2022 |
 | `t2-autoregulation` | Effort and estimates | Active | Moderate evidence | Zhang 2021, Halperin 2022 |
@@ -171,6 +173,46 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **Sources.** None: this is a coaching convention with no direct research.
 
+### What does a home session do to your weights?
+
+- **Rule id:** `home-progression`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Program rule
+- **Implemented in:** `src/lib/workout/variant.ts` (`chooseHomeVariant`), `src/lib/workout/variant.ts` (`evaluateVariant`), `src/lib/workout/variant.ts` (`homeStepsEarned`), `src/lib/workout/credit.ts` (`sessionCountsForRotation`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Reviewed:** November 2026
+
+**In one line.** Home sessions progress their own weight; the barbell moves when you return
+
+**What the app does.** At home, each exercise keeps its own weight, stage and reps: a Bulgarian split squat done for the squat has its own working weight, and the same pass, miss and reset rules move it in dumbbell steps. A home session counts for the rotation like any other, so the next workout is still the next one in the order. The barbell weight does not move at home: that session is held for the barbell lift. Home sessions still count as evidence for the program lift, through the strength estimate, and the first barbell weight back at the gym is the smaller of the last barbell weight plus the steps your home passes earned and what the estimate allows, rounded down to plates you can load.
+
+**Why.** A home exercise is a different movement with its own load, so a pass on it says the movement went well, not that the barbell is ready for more. Letting it progress by itself keeps home training moving, while moving the barbell only at re-entry, and never past what your passes or your measured strength support, keeps a run of home sessions from over- or under-loading the bar.
+
+**Limits.** This is a convention of this app and part of no program or study. How many steps a home pass is worth at re-entry, and how far home evidence may move the barbell, are this app's judgment.
+
+**Before this is switched on.** Switch on when the home lift page, Today and the workout trace show it, with an evidence line on each.
+
+**Sources.** None: this comes from the GZCLP program design.
+
+### What happens at your heaviest dumbbell?
+
+- **Rule id:** `cap-progression`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/workout/variant.ts` (`CAP_REP_STEP`), `src/lib/workout/variant.ts` (`HARDER_HOME_VARIANT`), `src/lib/workout/variant.ts` (`evaluateVariant`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Reviewed:** November 2026
+
+**In one line.** At the heaviest dumbbell a pass moves to a harder exercise or adds reps
+
+**What the app does.** A pass never takes a home exercise past your heaviest dumbbell. At that weight the pass moves you on instead. If the exercise has a harder version your dumbbells can load at a total no lighter (Goblet Squat to Bulgarian Split Squat, DB Lunge to Bulgarian Split Squat, DB Floor Press to DB Bench Press, DB Romanian Deadlift to Single-Leg DB RDL, DB Shoulder Press to DB Arnold Press), the next session uses it, starting at the lightest weight that keeps the total load. Otherwise every set asks for more reps at the same weight: 1 more for the heavy lift (5 sets of 3 become 5 of 4) and 2 more for the moderate lift (3 sets of 10 become 3 of 12). The light lift adds none and keeps asking for as many reps as you can on its last set. A miss or a reset clears the added reps.
+
+**Why.** Once the dumbbells run out, load cannot rise, but difficulty can: a harder exercise at the same load, or more reps, still gives the muscles more to do. Muscle growth is similar across a wide range of loads when sets end near failure, which is why more reps at a fixed weight is a fair way to keep progressing.
+
+**Limits.** Which exercise is harder, and how many reps to add, are this app's choices, not research findings. Added reps do not make the lift heavier, so they say less about barbell strength than added weight.
+
+**Before this is switched on.** Switch on when the home lift page, Today and the workout trace show it, with an evidence line on each.
+
+**Sources.** None: this is a coaching convention with no direct research.
+
 ## Effort and estimates
 
 ### How hard should the last set be?
@@ -266,7 +308,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `transfer-ratio`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/strength/coefficients.ts` (`TRANSFER_PRIORS`), `src/lib/strength/coefficients.ts` (`TRANSFER_RATIO`), `src/lib/strength/ratio.ts` (`pairSessions`), `src/lib/strength/ratio.ts` (`learnTransferRatio`)
+- **Implemented in:** `src/lib/strength/coefficients.ts` (`TRANSFER_PRIORS`), `src/lib/strength/coefficients.ts` (`TRANSFER_RATIO`), `src/lib/strength/ratio.ts` (`pairSessions`), `src/lib/strength/ratio.ts` (`learnTransferRatio`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
 - **Reviewed:** November 2026
 
 **In one line.** Home exercises convert to the barbell lift by a ratio learned from you
@@ -290,7 +332,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `strength-pooling`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`)
+- **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
 - **Reviewed:** November 2026
 
 **In one line.** Barbell and home sessions pool into one estimate; home ones count less
@@ -310,12 +352,12 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `drop-set-evidence`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/strength/coefficients.ts` (`DROP_SETS`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/volume.ts` (`volumeCredits`), `src/lib/strength/volume.ts` (`muscleVolume`)
+- **Implemented in:** `src/lib/strength/coefficients.ts` (`DROP_SETS`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/volume.ts` (`volumeCredits`), `src/lib/strength/volume.ts` (`muscleVolume`), `src/lib/workout/setSelectors.ts` (`isWorkingSet`)
 - **Reviewed:** November 2026
 
 **In one line.** Drops add volume and a little strength evidence, never a new best
 
-**What the app does.** A drop follows a set with no rest, so its reps understate your strength. Only the first drop after each set is used for the strength estimate: its estimated max is taken as 25% below fresh (divided by 0.75), and the first drops together count 25% as much as the session's best set. A drop never makes an estimated max or a new best, and a session with only drops gives no estimate. Ramp and back-off sets count like any other set, at their own weight. For muscle volume each drop counts as 0.5 of a set, and the drops after one set add at most 1 set.
+**What the app does.** A drop follows a set with no rest, so its reps understate your strength. Only the first drop after each set is used for the strength estimate: its estimated max is taken as 25% below fresh (divided by 0.75), and the first drops together count 25% as much as the session's best set. A drop never makes an estimated max or a new best, and a session with only drops gives no estimate. Ramp and back-off sets count like any other set, at their own weight. For muscle volume each drop counts as 0.5 of a set, and the drops after one set add at most 1 set. A drop is never part of a pass or a fail: a missed drop does not turn a pass into a miss.
 
 **Why.** Drop sets built about as much muscle and strength over weeks as traditional sets, in less time, and felt harder in the moment, with more lactate. In the studies' protocols the reps after a drop were far fewer than the lighter weight allows fresh, and maximal force fell more after drop sets than after traditional sets.
 
@@ -957,7 +999,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `dumbbell-conversion`
 - **Status:** Active
 - **Evidence:** Moderate evidence
-- **Implemented in:** `src/lib/dbConversion.ts` (`barbellToDumbbell`), `src/lib/autoAdapt.ts` (`adaptExerciseForHome`)
+- **Implemented in:** `src/lib/dbConversion.ts` (`barbellToDumbbell`), `src/lib/dbConversion.ts` (`dumbbellToBarbell`), `src/lib/autoAdapt.ts` (`adaptExerciseForHome`)
 - **Shown in:** `src/app/workout/configure/page.tsx`, `src/components/Lift/PrLine.tsx`
 - **Reviewed:** November 2026
 
@@ -1022,6 +1064,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **16 November 2026** — `home-progression` (What does a home session do to your weights?): Added: a home session now moves its own exercise's weight (in dumbbell steps) and no longer raises the barbell weight, which moves when you are back at the gym; before, a home pass raised the barbell weight. It still counts for the rotation and as evidence for the lift. Sources: .
+- **16 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): Added as a planned rule (not active yet): at your heaviest dumbbell, a pass moves to a harder exercise at a load no lighter, or adds reps, instead of stalling. Sources: .
+- **16 November 2026** — `dumbbell-conversion` (How are barbell weights converted to dumbbells?): Fixed: converting a dumbbell weight back to the barbell now divides by 0.8 (the inverse of the barbell-to-dumbbell conversion) instead of multiplying by 1.2, so a weight converted there and back lands where it began. Sources: Saeterbakken 2011.
+- **16 November 2026** — `transfer-ratio` (How does a home exercise count toward a barbell lift?): Changed (when switched on): a home exercise's first weight comes from its own starting ratio to the barbell lift, and later from your own pairs, instead of a flat 80% of the barbell weight for every exercise. Sources: Saeterbakken 2011, Saeterbakken 2013, Speirs 2016.
 - **16 November 2026** — `transfer-ratio` (How does a home exercise count toward a barbell lift?): Added as a planned rule (not active yet): each home exercise gets a starting ratio to its barbell lift, from a study where one exists, and learns your own ratio from home and gym sessions done close together. Sources: Saeterbakken 2011, Saeterbakken 2013, Speirs 2016.
 - **16 November 2026** — `strength-pooling` (How do gym and home sessions combine into one strength estimate?): Added as a planned rule (not active yet): barbell and home sessions pool into one strength estimate per lift, with home sessions counting less, which will set the first weight back at the gym or at home. Sources: .
 - **16 November 2026** — `drop-set-evidence` (How do drop sets count?): Added as a planned rule (not active yet): drops count as half a set of volume, at most one extra set per working set, and as a small, fatigue-adjusted part of the strength estimate; they never make a new best. Sources: Havers 2026, Sødal 2023.
