@@ -4,6 +4,7 @@
 // home exercises, which progress on their own weight (`VariantOutcome`). Pure.
 import { liftName } from "@/components/LogEdit/format";
 import { displayLiftName, nameInSentence } from "@/components/Today/todayModel";
+import { getRule, isRuleId } from "@/lib/evidence";
 import { EXERCISES } from "@/lib/exercises";
 import { formatNumber } from "@/lib/metrics/helpers";
 import { T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
@@ -120,12 +121,18 @@ export interface SessionOutcomeRow {
 
 const RAISED = new Set<ProgressionOutcomeKind>(["passed", "t3Up"]);
 
-/** The rule behind a home exercise's outcome: the cap policy, home progression, or the outcome's own. */
+/**
+ * The rule behind a home exercise's outcome: the cap policy, home progression, or the
+ * outcome's own. A rule still planned in the evidence registry is not shown anywhere,
+ * so until it is active the outcome's own rule (the GZCLP rule it applied) is cited.
+ */
 function variantRuleId(outcome: VariantOutcome): string {
-  if (outcome.cap) return "cap-progression";
-  return outcome.ruleId === "gzclp-progression" || outcome.ruleId === "t3-progression"
-    ? "home-progression"
-    : outcome.ruleId;
+  const specific = outcome.cap
+    ? "cap-progression"
+    : outcome.ruleId === "gzclp-progression" || outcome.ruleId === "t3-progression"
+      ? "home-progression"
+      : outcome.ruleId;
+  return isRuleId(specific) && getRule(specific).status !== "planned" ? specific : outcome.ruleId;
 }
 
 /**

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { makeSet } from "@/lib/data/testUtils";
+import { getRule, type RuleId } from "@/lib/evidence";
 import { makeOutcome } from "@/lib/progression";
 import type { VariantOutcome, VariantPoint } from "@/types";
 import { describeSessionOutcomes, describeVariantOutcome } from "./outcomes";
+
+/** A planned rule is never shown: until it is active, the outcome's own rule is cited. */
+const shown = (rule: RuleId, fallback: RuleId) => (getRule(rule).status === "planned" ? fallback : rule);
 
 const point = (weight: number, over: Partial<VariantPoint> = {}): VariantPoint => ({
   exerciseId: "bulgarian_split_squat",
@@ -85,7 +89,7 @@ describe("describeSessionOutcomes", () => {
       text: "passed: next 75 lbs a hand 5x3",
       from: 70,
       to: 75,
-      ruleId: "home-progression",
+      ruleId: shown("home-progression", "gzclp-progression"),
       raised: true,
     });
     // A lift with no home exercise of its own keeps its own outcome.
@@ -99,13 +103,13 @@ describe("describeSessionOutcomes", () => {
     ]);
   });
 
-  it("cites the cap rule when the cap policy acted", () => {
+  it("cites the cap rule when the cap policy acted (once the rule is active)", () => {
     const capped = outcome({
       from: point(80),
       to: point(80, { reps: 4 }),
       cap: { policy: "reps", maxDumbbellWeight: 80, repsFrom: 3, repsTo: 4 },
     });
     const [row] = describeSessionOutcomes({ sets, location: "home" }, [liftOutcome], [capped]);
-    expect(row.ruleId).toBe("cap-progression");
+    expect(row.ruleId).toBe(shown("cap-progression", "gzclp-progression"));
   });
 });

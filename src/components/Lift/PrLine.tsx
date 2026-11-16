@@ -1,6 +1,7 @@
 import { House, TrendingUp } from "lucide-react";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Term } from "@/components/ui/term";
+import { getRule } from "@/lib/evidence";
 import type { TermId } from "@/lib/glossary";
 import type { PrChance, PrOpportunity } from "@/lib/projection";
 import { tierStyle } from "@/lib/tierStyle";
@@ -108,7 +109,8 @@ export function HomeNextWeight({
           <p data-testid="home-weight-line" className="flex-1 text-[13px] text-muted-foreground">
             {line.text}
           </p>
-          <EvidenceLine ruleId={line.ruleId} variant="icon" />
+          {/* A rule still planned in the evidence registry is not shown anywhere. */}
+          {getRule(line.ruleId).status !== "planned" && <EvidenceLine ruleId={line.ruleId} variant="icon" />}
         </div>
       )}
     </div>

@@ -62,11 +62,7 @@ export function GymDebtSection({
   if (items.length === 0) return null;
   return (
     <section aria-label="Waiting for gym">
-      <SectionHeader
-        title="Waiting for gym"
-        action={<EvidenceLine ruleId="strength-pooling" variant="icon" />}
-        className="mb-0.5"
-      />
+      <SectionHeader title="Waiting for gym" className="mb-0.5" />
       <p className="text-xs text-muted-foreground">
         At home these lifts are at your heaviest dumbbell ({maxDumbbellWeight} lbs). Home sessions keep
         them going; the barbell weight waits for your next gym session.
