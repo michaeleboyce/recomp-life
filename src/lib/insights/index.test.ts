@@ -221,6 +221,38 @@ describe("unfinished-workout", () => {
 
   it("is absent without an unfinished workout", () => {
     expect(kinds(ctx())).not.toContain("unfinished-workout");
+    expect(kinds(ctx())).not.toContain("left-workout");
+  });
+});
+
+describe("left-workout", () => {
+  it("asks to save or discard a workout too old to resume, naming its day", () => {
+    const left = {
+      ...workout("old", null, [set("T1", 3, 0), set("T1", 3, 1), set("warmup", 5, 2)]),
+      startedAt: daysAgo(3),
+    };
+    expect(computeInsights(ctx({ leftWorkouts: [left] }))).toEqual([
+      {
+        id: "left-workout:old",
+        kind: "left-workout",
+        severity: "action",
+        title: "Workout left unfinished",
+        body:
+          "Squat day from Sun, Nov 8 has 2 working sets logged. End & save keeps them as that day's workout; Discard moves it to Recently deleted.",
+      },
+    ]);
+  });
+
+  it("comes right after the resumable workout", () => {
+    const left = { ...workout("old", null, [set("T1", 3)]), startedAt: daysAgo(3) };
+    const ids = computeInsights(
+      ctx({
+        settings: settings({ morningWeighInReminder: true }),
+        unfinishedWorkout: workout("u1", null, [set("T1", 3)]),
+        leftWorkouts: [left],
+      })
+    ).map((i) => i.id);
+    expect(ids.slice(0, 3)).toEqual(["unfinished-workout:u1", "left-workout:old", "weigh-in-due"]);
   });
 });
 

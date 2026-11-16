@@ -129,7 +129,7 @@ export function MusclesTab() {
           <div className="mt-5 space-y-4">
             {MUSCLE_GROUP_ORDER.map((group) => (
               <section key={group}>
-                <h2 className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <h2 className="mb-1 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
                   {group}
                 </h2>
                 <ul className="space-y-1">

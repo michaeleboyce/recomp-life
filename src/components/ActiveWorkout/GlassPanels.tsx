@@ -54,7 +54,7 @@ export function LastSetBanner({
       className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2.5 rounded-[20px] bg-tier-t1-soft px-3.5 py-3"
     >
       <span className="min-w-0">
-        <span className="block font-display text-[11px] font-semibold tracking-[0.16em] text-tier-t1 uppercase">
+        <span className="block font-display text-[12px] font-semibold tracking-[0.16em] text-tier-t1 uppercase">
           {verdict.title}
         </span>
         <span className="mt-0.5 block text-[13px] leading-snug">{verdict.body}</span>
@@ -68,7 +68,7 @@ export function LastSetBanner({
             duration={NEW_BEST_COUNT_MS}
             className="font-display text-[40px] leading-none font-extrabold"
           />
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-[12px] text-muted-foreground">
             <Term id="e1rm" hideLinks>
               est. max
             </Term>
@@ -100,7 +100,7 @@ export function UpNextCard({
       className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[20px] bg-card px-3.5 py-3"
     >
       <div className="flex min-w-0 flex-col gap-1">
-        <span className="font-display text-[11px] font-semibold tracking-[0.16em] text-accent-primary uppercase">
+        <span className="font-display text-[12px] font-semibold tracking-[0.16em] text-accent-primary uppercase">
           Up next · {entry.isWarmUp ? "warm-up" : `${entry.tier} · set ${set} of ${entry.targetSets}`}
         </span>
         <span className="line-clamp-2 font-display text-2xl leading-[0.95] font-extrabold break-words uppercase">

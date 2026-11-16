@@ -37,7 +37,7 @@ export function MuscleLegend({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground",
+        "flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground",
         className
       )}
     >

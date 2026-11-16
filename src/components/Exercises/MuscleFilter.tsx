@@ -65,7 +65,7 @@ export function MuscleFilter({ value, onChange }: MuscleFilterProps) {
                 type="button"
                 onClick={() => toggle(muscle)}
                 aria-pressed={value === muscle}
-                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                className={`rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors ${
                   value === muscle
                     ? "border-primary bg-primary/15 text-foreground"
                     : "border-border text-muted-foreground hover:text-foreground"

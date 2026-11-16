@@ -472,6 +472,8 @@ export function useActiveWorkout(
     dropSuggestion,
     acceptDrop,
     keepWeight,
+    /** The planned weight of the current entry when a T2 drop was accepted on it; else null. */
+    droppedFrom: dropAccepted && baseEntry && baseEntry.weight !== entry?.weight ? baseEntry.weight : null,
     prOpportunity,
     recentAMRAPReps,
     correctSet,

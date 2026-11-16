@@ -81,7 +81,7 @@ function RestWhy({ trace }: { trace: DecisionTrace }) {
   const total = typeof trace.result === "number" ? formatRestDuration(trace.result) : String(trace.result);
   return (
     <div data-testid="rest-why" className="flex min-w-0 flex-col">
-      <span className="font-display text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+      <span className="font-display text-[12px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
         Why {total}
       </span>
       <ul>
@@ -110,7 +110,7 @@ function RestWhy({ trace }: { trace: DecisionTrace }) {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="inline-flex min-h-8 w-fit items-center text-xs font-semibold text-accent-primary underline decoration-dotted underline-offset-4"
+            className="inline-flex min-h-11 w-fit items-center text-xs font-semibold text-accent-primary underline decoration-dotted underline-offset-4"
           >
             Read the research
           </button>

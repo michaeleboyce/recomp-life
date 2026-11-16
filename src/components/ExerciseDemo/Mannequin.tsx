@@ -79,7 +79,7 @@ export function Mannequin({ exerciseId, className }: MannequinProps) {
               key={v.value}
               type="button"
               onClick={() => handle.current?.setView(v.value)}
-              className="rounded-full px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+              className="rounded-full px-2.5 py-0.5 text-[12px] font-medium text-muted-foreground hover:text-foreground"
             >
               {v.label}
             </button>
@@ -113,7 +113,7 @@ export function Mannequin({ exerciseId, className }: MannequinProps) {
           onClick={() => setSlow(!slow)}
           aria-pressed={slow}
           className={cn(
-            "rounded-full border border-border px-2.5 py-1 text-[11px] font-medium",
+            "rounded-full border border-border px-2.5 py-1 text-[12px] font-medium",
             slow ? "bg-primary/15 text-foreground" : "text-muted-foreground"
           )}
         >
@@ -134,7 +134,7 @@ export function Mannequin({ exerciseId, className }: MannequinProps) {
           </button>
         )}
       </div>
-      <p className="pt-1.5 text-center text-[11px] text-muted-foreground">{info.caption}</p>
+      <p className="pt-1.5 text-center text-[12px] text-muted-foreground">{info.caption}</p>
     </div>
   );
 }

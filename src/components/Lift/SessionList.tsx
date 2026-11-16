@@ -57,7 +57,7 @@ function SessionRow({
       </span>
       <span
         className={cn(
-          "w-[18px] shrink-0 font-mono text-[10px] font-bold",
+          "w-[18px] shrink-0 font-mono text-[12px] font-bold",
           style.text,
         )}
       >
@@ -67,7 +67,7 @@ function SessionRow({
         <span className="font-mono text-sm">
           {session.weight}
           {homeOnly && session.substituteExerciseId && isPerHand(session.substituteExerciseId) && (
-            <span className="text-[11px] text-muted-foreground">/hand</span>
+            <span className="text-[12px] text-muted-foreground">/hand</span>
           )}{" "}
           ×
           {session.sets.map((set, i) => (
@@ -101,7 +101,7 @@ function SessionRow({
         )}
       </span>
       {session.best ? (
-        <span className="shrink-0 rounded-md bg-accent-primary-soft px-1.5 py-0.5 text-[11px] font-medium text-accent-primary">
+        <span className="shrink-0 rounded-md bg-accent-primary-soft px-1.5 py-0.5 text-[12px] font-medium text-accent-primary">
           best
         </span>
       ) : (

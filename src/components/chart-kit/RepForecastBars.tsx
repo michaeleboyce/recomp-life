@@ -103,7 +103,7 @@ export function RepForecastBars({
           >
             <span
               className={cn(
-                "font-mono text-[11px] leading-4 tabular-nums",
+                "font-mono text-[12px] leading-4 tabular-nums",
                 isSelected ? "font-semibold text-foreground" : "text-chart-axis"
               )}
             >

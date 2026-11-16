@@ -11,7 +11,7 @@ import { DASH, lbs, plural } from "./format";
 
 function BestChip() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-semibold text-success">
+    <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-[12px] font-semibold text-success">
       <Award className="size-3" aria-hidden="true" />
       best
     </span>

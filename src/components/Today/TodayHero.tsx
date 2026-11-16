@@ -6,13 +6,14 @@ import { cn } from "@/lib/utils";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import type { WorkoutLocation } from "@/types";
 import { ExerciseImage, hasExercisePhoto } from "@/components/ui/exercise-image";
+import { LocationChip } from "@/components/ui/location-chip";
 import { WorkoutFigure } from "@/components/ui/workout-figure";
 import { Stripes } from "@/components/ui/stripes";
 import { LocationToggle } from "./LocationToggle";
 import { formatEyebrowDate, photoPosition } from "./todayModel";
 
 /** Small capitals in the display face, as on the boards. */
-export const EYEBROW = "font-display text-[11px] font-semibold uppercase tracking-[0.16em]";
+export const EYEBROW = "font-display text-[12px] font-semibold uppercase tracking-[0.16em]";
 
 /**
  * Today's first-load motion: the hero's words and figure, then each forecast tile, rise
@@ -69,12 +70,16 @@ export function TodayHero({
   working,
   location,
   onLocationChange,
+  eyebrow = "Next up",
 }: {
   templateId: string;
   title: string;
   working: WorkoutExerciseState[];
   location: WorkoutLocation;
-  onLocationChange: (next: WorkoutLocation) => void;
+  /** Without it the location is shown, not switched: an open workout keeps its own. */
+  onLocationChange?: (next: WorkoutLocation) => void;
+  /** Words before the day's code, "Next up" or "In progress". */
+  eyebrow?: string;
 }) {
   const [today] = useState(() => new Date());
   const settle = useSettleOnce("today-hero");
@@ -88,7 +93,11 @@ export function TodayHero({
   const top = (
     <div className="flex items-center justify-between gap-3">
       <span className={cn(EYEBROW, "text-foreground")}>{formatEyebrowDate(today)}</span>
-      <LocationToggle value={location} onChange={onLocationChange} />
+      {onLocationChange ? (
+        <LocationToggle value={location} onChange={onLocationChange} />
+      ) : (
+        <LocationChip location={location} className="bg-card/90" />
+      )}
     </div>
   );
 
@@ -99,7 +108,9 @@ export function TodayHero({
         className={cn("flex min-w-0 flex-col gap-2 pb-1.5", words.className)}
         style={words.style}
       >
-        <span className={cn(EYEBROW, "text-accent-primary")}>Next up · {templateId}</span>
+        <span className={cn(EYEBROW, "text-accent-primary")}>
+          {eyebrow} · {templateId}
+        </span>
         <h2
           id="next-workout-title"
           className="font-display text-[42px] leading-[0.95] font-extrabold tracking-[0.01em] text-foreground uppercase"

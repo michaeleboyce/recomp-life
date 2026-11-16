@@ -95,13 +95,13 @@ export function BarSeries({
                 </svg>
               )}
               <span
-                className="absolute left-1/2 -translate-x-1/2 font-mono text-[11px] leading-4 text-foreground tabular-nums whitespace-nowrap"
+                className="absolute left-1/2 -translate-x-1/2 font-mono text-[12px] leading-4 text-foreground tabular-nums whitespace-nowrap"
                 style={{ bottom: `calc(${pct(d.value, max)} + 2px)` }}
               >
                 {formatValue(d.value)}
               </span>
             </div>
-            <span className="h-4 w-full truncate text-center text-[11px] leading-4 text-chart-axis">
+            <span className="h-4 w-full truncate text-center text-[12px] leading-4 text-chart-axis">
               {d.label}
             </span>
           </div>
@@ -114,7 +114,7 @@ export function BarSeries({
               style={{ bottom: pct(target.value, max) }}
             >
               {target.label && (
-                <span className="absolute right-0 bottom-0.5 font-mono text-[10px] text-chart-axis">
+                <span className="absolute right-0 bottom-0.5 font-mono text-[12px] text-chart-axis">
                   {target.label}
                 </span>
               )}
@@ -142,7 +142,7 @@ export function BarSeries({
               </svg>
             )}
           </div>
-          <span className="text-right font-mono text-[11px] text-foreground tabular-nums">
+          <span className="text-right font-mono text-[12px] text-foreground tabular-nums">
             {formatValue(d.value)}
           </span>
         </div>
@@ -163,7 +163,7 @@ export function BarSeries({
               style={{ left: pct(target.value, max) }}
             >
               {target.label && (
-                <span className="absolute -top-4 -translate-x-1/2 font-mono text-[10px] whitespace-nowrap text-chart-axis">
+                <span className="absolute -top-4 -translate-x-1/2 font-mono text-[12px] whitespace-nowrap text-chart-axis">
                   {target.label}
                 </span>
               )}

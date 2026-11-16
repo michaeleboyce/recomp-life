@@ -115,7 +115,7 @@ function TraceList({
 
       {alternatives.length > 0 && (
         <section aria-label={alternativesTitle} className="rounded-2xl bg-card p-3">
-          <p className="mb-2 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+          <p className="mb-2 text-[12px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
             {alternativesTitle}
           </p>
           <div className="grid auto-cols-fr grid-flow-col gap-2">
@@ -126,7 +126,7 @@ function TraceList({
                   <span className="font-display text-xl leading-none font-extrabold tabular-nums">
                     {alt.value}
                   </span>
-                  <span className={cn("text-[11px]", current ? "" : "text-muted-foreground")}>
+                  <span className={cn("text-[12px]", current ? "" : "text-muted-foreground")}>
                     {alt.label}
                     {alt.note ? ` · ${alt.note}` : ""}
                   </span>

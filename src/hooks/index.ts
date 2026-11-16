@@ -7,6 +7,7 @@ export {
   useWorkout,
   useCompletedWorkouts,
   useUnfinishedWorkout,
+  useLeftWorkouts,
 } from "./useWorkouts";
 export {
   useBodyweightLog,
@@ -37,7 +38,7 @@ export { useWeeklyReview, type WeeklyReviewResult } from "./useWeeklyReview";
 export { useProjection, type ProjectionResult } from "./useProjection";
 export { useTrainingLocation } from "./useTrainingLocation";
 export { useUpcomingWorkouts } from "./useUpcomingWorkouts";
-export { useTodayForecast, type TodayForecast } from "./useTodayForecast";
+export { useOpenWorkoutForecast, useTodayForecast, type TodayForecast } from "./useTodayForecast";
 export { useWeightChances, type WeightChances } from "./useWeightChances";
 export { useAppliedTheme, type AppliedTheme } from "./useAppliedTheme";
 export { usePersonalEvidence } from "./usePersonalEvidence";

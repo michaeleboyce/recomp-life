@@ -140,7 +140,7 @@ export default function ExercisesPage() {
           <CurrentLocationMarks location={location} />
         </div>
         {scope !== "all" && (
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[12px] text-muted-foreground">
             Changes here apply to {scope === "gym" ? "Gym" : "Home"} workouts only.
           </p>
         )}

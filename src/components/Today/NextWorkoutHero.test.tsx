@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
+import { startWorkout } from "@/lib/data/workouts";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { describeNextWorkout } from "@/lib/workout/buildPlan";
 import { getNextWorkoutId, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
@@ -171,8 +172,41 @@ describe("NextWorkoutHero", () => {
     expect(resume).toHaveAttribute("href", "/workout/active?sessionId=open-1");
     expect(screen.queryByRole("link", { name: "Start workout" })).toBeNull();
     const fresh = screen.getByRole("link", { name: /Start a new one/ });
-    expect(fresh).toHaveAttribute("href", "/workout/configure?replaces=open-1");
+    expect(fresh).toHaveAttribute("href", "/workout/configure");
     expect(screen.getByTestId("replaces-note")).toHaveTextContent(/discarded when the new one starts/);
+  });
+
+  it("while a workout is open, shows it as the workout screen runs it, with the forecasts stored at its start", async () => {
+    await seedDemo();
+    const next = expectedPlan("gym").templateId;
+    const other = ["A1", "B1", "A2", "B2"].find((id) => id !== next)!;
+    const t1 = WORKOUT_TEMPLATES[other].exercises.find((e) => e.tier === "T1")!.exerciseId;
+    // Lighter T1 for today, edited before START.
+    const id = await startWorkout({
+      templateId: other,
+      location: "gym",
+      includeWarmUps: false,
+      selectedAccessories: [],
+      planEdits: [{ kind: "weight", exerciseId: t1, tier: "T1", weight: 45 }],
+    });
+    render(<NextWorkoutHero />);
+
+    const rows = await screen.findAllByTestId("hero-exercise");
+    // Known to be open from the first frame: Resume, never Start.
+    expect(screen.queryByRole("link", { name: "Start workout" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Resume workout" })).toHaveAttribute("href", `/workout/active?sessionId=${id}`);
+    expect(screen.getByText(`In progress · ${other}`)).toBeInTheDocument();
+    expect(within(rows[0]).getByRole("link", { name: displayLiftName(t1) })).toBeInTheDocument();
+    expect(within(rows[0]).getByText("45")).toBeInTheDocument();
+
+    const stored = (await db.forecasts.where("workoutId").equals(id).toArray()).find(
+      (row) => row.kind === "sessionLength"
+    )!;
+    expect(await screen.findByTestId("forecast-session")).toHaveTextContent(
+      `${Math.max(1, Math.round(stored.prediction.point / 60))} min`
+    );
+    // Its location is its own: shown, not switched.
+    expect(screen.queryByRole("group", { name: "Training location" })).toBeNull();
   });
 
   it("forecasts the session length and the chance of a new best, which opens the T1 lift", async () => {

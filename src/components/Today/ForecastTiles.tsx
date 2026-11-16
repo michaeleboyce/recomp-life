@@ -134,7 +134,7 @@ export function ForecastTiles({
                   single &&
                     "grid grid-cols-[1fr_auto] items-center gap-x-3 pr-8 [&>*:nth-child(2)]:col-start-2 [&>*:nth-child(2)]:row-span-2 [&>*:nth-child(2)]:row-start-1"
                 )}
-                label={<span className="text-[11px] whitespace-nowrap">{tile.label}</span>}
+                label={<span className="text-[12px] whitespace-nowrap">{tile.label}</span>}
                 value={
                   <span
                     data-testid={`forecast-${tile.key}`}
@@ -148,7 +148,8 @@ export function ForecastTiles({
                   </span>
                 }
                 delta={
-                  <span className="block truncate text-[11px] text-muted-foreground">
+                  // Wraps rather than cuts off: at 12 px a third of the row is narrow.
+                  <span className="line-clamp-2 block text-[12px] leading-tight text-muted-foreground">
                     {tile.sub}
                   </span>
                 }

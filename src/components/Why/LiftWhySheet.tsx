@@ -116,7 +116,8 @@ function LiftWhySheetAt({ target, location }: { target: WhyTarget; location: Wor
             </SheetTitle>
             <Link
               href={`/research`}
-              className="hidden h-8 shrink-0 items-center rounded-full bg-secondary px-3 text-xs font-bold text-primary outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:inline-flex"
+              // 32 px drawn, 44 px to tap: the pseudo-element reaches 6 px above and below.
+              className="relative hidden h-8 shrink-0 items-center rounded-full bg-secondary px-3 text-xs font-bold text-primary outline-none after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-[''] focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:inline-flex"
             >
               Research
             </Link>

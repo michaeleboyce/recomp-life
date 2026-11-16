@@ -60,7 +60,7 @@ export function ExercisePhotos({ exerciseId, className }: ExercisePhotosProps) {
               aria-pressed={frame === i}
               aria-label={`Show position ${label}`}
               className={cn(
-                "rounded-full px-2.5 py-1 text-[11px] font-medium",
+                "rounded-full px-2.5 py-1 text-[12px] font-medium",
                 frame === i ? "bg-foreground text-background" : "text-foreground/80"
               )}
             >

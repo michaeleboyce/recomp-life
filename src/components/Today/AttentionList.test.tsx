@@ -3,7 +3,9 @@ import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
-import { clearDb, makeProfile, makeWorkout } from "@/lib/data/testUtils";
+import { listDeleted } from "@/lib/data/logEdits";
+import { RecentlyDeleted } from "@/components/LogEdit/RecentlyDeleted";
+import { clearDb, makeProfile, makeSet, makeWorkout } from "@/lib/data/testUtils";
 import type { Insight } from "@/lib/insights";
 import { useInsights } from "@/hooks";
 import {
@@ -150,10 +152,85 @@ describe("AttentionList with live insights", () => {
     await waitFor(async () => expect((await db.workouts.get("w1"))?.deletedAt).toEqual(expect.any(Number)));
   });
 
-  it("clears unfinished workouts older than a day", async () => {
-    await db.workouts.add(makeWorkout({ id: "old", startedAt: new Date(Date.now() - 48 * HOUR) }));
+  it("clears unfinished workouts older than a day that have no working set", async () => {
+    await db.workouts.add(
+      makeWorkout({
+        id: "old",
+        startedAt: new Date(Date.now() - 48 * HOUR),
+        sets: [makeSet({ tier: "warmup" })],
+      })
+    );
     render(<Harness />);
     await waitFor(async () => expect((await db.workouts.get("old"))?.deletedAt).toEqual(expect.any(Number)));
+  });
+
+  describe("a workout left three days ago with sets", () => {
+    const startedAt = () => new Date(Date.now() - 72 * HOUR);
+    const left = () => {
+      const start = startedAt();
+      return makeWorkout({
+        id: "left",
+        startedAt: start,
+        sets: [
+          makeSet({ id: "s1", completedAt: new Date(start.getTime() + 5 * 60_000) }),
+          makeSet({ id: "s2", setNumber: 2, completedAt: new Date(start.getTime() + 9 * 60_000) }),
+        ],
+      });
+    };
+
+    it("is never discarded on its own, and Today asks to save or discard it", async () => {
+      await db.userProfile.put(makeProfile());
+      await db.workouts.add(left());
+      render(<Harness />);
+
+      const row = await screen.findByText(/has 2 working sets logged/);
+      expect(row).toHaveTextContent("End & save keeps them");
+      expect(screen.getByRole("button", { name: "End & save" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Discard" })).toBeInTheDocument();
+      // Too old to resume: no Resume link.
+      expect(screen.queryByRole("link", { name: "Resume" })).not.toBeInTheDocument();
+
+      await new Promise((r) => setTimeout(r, 50));
+      const stored = (await db.workouts.get("left"))!;
+      expect(stored.deletedAt ?? null).toBeNull();
+      expect(stored.sets).toHaveLength(2);
+    });
+
+    it("End & save finishes it at its last set", async () => {
+      await db.userProfile.put(makeProfile());
+      const workout = left();
+      await db.workouts.add(workout);
+      render(<Harness />);
+
+      fireEvent.click(await screen.findByRole("button", { name: "End & save" }));
+      await waitFor(async () => expect((await db.workouts.get("left"))?.completedAt).not.toBeNull());
+      const saved = (await db.workouts.get("left"))!;
+      expect(new Date(saved.completedAt!)).toEqual(workout.sets[1].completedAt);
+      expect(saved.sets).toHaveLength(2);
+      await waitFor(() => expect(screen.queryByRole("button", { name: "End & save" })).not.toBeInTheDocument());
+    });
+
+    it("Discard moves it to Recently deleted, and Restore brings it back with its sets", async () => {
+      await db.userProfile.put(makeProfile());
+      await db.workouts.add(left());
+      render(<Harness />);
+
+      fireEvent.click(await screen.findByRole("button", { name: "Discard" }));
+      await waitFor(async () => expect((await db.workouts.get("left"))?.deletedAt).toEqual(expect.any(Number)));
+
+      const deleted = await listDeleted();
+      expect(deleted).toEqual([
+        expect.objectContaining({ table: "workouts", id: "left", label: "Workout A1 (unfinished, 2 sets)" }),
+      ]);
+      // Restored from the Recently deleted screen itself.
+      render(<RecentlyDeleted />);
+      fireEvent.click(await screen.findByRole("button", { name: "Restore Workout A1 (unfinished, 2 sets)" }));
+      await waitFor(async () => expect((await db.workouts.get("left"))?.deletedAt ?? null).toBeNull());
+      const back = (await db.workouts.get("left"))!;
+      expect(back.deletedAt ?? null).toBeNull();
+      expect(back.sets).toHaveLength(2);
+      expect(await screen.findByRole("button", { name: "End & save" })).toBeInTheDocument();
+    });
   });
 
   it("is not rendered for an empty database", async () => {

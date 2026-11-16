@@ -53,6 +53,9 @@ describe("YourCall", () => {
     expect(screen.queryByRole("link")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /220 pounds, heavier/ }));
     expect(screen.getByText(/deadlift progresses from what you lift/)).toBeInTheDocument();
+    // Changed before START, the workout's forecasts are made at the new weight.
+    expect(screen.getByText("Changed before you start, the forecast is made for 220.")).toBeInTheDocument();
+    expect(screen.queryByText(/set aside/)).toBeNull();
     expect(screen.getByRole("link", { name: "Change it on the Ready screen" })).toHaveAttribute(
       "href",
       "/workout/configure"
