@@ -30,13 +30,14 @@ import { sleepBucket } from "@/lib/health/sleep";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
 import { getPrescription, planWorkoutStart, substituteModification } from "@/lib/workout";
 import { ACCESSORY_RECOMMENDATIONS, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import { addEdit, removeEdit, schemeEdit, swapEdit, weightEdit } from "./editList";
+import { addEdit, removeEdit, schemeEdit, setWeightsEdit, swapEdit, weightEdit } from "./editList";
 import { computeImpact } from "./impact";
 import { lighterWeight, notesToWrite, queueNote, type PendingNote } from "./setupNotes";
 import type {
   ExerciseAdaptation,
   LiftState,
   PlanEdit,
+  PlannedSet,
   PrescribedEntry,
   Tier,
   SleepHours,
@@ -203,6 +204,12 @@ export function useWorkoutSetup(
   const setWeight = useCallback(
     (exerciseId: string, tier: Tier, weight: number) =>
       changeEdits((list) => weightEdit(list, exerciseId, tier, weight)),
+    [changeEdits]
+  );
+  /** Each set its own weight and rep target; null makes the entry's sets uniform again. */
+  const setSetWeights = useCallback(
+    (exerciseId: string, tier: Tier, sets: PlannedSet[] | null) =>
+      changeEdits((list) => setWeightsEdit(list, exerciseId, tier, sets)),
     [changeEdits]
   );
   const resetEdits = useCallback(() => changeEdits(() => NO_EDITS), [changeEdits]);
@@ -685,6 +692,7 @@ export function useWorkoutSetup(
     addExercise,
     setScheme,
     setWeight,
+    setSetWeights,
     resetEdits,
     trainingPhase,
     exercisePreferences,
