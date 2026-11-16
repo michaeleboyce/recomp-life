@@ -1,6 +1,7 @@
 /**
  * I12 privacy guard. The repository is public; real exports must never be
- * pasted into it. This fails if any file under src/ or docs/ contains
+ * pasted into it. This fails if any file under src/, docs/ or scripts/, or any
+ * file at the repository root, contains
  *   - either export's header line followed by a line that looks like data
  *     (a date and numbers), or
  *   - the private data folder's name followed by a data row.
@@ -9,7 +10,8 @@
  * only ever builds a header at run time by joining the column-name list, and
  * builds rows from objects, so no file contains a header line or a data row
  * as text. This file likewise builds its own positive examples at run time.
- * The guard needs no allow-list.
+ * The guard needs no allow-list. Environment files (.env*) are never read: they
+ * hold secrets, not exports, and are not committed.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
@@ -20,6 +22,8 @@ const ROOT = path.resolve(__dirname, '../../..')
 const SKIP_DIRS = new Set(['node_modules', '.next', '.git'])
 const BINARY = /\.(png|jpe?g|gif|webp|ico|icns|woff2?|ttf|otf|mp4|mov|webm|pdf|zip|gz|bin|wasm)$/i
 const MAX_BYTES = 8 * 1024 * 1024
+/** Environment files hold secrets and are never committed; the guard does not open them. */
+const ENV_FILE = /^\.env/
 
 const squash = (s: string) => s.replace(/﻿/g, '').replace(/[\s"']/g, '').toLowerCase()
 const HEADERS = [FITBOD_COLUMNS, GRAVL_COLUMNS].map((c) => squash(c.join(',')))
@@ -55,13 +59,24 @@ export function findLeaks(text: string): string[] {
   return out
 }
 
+const scannable = (name: string, size: number) => !ENV_FILE.test(name) && !BINARY.test(name) && size <= MAX_BYTES
+
 function* walk(dir: string): Generator<string> {
   for (const name of readdirSync(dir)) {
     if (SKIP_DIRS.has(name)) continue
     const full = path.join(dir, name)
     const st = statSync(full)
     if (st.isDirectory()) yield* walk(full)
-    else if (st.isFile() && !BINARY.test(name) && st.size <= MAX_BYTES) yield full
+    else if (st.isFile() && scannable(name, st.size)) yield full
+  }
+}
+
+/** The files directly at the repository root (not its folders). */
+function* rootFiles(): Generator<string> {
+  for (const name of readdirSync(ROOT)) {
+    const full = path.join(ROOT, name)
+    const st = statSync(full)
+    if (st.isFile() && scannable(name, st.size)) yield full
   }
 }
 
@@ -86,14 +101,18 @@ describe('privacy guard (I12)', () => {
     expect(findLeaks("export const COLUMNS = ['Date', 'Exercise']")).toEqual([])
   })
 
-  it('finds nothing in src/ or docs/', () => {
+  it('finds nothing in src/, docs/, scripts/ or the files at the repository root', () => {
+    const files = [...['src', 'docs', 'scripts'].flatMap((dir) => [...walk(path.join(ROOT, dir))]), ...rootFiles()]
+    // The scan reaches the preload script and the root's own files.
+    const scanned = new Set(files.map((file) => path.relative(ROOT, file)))
+    for (const expected of ['scripts/import-history.ts', 'package.json', 'CLAUDE.md']) {
+      expect(scanned.has(expected), expected).toBe(true)
+    }
+    expect([...scanned].some((file) => ENV_FILE.test(path.basename(file)))).toBe(false)
     const offenders: string[] = []
-    for (const dir of ['src', 'docs']) {
-      const base = path.join(ROOT, dir)
-      for (const file of walk(base)) {
-        const hits = findLeaks(readFileSync(file, 'utf8'))
-        if (hits.length) offenders.push(`${path.relative(ROOT, file)}: ${hits.join('; ')}`)
-      }
+    for (const file of files) {
+      const hits = findLeaks(readFileSync(file, 'utf8'))
+      if (hits.length) offenders.push(`${path.relative(ROOT, file)}: ${hits.join('; ')}`)
     }
     expect(offenders).toEqual([])
   })
