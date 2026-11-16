@@ -63,7 +63,7 @@ the "why" trace with its grade.
 |---|---|---|
 | H1 | A derived state per program lift, exercise performed and tier (weight as lifted, per-hand flag, stage, fail count), rebuilt from the log like the lift states | Two Bulgarian split squat passes raise it by one dumbbell step and leave the barbell weight unchanged |
 | H2 | Cap policy (decision 2) | Squat 245 with an 80 lb heaviest dumbbell never plans goblet squat at 80 after a Bulgarian split squat pass at 80 a hand |
-| H3 | A first home session is seeded from the pooled estimate | With no home history it equals today's conversion |
+| H3 | A first home session is seeded from the pooled estimate through the exercise's starting ratio (studied where a study exists, otherwise graded heuristic; see docs/research/2026-11-strength-transfer.md), replacing the flat 80% conversion | With no home history it equals the barbell weight times that starting ratio, rounded to the dumbbell step and capped by the heaviest dumbbell |
 | H4 | Strength estimate per exercise and pooled per program lift (`src/lib/strength/`) | With gym-only history the estimated max equals today's |
 | H5 | Learned exercise-to-exercise ratio, starting from the default and shrinking toward it with few pairs | Synthetic pairs with ratio 0.7 converge to within ±0.03 after six pairs; no pairs leaves the default |
 | H6 | Bounded re-entry both ways (decision 3) | A scripted three-week home block, then gym: the barbell weight follows the rule exactly |
