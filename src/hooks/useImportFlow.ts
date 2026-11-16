@@ -145,10 +145,11 @@ export function useImportFlow(): ImportFlow {
     if (state.step !== "preview" || busy.current) return;
     busy.current = true;
     const { fileName, parsed: file } = state;
-    const batchId = `import-${uuidv4()}`;
+    // The day in the id lets Recently deleted say when the import ran.
+    const batchId = `import-${new Date().toISOString().slice(0, 10)}-${uuidv4()}`;
     try {
       const sessions = buildSessionRecords(file, batchId, overrides);
-      const cardio = buildCardioRows(file);
+      const cardio = buildCardioRows(file, batchId);
       setState({ step: "importing", fileName, done: 0, total: sessions.length });
       const sessionsAdded = await importSessionsInChunks(sessions, {
         onProgress: (done, total) => setState({ step: "importing", fileName, done, total }),

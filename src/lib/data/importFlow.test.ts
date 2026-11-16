@@ -126,9 +126,12 @@ describe("undoing an import", () => {
     expect(run.deletedAt).toBe(run.updatedAt);
     expect(run.synced).toBe(false);
     expect((await db.activities.get("health-1"))!.deletedAt).toBeNull();
-    // Importing the same file again does not bring the undone rows back.
-    expect(await importSessionsInChunks(buildSessionRecords(parseExport(text), "batch-2"), { pause: noPause })).toBe(0);
-    expect((await writeImportedCardio(buildCardioRows(parseExport(text)).rows)).runIds).toEqual([]);
+    // Importing the file again after the undo (a corrected import) brings the rows back.
+    expect(await importSessionsInChunks(buildSessionRecords(parseExport(text), "batch-2"), { pause: noPause })).toBe(
+      sessions.length
+    );
+    expect((await writeImportedCardio(buildCardioRows(parseExport(text), "batch-2").rows)).runIds).toEqual(cardio.runIds);
+    expect((await listImportedSessions()).every((s) => s.importBatchId === "batch-2")).toBe(true);
   });
 });
 

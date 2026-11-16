@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   LAST_IMPORT_KEY,
+  MAPPINGS_CHANGED_EVENT,
   MAPPINGS_KEY,
   clearLastImport,
   loadLastImport,
   loadMappingOverrides,
+  mappingOverridesSnapshot,
   saveLastImport,
   saveMappingOverrides,
 } from "./remembered";
@@ -63,5 +65,22 @@ describe("the last import", () => {
     expect(loadLastImport(store)).toBeNull();
     store.data.set(LAST_IMPORT_KEY, JSON.stringify({ batchId: 1 }));
     expect(loadLastImport(store)).toBeNull();
+  });
+});
+
+describe("the remembered choices as evidence reads them", () => {
+  it("is one object until the stored choices change, and saving tells the screens", () => {
+    const store = memoryStore();
+    const first = mappingOverridesSnapshot(store);
+    expect(mappingOverridesSnapshot(store)).toBe(first);
+    const heard = vi.fn();
+    window.addEventListener(MAPPINGS_CHANGED_EVENT, heard);
+    saveMappingOverrides({ zorblax: { kind: "exercise", exerciseId: "db_bench" } }, store);
+    window.removeEventListener(MAPPINGS_CHANGED_EVENT, heard);
+    expect(heard).toHaveBeenCalledTimes(1);
+    const next = mappingOverridesSnapshot(store);
+    expect(next).not.toBe(first);
+    expect(next).toEqual({ zorblax: { kind: "exercise", exerciseId: "db_bench" } });
+    expect(mappingOverridesSnapshot(store)).toBe(next);
   });
 });

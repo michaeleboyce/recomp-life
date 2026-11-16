@@ -167,3 +167,25 @@ describe('scripts/sql/2026-11-16-pull-pages.sql', () => {
     }
   });
 });
+
+describe('scripts/sql/2026-11-16-import-batches.sql', () => {
+  const ADDITIVE = readFileSync(join(process.cwd(), 'scripts/sql/2026-11-16-import-batches.sql'), 'utf8');
+  const statements = ADDITIVE.split('\n').filter((l) => /^(ALTER TABLE|CREATE TABLE)/.test(l));
+
+  it('says what it does, changes no existing row and is safe to run twice', () => {
+    expect(ADDITIVE.trim()).toMatch(/^--[\s\S]*\nBEGIN;[\s\S]*\nCOMMIT;$/);
+    expect(ADDITIVE).toMatch(/changes no existing row/);
+    expect(ADDITIVE).toMatch(/safe to run more than once/);
+    expect(ADDITIVE).not.toMatch(/\b(DROP|DELETE|UPDATE|TRUNCATE) /);
+  });
+
+  it('adds the import batch to runs and activities, as the clean-schema script has it', () => {
+    expect(statements).toEqual([
+      'ALTER TABLE "runs" ADD COLUMN IF NOT EXISTS "import_batch_id" text;',
+      'ALTER TABLE "activities" ADD COLUMN IF NOT EXISTS "import_batch_id" text;',
+    ]);
+    for (const name of ['runs', 'activities']) {
+      expect(sqlTables.get(name)!.get('import_batch_id'), name).toMatchObject({ type: 'text', notNull: false });
+    }
+  });
+});

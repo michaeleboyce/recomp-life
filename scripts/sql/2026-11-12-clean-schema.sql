@@ -97,7 +97,8 @@ CREATE TABLE "runs" (
   "notes" text NOT NULL,
   "perceived_effort" integer,
   "source" text,
-  "source_name" text
+  "source_name" text,
+  "import_batch_id" text
 );
 
 CREATE TABLE "activities" (
@@ -116,7 +117,8 @@ CREATE TABLE "activities" (
   "notes" text NOT NULL,
   "perceived_effort" integer,
   "source" text,
-  "source_name" text
+  "source_name" text,
+  "import_batch_id" text
 );
 
 CREATE TABLE "bodyweight" (

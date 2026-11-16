@@ -87,6 +87,7 @@ export const runs = pgTable('runs', {
   perceivedEffort: integer('perceived_effort'),
   source: text('source'),
   sourceName: text('source_name'),
+  importBatchId: text('import_batch_id'),
 });
 
 // Activities (yoga, cycling, hiking, walking; runs have their own table)
@@ -101,6 +102,7 @@ export const activities = pgTable('activities', {
   perceivedEffort: integer('perceived_effort'),
   source: text('source'),
   sourceName: text('source_name'),
+  importBatchId: text('import_batch_id'),
 });
 
 // Bodyweight

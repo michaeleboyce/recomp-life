@@ -119,6 +119,12 @@ describe("cardio rows", () => {
     expect(built.rows).toHaveLength(2);
   });
 
+  it("marks each row with the import that added it, when given", () => {
+    expect(cardioRow(cardio(), "import-2026-11-16-x")?.row).toMatchObject({ importBatchId: "import-2026-11-16-x" });
+    expect("importBatchId" in cardioRow(cardio())!.row).toBe(false);
+    expect(buildCardioRows({ cardio: [cardio()] }, "b1").rows[0].row.importBatchId).toBe("b1");
+  });
+
   it("never sets an external id, so Apple Health can link to the row later", () => {
     const row = cardioRow(cardio())!.row as unknown as Record<string, unknown>;
     expect("externalId" in row).toBe(false);

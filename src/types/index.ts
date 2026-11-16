@@ -532,6 +532,8 @@ export interface RunLog extends Stamped {
   source?: RecordSource;
   /** The app or device that recorded an imported row, e.g. "Apple Watch". */
   sourceName?: string;
+  /** The import that added the row, when an export file did: undoing that import removes it too. */
+  importBatchId?: string;
   synced: boolean;
 }
 
@@ -556,6 +558,8 @@ export interface ActivityLog extends Stamped {
   source?: RecordSource;
   /** The app or device that recorded an imported row, e.g. "Apple Watch". */
   sourceName?: string;
+  /** The import that added the row, when an export file did: undoing that import removes it too. */
+  importBatchId?: string;
   synced: boolean;
 }
 
