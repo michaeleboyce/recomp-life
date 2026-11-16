@@ -64,7 +64,7 @@ function TabLink({ tab, active }: { tab: (typeof TABS)[number]; active: boolean 
       href={tab.href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex min-h-[44px] flex-col items-center justify-center gap-1 text-[11px] font-semibold outline-none transition-colors active:scale-[0.95] focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "flex min-h-[44px] flex-col items-center justify-center gap-1 text-[12px] font-semibold outline-none transition-colors active:scale-[0.95] focus-visible:ring-[3px] focus-visible:ring-ring/50",
         active ? "text-primary" : "text-muted-foreground hover:text-foreground"
       )}
     >

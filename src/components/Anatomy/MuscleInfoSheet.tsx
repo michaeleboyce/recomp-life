@@ -56,7 +56,7 @@ export function MuscleInfoSheet({
             <div className="overflow-y-auto px-4 pb-6 space-y-4">
               <dl className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg bg-muted/50 px-2 py-2.5">
-                  <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <dt className="text-[12px] uppercase tracking-wider text-muted-foreground">
                     Sets this week
                   </dt>
                   <dd className="mt-0.5 font-mono text-base font-semibold tabular-nums">
@@ -70,7 +70,7 @@ export function MuscleInfoSheet({
                   </dd>
                 </div>
                 <div className="rounded-lg bg-muted/50 px-2 py-2.5">
-                  <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <dt className="text-[12px] uppercase tracking-wider text-muted-foreground">
                     Last trained
                   </dt>
                   <dd className="mt-0.5 text-sm font-semibold">
@@ -78,7 +78,7 @@ export function MuscleInfoSheet({
                   </dd>
                 </div>
                 <div className="rounded-lg bg-muted/50 px-2 py-2.5">
-                  <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <dt className="text-[12px] uppercase tracking-wider text-muted-foreground">
                     Status
                   </dt>
                   <dd
@@ -90,7 +90,7 @@ export function MuscleInfoSheet({
                 </div>
               </dl>
               {indirect > 0 && (
-                <p className="-mt-2 text-[11px] text-muted-foreground">
+                <p className="-mt-2 text-[12px] text-muted-foreground">
                   {direct} direct sets, plus {indirect} where it assists another muscle.
                 </p>
               )}
@@ -109,7 +109,7 @@ export function MuscleInfoSheet({
                         <span className="text-sm">{exercise.name}</span>
                         <Badge
                           variant={level === "primary" ? "default" : "secondary"}
-                          className="text-[10px]"
+                          className="text-[12px]"
                         >
                           {level === "primary" ? "Primary" : "Secondary"}
                         </Badge>

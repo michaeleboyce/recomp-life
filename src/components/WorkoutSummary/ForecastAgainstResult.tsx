@@ -36,7 +36,7 @@ export function ForecastAgainstResult({ workoutId }: { workoutId: string }) {
   return (
     <section aria-label="Forecast against what happened" className="flex flex-col">
       <div className="flex items-baseline justify-between">
-        <h2 className="font-display text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+        <h2 className="font-display text-[12px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
           Forecast against what happened
         </h2>
         <Link
@@ -46,7 +46,7 @@ export function ForecastAgainstResult({ workoutId }: { workoutId: string }) {
           track record
         </Link>
       </div>
-      <div aria-hidden="true" className={cn(ROW, "min-h-7 text-[11px] text-muted-foreground")}>
+      <div aria-hidden="true" className={cn(ROW, "min-h-7 text-[12px] text-muted-foreground")}>
         <span />
         <span>Forecast</span>
         <span>You</span>

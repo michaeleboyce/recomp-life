@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getTableColumns, getTableName } from 'drizzle-orm';
 import {
   isSyncAuthorized,
@@ -48,6 +48,57 @@ describe('isSyncAuthorized', () => {
     expect(isSyncAuthorized('Bearer anything', undefined)).toBe(false);
     expect(isSyncAuthorized('Bearer ', '')).toBe(false);
     expect(isSyncAuthorized('Bearer ', undefined)).toBe(false);
+  });
+});
+
+describe('a short SYNC_SECRET', () => {
+  // Each test loads a fresh copy of the module, so the warn-once state starts clean.
+  async function freshGuard() {
+    vi.resetModules();
+    return import('./syncGuard');
+  }
+
+  let warn: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    warn.mockRestore();
+  });
+
+  it('the minimum is 20 characters', async () => {
+    expect((await freshGuard()).MIN_SECRET_LENGTH).toBe(20);
+  });
+
+  it('is still accepted for now, with one warning that never contains the secret', async () => {
+    const guard = await freshGuard();
+    const short = 'short-pass-1234';
+    expect(short.length).toBeLessThan(guard.MIN_SECRET_LENGTH);
+
+    expect(guard.isSyncAuthorized(`Bearer ${short}`, short)).toBe(true);
+    expect(guard.isSyncAuthorized('Bearer wrong', short)).toBe(false);
+    expect(guard.isSyncAuthorized(`Bearer ${short}`, short)).toBe(true);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    const text = warn.mock.calls[0].map(String).join(' ');
+    expect(text).toContain('SYNC_SECRET');
+    expect(text).toContain(String(guard.MIN_SECRET_LENGTH));
+    expect(text).not.toContain(short);
+    expect(text).not.toContain(String(short.length));
+  });
+
+  it('a secret of 20 characters or more gives no warning', async () => {
+    const guard = await freshGuard();
+    const long = 'a'.repeat(guard.MIN_SECRET_LENGTH);
+    expect(guard.isSyncAuthorized(`Bearer ${long}`, long)).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('no secret at all is refused as before, without the length warning', async () => {
+    const guard = await freshGuard();
+    expect(guard.isSyncAuthorized('Bearer x', undefined)).toBe(false);
+    expect(guard.isSyncAuthorized('Bearer x', '')).toBe(false);
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 

@@ -114,7 +114,7 @@ export function AccessoryPicker({
                 />
                 <span className="text-sm">{exercise.name}</span>
                 {isPreferred && (
-                  <span className="rounded-full bg-success-soft px-1.5 py-0.5 text-[10px] font-medium text-success">
+                  <span className="rounded-full bg-success-soft px-1.5 py-0.5 text-[12px] font-medium text-success">
                     Preferred
                   </span>
                 )}

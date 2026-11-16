@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { apiUrl, nativeAppCorsHeaders, NATIVE_APP_ORIGIN } from "./apiBase";
+import {
+  apiUrl,
+  nativeAppCorsHeaders,
+  NATIVE_APP_ORIGIN,
+  SYNC_CACHE_CONTROL,
+  syncApiHeaders,
+} from "./apiBase";
 
 describe("apiUrl", () => {
   it("leaves the path alone when no base is set", () => {
@@ -28,5 +34,18 @@ describe("nativeAppCorsHeaders", () => {
     expect(headers["Access-Control-Allow-Headers"]).toBe("Authorization, Content-Type");
     expect(headers["Access-Control-Allow-Methods"]).toContain("POST");
     expect(headers["Access-Control-Allow-Methods"]).toContain("OPTIONS");
+  });
+});
+
+describe("syncApiHeaders", () => {
+  const headers = Object.fromEntries(syncApiHeaders().map((h) => [h.key, h.value]));
+
+  it("keeps the iPhone app's CORS rule", () => {
+    for (const { key, value } of nativeAppCorsHeaders()) expect(headers[key], key).toBe(value);
+  });
+
+  it("forbids caching, preflights and errors included", () => {
+    expect(SYNC_CACHE_CONTROL).toBe("no-store");
+    expect(headers["Cache-Control"]).toBe("no-store");
   });
 });

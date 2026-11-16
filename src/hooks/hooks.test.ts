@@ -13,6 +13,7 @@ import {
   useProfile,
   useRuns,
   useSettings,
+  useLeftWorkouts,
   useUnfinishedWorkout,
   useWorkout,
 } from "./index";
@@ -21,6 +22,7 @@ import {
   makeE1RM,
   makeLiftState,
   makeProfile,
+  makeSet,
   makeWorkout,
 } from "@/lib/data/testUtils";
 import type { ActivityLog, PainSorenessEntry, RunLog } from "@/types";
@@ -189,6 +191,22 @@ describe("useUnfinishedWorkout", () => {
     );
     expect((await loaded(() => useUnfinishedWorkout())).result.current).toBeNull();
     expect(await db.workouts.get("stale")).toBeDefined();
+  });
+});
+
+describe("useLeftWorkouts", () => {
+  it("returns unfinished workouts older than a day that have working sets, newest first", async () => {
+    const now = Date.now();
+    await db.workouts.bulkPut([
+      makeWorkout({ id: "three-days", startedAt: new Date(now - 72 * HOUR), sets: [makeSet()] }),
+      makeWorkout({ id: "two-days", startedAt: iso(now - 48 * HOUR), sets: [makeSet()] }),
+      makeWorkout({ id: "empty", startedAt: new Date(now - 30 * HOUR), sets: [makeSet({ tier: "warmup" })] }),
+      makeWorkout({ id: "fresh", startedAt: new Date(now - HOUR), sets: [makeSet()] }),
+      makeWorkout({ id: "done", startedAt: new Date(now - 50 * HOUR), completedAt: new Date(), sets: [makeSet()] }),
+      makeWorkout({ id: "gone", startedAt: new Date(now - 50 * HOUR), sets: [makeSet()], deletedAt: 1 }),
+    ]);
+    const r = await loaded(() => useLeftWorkouts());
+    expect(r.result.current!.map((w) => w.id)).toEqual(["two-days", "three-days"]);
   });
 });
 

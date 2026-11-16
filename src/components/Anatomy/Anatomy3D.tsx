@@ -187,7 +187,7 @@ export function Anatomy3D({
               key={view}
               type="button"
               onClick={() => handle.current?.setView(view)}
-              className="rounded-full px-3 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+              className="rounded-full px-3 py-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
             >
               {view === "front" ? "Front" : "Back"}
             </button>

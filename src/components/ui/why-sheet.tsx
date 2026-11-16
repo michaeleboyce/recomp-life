@@ -71,7 +71,7 @@ function WhySheet({
         className={cn("max-h-[90dvh] gap-0 overflow-y-auto rounded-t-3xl pb-[env(safe-area-inset-bottom)]", className)}
       >
         <SheetHeader className="relative gap-2 pb-2">
-          <SheetTitle className="pr-12 text-[11px] font-semibold tracking-[0.16em] text-tier-t1 uppercase">
+          <SheetTitle className="pr-12 text-[12px] font-semibold tracking-[0.16em] text-tier-t1 uppercase">
             {title}
           </SheetTitle>
           <div className="flex items-end justify-between gap-3">

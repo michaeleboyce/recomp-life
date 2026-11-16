@@ -8,9 +8,9 @@ import { formatCompact, type LiftStats as Stats } from "./liftSeries";
 function Stat({ label, value, sub }: { label: React.ReactNode; value: string; sub: React.ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
-      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <span className="text-[12px] text-muted-foreground">{label}</span>
       <span className="font-mono text-[17px] font-bold tabular-nums text-foreground">{value}</span>
-      <span className="font-mono text-[11px] text-muted-foreground">{sub}</span>
+      <span className="font-mono text-[12px] text-muted-foreground">{sub}</span>
     </div>
   );
 }
@@ -25,7 +25,7 @@ export function LiftStats({ stats }: { stats: Stats }) {
       <Stat
         label="Working"
         value={working.value === null ? "–" : String(working.value)}
-        sub={working.change !== null ? <Delta value={working.change} better="up" className="text-[11px]" /> : "lbs"}
+        sub={working.change !== null ? <Delta value={working.change} better="up" className="text-[12px]" /> : "lbs"}
       />
       <Stat
         label={<Term id="amrap" label="Last set">Last set</Term>}

@@ -159,7 +159,7 @@ export default function BodyMapSVG({
               })}
             </BodyFigure>
           </div>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
             {caption}
           </span>
         </div>

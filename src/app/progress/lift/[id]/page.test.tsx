@@ -233,7 +233,10 @@ describe("Lift detail page", () => {
         "src",
         expect.stringContaining("bulgarian")
       );
-      expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/");
+      // The same back arrow as every other page: history first, then this fallback.
+      const back = screen.getByRole("link", { name: "Back" });
+      expect(back).toHaveAttribute("href", "/");
+      expect(back).toHaveAttribute("data-slot", "back-button");
       expect(screen.getByRole("link", { name: "Form and muscles" })).toHaveAttribute(
         "href",
         "/exercises/bulgarian_split_squat"

@@ -85,7 +85,7 @@ function EntryRow({
   const date = dateLabel(entry, now);
   return (
     <li className="flex gap-4 border-b border-border py-4 last:border-b-0">
-      <div className="w-12 shrink-0 font-mono text-[11px] leading-tight text-muted-foreground">
+      <div className="w-12 shrink-0 font-mono text-[12px] leading-tight text-muted-foreground">
         <p>{date.top}</p>
         {date.bottom && <p>{date.bottom}</p>}
       </div>
@@ -130,6 +130,17 @@ export function AdjustmentLog() {
   const shown = useMemo(
     () => (entries ? orderForLog(filterFeed(entries, group)) : []),
     [entries, group]
+  );
+  // Each check replays every adjustment, so it runs once per version of the log, not
+  // for every row on every render.
+  const undoable = useMemo(
+    () =>
+      new Set(
+        (feed?.entries ?? [])
+          .filter((entry) => entry.undo && feed!.undoFor(entry) !== null)
+          .map((entry) => entry.id)
+      ),
+    [feed]
   );
 
   const confirmUndo = async () => {
@@ -199,7 +210,7 @@ export function AdjustmentLog() {
                   key={entry.id}
                   entry={entry}
                   now={now}
-                  canUndo={!!entry.undo && feed.undoFor(entry) !== null}
+                  canUndo={undoable.has(entry.id)}
                   onUndo={() => setPending(entry)}
                 />
               ))}

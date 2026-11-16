@@ -1,13 +1,14 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Moon, Minus, Sun, Circle } from "lucide-react";
 import { formatSleep } from "@/lib/health/sleep";
 import { shouldSuggestSkippingAccessories } from "@/lib/readiness";
-import type { SleepHours, StressLevel } from "@/types";
+import type { SleepHours, StressLevel, WorkoutLocation } from "@/types";
+import { ReadinessSheet } from "./ReadinessSheet";
 
 interface ReadinessCheckProps {
   sleepHours: SleepHours | null;
@@ -16,6 +17,8 @@ interface ReadinessCheckProps {
   onStressChange: (value: StressLevel) => void;
   /** Minutes asleep last night from Apple Health, when known. */
   healthSleepMinutes?: number | null;
+  /** Where today's workout is; the readiness sheet scores that workout. */
+  location?: WorkoutLocation;
   onNext?: () => void;
   onSkip?: () => void;
 }
@@ -24,7 +27,8 @@ interface ReadinessCheckProps {
  * Pre-workout sleep and energy check. Suggests skipping accessories when the
  * readiness rule says so (`shouldSuggestSkippingAccessories`: under 5 hours of sleep
  * with low energy). When Apple Health has last night's sleep, the matching answer is
- * already selected and can be changed. Links to the readiness screen.
+ * already selected and can be changed. "See what this changes" opens today's
+ * readiness, from these answers, in a sheet over the screen.
  *
  * @evidence readiness
  */
@@ -34,10 +38,12 @@ export function ReadinessCheck({
   onSleepChange,
   onStressChange,
   healthSleepMinutes,
+  location = "gym",
   onNext,
   onSkip,
 }: ReadinessCheckProps) {
   const showSuggestion = shouldSuggestSkippingAccessories({ sleepHours, stressLevel });
+  const [showReadiness, setShowReadiness] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -109,12 +115,21 @@ export function ReadinessCheck({
         </div>
       </div>
 
-      <Link
-        href="/readiness?from=ready"
+      <button
+        type="button"
+        onClick={() => setShowReadiness(true)}
         className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline decoration-dotted underline-offset-2"
       >
         See what this changes
-      </Link>
+      </button>
+      <ReadinessSheet
+        open={showReadiness}
+        onOpenChange={setShowReadiness}
+        location={location}
+        sleepHours={sleepHours}
+        stressLevel={stressLevel}
+        healthSleepMinutes={healthSleepMinutes}
+      />
 
       {showSuggestion && (
         <Alert>

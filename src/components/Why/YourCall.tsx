@@ -109,7 +109,7 @@ export function YourCall({
           <div className="flex flex-col gap-2">
             <p>{overrideExplanation(chosen, planned, liftName)}</p>
             <p className="text-xs text-muted-foreground">
-              A forecast made for the planned weight is set aside, not counted as a miss.
+              Changed before you start, the forecast is made for {formatLbs(chosen)}.
             </p>
             <Link
               href={editHref}

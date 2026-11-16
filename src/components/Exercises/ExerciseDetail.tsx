@@ -173,7 +173,7 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
               {exercise.name}
             </h1>
             <div className="mt-0.5 flex items-center gap-2">
-              <Badge variant="secondary" className="text-[10px]">
+              <Badge variant="secondary" className="text-[12px]">
                 {EQUIPMENT_LABELS[exercise.type] ?? exercise.type}
               </Badge>
               <span className="text-xs capitalize text-muted-foreground">
@@ -203,7 +203,7 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
                   <Badge
                     key={m}
                     variant={level === "primary" ? "default" : "secondary"}
-                    className="text-[11px]"
+                    className="text-[12px]"
                   >
                     {formatMuscle(m)}
                   </Badge>
@@ -232,7 +232,7 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
           <ol className="space-y-2">
             {media.instructions.map((step, i) => (
               <li key={i} className="flex gap-3 text-sm leading-relaxed">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-[10px] text-muted-foreground">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-[12px] text-muted-foreground">
                   {i + 1}
                 </span>
                 <span>{step}</span>
@@ -240,7 +240,7 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
             ))}
           </ol>
           {media.sourceName !== exercise.name && (
-            <p className="mt-2 text-[11px] text-muted-foreground">
+            <p className="mt-2 text-[12px] text-muted-foreground">
               Steps and photos show &ldquo;{media.sourceName}&rdquo; from the
               free-exercise-db public-domain set.
             </p>

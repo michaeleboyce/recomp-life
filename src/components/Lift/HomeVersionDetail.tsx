@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, House, LineChart } from "lucide-react";
+import { ChevronRight, House, LineChart } from "lucide-react";
 import { useLiftAdjustments, useNextWorkout, useSettings } from "@/hooks";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { RangeKey } from "@/lib/metrics/types";
 import { cn } from "@/lib/utils";
+import { BackButton } from "@/components/nav/BackButton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExerciseImage, hasExercisePhoto } from "@/components/ui/exercise-image";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -25,7 +26,7 @@ import { SessionList } from "./SessionList";
 import { useLiftView } from "./useLiftView";
 import { WeightChanges } from "./WeightChanges";
 
-const EYEBROW = "font-display text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-primary";
+const EYEBROW = "font-display text-[12px] font-semibold uppercase tracking-[0.16em] text-accent-primary";
 
 /** Clear over the photo, then the page colour under the name. */
 const BANNER_FADE =
@@ -192,13 +193,7 @@ function HomeHeader({
   return (
     <header data-testid="home-version" className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
-        <Link
-          href={backHref}
-          aria-label="Back"
-          className="-m-3 p-3 text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ChevronLeft className="size-5" aria-hidden="true" />
-        </Link>
+        <BackButton fallback={backHref} />
         <Link href={`/exercises/${substituteId}`} className="py-3 text-[13px] font-bold text-accent-primary">
           Form and muscles
         </Link>

@@ -184,6 +184,14 @@ describe("active workout page", () => {
     fireEvent.click(accept);
     expect(screen.queryByRole("button", { name: "Accept Drop" })).toBeNull();
     expect(screen.getByTestId("weight")).toHaveTextContent("95");
+
+    // The stored trace is for the planned weight; the sheet says what changed since.
+    fireEvent.click(screen.getByRole("button", { name: /^Why \d+ lbs\?$/ }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByTestId("why-dropped")).toHaveTextContent(
+      "Lowered during the workout from 100 to 95 lbs: you accepted the drop after a hard first set. The steps above are how 100 lbs was planned."
+    );
+    expect(sheet.querySelector('[data-evidence="t2-autoregulation"]')).not.toBeNull();
   });
 
   it("keeps End workout and Discard in the overview, not under the log button", async () => {
@@ -282,6 +290,15 @@ describe("active workout page", () => {
     // Back from the summary lands on this screen again.
     render(<ActiveWorkoutPage />);
     await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/"));
+    expect(nav.push).not.toHaveBeenCalled();
+  });
+
+  it("a workout finished elsewhere, or before a reload, goes on to Today, not its summary again", async () => {
+    nav.sessionId = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+    await db.workouts.update(nav.sessionId, { completedAt: new Date() });
+    render(<ActiveWorkoutPage />);
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/"));
+    expect(nav.replace).not.toHaveBeenCalledWith(expect.stringContaining("/workout/summary"));
     expect(nav.push).not.toHaveBeenCalled();
   });
 

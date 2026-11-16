@@ -20,6 +20,11 @@ interface SetupAdvisoriesProps {
   recoveryWarnings: RecoveryWarning[];
   recoveryChoice: "proceed" | "reduce" | null;
   onRecoveryChoice: (choice: "proceed" | "reduce") => void;
+  /**
+   * What "reduce" does to today's T1 (run and recovery advisories alike); null when it
+   * would change nothing, and then it is not offered.
+   */
+  reduction: { name: string; from: number; to: number } | null;
   decaySuggestions: ExerciseDecaySuggestion[];
   onAcceptDecay: (exerciseId: string, tier: "T1" | "T2", weight: number) => void;
   onDismissDecay: (exerciseId: string, tier: string) => void;
@@ -36,9 +41,14 @@ interface SetupAdvisoriesProps {
  * and each leaves the decision to the user.
  */
 export function SetupAdvisories(props: SetupAdvisoriesProps) {
-  const { runAdvisory, activityNote, recoveryWarnings, decaySuggestions } = props;
+  const { runAdvisory, activityNote, recoveryWarnings, decaySuggestions, reduction } = props;
   const runButton = (label: string, choice: RunChoice) => (
-    <Button size="sm" variant="outline" onClick={() => props.onRunChoice(choice)}>
+    <Button size="sm" className="h-11" variant="outline" onClick={() => props.onRunChoice(choice)}>
+      {label}
+    </Button>
+  );
+  const recoveryButton = (label: ReactNode, choice: "proceed" | "reduce") => (
+    <Button size="sm" className="h-11" variant="outline" onClick={() => props.onRecoveryChoice(choice)}>
       {label}
     </Button>
   );
@@ -53,7 +63,7 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
             <>
               {runButton("Proceed", "proceed")}
               {runButton("Add warm-ups", "extra_warmups")}
-              {runButton("Reduce 10%", "reduce_10")}
+              {reduction && runButton(`Lower to ${reduction.to} lbs`, "reduce_10")}
             </>
           }
         >
@@ -71,6 +81,7 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
               {runButton("Proceed", "proceed")}
               <Button
                 size="sm"
+                className="h-11"
                 variant="outline"
                 onClick={() => {
                   props.onRunChoice("skip");
@@ -91,7 +102,7 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
         <Callout
           variant="info"
           actions={
-            <Button size="sm" variant="outline" onClick={props.onDismissActivityNote}>
+            <Button size="sm" className="h-11" variant="outline" onClick={props.onDismissActivityNote}>
               Got it
             </Button>
           }
@@ -101,8 +112,19 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
         </Callout>
       )}
 
-      {recoveryWarnings.length > 0 && (
-        <Callout variant="warning" title="Trained recently">
+      {/* Answered once, like the run advisory: reduce changes today's plan. */}
+      {recoveryWarnings.length > 0 && props.recoveryChoice === null && (
+        <Callout
+          variant="warning"
+          title="Trained recently"
+          actions={
+            <>
+              {recoveryButton("Proceed as planned", "proceed")}
+              {/* Named, not "T1": a glossary button cannot sit inside this button. */}
+              {reduction && recoveryButton(`Lower ${reduction.name} to ${reduction.to} lbs`, "reduce")}
+            </>
+          }
+        >
           {recoveryWarnings.map((w) => (
             <p key={w.exerciseName}>
               You trained {w.exerciseName}{" "}
@@ -110,30 +132,6 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
             </p>
           ))}
           {props.recoveryEvidence}
-          <div className="space-y-1 pt-1">
-            {(
-              [
-                ["proceed", "Proceed as planned"],
-                [
-                  "reduce",
-                  <>
-                    Reduce <Term id="t1">T1</Term> weight by 10%
-                  </>,
-                ],
-              ] as const
-            ).map(([value, label]) => (
-              <label key={value} className="flex min-h-9 cursor-pointer items-center gap-2">
-                <input
-                  type="radio"
-                  name="recoveryChoice"
-                  checked={props.recoveryChoice === value}
-                  onChange={() => props.onRecoveryChoice(value)}
-                  className="accent-foreground"
-                />
-                {label}
-              </label>
-            ))}
-          </div>
         </Callout>
       )}
 
@@ -153,6 +151,7 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
               <>
                 <Button
                   size="sm"
+                  className="h-11"
                   onClick={() =>
                     props.onAcceptDecay(
                       suggestion.exerciseId,
@@ -165,6 +164,7 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
                 </Button>
                 <Button
                   size="sm"
+                  className="h-11"
                   variant="outline"
                   onClick={() => props.onDismissDecay(suggestion.exerciseId, suggestion.tier)}
                 >

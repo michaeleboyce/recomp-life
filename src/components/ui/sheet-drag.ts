@@ -16,8 +16,11 @@ export const MIN_DISMISS_PX = 48
 export const FLICK_VELOCITY = 0.5
 /** ...once it has moved at least this far, in px. */
 export const MIN_FLICK_PX = 20
-/** Movement before a press counts as a drag, in px. */
-const SLOP_PX = 6
+/**
+ * Movement before a press counts as a drag, in px. Large enough that a tap whose
+ * finger rolls a little downward stays a tap (and presses what is under it).
+ */
+export const SLOP_PX = 10
 /** A release this long after the last move is a stop, not a flick, in ms. */
 const STALE_MS = 100
 const SPRING = "transform 240ms cubic-bezier(0.32, 0.72, 0, 1)"
@@ -67,6 +70,12 @@ export interface SheetDrag {
   contentRef: (el: HTMLElement | null) => void
   /** Ref for the handle, a close button: clicking it closes the sheet. */
   handleRef: React.RefObject<HTMLButtonElement | null>
+  /**
+   * The handle's click: a pointer click closes the sheet only when it is a real tap on
+   * the handle (pressed and let go there without dragging). Clicks with no pointer
+   * behind them (a screen reader, the drag's own close) always close.
+   */
+  onHandleClick: (event: React.MouseEvent<HTMLButtonElement>) => void
   onPointerDown: (event: React.PointerEvent<HTMLElement>) => void
   onPointerMove: (event: React.PointerEvent<HTMLElement>) => void
   onPointerUp: (event: React.PointerEvent<HTMLElement>) => void
@@ -79,6 +88,8 @@ export function useSheetDrag(): SheetDrag {
   const drag = React.useRef<DragState | null>(null)
   // The click that ends a drag must not also press whatever is under the finger.
   const swallowClickUntil = React.useRef(0)
+  // True from a press on the handle until it turns into a drag or another press starts.
+  const tapOnHandle = React.useRef(false)
   const cleanups = React.useRef<(() => void) | null>(null)
 
   const setOffset = (el: HTMLElement, offset: number) => {
@@ -139,6 +150,7 @@ export function useSheetDrag(): SheetDrag {
     if (!el || (event.pointerType === "mouse" && event.button !== 0)) return
     const target = event.target as Element | null
     const fromHandle = !!handleRef.current && !!target && handleRef.current.contains(target)
+    tapOnHandle.current = fromHandle
     if (!fromHandle && target?.closest(NO_DRAG)) return
     swallowClickUntil.current = 0
     const now = performance.now()
@@ -172,6 +184,7 @@ export function useSheetDrag(): SheetDrag {
         return
       }
       state.active = true
+      tapOnHandle.current = false
       el.dataset.dragging = ""
       el.style.transition = "none"
       el.style.userSelect = "none"
@@ -230,9 +243,19 @@ export function useSheetDrag(): SheetDrag {
     springBack(el)
   }
 
+  const onHandleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const real = tapOnHandle.current
+    tapOnHandle.current = false
+    // `detail` is 0 for a click no pointer made: keyboard, screen reader, `.click()`.
+    if (event.detail === 0 || real) return
+    // Radix's Close skips closing when the click is default-prevented.
+    event.preventDefault()
+  }
+
   return {
     contentRef,
     handleRef,
+    onHandleClick,
     onPointerDown,
     onPointerMove,
     onPointerUp: (event) => finish(event, false),

@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import { SLEEP_SHORT_HOURS } from "@/lib/health/sleep";
 import type { ReadinessScore } from "@/types";
 import { ReadinessEmpty, ReadinessView } from "./ReadinessScreen";
 import { readinessBackTarget } from "./backLink";
@@ -55,9 +56,13 @@ describe("ReadinessView", () => {
     expect(card).toHaveTextContent("Weights: nothing.");
     expect(card).toHaveTextContent(/Forecasts: the strength level .* moves up 0\.3%/);
     expect(card).toHaveTextContent(/Accessories: as planned/);
+    expect(card).toHaveTextContent(`only after under ${SLEEP_SHORT_HOURS} hours of sleep with low energy`);
     rerender(<ReadinessView score={{ ...score, suggestSkippingAccessories: true }} />);
     expect(screen.getByRole("region", { name: "What this changes today" })).toHaveTextContent(
       /suggests skipping them today/
+    );
+    expect(screen.getByRole("region", { name: "What this changes today" })).toHaveTextContent(
+      `after under ${SLEEP_SHORT_HOURS} hours of sleep with low energy`
     );
     expect(screen.getByRole("link", { name: "How the score is worked out" })).toHaveAttribute(
       "href",

@@ -6,6 +6,7 @@ import { db } from "@/db/local";
 import { describeActivity } from "@/lib/activities";
 import { formatRegion } from "@/lib/painModifications";
 import { applyChange } from "@/lib/rebuild";
+import { workingSetCount } from "@/lib/unfinishedWorkout";
 import type { DerivedDiff, LogChange } from "@/lib/rebuild";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
@@ -156,7 +157,10 @@ export async function updateActivity(id: string, patch: Editable<ActivityLog>): 
 const number = (value: number) => String(Math.round(value * 10) / 10);
 
 function workoutLabel(workout: WorkoutSession): string {
-  return WORKOUT_TEMPLATES[workout.templateId]?.name ?? `${workout.templateId} workout`;
+  const name = WORKOUT_TEMPLATES[workout.templateId]?.name ?? `${workout.templateId} workout`;
+  if (workout.completedAt != null) return name;
+  const sets = workingSetCount(workout);
+  return `${name} (unfinished, ${sets} ${sets === 1 ? "set" : "sets"})`;
 }
 
 function runLabel(run: RunLog): string {
@@ -179,8 +183,9 @@ function painLabel(entry: PainSorenessEntry): string {
 
 /**
  * Soft-deleted rows from the last `withinMs` (default 30 days), newest delete first.
- * A workout that was discarded before it was finished is not listed: it never became a
- * log entry.
+ * An unfinished workout is listed when it has working sets (dated at its start), so a
+ * workout left for later and then discarded can be restored with them; one discarded
+ * before any working set was logged is not, as there is nothing in it to restore.
  */
 export async function listDeleted(
   withinMs: number = RECENTLY_DELETED_WINDOW_MS,
@@ -208,8 +213,8 @@ export async function listDeleted(
 
   collect(
     "workouts",
-    (await db.workouts.toArray()).filter((w) => w.completedAt != null),
-    (w) => w.completedAt!,
+    (await db.workouts.toArray()).filter((w) => w.completedAt != null || workingSetCount(w) > 0),
+    (w) => w.completedAt ?? w.startedAt,
     workoutLabel
   );
   collect("runs", await db.runs.toArray(), (r) => r.date, runLabel);

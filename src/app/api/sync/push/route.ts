@@ -1,25 +1,37 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { neonSql } from '@/db/drizzle';
 import { isSyncAuthorized, prepareBatch, buildUpsert } from '@/lib/syncGuard';
-import type { PushRequest, PushResponse } from '@/lib/sync/wire';
+import { MAX_PUSH_ROWS, type PushRequest, type PushResponse } from '@/lib/sync/wire';
+import { PUSH_FAILED_MESSAGE, SYNC_ERROR_CODE, syncJson } from '../respond';
 
 /** Last-write-wins upsert of one batch of rows into one registry table. */
 export async function POST(request: NextRequest) {
   if (!isSyncAuthorized(request.headers.get('authorization'), process.env.SYNC_SECRET)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return syncJson({ error: 'Unauthorized' }, 401);
   }
 
   let body: Partial<PushRequest>;
   try {
     body = (await request.json()) as Partial<PushRequest>;
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return syncJson({ error: 'Invalid JSON body' }, 400);
+  }
+
+  // One request does at most MAX_PUSH_ROWS upserts; the client sends larger tables in batches.
+  if (Array.isArray(body?.rows) && body.rows.length > MAX_PUSH_ROWS) {
+    return syncJson(
+      {
+        error: `Too many rows in one push: ${body.rows.length}. Send at most ${MAX_PUSH_ROWS} rows per request.`,
+        code: SYNC_ERROR_CODE.pushTooLarge,
+      },
+      413
+    );
   }
 
   // The whole batch is validated (table, every column of every row) before any write.
   const batch = prepareBatch(body?.table, body?.rows, Date.now());
   if (!batch.ok) {
-    return NextResponse.json({ error: batch.error }, { status: 400 });
+    return syncJson({ error: batch.error }, 400);
   }
 
   try {
@@ -34,12 +46,10 @@ export async function POST(request: NextRequest) {
       applied,
       skipped: batch.rows.length - applied,
     };
-    return NextResponse.json(response);
+    return syncJson(response);
   } catch (error) {
-    console.error('Sync push error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    // The database error stays in the log: it can name tables, users or hosts.
+    console.error(`Sync push error (${String(body.table)}):`, error);
+    return syncJson({ error: PUSH_FAILED_MESSAGE, code: SYNC_ERROR_CODE.pushFailed }, 500);
   }
 }

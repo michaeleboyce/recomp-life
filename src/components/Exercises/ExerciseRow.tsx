@@ -75,13 +75,13 @@ export default function ExerciseRow({
           <span className="block text-sm font-medium text-foreground truncate">
             {exercise.name}
             {overrideLabel && (
-              <span className="ml-2 align-middle text-[10px] font-normal text-primary">
+              <span className="ml-2 align-middle text-[12px] font-normal text-primary">
                 {overrideLabel}
               </span>
             )}
           </span>
           <div className="mt-1 flex items-center gap-2">
-          <Badge variant="secondary" className="text-[10px]">
+          <Badge variant="secondary" className="text-[12px]">
             {EQUIPMENT_LABELS[exercise.type] ?? exercise.type}
           </Badge>
           {exercise.requiresGym && (
@@ -98,7 +98,7 @@ export default function ExerciseRow({
                 key={opt.value}
                 type="button"
                 onClick={() => onPreferenceChange(exercise.id, opt.value)}
-                className={`px-2 py-1 text-[11px] font-medium transition-colors ${
+                className={`px-2 py-1 text-[12px] font-medium transition-colors ${
                   pref === opt.value
                     ? opt.value === "blocked"
                       ? "bg-destructive/10 text-destructive"
@@ -114,7 +114,7 @@ export default function ExerciseRow({
           </div>
         ) : (
           roleLabel && (
-            <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+            <span className="ml-auto shrink-0 text-[12px] text-muted-foreground">
               {roleLabel}
             </span>
           )
@@ -218,12 +218,12 @@ function InlineE1RMCalc({ exerciseName }: { exerciseName: string }) {
 
   return (
     <div className="mt-2 pt-2 border-t border-border/50">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+      <p className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
         Quick 1RM Estimate
       </p>
       <div className="flex items-end gap-2" onClick={(e) => e.stopPropagation()}>
         <div className="flex-1">
-          <label className="text-[10px] text-muted-foreground block mb-0.5">
+          <label className="text-[12px] text-muted-foreground block mb-0.5">
             Weight
           </label>
           <input
@@ -236,7 +236,7 @@ function InlineE1RMCalc({ exerciseName }: { exerciseName: string }) {
           />
         </div>
         <div className="flex-1">
-          <label className="text-[10px] text-muted-foreground block mb-0.5">
+          <label className="text-[12px] text-muted-foreground block mb-0.5">
             Reps
           </label>
           <input
@@ -252,7 +252,7 @@ function InlineE1RMCalc({ exerciseName }: { exerciseName: string }) {
           {e1rm !== null ? (
             <p className="text-sm font-bold text-primary">{e1rm} lbs</p>
           ) : (
-            <p className="text-[10px] text-muted-foreground">2+ reps</p>
+            <p className="text-[12px] text-muted-foreground">2+ reps</p>
           )}
         </div>
       </div>

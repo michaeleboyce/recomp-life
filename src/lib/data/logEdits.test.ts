@@ -15,7 +15,7 @@ import {
 } from "./logEdits";
 import { logActivity, logBodyweight, logRun, savePainEntry } from "./records";
 import { clearDb, makeSet, runSession } from "./testUtils";
-import { startWorkout } from "./workouts";
+import { appendSet, startWorkout } from "./workouts";
 
 const DAY = 24 * 60 * 60 * 1000;
 const FIRST = new Date("2026-03-02T09:00:00Z").getTime();
@@ -389,9 +389,31 @@ describe("listDeleted", () => {
     expect((await listDeleted()).map((item) => item.id)).toEqual([edgeId]);
   });
 
-  it("does not list a workout that was discarded before it was finished", async () => {
+  it("does not list a workout discarded before any working set was logged", async () => {
     const id = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+    await appendSet(id, makeSet({ id: "warm", tier: "warmup" }));
     await softDelete("workouts", id);
+    expect(await listDeleted()).toEqual([]);
+  });
+
+  it("lists an unfinished workout with sets, dated at its start, and restores it unfinished", async () => {
+    const id = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+    const startedAt = (await workout(id)).startedAt;
+    await appendSet(id, makeSet({ id: "a" }));
+    await appendSet(id, makeSet({ id: "b", setNumber: 2 }));
+    await appendSet(id, makeSet({ id: "w", tier: "warmup" }));
+    setNow(new Date(FIRST));
+    await softDelete("workouts", id);
+
+    expect(await listDeleted()).toEqual([
+      { table: "workouts", id, deletedAt: FIRST, date: startedAt, label: "Workout A1 (unfinished, 2 sets)" },
+    ]);
+
+    await restore("workouts", id);
+    const back = await workout(id);
+    expect(back.deletedAt).toBeNull();
+    expect(back.completedAt).toBeNull();
+    expect(back.sets).toHaveLength(3);
     expect(await listDeleted()).toEqual([]);
   });
 });

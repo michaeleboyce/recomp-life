@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import type { PullResponse, PushResponse } from '@/lib/sync/wire';
+import { MAX_PUSH_ROWS, type PullResponse, type PushResponse } from '@/lib/sync/wire';
 import { SYNC_REGISTRY } from '@/lib/sync/registry';
 
 const query = vi.fn();
@@ -9,8 +9,11 @@ vi.mock('@/db/drizzle', () => ({ neonSql: { query: (...args: unknown[]) => query
 
 import { POST } from './push/route';
 import { GET } from './pull/route';
+import { GET as STATUS } from './status/route';
+import { PUSH_FAILED_MESSAGE, READ_FAILED_REASON } from './respond';
 
-const SECRET = 'test-sync-secret';
+// At least MIN_SECRET_LENGTH characters, so the short-secret warning stays out of these tests.
+const SECRET = 'test-sync-secret-long-enough';
 const AUTH = { authorization: `Bearer ${SECRET}` };
 
 function pushRequest(body: unknown, headers: Record<string, string> = AUTH) {
@@ -94,6 +97,31 @@ describe('POST /api/sync/push', () => {
     expect(values).toContain('r1');
   });
 
+  it(`accepts a batch of exactly ${MAX_PUSH_ROWS} rows`, async () => {
+    expect(MAX_PUSH_ROWS).toBe(500);
+    query.mockResolvedValue([{ client_id: 'x' }]);
+    const rows = Array.from({ length: MAX_PUSH_ROWS }, (_, i) => run(`r${i}`, 1));
+    const res = await POST(pushRequest({ table: 'runs', rows }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true, applied: MAX_PUSH_ROWS, skipped: 0 });
+  });
+
+  it('413 for a batch over the limit, with a clear message, and nothing is written', async () => {
+    const rows = Array.from({ length: MAX_PUSH_ROWS + 1 }, (_, i) => run(`r${i}`, 1));
+    const res = await POST(pushRequest({ table: 'runs', rows }));
+    expect(res.status).toBe(413);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    const body = await res.json();
+    expect(body.code).toBe('push_too_large');
+    expect(body.error).toBe(`Too many rows in one push: 501. Send at most 500 rows per request.`);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('the limit is checked after the passphrase', async () => {
+    const rows = Array.from({ length: MAX_PUSH_ROWS + 1 }, (_, i) => run(`r${i}`, 1));
+    expect((await POST(pushRequest({ table: 'runs', rows }, {}))).status).toBe(401);
+  });
+
   it('an empty batch writes nothing', async () => {
     const res = await POST(pushRequest({ table: 'bodyweight', rows: [] }));
     expect(await res.json()).toEqual({ success: true, applied: 0, skipped: 0 });
@@ -113,11 +141,22 @@ describe('POST /api/sync/push', () => {
     expect(values).not.toContain('local-uuid');
   });
 
-  it('500 with the database message when a write fails', async () => {
-    query.mockRejectedValueOnce(new Error('relation "runs" does not exist'));
+  it('500 with a generic message and code when a write fails; the database error only in the log', async () => {
+    const dbError = new Error('relation "runs" does not exist');
+    query.mockRejectedValueOnce(dbError);
     const res = await POST(pushRequest({ table: 'runs', rows: [run('r1', 1)] }));
     expect(res.status).toBe(500);
-    expect((await res.json()).error).toBe('relation "runs" does not exist');
+    const text = await res.text();
+    expect(JSON.parse(text)).toEqual({ error: PUSH_FAILED_MESSAGE, code: 'push_failed' });
+    expect(text).not.toMatch(/relation|does not exist/);
+    expect(console.error).toHaveBeenCalledWith(expect.any(String), dbError);
+  });
+
+  it('a driver error that is not an Error is not returned either', async () => {
+    query.mockRejectedValueOnce({ message: 'password authentication failed for user "neondb"' });
+    const res = await POST(pushRequest({ table: 'runs', rows: [run('r1', 1)] }));
+    expect(res.status).toBe(500);
+    expect(await res.text()).not.toMatch(/password|neondb/);
   });
 });
 
@@ -177,17 +216,50 @@ describe('GET /api/sync/pull', () => {
   });
 
   it('a table that cannot be read goes into errors; the rest still arrive with 200', async () => {
+    const dbError = new Error('relation "lift_adjustments" does not exist');
     query.mockImplementation(async (text: string) => {
-      if (text.includes('"lift_adjustments"')) throw new Error('relation "lift_adjustments" does not exist');
+      if (text.includes('"lift_adjustments"')) throw dbError;
       if (text.includes('"runs"')) return [{ id: 'r1', client_id: 'r1', updated_at: '7', deleted_at: null }];
       return [];
     });
     const res = await GET(pullRequest());
     expect(res.status).toBe(200);
-    const body: PullResponse = await res.json();
-    expect(body.errors).toEqual({ liftAdjustments: 'relation "lift_adjustments" does not exist' });
+    const text = await res.text();
+    const body: PullResponse = JSON.parse(text);
+    // A generic reason with its code; the database message stays in the server log.
+    expect(body.errors).toEqual({ liftAdjustments: READ_FAILED_REASON });
+    expect(READ_FAILED_REASON).toContain('read_failed');
+    expect(text).not.toMatch(/relation|does not exist/);
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('liftAdjustments'), dbError);
     expect(body.rows.liftAdjustments).toBeUndefined();
     expect(body.rows.runs).toEqual([{ id: 'r1', clientId: 'r1', updatedAt: 7, deletedAt: null }]);
     expect(Object.keys(body.rows)).toHaveLength(SYNC_REGISTRY.length - 1);
+  });
+});
+
+describe('no sync response is cached', () => {
+  const noStore = (res: Response, label: string) =>
+    expect(res.headers.get('cache-control'), label).toBe('no-store');
+
+  it('push: refused, invalid, failed and accepted', async () => {
+    noStore(await POST(pushRequest({ table: 'runs', rows: [] }, {})), '401');
+    noStore(await POST(pushRequest('{not json')), '400 json');
+    noStore(await POST(pushRequest({ table: 'nope', rows: [] })), '400 table');
+    query.mockRejectedValueOnce(new Error('boom'));
+    noStore(await POST(pushRequest({ table: 'runs', rows: [run('r1', 1)] })), '500');
+    query.mockResolvedValueOnce([{ client_id: 'r1' }]);
+    noStore(await POST(pushRequest({ table: 'runs', rows: [run('r1', 1)] })), '200');
+  });
+
+  it('pull: refused, partly failed and accepted', async () => {
+    noStore(await GET(pullRequest({})), '401');
+    query.mockRejectedValue(new Error('boom'));
+    noStore(await GET(pullRequest()), '200 with errors');
+    query.mockReset().mockResolvedValue([]);
+    noStore(await GET(pullRequest()), '200');
+  });
+
+  it('status', async () => {
+    noStore(await STATUS(), '200');
   });
 });

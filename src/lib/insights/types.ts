@@ -5,6 +5,7 @@ import type { WorkoutSession } from "@/types";
 
 export type InsightKind =
   | "unfinished-workout"
+  | "left-workout"
   | "weigh-in-due"
   | "inactivity"
   | "deload"
@@ -35,12 +36,15 @@ export interface Insight {
 export interface InsightContext extends MetricSource {
   /** The most recent unfinished workout started in the last 24 hours, if any. */
   unfinishedWorkout: WorkoutSession | null;
+  /** Older unfinished workouts that have working sets: too old to resume, kept until the user decides. */
+  leftWorkouts?: WorkoutSession[];
   now: Date;
 }
 
 /** Display order of kinds within one severity. */
 export const KIND_ORDER: readonly InsightKind[] = [
   "unfinished-workout",
+  "left-workout",
   "weigh-in-due",
   "inactivity",
   "deload",

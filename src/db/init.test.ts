@@ -4,7 +4,9 @@ import { checkDerived } from "@/lib/data/derived";
 import { PROFILE_ID } from "@/lib/sync/registry";
 import { db } from "./local";
 import { initializeDatabase } from "./init";
-import { INITIAL_LIFT_STATES, startAdjustments } from "./seed";
+import { fullSync } from "@/lib/sync";
+import { FakeSyncServer, TEST_PASSPHRASE } from "@/lib/sync/testFakes";
+import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES, startAdjustments } from "./seed";
 
 const LIFT_IDS = Object.keys(INITIAL_LIFT_STATES).sort();
 
@@ -22,11 +24,43 @@ describe("initializeDatabase", () => {
     expect(profiles[0]).toMatchObject({
       id: PROFILE_ID,
       clientId: PROFILE_ID,
-      name: "Michael",
+      name: "",
       deletedAt: null,
       synced: false,
     });
     expect(profiles[0].createdAt).toBeInstanceOf(Date);
+  });
+
+  it("the starting profile holds neutral placeholders, no personal details or diet targets", () => {
+    expect(DEFAULT_USER_PROFILE).toMatchObject({ name: "", bodyweight: 180, heightInches: 70 });
+    expect(DEFAULT_USER_PROFILE.settings.trainingPhase).toEqual({ mode: "cutting" });
+  });
+
+  it("the seeded profile never replaces a synced one, in either direction", async () => {
+    const server = new FakeSyncServer();
+    const synced = {
+      id: PROFILE_ID, clientId: PROFILE_ID, name: "Owner", bodyweight: 200, heightInches: 72,
+      createdAt: "2026-01-01T00:00:00.000Z", updatedAt: 5_000, deletedAt: null, synced: true,
+      settings: { ...DEFAULT_USER_PROFILE.settings, trainingPhase: { mode: "bulking" } },
+    };
+    server.tables.set("userProfile", new Map([[PROFILE_ID, synced]]));
+    localStorage.setItem("recomp-sync-key", TEST_PASSPHRASE);
+    vi.stubGlobal("fetch", server.fetch);
+    try {
+      await initializeDatabase();
+      const result = await fullSync(db);
+      expect(result.errors).toEqual([]);
+    } finally {
+      vi.unstubAllGlobals();
+      localStorage.removeItem("recomp-sync-key");
+    }
+
+    // The push of the seed (stamp 1) was skipped by the server; the pull replaced the seed.
+    expect(server.rows("userProfile")).toEqual([synced]);
+    const profiles = await db.userProfile.toArray();
+    expect(profiles).toHaveLength(1);
+    expect(profiles[0]).toMatchObject({ name: "Owner", bodyweight: 200, heightInches: 72, updatedAt: 5_000 });
+    expect(profiles[0].settings.trainingPhase).toEqual({ mode: "bulking" });
   });
 
   it("writes the starting weights as one `start` adjustment per lift, not as lift states (E9)", async () => {

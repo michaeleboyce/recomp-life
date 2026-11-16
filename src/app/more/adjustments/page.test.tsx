@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
@@ -16,7 +16,16 @@ import {
 import type { AdjustmentEntry } from "@/types";
 import AdjustmentsPage from "./page";
 
+// Counted, otherwise the real thing: each call replays every adjustment.
+const { undoAdjustment } = vi.hoisted(() => ({ undoAdjustment: vi.fn() }));
+vi.mock("@/lib/adjustments", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/adjustments")>();
+  undoAdjustment.mockImplementation(actual.undoAdjustment);
+  return { ...actual, undoAdjustment };
+});
+
 beforeEach(async () => {
+  undoAdjustment.mockClear();
   cleanup();
   await clearDb();
   await initializeDatabase();
@@ -84,6 +93,20 @@ describe("Adjustment log page", () => {
 
     await waitFor(() => expect(screen.getByText("Change undone.")).toBeInTheDocument());
     expect((await db.liftAdjustments.toArray()).filter((a) => a.source === "manual")).toHaveLength(2);
+  });
+
+  it("works out which changes can be undone once per log, not per row on every render", async () => {
+    await recordAdjustment({ exerciseId: "squat", source: "manual", set: { t1Weight: 185 } });
+    await recordAdjustment({ exerciseId: "bench", source: "manual", set: { t1Weight: 95 } });
+    render(<AdjustmentsPage />);
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(2));
+    const afterLoad = undoAdjustment.mock.calls.length;
+    // One replay per undoable entry for this version of the log.
+    expect(afterLoad).toBeLessThanOrEqual(2 * 2);
+    const chips = screen.getByRole("radiogroup", { name: "Filter the log" });
+    fireEvent.click(within(chips).getByRole("radio", { name: "Weights" }));
+    fireEvent.click(within(chips).getByRole("radio", { name: /^All/ }));
+    expect(undoAdjustment.mock.calls.length).toBe(afterLoad);
   });
 
   it("puts the starting weights last under Start and filters by group", async () => {

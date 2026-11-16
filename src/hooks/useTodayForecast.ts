@@ -7,9 +7,12 @@ import {
 } from "@/lib/data/forecasts";
 import { makeSessionForecasts } from "@/lib/forecast";
 import { prChanceFromProbability, repsToBeat, type PrChance } from "@/lib/projection";
-import type { ReadinessScore } from "@/types/glass";
-import type { WorkoutLocation } from "@/types";
+import type { WorkoutPlan } from "@/lib/workout/types";
+import type { Forecast, ReadinessScore } from "@/types/glass";
+import type { WorkoutLocation, WorkoutSession } from "@/types";
+import { useSessionForecasts } from "./useForecastLedger";
 import { useLedgerRecords } from "./useLedgerRecords";
+import { useReadinessToday } from "./useReadinessToday";
 
 export interface TodayForecast {
   /** How long the next workout takes. `low`/`high` only when a model gives a range. */
@@ -75,7 +78,18 @@ function buildTodayForecast(records: LedgerRecords, location?: WorkoutLocation):
     plan,
     forecastSourceFrom(records, now, readiness)
   );
+  return tilesFromForecasts(rows, plan, readiness);
+}
 
+/**
+ * Today's three tiles from a workout's session forecasts (made now for the next
+ * workout, or stored when an open one started) and its plan. Pure.
+ */
+export function tilesFromForecasts(
+  rows: readonly Forecast[],
+  plan: WorkoutPlan,
+  readiness: ReadinessScore | null
+): TodayForecast {
   const length = rows.find((row) => row.kind === "sessionLength")?.prediction;
   const session: TodayForecast["session"] =
     length && plan.some((entry) => !entry.isWarmUp)
@@ -135,4 +149,31 @@ export function useTodayForecast(location?: WorkoutLocation): TodayForecast | un
     () => (records ? todayForecastFrom(records, location) : undefined),
     [records, location]
   );
+}
+
+/**
+ * The tiles for a workout that is open, from the forecasts stored when it started
+ * (`useSessionForecasts`), so Today shows the numbers the workout screen shows, not
+ * a forecast for the next workout made now. `undefined` while loading or with no
+ * session. Never throws, like `todayForecastFrom`.
+ */
+export function useOpenWorkoutForecast(
+  session: WorkoutSession | null | undefined,
+  plan: WorkoutPlan | undefined
+): TodayForecast | undefined {
+  const scored = useSessionForecasts(session?.id);
+  const readiness = useReadinessToday({ location: session?.location });
+  return useMemo(() => {
+    if (!session || !plan || scored === undefined || readiness === undefined) return undefined;
+    try {
+      return tilesFromForecasts(
+        scored.map((row) => row.forecast),
+        plan,
+        readiness
+      );
+    } catch (error) {
+      console.error("Reading the open workout's forecast failed; showing none", error);
+      return { session: null, newBest: null, readiness: null };
+    }
+  }, [session, plan, scored, readiness]);
 }
