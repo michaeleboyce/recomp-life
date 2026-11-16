@@ -2,6 +2,7 @@
 // library's `StrengthSet`, and the pooled estimate and transfer ratios worked out from
 // them once per list of sets. Pure: no React, no database, no clock.
 import { EXERCISES } from "@/lib/exercises";
+import { importedStrengthSets } from "@/lib/import/evidence";
 import {
   learnTransferRatio,
   pooledLiftEstimate,
@@ -10,7 +11,7 @@ import {
   type StrengthSetRole,
   type TransferRatio,
 } from "@/lib/strength";
-import type { SetLog, WorkoutSession } from "@/types";
+import type { ImportedSessionRecord, SetLog, WorkoutSession } from "@/types";
 
 /** What a stored set was for, in the strength library's terms. */
 function roleOf(set: Pick<SetLog, "tier" | "role">): StrengthSetRole {
@@ -62,6 +63,24 @@ export function strengthSetsOf(
   return workouts
     .filter((workout) => workout.completedAt != null && workout.deletedAt == null)
     .flatMap((workout) => (workout.sets ?? []).map((set) => strengthSetOf(set, workout.id)));
+}
+
+/**
+ * The strength evidence of everything logged: the finished workouts' sets
+ * (`strengthSetsOf`) and the sets of the live imported sessions
+ * (`importedStrengthSets`: mapped exercises only, warm-ups and drops kept as such,
+ * weighted for recency by the library's half-life like every other session).
+ *
+ * For the strength estimate, the learned ratios and the muscle strength index, and for
+ * the starting weights suggested from imported history. Not for planning: the plan,
+ * re-entry and the rebuild read `strengthSetsOf` alone, so imported history never moves
+ * a planned weight until the lifter confirms a starting weight from it.
+ */
+export function strengthEvidenceOf(
+  workouts: readonly Pick<WorkoutSession, "id" | "completedAt" | "deletedAt" | "sets">[],
+  imported: readonly ImportedSessionRecord[]
+): StrengthSet[] {
+  return [...importedStrengthSets(imported), ...strengthSetsOf(workouts)];
 }
 
 const estimateCache = new WeakMap<readonly StrengthSet[], Map<string, PooledEstimate | null>>();
