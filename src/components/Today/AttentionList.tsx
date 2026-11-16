@@ -137,8 +137,9 @@ function RowExtras({ insight }: { insight: Insight }) {
       .finally(() => setBusy(false));
   };
   const target = insight.id.slice(insight.id.indexOf(":") + 1);
+  // Drawn 24 px tall; the pseudo-element makes the tap area 44 px without moving the row.
   const buttonClass =
-    "rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50";
+    "relative rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors after:absolute after:-inset-y-2.5 after:inset-x-0 after:content-[''] hover:bg-accent hover:text-foreground disabled:opacity-50";
 
   if (insight.kind === "pain-check") {
     return (

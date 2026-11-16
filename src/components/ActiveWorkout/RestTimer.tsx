@@ -110,7 +110,7 @@ function RestWhy({ trace }: { trace: DecisionTrace }) {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="inline-flex min-h-8 w-fit items-center text-xs font-semibold text-accent-primary underline decoration-dotted underline-offset-4"
+            className="inline-flex min-h-11 w-fit items-center text-xs font-semibold text-accent-primary underline decoration-dotted underline-offset-4"
           >
             Read the research
           </button>

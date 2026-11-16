@@ -73,7 +73,8 @@ describe("the bottom sheet's grab handle", () => {
 
   it("keeps the close button and Escape", () => {
     const { onOpenChange } = renderSheet();
-    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    // A 44 px tap target, not just the 16 px icon.
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-11");
     fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });

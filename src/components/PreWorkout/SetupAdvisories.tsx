@@ -43,12 +43,12 @@ interface SetupAdvisoriesProps {
 export function SetupAdvisories(props: SetupAdvisoriesProps) {
   const { runAdvisory, activityNote, recoveryWarnings, decaySuggestions, reduction } = props;
   const runButton = (label: string, choice: RunChoice) => (
-    <Button size="sm" variant="outline" onClick={() => props.onRunChoice(choice)}>
+    <Button size="sm" className="h-11" variant="outline" onClick={() => props.onRunChoice(choice)}>
       {label}
     </Button>
   );
   const recoveryButton = (label: ReactNode, choice: "proceed" | "reduce") => (
-    <Button size="sm" variant="outline" onClick={() => props.onRecoveryChoice(choice)}>
+    <Button size="sm" className="h-11" variant="outline" onClick={() => props.onRecoveryChoice(choice)}>
       {label}
     </Button>
   );
@@ -81,6 +81,7 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
               {runButton("Proceed", "proceed")}
               <Button
                 size="sm"
+                className="h-11"
                 variant="outline"
                 onClick={() => {
                   props.onRunChoice("skip");
@@ -101,7 +102,7 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
         <Callout
           variant="info"
           actions={
-            <Button size="sm" variant="outline" onClick={props.onDismissActivityNote}>
+            <Button size="sm" className="h-11" variant="outline" onClick={props.onDismissActivityNote}>
               Got it
             </Button>
           }
@@ -155,6 +156,7 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
               <>
                 <Button
                   size="sm"
+                  className="h-11"
                   onClick={() =>
                     props.onAcceptDecay(
                       suggestion.exerciseId,
@@ -167,6 +169,7 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
                 </Button>
                 <Button
                   size="sm"
+                  className="h-11"
                   variant="outline"
                   onClick={() => props.onDismissDecay(suggestion.exerciseId, suggestion.tier)}
                 >
