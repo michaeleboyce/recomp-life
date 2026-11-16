@@ -4,7 +4,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb, makeSet, makeWorkout } from "@/lib/data/testUtils";
-import type { ResolvedFavorite } from "@/lib/favorites";
+import { favoriteFromSetup, resolveFavorite, type ResolvedFavorite } from "@/lib/favorites";
 import { useActiveWorkout } from "@/components/ActiveWorkout/useActiveWorkout";
 import { ACCESSORY_IDS } from "@/lib/exercises";
 import { buildWorkoutPlan, overridesFromSession } from "@/lib/workout";
@@ -713,6 +713,77 @@ describe("starting from a favourite", () => {
     const hook = renderHook(() => useWorkoutSetup(null, favorite));
     await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
     await waitFor(() => expect(hook.result.current.location).toBe("gym"));
+  });
+
+  it("a favourite saved at home, applied at the gym, pins no dumbbell weight on the barbell and says so", async () => {
+    // Saved at home, exactly as planned there.
+    const atHome = await mount("A1");
+    act(() => atHome.result.current.setLocation("home"));
+    const homePlan = atHome.result.current.plan;
+    const gymWeight = atHome.result.current.prescribed.find((p) => p.exerciseId === "squat")!.weight;
+    const homeSquat = homePlan.find((e) => e.exerciseId === "squat" && !e.isWarmUp)!;
+    expect(homeSquat.weight).not.toBe(gymWeight);
+    const saved = favoriteFromSetup(
+      { id: "fav-home", clientId: "fav-home", name: "Home legs", now: new Date() },
+      {
+        templateId: "A1",
+        location: "home",
+        includeWarmUps: atHome.result.current.warmUps,
+        selectedAccessories: [],
+        substitutes: {},
+        edits: [],
+        plan: homePlan,
+      }
+    );
+    atHome.unmount();
+    const resolved = resolveFavorite(saved, "as-saved");
+
+    const hook = renderHook(() => useWorkoutSetup(null, resolved));
+    await waitFor(() => expect(hook.result.current.isLoading).toBe(false));
+    await waitFor(() => expect(hook.result.current.location).toBe("home"));
+    expect(hook.result.current.favoriteNote).toBeNull();
+    const squat = () => hook.result.current.plan.find((e) => e.exerciseId === "squat" && !e.isWarmUp)!;
+    expect(squat().weight).toBe(homeSquat.weight);
+
+    act(() => hook.result.current.setLocation("gym"));
+    expect(squat()).toMatchObject({ weight: gymWeight });
+    expect(squat().substituteExerciseId).toBeUndefined();
+    expect(hook.result.current.edits).not.toContainEqual(
+      expect.objectContaining({ kind: "weight", exerciseId: "squat", tier: "T1" })
+    );
+    expect(hook.result.current.favoriteNote).toBe(
+      "Saved at home: the gym uses today's program weights for Squat, Bench Press and Lat Pulldown."
+    );
+
+    let sessionId: string | null = null;
+    await act(async () => {
+      sessionId = await hook.result.current.start();
+    });
+    const session = (await db.workouts.get(sessionId!))!;
+    expect(session.location).toBe("gym");
+    expect(session.planEdits ?? []).toEqual(hook.result.current.edits);
+    expect(session.planEdits ?? []).not.toContainEqual(
+      expect.objectContaining({ kind: "weight", exerciseId: "squat", tier: "T1" })
+    );
+  });
+
+  it("re-evaluates the pins when the location changes back", async () => {
+    const atHome = await mount("A1");
+    act(() => atHome.result.current.setLocation("home"));
+    const homePlan = atHome.result.current.plan;
+    const saved = favoriteFromSetup(
+      { id: "fav-home", clientId: "fav-home", name: "Home legs", now: new Date() },
+      { templateId: "A1", location: "home", includeWarmUps: true, selectedAccessories: [], substitutes: {}, edits: [], plan: homePlan }
+    );
+    atHome.unmount();
+    const resolved = resolveFavorite(saved, "as-saved");
+    const hook = renderHook(() => useWorkoutSetup(null, resolved));
+    await waitFor(() => expect(hook.result.current.location).toBe("home"));
+    act(() => hook.result.current.setLocation("gym"));
+    expect(hook.result.current.favoriteNote).not.toBeNull();
+    act(() => hook.result.current.setLocation("home"));
+    expect(hook.result.current.favoriteNote).toBeNull();
+    expect(hook.result.current.edits).toEqual(resolved.planEdits);
   });
 });
 
