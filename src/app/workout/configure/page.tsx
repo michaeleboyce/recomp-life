@@ -135,6 +135,7 @@ function ConfigureWorkoutContent() {
         recoveryWarnings={setup.recoveryWarnings}
         recoveryChoice={setup.recoveryChoice}
         onRecoveryChoice={setup.setRecoveryChoice}
+        reduction={setup.t1Reduction}
         recoveryEvidence={<EvidenceLine ruleId="recovery-windows" />}
         decaySuggestions={setup.decaySuggestions}
         onAcceptDecay={setup.acceptDecay}

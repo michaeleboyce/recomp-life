@@ -246,12 +246,19 @@ describe("configure page", () => {
     expect(screen.getByText(/You trained Barbell Squat/)).toBeInTheDocument();
     const decayTitle = screen.getByText((_, el) => el?.getAttribute("data-slot") === "callout-title" && el.textContent === "Barbell Bench Press (T2)");
     expect(decayTitle.querySelector('[data-term="t2"]')).not.toBeNull();
-    expect(screen.getByText(/weight by 10%/).querySelector('[data-term="t1"]')).not.toBeNull();
+    // Trained recently: the reduce button says what it does, and does it.
+    const lower = screen.getByRole("button", { name: /^Lower T1 to 170 lbs$/ });
+    expect(lower.querySelector('[data-term="t1"]')).not.toBeNull();
     expect(
       ["run-interference", "activity-fatigue", "recovery-windows"].every((id) =>
         document.querySelector(`[data-evidence="${id}"]`)
       )
     ).toBe(true);
+    fireEvent.click(lower);
+    await waitFor(() => expect(rows()[0]).toMatch(/170 lbs5×3\+/));
+    expect(screen.queryByText(/You trained Barbell Squat/)).toBeNull();
+    // Nothing is written to the log until the workout starts.
+    expect(await db.coachEvents.count()).toBe(0);
 
     // Accepting the time-off suggestion lowers the weight shown in the list.
     fireEvent.click(screen.getByRole("button", { name: /^Accept \(\d+ lbs\)$/ }));

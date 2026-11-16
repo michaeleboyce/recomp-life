@@ -18,7 +18,6 @@ import { ACTIVITY_NOTE_WINDOW_HOURS, evaluateActivityImpact } from "@/lib/activi
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { recordAdjustment } from "@/lib/data/adjustments";
 import { recordCoachEvent, type CoachEventInput } from "@/lib/data/coachEvents";
-import { roundToNearest5 } from "@/lib/progression";
 import { startWorkout } from "@/lib/data/workouts";
 import { ACCESSORY_IDS, EXERCISES } from "@/lib/exercises";
 import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePreferences";
@@ -36,6 +35,7 @@ import {
 import { ACCESSORY_RECOMMENDATIONS, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { addEdit, removeEdit, schemeEdit, swapEdit, weightEdit } from "./editList";
 import { computeImpact } from "./impact";
+import { lighterWeight, notesToWrite, queueNote, type PendingNote } from "./setupNotes";
 import type {
   ExerciseAdaptation,
   LiftState,
@@ -56,16 +56,15 @@ const ACTIVITY_WINDOW_MS = ACTIVITY_NOTE_WINDOW_HOURS * HOUR_MS;
 const NO_LIFT_STATES: LiftState[] = [];
 const NO_EDITS: PlanEdit[] = [];
 const NO_PRESCRIBED: PrescribedEntry[] = [];
-/** "Reduce 10%" after a run: today's T1 at this share of its weight. */
-const RUN_REDUCTION = 0.9;
 
 /** What the user can do about a run advisory. */
 export type RunChoice = "proceed" | "extra_warmups" | "reduce_10" | "skip";
 
 /**
  * Notes a choice made about a setup advisory in the coach's log, so it shows in the
- * adjustment log. Never awaited by the choice and never throws: the workout matters
- * more than the note.
+ * adjustment log. Never awaited and never throws: the workout matters more than the
+ * note. Choices that shape the workout are queued and written by `start`, once the
+ * workout exists; only "Skip today" is written when it is made, as no workout follows.
  */
 function noteAdvisory(input: CoachEventInput): void {
   recordCoachEvent(input).catch((err) => console.error("Failed to record advisory choice:", err));
@@ -244,8 +243,17 @@ export function useWorkoutSetup(
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [runAdvisoryDismissed, setRunAdvisoryDismissed] = useState(false);
   const [activityNoteDismissed, setActivityNoteDismissed] = useState(false);
-  const [recoveryChoice, setRecoveryChoice] = useState<"proceed" | "reduce" | null>(null);
+  const [recoveryChoice, setRecoveryChoiceState] = useState<"proceed" | "reduce" | null>(null);
   const [dismissedDecays, setDismissedDecays] = useState<ReadonlySet<string>>(new Set());
+  // Advisory choices, written to the coach's log by `start` once the workout exists.
+  const [pendingNotes, setPendingNotes] = useState<PendingNote[]>([]);
+  const queue = useCallback(
+    (note: Omit<PendingNote, "templateId">) => {
+      if (!templateId) return;
+      setPendingNotes((prev) => queueNote(prev, { ...note, templateId }));
+    },
+    [templateId]
+  );
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -352,44 +360,75 @@ export function useWorkoutSetup(
 
   const t1Entry = plan.find((e) => e.tier === "T1" && !e.isWarmUp);
   /**
-   * Acts on a run advisory and records the choice. Extra warm-ups turns warm-ups on;
-   * reduce lowers today's T1 weight by 10% as a plan edit (so, like any lighter
-   * lift, it is logged without changing progression); skip leaves it to the caller
-   * (who goes back to Today); proceed changes nothing.
+   * What an advisory's "reduce" does to today's T1: 10% off, in the steps its
+   * equipment moves in. Null when that changes nothing (a light dumbbell at home),
+   * and then no reduce is offered.
+   */
+  const t1Reduction = useMemo(() => {
+    if (!t1Entry) return null;
+    const to = lighterWeight(t1Entry, equipment);
+    return to === null ? null : { exerciseId: t1Entry.exerciseId, from: t1Entry.weight, to };
+  }, [t1Entry, equipment]);
+  const t1Name = t1Entry
+    ? (EXERCISES[t1Entry.substituteExerciseId ?? t1Entry.exerciseId]?.name ?? t1Entry.exerciseId)
+    : "";
+
+  /**
+   * Lowers today's T1 to `t1Reduction.to` as a plan edit (so, like any lighter lift,
+   * it is logged without changing progression) and returns what to log, or null when
+   * there is nothing to lower.
+   */
+  const reduceT1 = useCallback(() => {
+    if (!t1Reduction) return null;
+    const { exerciseId, from, to } = t1Reduction;
+    changeEdits((list) => weightEdit(list, exerciseId, "T1", to));
+    return {
+      change: `${t1Name} lowered from ${from} to ${to} lbs for today`,
+      data: { from, to, exerciseId },
+      requires: { exerciseId, tier: "T1" as const, weight: to },
+    };
+  }, [t1Reduction, t1Name, changeEdits]);
+
+  /**
+   * Acts on a run advisory and queues the choice for the log. Extra warm-ups turns
+   * warm-ups on; reduce lowers today's T1 (see `reduceT1`); skip leaves it to the
+   * caller (who goes back to Today) and is logged at once; proceed changes nothing.
    */
   const chooseRunOption = useCallback(
     (choice: RunChoice) => {
       setRunAdvisoryDismissed(true);
       if (!runAdvisory) return;
-      const data: Record<string, number | string | null> = {
+      let data: Record<string, number | string | null> = {
         advisory: "run",
         level: runAdvisory.level,
         choice,
       };
       let title = "Run before lifting: carried on as planned";
+      let requires: PendingNote["requires"];
       if (choice === "extra_warmups") {
         setWarmUpsChoice(true);
         title = "Run before lifting: added warm-up sets";
-      } else if (choice === "reduce_10" && t1Entry) {
-        const lighter = roundToNearest5(t1Entry.weight * RUN_REDUCTION);
-        changeEdits((edits) => weightEdit(edits, t1Entry.exerciseId, "T1", lighter));
-        const name = EXERCISES[t1Entry.substituteExerciseId ?? t1Entry.exerciseId]?.name ?? t1Entry.exerciseId;
-        title = `Run before lifting: ${name} lowered to ${lighter} lbs for today`;
-        data.from = t1Entry.weight;
-        data.to = lighter;
-        data.exerciseId = t1Entry.exerciseId;
+      } else if (choice === "reduce_10") {
+        const reduced = reduceT1();
+        if (!reduced) return;
+        title = `Run before lifting: ${reduced.change}`;
+        data = { ...data, ...reduced.data };
+        requires = reduced.requires;
       } else if (choice === "skip") {
         title = "Run before lifting: skipped today's workout";
       }
-      noteAdvisory({
+      const input: CoachEventInput = {
         kind: choice === "proceed" ? "advisoryDismissed" : "advisoryAccepted",
         title,
         detail: runAdvisory.message,
         ruleId: runAdvisory.evidenceId,
         data,
-      });
+      };
+      // Skipping is the end of it: no workout starts to carry the note.
+      if (choice === "skip") noteAdvisory(input);
+      else queue({ key: "run", input, requires });
     },
-    [runAdvisory, t1Entry, changeEdits]
+    [runAdvisory, reduceT1, queue]
   );
   /** Carry on as planned (the run advisory's "Proceed"). */
   const dismissRunAdvisory = useCallback(() => chooseRunOption("proceed"), [chooseRunOption]);
@@ -407,18 +446,52 @@ export function useWorkoutSetup(
   const dismissActivityNote = useCallback(() => {
     setActivityNoteDismissed(true);
     if (!activityNote) return;
-    noteAdvisory({
-      kind: "advisoryDismissed",
-      title: "Hard session before lifting: noted, workout unchanged",
-      detail: activityNote.message,
-      ruleId: activityNote.evidenceId,
-      data: { advisory: "activity" },
+    queue({
+      key: "activity",
+      input: {
+        kind: "advisoryDismissed",
+        title: "Hard session before lifting: noted, workout unchanged",
+        detail: activityNote.message,
+        ruleId: activityNote.evidenceId,
+        data: { advisory: "activity" },
+      },
     });
-  }, [activityNote]);
+  }, [activityNote, queue]);
 
   const recoveryWarnings = useMemo(
     () => (template ? recoveryWarningsFor(template.exercises, liftStates, new Date()) : []),
     [template, liftStates]
+  );
+
+  /**
+   * "Trained recently", answered once like the run advisory: proceed keeps the plan;
+   * reduce lowers today's T1 the same way the run advisory's reduce does, and is
+   * queued for the log.
+   */
+  const setRecoveryChoice = useCallback(
+    (choice: "proceed" | "reduce") => {
+      if (choice === "proceed") {
+        setRecoveryChoiceState("proceed");
+        return;
+      }
+      const reduced = reduceT1();
+      if (!reduced) return;
+      setRecoveryChoiceState("reduce");
+      queue({
+        key: "recovery",
+        input: {
+          kind: "advisoryAccepted",
+          title: `Trained recently: ${reduced.change}`,
+          detail: recoveryWarnings
+            .map((w) => `${w.exerciseName} was trained ${w.hoursAgo}h ago.`)
+            .join(" "),
+          ruleId: "recovery-windows",
+          data: { advisory: "recovery", choice, ...reduced.data },
+        },
+        requires: reduced.requires,
+      });
+    },
+    [reduceT1, queue, recoveryWarnings]
   );
 
   const decaySuggestions = useMemo(() => {
@@ -442,21 +515,24 @@ export function useWorkoutSetup(
       const suggestion = decaySuggestions.find((s) => s.exerciseId === exerciseId && s.tier === tier);
       if (!suggestion) return;
       const name = EXERCISES[exerciseId]?.name ?? exerciseId;
-      noteAdvisory({
-        kind: "advisoryDismissed",
-        title: `Time off: kept ${name} at ${suggestion.currentWeight} lbs`,
-        detail: `The app suggested ${suggestion.suggestedWeight} lbs after ${suggestion.daysSinceLastWorkout} days away.`,
-        ruleId: suggestion.evidenceId,
-        data: {
-          advisory: "decay",
-          exerciseId,
-          tier,
-          current: suggestion.currentWeight,
-          suggested: suggestion.suggestedWeight,
+      queue({
+        key: `decay:${exerciseId}-${tier}`,
+        input: {
+          kind: "advisoryDismissed",
+          title: `Time off: kept ${name} at ${suggestion.currentWeight} lbs`,
+          detail: `The app suggested ${suggestion.suggestedWeight} lbs after ${suggestion.daysSinceLastWorkout} days away.`,
+          ruleId: suggestion.evidenceId,
+          data: {
+            advisory: "decay",
+            exerciseId,
+            tier,
+            current: suggestion.currentWeight,
+            suggested: suggestion.suggestedWeight,
+          },
         },
       });
     },
-    [settleDecay, decaySuggestions]
+    [settleDecay, decaySuggestions, queue]
   );
 
   /** Lowers the stored working weight to the suggested one. */
@@ -517,8 +593,9 @@ export function useWorkoutSetup(
       return [substituteModification(id, chosen, item.weight, entry?.weight ?? item.weight)];
     });
 
+    let sessionId: string;
     try {
-      return await startWorkout({
+      sessionId = await startWorkout({
         prescribed,
         planEdits: edits,
         favoriteId,
@@ -544,9 +621,16 @@ export function useWorkoutSetup(
       setIsStarting(false);
       return null;
     }
+    // The choices made on this screen, now that they belong to a real workout.
+    for (const note of notesToWrite(pendingNotes, { sessionId, templateId, edits })) {
+      noteAdvisory(note);
+    }
+    setPendingNotes([]);
+    return sessionId;
   }, [
     templateId,
     isStarting,
+    pendingNotes,
     homeAdaptations,
     overrides,
     plan,
@@ -602,6 +686,8 @@ export function useWorkoutSetup(
     runAdvisory,
     chooseRunOption,
     dismissRunAdvisory,
+    /** What "reduce" would do to today's T1; null when it would change nothing. */
+    t1Reduction,
     activityNote,
     dismissActivityNote,
     recoveryWarnings,

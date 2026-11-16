@@ -332,15 +332,42 @@ describe("advisories", () => {
     expect(hook.result.current.activityNote).toBeNull();
   });
 
-  it("warns when a lift in the workout was trained in the last 48 hours", async () => {
+  it("warns when a lift in the workout was trained in the last 48 hours; reduce lowers today's T1", async () => {
     await db.liftStates.update("squat", { t1LastWorkoutDate: new Date(Date.now() - 20 * HOUR) });
     await db.liftStates.update("bench", { t2LastWorkoutDate: new Date(Date.now() - 80 * HOUR) });
     const hook = await mount("A1");
     expect(hook.result.current.recoveryWarnings).toEqual([
       { exerciseName: "Barbell Squat", hoursAgo: 20 },
     ]);
+    expect(hook.result.current.t1Reduction).toEqual({ exerciseId: "squat", from: 190, to: 170 });
     act(() => hook.result.current.setRecoveryChoice("reduce"));
     expect(hook.result.current.recoveryChoice).toBe("reduce");
+    // The same plan edit as the run advisory's reduce: the plan the workout will run.
+    expect(hook.result.current.edits).toContainEqual({ kind: "weight", exerciseId: "squat", tier: "T1", weight: 170 });
+    expect(hook.result.current.plan.find((e) => e.tier === "T1" && !e.isWarmUp)!.weight).toBe(170);
+  });
+
+  it("offers no reduction at home when 10% rounds a dumbbell back to the same weight", async () => {
+    await patchSettings({ defaultLocation: "home" });
+    await db.liftStates.update("ohp", { t1Weight: 45, t1LastWorkoutDate: new Date(Date.now() - 20 * HOUR) });
+    const hook = await mount("B1");
+    await waitFor(() => expect(hook.result.current.location).toBe("home"));
+    const t1 = () => hook.result.current.plan.find((e) => e.tier === "T1" && !e.isWarmUp)!;
+    // 20 lb dumbbells: 18 rounds back to 20.
+    expect(t1()).toMatchObject({ substituteExerciseId: "db_shoulder_press", weight: 20 });
+    expect(hook.result.current.t1Reduction).toBeNull();
+    act(() => hook.result.current.setRecoveryChoice("reduce"));
+    expect(hook.result.current.recoveryChoice).toBeNull();
+    expect(hook.result.current.edits).toEqual([]);
+    expect(t1().weight).toBe(20);
+  });
+
+  it("at home, reduce lowers a dumbbell by the dumbbell increment and says so", async () => {
+    await patchSettings({ defaultLocation: "home" });
+    await db.liftStates.update("ohp", { t1LastWorkoutDate: new Date(Date.now() - 20 * HOUR) });
+    const hook = await mount("B1");
+    await waitFor(() => expect(hook.result.current.location).toBe("home"));
+    expect(hook.result.current.t1Reduction).toEqual({ exerciseId: "ohp", from: 35, to: 30 });
   });
 
   it("suggests a lower weight after time off; accepting saves it and settles the suggestion", async () => {
@@ -382,18 +409,39 @@ describe("advisories", () => {
 
   describe("records the choice in the adjustment log", () => {
     const events = () => db.coachEvents.toArray();
+    const settle = () => new Promise((r) => setTimeout(r, 30));
+    async function start(hook: Awaited<ReturnType<typeof mount>>) {
+      let id: string | null = null;
+      await act(async () => {
+        id = await hook.result.current.start();
+      });
+      return id as unknown as string;
+    }
 
-    it("carrying on past a run advisory is a dismissal with the run rule", async () => {
+    it("carrying on past a run advisory is a dismissal with the run rule, written at START", async () => {
       await db.runs.put(run({}));
       const hook = await mount("A1");
       act(() => hook.result.current.chooseRunOption("proceed"));
       expect(hook.result.current.runAdvisory).toBeNull();
+      await settle();
+      expect(await events()).toHaveLength(0);
+
+      const sessionId = await start(hook);
       await waitFor(async () => expect(await events()).toHaveLength(1));
       expect((await events())[0]).toMatchObject({
         kind: "advisoryDismissed",
         ruleId: "run-interference",
-        data: { advisory: "run", choice: "proceed" },
+        data: { advisory: "run", choice: "proceed", sessionId },
       });
+    });
+
+    it("a choice for a workout that never starts is never logged", async () => {
+      await db.runs.put(run({ perceivedEffort: 4, date: new Date(Date.now() - 10 * HOUR) }));
+      const hook = await mount("A1");
+      act(() => hook.result.current.chooseRunOption("reduce_10"));
+      hook.unmount();
+      await settle();
+      expect(await events()).toHaveLength(0);
     });
 
     it("extra warm-ups turns warm-ups on; reduce lowers the T1 weight 10% for today", async () => {
@@ -403,11 +451,12 @@ describe("advisories", () => {
       expect(hook.result.current.runAdvisory).toMatchObject({ level: "advisory" });
       act(() => hook.result.current.chooseRunOption("extra_warmups"));
       expect(hook.result.current.warmUps).toBe(true);
+      const first = await start(hook);
       await waitFor(async () => expect(await events()).toHaveLength(1));
       expect((await events())[0]).toMatchObject({
         kind: "advisoryAccepted",
         ruleId: "run-interference",
-        data: { choice: "extra_warmups" },
+        data: { choice: "extra_warmups", sessionId: first },
       });
 
       hook = await mount("A1");
@@ -415,11 +464,39 @@ describe("advisories", () => {
       const t1 = hook.result.current.plan.find((e) => e.tier === "T1" && !e.isWarmUp)!;
       expect(t1.weight).toBe(170); // 190 x 0.9 = 171, to the nearest 5
       expect(hook.result.current.edits).toContainEqual({ kind: "weight", exerciseId: "squat", tier: "T1", weight: 170 });
+      const second = await start(hook);
       await waitFor(async () => expect(await events()).toHaveLength(2));
       expect((await events()).find((e) => e.data?.choice === "reduce_10")).toMatchObject({
         kind: "advisoryAccepted",
-        data: { from: 190, to: 170 },
+        title: "Run before lifting: Barbell Squat lowered from 190 to 170 lbs for today",
+        data: { from: 190, to: 170, sessionId: second },
       });
+    });
+
+    it("a reduction undone before START is not logged", async () => {
+      await db.runs.put(run({ perceivedEffort: 4, date: new Date(Date.now() - 10 * HOUR) }));
+      const hook = await mount("A1");
+      act(() => hook.result.current.chooseRunOption("reduce_10"));
+      act(() => hook.result.current.resetEdits());
+      await start(hook);
+      await settle();
+      expect(await events()).toHaveLength(0);
+    });
+
+    it("trained recently: reduce is logged at START with the recovery rule", async () => {
+      await db.liftStates.update("squat", { t1LastWorkoutDate: new Date(Date.now() - 20 * HOUR) });
+      const hook = await mount("A1");
+      act(() => hook.result.current.setRecoveryChoice("reduce"));
+      const sessionId = await start(hook);
+      await waitFor(async () => expect(await events()).toHaveLength(1));
+      expect((await events())[0]).toMatchObject({
+        kind: "advisoryAccepted",
+        ruleId: "recovery-windows",
+        title: "Trained recently: Barbell Squat lowered from 190 to 170 lbs for today",
+        data: { advisory: "recovery", choice: "reduce", from: 190, to: 170, sessionId },
+      });
+      const session = (await db.workouts.get(sessionId))!;
+      expect(session.planEdits).toContainEqual({ kind: "weight", exerciseId: "squat", tier: "T1", weight: 170 });
     });
 
     it("dismissing the activity note or a time-off suggestion is recorded with its rule", async () => {
@@ -437,6 +514,9 @@ describe("advisories", () => {
       const hook = await mount("A1");
       act(() => hook.result.current.dismissActivityNote());
       act(() => hook.result.current.dismissDecay("squat", "T1"));
+      await settle();
+      expect(await events()).toHaveLength(0);
+      await start(hook);
       await waitFor(async () => expect(await events()).toHaveLength(2));
       const rules = (await events()).map((e) => [e.kind, e.ruleId]).sort();
       expect(rules).toEqual([
@@ -453,13 +533,14 @@ describe("advisories", () => {
       expect(await events()).toHaveLength(0);
     });
 
-    it("a failure to record never blocks the choice", async () => {
+    it("a failure to record never blocks the choice or the start", async () => {
       await db.runs.put(run({}));
       const add = vi.spyOn(db.coachEvents, "add").mockRejectedValueOnce(new Error("disk full"));
       const error = vi.spyOn(console, "error").mockImplementation(() => {});
       const hook = await mount("A1");
       act(() => hook.result.current.chooseRunOption("proceed"));
       expect(hook.result.current.runAdvisory).toBeNull();
+      expect(await start(hook)).toEqual(expect.any(String));
       await waitFor(() => expect(error).toHaveBeenCalled());
       add.mockRestore();
       error.mockRestore();
