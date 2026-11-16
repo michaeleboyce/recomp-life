@@ -107,7 +107,7 @@ function PerSetEditor({
                   <Trash2 className="size-4" aria-hidden="true" />
                 </button>
               </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-14">
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
                 <Stepper
                   label={`${name} set ${i + 1} weight`}
                   value={set.weight}
@@ -116,7 +116,7 @@ function PerSetEditor({
                   min={minWeight}
                   onChange={(weight) => update(i, { weight })}
                 />
-                <span aria-hidden="true" className="font-mono text-sm text-muted-foreground">×</span>
+                <span aria-hidden="true" className="px-0.5 font-mono text-sm text-muted-foreground">×</span>
                 <Stepper
                   label={`${name} set ${i + 1} reps`}
                   value={set.reps}

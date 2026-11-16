@@ -47,7 +47,7 @@ export function SetChips({
 
   return (
     <section aria-label={`Sets of ${name}`} className="flex flex-col gap-2">
-      <ol className="flex flex-wrap gap-1.5">
+      <ol className="grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1.5">
         {chips.map((chip) => {
           const label = roleLabel(chip.role);
           const reps = `×${chip.reps}${chip.isAMRAP && chip.state !== "done" ? "+" : ""}`;
@@ -69,7 +69,7 @@ export function SetChips({
             </>
           );
           const base =
-            "flex min-h-11 min-w-14 flex-col items-center justify-center gap-1 rounded-xl border-[1.5px] px-2 py-1.5";
+            "flex min-h-11 w-full flex-col items-center justify-center gap-1 rounded-xl border-[1.5px] px-0.5 py-1.5";
           const what = `Set ${chip.index + 1}${label ? `, ${label.toLowerCase()}` : ""}: ${chip.weight} ${unit} × ${chip.reps}`;
           return (
             <li key={chip.index} data-chip={chip.state} data-role={chip.role}>

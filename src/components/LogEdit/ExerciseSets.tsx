@@ -97,12 +97,17 @@ function DropsRow({ drops, onEdit }: { drops: SetLog[]; onEdit: (set: SetLog) =>
       <span aria-hidden="true">↳ </span>
       {drops.map((drop, i) => (
         <span key={drop.id} className="inline-flex items-center">
-          {i > 0 && <span aria-hidden="true">, </span>}
+          {/* The comma in the body font: a monospace comma sits mid-cell, away from the set. */}
+          {i > 0 && (
+            <span aria-hidden="true" className="font-sans whitespace-pre">
+              {", "}
+            </span>
+          )}
           <button
             type="button"
             onClick={() => onEdit(drop)}
             aria-label={`Edit drop set: ${formatLbs(drop.weight)} lbs, ${drop.actualReps} reps`}
-            className="min-h-11 rounded-md px-1 text-foreground outline-none transition-colors hover:bg-card/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="min-h-11 rounded-md pl-1 text-foreground outline-none transition-colors hover:bg-card/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             {formatLbs(drop.weight)}×{drop.actualReps}
           </button>
