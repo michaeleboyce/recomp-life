@@ -11,6 +11,27 @@ import type { SourceId } from "./sources";
 
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
+    date: "2026-11-16",
+    ruleId: "transfer-ratio",
+    change:
+      "Added as a planned rule (not active yet): each home exercise gets a starting ratio to its barbell lift, from a study where one exists, and learns your own ratio from home and gym sessions done close together.",
+    sources: ["saeterbakken2011", "saeterbakken2013", "speirs2016"],
+  },
+  {
+    date: "2026-11-16",
+    ruleId: "strength-pooling",
+    change:
+      "Added as a planned rule (not active yet): barbell and home sessions pool into one strength estimate per lift, with home sessions counting less, which will set the first weight back at the gym or at home.",
+    sources: [],
+  },
+  {
+    date: "2026-11-16",
+    ruleId: "drop-set-evidence",
+    change:
+      "Added as a planned rule (not active yet): drops count as half a set of volume, at most one extra set per working set, and as a small, fatigue-adjusted part of the strength estimate; they never make a new best.",
+    sources: ["havers2026", "sodal2023"],
+  },
+  {
     date: "2026-11-15",
     ruleId: "forecast-stall",
     change:

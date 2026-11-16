@@ -573,6 +573,68 @@ export const SOURCES = {
     pmid: "21872751",
     fullTextUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC3880593",
   },
+  saeterbakken2013: {
+    short: "Saeterbakken 2013",
+    authors: "Saeterbakken & Fimland",
+    year: 2013,
+    title:
+      "Effects of body position and loading modality on muscle activity and strength in shoulder presses",
+    journal: "Journal of Strength and Conditioning Research",
+    design: "trial",
+    population: "15 healthy men, four shoulder-press variations",
+    finding:
+      "Standing dumbbell shoulder press 1RM was about 7% lower than standing barbell press 1RM and about 10% lower than seated dumbbell press 1RM.",
+    url: "https://doi.org/10.1519/JSC.0b013e318276b873",
+    doi: "10.1519/JSC.0b013e318276b873",
+    pmid: "23096062",
+  },
+  speirs2016: {
+    short: "Speirs 2016",
+    authors: "Speirs et al.",
+    year: 2016,
+    title:
+      "Unilateral vs. Bilateral Squat Training for Strength, Sprints, and Agility in Academy Rugby Players",
+    journal: "Journal of Strength and Conditioning Research",
+    design: "rct",
+    population: "18 academy rugby players, 5 weeks",
+    finding:
+      "Training with back squats or rear-foot-elevated split squats raised both lifts' 1RM similarly. At the start, the split squat 1RM (one leg, loaded with a barbell) averaged 75–76 kg and the back squat 1RM about 152–156 kg.",
+    url: "https://doi.org/10.1519/JSC.0000000000001096",
+    doi: "10.1519/JSC.0000000000001096",
+    pmid: "26200193",
+  },
+  sodal2023: {
+    short: "Sødal 2023",
+    authors: "Sødal et al.",
+    year: 2023,
+    title:
+      "Effects of Drop Sets on Skeletal Muscle Hypertrophy: A Systematic Review and Meta-analysis",
+    journal: "Sports Medicine - Open",
+    design: "meta-analysis",
+    population: "6 studies, 142 participants",
+    finding:
+      "Drop sets and traditional sets increased muscle size by similar amounts, and some drop-set protocols took a half to a third of the time.",
+    url: "https://doi.org/10.1186/s40798-023-00620-5",
+    doi: "10.1186/s40798-023-00620-5",
+    pmid: "37523092",
+    fullTextUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10390395",
+  },
+  havers2026: {
+    short: "Havers 2026",
+    authors: "Havers et al.",
+    year: 2026,
+    title:
+      "Acute and Chronic Effects of Drop-Set Training: A Meta-Analysis and Systematic Review",
+    journal: "Sports Medicine - Open",
+    design: "meta-analysis",
+    population: "12 studies, 274 participants",
+    finding:
+      "Drop sets felt harder and raised blood lactate more than traditional sets in the moment, and gave similar long-term gains in muscle size and strength.",
+    url: "https://doi.org/10.1186/s40798-026-01012-1",
+    doi: "10.1186/s40798-026-01012-1",
+    pmid: "41920484",
+    fullTextUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC13043944",
+  },
 } as const satisfies Record<string, EvidenceSource>;
 
 export type SourceId = keyof typeof SOURCES;
