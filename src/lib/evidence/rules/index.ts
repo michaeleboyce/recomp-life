@@ -18,11 +18,13 @@ import { PAIN_RULES } from "./pain";
 import { EQUIPMENT_RULES } from "./equipment";
 import { FORECAST_RULES } from "./forecast";
 import { READINESS_SCORE_RULES } from "./readinessScore";
+import { STRENGTH_RULES } from "./strength";
 
 /** Rule groups in display order. Used to detect duplicate ids across files. */
 export const RULE_GROUPS = [
   PROGRESSION_RULES,
   EFFORT_RULES,
+  STRENGTH_RULES,
   REST_RULES,
   RECOVERY_RULES,
   RUNNING_RULES,
@@ -38,6 +40,7 @@ export const RULE_GROUPS = [
 export const EVIDENCE_RULES = {
   ...PROGRESSION_RULES,
   ...EFFORT_RULES,
+  ...STRENGTH_RULES,
   ...REST_RULES,
   ...RECOVERY_RULES,
   ...RUNNING_RULES,
