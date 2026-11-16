@@ -367,11 +367,17 @@ export function useWorkoutSetup(
   const t1Reduction = useMemo(() => {
     if (!t1Entry) return null;
     const to = lighterWeight(t1Entry, equipment);
-    return to === null ? null : { exerciseId: t1Entry.exerciseId, from: t1Entry.weight, to };
+    const shownId = t1Entry.substituteExerciseId ?? t1Entry.exerciseId;
+    return to === null
+      ? null
+      : {
+          exerciseId: t1Entry.exerciseId,
+          /** The lift as the plan shows it (a home substitute's own name). */
+          name: EXERCISES[shownId]?.name ?? shownId,
+          from: t1Entry.weight,
+          to,
+        };
   }, [t1Entry, equipment]);
-  const t1Name = t1Entry
-    ? (EXERCISES[t1Entry.substituteExerciseId ?? t1Entry.exerciseId]?.name ?? t1Entry.exerciseId)
-    : "";
 
   /**
    * Lowers today's T1 to `t1Reduction.to` as a plan edit (so, like any lighter lift,
@@ -380,14 +386,14 @@ export function useWorkoutSetup(
    */
   const reduceT1 = useCallback(() => {
     if (!t1Reduction) return null;
-    const { exerciseId, from, to } = t1Reduction;
+    const { exerciseId, name, from, to } = t1Reduction;
     changeEdits((list) => weightEdit(list, exerciseId, "T1", to));
     return {
-      change: `${t1Name} lowered from ${from} to ${to} lbs for today`,
+      change: `${name} lowered from ${from} to ${to} lbs for today`,
       data: { from, to, exerciseId },
       requires: { exerciseId, tier: "T1" as const, weight: to },
     };
-  }, [t1Reduction, t1Name, changeEdits]);
+  }, [t1Reduction, changeEdits]);
 
   /**
    * Acts on a run advisory and queues the choice for the log. Extra warm-ups turns

@@ -24,7 +24,7 @@ interface SetupAdvisoriesProps {
    * What "reduce" does to today's T1 (run and recovery advisories alike); null when it
    * would change nothing, and then it is not offered.
    */
-  reduction: { from: number; to: number } | null;
+  reduction: { name: string; from: number; to: number } | null;
   decaySuggestions: ExerciseDecaySuggestion[];
   onAcceptDecay: (exerciseId: string, tier: "T1" | "T2", weight: number) => void;
   onDismissDecay: (exerciseId: string, tier: string) => void;
@@ -120,13 +120,8 @@ export function SetupAdvisories(props: SetupAdvisoriesProps) {
           actions={
             <>
               {recoveryButton("Proceed as planned", "proceed")}
-              {reduction &&
-                recoveryButton(
-                  <>
-                    Lower <Term id="t1">T1</Term> to {reduction.to} lbs
-                  </>,
-                  "reduce"
-                )}
+              {/* Named, not "T1": a glossary button cannot sit inside this button. */}
+              {reduction && recoveryButton(`Lower ${reduction.name} to ${reduction.to} lbs`, "reduce")}
             </>
           }
         >

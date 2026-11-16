@@ -339,7 +339,7 @@ describe("advisories", () => {
     expect(hook.result.current.recoveryWarnings).toEqual([
       { exerciseName: "Barbell Squat", hoursAgo: 20 },
     ]);
-    expect(hook.result.current.t1Reduction).toEqual({ exerciseId: "squat", from: 190, to: 170 });
+    expect(hook.result.current.t1Reduction).toEqual({ exerciseId: "squat", name: "Barbell Squat", from: 190, to: 170 });
     act(() => hook.result.current.setRecoveryChoice("reduce"));
     expect(hook.result.current.recoveryChoice).toBe("reduce");
     // The same plan edit as the run advisory's reduce: the plan the workout will run.
@@ -367,7 +367,7 @@ describe("advisories", () => {
     await db.liftStates.update("ohp", { t1LastWorkoutDate: new Date(Date.now() - 20 * HOUR) });
     const hook = await mount("B1");
     await waitFor(() => expect(hook.result.current.location).toBe("home"));
-    expect(hook.result.current.t1Reduction).toEqual({ exerciseId: "ohp", from: 35, to: 30 });
+    expect(hook.result.current.t1Reduction).toEqual({ exerciseId: "ohp", name: "DB Shoulder Press", from: 35, to: 30 });
   });
 
   it("suggests a lower weight after time off; accepting saves it and settles the suggestion", async () => {

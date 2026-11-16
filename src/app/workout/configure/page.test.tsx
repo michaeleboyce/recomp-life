@@ -247,8 +247,9 @@ describe("configure page", () => {
     const decayTitle = screen.getByText((_, el) => el?.getAttribute("data-slot") === "callout-title" && el.textContent === "Barbell Bench Press (T2)");
     expect(decayTitle.querySelector('[data-term="t2"]')).not.toBeNull();
     // Trained recently: the reduce button says what it does, and does it.
-    const lower = screen.getByRole("button", { name: /^Lower T1 to 170 lbs$/ });
-    expect(lower.querySelector('[data-term="t1"]')).not.toBeNull();
+    const lower = screen.getByRole("button", { name: "Lower Barbell Squat to 170 lbs" });
+    // No glossary button inside it: a button may not contain another.
+    expect(lower.querySelector("button")).toBeNull();
     expect(
       ["run-interference", "activity-fatigue", "recovery-windows"].every((id) =>
         document.querySelector(`[data-evidence="${id}"]`)
