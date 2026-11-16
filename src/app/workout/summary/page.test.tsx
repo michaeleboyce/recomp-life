@@ -3,6 +3,8 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { initializeDatabase } from "@/db/init";
+import { db } from "@/db/local";
+import { displayLiftName } from "@/components/Today/todayModel";
 import { clearDb, runSession } from "@/lib/data/testUtils";
 
 // The 3D figure needs WebGL; the card's list is what this page adds.
@@ -44,6 +46,35 @@ describe("/workout/summary", () => {
     expect(screen.getByText("How do you feel?")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Log an issue/ })).toHaveAttribute("href", "/body-check");
     expect(screen.getByRole("link", { name: "Done" })).toHaveAttribute("href", "/");
+  });
+
+  it("at home, says what changed for each home exercise: its own next weight, not the barbell's", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const home = await runSession(
+      { templateId: "B1", location: "home", startedAt: new Date("2026-03-04T09:00:00Z") },
+      setNow
+    );
+    vi.useRealTimers();
+    const barbellBefore = (await db.liftStates.get("ohp"))!.t1Weight;
+    const entry = home.plan.find((e) => !e.isWarmUp && e.tier === "T1")!;
+    expect(entry.substituteExerciseId).toBeTruthy();
+    const variant = (await db.variantStates.toArray()).find(
+      (v) => v.liftId === entry.exerciseId && v.exerciseId === entry.substituteExerciseId && v.tier === "T1"
+    )!;
+    // Every set passed: the home exercise went up one dumbbell step; the barbell did not move.
+    expect(variant.weight).toBe(entry.weight + 5);
+    expect((await db.liftStates.get("ohp"))!.t1Weight).toBe(barbellBefore);
+
+    query = new URLSearchParams({ sessionId: home.workoutId });
+    render(<WorkoutSummaryPage />);
+    const did = await screen.findByRole("region", { name: "What it did" });
+    const name = displayLiftName(entry.substituteExerciseId!);
+    const row = (await within(did).findByText(name)).closest("li")!;
+    expect(row).toHaveTextContent(
+      `passed: next ${variant.weight} lbs${variant.perHand ? " a hand" : ""} ${variant.stage}`
+    );
+    expect(row).toHaveTextContent("+5");
+    expect(did).not.toHaveTextContent(`next ${barbellBefore}`);
   });
 
   it("sets every forecast made at start against what happened", async () => {
