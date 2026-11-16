@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertCircle, AlertTriangle, Info, Sparkles, type LucideIcon } from "lucide-react";
 import { deletePainEntry, updatePainEntry } from "@/lib/data/records";
-import { discardStaleWorkouts, discardWorkout } from "@/lib/data/workouts";
+import { discardEmptyStaleWorkouts, saveLeftWorkout } from "@/lib/data/unfinished";
+import { discardWorkout } from "@/lib/data/workouts";
 import type { Insight, InsightSeverity } from "@/lib/insights";
 import { cn } from "@/lib/utils";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
@@ -12,8 +13,6 @@ import { SectionHeader } from "@/components/ui/section-header";
 
 /** How many items show before "N more". */
 const VISIBLE = 3;
-/** Unfinished sessions older than this are no longer offered for resume. */
-const STALE_WORKOUT_MS = 24 * 60 * 60 * 1000;
 
 const ICON: Partial<Record<InsightSeverity, { Icon: LucideIcon; className: string }>> = {
   action: { Icon: AlertCircle, className: "text-warning" },
@@ -53,10 +52,13 @@ export const hasAttention = (insights: Insight[] | undefined): boolean =>
 export const hasPositive = (insights: Insight[] | undefined): boolean =>
   Boolean(insights?.some((i) => i.severity === "positive"));
 
-/** Removes unfinished workouts older than a day (as the old abandoned-workout banner did). */
+/**
+ * Removes unfinished workouts older than a day that have no working set. One with any
+ * working set is kept: Today asks to save or discard it (the "left-workout" row).
+ */
 export function useDiscardStaleWorkouts(): void {
   useEffect(() => {
-    discardStaleWorkouts(STALE_WORKOUT_MS).catch((err) =>
+    discardEmptyStaleWorkouts().catch((err) =>
       console.error("Failed to clear stale workouts:", err)
     );
   }, []);
@@ -153,6 +155,19 @@ function RowExtras({ insight }: { insight: Insight }) {
   if (insight.kind === "unfinished-workout") {
     return (
       <div className="flex gap-2 pt-1">
+        <button type="button" disabled={busy} className={cn(buttonClass, "text-destructive")} onClick={() => run(() => discardWorkout(target))}>
+          Discard
+        </button>
+      </div>
+    );
+  }
+  if (insight.kind === "left-workout") {
+    // Too old to resume: save it as it was left, or discard it (Recently deleted keeps it).
+    return (
+      <div className="flex gap-2 pt-1">
+        <button type="button" disabled={busy} className={buttonClass} onClick={() => run(() => saveLeftWorkout(target))}>
+          End &amp; save
+        </button>
         <button type="button" disabled={busy} className={cn(buttonClass, "text-destructive")} onClick={() => run(() => discardWorkout(target))}>
           Discard
         </button>

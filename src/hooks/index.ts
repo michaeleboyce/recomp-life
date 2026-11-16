@@ -7,6 +7,7 @@ export {
   useWorkout,
   useCompletedWorkouts,
   useUnfinishedWorkout,
+  useLeftWorkouts,
 } from "./useWorkouts";
 export {
   useBodyweightLog,

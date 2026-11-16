@@ -1,10 +1,8 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
+import { isLeftWorkout, RESUME_WINDOW_MS } from "@/lib/unfinishedWorkout";
 import type { LiftState, WorkoutSession } from "@/types";
 import { liveRow, liveRows } from "./liveRows";
-
-/** Unfinished sessions older than this are not offered for resume. */
-const UNFINISHED_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Epoch milliseconds of a stored date, 0 when it is missing or unreadable. Rows synced
@@ -45,14 +43,28 @@ export function useCompletedWorkouts(): WorkoutSession[] | undefined {
   );
 }
 
-/** The most recent unfinished workout started in the last 24 hours, else `null`. */
+/**
+ * The most recent unfinished workout started in the last 24 hours, else `null`: the
+ * one offered for resume. Older unfinished workouts with sets are `useLeftWorkouts`.
+ */
 export function useUnfinishedWorkout(): WorkoutSession | null | undefined {
   return useLiveQuery(async () => {
-    const cutoff = Date.now() - UNFINISHED_WINDOW_MS;
+    const cutoff = Date.now() - RESUME_WINDOW_MS;
     return (
       (await workoutsNewestFirst()).find(
         (w) => w.completedAt == null && time(w.startedAt) > cutoff
       ) ?? null
     );
+  }, []);
+}
+
+/**
+ * Unfinished workouts too old to resume that hold working sets, most recently started
+ * first. They are never discarded on their own; Today asks to save or discard each.
+ */
+export function useLeftWorkouts(): WorkoutSession[] | undefined {
+  return useLiveQuery(async () => {
+    const now = Date.now();
+    return (await workoutsNewestFirst()).filter((w) => isLeftWorkout(w, now));
   }, []);
 }
