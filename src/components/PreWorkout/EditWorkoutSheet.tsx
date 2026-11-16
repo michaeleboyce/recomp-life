@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Plus, RotateCcw } from "lucide-react";
+import { minWeightFor, weightStepFor } from "@/components/ActiveWorkout/setPlan";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
@@ -35,7 +36,7 @@ export function EditWorkoutSheet({
   onOpenChange: (open: boolean) => void;
 }) {
   const [picking, setPicking] = useState<Picking>(null);
-  const { plan, impact, edits, location, exercisePreferences } = setup;
+  const { plan, impact, edits, location, exercisePreferences, equipment } = setup;
 
   const rows = useMemo(() => plan.filter((entry) => !entry.isWarmUp), [plan]);
   const inPlan = useMemo(
@@ -124,6 +125,9 @@ export function EditWorkoutSheet({
                   onRemove={() => setup.removeExercise(entry.exerciseId, entry.tier)}
                   onScheme={(sets, reps) => setup.setScheme(entry.exerciseId, entry.tier, sets, reps)}
                   onWeight={(weight) => setup.setWeight(entry.exerciseId, entry.tier, weight)}
+                  onSetWeights={(sets) => setup.setSetWeights(entry.exerciseId, entry.tier, sets)}
+                  weightStep={weightStepFor(entry.substituteExerciseId || entry.exerciseId, location, equipment)}
+                  minWeight={minWeightFor(entry.substituteExerciseId || entry.exerciseId, location, equipment)}
                 />
               ))}
             </ul>
