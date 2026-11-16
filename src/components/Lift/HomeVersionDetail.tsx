@@ -26,7 +26,7 @@ import { SessionList } from "./SessionList";
 import { useLiftView } from "./useLiftView";
 import { WeightChanges } from "./WeightChanges";
 
-const EYEBROW = "font-display text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-primary";
+const EYEBROW = "font-display text-[12px] font-semibold uppercase tracking-[0.16em] text-accent-primary";
 
 /** Clear over the photo, then the page colour under the name. */
 const BANNER_FADE =

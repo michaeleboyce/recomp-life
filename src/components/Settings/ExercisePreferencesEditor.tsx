@@ -104,7 +104,7 @@ export default function ExercisePreferencesEditor({
                 <span className="text-sm font-medium text-foreground truncate">
                   {exercise.name}
                 </span>
-                <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[12px] text-muted-foreground">
                   {getEquipmentLabel(exercise.type)}
                 </span>
               </div>
@@ -116,7 +116,7 @@ export default function ExercisePreferencesEditor({
                     key={opt.value}
                     type="button"
                     onClick={() => handlePreferenceChange(exercise.id, opt.value)}
-                    className={`px-2 py-1 text-[11px] font-medium transition-colors ${
+                    className={`px-2 py-1 text-[12px] font-medium transition-colors ${
                       pref === opt.value
                         ? opt.value === "blocked"
                           ? "bg-destructive/10 text-destructive"

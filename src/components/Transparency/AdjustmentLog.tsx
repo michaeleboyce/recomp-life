@@ -85,7 +85,7 @@ function EntryRow({
   const date = dateLabel(entry, now);
   return (
     <li className="flex gap-4 border-b border-border py-4 last:border-b-0">
-      <div className="w-12 shrink-0 font-mono text-[11px] leading-tight text-muted-foreground">
+      <div className="w-12 shrink-0 font-mono text-[12px] leading-tight text-muted-foreground">
         <p>{date.top}</p>
         {date.bottom && <p>{date.bottom}</p>}
       </div>

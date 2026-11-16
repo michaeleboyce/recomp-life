@@ -46,7 +46,7 @@ export function EffortPicker({
             }`}
           >
             <span className="text-sm font-semibold">{level}</span>
-            <span className="text-[10px] leading-tight">{EFFORT_LABELS[level]}</span>
+            <span className="text-[12px] leading-tight">{EFFORT_LABELS[level]}</span>
           </button>
         ))}
       </div>

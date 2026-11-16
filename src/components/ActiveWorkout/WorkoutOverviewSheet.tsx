@@ -133,7 +133,7 @@ export function WorkoutOverviewSheet({
                     )}
                   </span>
 
-                  <TierBadge tier={exercise.tier} variant="soft" className="text-[10px]" />
+                  <TierBadge tier={exercise.tier} variant="soft" className="text-[12px]" />
 
                   <span className="min-w-0 flex-1 truncate text-sm">{exerciseInfo.name}</span>
 

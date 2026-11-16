@@ -90,7 +90,7 @@ export function LiftRows({ rows }: { rows: TodayLiftRow[] }) {
             data-testid="hero-exercise"
             className="relative grid min-h-[52px] grid-cols-[22px_minmax(0,1fr)_auto_12px] items-center gap-2.5 border-t border-border first:border-t-0"
           >
-            <span className={cn("font-mono text-[11px] font-medium", style.text)}>
+            <span className={cn("font-mono text-[12px] font-medium", style.text)}>
               {tierTerm ? (
                 <Term id={tierTerm} className="relative z-10">
                   {style.label}
@@ -121,9 +121,9 @@ export function LiftRows({ rows }: { rows: TodayLiftRow[] }) {
                 <b className="font-display text-[26px] leading-none font-extrabold text-foreground tabular-nums">
                   {formatLbs(entry.weight)}
                 </b>
-                {perHand && <span className="text-[11px] text-muted-foreground">/hand</span>}
+                {perHand && <span className="text-[12px] text-muted-foreground">/hand</span>}
               </span>
-              <span className="block font-mono text-[11px] font-medium text-muted-foreground">
+              <span className="block font-mono text-[12px] font-medium text-muted-foreground">
                 {entry === firstPlus?.entry ? (
                   <Term id="amrap-plus" className="relative z-10">
                     {scheme}

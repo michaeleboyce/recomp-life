@@ -32,7 +32,7 @@ export function WhatItChanged({ workoutId }: { workoutId: string }) {
 
   return (
     <section aria-label="What it did" className="flex flex-col">
-      <h2 className="font-display text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+      <h2 className="font-display text-[12px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
         What the app changed, and why
       </h2>
       <ul className="mt-1.5">

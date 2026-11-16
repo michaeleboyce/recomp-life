@@ -54,6 +54,6 @@ describe("RepForecastBars", () => {
 
   it("keeps labels at least 11px", () => {
     render(<RepForecastBars pmf={pmf} firstReps={3} range={[4, 6]} />);
-    expect(screen.getByText("18%")).toHaveClass("text-[11px]");
+    expect(screen.getByText("18%")).toHaveClass("text-[12px]");
   });
 });

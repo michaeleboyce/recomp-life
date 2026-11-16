@@ -13,7 +13,7 @@ import { LocationToggle } from "./LocationToggle";
 import { formatEyebrowDate, photoPosition } from "./todayModel";
 
 /** Small capitals in the display face, as on the boards. */
-export const EYEBROW = "font-display text-[11px] font-semibold uppercase tracking-[0.16em]";
+export const EYEBROW = "font-display text-[12px] font-semibold uppercase tracking-[0.16em]";
 
 /**
  * Today's first-load motion: the hero's words and figure, then each forecast tile, rise

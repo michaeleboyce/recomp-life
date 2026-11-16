@@ -162,10 +162,10 @@ function ForecastButtons({
   return (
     <div data-testid="rep-forecast" className="flex flex-col gap-1">
       <div className="flex items-baseline justify-between">
-        <span className="font-display text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+        <span className="font-display text-[12px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
           The app&apos;s forecast
         </span>
-        <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
           <span
             aria-hidden="true"
             className="inline-block size-2 rounded-[2px] bg-chart-line"

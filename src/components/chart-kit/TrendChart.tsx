@@ -438,7 +438,7 @@ export function TrendChart(props: TrendChartProps) {
               transform: `translateX(${inspectorFrac < 0.34 ? "8px" : inspectorFrac > 0.66 ? "calc(-100% - 8px)" : "-50%"})`,
             }}
           >
-            <div className="text-[11px] text-chart-axis">
+            <div className="text-[12px] text-chart-axis">
               {formatTime(selectedPoint.t)}
               {selectedPoint.label ? ` · ${selectedPoint.label}` : ""}
             </div>

@@ -44,7 +44,7 @@ export function FormSheetButton({ exerciseId, location, className }: FormSheetBu
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "rounded-full border border-border px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground",
+          "rounded-full border border-border px-2.5 py-0.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground",
           className
         )}
       >

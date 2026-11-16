@@ -26,7 +26,7 @@ export function DoneHero({ workout }: { workout: WorkoutSession }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2.5">
       <div className="flex min-w-0 flex-col gap-2">
-        <span className="font-display text-[11px] font-semibold tracking-[0.16em] text-accent-primary uppercase">
+        <span className="font-display text-[12px] font-semibold tracking-[0.16em] text-accent-primary uppercase">
           {workout.templateId} complete{length}
         </span>
         <h1 className="font-display text-[34px] leading-[0.95] font-extrabold break-words uppercase">

@@ -40,7 +40,7 @@ export function ExerciseBlock({ exercise, location, isAMRAPSet = false }: Exerci
         <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px] text-muted-foreground">
           <TierBadge tier={exercise.tier} className="rounded-md font-bold" />
           <TermIcon id={TIER_TERM[exercise.tier]} hideLinks className="-ml-1.5" />
-          <span className="font-display text-[11px] font-semibold tracking-[0.16em] uppercase">
+          <span className="font-display text-[12px] font-semibold tracking-[0.16em] uppercase">
             {exercise.isWarmUp
               ? `Warm-up · ${exercise.targetReps} ${exercise.targetReps === 1 ? "rep" : "reps"}`
               : `Set ${currentSet} of ${exercise.targetSets}`}

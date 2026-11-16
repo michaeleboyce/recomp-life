@@ -33,7 +33,7 @@ function EntryRow({ entry }: { entry: UpcomingEntry }) {
       data-assumed={entry.assumed || undefined}
       className="flex items-baseline gap-1.5 text-xs leading-tight font-semibold text-foreground"
     >
-      <span className={cn("w-4 shrink-0 font-mono text-[10px] font-bold", style.text)}>{style.label}</span>
+      <span className={cn("w-4 shrink-0 font-mono text-[12px] font-bold", style.text)}>{style.label}</span>
       <span className="min-w-0 truncate">
         {displayLiftName(shownId)}
         {entry.substituteExerciseId && (
@@ -43,7 +43,7 @@ function EntryRow({ entry }: { entry: UpcomingEntry }) {
       <b className="ml-auto font-display text-[19px] leading-none font-extrabold tabular-nums">
         <WeightLabel entry={entry} />
       </b>
-      <span className="w-[38px] shrink-0 text-right font-mono text-[10px] font-normal text-muted-foreground">
+      <span className="w-[38px] shrink-0 text-right font-mono text-[12px] font-normal text-muted-foreground">
         {entry.sets}×{entry.reps}
         {entry.isAMRAP ? "+" : ""}
       </span>

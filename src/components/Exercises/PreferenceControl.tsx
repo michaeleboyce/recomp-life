@@ -47,7 +47,7 @@ export function CurrentLocationMarks({
   return (
     <div
       aria-hidden="true"
-      className={cn("grid grid-cols-3 px-1 text-center text-[11px] leading-4", className)}
+      className={cn("grid grid-cols-3 px-1 text-center text-[12px] leading-4", className)}
     >
       {(["all", "gym", "home"] as const).map((scope) => (
         <span
@@ -114,7 +114,7 @@ export function PreferenceControl({
           </button>
         ))}
       </div>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-[12px] text-muted-foreground">
         {scope === "all"
           ? "Preferred exercises are offered first when you set up a workout."
           : overridden

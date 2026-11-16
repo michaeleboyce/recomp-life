@@ -63,7 +63,7 @@ export default function MuscleHeatCard() {
                   ))}
                 </ul>
                 {untouched.length > 0 && (
-                  <p className="text-[11px] leading-snug text-muted-foreground">
+                  <p className="text-[12px] leading-snug text-muted-foreground">
                     Not yet this week: {untouched.slice(0, 3).map(formatMuscle).join(", ")}
                     {untouched.length > 3 ? ` +${untouched.length - 3}` : ""}
                   </p>
