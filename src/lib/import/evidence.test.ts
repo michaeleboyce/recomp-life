@@ -1,0 +1,190 @@
+import { describe, expect, it } from "vitest";
+import {
+  STRENGTH_POOLING,
+  learnTransferRatio,
+  muscleStrengthIndex,
+  pooledLiftEstimate,
+  sessionEstimates,
+} from "@/lib/strength";
+import { strengthEvidenceOf, strengthSetsOf } from "@/lib/workout/strength";
+import {
+  addMuscleValues,
+  effortRpe,
+  importedMuscleLastTrained,
+  importedMuscleLoad,
+  importedMuscleSets,
+  importedStrengthSets,
+  latestPerMuscle,
+} from "./evidence";
+import { importDay, importedSession, importedSet } from "./testRecords";
+
+// Made-up sessions only.
+
+describe("importedStrengthSets", () => {
+  it("turns mapped sets into strength sets as lifted, per dumbbell for a two-dumbbell exercise", () => {
+    const session = importedSession([
+      importedSet({ id: "a", exerciseName: "Dumbbell Bench Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50.00003, implementCount: 2, reps: 8 }),
+      importedSet({ id: "b", exerciseName: "Barbell Squat", mappedExerciseId: "squat", weightPerImplementLb: 185, reps: 5 }),
+    ]);
+    const [db, squat] = importedStrengthSets([session]);
+    expect(db).toMatchObject({ id: "a", exerciseId: "db_bench", weight: 50, perHand: true, reps: 8, tier: "T1", isAMRAP: true, role: "working" });
+    expect(squat).toMatchObject({ exerciseId: "squat", weight: 185, perHand: false });
+    expect(db.sessionId).toBe(session.id);
+    expect(new Date(squat.date).getTime()).toBeGreaterThan(new Date(db.date).getTime());
+  });
+
+  it("never turns a muscle-guessed or unknown name into evidence about a lift", () => {
+    const session = importedSession([
+      importedSet({ exerciseName: "Wobbly Bench Thing", mappedExerciseId: null, muscles: ["chest"] }),
+      importedSet({ exerciseName: "Zorblax", mappedExerciseId: null }),
+    ]);
+    expect(importedStrengthSets([session])).toEqual([]);
+  });
+
+  it("keeps warm-ups as warm-ups, links a drop to the set before it, and reads effort words", () => {
+    const session = importedSession([
+      importedSet({ id: "w", role: "warmup", weightPerImplementLb: 95 }),
+      importedSet({ id: "x", role: "work", weightPerImplementLb: 185, effort: "Hard" }),
+      importedSet({ id: "d1", role: "drop", weightPerImplementLb: 135, reps: 8 }),
+      importedSet({ id: "d2", role: "drop", weightPerImplementLb: 95, reps: 10 }),
+    ]);
+    const sets = importedStrengthSets([session]);
+    expect(sets.map((s) => s.role)).toEqual(["warmup", "working", "drop", "drop"]);
+    expect(sets[1].rpe).toBe(9);
+    expect(sets[2].dropOf).toBe("x");
+    expect(sets[3].dropOf).toBe("d1");
+    // The estimated max is the working set's; drops never set it.
+    const [estimate] = sessionEstimates(sets, "squat");
+    expect(estimate.bestSet.id).toBe("x");
+    expect(estimate.dropsCounted).toBe(1);
+  });
+
+  it("gives no estimate for a set with no load (bodyweight, assistance or a timed hold)", () => {
+    const session = importedSession([
+      importedSet({ id: "bw", weightPerImplementLb: 0, reps: 10 }),
+      importedSet({ id: "assist", weightPerImplementLb: 40, weightCountsAsLoad: false, reps: 8 }),
+      importedSet({ id: "hold", weightPerImplementLb: 20, reps: null, durationSec: 30 }),
+    ]);
+    const sets = importedStrengthSets([session]);
+    expect(sets.every((s) => !s.isAMRAP)).toBe(true);
+    expect(sessionEstimates(sets, "squat")).toEqual([]);
+  });
+
+  it("leaves out soft-deleted sessions (an undone import)", () => {
+    expect(importedStrengthSets([importedSession([importedSet()], { deletedAt: 5 })])).toEqual([]);
+  });
+});
+
+describe("effortRpe", () => {
+  it("maps the apps' effort words and nothing else", () => {
+    expect(effortRpe("Easy")).toBe(7);
+    expect(effortRpe("Ideal")).toBe(8);
+    expect(effortRpe(" hard ")).toBe(9);
+    expect(effortRpe("Spicy")).toBeNull();
+    expect(effortRpe(null)).toBeNull();
+  });
+});
+
+describe("imported history in the strength model (I9)", () => {
+  const bench = (day: number, weight: number, reps = 5) =>
+    importedSession(
+      [importedSet({ exerciseName: "Barbell Bench Press", mappedExerciseId: "bench", weightPerImplementLb: weight, reps })],
+      { startedAt: importDay(day) }
+    );
+  const dbBench = (day: number, perHand: number, reps = 8) =>
+    importedSession(
+      [importedSet({ exerciseName: "Dumbbell Bench Press", mappedExerciseId: "db_bench", weightPerImplementLb: perHand, reps, implementCount: 2 })],
+      { startedAt: importDay(day) }
+    );
+
+  it("moves the pooled estimate: none from the app's log alone, one with imported history", () => {
+    expect(pooledLiftEstimate("bench", strengthEvidenceOf([], []))).toBeNull();
+    const estimate = pooledLiftEstimate("bench", strengthEvidenceOf([], [bench(0, 150)]));
+    // 150 × (1 + 5/30) = 175.
+    expect(estimate?.value).toBe(175);
+  });
+
+  it("weights an older imported session by the library's half-life (pins the weighting)", () => {
+    const halfLife = STRENGTH_POOLING.evidenceHalfLifeDays;
+    const sets = strengthEvidenceOf([], [bench(0, 150), dbBench(2 * halfLife, 60)]);
+    const estimate = pooledLiftEstimate("bench", sets)!;
+    expect(estimate.basis).toBe("pooled");
+    // The bench session is two half-lives older than the newest session pooled.
+    expect(estimate.ownWeight).toBeCloseTo(0.25, 10);
+    const [related] = estimate.related;
+    expect(related.weight).toBeCloseTo(STRENGTH_POOLING.transferWeight, 10);
+    const own = 175;
+    const expected = (0.25 * own + related.weight * related.liftEquivalent) / (0.25 + related.weight);
+    expect(estimate.value).toBe(Math.round(expected));
+  });
+
+  it("lets a newer session supersede imported history of the same lift", () => {
+    const old = bench(0, 150);
+    const recent = bench(10, 160);
+    expect(pooledLiftEstimate("bench", strengthEvidenceOf([], [old, recent]))?.value).toBe(Math.round(160 * (1 + 5 / 30)));
+  });
+
+  it("learns a ratio from imported barbell and dumbbell sessions close in time", () => {
+    const sets = strengthEvidenceOf([], [bench(0, 150), dbBench(3, 60), bench(14, 155), dbBench(17, 62)]);
+    const ratio = learnTransferRatio("bench", "db_bench", sets)!;
+    expect(ratio.pairs).toBeGreaterThan(0);
+    expect(ratio.basis).toBe("learned");
+  });
+
+  it("is not what the plan reads: strengthSetsOf is the log alone", () => {
+    expect(strengthSetsOf([])).toEqual([]);
+    expect(strengthEvidenceOf([], [bench(0, 150)])).toHaveLength(1);
+  });
+
+  it("feeds the muscle strength index", () => {
+    const index = muscleStrengthIndex(strengthEvidenceOf([], [bench(0, 150), bench(7, 155)]));
+    expect(index.chest?.length).toBeGreaterThan(0);
+  });
+});
+
+describe("imported muscle work", () => {
+  const monday = new Date("2024-03-04T00:00:00Z");
+  const nextMonday = new Date("2024-03-11T00:00:00Z");
+
+  it("counts guessed names for muscle volume, by their guessed muscles", () => {
+    const session = importedSession([
+      importedSet({ exerciseName: "Wobbly Bench Thing", mappedExerciseId: null, muscles: ["chest"] }),
+      importedSet({ exerciseName: "Zorblax", mappedExerciseId: null }),
+    ]);
+    expect(importedMuscleLoad([session], monday, nextMonday)).toEqual({ chest: 1 });
+  });
+
+  it("counts mapped sets by the library's muscles, warm-ups for nothing and drops at half a set", () => {
+    const session = importedSession([
+      importedSet({ id: "w", role: "warmup", mappedExerciseId: "bicep_curls", exerciseName: "Curl" }),
+      importedSet({ id: "x", role: "work", mappedExerciseId: "bicep_curls", exerciseName: "Curl" }),
+      importedSet({ id: "d", role: "drop", mappedExerciseId: "bicep_curls", exerciseName: "Curl" }),
+    ]);
+    const credits = Object.fromEntries(importedMuscleSets([session]).map((s) => [s.id, s.credit]));
+    expect(credits).toEqual({ w: 0, x: 1, d: 0.5 });
+    expect(importedMuscleLoad([session], monday, nextMonday).biceps).toBe(1.5);
+  });
+
+  it("counts only sessions in the week asked for", () => {
+    const outside = importedSession([importedSet({ mappedExerciseId: "bicep_curls" })], {
+      startedAt: new Date("2024-02-20T10:00:00Z"),
+    });
+    expect(importedMuscleLoad([outside], monday, nextMonday)).toEqual({});
+  });
+
+  it("gives each muscle the start of the last imported session that worked it", () => {
+    const early = importedSession([importedSet({ mappedExerciseId: "bicep_curls" })], { startedAt: new Date("2024-03-01T10:00:00Z") });
+    const late = importedSession([importedSet({ mappedExerciseId: "bicep_curls" })], { startedAt: new Date("2024-03-05T10:00:00Z") });
+    const warmOnly = importedSession([importedSet({ mappedExerciseId: "calf_raises", role: "warmup" })]);
+    const last = importedMuscleLastTrained([early, late, warmOnly]);
+    expect(last.biceps?.toISOString()).toBe("2024-03-05T10:00:00.000Z");
+    expect(last.calves).toBeUndefined();
+  });
+
+  it("merges with the app's own muscle values and dates", () => {
+    expect(addMuscleValues({ chest: 2 }, { chest: 1, quads: 3 })).toEqual({ chest: 3, quads: 3 });
+    const a = new Date("2024-03-01T00:00:00Z");
+    const b = new Date("2024-03-02T00:00:00Z");
+    expect(latestPerMuscle({ chest: a }, { chest: b, quads: a })).toEqual({ chest: b, quads: a });
+  });
+});
