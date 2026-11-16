@@ -76,7 +76,7 @@ export function MuscleStrengthList({ index }: { index: MuscleStrengthIndex }) {
                           <span
                             className={cn(
                               "ml-2",
-                              change > 0 ? "text-emerald-500" : change < 0 ? "text-amber-500" : "text-muted-foreground"
+                              change > 0 ? "text-success" : change < 0 ? "text-warning" : "text-muted-foreground"
                             )}
                           >
                             {change > 0 ? "+" : ""}

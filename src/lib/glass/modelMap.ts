@@ -49,7 +49,7 @@ export const MODELS: readonly ModelDef[] = [
     id: "strength",
     label: "Strength estimate",
     blurb: "Your estimated max and the chance of a new best.",
-    ruleIds: ["e1rm-estimate", "amrap-effort", "forecast-reps"],
+    ruleIds: ["e1rm-estimate", "amrap-effort", "forecast-reps", "strength-pooling"],
   },
   {
     id: "trend",
