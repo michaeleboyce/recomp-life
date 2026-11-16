@@ -1,10 +1,11 @@
 // Rows for the Strength tab's Recovery and "Waiting for gym" sections. Pure.
-import { DEFAULT_USER_PROFILE } from "@/db/seed";
-import { adaptExerciseForHome } from "@/lib/autoAdapt";
-import { barbellToBothHands, barbellToDumbbell } from "@/lib/dbConversion";
+import { displayLiftName } from "@/components/Today/todayModel";
 import { EXERCISES } from "@/lib/exercises";
-import { calculateRecoveryStatus, getMostRecent } from "@/lib/recovery";
-import type { LiftState, RecoveryStatus, TrainingPhase } from "@/types";
+import { calculateRecoveryStatus, getMostRecent, lastTrainedDates } from "@/lib/recovery";
+import type { StrengthSet } from "@/lib/strength";
+import { reentryKey, resolveReentry } from "@/lib/workout/reentry";
+import { chooseHomeVariant } from "@/lib/workout/variant";
+import type { EquipmentProfile, LiftState, RecoveryStatus, TrainingPhase, VariantState } from "@/types";
 import { LIFT_NAMES, MAIN_LIFTS } from "./lifts";
 
 const DAY_MS = 86_400_000;
@@ -15,61 +16,76 @@ export const DEFAULT_MAX_DUMBBELL = 50;
 export interface GymDebtItem {
   exerciseId: string;
   name: string;
+  /** The barbell T1 weight as it stands. */
   t1Weight: number;
   /**
-   * The dumbbell weight the lift's home substitute would need, from the same
-   * conversion the Configure screen uses (`barbellToDumbbell` per hand, or
-   * `barbellToBothHands` for a substitute held as one dumbbell). For a lift with no
-   * home substitute it equals `t1Weight`.
+   * The home exercise the lift is trained as at T1, at its own weight as lifted (the
+   * heaviest dumbbell, or it would not be listed). Null when the lift has no home version.
    */
-  dbEquivalent: number;
-  /** `dbEquivalent` minus the heaviest dumbbell at home. */
-  overage: number;
-  /** True when `dbEquivalent` is per hand; false for one dumbbell held in both hands. */
-  perHand: boolean;
-  /** `dbEquivalent` with its unit: "60 lbs/hand" or "180 lbs". */
-  dbLabel: string;
+  home: { exerciseId: string; weight: number; perHand: boolean } | null;
+  /**
+   * The T1 weight of the next gym session: the re-entry weight after home sessions
+   * (`resolveReentry`, the steps the home passes earned and the strength estimate),
+   * else the barbell weight as it stands.
+   */
+  gymWeight: number;
+  /** "Trained at home: Bulgarian split squat, 80 lbs a hand", or "No home version". */
+  homeLabel: string;
+  /** "255 lbs". */
+  gymLabel: string;
+}
+
+export interface GymDebtInput {
+  liftStates: LiftState[];
+  variantStates: VariantState[];
+  /** Every logged set as strength evidence, for the re-entry estimate. */
+  strengthSets?: readonly StrengthSet[];
+  equipment: EquipmentProfile;
 }
 
 /**
- * Barbell lifts that are "waiting for gym": their T1 weight cannot be matched at
- * home. A lift is listed exactly when `adaptExerciseForHome`, called the way the
- * Configure screen calls it, gives the status "exceeds" or "no_substitute", so the
- * two screens agree. ("borderline", within 10 lbs of the limit, is still trained at
- * home and is not listed.)
+ * Barbell lifts that are "waiting for gym": at home their T1 is done as a home exercise
+ * at the heaviest dumbbell (the plan's choice and weight, `chooseHomeVariant` after
+ * re-entry), or they have no home version. Each says what it is trained as at home and
+ * the weight the barbell starts at back at the gym, from the same re-entry rule the gym
+ * plan uses. A home exercise still below the heaviest dumbbell keeps progressing at home
+ * and is not listed.
  */
-export function gymDebtItems(liftStates: LiftState[], maxDumbbellWeight: number): GymDebtItem[] {
-  // Only the dumbbell limit decides the status; the other fields are placeholders.
-  const equipment = { ...DEFAULT_USER_PROFILE.settings.equipment, maxDumbbellWeight };
-  return liftStates.flatMap((state) => {
-    const exercise = EXERCISES[state.exerciseId];
-    if (!exercise || exercise.type !== "barbell") return [];
-    const substitute = exercise.dumbbellAlternative
-      ? EXERCISES[exercise.dumbbellAlternative]
-      : undefined;
-    const { adaptationStatus } = adaptExerciseForHome(
-      exercise,
-      state.t1Weight,
-      equipment,
-      substitute
-    );
-    if (adaptationStatus !== "exceeds" && adaptationStatus !== "no_substitute") return [];
+export function gymDebtItems(input: GymDebtInput): GymDebtItem[] {
+  const { liftStates, variantStates, strengthSets, equipment } = input;
+  const shared = { liftStates, variantStates, equipment, ...(strengthSets ? { strengthSets } : {}) };
+  const home = resolveReentry({ ...shared, location: "home" });
+  const gym = resolveReentry({ ...shared, location: "gym" });
+  const max = equipment.maxDumbbellWeight;
 
-    const perHand = substitute ? substitute.grip !== "both_hands" : false;
-    const dbEquivalent = !substitute
-      ? state.t1Weight
-      : perHand
-        ? barbellToDumbbell(state.t1Weight)
-        : barbellToBothHands(state.t1Weight);
+  return liftStates.flatMap((state): GymDebtItem[] => {
+    const exercise = EXERCISES[state.exerciseId];
+    if (!exercise || exercise.type !== "barbell" || !exercise.requiresGym) return [];
+    const choice = chooseHomeVariant({
+      liftId: state.exerciseId,
+      tier: "T1",
+      liftState: home.liftStates.find((s) => s.exerciseId === state.exerciseId),
+      variantStates: home.variantStates,
+      equipment,
+      ...(strengthSets ? { strengthSets } : {}),
+    });
+    if (choice && choice.weight < max) return [];
+
+    const gymWeight = gym.reentries.get(reentryKey(state.exerciseId, "T1"))?.weight ?? state.t1Weight;
+    const trainedAs = choice
+      ? { exerciseId: choice.state.exerciseId, weight: choice.weight, perHand: choice.state.perHand }
+      : null;
     return [
       {
         exerciseId: state.exerciseId,
         name: exercise.name,
         t1Weight: state.t1Weight,
-        dbEquivalent,
-        overage: dbEquivalent - maxDumbbellWeight,
-        perHand,
-        dbLabel: `${dbEquivalent} ${perHand ? "lbs/hand" : "lbs"}`,
+        home: trainedAs,
+        gymWeight,
+        homeLabel: trainedAs
+          ? `Trained at home: ${displayLiftName(trainedAs.exerciseId)}, ${trainedAs.weight} lbs${trainedAs.perHand ? " a hand" : ""}`
+          : "No home version",
+        gymLabel: `${gymWeight} lbs`,
       },
     ];
   });
@@ -99,18 +115,20 @@ function daysAgoText(days: number): string {
 
 /**
  * One row per main lift with a lift state, using the same status as the Dashboard's
- * recovery bars. Empty when none of them has been trained yet.
+ * recovery bars. A lift was last trained at the later of its barbell sessions and the
+ * sessions of the home exercises done for it (`lastTrainedDates`): home training is
+ * training. Empty when none of them has been trained yet.
  */
 export function recoveryRows(
   liftStates: LiftState[],
   now: Date,
-  phase: TrainingPhase
+  phase: TrainingPhase,
+  variantStates: readonly VariantState[] = []
 ): RecoveryRow[] {
   const rows = MAIN_LIFTS.flatMap((id): RecoveryRow[] => {
     const state = liftStates.find((s) => s.exerciseId === id);
     if (!state) return [];
-    const t1 = state.t1LastWorkoutDate ? new Date(state.t1LastWorkoutDate) : null;
-    const t2 = state.t2LastWorkoutDate ? new Date(state.t2LastWorkoutDate) : null;
+    const { t1, t2 } = lastTrainedDates(state, variantStates);
     const status = calculateRecoveryStatus(t1, t2, now, phase);
     const last = getMostRecent(t1, t2);
     const detail = last

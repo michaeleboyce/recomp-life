@@ -1,79 +1,78 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES } from "@/db/seed";
-import { adaptExerciseForHome } from "@/lib/autoAdapt";
-import { barbellToBothHands, barbellToDumbbell } from "@/lib/dbConversion";
-import { EXERCISES } from "@/lib/exercises";
-import type { LiftState } from "@/types";
+import { resolveReentry, reentryKey } from "@/lib/workout/reentry";
+import { seedVariantState, variantKey } from "@/lib/workout/variant";
+import type { LiftState, VariantState } from "@/types";
 import { DEFAULT_MAX_DUMBBELL, gymDebtItems, recoveryRows } from "./sections";
 
 const HOUR = 3_600_000;
+const DAY = 24 * HOUR;
+const equipment = { ...DEFAULT_USER_PROFILE.settings.equipment, maxDumbbellWeight: 80 };
 const state = (id: string, over: Partial<LiftState> = {}): LiftState => ({
   ...(INITIAL_LIFT_STATES[id] as LiftState),
   exerciseId: id,
   ...over,
 });
+const variant = (liftId: string, exerciseId: string, over: Partial<VariantState> = {}): VariantState => ({
+  ...seedVariantState({ liftId, exerciseId, tier: "T1", liftState: state(liftId), equipment }),
+  current: true,
+  ...over,
+});
 
 describe("gymDebtItems", () => {
-  it("lists barbell lifts whose home substitute needs more than the heaviest dumbbell", () => {
-    const items = gymDebtItems(
-      [state("squat", { t1Weight: 225 }), state("bench", { t1Weight: 90 }), state("lat_pulldown", { t1Weight: 300 })],
-      50
-    );
-    // Squat goes to a goblet squat: one dumbbell at the real conversion, not half the bar.
-    expect(items).toEqual([
-      expect.objectContaining({
-        exerciseId: "squat",
-        t1Weight: 225,
-        dbEquivalent: barbellToBothHands(225),
-        overage: barbellToBothHands(225) - 50,
-        perHand: false,
-        dbLabel: `${barbellToBothHands(225)} lbs`,
+  it("lists a lift trained at home at the heaviest dumbbell, with the weight it starts at back at the gym", () => {
+    const liftStates = [
+      state("squat", { t1Weight: 245, t1LastWorkoutDate: new Date(2026, 10, 1) }),
+      state("bench", { t1Weight: 145 }),
+    ];
+    const variantStates = [
+      variant("squat", "bulgarian_split_squat", {
+        weight: 80,
+        lastSessionDate: new Date(2026, 10, 8),
+        passesSinceGym: 2,
       }),
-    ]);
+      variant("bench", "db_bench", { weight: 50, lastSessionDate: new Date(2026, 10, 8) }),
+    ];
+    const items = gymDebtItems({ liftStates, variantStates, equipment });
+    // Bench at home is 50 a hand, under the 80 lb dumbbell: it is not waiting for anything.
+    expect(items.map((i) => i.exerciseId)).toEqual(["squat"]);
+    const back = resolveReentry({ liftStates, variantStates, location: "gym", equipment }).reentries.get(
+      reentryKey("squat", "T1")
+    )!;
+    // Two passes at home earned two barbell steps.
+    expect(back).toMatchObject({ rule: "steps", stepsEarned: 2, lastWeight: 245 });
+    expect(back.weight).toBeGreaterThan(245);
+    expect(items[0]).toEqual({
+      exerciseId: "squat",
+      name: "Barbell Squat",
+      t1Weight: 245,
+      home: { exerciseId: "bulgarian_split_squat", weight: 80, perHand: true },
+      gymWeight: back.weight,
+      homeLabel: "Trained at home: Bulgarian split squat, 80 lbs a hand",
+      gymLabel: `${back.weight} lbs`,
+    });
   });
 
-  it("uses the per-hand conversion for a per-hand substitute", () => {
-    const [bench] = gymDebtItems([state("bench", { t1Weight: 200 })], 50);
-    expect(bench).toEqual(
-      expect.objectContaining({
-        dbEquivalent: barbellToDumbbell(200),
-        overage: barbellToDumbbell(200) - 50,
-        perHand: true,
-        dbLabel: `${barbellToDumbbell(200)} lbs/hand`,
-      })
-    );
+  it("gives the barbell weight as it is when no home session has earned anything", () => {
+    const [squat] = gymDebtItems({
+      liftStates: [state("squat", { t1Weight: 245 })],
+      variantStates: [variant("squat", "goblet_squat", { weight: 80, perHand: false, id: variantKey("squat", "goblet_squat", "T1") })],
+      equipment,
+    });
+    expect(squat).toMatchObject({
+      home: { exerciseId: "goblet_squat", weight: 80, perHand: false },
+      gymWeight: 245,
+      homeLabel: "Trained at home: Goblet squat, 80 lbs",
+    });
   });
 
-  it("does not list a lift that Configure can still load at home, even when half the bar is over the limit", () => {
-    // 120 lb bench: half the bar is 60, over a 50 lb limit, but the real conversion is 50 per hand.
-    expect(barbellToDumbbell(120)).toBe(50);
-    expect(gymDebtItems([state("bench", { t1Weight: 120 })], 50)).toEqual([]);
-  });
-
-  it("agrees with the Configure screen's adaptation for every lift and weight", () => {
-    const lifts = ["squat", "bench", "deadlift", "ohp"];
-    for (const max of [25, 50, 80]) {
-      const equipment = { ...DEFAULT_USER_PROFILE.settings.equipment, maxDumbbellWeight: max };
-      for (const id of lifts) {
-        for (let weight = 45; weight <= 405; weight += 5) {
-          const exercise = EXERCISES[id];
-          const { adaptationStatus } = adaptExerciseForHome(
-            exercise,
-            weight,
-            equipment,
-            exercise.dumbbellAlternative ? EXERCISES[exercise.dumbbellAlternative] : undefined
-          );
-          const waiting = adaptationStatus === "exceeds" || adaptationStatus === "no_substitute";
-          const listed = gymDebtItems([state(id, { t1Weight: weight })], max).length === 1;
-          expect(listed, `${id} at ${weight} with ${max} lb dumbbells is ${adaptationStatus}`).toBe(waiting);
-        }
-      }
-    }
+  it("lists nothing when every lift fits the dumbbells", () => {
+    expect(gymDebtItems({ liftStates: [state("squat"), state("bench")], variantStates: [], equipment })).toEqual([]);
+    expect(gymDebtItems({ liftStates: [], variantStates: [], equipment })).toEqual([]);
   });
 
   it("defaults the dumbbell limit like the old Program page", () => {
     expect(DEFAULT_MAX_DUMBBELL).toBe(50);
-    expect(gymDebtItems([], 50)).toEqual([]);
   });
 });
 
@@ -98,6 +97,22 @@ describe("recoveryRows", () => {
       ["squat", "recovering", "Recovering, today"],
       ["bench", "primed", "Primed, 3 days ago"],
       ["deadlift", "detraining", "Not trained yet"],
+    ]);
+  });
+
+  it("counts a lift trained at home as trained", () => {
+    const rows = recoveryRows(
+      [state("squat", { t1LastWorkoutDate: new Date(now.getTime() - 20 * DAY) }), state("bench")],
+      now,
+      { mode: "maintaining" },
+      [
+        variant("squat", "bulgarian_split_squat", { lastSessionDate: new Date(now.getTime() - 10 * HOUR) }),
+        variant("bench", "db_bench", { lastSessionDate: new Date(now.getTime() - 80 * HOUR) }),
+      ]
+    );
+    expect(rows.map((r) => [r.exerciseId, r.status, r.detail])).toEqual([
+      ["squat", "recovering", "Recovering, today"],
+      ["bench", "primed", "Primed, 3 days ago"],
     ]);
   });
 });
