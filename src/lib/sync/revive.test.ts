@@ -56,6 +56,14 @@ describe("toLocalRow", () => {
     expect(favorite.edits).toEqual([]);
   });
 
+  it("drops a null variant and keeps a set one", () => {
+    expect("variant" in toLocalRow({ id: "a1", updatedAt: 5, variant: null })).toBe(false);
+    expect(toLocalRow({ id: "a1", updatedAt: 5, variant: { exerciseId: "x", tier: "T2" } }).variant).toEqual({
+      exerciseId: "x",
+      tier: "T2",
+    });
+  });
+
   it("drops the null optionals of decisions, forecasts and coach events", () => {
     const workout = toLocalRow({ id: "w1", updatedAt: 5, decisions: null });
     expect("decisions" in workout).toBe(false);

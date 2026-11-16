@@ -198,7 +198,7 @@ describe('toPostgresRow', () => {
     }, NOW);
     expect(row).toEqual({
       id: 'la1', client_id: 'la1', exercise_id: 'squat', at: '2026-11-11T10:00:00.000Z',
-      source: 'start', set: '{"t1Weight":135}', note: null, updated_at: NOW, deleted_at: null,
+      source: 'start', set: '{"t1Weight":135}', note: null, variant: null, updated_at: NOW, deleted_at: null,
       external_id: null, synced: true,
     });
   });

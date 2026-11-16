@@ -37,7 +37,7 @@ describe("SYNC_REGISTRY", () => {
     const tables = new Map<string, (typeof schema)[keyof typeof schema]>(
       Object.values(schema).map((t) => [getTableName(t), t])
     );
-    for (const name of ["forecasts", "coachEvents", "workouts"]) {
+    for (const name of ["forecasts", "coachEvents", "workouts", "importedSessions", "liftAdjustments"]) {
       const def = getSyncTable(name)!;
       const known = new Set(Object.values(getTableColumns(tables.get(def.pgName)!)).map((c) => c.name));
       for (const column of Object.values(def.columns)) expect(known.has(column), `${name}.${column}`).toBe(true);
@@ -45,6 +45,8 @@ describe("SYNC_REGISTRY", () => {
     expect(getSyncTable("workouts")!.jsonFields).toContain("decisions");
     expect(getSyncTable("forecasts")!.jsonFields).toEqual(["event", "prediction", "inputs"]);
     expect(getSyncTable("coachEvents")!.jsonFields).toEqual(["data"]);
+    expect(getSyncTable("importedSessions")!.jsonFields).toEqual(["sets"]);
+    expect(getSyncTable("liftAdjustments")!.jsonFields).toEqual(["set", "variant"]);
   });
 
   it("keeps exactly one single-row table: the profile", () => {

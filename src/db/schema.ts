@@ -68,6 +68,8 @@ export const liftAdjustments = pgTable('lift_adjustments', {
   source: text('source').notNull(),
   set: jsonb('set').notNull(),
   note: text('note'),
+  // Set when the adjustment targets a home exercise: { exerciseId, tier }
+  variant: jsonb('variant'),
 });
 
 // Runs
@@ -185,4 +187,17 @@ export const coachEvents = pgTable('coach_events', {
   detail: text('detail').notNull(),
   ruleId: text('rule_id'),
   data: jsonb('data'),
+});
+
+// Sessions imported from other apps' exports (history only; the sets are JSON)
+export const importedSessions = pgTable('imported_sessions', {
+  ...syncColumns(),
+  sourceApp: text('source_app').notNull(),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+  startIsLocal: boolean('start_is_local').notNull(),
+  endedAt: timestamp('ended_at', { withTimezone: true }),
+  title: text('title').notNull(),
+  notes: text('notes').notNull(),
+  importBatchId: text('import_batch_id').notNull(),
+  sets: jsonb('sets').notNull(),
 });

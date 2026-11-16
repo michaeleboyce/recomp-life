@@ -12,6 +12,7 @@ import type {
   FavoriteWorkout,
   Forecast,
   HealthDailyLog,
+  ImportedSessionRecord,
   LiftAdjustment,
   PainSorenessEntry,
   ReadinessLog,
@@ -39,6 +40,8 @@ export interface BackupTables {
   forecasts: Forecast[];
   /** The coach's change log. Absent from backups made before it existed. */
   coachEvents: CoachEvent[];
+  /** Sessions imported from other apps. Absent from backups made before they existed. */
+  importedSessions: ImportedSessionRecord[];
 }
 
 export interface BackupV2 {
@@ -62,6 +65,7 @@ const TABLE_NAMES = [
   "favoriteWorkouts",
   "forecasts",
   "coachEvents",
+  "importedSessions",
 ] as const satisfies readonly (keyof BackupTables)[];
 
 /** Tables a version 2 file may lack because they were added after the format was set. */
@@ -70,6 +74,7 @@ const OPTIONAL_TABLES: ReadonlySet<string> = new Set([
   "favoriteWorkouts",
   "forecasts",
   "coachEvents",
+  "importedSessions",
 ]);
 
 function logTables(): Table[] {

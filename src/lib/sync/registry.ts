@@ -59,7 +59,7 @@ export const SYNC_REGISTRY: readonly SyncTableDef[] = [
     name: "liftAdjustments",
     pgName: "lift_adjustments",
     columns: { ...STAMPS, exerciseId: "exercise_id" },
-    jsonFields: ["set"],
+    jsonFields: ["set", "variant"],
   },
   {
     name: "runs",
@@ -156,6 +156,19 @@ export const SYNC_REGISTRY: readonly SyncTableDef[] = [
       modelVersion: "model_version",
     },
     jsonFields: ["event", "prediction", "inputs"],
+  },
+  {
+    name: "importedSessions",
+    pgName: "imported_sessions",
+    columns: {
+      ...STAMPS,
+      sourceApp: "source_app",
+      startedAt: "started_at",
+      startIsLocal: "start_is_local",
+      endedAt: "ended_at",
+      importBatchId: "import_batch_id",
+    },
+    jsonFields: ["sets"],
   },
   {
     name: "coachEvents",
