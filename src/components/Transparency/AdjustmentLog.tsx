@@ -131,6 +131,17 @@ export function AdjustmentLog() {
     () => (entries ? orderForLog(filterFeed(entries, group)) : []),
     [entries, group]
   );
+  // Each check replays every adjustment, so it runs once per version of the log, not
+  // for every row on every render.
+  const undoable = useMemo(
+    () =>
+      new Set(
+        (feed?.entries ?? [])
+          .filter((entry) => entry.undo && feed!.undoFor(entry) !== null)
+          .map((entry) => entry.id)
+      ),
+    [feed]
+  );
 
   const confirmUndo = async () => {
     if (!pending || !feed) return;
@@ -199,7 +210,7 @@ export function AdjustmentLog() {
                   key={entry.id}
                   entry={entry}
                   now={now}
-                  canUndo={!!entry.undo && feed.undoFor(entry) !== null}
+                  canUndo={undoable.has(entry.id)}
                   onUndo={() => setPending(entry)}
                 />
               ))}
