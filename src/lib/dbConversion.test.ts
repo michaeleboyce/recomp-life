@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { roundToNearest5, barbellToDumbbell, barbellToBothHands, dumbbellToBarbell } from './dbConversion';
+import {
+  BARBELL_FROM_DUMBBELL_FACTOR,
+  DUMBBELL_LOAD_FACTOR,
+  barbellToBothHands,
+  barbellToDumbbell,
+  ceilToStep,
+  dumbbellToBarbell,
+  roundToNearest5,
+  roundToStep,
+} from './dbConversion';
 
 describe('roundToNearest5', () => {
   it('rounds 58 to 60', () => {
@@ -80,19 +89,56 @@ describe('barbellToBothHands', () => {
   });
 });
 
+// 2026-11-15: the factor was 1.2, which is not the inverse of the 0.8 conversion
+// (145 lb barbell -> 60 a hand -> 145, but 150 -> 60 -> 145 and 60 a hand read as 145).
+// It is now 1 / 0.8 = 1.25, so a weight converted there and back lands where it began.
 describe('dumbbellToBarbell', () => {
-  it('converts 60 lb dumbbell per hand to 145 lb barbell', () => {
-    // 60 * 2 = 120, * 1.20 = 144, round to 145
-    expect(dumbbellToBarbell(60)).toBe(145);
+  it('converts 60 lb dumbbell per hand to 150 lb barbell', () => {
+    // 60 * 2 = 120, / 0.80 = 150
+    expect(dumbbellToBarbell(60)).toBe(150);
   });
 
-  it('converts 40 lb dumbbell per hand to 95 lb barbell', () => {
-    // 40 * 2 = 80, * 1.20 = 96, round to 95
-    expect(dumbbellToBarbell(40)).toBe(95);
+  it('converts 40 lb dumbbell per hand to 100 lb barbell', () => {
+    // 40 * 2 = 80, / 0.80 = 100
+    expect(dumbbellToBarbell(40)).toBe(100);
   });
 
-  it('converts 35 lb dumbbell per hand to 85 lb barbell', () => {
-    // 35 * 2 = 70, * 1.20 = 84, round to 85
-    expect(dumbbellToBarbell(35)).toBe(85);
+  it('converts 35 lb dumbbell per hand to 90 lb barbell', () => {
+    // 35 * 2 = 70, / 0.80 = 87.5, round to 90
+    expect(dumbbellToBarbell(35)).toBe(90);
+  });
+
+  it('reads one dumbbell held in both hands as the whole load', () => {
+    // 80 / 0.80 = 100, not 80 * 2 / 0.80 = 200
+    expect(dumbbellToBarbell(80, 'both_hands')).toBe(100);
+  });
+
+  it('is the inverse of barbellToDumbbell and barbellToBothHands', () => {
+    expect(BARBELL_FROM_DUMBBELL_FACTOR * DUMBBELL_LOAD_FACTOR).toBeCloseTo(1, 10);
+    for (let perHand = 5; perHand <= 120; perHand += 5) {
+      expect(barbellToDumbbell(dumbbellToBarbell(perHand))).toBe(perHand);
+    }
+    for (let one = 20; one <= 120; one += 5) {
+      expect(barbellToBothHands(dumbbellToBarbell(one, 'both_hands'))).toBe(one);
+    }
+  });
+});
+
+describe('rounding to the dumbbell step', () => {
+  it('roundToStep rounds to any step, and to 5 when the step is not usable', () => {
+    expect(roundToStep(58, 2.5)).toBe(57.5);
+    expect(roundToStep(58, 5)).toBe(60);
+    expect(roundToStep(58, 0)).toBe(60);
+    expect(ceilToStep(51, 5)).toBe(55);
+    expect(ceilToStep(50, 5)).toBe(50);
+  });
+
+  it('the conversions round to the step they are given (5 when none is)', () => {
+    // 145 * 0.80 / 2 = 58: 57.5 with 2.5 lb dumbbells, 60 with 5 lb steps.
+    expect(barbellToDumbbell(145, 2.5)).toBe(57.5);
+    expect(barbellToDumbbell(145)).toBe(60);
+    // 135 * 0.80 = 108: 107.5 with 2.5 lb steps, 110 with 5.
+    expect(barbellToBothHands(135, 2.5)).toBe(107.5);
+    expect(barbellToBothHands(135)).toBe(110);
   });
 });

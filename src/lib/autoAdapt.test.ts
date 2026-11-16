@@ -503,4 +503,49 @@ describe('adaptExerciseForHome', () => {
       expect(result.adaptedWeight).toBeLessThanOrEqual(85);
     });
   });
+
+  describe('strength model fixes (2026-11-15)', () => {
+    it('when nothing fits, keeps the substitute with the heaviest total load instead of the first one', () => {
+      // Squat 245 with 80 lb dumbbells: goblet squat needs one 195, the split squat and
+      // the lunge 100 a hand. Capped, that is one 80 (80 in all) against 80 a hand (160):
+      // the split squat, not goblet squat with a load cut in half.
+      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
+      const result = adaptExerciseForHome(EXERCISES.squat, 245, equipment, EXERCISES.goblet_squat);
+
+      expect(result.adaptedExercise.id).toBe('bulgarian_split_squat');
+      expect(result.adaptedWeight).toBe(80);
+      expect(result.adaptationStatus).toBe('exceeds');
+      expect(result.cappedFrom).toBe(100);
+      expect(result.warningMessage).toContain('needs 100 lb DBs');
+    });
+
+    it('from about 210 lb the squat no longer flips to goblet squat at one 80', () => {
+      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
+      for (const squat of [200, 205, 210, 215, 230, 260]) {
+        const result = adaptExerciseForHome(EXERCISES.squat, squat, equipment, EXERCISES.goblet_squat);
+        expect(result.adaptedExercise.id, `squat ${squat}`).toBe('bulgarian_split_squat');
+      }
+    });
+
+    it('records a borderline weight capped at the heaviest dumbbell, and a capped alternative', () => {
+      // 210 * 0.80 / 2 = 84 -> 85 a hand, within 10 lb of the 80 max: capped, and now said so.
+      const equipment = makeEquipment({ maxDumbbellWeight: 80 });
+      const result = adaptExerciseForHome(EXERCISES.lat_pulldown, 210, equipment, EXERCISES.db_row);
+      expect(result.adaptationStatus).toBe('borderline');
+      expect(result.adaptedWeight).toBe(80);
+      expect(result.cappedFrom).toBe(85);
+
+      const squat = adaptExerciseForHome(EXERCISES.squat, 135, equipment, EXERCISES.goblet_squat);
+      const goblet = squat.alternatives.find((a) => a.exercise.id === 'goblet_squat')!;
+      expect(goblet).toMatchObject({ weight: 80, cappedFrom: 110 });
+      expect(squat.cappedFrom).toBeUndefined();
+    });
+
+    it('rounds to the dumbbell step of the equipment', () => {
+      // 145 * 0.80 / 2 = 58: 57.5 a hand with 2.5 lb steps, not 60.
+      const equipment = makeEquipment({ dumbbellIncrementLbs: 2.5 });
+      expect(adaptExerciseForHome(barbellBench, 145, equipment, dbBench).adaptedWeight).toBe(57.5);
+      expect(adaptExerciseForHome(barbellBench, 145, makeEquipment(), dbBench).adaptedWeight).toBe(60);
+    });
+  });
 });

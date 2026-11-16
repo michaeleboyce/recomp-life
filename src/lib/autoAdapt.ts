@@ -115,10 +115,9 @@ export function adaptExerciseForHome(
   }
 
   // Case 2: Requires gym and has a dumbbell alternative
+  const step = equipment.dumbbellIncrementLbs;
   const isBothHands = substituteExercise.grip === 'both_hands';
-  const dbEquiv = isBothHands
-    ? barbellToBothHands(prescribedWeight)
-    : barbellToDumbbell(prescribedWeight);
+  const dbEquiv = convertFor(substituteExercise, prescribedWeight, step);
 
   const primaryStatus = computeStatus(dbEquiv, equipment.maxDumbbellWeight);
 
@@ -161,9 +160,7 @@ export function adaptExerciseForHome(
     if (!chainExercise) continue;
 
     const chainIsBothHands = chainExercise.grip === 'both_hands';
-    const chainWeight = chainIsBothHands
-      ? barbellToBothHands(prescribedWeight)
-      : barbellToDumbbell(prescribedWeight);
+    const chainWeight = convertFor(chainExercise, prescribedWeight, step);
     const chainStatus = computeStatus(chainWeight, equipment.maxDumbbellWeight);
     const weightUnit = chainIsBothHands ? 'lbs' : 'lbs/hand';
 
@@ -176,6 +173,7 @@ export function adaptExerciseForHome(
       weight: cappedWeight,
       pros: fits ? 'Full load achieved' : `Capped at max DB weight`,
       cons: fits ? '' : `Needs ${chainWeight} ${weightUnit}, max is ${equipment.maxDumbbellWeight}`,
+      ...(cappedWeight < chainWeight ? { cappedFrom: chainWeight } : {}),
     });
 
     // Auto-select the FIRST one that fits
@@ -212,30 +210,75 @@ export function adaptExerciseForHome(
     };
   }
 
-  // Nothing fits -- use primary substitute capped at maxDumbbellWeight
+  // Nothing fits -- cap at maxDumbbellWeight. Of the primary substitute and the chain,
+  // keep the one whose capped weight is the heaviest load in total (the first of equals):
+  // a heavy squat stays a split squat at the heaviest pair rather than becoming goblet
+  // squat with one of them, which would halve the load. The weight asked for is kept.
+  const capped = heaviestCapped(
+    [substituteExercise, ...chain.map((id) => EXERCISES[id]).filter((e): e is Exercise => !!e)],
+    prescribedWeight,
+    equipment
+  );
   const cappedWeight = equipment.maxDumbbellWeight;
-  const finalStatus: AdaptationStatus = primaryStatus; // preserves 'borderline' vs 'exceeds'
-  const confidenceLevel = getConfidenceLevel(substituteExercise.id, finalStatus);
+  const finalStatus = computeStatus(capped.wanted, equipment.maxDumbbellWeight); // 'borderline' or 'exceeds'
+  const confidenceLevel = getConfidenceLevel(capped.exercise.id, finalStatus);
   const warningMessage = buildWarningMessage(
     exercise.name,
     prescribedWeight,
-    substituteExercise.name,
-    dbEquiv,
+    capped.exercise.name,
+    capped.wanted,
     equipment.maxDumbbellWeight,
     finalStatus,
-    isBothHands
+    capped.exercise.grip === 'both_hands'
   );
 
   return {
     originalExercise: exercise,
     originalWeight: prescribedWeight,
-    adaptedExercise: substituteExercise,
+    adaptedExercise: capped.exercise,
     adaptedWeight: cappedWeight,
     adaptationStatus: finalStatus,
     confidenceLevel,
     warningMessage,
     alternatives,
+    cappedFrom: capped.wanted,
   };
+}
+
+/** Today's conversion of a barbell weight for one dumbbell exercise, rounded to `step`. */
+function convertFor(exercise: Exercise, barbellWeight: number, step: number): number {
+  return exercise.grip === 'both_hands'
+    ? barbellToBothHands(barbellWeight, step)
+    : barbellToDumbbell(barbellWeight, step);
+}
+
+/** Total load of a dumbbell weight: two dumbbells for a per-hand exercise, else one. */
+function totalLoadOf(exercise: Exercise, weight: number): number {
+  return exercise.grip === 'per_hand' ? weight * 2 : weight;
+}
+
+/**
+ * Of exercises that are all over the heaviest dumbbell, the one with the heaviest total
+ * load once capped (the first of equals), with the weight it asked for.
+ */
+function heaviestCapped(
+  candidates: Exercise[],
+  barbellWeight: number,
+  equipment: EquipmentProfile
+): { exercise: Exercise; wanted: number } {
+  const max = equipment.maxDumbbellWeight;
+  const step = equipment.dumbbellIncrementLbs;
+  let best = { exercise: candidates[0], wanted: convertFor(candidates[0], barbellWeight, step) };
+  let bestTotal = totalLoadOf(best.exercise, Math.min(best.wanted, max));
+  for (const candidate of candidates.slice(1)) {
+    const wanted = convertFor(candidate, barbellWeight, step);
+    const total = totalLoadOf(candidate, Math.min(wanted, max));
+    if (total > bestTotal) {
+      best = { exercise: candidate, wanted };
+      bestTotal = total;
+    }
+  }
+  return best;
 }
 
 /**
