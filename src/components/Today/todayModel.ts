@@ -130,27 +130,34 @@ export interface ReasonEntry {
  * Compares `entry.weight` with the weight prescribed for the same lift, tier and
  * substitute the last time it was done (newest finished workout first). Sets skipped
  * for pain do not count; a set lightened for pain or a run counts at the weight it
- * was prescribed at.
+ * was prescribed at. Without a substitute, the session's stored prescription for the
+ * lift and tier wins: a weight edited lighter before START leaves no original weight
+ * on its sets, and progression went on from the prescription, not the lighter weight.
  */
 export function liftReason(
   entry: ReasonEntry,
-  finishedNewestFirst: Pick<WorkoutSession, "completedAt" | "sets">[]
+  finishedNewestFirst: Pick<WorkoutSession, "completedAt" | "sets" | "prescribed">[]
 ): LiftReason {
   for (const workout of finishedNewestFirst) {
     if (workout.completedAt == null) continue;
-    const weights = workout.sets
-      .filter(
-        (set) =>
-          set.exerciseId === entry.exerciseId &&
-          set.tier === entry.tier &&
-          set.status !== "skipped_pain" &&
-          (set.isSubstituted ? set.substituteExerciseId : undefined) === entry.substituteExerciseId
-      )
-      // On a substituted set `originalWeight` is the barbell weight it replaced, so
-      // only an unsubstituted set's original weight is the one prescribed for it.
-      .map((set) => (set.isSubstituted ? set.weight : (set.originalWeight ?? set.weight)));
-    if (weights.length === 0) continue;
-    const last = Math.max(...weights);
+    const sets = workout.sets.filter(
+      (set) =>
+        set.exerciseId === entry.exerciseId &&
+        set.tier === entry.tier &&
+        set.status !== "skipped_pain" &&
+        (set.isSubstituted ? set.substituteExerciseId : undefined) === entry.substituteExerciseId
+    );
+    if (sets.length === 0) continue;
+    const prescribed = entry.substituteExerciseId
+      ? undefined
+      : workout.prescribed?.find((p) => p.exerciseId === entry.exerciseId && p.tier === entry.tier);
+    const last =
+      prescribed?.weight ??
+      Math.max(
+        // On a substituted set `originalWeight` is the barbell weight it replaced, so
+        // only an unsubstituted set's original weight is the one prescribed for it.
+        ...sets.map((set) => (set.isSubstituted ? set.weight : (set.originalWeight ?? set.weight)))
+      );
     if (entry.weight === last) return { kind: "held", weight: last };
     return {
       kind: entry.weight > last ? "up" : "down",

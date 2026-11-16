@@ -151,6 +151,41 @@ describe("liftReason", () => {
     });
   });
 
+  it("compares with what the program prescribed after a lighter plan edit, not the weight lifted", () => {
+    // Edited from 95 to 85 before START: the sets hold 85 with no original weight, and
+    // progression kept the lift at 95. Today's 95 is the same weight held.
+    const edited = makeWorkout({
+      completedAt: done,
+      prescribed: [{ exerciseId: "ohp", tier: "T1", weight: 95, sets: 5, reps: 3 }],
+      planEdits: [{ kind: "weight", exerciseId: "ohp", tier: "T1", weight: 85 }],
+      sets: [makeSet({ exerciseId: "ohp", tier: "T1", weight: 85 })],
+    });
+    const today = { exerciseId: "ohp", tier: "T1" as const, weight: 95 };
+    expect(reasonText(liftReason(today, [edited]))).toBe("Held at 95");
+    expect(reasonText(liftReason({ ...today, weight: 100 }, [edited]))).toBe("▲ 5 from 95");
+    // Another tier's prescription is not this one's.
+    expect(liftReason({ ...today, tier: "T2" }, [edited])).toEqual({ kind: "first" });
+  });
+
+  it("keeps a home substitute's own weight even when the session has a prescription", () => {
+    const home = makeWorkout({
+      completedAt: done,
+      prescribed: [{ exerciseId: "squat", tier: "T1", weight: 190, sets: 5, reps: 3 }],
+      sets: [
+        makeSet({
+          exerciseId: "squat",
+          tier: "T1",
+          weight: 50,
+          originalWeight: 190,
+          isSubstituted: true,
+          substituteExerciseId: "goblet_squat",
+        }),
+      ],
+    });
+    const entry = { exerciseId: "squat", substituteExerciseId: "goblet_squat", tier: "T1" as const, weight: 55 };
+    expect(reasonText(liftReason(entry, [home]))).toBe("▲ 5 from 50");
+  });
+
   it("matches a home substitute only against the same substitute", () => {
     const gym = makeWorkout({
       completedAt: done,
