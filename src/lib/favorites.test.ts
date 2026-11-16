@@ -348,4 +348,18 @@ describe("lastLoggedWeights", () => {
     });
     expect(lastLoggedWeights([])).toEqual({});
   });
+
+  it("ignores drop, ramp and back-off sets: the last working set's weight", () => {
+    const session = makeSession({
+      startedAt: new Date("2026-11-05T09:00:00Z"),
+      sets: [
+        ...makeSets("bicep_curls", "accessory", 1, 12, { weight: 15, role: "ramp" }),
+        ...makeSets("bicep_curls", "accessory", 3, 12, { weight: 25 }),
+        ...makeSets("bicep_curls", "accessory", 2, 12, { weight: 20, role: "drop" }),
+        ...makeSets("squat", "T1", 5, 3, { weight: 190, role: "work" }),
+        ...makeSets("squat", "T1", 1, 5, { weight: 155, role: "backoff" }),
+      ],
+    });
+    expect(lastLoggedWeights([session])).toEqual({ bicep_curls: 25, squat: 190 });
+  });
 });

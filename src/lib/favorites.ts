@@ -15,7 +15,7 @@ import {
   snapshotOfSets,
   structuralEdits,
 } from "@/lib/workout/planEdits";
-import { excludeWarmUps } from "@/lib/workout/setSelectors";
+import { excludeWarmUps, isWorkingSet } from "@/lib/workout/setSelectors";
 import type { WorkoutPlan } from "@/lib/workout/types";
 
 /** How a favourite is started: the frozen copy, or the same structure at today's numbers. */
@@ -298,8 +298,9 @@ export function listFavorites(favorites: FavoriteWorkout[]): FavoriteWorkout[] {
 
 /**
  * The last weight logged for each exercise across the given workouts, keyed by the
- * exercise actually performed (the substitute when there was one). Warm-ups are left
- * out. Used to suggest a weight for an exercise the program does not prescribe.
+ * exercise actually performed (the substitute when there was one). Warm-ups and ramp,
+ * back-off and drop sets are left out: the weight is a working set's. Used to suggest a
+ * weight for an exercise the program does not prescribe.
  */
 export function lastLoggedWeights(
   workouts: Pick<WorkoutSession, "startedAt" | "sets">[]
@@ -309,7 +310,7 @@ export function lastLoggedWeights(
   );
   const weights: Record<string, number> = {};
   for (const workout of ordered) {
-    for (const set of excludeWarmUps(workout.sets ?? [])) {
+    for (const set of excludeWarmUps(workout.sets ?? []).filter(isWorkingSet)) {
       weights[set.substituteExerciseId ?? set.exerciseId] = set.weight;
     }
   }

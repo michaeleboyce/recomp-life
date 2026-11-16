@@ -218,6 +218,21 @@ describe("snapshots", () => {
     ]);
   });
 
+  it("snapshotOfSets keeps the working sets only: their count and reps, at the heaviest working weight", () => {
+    const sets = [
+      ...makeSets("squat", "T1", 2, 3, { weight: 155, role: "ramp" }),
+      ...makeSets("squat", "T1", 4, 3, { weight: 190 }),
+      ...makeSets("squat", "T1", 1, 3, { weight: 195, isAMRAP: true, actualReps: 6 }),
+      ...makeSets("squat", "T1", 2, 3, { weight: 155, role: "drop" }),
+      ...makeSets("bench", "T2", 3, 10, { weight: 100, role: "work" }),
+      ...makeSets("bench", "T2", 1, 12, { weight: 80, role: "backoff" }),
+    ];
+    expect(snapshotOfSets(sets)).toEqual([
+      { exerciseId: "squat", tier: "T1", sets: 5, reps: 3, weight: 195, isAMRAP: true },
+      { exerciseId: "bench", tier: "T2", sets: 3, reps: 10, weight: 100, isAMRAP: false },
+    ]);
+  });
+
   it("records the home exercise each home weight is for", () => {
     const home = buildWorkoutPlan({
       template: WORKOUT_TEMPLATES.A1,

@@ -238,30 +238,32 @@ export function snapshotOfPlan(plan: WorkoutPlan): FavoriteSnapshotEntry[] {
 
 /**
  * A frozen copy of what was performed in a session, from its logged sets: one entry
- * per exercise and tier in logging order, with the number of sets logged, the target
- * reps and the weight of the first set, and the home exercise when it was substituted.
+ * per exercise and tier in logging order, from its working sets only (ramp, back-off
+ * and drop sets are extra and are not saved): their number, and the weight and target
+ * reps of the heaviest of them, with the home exercise when it was substituted. An
+ * entry with no working set logged keeps its other sets the same way.
  */
 export function snapshotOfSets(sets: SetLog[]): FavoriteSnapshotEntry[] {
-  const entries = new Map<string, FavoriteSnapshotEntry>();
+  const groups = new Map<string, SetLog[]>();
   for (const set of excludeWarmUps(sets)) {
     const key = `${set.exerciseId}|${set.tier}`;
-    const entry = entries.get(key);
-    if (entry) {
-      entry.sets += 1;
-      entry.isAMRAP = entry.isAMRAP || set.isAMRAP;
-    } else {
-      entries.set(key, {
-        exerciseId: set.exerciseId,
-        tier: set.tier,
-        sets: 1,
-        reps: set.targetReps,
-        weight: set.weight,
-        isAMRAP: set.isAMRAP,
-        ...(set.isSubstituted && set.substituteExerciseId ? { performedAs: set.substituteExerciseId } : {}),
-      });
-    }
+    groups.set(key, [...(groups.get(key) ?? []), set]);
   }
-  return [...entries.values()];
+  return [...groups.values()].map((group) => {
+    const working = group.filter(isWorkingSet);
+    const pool = working.length > 0 ? working : group;
+    const top = pool.reduce((best, set) => (set.weight > best.weight ? set : best), pool[0]);
+    const performed = pool.find((set) => set.isSubstituted && set.substituteExerciseId);
+    return {
+      exerciseId: top.exerciseId,
+      tier: top.tier,
+      sets: pool.length,
+      reps: top.targetReps,
+      weight: top.weight,
+      isAMRAP: pool.some((set) => set.isAMRAP),
+      ...(performed?.substituteExerciseId ? { performedAs: performed.substituteExerciseId } : {}),
+    };
+  });
 }
 
 /**
