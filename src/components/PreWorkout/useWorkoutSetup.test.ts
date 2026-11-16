@@ -367,7 +367,9 @@ describe("advisories", () => {
     await db.liftStates.update("ohp", { t1LastWorkoutDate: new Date(Date.now() - 20 * HOUR) });
     const hook = await mount("B1");
     await waitFor(() => expect(hook.result.current.location).toBe("home"));
-    expect(hook.result.current.t1Reduction).toEqual({ exerciseId: "ohp", name: "DB Shoulder Press", from: 35, to: 30 });
+    // The home weight comes from the strength model; the reduction is one dumbbell step below it.
+    const from = hook.result.current.plan.find((e) => e.tier === "T1" && !e.isWarmUp)!.weight;
+    expect(hook.result.current.t1Reduction).toEqual({ exerciseId: "ohp", name: "DB Shoulder Press", from, to: from - 5 });
   });
 
   it("suggests a lower weight after time off; accepting saves it and settles the suggestion", async () => {
