@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import { clearDb } from "@/lib/data/testUtils";
+import { clearDb, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { updateSettings } from "@/lib/data/records";
 import { startWorkout } from "@/lib/data/workouts";
 import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
@@ -28,6 +28,7 @@ beforeEach(async () => {
   cleanup();
   await clearDb();
   await initializeDatabase();
+  await seedFixtureStartingWeights();
   nav.params = "";
   nav.push.mockReset();
   nav.replace.mockReset();

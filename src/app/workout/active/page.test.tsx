@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import { clearDb, makeE1RM } from "@/lib/data/testUtils";
+import { clearDb, makeE1RM, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { startWorkout, type StartWorkoutInput } from "@/lib/data/workouts";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { Toaster, dismissToast } from "@/components/ui/toast";
@@ -32,6 +32,7 @@ beforeEach(async () => {
   dismissToast();
   await clearDb();
   await initializeDatabase();
+  await seedFixtureStartingWeights();
   useWorkoutStore.getState().reset();
   nav.push.mockReset();
   nav.replace.mockReset();

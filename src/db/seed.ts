@@ -11,39 +11,50 @@ const SEED_LIFT_DEFAULTS = {
 } as const;
 
 /**
- * The starting weights and stages. They reach the database as `start` adjustments (see
- * `startAdjustments`); the lift-state rows themselves are rebuilt from the log.
+ * The starting weights and stages every new account begins with. They reach the
+ * database as `start` adjustments (see `startAdjustments`); the lift-state rows
+ * themselves are rebuilt from the log. This file is public: these are generic numbers,
+ * nobody's own.
+ *
+ * Conservative novice starts, the convention of beginner barbell programs (StrongLifts
+ * 5×5 starts squat, bench press and overhead press with the empty 20 kg bar and the
+ * deadlift at 40 kg; here the 45 lb bar and 95 lb). GZCLP's guide starts T1 at about 85%
+ * and T2 at about 65% of a five-rep max; with no max known both start at these floors,
+ * which the bar sets, and the first weeks' passes and last-set reps raise them quickly.
+ * The T3 lifts start light enough for the program's 15 or more reps (lat pulldown 50 lb,
+ * dumbbell row 20 lb), the app's choice. A lifter with history gets real suggestions from
+ * Settings > Import history, and any weight can be set by hand.
  */
 export const INITIAL_LIFT_STATES: Record<string, LiftState> = {
   squat: {
     exerciseId: "squat", ...SEED_LIFT_DEFAULTS,
-    t1Weight: 190, t1Stage: "5x3", t1FailCount: 0,
-    t2Weight: 135, t2Stage: "3x10", t2FailCount: 0, t3Weight: 0,
+    t1Weight: 45, t1Stage: "5x3", t1FailCount: 0,
+    t2Weight: 45, t2Stage: "3x10", t2FailCount: 0, t3Weight: 0,
   },
   bench: {
     exerciseId: "bench", ...SEED_LIFT_DEFAULTS,
-    t1Weight: 145, t1Stage: "5x3", t1FailCount: 0,
-    t2Weight: 100, t2Stage: "3x10", t2FailCount: 0, t3Weight: 0,
+    t1Weight: 45, t1Stage: "5x3", t1FailCount: 0,
+    t2Weight: 45, t2Stage: "3x10", t2FailCount: 0, t3Weight: 0,
   },
   deadlift: {
     exerciseId: "deadlift", ...SEED_LIFT_DEFAULTS,
-    t1Weight: 220, t1Stage: "5x3", t1FailCount: 0,
-    t2Weight: 155, t2Stage: "3x10", t2FailCount: 0, t3Weight: 0,
+    t1Weight: 95, t1Stage: "5x3", t1FailCount: 0,
+    t2Weight: 95, t2Stage: "3x10", t2FailCount: 0, t3Weight: 0,
   },
   ohp: {
     exerciseId: "ohp", ...SEED_LIFT_DEFAULTS,
-    t1Weight: 85, t1Stage: "5x3", t1FailCount: 0,
-    t2Weight: 60, t2Stage: "3x10", t2FailCount: 0, t3Weight: 0,
+    t1Weight: 45, t1Stage: "5x3", t1FailCount: 0,
+    t2Weight: 45, t2Stage: "3x10", t2FailCount: 0, t3Weight: 0,
   },
   lat_pulldown: {
     exerciseId: "lat_pulldown", ...SEED_LIFT_DEFAULTS,
     t1Weight: 0, t1Stage: "5x3", t1FailCount: 0,
-    t2Weight: 0, t2Stage: "3x10", t2FailCount: 0, t3Weight: 90,
+    t2Weight: 0, t2Stage: "3x10", t2FailCount: 0, t3Weight: 50,
   },
   db_row: {
     exerciseId: "db_row", ...SEED_LIFT_DEFAULTS,
     t1Weight: 0, t1Stage: "5x3", t1FailCount: 0,
-    t2Weight: 0, t2Stage: "3x10", t2FailCount: 0, t3Weight: 35,
+    t2Weight: 0, t2Stage: "3x10", t2FailCount: 0, t3Weight: 20,
   },
 };
 
@@ -58,12 +69,24 @@ export function startAdjustmentId(exerciseId: string): string {
   return `start:${exerciseId}`;
 }
 
-/** The stamp of a seeded row: older than any real write, so a default never wins a sync conflict. */
-export const SEED_STAMP = 1;
+/**
+ * The stamp of a seeded row: older than any real write, so a default never wins a sync
+ * conflict. 0, below the 1 that earlier versions seeded with: a push replaces a server
+ * row only at an equal or newer stamp, so at 1 a new device's defaults would have
+ * replaced the start adjustments (and with them the lift history) an account had
+ * already synced from an earlier version with other starting weights; at 0 the synced
+ * ones win, on push and on pull.
+ */
+export const SEED_STAMP = 0;
 
-/** One `start` adjustment per lift, dated before everything, holding its starting weights and stages. */
-export function startAdjustments(): LiftAdjustment[] {
-  return Object.values(INITIAL_LIFT_STATES).map((state) => {
+/**
+ * One `start` adjustment per lift, dated before everything, holding its starting weights
+ * and stages (`INITIAL_LIFT_STATES` unless others are given, as tests do).
+ */
+export function startAdjustments(
+  states: Readonly<Record<string, LiftState>> = INITIAL_LIFT_STATES
+): LiftAdjustment[] {
+  return Object.values(states).map((state) => {
     const id = startAdjustmentId(state.exerciseId);
     const set: Record<string, unknown> = {};
     for (const field of START_FIELDS) set[field] = state[field];

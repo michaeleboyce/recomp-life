@@ -1,7 +1,8 @@
 // Fixtures for data-layer and hook tests. Import "fake-indexeddb/auto" before this.
 import { db } from "@/db/local";
-import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES } from "@/db/seed";
+import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { buildWorkoutPlan } from "@/lib/workout/buildPlan";
+import { FIXTURE_LIFT_STATES, fixtureStartAdjustments } from "@/lib/workout/testFixtures";
 import { createSetLog } from "@/lib/workout/logSet";
 import type { WorkoutPlan } from "@/lib/workout/types";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
@@ -14,11 +15,21 @@ import type {
   WorkoutLocation,
   WorkoutSession,
 } from "@/types";
-import { readSettings } from "./derived";
+import { applyRebuild, readSettings } from "./derived";
 import { appendSet, finishWorkout, startWorkout } from "./workouts";
 
 export async function clearDb(): Promise<void> {
   await Promise.all(db.tables.map((t) => t.clear()));
+}
+
+/**
+ * Replaces the seeded `start` adjustments with the test fixture's starting weights
+ * (`FIXTURE_LIFT_STATES`) and rebuilds the lift states. Call after `initializeDatabase()`
+ * in tests whose numbers assume mid-range loads rather than the app's empty-bar start.
+ */
+export async function seedFixtureStartingWeights(): Promise<void> {
+  await db.liftAdjustments.bulkPut(fixtureStartAdjustments());
+  await applyRebuild();
 }
 
 let counter = 0;
@@ -83,7 +94,7 @@ export function makeE1RM(overrides: Partial<Estimated1RM> = {}): Estimated1RM {
 }
 
 export function makeLiftState(overrides: Partial<LiftState> = {}): LiftState {
-  return { ...INITIAL_LIFT_STATES.squat, synced: true, ...overrides };
+  return { ...FIXTURE_LIFT_STATES.squat, synced: true, ...overrides };
 }
 
 export function makeProfile(overrides: Partial<UserProfile> = {}): UserProfile {

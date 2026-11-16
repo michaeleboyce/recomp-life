@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import { clearDb, makeSet, makeWorkout } from "@/lib/data/testUtils";
+import { clearDb, makeSet, makeWorkout, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { favoriteFromSetup, resolveFavorite, type ResolvedFavorite } from "@/lib/favorites";
 import { useActiveWorkout } from "@/components/ActiveWorkout/useActiveWorkout";
 import { ACCESSORY_IDS } from "@/lib/exercises";
@@ -28,6 +28,7 @@ beforeEach(async () => {
   nav.params = "";
   await clearDb();
   await initializeDatabase();
+  await seedFixtureStartingWeights();
   useWorkoutStore.getState().reset();
 });
 

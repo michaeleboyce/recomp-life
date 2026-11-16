@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { initializeDatabase } from "@/db/init";
 import { db } from "@/db/local";
+import { INITIAL_LIFT_STATES } from "@/db/seed";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { exportBackup, importBackup, parseBackup } from "./backup";
 import { applyRebuild } from "./derived";
@@ -140,7 +141,7 @@ describe("parseBackup", () => {
     expect(await db.liftAdjustments.count()).toBe(0);
     await initializeDatabase();
     expect(await db.liftAdjustments.count()).toBeGreaterThan(0);
-    expect((await db.liftStates.get("squat"))?.t1Weight).toBe(190);
+    expect((await db.liftStates.get("squat"))?.t1Weight).toBe(INITIAL_LIFT_STATES.squat.t1Weight);
   });
 
   it("rejects malformed JSON, wrong versions and missing tables with a message", () => {

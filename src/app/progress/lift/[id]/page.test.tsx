@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
-import { clearDb, makeProfile } from "@/lib/data/testUtils";
+import { clearDb, makeProfile, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { initializeDatabase } from "@/db/init";
 import { Toaster, dismissToast } from "@/components/ui/toast";
@@ -147,6 +147,7 @@ describe("Lift detail page", () => {
 
   it("adjusts the next weight from the screen and lists the change under Weight changes", async () => {
     await initializeDatabase();
+    await seedFixtureStartingWeights();
     render(
       <>
         <LiftPage />
@@ -329,6 +330,7 @@ describe("Lift detail page", () => {
 
     it("adjusts the home exercise's own weight: the next home plan follows, the barbell does not", async () => {
       await initializeDatabase();
+      await seedFixtureStartingWeights();
       const profile = await db.userProfile.toCollection().first();
       const equipment = profile!.settings.equipment;
       /** The next home plan, from what is stored now. */
@@ -394,6 +396,7 @@ describe("Lift detail page", () => {
 
     it("opened from the barbell page, the sheet still edits the barbell", async () => {
       await initializeDatabase();
+      await seedFixtureStartingWeights();
       render(<LiftPage />);
       const next = await screen.findByRole("region", { name: "Next session" });
       fireEvent.click(within(next).getByRole("button", { name: "Adjust weight" }));

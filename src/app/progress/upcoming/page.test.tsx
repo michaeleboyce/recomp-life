@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import { clearDb, makeSet, makeWorkout } from "@/lib/data/testUtils";
+import { clearDb, makeSet, makeWorkout, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { estimateLoggedSeconds } from "@/lib/workout/duration";
 import UpcomingWorkoutsPage from "./page";
 
@@ -18,6 +18,7 @@ beforeEach(async () => {
   cleanup();
   await clearDb();
   await initializeDatabase();
+  await seedFixtureStartingWeights();
 });
 
 const cards = () => screen.getAllByTestId("upcoming-workout");

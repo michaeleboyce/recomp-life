@@ -1,7 +1,9 @@
 // Shared fixtures for the src/lib/workout tests. Not exported from index.ts.
-import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES } from "@/db/seed";
+import { DEFAULT_USER_PROFILE, startAdjustments } from "@/db/seed";
+import { DEMO_LIFT_STATES } from "@/lib/demo/demoLifter";
 import type {
   EquipmentProfile,
+  LiftAdjustment,
   LiftState,
   SetLog,
   Tier,
@@ -13,9 +15,22 @@ import type { WorkoutExerciseState } from "./types";
 export const SETTINGS: UserSettings = DEFAULT_USER_PROFILE.settings;
 export const EQUIPMENT: EquipmentProfile = SETTINGS.equipment;
 
-/** Fresh copies of the seeded lift states (arrays included), safe to mutate. */
+/**
+ * The tests' starting weights: the demo lifter's (src/lib/demo/demoLifter.ts), mid-range
+ * loads so warm-ups, plate maths, home conversions and reductions have room to work.
+ * Independent of the app's own seed (`INITIAL_LIFT_STATES`, which starts a new account
+ * at the empty bar); tests that check the seed itself read it from "@/db/seed".
+ */
+export const FIXTURE_LIFT_STATES: Readonly<Record<string, LiftState>> = DEMO_LIFT_STATES;
+
+/** The fixture's starting weights as the seed's `start` adjustments (same ids and dates). */
+export function fixtureStartAdjustments(): LiftAdjustment[] {
+  return startAdjustments(FIXTURE_LIFT_STATES);
+}
+
+/** Fresh copies of the fixture's lift states (arrays included), safe to mutate. */
 export function seedLiftStates(): LiftState[] {
-  return Object.values(INITIAL_LIFT_STATES).map((ls) => ({
+  return Object.values(FIXTURE_LIFT_STATES).map((ls) => ({
     ...ls,
     recentE1RMs: [...ls.recentE1RMs],
     recentAvgRPEs: [...ls.recentAvgRPEs],

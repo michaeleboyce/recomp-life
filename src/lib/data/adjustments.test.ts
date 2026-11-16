@@ -4,7 +4,7 @@ import { initializeDatabase } from "@/db/init";
 import { db } from "@/db/local";
 import { recordAdjustment } from "./adjustments";
 import { applyRebuild, checkDerived } from "./derived";
-import { clearDb, runSession } from "./testUtils";
+import { clearDb, runSession, seedFixtureStartingWeights } from "./testUtils";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const DAY = 24 * 60 * 60 * 1000;
@@ -18,6 +18,7 @@ beforeEach(async () => {
   vi.setSystemTime(new Date("2026-03-01T08:00:00Z"));
   await clearDb();
   await initializeDatabase();
+  await seedFixtureStartingWeights();
 });
 
 afterEach(() => {

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import { clearDb, makeE1RM, makeSet } from "@/lib/data/testUtils";
+import { clearDb, makeE1RM, makeSet, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { appendSet, startWorkout, type StartWorkoutInput } from "@/lib/data/workouts";
 import { evaluateT1Progression, evaluateT2Progression } from "@/lib/progression";
 import { substituteModification } from "@/lib/workout";
@@ -17,6 +17,7 @@ vi.mock("@/lib/projection", () => ({ describePrOpportunity }));
 beforeEach(async () => {
   await clearDb();
   await initializeDatabase();
+  await seedFixtureStartingWeights();
   useWorkoutStore.getState().reset();
   describePrOpportunity.mockReset();
   describePrOpportunity.mockReturnValue(null);

@@ -7,6 +7,7 @@ import { startAdjustments } from "@/db/seed";
 import { makeProfile, makeSet, makeWorkout } from "@/lib/data/testUtils";
 import { applyChange, rebuildDerived, tierPrescription } from "@/lib/rebuild";
 import { fullSync, pullFromServer, pushUnsynced } from "@/lib/sync";
+import { fixtureStartAdjustments } from "@/lib/workout/testFixtures";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftAdjustment, WorkoutSession } from "@/types";
 import { PROFILE_ID } from "./registry";
@@ -185,6 +186,28 @@ describe("two devices, one server", () => {
     }
     expect(server.requests.some((r) => r.device === "C" && r.path === "/api/sync/pull")).toBe(true);
   });
+
+  it("a new device's default starting weights never replace the ones an account already synced", async () => {
+    // An account whose start adjustments were pushed by an earlier version of the app,
+    // at the seed stamp of the time (1) and with other (made-up) numbers.
+    const earlier = startAdjustments().map((row) => ({
+      ...row,
+      updatedAt: 1,
+      set: { ...row.set, ...(row.set.t1Weight ? { t1Weight: row.set.t1Weight + 100 } : {}) },
+    }));
+    await A.table("liftAdjustments").bulkAdd(earlier);
+    await sync(A);
+
+    // A new device seeds today's defaults, then syncs (push first, then pull).
+    await B.table("liftAdjustments").bulkAdd(startAdjustments());
+    await sync(B);
+
+    for (const row of earlier) {
+      const stored = server.rows("liftAdjustments").find((r) => r.clientId === row.clientId)!;
+      expect(stored.set, `server ${row.id}`).toEqual(row.set);
+      expect((await B.table("liftAdjustments").get(row.id)).set, `B ${row.id}`).toEqual(row.set);
+    }
+  });
 });
 
 // The data layer (`applyRebuild`, `commitLogChange`) only works on the app's singleton
@@ -257,7 +280,7 @@ describe("two devices, one server: each device rebuilds the same derived data", 
   }
 
   async function seedAndShare() {
-    await A.table("liftAdjustments").bulkAdd(startAdjustments());
+    await A.table("liftAdjustments").bulkAdd(fixtureStartAdjustments());
     await A.table("workouts").add(squatDay("w1", "2026-11-09", 5));
     await sync(A);
     await sync(B);

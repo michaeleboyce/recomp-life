@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { initializeDatabase } from "@/db/init";
-import { clearDb } from "@/lib/data/testUtils";
+import { clearDb, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { DaySelector } from "./DaySelector";
 import { EditWorkoutButton } from "./EditWorkoutButton";
 import { PlannedExerciseList } from "./PlannedExerciseList";
@@ -37,6 +37,7 @@ function Harness({ templateId }: { templateId: string }) {
 beforeEach(async () => {
   await clearDb();
   await initializeDatabase();
+  await seedFixtureStartingWeights();
 });
 afterEach(cleanup);
 

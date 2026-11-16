@@ -13,7 +13,7 @@ import {
   prescribedFor,
   startWorkout,
 } from "./workouts";
-import { clearDb, makeE1RM, makeLiftState, makeSet, makeWorkout } from "./testUtils";
+import { clearDb, makeE1RM, makeLiftState, makeSet, makeWorkout, seedFixtureStartingWeights } from "./testUtils";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -55,6 +55,7 @@ describe("startWorkout", () => {
 
   it("stores the prescription read from the current lift states, with the stage for T1 and T2", async () => {
     await initializeDatabase();
+    await seedFixtureStartingWeights();
     await db.liftStates.update("ohp", { t1Weight: 90, t1Stage: "6x2" });
     const id = await startWorkout({
       templateId: "B1",
@@ -73,6 +74,7 @@ describe("startWorkout", () => {
 
   it("at home, also stores each home exercise's own prescription, as the plan has it (H3)", async () => {
     await initializeDatabase();
+    await seedFixtureStartingWeights();
     const id = await startWorkout({ templateId: "A1", location: "home", includeWarmUps: false, selectedAccessories: [] });
     const squat = (await db.workouts.get(id))!.prescribed!.find((p) => p.exerciseId === "squat")!;
     // The barbell prescription is unchanged; the split squat starts at 0.5 x 190, 50 a hand.
@@ -82,6 +84,7 @@ describe("startWorkout", () => {
 
   it("back at the gym after home sessions, stores the re-entry weight (H6)", async () => {
     await initializeDatabase();
+    await seedFixtureStartingWeights();
     const finishedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
     await db.variantStates.put({
       id: "squat|bulgarian_split_squat|T1",
@@ -107,6 +110,7 @@ describe("startWorkout", () => {
 
   it("stores a given prescription as it is", async () => {
     await initializeDatabase();
+    await seedFixtureStartingWeights();
     const prescribed = [
       { exerciseId: "squat", tier: "T1" as const, weight: 150, sets: 5, reps: 3, stage: "5x3" as const },
     ];
@@ -248,6 +252,7 @@ describe("appendSet", () => {
 
   it("a set added to a finished workout re-runs progression", async () => {
     await initializeDatabase();
+    await seedFixtureStartingWeights();
     const id = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
     for (let i = 1; i <= 4; i++) {
       await appendSet(id, makeSet({ id: `s${i}`, setNumber: i }));
@@ -324,7 +329,10 @@ describe("finishWorkout", () => {
   const start = () =>
     startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
 
-  beforeEach(initializeDatabase);
+  beforeEach(async () => {
+    await initializeDatabase();
+    await seedFixtureStartingWeights();
+  });
 
   it("marks the workout complete, runs the rebuild and returns the lift states after it", async () => {
     const id = await start();

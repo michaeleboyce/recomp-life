@@ -55,12 +55,41 @@ describe("initializeDatabase", () => {
       localStorage.removeItem("recomp-sync-key");
     }
 
-    // The push of the seed (stamp 1) was skipped by the server; the pull replaced the seed.
+    // The push of the seed (stamp 0) was skipped by the server; the pull replaced the seed.
     expect(server.rows("userProfile")).toEqual([synced]);
     const profiles = await db.userProfile.toArray();
     expect(profiles).toHaveLength(1);
     expect(profiles[0]).toMatchObject({ name: "Owner", bodyweight: 200, heightInches: 72, updatedAt: 5_000 });
     expect(profiles[0].settings.trainingPhase).toEqual({ mode: "bulking" });
+  });
+
+  it("the default starting weights never replace ones an account already synced, in either direction", async () => {
+    // Start adjustments pushed by an earlier version of the app: its seed stamp (1) and
+    // other (made-up) weights.
+    const server = new FakeSyncServer();
+    const earlier = startAdjustments().map((row) => ({
+      ...JSON.parse(JSON.stringify(row)),
+      set: { ...row.set, ...(row.set.t1Weight ? { t1Weight: row.set.t1Weight + 100 } : {}) },
+      updatedAt: 1,
+      synced: true,
+    }));
+    server.tables.set("liftAdjustments", new Map(earlier.map((row) => [row.clientId, row])));
+    localStorage.setItem("recomp-sync-key", TEST_PASSPHRASE);
+    vi.stubGlobal("fetch", server.fetch);
+    try {
+      await initializeDatabase();
+      const result = await fullSync(db);
+      expect(result.errors).toEqual([]);
+    } finally {
+      vi.unstubAllGlobals();
+      localStorage.removeItem("recomp-sync-key");
+    }
+
+    for (const row of earlier) {
+      expect(server.rows("liftAdjustments").find((r) => r.clientId === row.clientId)!.set, row.id).toEqual(row.set);
+      expect((await db.liftAdjustments.get(row.id))!.set, row.id).toEqual(row.set);
+    }
+    expect((await db.liftStates.get("squat"))!.t1Weight).toBe(145);
   });
 
   it("writes the starting weights as one `start` adjustment per lift, not as lift states (E9)", async () => {
@@ -74,11 +103,11 @@ describe("initializeDatabase", () => {
       at: new Date(0),
       source: "start",
       set: {
-        t1Weight: 190, t1Stage: "5x3", t1FailCount: 0, t1LastResetWeight: null,
-        t2Weight: 135, t2Stage: "3x10", t2FailCount: 0, t2LastResetWeight: null,
+        t1Weight: 45, t1Stage: "5x3", t1FailCount: 0, t1LastResetWeight: null,
+        t2Weight: 45, t2Stage: "3x10", t2FailCount: 0, t2LastResetWeight: null,
         t3Weight: 0,
       },
-      updatedAt: 1,
+      updatedAt: 0,
       deletedAt: null,
       synced: false,
     });
@@ -159,15 +188,15 @@ describe("initializeDatabase", () => {
 
     await initializeDatabase();
     expect(await db.userProfile.toArray()).toEqual([profile]);
-    expect(await db.liftAdjustments.get("start:db_row")).toMatchObject({ set: { t3Weight: 35 } });
-    expect((await db.liftStates.get("db_row"))!.t3Weight).toBe(35);
+    expect(await db.liftAdjustments.get("start:db_row")).toMatchObject({ set: { t3Weight: 20 } });
+    expect((await db.liftStates.get("db_row"))!.t3Weight).toBe(20);
   });
 
   it("rebuilds a lift state that went missing, from the log", async () => {
     await initializeDatabase();
     await db.liftStates.delete("squat");
     await initializeDatabase();
-    expect((await db.liftStates.get("squat"))!.t1Weight).toBe(190);
+    expect((await db.liftStates.get("squat"))!.t1Weight).toBe(45);
   });
 
   it("leaves an edited or deleted start adjustment alone", async () => {

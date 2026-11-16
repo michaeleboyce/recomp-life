@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
-import { clearDb, runSession } from "@/lib/data/testUtils";
+import { clearDb, runSession, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 
 let id = "";
 const push = vi.fn();
@@ -27,6 +27,7 @@ beforeEach(async () => {
   vi.setSystemTime(new Date("2026-03-01T08:00:00Z"));
   await clearDb();
   await initializeDatabase();
+  await seedFixtureStartingWeights();
   // A1 passed everywhere with a 26-rep last T3 set, then A1 again with a 1-rep T1 AMRAP.
   first = (await runSession({ templateId: "A1", startedAt: new Date(FIRST), lastReps: { T3: 26 } }, setNow)).workoutId;
   second = (

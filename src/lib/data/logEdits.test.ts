@@ -14,7 +14,7 @@ import {
   updateRun,
 } from "./logEdits";
 import { logActivity, logBodyweight, logRun, savePainEntry } from "./records";
-import { clearDb, makeSet, runSession } from "./testUtils";
+import { clearDb, makeSet, runSession, seedFixtureStartingWeights } from "./testUtils";
 import { appendSet, startWorkout } from "./workouts";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -28,6 +28,7 @@ beforeEach(async () => {
   vi.setSystemTime(new Date("2026-03-01T08:00:00Z"));
   await clearDb();
   await initializeDatabase();
+  await seedFixtureStartingWeights();
 });
 
 afterEach(() => {

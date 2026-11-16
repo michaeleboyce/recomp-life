@@ -48,6 +48,30 @@ describe("settings page", () => {
     expect(screen.getAllByRole("link", { name: /Import history/ })).toHaveLength(1);
   });
 
+  it("shows no diet target until one is set, and saves the one entered", async () => {
+    await db.userProfile.toCollection().modify((p) => {
+      p.settings.trainingPhase = { mode: "maintaining" };
+    });
+    render(<SettingsPage />);
+    fireEvent.click(await screen.findByRole("button", { name: /Cutting/i }));
+    await waitFor(async () => expect((await settings()).trainingPhase.mode).toBe("cutting"));
+    // No made-up targets are filled in when switching to cutting.
+    expect((await settings()).trainingPhase).toEqual({ mode: "cutting" });
+
+    const deficit = await screen.findByRole("button", { name: "Daily deficit: not set" });
+    expect(deficit).toHaveTextContent("Not set");
+    expect(screen.getByRole("button", { name: "Protein target: not set" })).toHaveTextContent("Not set");
+
+    fireEvent.click(deficit);
+    const input = screen.getByRole("spinbutton");
+    expect(input).toHaveValue(null);
+    fireEvent.change(input, { target: { value: "500" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(async () => expect((await settings()).trainingPhase.dailyDeficit).toBe(500));
+    expect(await screen.findByRole("button", { name: "Daily deficit: 500 cal" })).toHaveTextContent("500 cal");
+    expect((await settings()).trainingPhase.proteinGramsPerDay).toBeUndefined();
+  });
+
   it("gives the cloud sync card the id the More screen links to", async () => {
     render(<SettingsPage />);
     await screen.findByText("Cloud Sync");
