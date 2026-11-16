@@ -1,16 +1,20 @@
 import { DEFAULT_ACCESSORY_WEIGHTS, EXERCISES } from "@/lib/exercises";
 import type {
+  EquipmentProfile,
   FavoriteSnapshotEntry,
   LiftState,
   PlanEdit,
+  PlannedSet,
   PrescribedEntry,
   SetLog,
   Tier,
+  VariantState,
   WorkoutTemplate,
 } from "@/types";
 import { getPrescription } from "./prescription";
-import { excludeWarmUps } from "./setSelectors";
+import { excludeWarmUps, isWorkingSet } from "./setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "./types";
+import { chooseHomeVariant, homePrescriptionOf, isVariantTier } from "./variant";
 
 /** Tiers the program prescribes and progresses. */
 const PROGRAM_TIERS: readonly Tier[] = ["T1", "T2", "T3"];
@@ -39,6 +43,10 @@ function isWarmUpOf(entry: WorkoutExerciseState, exerciseId: string): boolean {
  * - `weight` sets the working entry's weight. On a home substitute `originalWeight`
  *   (the program weight it stands for) is scaled by the same ratio, so a lighter
  *   substitute reads as lighter than prescribed. Warm-ups are left as generated.
+ * - `setWeights` gives each set its own weight and rep target (`perSet`, a ramp or a
+ *   back-off set among them): `targetSets` becomes the number of sets, `weight` and
+ *   `targetReps` those of the heaviest working set, and `originalWeight` is scaled as for
+ *   `weight`. A later `scheme` or `weight` edit makes the sets uniform again.
  */
 export function applyPlanEdits(plan: WorkoutPlan, edits: PlanEdit[] | undefined): WorkoutPlan {
   let next: WorkoutPlan = plan.map((entry) => ({ ...entry }));
@@ -90,6 +98,7 @@ export function applyPlanEdits(plan: WorkoutPlan, edits: PlanEdit[] | undefined)
         if (!entry) break;
         entry.targetSets = edit.sets;
         entry.targetReps = edit.reps;
+        delete entry.perSet;
         break;
       }
       case "weight": {
@@ -99,6 +108,20 @@ export function applyPlanEdits(plan: WorkoutPlan, edits: PlanEdit[] | undefined)
           entry.originalWeight = Math.round((entry.originalWeight * edit.weight) / entry.weight);
         }
         entry.weight = edit.weight;
+        delete entry.perSet;
+        break;
+      }
+      case "setWeights": {
+        const entry = next.find((e) => isWorkingEntry(e, edit.exerciseId, edit.tier));
+        if (!entry || edit.sets.length === 0) break;
+        const top = heaviestWorkingSet(edit.sets);
+        if (entry.originalWeight != null && entry.weight > 0) {
+          entry.originalWeight = Math.round((entry.originalWeight * top.weight) / entry.weight);
+        }
+        entry.perSet = edit.sets.map((set) => ({ ...set }));
+        entry.targetSets = edit.sets.length;
+        entry.weight = top.weight;
+        entry.targetReps = top.reps;
         break;
       }
     }
@@ -107,13 +130,41 @@ export function applyPlanEdits(plan: WorkoutPlan, edits: PlanEdit[] | undefined)
   return next;
 }
 
+/** The heaviest working set of a per-set list (of every set when none is a working set). */
+export function heaviestWorkingSet(sets: readonly PlannedSet[]): PlannedSet {
+  const working = sets.filter(isWorkingSet);
+  const pool = working.length > 0 ? working : sets;
+  return pool.reduce((top, set) => (set.weight > top.weight ? set : top), pool[0]);
+}
+
+/**
+ * The working sets an entry prescribes: its per-set list's working sets when it has one
+ * (ramp, back-off and drop sets are extra), otherwise `targetSets`.
+ */
+export function workingTargetSets(
+  entry: Pick<WorkoutExerciseState, "targetSets" | "perSet">
+): number {
+  return entry.perSet ? entry.perSet.filter(isWorkingSet).length : entry.targetSets;
+}
+
+/** A session at home: what `prescribedFor` needs to record each lift's home exercise. */
+export interface HomePrescriptionContext {
+  variantStates: VariantState[];
+  equipment: EquipmentProfile;
+  /** Home substitutes picked on Configure (template exerciseId -> substitute id). */
+  overrides?: Record<string, string>;
+}
+
 /**
  * What the program prescribes for each program lift (T1, T2, T3) of a day, from the
- * current lift states and before any edit. Stored on the session row at start.
+ * current lift states and before any edit. Stored on the session row at start. With
+ * `home` (a session at home), each lift done as a home exercise also records that
+ * exercise's own prescription (`PrescribedEntry.home`), exactly as the plan builds it.
  */
 export function prescribedFor(
   template: WorkoutTemplate,
-  liftStates: LiftState[]
+  liftStates: LiftState[],
+  home?: HomePrescriptionContext
 ): PrescribedEntry[] {
   const byId = new Map(liftStates.map((ls) => [ls.exerciseId, ls]));
   const prescribed: PrescribedEntry[] = [];
@@ -128,6 +179,17 @@ export function prescribedFor(
         : templateEx.tier === "T2"
           ? liftState?.t2Stage
           : undefined;
+    const choice =
+      home && isVariantTier(templateEx.tier)
+        ? chooseHomeVariant({
+            liftId: templateEx.exerciseId,
+            tier: templateEx.tier,
+            liftState,
+            variantStates: home.variantStates,
+            equipment: home.equipment,
+            overrideId: home.overrides?.[templateEx.exerciseId],
+          })
+        : null;
     prescribed.push({
       exerciseId: templateEx.exerciseId,
       tier: templateEx.tier,
@@ -135,6 +197,9 @@ export function prescribedFor(
       sets,
       reps,
       ...(stage ? { stage } : {}),
+      ...(choice
+        ? { home: homePrescriptionOf(choice, { sets: templateEx.sets, reps: templateEx.reps }) }
+        : {}),
     });
   }
 

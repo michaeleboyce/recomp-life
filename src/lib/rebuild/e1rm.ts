@@ -15,11 +15,13 @@ export function e1rmRowId(workoutId: string, setId: string): string {
  * The e1RM rows for one workout's eligible sets, with ids `e1rm:<workoutId>:<setId>`.
  * Same rule as logging a set live: heavy T1 AMRAP sets of the lift itself. A home
  * substitute's dumbbell weight says nothing about the barbell lift, so it gives no row.
+ * Nor does a ramp, back-off or drop set: only working sets estimate the max.
  */
 export function e1rmsForWorkout(workout: WorkoutSession): Estimated1RM[] {
   const rows: Estimated1RM[] = [];
   for (const set of workout.sets ?? []) {
     if (set.isSubstituted || set.substituteExerciseId) continue;
+    if (set.role != null && set.role !== "work") continue;
     if (!isE1RMEligibleSet(set.tier, set.isAMRAP, set.actualReps)) continue;
     const estimated1RM = calculateE1RM(set.weight, set.actualReps, set.rpe);
     if (!estimated1RM) continue;

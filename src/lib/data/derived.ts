@@ -1,6 +1,6 @@
-// Data layer: keeps the derived tables (liftStates, estimated1RMs) equal to what the
-// rebuild engine computes from the log. `applyRebuild` is the only writer of those two
-// tables: finishing a workout, editing the log and seeding all go through it.
+// Data layer: keeps the derived tables (liftStates, estimated1RMs, variantStates) equal
+// to what the rebuild engine computes from the log. `applyRebuild` is the only writer of
+// those tables: finishing a workout, editing the log and seeding all go through it.
 import type { Table } from "dexie";
 import { db } from "@/db/local";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
@@ -14,7 +14,14 @@ import type { UserSettings } from "@/types";
  * own transaction must include all of them, in "rw" mode.
  */
 export function rebuildTables(): Table[] {
-  return [db.workouts, db.liftAdjustments, db.userProfile, db.liftStates, db.estimated1RMs];
+  return [
+    db.workouts,
+    db.liftAdjustments,
+    db.userProfile,
+    db.liftStates,
+    db.estimated1RMs,
+    db.variantStates,
+  ];
 }
 
 /** The profile's settings, or the defaults before the database has been seeded. */
@@ -36,13 +43,14 @@ async function diffAgainstStored(): Promise<DerivedDiff> {
   const rebuilt = rebuildDerived(await loadRebuildInput());
   const liftStates = await db.liftStates.toArray();
   const e1rms = await db.estimated1RMs.toArray();
-  return diffDerived(rebuilt, { liftStates, e1rms });
+  const variantStates = await db.variantStates.toArray();
+  return diffDerived(rebuilt, { liftStates, e1rms, variantStates });
 }
 
 /**
- * Rebuilds lift states and e1RM rows from the log and writes only the rows that
- * differ. Joins the caller's Dexie transaction when there is one (it must include
- * `rebuildTables()`); otherwise it opens its own.
+ * Rebuilds lift states, e1RM rows and home exercises' states from the log and writes
+ * only the rows that differ. Joins the caller's Dexie transaction when there is one (it
+ * must include `rebuildTables()`); otherwise it opens its own.
  */
 export async function applyRebuild(): Promise<DerivedDiff> {
   return db.transaction("rw", rebuildTables(), async () => {
@@ -55,6 +63,10 @@ export async function applyRebuild(): Promise<DerivedDiff> {
       await db.estimated1RMs.bulkDelete(diff.e1rmIdsToDelete);
     }
     if (diff.e1rmsToPut.length > 0) await db.estimated1RMs.bulkPut(diff.e1rmsToPut);
+    const variantIdsToDelete = diff.variantStateIdsToDelete ?? [];
+    if (variantIdsToDelete.length > 0) await db.variantStates.bulkDelete(variantIdsToDelete);
+    const variantsToPut = diff.variantStatesToPut ?? [];
+    if (variantsToPut.length > 0) await db.variantStates.bulkPut(variantsToPut);
     return diff;
   });
 }

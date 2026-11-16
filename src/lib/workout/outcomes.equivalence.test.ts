@@ -5,6 +5,12 @@
 // the old lines were then recorded in __fixtures__/old-outcome-lines.json, so the
 // comparison still runs. Do not regenerate the file: a difference means the outcome
 // for an ordinary session has changed.
+//
+// Regenerated on purpose on 2026-11-15 for the strength model: a lift done as a home
+// exercise is now "held" (its barbell weight does not move at home; the home exercise
+// progresses instead), and the demo log has a home block. Every gym line of the
+// scripted log that changed did so only because the home sessions before it no longer
+// raised or lowered the barbell weight.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -86,8 +92,10 @@ describe("outcome kind and text equal the old description", () => {
       expect(now[workout.id], workout.id).toHaveLength(3);
       expect(now[workout.id], workout.id).toEqual(OLD_LINES.demo[workout.id]);
     }
-    // The demo log exercises more than a pass: 72 lift outcomes in all.
-    expect(tally(now)).toEqual({ passed: 44, t3Same: 23, missed: 4, t3Up: 1 });
+    // The demo log exercises more than a pass: 72 lift outcomes in all. Since 2026-11-15
+    // the eight home sessions hold their 20 substituted lifts (the home exercises
+    // progress instead), and the dumbbell row, done as itself at home, still progresses.
+    expect(tally(now)).toEqual({ passed: 29, held: 20, t3Same: 19, missed: 3, t3Up: 1 });
   });
 
   it("for a scripted log with misses, a reset, partial and skipped lifts, load drops and home days", () => {

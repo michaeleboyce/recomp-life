@@ -323,10 +323,13 @@ describe("finishWorkout", () => {
     });
     const id = await start();
     await finishWorkout(id, { completedAt: new Date(), totalDurationSeconds: 60, endedEarly: false });
+    // 2026-11-15: the heaviest dumbbell is stored too, so a rebuild of a past home
+    // session caps it as it was capped then, not by today's setting.
     expect((await db.workouts.get(id))!.completionContext).toEqual({
       phaseMode: "bulking",
       gymBarbellIncrementLbs: 2.5,
       dumbbellIncrementLbs: 2.5,
+      maxDumbbellWeight: 80,
     });
   });
 

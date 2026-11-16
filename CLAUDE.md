@@ -57,4 +57,4 @@ A mobile-first Next.js PWA (with Capacitor for native iOS/Android) for tracking 
 - Pain/run/equipment skips FREEZE progression — they do NOT trigger failure cascade
 - T3 weight increases when AMRAP last set ≥ 25 reps (NOT total reps ≥ 25)
 - Training phase (cutting/maintaining/bulking) affects thresholds throughout the app
-- DB-adapted workouts at home count as passes for progression
+- Home sessions progress their own weight by the GZCLP rules, count for the rotation, and are strength evidence for the program lift; the barbell weight moves at re-entry, within limits.

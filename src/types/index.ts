@@ -165,11 +165,122 @@ export interface LiftState {
   synced: boolean;
 }
 
+/** How a home variant's first weight was chosen. */
+export interface VariantSeed {
+  /**
+   * "conversion": today's barbell-to-dumbbell conversion (`seedVariantWeight`, the seam
+   * the pooled strength estimate will take over). "harderVariant": the cap policy moved
+   * here from a variant that had reached the heaviest dumbbell.
+   */
+  source: "conversion" | "harderVariant";
+  /** The program lift's weight the seed was worked out from, in barbell terms. */
+  barbellWeight: number;
+  /** The weight the conversion asked for when it was more than the heaviest dumbbell. */
+  cappedFrom?: number;
+  /** For "harderVariant": the variant the cap policy moved on from. */
+  fromVariantId?: string;
+}
+
+/**
+ * The working weight and progression of one exercise performed for a program lift at
+ * one tier, e.g. Bulgarian split squat for the squat at T1. Each home exercise keeps
+ * its own weight and moves by the GZCLP rules in dumbbell steps. Derived: rebuilt from
+ * the log by the same fold as the lift states (`rebuildDerived`), stored only on this
+ * device, never synced and never edited by hand.
+ */
+export interface VariantState {
+  /** `variantKey(liftId, exerciseId, tier)`, e.g. "squat|bulgarian_split_squat|T1". */
+  id: string;
+  /** The program lift this exercise stands in for. */
+  liftId: string;
+  /** The exercise performed. */
+  exerciseId: string;
+  tier: "T1" | "T2" | "T3";
+  /** The working weight as lifted: per hand when `perHand`, else the one dumbbell. */
+  weight: number;
+  perHand: boolean;
+  /** The GZCLP stage for T1 and T2; null for T3. */
+  stage: T1Stage | T2Stage | null;
+  failCount: number;
+  /**
+   * Reps added to every set by the cap policy once the heaviest dumbbell is reached
+   * (3x10 becomes 3x12). 0 below the cap; a miss or a reset clears it.
+   */
+  extraReps: number;
+  lastResetWeight: number | null;
+  lastSessionDate: Date | null;
+  /** Reps on the last working set of recent sessions, oldest first. */
+  recentLastSetReps: number[];
+  /** True for the variant the next home session of this lift and tier plans. */
+  current: boolean;
+  /**
+   * Passes of this variant since the program lift was last done at this tier as the
+   * barbell lift itself: the steps the home sessions earned for re-entry (H6).
+   */
+  passesSinceGym: number;
+  seed: VariantSeed;
+}
+
+/** A variant's weight and scheme as an outcome records them. */
+export interface VariantPoint {
+  exerciseId: string;
+  weight: number;
+  perHand: boolean;
+  stage?: string;
+  /** Reps per working set. */
+  reps: number;
+}
+
+/** What the cap policy did on a pass at the heaviest dumbbell, instead of adding weight. */
+export type VariantCapAction =
+  | {
+      policy: "harderVariant";
+      maxDumbbellWeight: number;
+      /** The variant planned next, now the current one. */
+      to: { variantId: string; exerciseId: string; weight: number };
+    }
+  | { policy: "reps"; maxDumbbellWeight: number; repsFrom: number; repsTo: number };
+
+/**
+ * What the program rules did to the home exercise performed for a program lift: the
+ * same kinds as a lift's outcome, in the variant's own weight and scheme. The program
+ * lift's own outcome for that session is "held" (no reason): the barbell weight does
+ * not move at home.
+ */
+export interface VariantOutcome {
+  variantId: string;
+  liftId: string;
+  exerciseId: string;
+  tier: "T1" | "T2" | "T3";
+  kind: ProgressionOutcomeKind;
+  reason?: ProgressionOutcomeReason;
+  from: VariantPoint;
+  to: VariantPoint;
+  /** Set when a pass met the heaviest dumbbell. */
+  cap?: VariantCapAction;
+  ruleId: string;
+}
+
 // Workout Session Types
 
 export type SetStatus = "completed" | "failed" | "skipped_pain" | "reduced_run_fatigue" | "reduced_equipment" | "autoregulated_load_drop";
 export type Tier = "T1" | "T2" | "T3" | "accessory" | "warmup";
 export type WorkoutLocation = "gym" | "home";
+
+/**
+ * What a set was for. Absent means a working set of the program, as "work" does. Pass
+ * or fail is judged on working sets only: a ramp set leads up to them, a back-off set
+ * and a drop set come after them and are extra volume.
+ */
+export type SetRole = "work" | "ramp" | "backoff" | "drop";
+
+/** One planned set with its own weight and rep target (per-set weights). */
+export interface PlannedSet {
+  weight: number;
+  reps: number;
+  /** Absent means a working set. */
+  role?: SetRole;
+}
 
 export interface SetLog {
   id: string;
@@ -189,6 +300,10 @@ export interface SetLog {
   substituteExerciseId?: string;
   rpe?: number;
   location: WorkoutLocation;
+  /** What the set was for; absent on a working set (and on every row logged before roles). */
+  role?: SetRole;
+  /** For a drop set: the id of the set it continues, with no rest in between. */
+  dropOf?: string;
   synced: boolean;
 }
 
@@ -244,7 +359,9 @@ export type PlanEdit =
   | { kind: "remove"; exerciseId: string; tier: Tier }
   | { kind: "add"; exerciseId: string; sets: number; reps: number; weight: number; isAMRAP: boolean }
   | { kind: "scheme"; exerciseId: string; tier: Tier; sets: number; reps: number }
-  | { kind: "weight"; exerciseId: string; tier: Tier; weight: number };
+  | { kind: "weight"; exerciseId: string; tier: Tier; weight: number }
+  /** Each set's own weight and rep target, in order; replaces the entry's sets. */
+  | { kind: "setWeights"; exerciseId: string; tier: Tier; sets: PlannedSet[] };
 
 /** One working entry of a favourite's frozen copy. */
 export interface FavoriteSnapshotEntry {
@@ -284,6 +401,24 @@ export interface PrescribedEntry {
   sets: number;
   reps: number;
   stage?: T1Stage | T2Stage;
+  /**
+   * At home: what the program prescribed for the exercise performed in the lift's place,
+   * in that exercise's own weight and scheme. The rebuild takes it as a fact, as it does
+   * the lift's own prescription. Absent at the gym and on sessions saved before home
+   * exercises had their own weight.
+   */
+  home?: HomePrescription;
+}
+
+/** The prescription of a home exercise standing in for a program lift. */
+export interface HomePrescription {
+  exerciseId: string;
+  /** As lifted: per hand when `perHand`. */
+  weight: number;
+  perHand: boolean;
+  stage?: T1Stage | T2Stage;
+  sets: number;
+  reps: number;
 }
 
 /** Settings read by progression, stored on a finished workout so a rebuild reuses them. */
@@ -291,6 +426,11 @@ export interface CompletionContext {
   phaseMode: TrainingPhase["mode"];
   gymBarbellIncrementLbs: number;
   dumbbellIncrementLbs: number;
+  /**
+   * The heaviest dumbbell when the session was finished. Absent on sessions finished
+   * before it was stored: a rebuild then uses the current setting.
+   */
+  maxDumbbellWeight?: number;
 }
 
 /** Lift-state fields an adjustment may set. Everything else is derived from the log. */
@@ -508,6 +648,8 @@ export interface AdaptationOption {
   weight: number;
   pros: string;
   cons: string;
+  /** The weight the conversion asked for when `weight` is capped at the heaviest dumbbell. */
+  cappedFrom?: number;
 }
 
 export interface ExerciseAdaptation {
@@ -519,6 +661,11 @@ export interface ExerciseAdaptation {
   confidenceLevel: ConfidenceLevel;
   warningMessage?: string;
   alternatives: AdaptationOption[];
+  /**
+   * The weight the conversion asked for when `adaptedWeight` is capped at the heaviest
+   * dumbbell, borderline (within 10 lb) or not. Absent when nothing was capped.
+   */
+  cappedFrom?: number;
 }
 
 // Warm-Up Types
@@ -705,5 +852,5 @@ export interface EvidenceChange<
   sources: readonly SourceKey[];
 }
 
-import type { StoredTrace } from "./glass";
+import type { ProgressionOutcomeKind, ProgressionOutcomeReason, StoredTrace } from "./glass";
 export * from "./glass";

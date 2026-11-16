@@ -10,6 +10,8 @@ import type {
   T2Stage,
   Tier,
   UserSettings,
+  VariantOutcome,
+  VariantState,
   WorkoutLocation,
   WorkoutSession,
 } from "@/types";
@@ -43,6 +45,18 @@ export interface RebuildResult {
    * unknown. Same keys and order as `snapshots`.
    */
   outcomes: Map<string, ProgressionOutcome[]>;
+  /**
+   * One row per home exercise ever performed for a program lift at a tier (and one a
+   * cap policy moved to), sorted by id. Derived like the lift states; never synced.
+   */
+  variantStates: VariantState[];
+  /** Variant states right after each completed workout, by workout id. Same keys as `snapshots`. */
+  variantSnapshots: Map<string, VariantState[]>;
+  /**
+   * What the program rules did to each home exercise of each completed workout, in
+   * template order, by workout id. Empty for a gym workout. Same keys as `snapshots`.
+   */
+  variantOutcomes: Map<string, VariantOutcome[]>;
 }
 
 export type EditableSetFields = Partial<Pick<SetLog, "actualReps" | "weight" | "rpe">>;
@@ -108,6 +122,13 @@ export interface DerivedDiff {
   liftStateIdsToDelete: string[];
   e1rmsToPut: Estimated1RM[];
   e1rmIdsToDelete: string[];
+  /**
+   * Variant-state rows that are missing or differ. Always set by `diffDerived`; optional
+   * only so diffs written by hand before variant states existed still type-check.
+   */
+  variantStatesToPut?: VariantState[];
+  /** Stored variant-state rows (by id) the rebuild no longer produces. Always set by `diffDerived`. */
+  variantStateIdsToDelete?: string[];
   /** True when the stored derived rows already equal the rebuilt ones. */
   consistent: boolean;
 }

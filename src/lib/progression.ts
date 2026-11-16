@@ -246,7 +246,7 @@ const T1_STAGE_CONFIG: Record<T1Stage, { sets: number; reps: number }> = {
 };
 
 /** Failure cascade order for T1 stages. */
-const T1_NEXT_STAGE: Record<T1Stage, T1Stage | "reset"> = {
+export const T1_NEXT_STAGE: Readonly<Record<T1Stage, T1Stage | "reset">> = {
   "5x3": "6x2",
   "6x2": "10x1",
   "10x1": "reset",
@@ -356,7 +356,7 @@ export function evaluateT1Progression(...args: Parameters<typeof evaluateT1>): L
 // ---------------------------------------------------------------------------
 
 /** Failure cascade order for T2 stages. */
-const T2_NEXT_STAGE: Record<T2Stage, T2Stage | "reset"> = {
+export const T2_NEXT_STAGE: Readonly<Record<T2Stage, T2Stage | "reset">> = {
   "3x10": "3x8",
   "3x8": "3x6",
   "3x6": "reset",

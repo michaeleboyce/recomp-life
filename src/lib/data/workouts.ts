@@ -241,6 +241,8 @@ export async function finishWorkout(
         phaseMode: settings.trainingPhase.mode,
         gymBarbellIncrementLbs: settings.equipment.gymBarbellIncrementLbs,
         dumbbellIncrementLbs: settings.equipment.dumbbellIncrementLbs,
+        // Home exercises are capped by it: a rebuild of this session uses this one.
+        maxDumbbellWeight: settings.equipment.maxDumbbellWeight,
       },
       ...editStamps(workout),
     });

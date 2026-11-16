@@ -3,7 +3,13 @@
 // Rules: docs/plans/2026-11-12-edit-rebuild-plan.md ("Engine rules").
 export type * from "./types";
 
-export { rebuildDerived, emptyLiftState, programLiftIds, anchorToPrescription } from "./fold";
+export {
+  rebuildDerived,
+  emptyLiftState,
+  programLiftIds,
+  anchorToPrescription,
+  settingsFor,
+} from "./fold";
 export { e1rmsForWorkout, e1rmRowId } from "./e1rm";
 export { applyChange } from "./change";
 export { previewLogChange, compareRebuilds, tierPrescription } from "./preview";

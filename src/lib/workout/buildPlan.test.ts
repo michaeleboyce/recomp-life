@@ -184,6 +184,9 @@ describe("buildWorkoutPlan at home (D5: same adaptation as Configure)", () => {
   it("A1 uses adaptExerciseForHome's choice, not the raw dumbbellAlternative", () => {
     const plan = buildWorkoutPlan(input({ location: "home" }));
     // Squat 190: goblet squat needs 150 (max 80), so the chain's first fit is chosen.
+    // Since 2026-11-15 the entry also names the home exercise's own state (variantId)
+    // and whether its weight is per hand; with no home history it is seeded from the
+    // same conversion, so the weight and scheme are unchanged.
     expect(plan[0]).toEqual({
       exerciseId: "squat",
       substituteExerciseId: "bulgarian_split_squat",
@@ -195,6 +198,8 @@ describe("buildWorkoutPlan at home (D5: same adaptation as Configure)", () => {
       isAMRAP: true,
       isWarmUp: false,
       completedSets: 0,
+      variantId: "squat|bulgarian_split_squat|T1",
+      perHand: true,
     });
     expect(plan[1]).toMatchObject({
       exerciseId: "bench",

@@ -3,6 +3,8 @@ import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, SetLog, WorkoutSession } from "@/types";
 import { buildWorkoutPlan } from "./buildPlan";
 import { computeCompletion } from "./completeWorkout";
+import { createSetLog } from "./logSet";
+import { applyPlanEdits } from "./planEdits";
 import type { CompletionInput, WorkoutPlan } from "./types";
 import {
   EQUIPMENT,
@@ -434,11 +436,19 @@ describe("computeCompletion: session patch", () => {
 });
 
 describe("computeCompletion: home-adapted workout", () => {
-  it("substituted sets count as passes and progress by the dumbbell increment", () => {
+  // 2026-11-15 (strength model, decision 1): substituted sets used to raise the barbell
+  // lift by the dumbbell increment (squat 190 -> 195, bench 100 -> 105). They now raise
+  // each home exercise's own weight; the lift states do not change at all.
+  it("substituted sets progress the home exercises by the dumbbell step, not the lift states", () => {
     const session = makeSession({ location: "home" });
     const liftStates = seedLiftStates();
     const plan = planFor(session, liftStates);
-    expect(plan[0]).toMatchObject({ substituteExerciseId: "bulgarian_split_squat", weight: 75 });
+    expect(plan[0]).toMatchObject({
+      substituteExerciseId: "bulgarian_split_squat",
+      weight: 75,
+      variantId: "squat|bulgarian_split_squat|T1",
+      perHand: true,
+    });
 
     const home = {
       location: "home" as const,
@@ -450,16 +460,117 @@ describe("computeCompletion: home-adapted workout", () => {
     ];
     const result = computeCompletion(completion({ session, liftStates, plan, sets }));
 
-    // Lift state stays in barbell terms; home uses dumbbellIncrementLbs (5) for both.
-    expect(byId(result.liftStateUpdates, "squat")).toMatchObject({
-      t1Weight: 195,
-      t1LastWorkoutDate: NOW,
-      recentAMRAPReps: [6],
+    expect(result.liftStateUpdates).toEqual([]);
+    expect(result.variantStateUpdates.map((v) => [v.id, v.weight, v.recentLastSetReps])).toEqual([
+      ["squat|bulgarian_split_squat|T1", 80, [6]],
+      ["bench|db_bench|T2", 45, [10]],
+    ]);
+    expect(result.variantStateUpdates.every((v) => v.current && v.lastSessionDate === NOW)).toBe(true);
+    expect(result.outcomes.map((o) => `${o.exerciseId} ${o.kind}`)).toEqual([
+      "squat held",
+      "bench held",
+      "lat_pulldown notDone",
+    ]);
+    expect(result.variantOutcomes.map((o) => `${o.exerciseId} ${o.kind}`)).toEqual([
+      "bulgarian_split_squat passed",
+      "db_bench passed",
+      "db_row notDone",
+    ]);
+  });
+
+  it("a home exercise done lighter than its own prescription is only logged", () => {
+    const session = makeSession({
+      location: "home",
+      prescribed: [{ exerciseId: "squat", tier: "T1", weight: 190, sets: 5, reps: 3, stage: "5x3" }],
     });
-    expect(byId(result.liftStateUpdates, "bench")).toMatchObject({
-      t2Weight: 105,
-      t2LastWorkoutDate: NOW,
+    const liftStates = seedLiftStates();
+    const plan = planFor(session, liftStates);
+    const sets = squatT1(5, { location: "home", isSubstituted: true, weight: 70, originalWeight: 177, substituteExerciseId: "bulgarian_split_squat" });
+    const result = computeCompletion(completion({ session, liftStates, plan, sets }));
+    expect(result.outcomes[0]).toMatchObject({ kind: "loggedOnly", reason: "edited" });
+    expect(result.variantOutcomes[0]).toMatchObject({ kind: "loggedOnly", from: { weight: 75 } });
+    expect(result.variantStateUpdates).toEqual([]);
+  });
+});
+
+describe("computeCompletion: working sets only (H12)", () => {
+  const ramp = (weight: number, reps: number, overrides: Partial<SetLog> = {}) =>
+    makeSet("squat", "T1", { weight, targetReps: 3, actualReps: reps, role: "ramp", ...overrides });
+
+  it("a pass with a missed drop set is still a pass", () => {
+    const working = squatT1(5);
+    const last = working[working.length - 1];
+    const drop = makeSet("squat", "T1", {
+      weight: 150,
+      targetReps: 5,
+      actualReps: 2,
+      status: "failed",
+      role: "drop",
+      dropOf: last.id,
     });
+    const result = computeCompletion(completion({ sets: [...working, drop] }));
+    expect(byId(result.liftStateUpdates, "squat")).toMatchObject({ t1Weight: 200, recentAMRAPReps: [5] });
+    expect(result.outcomes[0].kind).toBe("passed");
+  });
+
+  it("ramp sets before the working sets neither fail the lift, make it lighter, nor make it partial", () => {
+    const sets = [ramp(135, 3), ramp(165, 1, { status: "failed" }), ...squatT1(4)];
+    const session = makeSession({
+      prescribed: [{ exerciseId: "squat", tier: "T1", weight: 190, sets: 5, reps: 3, stage: "5x3" }],
+    });
+    const result = computeCompletion(completion({ session, sets }));
+    expect(result.outcomes[0]).toMatchObject({ kind: "passed", to: { weight: 200 } });
+  });
+
+  it("a back-off set after the working sets does not change the pass or the last-set reps", () => {
+    const sets = [
+      ...squatT1(6),
+      makeSet("squat", "T1", { weight: 160, targetReps: 8, actualReps: 5, status: "failed", role: "backoff" }),
+    ];
+    const result = computeCompletion(completion({ sets }));
+    expect(byId(result.liftStateUpdates, "squat")).toMatchObject({ t1Weight: 200, recentAMRAPReps: [6] });
+  });
+
+  it("a per-set plan with a ramp and a back-off logs each set at its own weight and passes on the working sets (H10)", () => {
+    const session = makeSession({
+      prescribed: [{ exerciseId: "squat", tier: "T1", weight: 190, sets: 5, reps: 3, stage: "5x3" }],
+      planEdits: [
+        {
+          kind: "setWeights",
+          exerciseId: "squat",
+          tier: "T1",
+          sets: [
+            { weight: 150, reps: 3, role: "ramp" },
+            { weight: 170, reps: 3, role: "ramp" },
+            ...Array.from({ length: 5 }, () => ({ weight: 190, reps: 3 })),
+            { weight: 160, reps: 6, role: "backoff" as const },
+          ],
+        },
+      ],
+    });
+    const liftStates = seedLiftStates();
+    const plan = applyPlanEdits(planFor(session, liftStates), session.planEdits);
+    const entry = plan.find((e) => e.exerciseId === "squat" && e.tier === "T1")!;
+    expect(entry).toMatchObject({ targetSets: 8, targetReps: 3, weight: 190 });
+    const sets = Array.from({ length: entry.targetSets }, (_, i) =>
+      createSetLog({
+        exercise: { ...entry, completedSets: i },
+        // The back-off set falls short; the last working set is the AMRAP one.
+        actualReps: i === 7 ? 4 : i === 6 ? 5 : 3,
+        rpe: null,
+        location: "gym",
+        autoRegulated: false,
+        now: NOW,
+        id: `ramp-${i}`,
+        clientId: `ramp-${i}`,
+      })
+    );
+    expect(sets.map((s) => s.weight)).toEqual([150, 170, 190, 190, 190, 190, 190, 160]);
+    expect(sets.map((s) => s.role ?? "work")).toEqual(["ramp", "ramp", "work", "work", "work", "work", "work", "backoff"]);
+    expect(sets.findIndex((s) => s.isAMRAP)).toBe(6);
+    const result = computeCompletion(completion({ session, liftStates, plan, sets }));
+    expect(result.outcomes[0]).toMatchObject({ kind: "passed", to: { weight: 200 } });
+    expect(byId(result.liftStateUpdates, "squat")!.recentAMRAPReps).toEqual([5]);
   });
 });
 
@@ -507,7 +618,9 @@ describe("computeCompletion: T3 progression", () => {
     }
   );
 
-  it("a home-substituted T3 counts as a pass", () => {
+  // 2026-11-15 (strength model): it used to raise the lat pulldown to 95. Now the dumbbell
+  // row standing in for it goes up by one dumbbell step and the pulldown stays at 90.
+  it("a home-substituted T3 raises the home exercise by one dumbbell step", () => {
     const session = makeSession({ location: "home" });
     const sets = latT3(25, {
       location: "home",
@@ -517,7 +630,11 @@ describe("computeCompletion: T3 progression", () => {
       originalWeight: 90,
     });
     const result = computeCompletion(completion({ session, sets }));
-    expect(byId(result.liftStateUpdates, "lat_pulldown")!.t3Weight).toBe(95);
+    expect(byId(result.liftStateUpdates, "lat_pulldown")).toBeUndefined();
+    expect(result.variantStateUpdates).toEqual([
+      expect.objectContaining({ id: "lat_pulldown|db_row|T3", weight: 40, stage: null, passesSinceGym: 1 }),
+    ]);
+    expect(result.variantOutcomes.find((o) => o.tier === "T3")).toMatchObject({ kind: "t3Up", from: { weight: 35 }, to: { weight: 40 } });
   });
 
   it("progresses alongside T1 and T2, after them in the update order", () => {

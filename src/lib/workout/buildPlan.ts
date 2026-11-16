@@ -1,4 +1,3 @@
-import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { DEFAULT_ACCESSORY_WEIGHTS, EXERCISES, getExercise } from "@/lib/exercises";
 import { generateWarmUpSets } from "@/lib/warmups";
 import type {
@@ -11,7 +10,13 @@ import type {
 import { foldRotation, type RotationSession } from "./credit";
 import { applyPlanEdits } from "./planEdits";
 import { getPrescription } from "./prescription";
-import type { BuildPlanInput, NextWorkoutDescription, WorkoutPlan } from "./types";
+import type {
+  BuildPlanInput,
+  NextWorkoutDescription,
+  WorkoutExerciseState,
+  WorkoutPlan,
+} from "./types";
+import { chooseHomeVariant, isVariantTier, variantScheme } from "./variant";
 
 /** Tiers that get generated warm-up sets when warm-ups are enabled. */
 export const WARM_UP_TIERS: readonly Tier[] = ["T1"];
@@ -21,8 +26,11 @@ export const WARM_UP_TIERS: readonly Tier[] = ["T1"];
  * its warm-up entries (when enabled and the tier is in WARM_UP_TIERS) followed by the
  * working entry, then the selected accessories. Every entry starts at completedSets 0.
  *
- * At home, gym-only exercises are adapted with `adaptExerciseForHome`; an entry in
- * `overrides` selects one of that adaptation's alternatives instead of the default.
+ * At home, a gym-only program lift is planned as its home exercise (`chooseHomeVariant`):
+ * the current variant's own weight and scheme from `variantStates`, or for a lift with
+ * no home history a variant seeded from `adaptExerciseForHome`'s conversion; an entry
+ * in `overrides` selects one of that adaptation's alternatives instead. The barbell
+ * weight the exercise stands for is kept as `originalWeight`.
  *
  * `edits` are then applied in order (see `applyPlanEdits`). A `swap` edit and an
  * `overrides` entry are different things: an override is the program lift on other
@@ -33,40 +41,50 @@ export const WARM_UP_TIERS: readonly Tier[] = ["T1"];
 export function buildWorkoutPlan(input: BuildPlanInput): WorkoutPlan {
   const { template, liftStates, location, equipment, includeWarmUps, selectedAccessories } = input;
   const overrides = input.overrides ?? {};
+  const variantStates = input.variantStates ?? [];
 
   const liftStateById = new Map(liftStates.map((ls) => [ls.exerciseId, ls]));
   const plan: WorkoutPlan = [];
 
   for (const templateEx of template.exercises) {
-    const exercise = getExercise(templateEx.exerciseId);
-    const prescription = getPrescription(templateEx, liftStateById.get(templateEx.exerciseId));
+    getExercise(templateEx.exerciseId);
+    const liftState = liftStateById.get(templateEx.exerciseId);
+    const prescription = getPrescription(templateEx, liftState);
 
     let substituteExerciseId: string | undefined;
     let weight = prescription.weight;
+    let targetSets = prescription.sets;
+    let targetReps = prescription.reps;
     let originalWeight: number | undefined;
+    let home: Pick<WorkoutExerciseState, "variantId" | "perHand" | "cappedFrom"> = {};
 
-    if (location === "home") {
-      // Same call and same override rule as the Configure screen, so what was
-      // previewed there is what gets performed.
-      const adaptation = adaptExerciseForHome(
-        exercise,
-        prescription.weight,
+    if (location === "home" && isVariantTier(templateEx.tier)) {
+      // The lift's home exercise with its own weight and scheme. The exercise is picked
+      // with the same conversion and override rule as the Configure screen; a variant
+      // never used is seeded from that conversion, so with no home history this is
+      // exactly what Configure previews.
+      const choice = chooseHomeVariant({
+        liftId: templateEx.exerciseId,
+        tier: templateEx.tier,
+        liftState,
+        variantStates,
         equipment,
-        exercise.dumbbellAlternative ? EXERCISES[exercise.dumbbellAlternative] : undefined
-      );
-      const overrideId = overrides[templateEx.exerciseId];
-      const chosen = overrideId
-        ? adaptation.alternatives.find((alt) => alt.exercise.id === overrideId)
-        : undefined;
-      const adaptedExercise = chosen?.exercise ?? adaptation.adaptedExercise;
-      const adaptedWeight = chosen?.weight ?? adaptation.adaptedWeight;
-
-      // "no_substitute" and exercises that already work at home come back as the
-      // template exercise itself: nothing is substituted.
-      if (adaptedExercise.id !== exercise.id) {
-        substituteExerciseId = adaptedExercise.id;
-        weight = adaptedWeight;
+        overrideId: overrides[templateEx.exerciseId],
+      });
+      // Null for "no_substitute" and for exercises that already work at home: nothing
+      // is substituted.
+      if (choice) {
+        const scheme = variantScheme(choice.state, { sets: templateEx.sets, reps: templateEx.reps });
+        substituteExerciseId = choice.state.exerciseId;
+        weight = choice.weight;
+        targetSets = scheme.sets;
+        targetReps = scheme.reps;
         originalWeight = prescription.weight;
+        home = {
+          variantId: choice.state.id,
+          perHand: choice.state.perHand,
+          ...(choice.cappedFrom != null ? { cappedFrom: choice.cappedFrom } : {}),
+        };
       }
     }
 
@@ -91,13 +109,14 @@ export function buildWorkoutPlan(input: BuildPlanInput): WorkoutPlan {
       exerciseId: templateEx.exerciseId,
       substituteExerciseId,
       tier: templateEx.tier,
-      targetSets: prescription.sets,
-      targetReps: prescription.reps,
+      targetSets,
+      targetReps,
       weight,
       originalWeight,
       isAMRAP: templateEx.isAMRAP,
       isWarmUp: false,
       completedSets: 0,
+      ...home,
     });
   }
 
