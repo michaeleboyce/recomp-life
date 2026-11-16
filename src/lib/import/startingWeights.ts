@@ -93,9 +93,20 @@ export interface StartingWeightInput {
   equipment: EquipmentProfile;
   phase: TrainingPhase;
   now: Date;
+  /**
+   * The imported sessions' ids. When given, a lift gets a suggestion only when its
+   * estimate rests on at least one of them: a lift known from the app's own log alone
+   * keeps the weight its progression gave it.
+   */
+  importedSessionIds?: ReadonlySet<string>;
 }
 
 const DAY_MS = 86_400_000;
+
+function restsOn(estimate: PooledEstimate, ids: ReadonlySet<string> | undefined): boolean {
+  if (!ids) return true;
+  return (estimate.own != null && ids.has(estimate.own.sessionId)) || estimate.related.some((r) => ids.has(r.sessionId));
+}
 
 const nameOf = (id: string) => EXERCISES[id]?.name ?? id;
 
@@ -221,7 +232,7 @@ export function suggestStartingWeights(input: StartingWeightInput): StartingWeig
   for (const tier of ["T1", "T2"] as const) {
     for (const liftId of tierLifts(tier)) {
       const estimate = pooledEstimateOf(sets, liftId);
-      if (!estimate || !(estimate.value > 0)) continue;
+      if (!estimate || !(estimate.value > 0) || !restsOn(estimate, input.importedSessionIds)) continue;
       const newest = newestOf(estimate);
       const ageDays = (now.getTime() - newest.getTime()) / DAY_MS;
       const state = stateOf.get(liftId);
@@ -299,7 +310,7 @@ export function suggestStartingWeights(input: StartingWeightInput): StartingWeig
 
   for (const liftId of tierLifts("T3")) {
     const estimate = pooledEstimateOf(sets, liftId);
-    if (!estimate || !(estimate.value > 0)) continue;
+    if (!estimate || !(estimate.value > 0) || !restsOn(estimate, input.importedSessionIds)) continue;
     const newest = newestOf(estimate);
     const ageDays = (now.getTime() - newest.getTime()) / DAY_MS;
     const reps = STARTING_WEIGHT_RULES.t3Reps;

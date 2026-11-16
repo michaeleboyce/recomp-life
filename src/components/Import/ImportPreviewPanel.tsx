@@ -44,16 +44,21 @@ export function ImportPreviewPanel({
 
   return (
     <div className="flex flex-col gap-4" data-testid="import-preview">
-      <div className="rounded-xl bg-card px-4 py-3">
-        <p className="text-sm font-semibold text-foreground">{app} export</p>
-        <p className="truncate text-xs text-muted-foreground">
-          {fileName} · {plural(preview.rowCount, "row", "rows")}
-        </p>
-        {preview.firstDate && (
-          <p className="mt-1 text-sm text-foreground" data-testid="import-range">
-            {formatRange(preview.firstDate, preview.lastDate)}
+      <div className="flex items-start gap-3 rounded-xl bg-card px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">{app} export</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {fileName} · {plural(preview.rowCount, "row", "rows")}
           </p>
-        )}
+          {preview.firstDate && (
+            <p className="mt-1 text-sm text-foreground" data-testid="import-range">
+              {formatRange(preview.firstDate, preview.lastDate)}
+            </p>
+          )}
+        </div>
+        <Button variant="ghost" size="sm" className="min-h-11 shrink-0" onClick={onCancel}>
+          Other file
+        </Button>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -129,12 +134,10 @@ export function ImportPreviewPanel({
 
       <NameReview names={preview.names} choose={choose} />
 
-      <div className="sticky bottom-24 z-10 flex flex-col gap-2 rounded-xl bg-background/95 py-2 backdrop-blur">
-        <Button size="lg" className="min-h-11" onClick={onImport} disabled={fresh <= 0 && preview.cardio === 0}>
+      {/* Stays in reach above the tab bar while the names are reviewed. */}
+      <div className="sticky bottom-24 z-10 rounded-xl bg-background/95 py-2 backdrop-blur">
+        <Button size="lg" className="min-h-11 w-full" onClick={onImport} disabled={fresh <= 0 && preview.cardio === 0}>
           {fresh > 0 ? `Import ${plural(fresh, "session", "sessions")}` : "Import cardio"}
-        </Button>
-        <Button variant="ghost" className="min-h-11" onClick={onCancel}>
-          Choose another file
         </Button>
       </div>
     </div>

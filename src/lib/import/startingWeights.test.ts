@@ -101,6 +101,20 @@ describe("suggestStartingWeights", () => {
     expect(t3.adjustment.set).toEqual({ t3Weight: t3.suggested });
   });
 
+  it("leaves out a lift known from the app's own log alone when told which sessions are imported", () => {
+    const history = benchHistory();
+    const base = {
+      sets: strengthEvidenceOf([], history),
+      liftStates: Object.values(INITIAL_LIFT_STATES),
+      variantStates: [],
+      equipment,
+      phase: maintaining,
+      now: importDay(3),
+    };
+    expect(suggestStartingWeights({ ...base, importedSessionIds: new Set([history[0].id]) }).length).toBeGreaterThan(0);
+    expect(suggestStartingWeights({ ...base, importedSessionIds: new Set(["another"]) })).toEqual([]);
+  });
+
   it("never uses a muscle-guessed name", () => {
     const guessed = importedSession([importedSet({ exerciseName: "Wobbly Bench Thing", mappedExerciseId: null, muscles: ["chest"] })]);
     expect(suggest([guessed])).toEqual([]);

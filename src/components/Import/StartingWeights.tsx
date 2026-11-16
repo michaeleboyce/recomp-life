@@ -70,7 +70,7 @@ function SuggestionRow({ suggestion }: { suggestion: StartingWeightSuggestion })
               className="min-h-11 w-24 rounded-md border border-input bg-background px-2 text-right font-mono text-sm tabular-nums text-foreground"
             />
           </label>
-          <Button className="min-h-11 flex-1" onClick={confirm} disabled={!valid || state === "saving"}>
+          <Button variant="outline" className="min-h-11 flex-1" onClick={confirm} disabled={!valid || state === "saving"}>
             {state === "saving" ? "Saving…" : `Use ${valid ? formatLb(value) : "–"} lb${hand}`}
           </Button>
         </div>
