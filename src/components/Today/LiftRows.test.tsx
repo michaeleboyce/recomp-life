@@ -1,6 +1,9 @@
+import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { db } from "@/db/local";
+import { clearDb, makeProfile, makeSet, makeWorkout } from "@/lib/data/testUtils";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import { LiftRows, buildLiftRows } from "./LiftRows";
 
@@ -34,6 +37,33 @@ describe("LiftRows", () => {
     fireEvent.click(why);
     expect(window.location.search).toBe("?why=squat:T1");
     window.history.replaceState(null, "", "/");
+  });
+
+  it("says a home weight held at the heaviest dumbbell is capped, and what a pass does next", async () => {
+    await db.userProfile.put(makeProfile());
+    const capped = entry({
+      substituteExerciseId: "bulgarian_split_squat",
+      weight: 80,
+      originalWeight: 245,
+      perHand: true,
+    });
+    const before = makeWorkout({
+      completedAt: new Date("2026-11-10T10:00:00"),
+      sets: [
+        makeSet({
+          exerciseId: "squat",
+          tier: "T1",
+          weight: 80,
+          originalWeight: 240,
+          isSubstituted: true,
+          substituteExerciseId: "bulgarian_split_squat",
+        }),
+      ],
+    });
+    render(<LiftRows rows={buildLiftRows([capped], [before])} />);
+    expect(await screen.findByText("Held at 80, your heaviest dumbbell")).toBeInTheDocument();
+    expect(screen.getByTestId("lift-cap-next")).toHaveTextContent("A pass adds 1 rep a set");
+    await clearDb();
   });
 
   it("opens the home version a substituted row shows, not the barbell lift", () => {

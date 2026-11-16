@@ -32,6 +32,17 @@ describe("describeAdjustment", () => {
     expect(describeAdjustment(adjustment({ set: { t3Weight: 0 } })).detail).toBe("T3 0 lbs");
   });
 
+  it("names the home exercise a change was for, with its weight as lifted", () => {
+    const row = describeAdjustment(
+      adjustment({ set: { t1Weight: 85 }, variant: { exerciseId: "bulgarian_split_squat", tier: "T1" } })
+    );
+    expect(row.source).toBe("Manual change at home");
+    expect(row.detail).toBe("Bulgarian split squat T1 85 lbs a hand");
+    expect(
+      describeAdjustment(adjustment({ set: { t2Weight: 60 }, variant: { exerciseId: "goblet_squat", tier: "T2" } })).detail
+    ).toBe("Goblet squat T2 60 lbs");
+  });
+
   it("lists starting weights without a date and without the tiers the lift never uses", () => {
     const row = describeAdjustment(
       adjustment({

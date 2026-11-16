@@ -3,8 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, House, LineChart } from "lucide-react";
-import { useLiftAdjustments, useNextWorkout, useSettings } from "@/hooks";
-import { DEFAULT_USER_PROFILE } from "@/db/seed";
+import { useLiftAdjustments } from "@/hooks";
 import type { RangeKey } from "@/lib/metrics/types";
 import { cn } from "@/lib/utils";
 import { BackButton } from "@/components/nav/BackButton";
@@ -23,6 +22,7 @@ import { LiftStats, ProjectionLink } from "./LiftStats";
 import { MoreCharts } from "./MoreCharts";
 import { HomeNextWeight } from "./PrLine";
 import { SessionList } from "./SessionList";
+import { useHomePlanContext } from "./useHomePlanContext";
 import { useLiftView } from "./useLiftView";
 import { WeightChanges } from "./WeightChanges";
 
@@ -47,8 +47,7 @@ export function HomeVersionDetail({
   substituteId: string;
   backHref: string;
 }) {
-  const settings = useSettings();
-  const nextWorkout = useNextWorkout("home");
+  const plan = useHomePlanContext();
   const adjustments = useLiftAdjustments(exerciseId);
   const [range, setRange] = useState<RangeKey>("3m");
   const view = useLiftView(exerciseId, range);
@@ -57,11 +56,11 @@ export function HomeVersionDetail({
   const title = displayLiftName(substituteId);
   const inSentence = nameInSentence(substituteId);
 
-  const next = useMemo(() => {
-    if (!view || !nextWorkout) return undefined;
-    const equipment = (settings ?? DEFAULT_USER_PROFILE.settings).equipment;
-    return homeNextSession(exerciseId, substituteId, nextWorkout.plan, view.next, equipment);
-  }, [view, nextWorkout, settings, exerciseId, substituteId]);
+  // From the plan, as Today builds it: the home exercise's own weight, its seed or re-entry.
+  const next = useMemo(
+    () => (plan ? homeNextSession(exerciseId, substituteId, plan) : undefined),
+    [plan, exerciseId, substituteId]
+  );
 
   const homeSessions = useMemo(
     () => view?.sessions.filter((s) => s.substituteExerciseId === substituteId) ?? [],
@@ -77,7 +76,7 @@ export function HomeVersionDetail({
     />
   );
 
-  if (!view || !next) {
+  if (!view || !next || !plan) {
     return (
       <div className="flex flex-col gap-4">
         {header}
@@ -93,18 +92,21 @@ export function HomeVersionDetail({
     <div className="flex flex-col gap-6">
       {header}
 
-      {/* The sheet edits the barbell weight; it says so, as the home weight follows. */}
+      {/* The sheet edits this exercise's own weight; the barbell lift is left alone. */}
       <section aria-label="Next session" className="flex flex-col gap-2">
         <SectionHeader title="Next session at home" />
-        <HomeNextWeight substituteId={substituteId} liftShort={short} next={next} />
+        <HomeNextWeight
+          exerciseId={exerciseId}
+          substituteId={substituteId}
+          liftShort={short}
+          next={next}
+          equipment={plan.equipment}
+        />
         <div className="flex items-center justify-between gap-3">
           <p className="min-w-0 text-xs text-muted-foreground">
-            Wrong weight for next time? Set the barbell weight; the {inSentence} weight follows from it.
+            Wrong weight for next time? Set the {inSentence} weight; the barbell {short} stays as it is.
           </p>
-          <AdjustLiftSheet
-            exerciseId={exerciseId}
-            weightHint={`The barbell weight. At home the ${inSentence} weight follows from it.`}
-          />
+          <AdjustLiftSheet exerciseId={exerciseId} home={{ substituteId, tier: next.tier }} />
         </div>
       </section>
 

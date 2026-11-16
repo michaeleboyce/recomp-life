@@ -7,9 +7,11 @@ import type { FavoriteWorkout, LiftState, PlanEdit } from "@/types";
 import {
   cleanFavoriteName,
   FAVORITE_NAME_MAX_LENGTH,
+  favoriteEditsAt,
   favoriteForSession,
   favoriteFromSession,
   favoriteFromSetup,
+  favoritePinNote,
   lastLoggedWeights,
   listFavorites,
   resolveFavorite,
@@ -186,6 +188,107 @@ describe("resolveFavorite", () => {
     resolved.overrides.bench = "db_bench";
     expect(favorite.selectedAccessories).toEqual(["face_pulls"]);
     expect(favorite.substitutes).toEqual({});
+  });
+});
+
+describe("favourites across locations", () => {
+  const homePlan = (liftStates = seedLiftStates(), edits: PlanEdit[] = []) =>
+    applyPlanEdits(
+      buildWorkoutPlan({
+        template: WORKOUT_TEMPLATES.A1,
+        liftStates,
+        location: "home",
+        equipment: EQUIPMENT,
+        includeWarmUps: false,
+        selectedAccessories: [],
+      }),
+      edits
+    );
+  const gymPlan = (edits: PlanEdit[] = []) =>
+    applyPlanEdits(
+      buildWorkoutPlan({
+        template: WORKOUT_TEMPLATES.A1,
+        liftStates: seedLiftStates(),
+        location: "gym",
+        equipment: EQUIPMENT,
+        includeWarmUps: false,
+        selectedAccessories: [],
+      }),
+      edits
+    );
+  const savedAt = (location: "gym" | "home") =>
+    favoriteFromSetup(identity(), {
+      templateId: "A1",
+      location,
+      includeWarmUps: false,
+      selectedAccessories: [],
+      substitutes: {},
+      edits: [],
+      plan: location === "home" ? homePlan() : gymPlan(),
+    });
+
+  it("a favourite saved at home pins each home weight to its home exercise", () => {
+    const favorite = savedAt("home");
+    const squat = favorite.snapshot.find((e) => e.exerciseId === "squat")!;
+    expect(squat.performedAs).toBe(homePlan().find((e) => e.exerciseId === "squat")!.substituteExerciseId);
+    const resolved = resolveFavorite(favorite, "as-saved");
+    // Replayed as saved, the same home exercises are asked for.
+    expect(resolved.overrides.squat).toBe(squat.performedAs);
+    const { edits, dropped } = favoriteEditsAt(resolved, "home", resolved.planEdits, homePlan());
+    expect(dropped).toEqual([]);
+    expect(edits).toEqual(resolved.planEdits);
+    expect(snapshotOfPlan(homePlan(seedLiftStates(), edits))).toEqual(favorite.snapshot);
+  });
+
+  it("replayed at the gym, a home favourite does not pin its dumbbell weights on the barbell", () => {
+    const favorite = savedAt("home");
+    const resolved = resolveFavorite(favorite, "as-saved");
+    const { edits, dropped } = favoriteEditsAt(resolved, "gym", resolved.planEdits);
+    const gym = gymPlan(edits);
+    const program = gymPlan();
+    for (const id of ["squat", "bench", "lat_pulldown"]) {
+      expect(gym.find((e) => e.exerciseId === id)!.weight).toBe(program.find((e) => e.exerciseId === id)!.weight);
+    }
+    expect(dropped.map((d) => d.exerciseId)).toEqual(["squat", "bench", "lat_pulldown"]);
+    expect(favoritePinNote(dropped, "gym")).toBe(
+      "Saved at home: the gym uses today's program weights for Squat, Bench Press and Lat Pulldown."
+    );
+  });
+
+  it("replayed at home, a gym favourite does not pin barbell weights on the home exercises", () => {
+    const favorite = savedAt("gym");
+    const resolved = resolveFavorite(favorite, "as-saved");
+    const { edits, dropped } = favoriteEditsAt(resolved, "home", resolved.planEdits);
+    expect(homePlan(seedLiftStates(), edits).find((e) => e.exerciseId === "squat")!.weight).toBe(
+      homePlan().find((e) => e.exerciseId === "squat")!.weight
+    );
+    expect(dropped.map((d) => d.exerciseId)).toContain("squat");
+    expect(favoritePinNote(dropped, "home")).toMatch(/^Saved at the gym: at home each lift uses its home exercise's own weight for Squat/);
+  });
+
+  it("at home, drops a weight saved for a different home exercise than the one planned", () => {
+    const favorite = savedAt("home");
+    const resolved = resolveFavorite(
+      { ...favorite, snapshot: favorite.snapshot.map((e) => (e.exerciseId === "squat" ? { ...e, performedAs: "db_lunge" } : e)) },
+      "as-saved"
+    );
+    const plan = homePlan();
+    const { dropped } = favoriteEditsAt(resolved, "home", resolved.planEdits, plan);
+    expect(dropped).toEqual([{ exerciseId: "squat", tier: "T1", performedAs: "db_lunge", reason: "otherExercise" }]);
+    expect(favoritePinNote(dropped, "home")).toBe(
+      "The saved weight for Squat was for DB Lunge, so today's plan weight is used."
+    );
+  });
+
+  it("keeps the user's own edits and structural edits whatever the location", () => {
+    const favorite = savedAt("home");
+    const resolved = resolveFavorite({ ...favorite, edits: [EDITS[0], EDITS[3]] }, "as-saved");
+    const mine: PlanEdit = { kind: "weight", exerciseId: "bicep_curls", tier: "accessory", weight: 25 };
+    const { edits } = favoriteEditsAt(resolved, "gym", [...resolved.planEdits, mine]);
+    expect(edits).toContainEqual(EDITS[0]);
+    expect(edits).toContainEqual(EDITS[3]);
+    expect(edits).toContainEqual(mine);
+    expect(favoritePinNote([], "gym")).toBeNull();
   });
 });
 

@@ -217,7 +217,11 @@ export function structuralEdits(edits: PlanEdit[] | undefined): PlanEdit[] {
   );
 }
 
-/** A frozen copy of a plan's working entries (warm-ups are regenerated, not saved). */
+/**
+ * A frozen copy of a plan's working entries (warm-ups are regenerated, not saved). An
+ * entry done as a home exercise records it (`performedAs`): its weight is that
+ * exercise's, as lifted.
+ */
 export function snapshotOfPlan(plan: WorkoutPlan): FavoriteSnapshotEntry[] {
   return plan
     .filter((entry) => !entry.isWarmUp)
@@ -228,13 +232,14 @@ export function snapshotOfPlan(plan: WorkoutPlan): FavoriteSnapshotEntry[] {
       reps: entry.targetReps,
       weight: entry.weight,
       isAMRAP: entry.isAMRAP,
+      ...(entry.substituteExerciseId ? { performedAs: entry.substituteExerciseId } : {}),
     }));
 }
 
 /**
  * A frozen copy of what was performed in a session, from its logged sets: one entry
  * per exercise and tier in logging order, with the number of sets logged, the target
- * reps and the weight of the first set.
+ * reps and the weight of the first set, and the home exercise when it was substituted.
  */
 export function snapshotOfSets(sets: SetLog[]): FavoriteSnapshotEntry[] {
   const entries = new Map<string, FavoriteSnapshotEntry>();
@@ -252,6 +257,7 @@ export function snapshotOfSets(sets: SetLog[]): FavoriteSnapshotEntry[] {
         reps: set.targetReps,
         weight: set.weight,
         isAMRAP: set.isAMRAP,
+        ...(set.isSubstituted && set.substituteExerciseId ? { performedAs: set.substituteExerciseId } : {}),
       });
     }
   }

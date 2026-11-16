@@ -3,7 +3,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { loadRebuildInput } from "@/lib/data/derived";
 import { rebuildDerived } from "@/lib/rebuild";
-import type { LiftState, ProgressionOutcome } from "@/types";
+import type { LiftState, ProgressionOutcome, VariantOutcome } from "@/types";
 
 export interface WorkoutSnapshots {
   /** Lift states right after the workout; undefined when it is not a finished, live workout. */
@@ -18,6 +18,11 @@ export interface WorkoutSnapshots {
    * progression code reported it; undefined when `after` is.
    */
   outcomes: ProgressionOutcome[] | undefined;
+  /**
+   * What the program rules did to each home exercise of the workout, in its own weight;
+   * empty for a gym workout, undefined when `after` is.
+   */
+  variantOutcomes: VariantOutcome[] | undefined;
 }
 
 /**
@@ -27,12 +32,13 @@ export interface WorkoutSnapshots {
  */
 export function useWorkoutSnapshots(workoutId: string | null | undefined): WorkoutSnapshots | undefined {
   return useLiveQuery(async () => {
-    if (!workoutId) return { after: undefined, before: undefined, outcomes: undefined };
+    if (!workoutId) return { after: undefined, before: undefined, outcomes: undefined, variantOutcomes: undefined };
     const rebuilt = rebuildDerived(await loadRebuildInput());
     return {
       after: rebuilt.snapshots.get(workoutId),
       before: rebuilt.before.get(workoutId),
       outcomes: rebuilt.outcomes.get(workoutId),
+      variantOutcomes: rebuilt.variantOutcomes.get(workoutId),
     };
   }, [workoutId]);
 }

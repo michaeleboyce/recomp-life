@@ -1,6 +1,8 @@
 // What a dated lift adjustment says, in words. Pure: no React, no database.
 import { formatLbs } from "@/components/LogEdit/format";
+import { displayLiftName } from "@/components/Today/todayModel";
 import type { LiftAdjustment } from "@/types";
+import { isPerHand } from "./homeVersion";
 
 export interface WeightChangeRow {
   id: string;
@@ -20,33 +22,39 @@ const SOURCE_TEXT: Record<LiftAdjustment["source"], string> = {
   import: "Imported",
 };
 
-function tierText(label: string, weight: number | undefined, stage?: string): string | null {
+function tierText(label: string, weight: number | undefined, stage?: string, perHand = false): string | null {
   if (weight === undefined && stage === undefined) return null;
   if (weight === undefined) return `${label} stage ${stage}`;
-  return `${label} ${formatLbs(weight)} lbs${stage ? ` ${stage}` : ""}`;
+  return `${label} ${formatLbs(weight)} lbs${perHand ? " a hand" : ""}${stage ? ` ${stage}` : ""}`;
 }
 
 /**
  * One row of the "Weight changes" list. A `start` adjustment lists every field of
  * the lift, so a tier it leaves at 0 (a tier the lift is never trained in) is left out.
+ * One for a home exercise (`variant`) names it and gives its weight as lifted.
  */
 export function describeAdjustment(adjustment: LiftAdjustment): WeightChangeRow {
   const set = adjustment.set ?? {};
   const isStart = adjustment.source === "start";
   const used = (weight: number | undefined) => !(isStart && (weight ?? 0) === 0);
+  const home = adjustment.variant ?? null;
+  const perHand = home ? isPerHand(home.exerciseId) : false;
 
   const parts = [
-    used(set.t1Weight) ? tierText("T1", set.t1Weight, set.t1Stage) : null,
-    used(set.t2Weight) ? tierText("T2", set.t2Weight, set.t2Stage) : null,
-    used(set.t3Weight) ? tierText("T3", set.t3Weight) : null,
-  ].filter((part): part is string => part !== null);
+    used(set.t1Weight) ? tierText("T1", set.t1Weight, set.t1Stage, perHand) : null,
+    used(set.t2Weight) ? tierText("T2", set.t2Weight, set.t2Stage, perHand) : null,
+    used(set.t3Weight) ? tierText("T3", set.t3Weight, undefined, perHand) : null,
+  ]
+    .filter((part): part is string => part !== null)
+    .map((part) => (home ? `${displayLiftName(home.exerciseId)} ${part}` : part));
 
   const time = new Date(adjustment.at).getTime();
+  const source = SOURCE_TEXT[adjustment.source] ?? "Change";
   return {
     id: adjustment.id,
     // Seeded starting weights are dated at the epoch: they have no real date.
     t: Number.isFinite(time) && time > 0 ? time : null,
-    source: SOURCE_TEXT[adjustment.source] ?? "Change",
+    source: home ? `${source} at home` : source,
     detail: parts.length > 0 ? parts.join(" · ") : "Progression counters only, no weight change",
     ...(adjustment.note ? { note: adjustment.note } : {}),
   };

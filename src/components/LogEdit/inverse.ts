@@ -59,6 +59,9 @@ export function inverseChange(
       const patch: EditableSetFields = {};
       if ("actualReps" in change.patch) patch.actualReps = set.actualReps;
       if ("weight" in change.patch) patch.weight = set.weight;
+      if (change.patch.originalWeight !== undefined && set.originalWeight !== undefined) {
+        patch.originalWeight = set.originalWeight;
+      }
       // Present with `undefined` clears an RPE the set did not have.
       if ("rpe" in change.patch) patch.rpe = set.rpe;
       return { kind: "editSet", workoutId: change.workoutId, setId: change.setId, patch };

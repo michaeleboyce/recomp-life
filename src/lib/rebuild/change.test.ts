@@ -73,6 +73,20 @@ describe("applyChange", () => {
       expect(setsOf(fixed, "w1")[0]).toMatchObject({ actualReps: 3, weight: 185, status: "completed" });
     });
 
+    it("patches the original weight a home set stands for, and leaves it when not named", () => {
+      const log = makeLog();
+      const set = setsOf(log, "w1")[0];
+      const edited = applyChange(log, {
+        kind: "editSet",
+        workoutId: "w1",
+        setId: set.id,
+        patch: { weight: 70, originalWeight: 214 },
+      });
+      expect(setsOf(edited, "w1")[0]).toMatchObject({ weight: 70, originalWeight: 214 });
+      const reps = applyChange(edited, { kind: "editSet", workoutId: "w1", setId: set.id, patch: { actualReps: 2 } });
+      expect(setsOf(reps, "w1")[0].originalWeight).toBe(214);
+    });
+
     it("clears the RPE when the patch names it as undefined", () => {
       const log = applyChange(makeLog(), {
         kind: "editSet",

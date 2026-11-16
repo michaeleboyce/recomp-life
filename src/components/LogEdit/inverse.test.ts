@@ -20,6 +20,18 @@ describe("inverseChange", () => {
     expect(inverse.kind === "editSet" && "rpe" in inverse.patch).toBe(true);
   });
 
+  it("restores the barbell weight a home set stood for with its weight", () => {
+    const home = set({ id: "h1", isSubstituted: true, substituteExerciseId: "bulgarian_split_squat", weight: 80, originalWeight: 245 });
+    const homeLog = input([workout({ id: "w1", sets: [home], location: "home" })]);
+    const change = buildSetEdit("w1", home, { actualReps: 3, weight: 70, rpe: null })!;
+    expect(inverseChange(homeLog, change)).toEqual({
+      kind: "editSet",
+      workoutId: "w1",
+      setId: "h1",
+      patch: { weight: 80, originalWeight: 245 },
+    });
+  });
+
   it("re-adds a deleted set and deletes an added one", () => {
     expect(inverseChange(log, { kind: "deleteSet", workoutId: "w1", setId: "s1" })).toEqual({
       kind: "addSet",

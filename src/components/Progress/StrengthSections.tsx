@@ -14,7 +14,10 @@ const STATUS_TONE: Record<RecoveryStatus, string> = {
   detraining: "text-muted-foreground",
 };
 
-/** One line per main lift with its recovery status; hidden when no lift has been trained. */
+/**
+ * One line per main lift with its recovery status, home sessions counted as training;
+ * hidden when no lift has been trained.
+ */
 export function RecoverySection({ rows }: { rows: RecoveryRow[] }) {
   if (rows.length === 0) return null;
   return (
@@ -44,7 +47,11 @@ export function RecoverySection({ rows }: { rows: RecoveryRow[] }) {
   );
 }
 
-/** Barbell lifts too heavy for the home dumbbells; hidden when there are none. */
+/**
+ * Barbell lifts whose home exercise is at the heaviest dumbbell (or that have none):
+ * what each is trained as at home, and the barbell weight it starts at back at the
+ * gym. Hidden when there are none.
+ */
 export function GymDebtSection({
   items,
   maxDumbbellWeight,
@@ -57,20 +64,16 @@ export function GymDebtSection({
     <section aria-label="Waiting for gym">
       <SectionHeader title="Waiting for gym" className="mb-0.5" />
       <p className="text-xs text-muted-foreground">
-        These lifts are beyond your home dumbbells ({maxDumbbellWeight} lbs). Train them at the
-        gym to keep full weight.
+        At home these lifts are at your heaviest dumbbell ({maxDumbbellWeight} lbs). Home sessions keep
+        them going; the barbell weight waits for your next gym session.
       </p>
       {items.map((item) => (
         <ListRow
           key={item.exerciseId}
           title={item.name}
-          subtitle={<span className="font-mono text-xs">T1 {item.t1Weight} lbs barbell</span>}
-          value={<span className="text-sm text-warning">+{item.overage} lbs over</span>}
-          valueSub={
-            <span className="font-mono text-muted-foreground">
-              DB equiv {item.dbLabel}
-            </span>
-          }
+          subtitle={<span className="text-xs">{item.homeLabel}</span>}
+          value={<span className="font-mono text-sm tabular-nums">{item.gymLabel}</span>}
+          valueSub={<span className="text-muted-foreground">back at the gym</span>}
         />
       ))}
     </section>

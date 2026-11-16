@@ -52,6 +52,7 @@ export function applyChange(log: LogState, change: LogChange, at: number = 0): L
         const edited: SetLog = { ...set, synced: false };
         if (change.patch.actualReps !== undefined) edited.actualReps = change.patch.actualReps;
         if (change.patch.weight !== undefined) edited.weight = change.patch.weight;
+        if (change.patch.originalWeight !== undefined) edited.originalWeight = change.patch.originalWeight;
         // An explicit `rpe: undefined` clears the RPE.
         if ("rpe" in change.patch) {
           if (change.patch.rpe == null) delete edited.rpe;

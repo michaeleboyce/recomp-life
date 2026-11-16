@@ -218,6 +218,38 @@ describe("snapshots", () => {
     ]);
   });
 
+  it("records the home exercise each home weight is for", () => {
+    const home = buildWorkoutPlan({
+      template: WORKOUT_TEMPLATES.A1,
+      liftStates: seedLiftStates(),
+      location: "home",
+      equipment: EQUIPMENT,
+      includeWarmUps: false,
+      selectedAccessories: [],
+    });
+    const squat = home.find((e) => e.exerciseId === "squat")!;
+    expect(squat.substituteExerciseId).toBeTruthy();
+    expect(snapshotOfPlan(home)[0]).toEqual({
+      exerciseId: "squat",
+      tier: "T1",
+      sets: squat.targetSets,
+      reps: squat.targetReps,
+      weight: squat.weight,
+      isAMRAP: true,
+      performedAs: squat.substituteExerciseId,
+    });
+
+    const sets = makeSets("squat", "T1", 3, 3, {
+      weight: 70,
+      originalWeight: 190,
+      isSubstituted: true,
+      substituteExerciseId: "bulgarian_split_squat",
+    });
+    expect(snapshotOfSets(sets)).toEqual([
+      { exerciseId: "squat", tier: "T1", sets: 3, reps: 3, weight: 70, isAMRAP: false, performedAs: "bulgarian_split_squat" },
+    ]);
+  });
+
   it("pinSnapshot reproduces a saved plan after lift states have moved on", () => {
     const edits: PlanEdit[] = [
       { kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "incline_db_press" },

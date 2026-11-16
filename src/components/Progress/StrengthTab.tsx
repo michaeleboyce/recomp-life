@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Dumbbell } from "lucide-react";
-import { useMetricSource } from "@/hooks";
+import { DEFAULT_USER_PROFILE } from "@/db/seed";
+import { useMetricSource, useStrengthSets, useVariantStates } from "@/hooks";
 import type { RangeKey } from "@/lib/metrics/types";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -17,24 +18,33 @@ import { strengthOverview } from "./strength";
 /** Progress > Strength: the four-lift total, one row per lift, recovery and gym debt. */
 export function StrengthTab() {
   const source = useMetricSource();
+  const variantStates = useVariantStates();
+  const strengthSets = useStrengthSets();
   const [range, setRange] = useState<RangeKey>("3m");
   // Taken once per mount so the range window does not slide on every render.
   const [now] = useState(() => Date.now());
 
   const view = useMemo(() => {
-    if (!source) return undefined;
+    if (!source || !variantStates || !strengthSets) return undefined;
+    const equipment = source.settings?.equipment ?? DEFAULT_USER_PROFILE.settings.equipment;
     const maxDumbbell = source.settings?.equipment?.maxDumbbellWeight ?? DEFAULT_MAX_DUMBBELL;
     return {
       overview: strengthOverview(source, range, now),
       recovery: recoveryRows(
         source.liftStates,
         new Date(now),
-        source.settings?.trainingPhase ?? { mode: "maintaining" }
+        source.settings?.trainingPhase ?? { mode: "maintaining" },
+        variantStates
       ),
-      gymDebt: gymDebtItems(source.liftStates, maxDumbbell),
+      gymDebt: gymDebtItems({
+        liftStates: source.liftStates,
+        variantStates,
+        strengthSets,
+        equipment: { ...equipment, maxDumbbellWeight: maxDumbbell },
+      }),
       maxDumbbell,
     };
-  }, [source, range, now]);
+  }, [source, variantStates, strengthSets, range, now]);
 
   if (!view) {
     return (

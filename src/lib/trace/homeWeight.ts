@@ -4,11 +4,18 @@
 // at the gym, which re-entry rule decided. Built from the strength library's outputs
 // (`pooledLiftEstimate`, `learnTransferRatios`, the re-entry helpers) and the plan entry's
 // fields; no number is worked out again here.
+import { DUMBBELL_LOAD_FACTOR, ceilToStep } from "@/lib/dbConversion";
 import { EXERCISES } from "@/lib/exercises";
 import { pooledLiftEstimate, sessionEstimates } from "@/lib/strength";
 import type { PooledEstimate, ReentryRule, StrengthSet, TransferRatio } from "@/lib/strength";
-import { CAP_REP_STEP, HARDER_HOME_VARIANT, homeOptionsFor } from "@/lib/workout/variant";
-import type { TraceStep, VariantCapAction, VariantState } from "@/types";
+import {
+  CAP_REP_STEP,
+  HARDER_HOME_VARIANT,
+  homeOptionsFor,
+  isPerHandExercise,
+  totalLoad,
+} from "@/lib/workout/variant";
+import type { EquipmentProfile, TraceStep, VariantCapAction, VariantState } from "@/types";
 import { joinList, num, step } from "./text";
 import type { PlanEntry, TraceContext } from "./types";
 
@@ -23,8 +30,10 @@ export const TRANSFER_RATIO_RULE = "transfer-ratio";
  * (`WorkoutExerciseState.reentry`, a `PlanReentry`, which has these fields and more).
  */
 export interface ReentryTrace {
-  /** `ReentryResult.rule`. */
-  rule: ReentryRule;
+  /** `ReentryResult.rule`, or "hand": set by hand since, so re-entry left it. */
+  rule: ReentryRule | "hand";
+  /** For "hand": when the weight was set by hand. */
+  setByHandAt?: Date | string;
   /** `ReentryResult.weight`: the weight the plan took. */
   weight: number;
   /** `ReentryResult.fromSteps`. */
@@ -65,13 +74,65 @@ function asLiftedText(weight: number, perHand: boolean): string {
   return perHand ? `${num(weight)} a hand` : num(weight);
 }
 
+/**
+ * How the variant's first weight was chosen, by the seed's source (`seedVariantWeight`):
+ * the pooled estimate through the starting ratio, the ratio times the barbell weight,
+ * the flat conversion, or the cap policy moving here from a lighter exercise.
+ */
 function seedText(variant: VariantState): string {
   const { seed } = variant;
-  if (seed.source === "harderVariant") {
-    const from = seed.fromVariantId?.split("|")[1];
-    return `It started here when ${from ? nameOf(from) : "the lighter exercise"} reached the heaviest dumbbell, at a load no lighter.`;
+  const lift = liftWord(variant.liftId);
+  const capped =
+    seed.cappedFrom != null ? ` That asked for ${num(seed.cappedFrom)}, so it started at your heaviest dumbbell.` : "";
+  switch (seed.source) {
+    case "harderVariant": {
+      const from = seed.fromVariantId?.split("|")[1];
+      return `It started here when ${from ? nameOf(from) : "the lighter exercise"} reached the heaviest dumbbell, at a load no lighter.`;
+    }
+    case "estimate":
+      if (seed.estimate != null && seed.ratio != null) {
+        const reps = seed.targetReps != null ? `: the heaviest for ${plural(seed.targetReps, "rep")}` : "";
+        return `It started from your ${lift} strength estimate, ${num(seed.estimate)}, at ${seed.ratio.toFixed(2)} of it${reps}.${capped}`;
+      }
+      break;
+    case "ratio":
+      if (seed.ratio != null) {
+        return `It started at ${seed.ratio.toFixed(2)} of the program's ${num(seed.barbellWeight)} barbell weight (the exercise's starting ratio).${capped}`;
+      }
+      break;
+    case "conversion":
+      break;
   }
-  return `It started from the program's ${num(seed.barbellWeight)} barbell weight, converted to dumbbells.`;
+  return `It started from the program's ${num(seed.barbellWeight)} barbell weight, converted to dumbbells (${Math.round(DUMBBELL_LOAD_FACTOR * 100)}%).${capped}`;
+}
+
+/** What a pass at the heaviest dumbbell does next (the cap policy), for an exercise there. */
+export type CapNext =
+  | { policy: "harderVariant"; exerciseId: string }
+  | { policy: "reps"; reps: number }
+  /** T3: the last set already asks for as many reps as you can. */
+  | { policy: "none" };
+
+/**
+ * The cap policy's next step for a home exercise at the heaviest dumbbell, as
+ * `evaluateVariant` takes it: the harder variant (HARDER_HOME_VARIANT, one of the lift's
+ * home options) when the dumbbells give it a total load no lighter, otherwise
+ * CAP_REP_STEP more reps a set (none at T3).
+ */
+export function capNextStep(
+  variant: Pick<VariantState, "liftId" | "exerciseId" | "tier" | "weight" | "perHand">,
+  equipment: Pick<EquipmentProfile, "maxDumbbellWeight" | "dumbbellIncrementLbs">
+): CapNext {
+  const harderId = HARDER_HOME_VARIANT[variant.exerciseId];
+  if (harderId && homeOptionsFor(variant.liftId).includes(harderId)) {
+    const notLighter = ceilToStep(
+      totalLoad(variant.perHand, variant.weight) / (isPerHandExercise(harderId) ? 2 : 1),
+      equipment.dumbbellIncrementLbs
+    );
+    if (notLighter <= equipment.maxDumbbellWeight) return { policy: "harderVariant", exerciseId: harderId };
+  }
+  const reps = CAP_REP_STEP[variant.tier];
+  return reps > 0 ? { policy: "reps", reps } : { policy: "none" };
 }
 
 /** "Your home weight": the variant's own weight and how it got there. */
@@ -161,14 +222,13 @@ function capStep(variant: VariantState, context: HomeContext, cap: VariantCapAct
     return step("dumbbell-cap", title, `${here}, so a pass adds reps instead: ${cap.repsFrom} to ${cap.repsTo} a set.`, "none", "lb", undefined, CAP_PROGRESSION_RULE);
   }
   if (variant.weight < max) return null;
-  const harderId = HARDER_HOME_VARIANT[variant.exerciseId];
-  const harder = harderId && homeOptionsFor(variant.liftId).includes(harderId) ? harderId : null;
-  const reps = CAP_REP_STEP[variant.tier];
-  const next = harder
-    ? `the next pass moves to ${nameOf(harder)}, if its load is no lighter`
-    : reps > 0
-      ? `the next pass adds ${plural(reps, "rep")} a set`
-      : "the last set keeps asking for as many reps as you can";
+  const policy = capNextStep(variant, context.equipment);
+  const next =
+    policy.policy === "harderVariant"
+      ? `the next pass moves to ${nameOf(policy.exerciseId)}, at a load no lighter`
+      : policy.policy === "reps"
+        ? `the next pass adds ${plural(policy.reps, "rep")} a set`
+        : "the last set keeps asking for as many reps as you can";
   const extra = variant.extraReps > 0 ? ` It has added ${plural(variant.extraReps, "rep")} a set so far.` : "";
   return step("dumbbell-cap", title, `${here}, so ${next}.${extra}`, "none", "lb", undefined, CAP_PROGRESSION_RULE);
 }
@@ -176,6 +236,23 @@ function capStep(variant: VariantState, context: HomeContext, cap: VariantCapAct
 /** "Back at the gym" / "Back at home": which re-entry rule decided the weight. */
 function reentryStep(reentry: ReentryTrace, entry: PlanEntry): TraceStep {
   const gym = (reentry.location ?? "gym") === "gym";
+  const applied = reentry.weight === entry.weight;
+  if (reentry.rule === "hand") {
+    const at = reentry.setByHandAt != null ? new Date(reentry.setByHandAt) : null;
+    const when =
+      at && Number.isFinite(at.getTime())
+        ? ` on ${at.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+        : "";
+    return step(
+      "reentry",
+      gym ? "Back at the gym" : "Back at home",
+      `You set this weight by hand${when}, after your last ${gym ? "home" : "barbell"} session, so re-entry leaves it as it is.`,
+      applied ? "set" : "none",
+      "lb",
+      applied ? reentry.weight : undefined,
+      STRENGTH_POOLING_RULE
+    );
+  }
   const bounds: string[] = [];
   if (reentry.fromSteps !== null) {
     const earned = reentry.stepsEarned;
@@ -193,7 +270,6 @@ function reentryStep(reentry: ReentryTrace, entry: PlanEntry): TraceStep {
       : reentry.rule === "estimate"
         ? "The estimate is the smaller, so it decides."
         : "Both are more than your heaviest dumbbell, so it stops at the cap.";
-  const applied = reentry.weight === entry.weight;
   return step(
     "reentry",
     gym ? "Back at the gym" : "Back at home",

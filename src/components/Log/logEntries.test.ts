@@ -114,4 +114,21 @@ describe("workoutResultLine", () => {
   it("says when nothing was logged", () => {
     expect(workoutResultLine(workout({ sets: [] }))).toBe("no sets logged");
   });
+  it("at home names the exercise performed, with its weight as lifted", () => {
+    const home = { isSubstituted: true, location: "home" as const, originalWeight: 245 };
+    const w = workout({
+      location: "home",
+      sets: [
+        set({ id: "a", ...home, substituteExerciseId: "bulgarian_split_squat", weight: 80 }),
+        set({ id: "b", ...home, exerciseId: "bench", tier: "T2", targetReps: 10, actualReps: 8, status: "failed", substituteExerciseId: "db_floor_press", weight: 50 }),
+      ],
+    });
+    // A one-dumbbell exercise is not "a hand".
+    expect(workoutResultLine(w)).toBe(
+      "Bulgarian split squat 80 lbs a hand, DB floor press 50 lbs a hand · missed reps on DB floor press"
+    );
+    expect(
+      workoutResultLine(workout({ location: "home", sets: [set({ id: "d", ...home, substituteExerciseId: "goblet_squat", weight: 70 })] }))
+    ).toBe("Goblet squat 70 lbs · all targets hit");
+  });
 });

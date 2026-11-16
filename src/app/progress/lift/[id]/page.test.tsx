@@ -260,7 +260,9 @@ describe("Lift detail page", () => {
       expect(within(next).getByTestId("home-next")).toHaveTextContent("T15×3+");
       expect(within(next).queryByTestId("home-planned-as")).toBeNull();
       expect(next).not.toHaveTextContent("new best");
-      expect(next).toHaveTextContent("Set the barbell weight; the Bulgarian split squat weight follows from it.");
+      expect(next).toHaveTextContent("Set the Bulgarian split squat weight; the barbell squat stays as it is.");
+      // How the weight was reached comes from the plan entry, never the flat 80% conversion.
+      expect(within(next).getByTestId("home-weight-line")).not.toHaveTextContent("80% of");
 
       // Its own sessions, newest first, with no "At home" line on each.
       const own = sessionsAs("bulgarian_split_squat");
@@ -320,19 +322,79 @@ describe("Lift detail page", () => {
       expect(within(header).getByRole("group", { name: "Muscles worked by Single-Leg DB RDL" })).toBeInTheDocument();
     });
 
-    it("says the weight control changes the barbell weight", async () => {
+    it("adjusts the home exercise's own weight: the next home plan follows, the barbell does not", async () => {
       await initializeDatabase();
-      search = "as=bulgarian_split_squat";
+      const profile = await db.userProfile.toCollection().first();
+      const equipment = profile!.settings.equipment;
+      /** The next home plan, from what is stored now. */
+      const homePlanNow = async () =>
+        describeNextWorkout({
+          completedWorkouts: [],
+          templates: WORKOUT_TEMPLATES,
+          liftStates: await db.liftStates.toArray(),
+          plan: {
+            location: "home",
+            equipment,
+            includeWarmUps: false,
+            selectedAccessories: [],
+            variantStates: await db.variantStates.toArray(),
+            strengthSets: [],
+          },
+          reentry: true,
+        }).plan.find((e) => !e.isWarmUp && e.exerciseId === "squat")!;
+      const planned = await homePlanNow();
+      const substitute = planned.substituteExerciseId!;
+      const perHand = planned.perHand!;
+      const barbellBefore = (await db.liftStates.get("squat"))!.t1Weight;
+
+      search = `as=${substitute}`;
+      render(
+        <>
+          <LiftPage />
+          <Toaster />
+        </>
+      );
+      const next = await screen.findByRole("region", { name: "Next session" });
+      await waitFor(() => expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(planned.weight)));
+      expect(next).toHaveTextContent("Wrong weight for next time? Set the");
+      fireEvent.click(within(next).getByRole("button", { name: "Adjust weight" }));
+
+      const dialog = await screen.findByRole("dialog");
+      // The same number as the page, in the home exercise's own terms and dumbbell steps.
+      await waitFor(() => expect(within(dialog).getByRole("spinbutton", { name: /^Weight/ })).toHaveValue(planned.weight));
+      expect(within(dialog).getByText(perHand ? "(lbs a hand)" : "(lbs)")).toBeInTheDocument();
+      expect(dialog).toHaveTextContent(`The barbell squat stays at ${barbellBefore} lbs.`);
+      const step = equipment.dumbbellIncrementLbs;
+      fireEvent.click(within(dialog).getByRole("button", { name: `Increase weight by ${step}` }));
+      // The preview is the next home session with the change in place.
+      expect(within(dialog).getByTestId("home-adjust-preview")).toHaveTextContent(
+        `Next home session: ${planned.weight + step} lbs${perHand ? " a hand" : ""}`
+      );
+      fireEvent.click(within(dialog).getByRole("button", { name: "Save change" }));
+
+      await waitFor(() =>
+        expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(planned.weight + step))
+      );
+      expect((await homePlanNow()).weight).toBe(planned.weight + step);
+      expect((await db.liftStates.get("squat"))!.t1Weight).toBe(barbellBefore);
+      const manual = (await db.liftAdjustments.toArray()).filter((a) => a.source === "manual");
+      expect(manual).toEqual([
+        expect.objectContaining({
+          exerciseId: "squat",
+          set: { t1Weight: planned.weight + step },
+          variant: { exerciseId: substitute, tier: "T1" },
+        }),
+      ]);
+    });
+
+    it("opened from the barbell page, the sheet still edits the barbell", async () => {
+      await initializeDatabase();
       render(<LiftPage />);
       const next = await screen.findByRole("region", { name: "Next session" });
       fireEvent.click(within(next).getByRole("button", { name: "Adjust weight" }));
       expect(await screen.findByRole("heading", { name: "Adjust Squat" })).toBeInTheDocument();
-      // The sheet reads the lift's current weight before it shows the field and its hint.
-      await waitFor(() =>
-        expect(screen.getByRole("dialog")).toHaveTextContent(
-          "The barbell weight. At home the Bulgarian split squat weight follows from it."
-        )
-      );
+      await waitFor(() => expect(screen.getByRole("spinbutton", { name: /^Weight/ })).toHaveValue(190));
+      expect(screen.getByRole("dialog")).not.toHaveTextContent("a hand");
     });
   });
 

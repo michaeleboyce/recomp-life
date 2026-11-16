@@ -3,16 +3,25 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { DEFAULT_USER_PROFILE } from "@/db/seed";
+import { useSettings } from "@/hooks";
 import { EXERCISES } from "@/lib/exercises";
 import type { TermId } from "@/lib/glossary";
 import { tierStyle } from "@/lib/tierStyle";
 import { cn } from "@/lib/utils";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
-import type { Tier, WorkoutSession } from "@/types";
+import type { EquipmentProfile, Tier, WorkoutSession } from "@/types";
 import { Term } from "@/components/ui/term";
 import { LiftWhySheet, WhyButton } from "@/components/Why";
 import { formatLbs, formatSetsReps } from "./format";
-import { displayLiftName, liftPageHref, liftReason, type LiftReason } from "./todayModel";
+import {
+  atDumbbellCap,
+  capNextText,
+  displayLiftName,
+  liftPageHref,
+  liftReason,
+  type LiftReason,
+} from "./todayModel";
 
 /** One lift on Today: what it is, why it is at this weight, and the weight. */
 export interface TodayLiftRow {
@@ -60,9 +69,21 @@ function Reason({ reason }: { reason: LiftReason }) {
       );
     case "held":
       return <>Held at {formatLbs(reason.weight)}</>;
+    case "capped":
+      return <>Held at {formatLbs(reason.weight)}, your heaviest dumbbell</>;
     case "first":
       return <>First time</>;
   }
+}
+
+/**
+ * The heaviest dumbbell, once the settings have loaded (the seed defaults without a
+ * profile); null while loading, so a row is never called capped against a guess.
+ */
+function useCapEquipment(): EquipmentProfile | null {
+  const settings = useSettings();
+  if (settings === undefined) return null;
+  return (settings ?? DEFAULT_USER_PROFILE.settings).equipment;
 }
 
 /**
@@ -74,11 +95,14 @@ function Reason({ reason }: { reason: LiftReason }) {
  */
 export function LiftRows({ rows }: { rows: TodayLiftRow[] }) {
   const firstPlus = rows.find((row) => row.entry.isAMRAP);
+  const equipment = useCapEquipment();
   return (
     <>
     <ul aria-label="Today's lifts" className="flex flex-col px-5 pt-2">
       {rows.map((row, index) => {
         const { entry } = row;
+        const reason = equipment ? atDumbbellCap(entry, row.reason, equipment) : row.reason;
+        const capNext = capNextText(reason);
         const style = tierStyle(entry.tier);
         const tierTerm = index === 0 ? TIER_TERM[entry.tier] : undefined;
         const scheme = formatSetsReps(entry);
@@ -108,13 +132,18 @@ export function LiftRows({ rows }: { rows: TodayLiftRow[] }) {
               </Link>
               <span className="flex min-w-0 items-baseline gap-1 text-xs text-muted-foreground">
                 <span data-testid="lift-reason" className="min-w-0 truncate">
-                  <Reason reason={row.reason} />
+                  <Reason reason={reason} />
                 </span>
                 <span aria-hidden="true">·</span>
                 {row.why ?? (
                   <WhyButton exerciseId={entry.exerciseId} tier={entry.tier} liftName={row.name} />
                 )}
               </span>
+              {capNext && (
+                <span data-testid="lift-cap-next" className="block truncate text-xs text-muted-foreground">
+                  {capNext}
+                </span>
+              )}
             </span>
             <span className="text-right">
               <span className="flex items-baseline justify-end gap-0.5">

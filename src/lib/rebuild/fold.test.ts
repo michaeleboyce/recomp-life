@@ -247,6 +247,42 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
     expect(variantOf(rebuilt(sim).variantStates, "squat|db_lunge|T2")).toMatchObject({ weight: 40, current: false });
   });
 
+  it("records when a weight was set by hand, for a home exercise and for a barbell tier", () => {
+    const sim = startSim();
+    runSession(sim, { templateId: "A1", location: "home" });
+    const at = new Date(sim.workouts[0].completedAt!.getTime() + 60_000);
+    sim.adjustments.push(
+      makeAdjustment("squat", { t1Weight: 65 }, at, {
+        id: "adj-hand",
+        clientId: "adj-hand",
+        source: "manual",
+        variant: { exerciseId: "bulgarian_split_squat", tier: "T1" },
+      }),
+      makeAdjustment("bench", { t2Weight: 120 }, at, { id: "adj-bench", clientId: "adj-bench", source: "manual" })
+    );
+    const after = rebuilt(sim);
+    expect(variantOf(after.variantStates, "squat|bulgarian_split_squat|T1").setByHandAt).toEqual(at);
+    expect(stateOf(after.liftStates, "bench").t2SetByHandAt).toEqual(at);
+    // Starting weights are set by hand too; the sim's are dated at its start.
+    expect(stateOf(after.liftStates, "squat").t1SetByHandAt).toEqual(SIM_START);
+    // A time-off reduction is not.
+    sim.adjustments.push(
+      makeAdjustment("deadlift", { t1Weight: 200 }, new Date(at.getTime() + 1000), {
+        id: "adj-decay",
+        clientId: "adj-decay",
+        source: "decay",
+      })
+    );
+    expect(stateOf(rebuilt(sim).liftStates, "deadlift").t1SetByHandAt).toEqual(SIM_START);
+    // Seeded starting weights, dated before everything, carry no date to record.
+    const seeded = rebuildDerived({
+      workouts: [],
+      adjustments: [makeAdjustment("squat", { t1Weight: 190 }, new Date(0), { source: "start" })],
+      settings: SETTINGS,
+    });
+    expect(stateOf(seeded.liftStates, "squat").t1SetByHandAt).toBeUndefined();
+  });
+
   it("a barbell weight set by hand replaces the steps the home passes earned at that tier", () => {
     const sim = startSim();
     runSession(sim, { templateId: "A1", location: "home" });
