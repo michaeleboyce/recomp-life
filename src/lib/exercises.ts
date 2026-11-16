@@ -513,6 +513,158 @@ export const EXERCISES: Record<string, Exercise> = {
     stabilizerMuscles: ["forearms"],
     painSensitiveRegions: ["left_elbow", "right_elbow"],
   },
+
+  // ─── Common in imported history ───────────────────────────────────────────────
+  // Exercises other apps log often that had no equivalent above. They are not
+  // program lifts or substitutes and are not offered as accessories by default.
+
+  db_fly: {
+    id: "db_fly",
+    name: "DB Fly",
+    type: "dumbbell",
+    muscleGroup: "push",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["chest"],
+    secondaryMuscles: ["front_delts"],
+    stabilizerMuscles: ["biceps", "rotator_cuff"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
+  db_bent_over_row: {
+    id: "db_bent_over_row",
+    name: "DB Bent-Over Row",
+    type: "dumbbell",
+    muscleGroup: "pull",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["lats", "mid_back"],
+    secondaryMuscles: ["rear_delts", "biceps"],
+    stabilizerMuscles: ["forearms", "lower_back", "hamstrings"],
+    painSensitiveRegions: ["lower_back"],
+  },
+
+  incline_db_row: {
+    id: "incline_db_row",
+    name: "Incline DB Row",
+    type: "dumbbell",
+    muscleGroup: "pull",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["mid_back", "lats"],
+    secondaryMuscles: ["rear_delts", "biceps"],
+    stabilizerMuscles: ["forearms"],
+    painSensitiveRegions: [],
+  },
+
+  cable_row: {
+    id: "cable_row",
+    name: "Seated Cable Row",
+    type: "cable",
+    muscleGroup: "pull",
+    requiresGym: true,
+    primaryMuscles: ["mid_back", "lats"],
+    secondaryMuscles: ["rear_delts", "biceps"],
+    stabilizerMuscles: ["forearms", "lower_back"],
+    painSensitiveRegions: ["lower_back"],
+  },
+
+  db_squat: {
+    id: "db_squat",
+    name: "DB Squat",
+    type: "dumbbell",
+    muscleGroup: "legs",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["quads", "glutes"],
+    secondaryMuscles: ["adductors"],
+    stabilizerMuscles: ["abs", "lower_back", "forearms", "upper_traps"],
+    painSensitiveRegions: ["lower_back", "left_knee", "right_knee"],
+  },
+
+  leg_press: {
+    id: "leg_press",
+    name: "Leg Press",
+    type: "machine",
+    muscleGroup: "legs",
+    requiresGym: true,
+    primaryMuscles: ["quads", "glutes"],
+    secondaryMuscles: ["adductors", "hamstrings"],
+    stabilizerMuscles: ["calves"],
+    painSensitiveRegions: ["lower_back", "left_knee", "right_knee"],
+  },
+
+  lunge: {
+    id: "lunge",
+    name: "Bodyweight Lunge",
+    type: "bodyweight",
+    muscleGroup: "legs",
+    requiresGym: false,
+    primaryMuscles: ["quads", "glutes"],
+    secondaryMuscles: ["hamstrings", "adductors"],
+    stabilizerMuscles: ["abs", "calves"],
+    painSensitiveRegions: ["left_knee", "right_knee"],
+  },
+
+  barbell_curl: {
+    id: "barbell_curl",
+    name: "Barbell Curl",
+    type: "barbell",
+    muscleGroup: "pull",
+    requiresGym: true,
+    primaryMuscles: ["biceps"],
+    secondaryMuscles: ["forearms"],
+    stabilizerMuscles: ["front_delts"],
+    painSensitiveRegions: ["left_elbow", "right_elbow", "left_wrist", "right_wrist"],
+  },
+
+  push_up: {
+    id: "push_up",
+    name: "Push-Up",
+    type: "bodyweight",
+    muscleGroup: "push",
+    requiresGym: false,
+    primaryMuscles: ["chest"],
+    secondaryMuscles: ["triceps", "front_delts"],
+    stabilizerMuscles: ["abs", "rotator_cuff"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder", "left_wrist", "right_wrist"],
+  },
+
+  bench_dip: {
+    id: "bench_dip",
+    name: "Bench Dip",
+    type: "bodyweight",
+    muscleGroup: "push",
+    requiresGym: false,
+    primaryMuscles: ["triceps"],
+    secondaryMuscles: ["chest", "front_delts"],
+    stabilizerMuscles: ["rotator_cuff"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder", "left_elbow", "right_elbow"],
+  },
+
+  sit_up: {
+    id: "sit_up",
+    name: "Sit-Up",
+    type: "bodyweight",
+    muscleGroup: "core",
+    requiresGym: false,
+    primaryMuscles: ["abs"],
+    secondaryMuscles: ["obliques"],
+    stabilizerMuscles: [],
+    painSensitiveRegions: ["lower_back", "neck"],
+  },
+
+  crunch: {
+    id: "crunch",
+    name: "Crunch",
+    type: "bodyweight",
+    muscleGroup: "core",
+    requiresGym: false,
+    primaryMuscles: ["abs"],
+    secondaryMuscles: ["obliques"],
+    stabilizerMuscles: [],
+    painSensitiveRegions: ["neck"],
+  },
 };
 
 /** Single source of truth for which exercises are accessories. */
