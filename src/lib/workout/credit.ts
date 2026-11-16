@@ -23,6 +23,22 @@ export const CREDIT_MIN_WEIGHT_RATIO = 1;
  */
 export const CREDIT_DECIDING_STATUSES: readonly SetStatus[] = ["completed", "failed"];
 
+/**
+ * Whether the deciding working sets, by weight, make up the prescription: all of them
+ * at or above `required`, or at least `prescribedSets` of them when some were lighter.
+ * A lighter working set never stands in for one at weight, so four lighter sets and one
+ * at weight are not a pass; a session ended early with every set at weight still is
+ * (progression's freeze rule deals with the sets it lacks).
+ */
+export function workingSetsReachPrescription(
+  weights: readonly number[],
+  required: number,
+  prescribedSets: number
+): boolean {
+  const atWeight = weights.filter((weight) => weight >= required).length;
+  return atWeight === weights.length || atWeight >= prescribedSets;
+}
+
 type CreditEntry = Pick<
   WorkoutExerciseState,
   "exerciseId" | "tier" | "targetSets" | "targetReps" | "weight" | "originalWeight" | "isWarmUp"
@@ -41,9 +57,10 @@ type CreditEntry = Pick<
  * Weight is judged from the logged sets when given, otherwise from the entry (the
  * pre-workout preview). The weight compared is `originalWeight ?? weight`, so a home
  * substitute counts as the program lift it stands for. Only sets with a status in
- * CREDIT_DECIDING_STATUSES decide, and the lift is lighter only when every one of them
- * is below the prescription, so a single mistyped set does not flip it. With no
- * deciding set logged, the entry itself decides.
+ * CREDIT_DECIDING_STATUSES decide, and they must make up the prescription
+ * (`workingSetsReachPrescription`): every one at the weight, or at least the
+ * prescribed number of them when any was lighter. With no deciding set logged, the
+ * entry itself decides.
  *
  * A session with no `prescribed` list predates this rule: its T1/T2/T3 entries are
  * all "program". The answer depends only on the arguments, never on how an edit was
@@ -77,7 +94,11 @@ export function classifyEntry(
   );
   const reached =
     deciding.length > 0
-      ? deciding.some((set) => (set.originalWeight ?? set.weight) >= required)
+      ? workingSetsReachPrescription(
+          deciding.map((set) => set.originalWeight ?? set.weight),
+          required,
+          target.sets
+        )
       : (entry.originalWeight ?? entry.weight) >= required;
 
   return reached ? "program" : "logged-only";
@@ -120,8 +141,8 @@ export interface VariantTarget {
  * `classifyEntry` for a lift done as its home exercise: judged against the exercise's
  * own prescription (`target`) and by the weight as lifted, not the barbell weight it
  * stands for. A lift the edits removed, or one done at another scheme or lighter than
- * the home exercise's prescription, is only logged. Without `prescribed` (a session
- * from before the rule), always "program".
+ * the home exercise's prescription (`workingSetsReachPrescription`), is only logged.
+ * Without `prescribed` (a session from before the rule), always "program".
  *
  * @evidence off-program-credit
  */
@@ -141,7 +162,11 @@ export function classifyVariantEntry(
   );
   const reached =
     deciding.length > 0
-      ? deciding.some((set) => set.weight >= target.weight)
+      ? workingSetsReachPrescription(
+          deciding.map((set) => set.weight),
+          target.weight,
+          target.sets
+        )
       : entry.weight >= target.weight;
   return reached ? "program" : "logged-only";
 }

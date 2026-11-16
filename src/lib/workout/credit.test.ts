@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { PlanEdit, PrescribedEntry, SetLog } from "@/types";
 import {
   classifyEntry,
+  classifyVariantEntry,
   CREDIT_DECIDING_STATUSES,
   CREDIT_MIN_WEIGHT_RATIO,
   CREDIT_TIERS,
@@ -103,12 +104,39 @@ describe("classifyEntry from logged sets", () => {
     expect(classifyEntry(squat(), PRESCRIBED, sets)).toBe("program");
   });
 
-  it("is not flipped by one mistyped set", () => {
-    const sets = [
-      ...makeSets("squat", "T1", 4, 3, { weight: 190 }),
-      ...makeSets("squat", "T1", 1, 3, { weight: 19 }),
+  it("needs the prescribed number of working sets at the weight once any set was lighter", () => {
+    // Four lighter working sets and one at weight are not the prescription.
+    const mostlyLighter = [
+      ...makeSets("squat", "T1", 4, 3, { weight: 150 }),
+      ...makeSets("squat", "T1", 1, 3, { weight: 190 }),
     ];
-    expect(classifyEntry(squat(), PRESCRIBED, sets)).toBe("program");
+    expect(classifyEntry(squat(), PRESCRIBED, mostlyLighter)).toBe("logged-only");
+    // Neither are four at weight and one lighter.
+    const oneShort = [
+      ...makeSets("squat", "T1", 4, 3, { weight: 190 }),
+      ...makeSets("squat", "T1", 1, 3, { weight: 150 }),
+    ];
+    expect(classifyEntry(squat(), PRESCRIBED, oneShort)).toBe("logged-only");
+    // Five at weight, then a lighter extra working set: the prescription was done.
+    const extra = [
+      ...makeSets("squat", "T1", 5, 3, { weight: 190 }),
+      ...makeSets("squat", "T1", 1, 3, { weight: 150 }),
+    ];
+    expect(classifyEntry(squat(), PRESCRIBED, extra)).toBe("program");
+  });
+
+  it("a session ended early with every set at weight still counts (progression freezes it)", () => {
+    expect(classifyEntry(squat(), PRESCRIBED, makeSets("squat", "T1", 2, 3, { weight: 190 }))).toBe("program");
+  });
+
+  it("the same rule judges a home exercise against its own prescription", () => {
+    const target = { weight: 50, sets: 5, reps: 3 };
+    const entry = squat({ substituteExerciseId: "bulgarian_split_squat", weight: 50 });
+    const home = (weight: number, count: number) =>
+      makeSets("squat", "T1", count, 3, { weight, isSubstituted: true, substituteExerciseId: "bulgarian_split_squat" });
+    expect(classifyVariantEntry(entry, target, PRESCRIBED, [...home(40, 4), ...home(50, 1)])).toBe("logged-only");
+    expect(classifyVariantEntry(entry, target, PRESCRIBED, home(50, 5))).toBe("program");
+    expect(classifyVariantEntry(entry, target, PRESCRIBED, home(50, 3))).toBe("program");
   });
 
   it("is logged-only when every deciding set is below the prescription", () => {
