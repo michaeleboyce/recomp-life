@@ -191,10 +191,37 @@ and iPhone builds pass.
   lint ignores (vendored Draco, `ios/App/App/public`), the weigh-in clock read, the drop-set
   test wait, and `.github/workflows/ci.yml`.
 
+Live check on 2026-11-17 (production at `1c36cbd`, the owner's synced data, in his browser):
+the bench page lists the imported sessions with "Hide imported", shows an imported estimated
+max and "Best before ReComp", and a learned DB bench ratio "from 20 pairs of your sessions";
+the Strength tab and Today's estimated-max cards read imported history; the Log has the
+Imported filter, paging and labelled imported strength sessions; Today names the latest
+imported session of a home exercise instead of "First time".
+
+Found in that check (to fix next, before R1 and R2):
+
+- **F6: a home exercise's first weight ignores that exercise's own history.** Today showed
+  a Bulgarian split squat planned at about twice the per-hand weight of its latest imported
+  session, beside the text naming that session. The first home weight is still seeded from
+  the program lift's pooled estimate through the exercise's starting ratio (H3), even when the
+  exercise itself has recent history. Rule to adopt: when the home exercise has its own
+  logged or imported sets within the evidence window, seed from that exercise's own estimate
+  (same recency rules), and fall back to the pooled estimate through the learned or starting
+  ratio only when it has none; the "from your history" text and the why sheet must show the
+  numbers the weight came from. Acceptance: a test with made-up history where the exercise's
+  own sets and the barbell estimate disagree, at home, through every planning path
+  (`src/hooks/planningPaths.test.tsx`). Needs a changelog entry for `home-progression`.
+- A home exercise whose history is under another name (for example a one-arm dumbbell row)
+  still says "First time"; check the name mapping for it.
+- The Strength tab rows show "–" for lifts whose latest estimate is outside the selected
+  range while the total above them counts it; say which range the row uses, or show the
+  latest estimate with its date.
+
 Left for later (not blocking):
 
-- A first home weight still goes through the exercise's starting ratio (H3), not a ratio
-  learned from the owner's own imported dumbbell and barbell pairs. Take up with R2.
+- Learned ratios (from the owner's own imported dumbbell and barbell pairs) are shown on the
+  lift page but not yet used for a first home weight; F6 decides the order (own history, then
+  learned ratio, then starting ratio).
 - Still app-only: the exercise page chart, the weekly review, insights and the Strength tab's
   recovery rows.
 - The lift page's "Show all" renders every session (a few hundred for a long history); page
