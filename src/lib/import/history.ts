@@ -11,6 +11,9 @@
  *
  * The sets are the imported ones in any list of strength evidence (`imported` set), as
  * mapped when the list was made (`importedStrengthSets` with the remembered choices).
+ *
+ * @evidence e1rm-estimate
+ * @evidence strength-pooling
  */
 import type { Point, Series } from "@/lib/metrics/types";
 import { sessionEstimates, type EstimateSet, type StrengthSet } from "@/lib/strength";

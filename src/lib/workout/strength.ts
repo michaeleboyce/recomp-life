@@ -83,6 +83,8 @@ export function strengthSetsOf(
  * read the workouts alone, a weight set by hand still wins, and a barbell weight moves
  * only by progression (re-entry within its bounds) or a starting weight the lifter
  * confirms.
+ *
+ * @evidence strength-pooling
  */
 export function strengthEvidenceOf(
   workouts: readonly Pick<WorkoutSession, "id" | "completedAt" | "deletedAt" | "sets">[],
@@ -111,7 +113,10 @@ export function pooledEstimateOf(sets: readonly StrengthSet[], liftId: string): 
 
 /**
  * The ratio between a home exercise and its program lift that `sets` support
- * (`learnTransferRatio`: the starting ratio with no pairs), once per list of sets.
+ * (`learnTransferRatio`: the starting ratio with no pairs), once per list of sets. Pairs
+ * of imported sessions count like the app's when `sets` include them.
+ *
+ * @evidence transfer-ratio
  */
 export function transferRatioOf(
   sets: readonly StrengthSet[],

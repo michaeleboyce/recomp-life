@@ -199,6 +199,8 @@ const strengthSetsCache = new WeakMap<
  * through the records' remembered choices. The same evidence Today, Configure and the
  * active workout read (`useStrengthEvidence`), so every path plans the same weights.
  * Worked out once per read so the estimates made from it are kept.
+ *
+ * @evidence strength-pooling
  */
 export function strengthSetsFrom(
   records: Pick<LedgerRecords, "workouts" | "importedSessions" | "mappingOverrides">

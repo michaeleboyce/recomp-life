@@ -1,6 +1,7 @@
 "use client";
 
 import { History } from "lucide-react";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Switch } from "@/components/ui/switch";
 import type { ImportedBest } from "@/lib/import/history";
 import type { LiftImportedView } from "./useLiftView";
@@ -47,11 +48,14 @@ export function ImportedHistoryControl({
         </span>
         <Switch checked={shown} onCheckedChange={onShownChange} aria-label="Show imported history" />
       </label>
-      {shown && best && (
-        <p data-testid="imported-best" className="pb-1.5 text-xs text-muted-foreground">
-          {importedBestText(best)}. Imported from another app: drawn hollow on the charts, and not a
-          ReComp best.
-        </p>
+      {shown && (
+        <div className="flex items-start gap-2 pb-1.5">
+          <p data-testid="imported-best" className="min-w-0 flex-1 text-xs text-muted-foreground">
+            {best ? `${importedBestText(best)}. ` : ""}Imported from another app: drawn hollow on the
+            charts, counted like your own sessions and less the older they are, and never a ReComp best.
+          </p>
+          <EvidenceLine ruleId="strength-pooling" variant="icon" />
+        </div>
       )}
     </section>
   );
