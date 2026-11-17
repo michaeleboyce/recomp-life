@@ -203,6 +203,14 @@ async function mergeTable(database: Dexie, def: SyncTableDef, rows: WireRow[]): 
     if (def.singleRow) {
       // Exactly one profile, id and clientId PROFILE_ID. The server keeps one row; if it
       // ever sends more, the newest wins.
+      //
+      // The conflict rule for settings: the profile is one row, so last write wins for
+      // the WHOLE row, settings JSON included; fields are never merged. When two
+      // devices change settings between syncs, the change with the older `updatedAt`
+      // is dropped entirely, whichever fields it touched (a set plan saved on one
+      // device, the theme changed on the other: only the newer of the two survives).
+      // Within one device, every settings write is a read-modify-write in one
+      // transaction (`writeSettings`), so two tabs never lose each other's change.
       const server = rows.reduce<WireRow | undefined>(
         (best, row) => (!best || stampOf(row) > stampOf(best) ? row : best),
         undefined
