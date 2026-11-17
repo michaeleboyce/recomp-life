@@ -143,5 +143,22 @@ describe("strengthOverview", () => {
       const points = withImported.lifts.find((l) => l.id === "bench")!.full.points;
       expect(points.map((x) => x.t)).toEqual([...points.map((x) => x.t)].sort((a, b) => a - b));
     });
+
+    it("a lift whose latest estimate is older than the range keeps it beside the total that counts it", () => {
+      // Bench only imported, 200 days ago; the range is 3 months.
+      const old = importedLiftIndex(importedStrengthSets([benchAt(200, 150)]));
+      const o = strengthOverview(empty, "3m", now.getTime(), old);
+      const bench = o.lifts.find((l) => l.id === "bench")!;
+      expect(bench.series.points).toEqual([]);
+      expect(bench.latestBeforeRange).toMatchObject({ v: Math.round(150 * (1 + 5 / 30)), imported: true });
+      expect(bench.latestBeforeRange!.t).toBe(now.getTime() - 200 * DAY);
+      // The total counts the lift (its latest is carried forward)...
+      expect(o.total.lifts).toContain("bench");
+      // ...and a lift with a point in the range has none.
+      const recent = strengthOverview(empty, "3m", now.getTime(), index);
+      expect(recent.lifts.find((l) => l.id === "bench")!.latestBeforeRange).toBeNull();
+      // A lift with no estimate at all has none either.
+      expect(o.lifts.find((l) => l.id === "squat")!.latestBeforeRange).toBeNull();
+    });
   });
 });
