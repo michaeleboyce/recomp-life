@@ -1,7 +1,7 @@
 # Imported history on every screen, and one planning path
 
 Status: findings and plan of 2026-11-17. P1, P2 and P3 are built and merged (see "Status
-after P1 to P3"); R1 and R2 (with F3) are approved to follow; R3 is deferred. Michael
+after P1 to P3"); R1, R2 and F3 are done (see "Status of R1, R2 and F3"); R3 is deferred. Michael
 approved the order on 2026-11-17.
 
 This repository is public. Nothing here describes the owner's training data beyond the fact
@@ -123,6 +123,67 @@ the plan before edits are equal by construction; golden rebuild unchanged.
 
 R1 and R2 go to one agent, after P1 and P2 are merged (they touch the same files), with tests
 that pin today's numbers first, so the refactor changes no weight, scheme or rest anywhere.
+
+### Status of R1, R2 and F3 (done, 2026-11-17)
+
+- Pinned first: `src/lib/workout/planningPaths.characterisation.test.ts` records, for every
+  session start of the demo log at home and at the gym, plain and with made-up imported
+  sessions, hand-set weights, next-session set plans, a Configure substitute and
+  Edit-workout edits: the start plan, the recorded prescription (with `.home`),
+  `nextSetPlanEdits`, re-entries, Today's rows and forecast plan, the coming workouts and
+  the resumed plan. It passed unchanged after every refactor commit.
+- R2 done: `resolveLifts` (`src/lib/workout/liftResolution.ts`) resolves each program lift
+  once (`LiftResolution`: program lift, tier, exercise performed, weight as lifted,
+  scheme, barbell weight, seed, re-entry). `planWorkoutStart` reads: resolve the lifts
+  (`resolveReentry`, `resolveLifts`), record the prescription (`prescriptionOf`), apply
+  the edits (`planFromLifts`, then `withPlanEdits`: set plans before Edit-workout edits).
+  `buildWorkoutPlan` and `prescribedFor` are views of the same resolution. Test:
+  `liftResolution.test.ts` (prescription equals the plan before edits, every case).
+- R1 done: `resolveNextWorkout` (`src/lib/workout/nextWorkout.ts`) is the one function that
+  plans the next workout, from one input record (completed workouts, lift and variant
+  states, combined evidence, settings, location); it is `dueTemplateId` then
+  `planWorkoutStart`. `useNextWorkout`, the ledger's `nextWorkoutFrom`,
+  `projectUpcomingWorkouts` (its first workout) and `describeNextWorkout` all go through
+  it. Today's hero calls `useTodayWorkout` once: `nextWorkoutFrom` gives the lift rows'
+  plan, and the same plan is handed to `todayForecastFrom` and `readinessTodayFrom`.
+  `next.prescribed` replaces `nextPrescriptionFrom`. Configure, GlanceTiles and the More
+  page read the due day with `useDueTemplateId` (`dueTemplateId`, `src/lib/workout/rotation.ts`).
+  Contract test: `nextWorkout.test.ts`. Still calling `useNextWorkout` for the template
+  id only: `QuickAddSheet` (its tests mock the hook). The open workout's plan on Today
+  (`useOpenPlan`) is `planForSession` without variant states, as before.
+- F3 done: `resolveSavedSession` (`src/lib/workout/savedSession.ts`) is the one reading of a
+  saved session's `prescribed` (and `.home`), used by `planForSession` (resume), the
+  rebuild's rule 4 (`readSavedSession` in `src/lib/rebuild/fold.ts`) and the forecast
+  replay (`anchorHomePrescriptions`). The rule for an equipment change: a saved session
+  keeps the weight it recorded (a stored 70 lb home weight resumes at 70 after the
+  heaviest dumbbell drops to 50, and finishing judges the sets against 70); the weight
+  display shows a plain note (`equipmentLine`) and the set weight can still be changed.
+  Parity test: `savedSession.test.ts`. Known limit: when a stored home exercise is no
+  longer offered, the lift is done as another one the session did not record; a
+  never-used one is seeded from combined evidence on resume but from the app's sets in
+  the rebuild.
+
+### How a workout is planned
+
+Next exercise, weight and reps, in order:
+
+1. Which day: `dueTemplateId` (`src/lib/workout/rotation.ts`) over `foldRotation`
+   (`src/lib/workout/credit.ts`).
+2. The inputs, once: `resolveNextWorkout` (`src/lib/workout/nextWorkout.ts`), fed by
+   `useNextWorkout` / `useTodayWorkout` (hooks) or `nextWorkoutFrom`
+   (`src/lib/data/forecasts.ts`); Configure feeds `planWorkoutStart` directly with its
+   choices.
+3. Re-entry after the other location: `resolveReentry` (`src/lib/workout/reentry.ts`).
+4. Each lift: `resolveLifts` (`src/lib/workout/liftResolution.ts`): the barbell
+   prescription from the stage (`getPrescription`, `src/lib/workout/prescription.ts`);
+   at home the exercise and its own weight and scheme (`chooseHomeVariant`, seeding with
+   `seedVariantState`, `src/lib/workout/variant.ts`).
+5. The prescription stored at start: `prescriptionOf` (same file).
+6. The plan: `planFromLifts` (warm-ups, accessories), then `withPlanEdits`: next-session
+   set plans (`nextSetPlanEdits`, `src/lib/workout/nextSetPlans.ts`), then Edit-workout
+   edits (`applyPlanEdits`, `src/lib/workout/planEdits.ts`).
+7. Once started: `resolveSavedSession` (`src/lib/workout/savedSession.ts`) reads the
+   stored prescription back for resume (`planForSession`) and the rebuild.
 
 ### R3: one owner for each piece of active-workout state (deferred)
 
