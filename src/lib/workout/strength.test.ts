@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { pooledLiftEstimate } from "@/lib/strength";
+import { pooledLiftEstimate, type StrengthSet } from "@/lib/strength";
 import type { SetLog, WorkoutSession } from "@/types";
-import { pooledEstimateOf, strengthSetOf, strengthSetsOf, transferRatioOf } from "./strength";
+import {
+  OWN_HISTORY_WINDOW_WEEKS,
+  ownHistoryOf,
+  pooledEstimateOf,
+  strengthSetOf,
+  strengthSetsOf,
+  transferRatioOf,
+} from "./strength";
 import { makeSession, makeSet } from "./testFixtures";
 
 const at = new Date("2026-11-10T18:00:00Z");
@@ -65,5 +72,58 @@ describe("pooledEstimateOf and transferRatioOf", () => {
     expect(pooledEstimateOf(sets, "squat")).toBe(first);
     expect(pooledEstimateOf([], "squat")).toBeNull();
     expect(transferRatioOf(sets, "squat", "bulgarian_split_squat")).toMatchObject({ ratio: 0.5, pairs: 0, basis: "prior" });
+  });
+});
+
+describe("ownHistoryOf: a home exercise's own recent sets", () => {
+  const DAY = 86_400_000;
+  const newest = new Date("2026-11-10T18:00:00Z").getTime();
+  const s = (id: string, daysAgo: number, extra: Partial<StrengthSet> = {}): StrengthSet => ({
+    id,
+    sessionId: `w${daysAgo}`,
+    exerciseId: "bulgarian_split_squat",
+    weight: 25,
+    perHand: true,
+    reps: 9,
+    rpe: null,
+    role: "working",
+    tier: "T1",
+    isAMRAP: true,
+    date: new Date(newest - daysAgo * DAY),
+    ...extra,
+  });
+  const barbell = s("bar", 0, { exerciseId: "squat", weight: 200, perHand: false, reps: 8 });
+
+  it("is the latest session's estimate inside the window, the heaviest weight lifted there, and when it was last done", () => {
+    const sets = [barbell, s("a", 7), s("b", 20, { weight: 30, reps: 3, tier: "T2", isAMRAP: false })];
+    const own = ownHistoryOf(sets, "bulgarian_split_squat");
+    // 50 x (1 + 9/30) = 65, from the latest session.
+    expect(own.estimate).toMatchObject({ value: 65, basis: "own" });
+    expect(own.estimate?.own?.sessionId).toBe("w7");
+    expect(own.heaviest).toBe(30);
+    expect(own.lastDone).toBe(newest - 7 * DAY);
+    expect(ownHistoryOf(sets, "bulgarian_split_squat")).toBe(own);
+  });
+
+  it("counts nothing older than the window, which runs back from the newest set of any exercise", () => {
+    const days = OWN_HISTORY_WINDOW_WEEKS * 7;
+    expect(ownHistoryOf([barbell, s("old", days + 1)], "bulgarian_split_squat")).toEqual({
+      estimate: null,
+      heaviest: null,
+      lastDone: newest - (days + 1) * DAY,
+    });
+    expect(ownHistoryOf([barbell, s("edge", days)], "bulgarian_split_squat").estimate?.value).toBe(65);
+  });
+
+  it("leaves out weights set by hand, warm-ups, drops and sets with no load", () => {
+    const sets = [
+      barbell,
+      s("target", 1, { provisional: true, weight: 60 }),
+      s("warm", 2, { role: "warmup", weight: 50 }),
+      s("drop", 2, { role: "drop", weight: 45, dropOf: "warm" }),
+      s("empty", 2, { weight: 0 }),
+    ];
+    expect(ownHistoryOf(sets, "bulgarian_split_squat")).toEqual({ estimate: null, heaviest: null, lastDone: null });
+    expect(ownHistoryOf([], "bulgarian_split_squat")).toEqual({ estimate: null, heaviest: null, lastDone: null });
   });
 });

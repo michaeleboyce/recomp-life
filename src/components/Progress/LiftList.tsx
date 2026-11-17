@@ -17,8 +17,17 @@ const LIFT_ACCENT: Record<string, string> = {
   ohp: "bg-chart-4",
 };
 
+/** "Aug 2", or "Aug 2, 2025" when it is not this year. */
+function pointDay(t: number): string {
+  const date = new Date(t);
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) });
+}
+
 function LiftCard({ lift }: { lift: LiftOverview }) {
   const { liftState, summary, series, stall } = lift;
+  // The range's latest estimate, else the latest before it (the one the total counts).
+  const shown = summary.latest ?? lift.latestBeforeRange;
   const delta = stall ? (
     <Delta
       value={Math.round(stall.change)}
@@ -58,11 +67,17 @@ function LiftCard({ lift }: { lift: LiftOverview }) {
         </span>
         <span className="flex items-baseline gap-2">
           <span className="font-display text-[44px] leading-none font-bold tabular-nums text-foreground">
-            {summary.latest ? Math.round(summary.latest.v) : "–"}
+            {shown ? Math.round(shown.v) : "–"}
           </span>
-          {summary.latest?.imported && (
+          {shown?.imported && (
             <span data-testid="lift-latest-imported" className="text-xs font-semibold text-muted-foreground">
               Imported
+            </span>
+          )}
+          {/* Older than the range: the estimate the total counts, with when it was. */}
+          {!summary.latest && lift.latestBeforeRange && (
+            <span data-testid="lift-latest-date" className="text-xs text-muted-foreground">
+              {pointDay(lift.latestBeforeRange.t)}
             </span>
           )}
           {delta}

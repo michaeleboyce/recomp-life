@@ -428,7 +428,7 @@ describe("explainPrescription: at home", () => {
     expect(byId(squat, "progression").effect).toEqual({ op: "add", value: 10, unit: "lb" });
   });
 
-  it("names the imported session a first home weight from the estimate rests on (made-up history)", () => {
+  it("names the imported session a first home weight from the exercise's own history rests on (made-up history)", () => {
     const sim = simOf({});
     const at = new Date(2026, 1, 20, 12);
     const imported = [
@@ -451,7 +451,7 @@ describe("explainPrescription: at home", () => {
       strengthSets: sets,
     });
     const entry = plan.find((e) => e.exerciseId === "bench" && e.tier === "T2")!;
-    expect(entry.seed).toMatchObject({ source: "estimate", history: { weight: 45, reps: 10, perHand: true } });
+    expect(entry.seed).toMatchObject({ source: "history", ownEstimate: 120, history: { weight: 45, reps: 10, perHand: true, imported: true } });
     const context: TraceContext = {
       now: NOW,
       location: "home",
@@ -463,8 +463,9 @@ describe("explainPrescription: at home", () => {
     };
     const trace = explainPrescription(entry, context, plan);
     expect(trace.steps.at(-1)!.detail).toContain(
-      "DB Bench Press: new here, but your imported history has it at 45 per hand × 10 on Feb 20, 2026, so it starts from your bench press strength estimate"
+      "DB Bench Press: from your own history: 45 per hand × 10 on Feb 20, 2026 (imported) gives an estimated max of 120 in all; the heaviest weight for 10 reps, rounded down to 5, is 45 per hand."
     );
+    expect(entry.weight).toBe(45);
     expect(replayTrace(trace)).toBe(entry.weight);
   });
 

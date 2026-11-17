@@ -84,6 +84,17 @@ export interface LiftOverview {
   summary: SeriesSummary;
   /** From the full history, not the range. */
   stall: Stall | null;
+  /**
+   * The latest estimate of the whole history, when the range holds none: the one the
+   * total above the rows still counts, shown with its date instead of "–". Null when the
+   * range has a point or the lift has no estimate at all.
+   */
+  latestBeforeRange: Point | null;
+}
+
+/** The newest point of a series, or null. */
+function newestPoint(points: readonly Point[]): Point | null {
+  return points.reduce<Point | null>((latest, p) => (latest == null || p.t >= latest.t ? p : latest), null);
 }
 
 export interface StrengthOverview {
@@ -118,6 +129,7 @@ export function strengthOverview(
       series,
       summary: summarize(series),
       stall: stallOf(appPointsOnly(full.points)),
+      latestBeforeRange: series.points.length > 0 ? null : newestPoint(full.points),
     };
   });
 

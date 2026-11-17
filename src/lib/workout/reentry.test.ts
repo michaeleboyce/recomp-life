@@ -163,6 +163,31 @@ describe("resolveReentry at home (H6)", () => {
     });
     expect(since.reentries.size).toBe(0);
   });
+
+  it("a home exercise with no state of its own but its own recent sets is planned from them, not past them (F6)", () => {
+    // Back at home after a heavy barbell squat (210 x 6): the split squat has only imported
+    // sets, 25 x 9 a hand, and no state. Re-entry leaves it to its seed, which follows its
+    // own estimate (65 in all: 25 a hand for 5x3), not the barbell's (about 55).
+    const imported = t1Session("imp", "bulgarian_split_squat", 25, 9, 15, true).map((s) => ({ ...s, imported: true as const }));
+    const sets = [...imported, ...t1Session("gym", "squat", 210, 6, 20)];
+    const resolved = resolveReentry({ liftStates, variantStates: [], location: "home", equipment: EQUIPMENT, strengthSets: sets });
+    expect(resolved.reentries.size).toBe(0);
+    const plan = buildWorkoutPlan({
+      template: WORKOUT_TEMPLATES.A1,
+      liftStates: resolved.liftStates,
+      location: "home",
+      equipment: { ...EQUIPMENT, maxDumbbellWeight: 50 },
+      includeWarmUps: false,
+      selectedAccessories: [],
+      variantStates: resolved.variantStates,
+      reentries: resolved.reentries,
+      strengthSets: sets,
+    });
+    const entry = plan.find((e) => e.exerciseId === "squat" && e.tier === "T1")!;
+    expect(entry.substituteExerciseId).toBe("bulgarian_split_squat");
+    expect(entry).toMatchObject({ weight: 25, seed: { source: "history", ownEstimate: 65 } });
+    expect(entry.reentry).toBeUndefined();
+  });
 });
 
 describe("a weight set by hand has the final say", () => {

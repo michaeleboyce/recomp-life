@@ -7,7 +7,10 @@
 // their own weight, the barbell weight does not move at home) and the demo's new home
 // block and drop set; the field-by-field diff is in that commit's message. Regenerated
 // on purpose again on 2026-11-16 for seeding from the strength estimate (H3) and
-// re-entry (H6); see that commit's message.
+// re-entry (H6); see that commit's message. Regenerated on purpose on 2026-11-17 for F6
+// (a first home weight follows the exercise's own recent history): only seed fields
+// changed (two T2 seeds are now "history" with the session they came from, two seeds
+// gained `lastDone`); no weight, stage or lift state moved.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -28,18 +31,22 @@ function localStamp(date: Date): string {
   );
 }
 
-/** Plain JSON data: dates as local stamps, maps as objects, undefined fields dropped. */
-function plain(value: unknown): unknown {
+/** Fields that hold a time as epoch milliseconds; recorded as local stamps like dates. */
+const TIME_KEYS = new Set(["at", "lastDone"]);
+
+/** Plain JSON data: dates and times as local stamps, maps as objects, undefined fields dropped. */
+function plain(value: unknown, key?: string): unknown {
   if (value instanceof Date) return localStamp(value);
+  if (typeof value === "number" && key !== undefined && TIME_KEYS.has(key)) return localStamp(new Date(value));
   if (value instanceof Map) {
-    return Object.fromEntries([...value].map(([key, item]) => [key, plain(item)]));
+    return Object.fromEntries([...value].map(([k, item]) => [k, plain(item)]));
   }
-  if (Array.isArray(value)) return value.map(plain);
+  if (Array.isArray(value)) return value.map((item) => plain(item));
   if (value && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value)
         .filter(([, item]) => item !== undefined)
-        .map(([key, item]) => [key, plain(item)])
+        .map(([k, item]) => [k, plain(item, k)])
     );
   }
   return value;
@@ -89,7 +96,7 @@ describe("rebuildDerived: golden result for the demo log", () => {
   // estimate once there is one) and the first gym session after the block takes its
   // re-entry weight; gym passes then earn the home exercises steps for their next home
   // session. The cap policy is covered by the fold and variant tests.
-  it("the recorded home block is not trivial: dumbbell steps, a seed from the estimate, steps the gym earned", () => {
+  it("the recorded home block is not trivial: dumbbell steps, a seed from its own history, steps the gym earned", () => {
     type Row = {
       id: string;
       weight: number;
@@ -104,7 +111,8 @@ describe("rebuildDerived: golden result for the demo log", () => {
     const split = (rows: Row[], tier = "T1") => rows.find((row) => row.id === `squat|bulgarian_split_squat|${tier}`)!;
     expect(split(first)).toMatchObject({ weight: 55, seed: { source: "ratio" } });
     expect(split(lastHome)).toMatchObject({ weight: 60, passesSinceGym: 2 });
-    expect(split(lastHome, "T2").seed.source).toBe("estimate");
+    // F6: the T2 split squat starts from the exercise's own T1 sessions, not the squat's estimate.
+    expect(split(lastHome, "T2").seed.source).toBe("history");
     expect(split(last)).toMatchObject({ weight: 60, current: true, passesSinceGym: 0 });
     expect(split(last).gymPassesSinceHome).toBeGreaterThan(0);
     const squatAfterBlock = (golden.snapshots["demo-workout-09"] as Array<{ exerciseId: string; t1Weight: number }>).find(

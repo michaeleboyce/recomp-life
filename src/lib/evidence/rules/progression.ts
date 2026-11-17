@@ -8,6 +8,8 @@ import {
 } from "@/lib/progression";
 import { CREDIT_MIN_WEIGHT_RATIO } from "@/lib/workout/credit";
 import { CAP_REP_STEP, HARDER_HOME_VARIANT } from "@/lib/workout/variant";
+import { OWN_HISTORY_WINDOW_WEEKS } from "@/lib/workout/strength";
+import { STRENGTH_POOLING } from "@/lib/strength/coefficients";
 import { EXERCISES } from "@/lib/exercises";
 import { STARTING_WEIGHT_RULES as SW } from "@/lib/import/startingWeights";
 
@@ -127,17 +129,19 @@ export const PROGRESSION_RULES = {
     title: "What does a home session do to your weights?",
     summary: "Home sessions progress their own weight; the barbell moves when you return",
     appBehavior:
-      "At home, each exercise keeps its own weight, stage and reps: a Bulgarian split squat done for the squat has its own working weight, and the same pass, miss and reset rules move it in dumbbell steps. A home session counts for the rotation like any other, so the next workout is still the next one in the order. The barbell weight does not move at home: that session is held for the barbell lift. Home sessions still count as evidence for the program lift, through the strength estimate, and the first barbell weight back at the gym is the smaller of the last barbell weight plus the steps your home passes earned and what the estimate allows, rounded down to plates you can load. A home exercise you have not done in the app starts from that estimate, which reads sessions imported from another app too; when the exercise has imported sessions, Today names the latest one instead of saying \"First time\". Imported sessions never count as home sessions for the workout order or the progression.",
+      `At home, each exercise keeps its own weight, stage and reps: a Bulgarian split squat done for the squat has its own working weight, and the same pass, miss and reset rules move it in dumbbell steps. A home session counts for the rotation like any other, so the next workout is still the next one in the order. The barbell weight does not move at home: that session is held for the barbell lift. Home sessions still count as evidence for the program lift, through the strength estimate, and the first barbell weight back at the gym is the smaller of the last barbell weight plus the steps your home passes earned and what the estimate allows, rounded down to plates you can load. The first weight of a home exercise with no weight of its own comes, in this order, from: its own sets in the last ${OWN_HISTORY_WINDOW_WEEKS} weeks, in the app or imported from another app (the heaviest weight its latest estimated max allows for the stage's reps, rounded down to your dumbbell step, and never more than one step above the heaviest weight you lifted it at in those weeks); else the barbell lift's strength estimate through the exercise's ratio, learned from your own sessions when there are pairs, else the starting ratio; else the ratio times the barbell weight, or a flat conversion. Today says which: "From your history" with the session only when its own sets set the weight, "Last done" with the date when they are older than that, and "First time" only for an exercise never done. A weight you set yourself always wins. Imported sessions never count as home sessions for the workout order or the progression.`,
     rationale:
       "A home exercise is a different movement with its own load, so a pass on it says the movement went well, not that the barbell is ready for more. Letting it progress by itself keeps home training moving, while moving the barbell only at re-entry, and never past what your passes or your measured strength support, keeps a run of home sessions from over- or under-loading the bar.",
-    caveat:
-      "This is a convention of this app and part of no program or study. How many steps a home pass is worth at re-entry, and how far home evidence may move the barbell, are this app's judgment.",
+    caveat: `This is a convention of this app and part of no program or study. How many steps a home pass is worth at re-entry, and how far home evidence may move the barbell, are this app's judgment. So is the first weight's order and its limits (graded heuristic): an exercise's own recent sets describe that movement better than any ratio to the barbell lift, but no study says how recent they must be. ${OWN_HISTORY_WINDOW_WEEKS} weeks is four of the strength estimate's ${STRENGTH_POOLING.evidenceHalfLifeDays}-day half-lives, after which a session would count a sixteenth as much, and the one-step limit keeps a light day's estimate from jumping a first session past what you actually lifted.`,
     strength: "program",
     sources: [],
     reviewedOn: "2026-11",
     implementedIn: [
       "src/lib/workout/variant.ts#chooseHomeVariant",
+      "src/lib/workout/variant.ts#seedVariantWeight",
       "src/lib/workout/variant.ts#seedVariantState",
+      "src/lib/workout/strength.ts#OWN_HISTORY_WINDOW_WEEKS",
+      "src/lib/workout/strength.ts#ownHistoryOf",
       "src/lib/workout/variant.ts#evaluateVariant",
       "src/lib/workout/variant.ts#homeStepsEarned",
       "src/lib/workout/credit.ts#sessionCountsForRotation",

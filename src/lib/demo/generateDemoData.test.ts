@@ -254,10 +254,12 @@ describe("generateDemoData", () => {
       const split = data.variantStates.find((v) => v.id === "squat|bulgarian_split_squat|T1")!;
       expect(split).toMatchObject({ weight: 60, extraReps: 0, current: true, seed: { source: "ratio", barbellWeight: 190, ratio: 0.5 } });
       expect(split.weight).toBe(roundToStep((0.5 * DEMO_LIFT_STATES.squat.t1Weight) / 2, 5) + 2 * 5);
-      // The T2 split squat comes later, after a T1 session gave an estimate: it is
-      // seeded from the estimate, and the stored seed says so.
+      // The T2 split squat comes later, after a T1 split squat session gave the exercise
+      // an estimate of its own (50 a hand x 9): it is seeded from that (F6), and the
+      // stored seed says so. With the squat estimate resting on that session alone, the
+      // weight is the same as through the ratio.
       const splitT2 = data.variantStates.find((v) => v.id === "squat|bulgarian_split_squat|T2")!;
-      expect(splitT2.seed).toMatchObject({ source: "estimate", ratio: 0.5, targetReps: 10 });
+      expect(splitT2.seed).toMatchObject({ source: "history", ownEstimate: 133, targetReps: 10, history: { weight: 50, reps: 9 } });
       const firstT2 = home.find((w) => w.sets.some((s) => s.exerciseId === "squat" && s.tier === "T2"))!;
       expect(firstT2.prescribed!.find((p) => p.exerciseId === "squat")!.home).toMatchObject({ exerciseId: "bulgarian_split_squat", weight: 45 });
     });

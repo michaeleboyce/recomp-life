@@ -19,6 +19,7 @@ vi.mock("next/navigation", () => ({
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { useActiveWorkout } from "@/components/ActiveWorkout/useActiveWorkout";
+import { liftReason, reasonText } from "@/components/Today/todayModel";
 import { useWorkoutSetup } from "@/components/PreWorkout/useWorkoutSetup";
 import { nextWorkoutFrom, readLedgerRecords, sessionStartInputs } from "@/lib/data/forecasts";
 import { clearDb, runSession, seedFixtureStartingWeights } from "@/lib/data/testUtils";
@@ -185,13 +186,23 @@ describe("with imported history and no app workouts", () => {
   it("plans the same home weights on every path, seeded from the imported history", async () => {
     const { today, rows } = await expectPathsAgree("home");
     // The first home weights rest on imported sessions, and say which (not "First time").
-    const seeded = today.filter((e) => !e.isWarmUp && e.seed?.source === "estimate");
+    const seeded = today.filter((e) => !e.isWarmUp && e.seed != null);
     expect(seeded.length).toBeGreaterThan(0);
-    // Each names the exercise's own last imported session; one never done anywhere does not.
+    // Each from the exercise's own history names its session; only those do, and the row says so.
     for (const entry of seeded) {
-      const done = history().some((s) => s.sets[0].mappedExerciseId === entry.substituteExerciseId);
-      expect(entry.seed?.history != null, entry.substituteExerciseId).toBe(done || entry.substituteExerciseId === "db_bench");
+      const text = reasonText(liftReason(entry, []));
+      if (entry.seed?.source === "history") {
+        expect(entry.seed.history, entry.substituteExerciseId).toBeDefined();
+        expect(text).toMatch(/^From your history: last /);
+      } else {
+        expect(entry.seed?.history, entry.substituteExerciseId).toBeUndefined();
+        expect(text).not.toMatch(/From your history/);
+      }
     }
+    // The goblet squat's imported sessions are 12 reps, past the estimate's limit: no own
+    // estimate, so it comes from the squat, and says it was done before ("Last done").
+    const goblet = seeded.find((e) => e.substituteExerciseId === "goblet_squat");
+    if (goblet) expect(reasonText(liftReason(goblet, []))).toMatch(/^Last done /);
     const bench = today.find((e) => !e.isWarmUp && e.exerciseId === "bench");
     // The remembered choice made "Mystery Press" the newest dumbbell bench session.
     expect(bench?.seed?.history).toMatchObject({ weight: 70, reps: 8, perHand: true });
@@ -203,6 +214,44 @@ describe("with imported history and no app workouts", () => {
     const { rows } = await expectPathsAgree("gym");
     // Barbell weights move only by progression or a confirmed starting weight.
     expect(await logOnly("gym")).toEqual(rows);
+  });
+});
+
+describe("with a home exercise's own history that disagrees with the barbell", () => {
+  beforeEach(async () => {
+    await db.importedSessions.clear();
+    // Heavy barbell sessions last week; light dumbbell sessions since.
+    await db.importedSessions.bulkPut([
+      imp("Back Squat", "squat", 7, 225, 5),
+      imp("Bench Press", "bench", 8, 175, 5),
+      imp("Lat Pulldown", "lat_pulldown", 8, 120, 10),
+      imp("Goblet Squat", "goblet_squat", 3, 40, 9),
+      imp("Bulgarian Split Squat", "bulgarian_split_squat", 3, 25, 9),
+      imp("Dumbbell Bench Press", "db_bench", 4, 30, 9),
+      imp("Dumbbell Row", "db_row", 5, 40, 10),
+    ]);
+  });
+
+  it("seeds every first home weight from the exercise's own sets, on every path, and the rows say so", async () => {
+    const { today } = await expectPathsAgree("home");
+    // Own estimates: goblet 40 x 9 is 52 (5x3: 45); split squat 25 x 9 is 65 in all
+    // (5x3: 25 a hand); DB bench 30 x 9 is 78 in all (3x10: 25 a hand); DB row 40 x 10
+    // is 106.7 in all (3x15: 35 a hand). Through the barbell they would be 80, 55+, 60
+    // and the flat conversion.
+    const expected: Record<string, Record<string, number>> = {
+      T1: { goblet_squat: 45, bulgarian_split_squat: 25, db_bench: 35 },
+      T2: { goblet_squat: 35, bulgarian_split_squat: 20, db_bench: 25 },
+      T3: { db_row: 35 },
+    };
+    const home = today.filter((e) => !e.isWarmUp && e.substituteExerciseId && e.seed);
+    expect(home.length).toBeGreaterThanOrEqual(3);
+    for (const entry of home) {
+      const want = expected[entry.tier]?.[entry.substituteExerciseId!];
+      expect(want, `${entry.tier} ${entry.substituteExerciseId}`).toBeDefined();
+      expect(entry.weight, `${entry.tier} ${entry.substituteExerciseId}`).toBe(want);
+      expect(entry.seed?.source).toBe("history");
+      expect(reasonText(liftReason(entry, []))).toMatch(/^From your history: last \d+ × \d+ on /);
+    }
   });
 });
 
