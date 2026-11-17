@@ -1,8 +1,8 @@
 # Imported history on every screen, and one planning path
 
-Status: findings and plan of 2026-11-17. Packages P1, P2 and P3 are being built; R1 and R2
-(with F3) are approved to follow them; R3 is deferred. Michael approved the order on
-2026-11-17.
+Status: findings and plan of 2026-11-17. P1, P2 and P3 are built and merged (see "Status
+after P1 to P3"); R1 and R2 (with F3) are approved to follow; R3 is deferred. Michael
+approved the order on 2026-11-17.
 
 This repository is public. Nothing here describes the owner's training data beyond the fact
 that it exists; counts, dates and weights stay out of the repo.
@@ -166,6 +166,39 @@ against the code at `235c2b9`.
 F3 joins R2 (one interpretation of a saved workout, shared by start, resume and replay, with a
 parity test that runs the same saved session through resume and replay, and an explicit rule
 for an equipment change after a session started).
+
+## Status after P1 to P3
+
+Merged on one integration branch with the Next.js patch: full suite 4767/4768 passing
+(1 skipped, 0 pre-existing failures), type-check clean, `npx eslint .` 0 errors, production
+and iPhone builds pass.
+
+- P1 (I10): imported sessions in the Log with an Imported filter and paging (60, then "Show
+  more"); a read-only detail sheet; imported rows in the lift and exercise session lists with
+  a "Hide imported" control. `import-effort-words` switched to active (the detail shows them).
+- P2 (I9): imported points on the lift charts (dashed, hollow, labelled), projection, Strength
+  tab and Today's cards, "Best before ReComp", a "Show imported history" switch; `useStrengthSets`
+  removed so every planning path, including the ledger's `nextWorkoutFrom`, reads one combined
+  evidence set; `src/hooks/planningPaths.test.tsx` shows Today's rows, the forecast plan,
+  Configure, the recorded prescription and the active workout agree at home and at the gym.
+  Planning numbers move only when imported sessions exist (first home weights and the
+  re-entry limit). Rules strength-pooling, transfer-ratio, home-progression and e1rm-estimate
+  updated, with changelog entries.
+- P3: F1 `setExercisePreference` through `updateSettings`; F2 a local-only `syncMeta` table
+  (Dexie version 6) holding a rebuild marker written with each merged workouts or adjustments
+  page and cleared only after a successful rebuild, checked after every pull, at the start of
+  every sync and at app start; F4 per-table backup validation before any replacement; F5
+  lint ignores (vendored Draco, `ios/App/App/public`), the weigh-in clock read, the drop-set
+  test wait, and `.github/workflows/ci.yml`.
+
+Left for later (not blocking):
+
+- A first home weight still goes through the exercise's starting ratio (H3), not a ratio
+  learned from the owner's own imported dumbbell and barbell pairs. Take up with R2.
+- Still app-only: the exercise page chart, the weekly review, insights and the Strength tab's
+  recovery rows.
+- The lift page's "Show all" renders every session (a few hundred for a long history); page
+  it if it is slow on the phone.
 
 ## Open items for the owner
 
