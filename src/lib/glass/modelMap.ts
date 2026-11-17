@@ -41,6 +41,7 @@ export const MODELS: readonly ModelDef[] = [
       "gzclp-progression",
       "t3-progression",
       "accessory-progression",
+      "accessory-selection",
       "off-program-credit",
       "dumbbell-conversion",
       "home-progression",
