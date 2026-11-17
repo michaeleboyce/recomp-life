@@ -277,6 +277,34 @@ describe("active workout page", () => {
     await waitFor(async () => expect((await db.workouts.get(nav.sessionId))!.deletedAt).toBeTruthy());
   });
 
+  it("says so when a discard cannot be saved, and keeps the workout open", async () => {
+    nav.sessionId = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+    render(
+      <>
+        <ActiveWorkoutPage />
+        <Toaster />
+      </>
+    );
+    await screen.findByRole("button", { name: /^LOG/ });
+    await logSets(1);
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Discard workout and all its sets" }));
+    await screen.findByText(/Discarding deletes all of them/);
+    const transaction = vi.spyOn(db, "transaction").mockRejectedValueOnce(new Error("disk full"));
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Discard Workout" }));
+      expect(await screen.findByText("Could not discard the workout: disk full")).toBeInTheDocument();
+      expect(nav.push).not.toHaveBeenCalled();
+      expect(await screen.findByRole("button", { name: /^LOG/ })).toBeInTheDocument();
+    } finally {
+      transaction.mockRestore();
+      error.mockRestore();
+    }
+  });
+
   it("Back from the summary goes on to Today instead of reopening the summary", async () => {
     const view = await open();
     await logSets(2);

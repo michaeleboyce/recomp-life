@@ -44,6 +44,8 @@ import {
   liftForecasts,
 } from "@/components/ActiveWorkout/glassForecast";
 import { WhySheet } from "@/components/ui/why-sheet";
+import { toast } from "@/components/ui/toast";
+import { errorText } from "@/components/LogEdit/format";
 import { useSessionForecasts, useStoredDecisions } from "@/hooks";
 import { findStoredDecision } from "@/lib/trace";
 
@@ -133,6 +135,7 @@ function ActiveWorkoutContent() {
       await workout.discard();
     } catch (err) {
       console.error("Failed to discard workout:", err);
+      toast({ message: `Could not discard the workout: ${errorText(err)}` });
       setLeaving(false);
       return;
     }
