@@ -1,6 +1,6 @@
 // The plain-language sentence at the top of the projection screen. Pure.
 import { EXERCISES } from "@/lib/exercises";
-import { joinList, plural } from "@/lib/text";
+import { joinList, percent, plural } from "@/lib/text";
 import type { ProjectionBaseline } from "./baseline";
 import type { Projection, ProjectionScenario, RelatedTrend } from "./project";
 
@@ -21,7 +21,6 @@ export function formatAmount(value: number): string {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
-const percent = (share: number) => `${Math.round(share * 100)}%`;
 const about = (value: number) => String(Math.round(value));
 const weeksText = (weeks: number) => plural(weeks, "week");
 

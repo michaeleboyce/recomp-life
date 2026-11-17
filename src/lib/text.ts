@@ -10,6 +10,11 @@ export function pluralGrouped(n: number, one: string, many = `${one}s`): string 
   return `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
 }
 
+/** 0.643 -> "64%". */
+export function percent(fraction: number): string {
+  return `${Math.round(fraction * 100)}%`;
+}
+
 /** "a", "a and b", "a, b and c". */
 export function joinList(items: readonly string[]): string {
   if (items.length <= 1) return items.join("");

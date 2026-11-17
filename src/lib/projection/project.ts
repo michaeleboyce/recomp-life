@@ -4,7 +4,7 @@
 // package); the constants defined here are guards and windows, not model inputs.
 import type { RuleId } from "@/lib/evidence";
 import type { Point } from "@/lib/metrics/types";
-import { plural } from "@/lib/text";
+import { percent, plural } from "@/lib/text";
 import type { TrainingPhase } from "@/types";
 import type { ProjectionBaseline } from "./baseline";
 import { PROJECTION_COEFFICIENTS } from "./coefficients";
@@ -159,7 +159,6 @@ function nonNegative(value: number): number {
 }
 
 const fmt = (value: number, digits = 1) => value.toFixed(digits);
-const pct = (share: number) => `${Math.round(share * 100)}%`;
 const times = (multiplier: number) => `x${multiplier.toFixed(2)}`;
 /** "1 week", "3 weeks" (to the nearest whole week, at least 1). */
 function weeksPhrase(weeks: number): string {
@@ -270,7 +269,7 @@ function scenarioMultipliers(
       const ratio = basePass > 0 ? pass / basePass : MAX_ADHERENCE_MULTIPLIER;
       adherence = Math.min(MAX_ADHERENCE_MULTIPLIER, ratio);
       notes.push(
-        `Sessions passed go from ${pct(basePass)} to ${pct(pass)}, which scales the rate by ${times(adherence)}.`
+        `Sessions passed go from ${percent(basePass)} to ${percent(pass)}, which scales the rate by ${times(adherence)}.`
       );
     }
   }
@@ -539,7 +538,7 @@ export function projectE1RM(input: {
     assumptions.push(`Training phase stays ${baseline.phase}.`);
   }
   assumptions.push(
-    `Gains are assumed to slow: each week adds ${pct(C.weeklyRateRetention)} of what the week before added.`
+    `Gains are assumed to slow: each week adds ${percent(C.weeklyRateRetention)} of what the week before added.`
   );
   if (rangeSd > fit.residualSd) {
     assumptions.push(
@@ -556,7 +555,7 @@ export function projectE1RM(input: {
   if (beyondReliableHorizon) assumptions.push(reliableHorizonNote);
   if (widening > 1) {
     assumptions.push(
-      `This alternative is further from what you do now, so its range is ${pct(widening - 1)} wider: how much a change in training helps is itself uncertain.`
+      `This alternative is further from what you do now, so its range is ${percent(widening - 1)} wider: how much a change in training helps is itself uncertain.`
     );
   }
   if (stale) {

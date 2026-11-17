@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { joinList, plural, pluralGrouped } from "./text";
+import { joinList, percent, plural, pluralGrouped } from "./text";
 
 describe("plural", () => {
   it("uses the singular for exactly one", () => {
@@ -35,5 +35,14 @@ describe("joinList", () => {
     expect(joinList(["a"])).toBe("a");
     expect(joinList(["a", "b"])).toBe("a and b");
     expect(joinList(["a", "b", "c"])).toBe("a, b and c");
+  });
+});
+
+describe("percent", () => {
+  it("rounds a fraction to a whole percentage", () => {
+    expect(percent(0.643)).toBe("64%");
+    expect(percent(0.005)).toBe("1%");
+    expect(percent(0)).toBe("0%");
+    expect(percent(1)).toBe("100%");
   });
 });

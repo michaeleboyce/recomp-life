@@ -1,3 +1,4 @@
+import { percent } from "@/lib/text";
 import { cn } from "@/lib/utils";
 import { ChartEmpty } from "./ChartEmpty";
 
@@ -35,7 +36,6 @@ const GAP = 4;
 
 const x = (p: number) => PAD.left + Math.min(1, Math.max(0, p)) * PLOT_W;
 const y = (p: number) => PAD.top + (1 - Math.min(1, Math.max(0, p))) * PLOT_H;
-const pct = (p: number) => `${Math.round(p * 100)}%`;
 
 /** "When it said 20%, it happened 2 of 8 times (25%)." for each bin. */
 export function calibrationSummary(bins: CalibrationBin[]): string {
@@ -43,7 +43,7 @@ export function calibrationSummary(bins: CalibrationBin[]): string {
     .filter((b) => b.count > 0)
     .map(
       (b) =>
-        `When it said ${pct(b.stated)}, it happened ${b.hits} of ${b.count} times (${pct(b.hits / b.count)}).`
+        `When it said ${percent(b.stated)}, it happened ${b.hits} of ${b.count} times (${percent(b.hits / b.count)}).`
     )
     .join(" ");
 }
@@ -170,13 +170,13 @@ export function CalibrationChart({ bins, ariaLabel, emptyMessage, className }: C
           <g key={t}>
             <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} stroke="var(--chart-grid)" />
             <text x={PAD.left - 6} y={y(t)} textAnchor="end" dominantBaseline="middle" className="font-mono">
-              {pct(t)}
+              {percent(t)}
             </text>
           </g>
         ))}
         {[0.2, 0.4, 0.6, 0.8].map((t) => (
           <text key={t} x={x(t)} y={H - 6} textAnchor="middle" className="font-mono">
-            {pct(t)}
+            {percent(t)}
           </text>
         ))}
       </g>
