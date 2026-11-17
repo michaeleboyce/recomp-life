@@ -71,6 +71,23 @@ describe("SetChips", () => {
     expect(screen.getByRole("button", { name: "5 lbs lighter" })).toBeDisabled();
   });
 
+  it("never steps a set above the heaviest weight there is", () => {
+    const onChange = vi.fn();
+    render(
+      <SetChips
+        name="Goblet squat"
+        chips={[chip(0, { state: "current", weight: 50, planWeight: 50 })]}
+        unit="lbs"
+        step={5}
+        minWeight={0}
+        maxWeight={50}
+        onChange={onChange}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^Set 1: 50 lbs/ }));
+    expect(screen.getByRole("button", { name: "5 lbs heavier" })).toBeDisabled();
+  });
+
   it("closes a set once it is done", () => {
     const onChange = vi.fn();
     const props = { name: "Barbell Squat", unit: "lbs", step: 5, minWeight: 45, onChange };

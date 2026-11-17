@@ -351,6 +351,7 @@ function ActiveWorkoutContent() {
         unit={weightUnit(perHand)}
         step={workout.weightStep}
         minWeight={workout.minWeight}
+        {...(workout.maxWeight != null ? { maxWeight: workout.maxWeight } : {})}
         onChange={workout.setSetWeight}
       />
       {weightWhy && (

@@ -12,9 +12,10 @@ interface SetChipsProps {
   chips: SetChip[];
   /** "lbs" or "lbs a hand" (`weightUnit`). */
   unit: string;
-  /** What a set's weight moves by, and its lightest value. */
+  /** What a set's weight moves by, and its lightest and heaviest values. */
   step: number;
   minWeight: number;
+  maxWeight?: number;
   /** Changes one set still to come, by its index; null puts it back to the plan. */
   onChange: (setIndex: number, weight: number | null) => void;
 }
@@ -28,7 +29,7 @@ const STEP_BUTTON =
  * set still to come opens steppers that change its weight, for that set alone; a
  * changed set shows the plan's weight beside it and can go back to it.
  */
-export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetChipsProps) {
+export function SetChips({ name, chips, unit, step, minWeight, maxWeight, onChange }: SetChipsProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   if (chips.length === 0) return null;
   const mixed = chips.some((chip) => chip.role !== "work");
@@ -130,6 +131,7 @@ export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetCh
               type="button"
               aria-label={`${step} ${unit} heavier`}
               className={STEP_BUTTON}
+              disabled={maxWeight != null && open.weight + step > maxWeight}
               onClick={() => onChange(open.index, open.weight + step)}
             >
               <Plus className="size-5" aria-hidden="true" />

@@ -54,6 +54,7 @@ import {
   weightStepFor,
   type SpotWeightsByKey,
 } from "./setPlan";
+import { clampWeight } from "@/components/SetPlan/setPlanModel";
 import { loadSpotWeights, saveSpotWeights } from "./spotWeightStorage";
 
 const NO_SPOT_WEIGHTS: SpotWeightsByKey = {};
@@ -226,6 +227,8 @@ export function useActiveWorkout(
   const weightStep =
     entry && equipment ? weightStepFor(performedId(entry), location, equipment) : 5;
   const minWeight = entry && equipment ? minWeightFor(performedId(entry), location, equipment) : 0;
+  // At home every weight is a dumbbell's: none heavier than the heaviest one there is.
+  const maxWeight = location === "home" && equipment ? equipment.maxDumbbellWeight : undefined;
   const setChips = useMemo(
     () => (planEntry && !planEntry.isWarmUp ? setChipsFor(planEntry, sets, entrySpotWeights) : []),
     [planEntry, sets, entrySpotWeights]
@@ -357,16 +360,17 @@ export function useActiveWorkout(
       if (!session || !planEntry || setIndex < planEntry.completedSets) return;
       const key = spotKey(activeIndex, setIndex);
       const planned = setChips[setIndex]?.planWeight;
+      const value = weight != null && Number.isFinite(weight) ? clampWeight(weight, minWeight, maxWeight) : null;
       setSpotChoice((was) => {
         const weights: Record<string, number> = { ...(was?.sessionId === session.id ? was.weights : {}) };
         // Stepping back onto the plan's weight is the plan again.
-        if (weight == null || Math.max(minWeight, weight) === planned) delete weights[key];
-        else weights[key] = Math.max(minWeight, weight);
+        if (value == null || value === planned) delete weights[key];
+        else weights[key] = value;
         saveSpotWeights(session.id, weights);
         return { sessionId: session.id, weights };
       });
     },
-    [session, planEntry, activeIndex, minWeight, setChips]
+    [session, planEntry, activeIndex, minWeight, maxWeight, setChips]
   );
 
   /** Changes the next set's weight on the spot; null goes back to the planned weight. */
@@ -738,9 +742,10 @@ export function useActiveWorkout(
     setNextWeight,
     /** Changes one set still to come of the entry on screen, by set index; null: back to plan. */
     setSetWeight,
-    /** What a weight on screen moves by (plate or dumbbell step), and its lightest value. */
+    /** What a weight on screen moves by (plate or dumbbell step), and its lightest and heaviest values. */
     weightStep,
     minWeight,
+    maxWeight,
     /** The weight a drop after the latest set starts at; null when none can be done. */
     dropPreview,
     /** The drop sets in progress; null when none is. */
