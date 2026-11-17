@@ -35,6 +35,11 @@ export function LiftHeadline({
           <h2 className="text-xs font-normal text-muted-foreground">
             {subject && <span className="font-semibold text-foreground">{subject} · </span>}
             <Term id="e1rm">Estimated 1RM</Term>
+            {summary.latest?.imported && (
+              <span data-testid="e1rm-latest-imported" className="font-semibold">
+                {" · "}Imported
+              </span>
+            )}
           </h2>
           <div className="flex items-baseline gap-2">
             <span
@@ -44,11 +49,6 @@ export function LiftHeadline({
               {summary.latest ? Math.round(summary.latest.v) : "–"}
             </span>
             <span className="font-mono text-sm text-muted-foreground">lbs</span>
-            {summary.latest?.imported && (
-              <span data-testid="e1rm-latest-imported" className="text-xs font-semibold text-muted-foreground">
-                Imported
-              </span>
-            )}
             {summary.change !== null && (
               <Delta
                 data-testid="e1rm-change"

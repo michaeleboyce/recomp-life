@@ -61,6 +61,7 @@ export function StrengthTotal({
         series={series}
         variant="area"
         height={150}
+        seriesLabel="Est. 1RM total"
         ariaLabel={`${label} over time`}
         emptyMessage="No estimates in this range"
       />
