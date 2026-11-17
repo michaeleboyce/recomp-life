@@ -41,6 +41,8 @@ export interface PushResult {
   marked: number;
   /** Tables whose push failed, with the reason. The other tables still ran. */
   errors: Record<string, string>;
+  /** Per table, rows the server could not store; they stay dirty. */
+  refused: Record<string, number>;
 }
 
 export interface PullResult {
@@ -117,7 +119,7 @@ export function pushBatches<T>(rows: readonly T[]): T[][] {
  * next sync, and the other tables still run.
  */
 export async function pushUnsynced(database: Dexie = db): Promise<PushResult> {
-  const result: PushResult = { pushed: 0, applied: 0, skipped: 0, marked: 0, errors: {} };
+  const result: PushResult = { pushed: 0, applied: 0, skipped: 0, marked: 0, errors: {}, refused: {} };
 
   for (const def of SYNC_REGISTRY) {
     for (const batch of pushBatches(await dirtyRows(database, def))) {
@@ -157,6 +159,17 @@ async function pushBatch(database: Dexie, def: SyncTableDef, rows: Row[], result
   result.pushed += rows.length;
   result.applied += Number(reply?.applied ?? 0);
   result.skipped += Number(reply?.skipped ?? 0);
+
+  // Rows the server could not store stay dirty, for the next sync to try again.
+  const failed = Array.isArray(reply?.failed)
+    ? reply.failed.filter((index): index is number => Number.isInteger(index) && index >= 0 && index < rows.length)
+    : [];
+  for (const index of failed) sentStamps.delete(rows[index].id);
+  if (failed.length > 0) {
+    const count = (result.refused[def.name] ?? 0) + failed.length;
+    result.refused[def.name] = count;
+    result.errors[def.name] = `${count} row${count === 1 ? "" : "s"} could not be saved by the server`;
+  }
 
   // Only rows unchanged since they were read: a later edit carries a new stamp.
   await database

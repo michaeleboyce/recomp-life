@@ -20,6 +20,12 @@ export interface PushResponse {
   applied: number;
   /** Rows ignored because the server already holds a newer `updatedAt`. */
   skipped: number;
+  /**
+   * Indexes into `rows` of the rows the database refused (a value it cannot store);
+   * absent when there were none. The other rows were written. When every row fails
+   * the push answers 500 instead.
+   */
+  failed?: number[];
 }
 
 /**

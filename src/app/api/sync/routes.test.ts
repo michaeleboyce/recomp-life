@@ -161,6 +161,27 @@ describe('POST /api/sync/push', () => {
     expect(console.error).toHaveBeenCalledWith(expect.any(String), dbError);
   });
 
+  it('a row the database refuses does not stop the rest of the batch; it is named by its index', async () => {
+    query
+      .mockResolvedValueOnce([{ client_id: 'r1' }])
+      .mockRejectedValueOnce(new Error('unsupported Unicode escape sequence'))
+      .mockResolvedValueOnce([{ client_id: 'r3' }]);
+    const res = await POST(pushRequest({ table: 'runs', rows: [run('r1', 1), run('r2', 1), run('r3', 1)] }));
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(JSON.parse(text)).toEqual({ success: true, applied: 2, skipped: 0, failed: [1] });
+    expect(text).not.toMatch(/Unicode/);
+    expect(query).toHaveBeenCalledTimes(3);
+  });
+
+  it('stops after a few failed rows with none written (the database is down) and answers 500', async () => {
+    query.mockRejectedValue(new Error('connection refused'));
+    const rows = Array.from({ length: 10 }, (_, i) => run(`r${i}`, 1));
+    const res = await POST(pushRequest({ table: 'runs', rows }));
+    expect(res.status).toBe(500);
+    expect(query).toHaveBeenCalledTimes(3);
+  });
+
   it('a driver error that is not an Error is not returned either', async () => {
     query.mockRejectedValueOnce({ message: 'password authentication failed for user "neondb"' });
     const res = await POST(pushRequest({ table: 'runs', rows: [run('r1', 1)] }));

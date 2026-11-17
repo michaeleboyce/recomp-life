@@ -260,6 +260,35 @@ describe("pushUnsynced", () => {
     });
   });
 
+  it("a row the server could not save stays dirty and is reported; the rest are synced", async () => {
+    await runs().bulkAdd([
+      { id: "r1", clientId: "c-r1", synced: false, updatedAt: 1 },
+      { id: "r2", clientId: "c-r2", synced: false, updatedAt: 1 },
+      { id: "r3", clientId: "c-r3", synced: false, updatedAt: 1 },
+    ]);
+    await workouts().add(makeWorkout({ id: "w1", synced: false }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        const body = JSON.parse(init.body as string);
+        return body.table === "runs"
+          ? reply({ success: true, applied: 2, skipped: 0, failed: [1] })
+          : pushOk(body.rows.length);
+      })
+    );
+
+    const result = await pushUnsynced(database);
+
+    expect((await runs().toArray()).map((r) => [r.id, r.synced])).toEqual([
+      ["r1", true],
+      ["r2", false],
+      ["r3", true],
+    ]);
+    expect(result.errors).toEqual({ runs: "1 row could not be saved by the server" });
+    expect(result.marked).toBe(3);
+    expect((await workouts().get("w1")).synced).toBe(true);
+  });
+
   it("surfaces the server's applied and skipped counts", async () => {
     await runs().bulkAdd([
       { id: "r1", clientId: "c-r1", synced: false, updatedAt: 1 },
