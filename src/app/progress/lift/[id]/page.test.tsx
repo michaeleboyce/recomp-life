@@ -479,8 +479,9 @@ describe("Lift detail page", () => {
       id = "bench";
       await db.importedSessions.add(legDay());
       render(<LiftPage />);
-      expect(await screen.findByText("No bench sessions yet")).toBeInTheDocument();
+      // Imported history fills the page, so it is not "empty" before the first logged session.
       const sessions = await screen.findByRole("region", { name: "Sessions" });
+      expect(screen.queryByText("No bench sessions yet")).not.toBeInTheDocument();
       const row = await within(sessions).findByTestId("session-row");
       expect(row).toHaveTextContent("135 ×5");
       fireEvent.click(within(row).getByRole("button", { name: /Open imported session/ }));
