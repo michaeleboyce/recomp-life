@@ -387,4 +387,18 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
       "A set logged at no weight no longer counts as a session's estimate. It had counted as a max of 0, which pulled the lift's estimate down and could bring the first gym weight after time at home down to the empty bar.",
     sources: [],
   },
+  {
+    date: "2026-11-17",
+    ruleId: "accessory-selection",
+    change:
+      "New rule, not yet shown. How the app will choose a workout's accessories by default: pins, preferences, habit, this week's shortfall, fit with the day, recovery and spread, each with a named weight. Graded heuristic.",
+    sources: [],
+  },
+  {
+    date: "2026-11-17",
+    ruleId: "accessory-progression",
+    change:
+      "The step for dumbbell accessories is now the dumbbell increment instead of 5 lb, a weight set by hand wins until the exercise is next logged, and a first weight can come from the exercise's own history (capped at the heaviest weight lifted plus one step). Still not shown.",
+    sources: [],
+  },
 ];

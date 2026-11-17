@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-43 active rules, 4 planned rules, 42 sources. Last reviewed against the research: November 2026.
+43 active rules, 5 planned rules, 42 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -53,6 +53,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `run-interference` | Running | Active | Moderate evidence | Robineau 2016, Markov 2021, Schumann 2022 |
 | `weekly-volume` | Training volume | Active | Moderate evidence | Pelland 2026, Roth 2022 |
 | `accessories-in-cut` | Training volume | Active | Limited evidence | Roth 2022, Murphy & Koehler 2022 |
+| `accessory-selection` | Training volume | Planned | Coaching heuristic | none |
 | `volume-ratio` | Training volume | Planned | Coaching heuristic | none |
 | `rate-of-loss` | Fat loss | Active | Moderate evidence | Helms 2014 |
 | `fat-loss-stall` | Fat loss | Active | Limited evidence | Peos 2021 |
@@ -142,16 +143,18 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `accessory-progression`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Moderate evidence
-- **Implemented in:** `src/lib/accessories.ts` (`evaluateAccessoryProgression`)
+- **Implemented in:** `src/lib/accessories.ts` (`evaluateAccessoryProgression`), `src/lib/accessories/prescription.ts` (`accessoryPrescription`), `src/lib/accessories/prescription.ts` (`ownHistoryFirstWeight`)
 - **Reviewed:** November 2026
 
 **In one line.** Add weight once every set reaches the top of its rep range
 
-**What the app does.** Rule in code: when every set reaches the top of its rep range, add 5 lb. After 3 sessions stuck at the same weight, drop to 90% and rebuild. Not connected.
+**What the app does.** Rule in code: when every set of an accessory's last session reaches the top of its rep range, add one step (5 lb, or your dumbbell increment for dumbbell work). After 3 sessions in a row at the same weight without that, drop to 90% and rebuild; otherwise keep the weight. A weight you set by hand wins until you next log the exercise. The first time an exercise is done in the app, its weight comes from its own history (imported or logged at another tier) over the 56 days before its newest set: the heaviest weight at which you reached the top of the range, else your estimated strength for the middle of the range, never more than the heaviest weight lifted plus 1 step, rounded down. With no history the weight is left for you to enter. Not connected yet.
 
 **Why.** This double progression keeps every set reasonably close to failure, which is where muscle growth responds best.
 
-**Before this is switched on.** Ready to connect once accessory weights are tracked per exercise in the UI.
+**Limits.** The first-weight limits are a cautious choice, not a researched rule: they keep a weight from another app or an old session from starting too heavy.
+
+**Before this is switched on.** Switch to active when the accessory rows, sheet and workout show the prescription (accessories design X3 and X4).
 
 **Sources**
 
@@ -706,6 +709,26 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - [Roth et al. (2022). Lean mass sparing in resistance-trained athletes during caloric restriction: the role of resistance training volume. *European Journal of Applied Physiology*.](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9012799/) Systematic review; 15 studies in resistance-trained athletes. Programs with 10 or more weekly sets per muscle group showed little or no lean-mass loss during a calorie deficit, though the evidence is not conclusive.
 - [Murphy & Koehler (2022). Energy deficiency impairs resistance training gains in lean mass but not strength: A meta-analysis and meta-regression. *Scandinavian Journal of Medicine & Science in Sports*.](https://doi.org/10.1111/sms.14075) Meta-analysis; Mostly untrained participants. Training in a calorie deficit impaired lean-mass gains but not strength gains.
 
+### How are a workout's accessories chosen?
+
+- **Rule id:** `accessory-selection`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/accessories/select.ts` (`chooseAccessories`)
+- **Reviewed:** November 2026
+
+**In one line.** A scored list: your pins and preferences, your habits, and this week's gaps
+
+**What the app does.** Rule in code: every workout gets accessories up to the phase's number, chosen from a scored list. Exercises you pinned to the day are always in. Then points are added: 40 for an exercise you marked preferred; up to 30 for one you do often and lately (each session counts half as much for every 14 days of age, and more when it was done on the same kind of day); up to 20 when its main muscle is short of 10 sets this week, counting the sets today's main lifts will add (full at 6 short); up to 12 when today's main lifts leave its muscles alone (none once they give it 3 sets). 8 come off when its main muscle is still recovering, and 6 when another pick already works that muscle and it is not short (such a repeat is picked only when nothing else is left). Blocked exercises are never offered; at home a gym-only exercise is swapped for its home version or left out. With no accessory history the day's usual list is used. Not connected yet.
+
+**Why.** Each part follows something the app already counts: what you choose, what you actually do, the weekly set target and recovery. The pins and preferences come first because you have the final say.
+
+**Limits.** The points are judgment, not research: no study ranks these reasons against each other. The order of the parts is a design choice, shown with every pick so it can be checked and overridden.
+
+**Before this is switched on.** Switch to active when Today and the Ready screen show the chosen accessories with their reasons (accessories design X3 and X4).
+
+**Sources.** None: this is a coaching convention with no direct research.
+
 ### How much accessory work is too much?
 
 - **Rule id:** `volume-ratio`
@@ -1126,6 +1149,8 @@ Changes made to the app because of research, newest first.
 - **17 November 2026** — `e1rm-estimate` (How is my 1RM estimated?): Imported sets are estimated by the same formula and shown on the lift pages, the projection, the Strength tab and Today, marked as imported; a best among them is shown as history ("Best before ReComp") and never as a new best. Sources: .
 - **17 November 2026** — `target-evidence` (Does a home weight I set myself count before I lift it?): New rule. A home weight you set yourself is kept beside the app's own weight, and until you lift it, it counts at half a logged home session toward the barbell lift's strength estimate. Sources: .
 - **17 November 2026** — `strength-pooling` (How do gym and home sessions combine into one strength estimate?): A set logged at no weight no longer counts as a session's estimate. It had counted as a max of 0, which pulled the lift's estimate down and could bring the first gym weight after time at home down to the empty bar. Sources: .
+- **17 November 2026** — `accessory-selection` (How are a workout's accessories chosen?): New rule, not yet shown. How the app will choose a workout's accessories by default: pins, preferences, habit, this week's shortfall, fit with the day, recovery and spread, each with a named weight. Graded heuristic. Sources: .
+- **17 November 2026** — `accessory-progression` (When would accessory weights go up?): The step for dumbbell accessories is now the dumbbell increment instead of 5 lb, a weight set by hand wins until the exercise is next logged, and a first weight can come from the exercise's own history (capped at the heaviest weight lifted plus one step). Still not shown. Sources: .
 - **16 November 2026** — `home-progression` (What does a home session do to your weights?): Switched on: the home lift page cites it for a home exercise's own weight, and the Log's "What it did" and the workout summary cite it for a home session's outcome instead of the plain GZCLP rule. Sources: .
 - **16 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): Switched on: Today shows it on a home lift held at your heaviest dumbbell, beside what a pass does there; the home lift page, "What it did" and the workout summary cite it when the cap policy acted. Sources: .
 - **16 November 2026** — `transfer-ratio` (How does a home exercise count toward a barbell lift?): Switched on: the home lift page cites it for a home exercise's first weight, and the import screen for the home starting weights it suggests. Sources: Saeterbakken 2011, Saeterbakken 2013, Speirs 2016.
