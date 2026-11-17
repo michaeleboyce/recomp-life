@@ -115,6 +115,23 @@ describe("nextSetPlanEdits", () => {
     expect(nextSetPlanEdits(home, undefined)).toEqual([]);
   });
 
+  it("ignores a set plan it cannot use: no sets, no working set, or a weight or reps that are not numbers", () => {
+    // Settings travel as JSON, so a NaN weight comes back as null.
+    const broken: Array<PlannedSet[] | undefined> = [
+      undefined,
+      [],
+      [{ weight: 170, reps: 5, role: "backoff" }],
+      [{ weight: null as unknown as number, reps: 3 }],
+      [{ weight: -5, reps: 3 }],
+      [{ weight: 200, reps: 0 }],
+      [{ weight: 200, reps: Number.NaN }],
+    ];
+    for (const sets of broken) {
+      const plan = { ...planOf("squat", "squat", "T1"), sets: sets as PlannedSet[] };
+      expect(nextSetPlanEdits(PLAN, { [nextSetPlanKey("squat", "T1")]: plan })).toEqual([]);
+    }
+  });
+
   it("gives copies of the sets", () => {
     const plans = { [nextSetPlanKey("squat", "T1")]: planOf("squat", "squat", "T1") };
     const [edit] = nextSetPlanEdits(PLAN, plans);

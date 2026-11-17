@@ -1,8 +1,8 @@
 // Per-set weights for the next session of an exercise, set on its page (E6).
 // Spec: docs/plans/2026-11-17-exercise-page-design.md. Pure: no React, no database.
-import type { NextSetPlan, PlanEdit, Tier, WorkoutSession } from "@/types";
+import type { NextSetPlan, PlanEdit, PlannedSet, Tier, WorkoutSession } from "@/types";
 import { applyPlanEdits } from "./planEdits";
-import { isWarmUpSet } from "./setSelectors";
+import { isWarmUpSet, isWorkingSet } from "./setSelectors";
 import type { WorkoutPlan } from "./types";
 
 /** The key of a next-session set plan in `UserSettings.nextSetPlans`. */
@@ -21,6 +21,20 @@ export function performedSetPlanKey(
 }
 
 /**
+ * Sets a plan can take: at least one, at least one of them a working set (the program
+ * judges the session on those), each with a weight of 0 or more and at least one rep.
+ * Settings travel as JSON, so a weight that was NaN comes back as null; such a set plan
+ * is left out rather than giving the entry a weight that is not a number.
+ */
+function usableSets(sets: readonly PlannedSet[] | undefined): sets is PlannedSet[] {
+  return (
+    Array.isArray(sets) &&
+    sets.some(isWorkingSet) &&
+    sets.every((set) => Number.isFinite(set.weight) && set.weight >= 0 && Number.isFinite(set.reps) && set.reps >= 1)
+  );
+}
+
+/**
  * The plan with each entry that has a next-session set plan (matched on the exercise
  * performed, `substituteExerciseId ?? exerciseId`, and tier) given those sets, as a
  * `setWeights` edit would. Entries are copied, never changed in place.
@@ -36,7 +50,7 @@ export function applyNextSetPlans(
 /**
  * The `setWeights` edits for the set plans `plan` uses, saved in the session's
  * `planEdits` at start. Each names its entry as it stands (the template lift's id and
- * the tier), so `applyPlanEdits` finds it; a plan with no sets gives none. Put them
+ * the tier), so `applyPlanEdits` finds it; a plan with no usable sets gives none. Put them
  * before the user's own edits so a change made in Edit workout wins.
  */
 export function nextSetPlanEdits(
@@ -48,7 +62,7 @@ export function nextSetPlanEdits(
   for (const entry of plan) {
     if (entry.isWarmUp) continue;
     const setPlan = plans[performedSetPlanKey(entry)];
-    if (!setPlan || setPlan.sets.length === 0) continue;
+    if (!setPlan || !usableSets(setPlan.sets)) continue;
     edits.push({
       kind: "setWeights",
       exerciseId: entry.exerciseId,
