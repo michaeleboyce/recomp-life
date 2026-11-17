@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { importedSession, importedSet } from "@/lib/import/testRecords";
 import { SessionList } from "./SessionList";
@@ -69,7 +69,24 @@ describe("SessionList", () => {
 
 // Made-up imported sessions only: the repository is public.
 describe("SessionList with imported sessions", () => {
-  afterEach(cleanup);
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-12T12:00:00"));
+  });
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  it("gives the year of a session from another year", () => {
+    const old = importedSession(
+      [importedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 115, reps: 8 })],
+      { id: "imp-2023", startedAt: new Date("2023-03-04T17:00:00") }
+    );
+    render(<SessionList sessions={[]} imported={importedLiftSessions([old], ["bench"])} />);
+    expect(screen.getByTestId("session-row")).toHaveTextContent(/^Mar 42023/);
+    expect(screen.getByRole("button", { name: "Open imported session from Mar 4, 2023" })).toBeInTheDocument();
+  });
 
   const dbDay = importedSession(
     [

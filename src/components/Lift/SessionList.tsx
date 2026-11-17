@@ -141,13 +141,19 @@ function ImportedRow({
   onOpen: (session: ImportedSessionRecord) => void;
 }) {
   const date = formatShortDate(row.t);
+  // Imported history goes back years: a row from another year says which.
+  const year = new Date(row.t).getFullYear();
+  const otherYear = year !== new Date().getFullYear();
   return (
     <li
       data-testid="session-row"
       data-imported="true"
       className="flex min-h-[52px] items-center gap-2.5 border-b border-border py-2 last:border-b-0"
     >
-      <span className="w-[52px] shrink-0 font-mono text-xs text-muted-foreground">{date}</span>
+      <span className="w-[52px] shrink-0 font-mono text-xs leading-tight text-muted-foreground">
+        {date}
+        {otherYear && <span className="block">{year}</span>}
+      </span>
       <span className="w-[18px] shrink-0" aria-hidden="true" />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="font-mono text-sm">
@@ -176,7 +182,7 @@ function ImportedRow({
       <button
         type="button"
         onClick={() => onOpen(row.session)}
-        aria-label={`Open imported session from ${date}`}
+        aria-label={`Open imported session from ${date}${otherYear ? `, ${year}` : ""}`}
         className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
       >
         <ChevronRight className="size-4" aria-hidden="true" />
