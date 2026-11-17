@@ -145,7 +145,7 @@ export const PROGRESSION_RULES = {
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
     surfaces: [
-      "src/components/Lift/PrLine.tsx",
+      "src/components/ExercisePage/HomeNextSession.tsx",
       "src/components/Log/WhatItDid.tsx",
       "src/components/WorkoutSummary/WhatItChanged.tsx",
     ],
@@ -171,7 +171,7 @@ export const PROGRESSION_RULES = {
     ],
     surfaces: [
       "src/components/Today/LiftRows.tsx",
-      "src/components/Lift/PrLine.tsx",
+      "src/components/ExercisePage/HomeNextSession.tsx",
       "src/components/Log/WhatItDid.tsx",
       "src/components/WorkoutSummary/WhatItChanged.tsx",
     ],

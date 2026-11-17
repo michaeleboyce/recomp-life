@@ -72,7 +72,7 @@ export function ImportBatches() {
         const undone = await undoImportBatch(batch.batchId);
         toast({
           message: `${title} undone: ${batchCountsText(undone)} removed`,
-          action: { label: "Restore", onAction: () => void restoreImportBatch(batch.batchId) },
+          action: { label: "Restore", onAction: () => run(batch, "restore") },
         });
       } else {
         const restored = await restoreImportBatch(batch.batchId);

@@ -9,6 +9,7 @@ import { getMonday } from "@/lib/dates";
 import { getWeeklyMuscleLoad, weeklyHeatLevels } from "@/lib/muscleLoad";
 import { MUSCLE_IDS, formatMuscle } from "@/lib/muscles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SkeletonText } from "@/components/ui/skeleton";
 import { MuscleMap } from "@/components/Anatomy/MuscleMap";
 import { MuscleLegend } from "@/components/Anatomy/MuscleLegend";
 
@@ -46,7 +47,10 @@ export default function MuscleHeatCard() {
             label="Training load this week by muscle"
           />
           <div className="min-w-0 flex-1 space-y-2">
-            {top.length === 0 ? (
+            {weekWorkouts === undefined ? (
+              // Still loading: no "log a workout" to someone who has.
+              <SkeletonText width="80%" />
+            ) : top.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Log a workout to see which muscles you have trained.
               </p>

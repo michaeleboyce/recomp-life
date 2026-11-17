@@ -182,7 +182,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Program rule
 - **Implemented in:** `src/lib/workout/variant.ts` (`chooseHomeVariant`), `src/lib/workout/variant.ts` (`evaluateVariant`), `src/lib/workout/variant.ts` (`homeStepsEarned`), `src/lib/workout/credit.ts` (`sessionCountsForRotation`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
-- **Shown in:** `src/components/Lift/PrLine.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/WorkoutSummary/WhatItChanged.tsx`
+- **Shown in:** `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/WorkoutSummary/WhatItChanged.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Home sessions progress their own weight; the barbell moves when you return
@@ -201,7 +201,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/workout/variant.ts` (`CAP_REP_STEP`), `src/lib/workout/variant.ts` (`HARDER_HOME_VARIANT`), `src/lib/workout/variant.ts` (`evaluateVariant`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
-- **Shown in:** `src/components/Today/LiftRows.tsx`, `src/components/Lift/PrLine.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/WorkoutSummary/WhatItChanged.tsx`
+- **Shown in:** `src/components/Today/LiftRows.tsx`, `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/WorkoutSummary/WhatItChanged.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** At the heaviest dumbbell a pass moves to a harder exercise or adds reps
@@ -329,7 +329,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/strength/coefficients.ts` (`TRANSFER_PRIORS`), `src/lib/strength/coefficients.ts` (`TRANSFER_RATIO`), `src/lib/strength/ratio.ts` (`pairSessions`), `src/lib/strength/ratio.ts` (`learnTransferRatio`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
-- **Shown in:** `src/components/Lift/PrLine.tsx`, `src/components/Import/StartingWeights.tsx`, `src/components/ExercisePage/CountsToward.tsx`
+- **Shown in:** `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/Import/StartingWeights.tsx`, `src/components/ExercisePage/CountsToward.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Home exercises convert to the barbell lift by a ratio learned from you
@@ -352,7 +352,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
-- **Shown in:** `src/components/Progress/MusclesTab.tsx`, `src/components/Lift/PrLine.tsx`, `src/components/ExercisePage/CountsToward.tsx`
+- **Shown in:** `src/components/Progress/MusclesTab.tsx`, `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/ExercisePage/CountsToward.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Barbell and home sessions pool into one estimate; home ones count less
@@ -371,7 +371,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/strength/coefficients.ts` (`TARGET_EVIDENCE`), `src/lib/strength/estimate.ts` (`targetEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/workout/variant.ts` (`targetStrengthSets`), `src/lib/workout/variant.ts` (`withHandSetWeight`), `src/components/Lift/homeVersion.ts` (`homePlanWeight`), `src/components/LogEdit/AdjustLiftSheet.tsx` (`BackToPlanButton`), `src/hooks/useStrengthSets.ts` (`useStrengthSets`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
-- **Shown in:** `src/components/Lift/PrLine.tsx`
+- **Shown in:** `src/components/ExercisePage/HomeNextSession.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** A weight you set counts a little toward the lift's estimate until you lift it
@@ -1056,7 +1056,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Moderate evidence
 - **Implemented in:** `src/lib/dbConversion.ts` (`barbellToDumbbell`), `src/lib/dbConversion.ts` (`dumbbellToBarbell`), `src/lib/autoAdapt.ts` (`adaptExerciseForHome`)
-- **Shown in:** `src/app/workout/configure/page.tsx`, `src/components/Lift/PrLine.tsx`
+- **Shown in:** `src/app/workout/configure/page.tsx`, `src/components/ExercisePage/HomeNextSession.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Dumbbell presses run about 17–20% lighter than the barbell

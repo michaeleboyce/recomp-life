@@ -2,6 +2,7 @@
 
 import { ChevronsUp, ListPlus, Plus, Repeat2, Rows3, Trash2 } from "lucide-react";
 import { SetPlanEditor } from "@/components/SetPlan/SetPlanEditor";
+import { weightUnit, withSet } from "@/components/SetPlan/setPlanModel";
 import { TierBadge } from "@/components/ui/tier-badge";
 import { getExercise } from "@/lib/exercises";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ function PerSetEditor({
   name,
   sets,
   planSets,
+  unit,
   step,
   minWeight,
   judged,
@@ -62,6 +64,7 @@ function PerSetEditor({
   sets: PlannedSet[];
   /** The plan's own sets, shown beside a changed set. */
   planSets: PlannedSet[];
+  unit: string;
   step: number;
   minWeight: number;
   /** A program lift: say which sets decide its pass or fail. */
@@ -69,8 +72,7 @@ function PerSetEditor({
   /** The new sets; null goes back to the plan (one weight for every set). */
   onChange: (sets: PlannedSet[] | null) => void;
 }) {
-  const update = (index: number, change: Partial<PlannedSet>) =>
-    onChange(sets.map((set, i) => (i === index ? { ...set, ...change } : set)));
+  const update = (index: number, change: Partial<PlannedSet>) => onChange(withSet(sets, index, change));
 
   // The open set's role and its remove button, under its steppers.
   const setTools = (i: number) => {
@@ -116,7 +118,7 @@ function PerSetEditor({
       name={name}
       sets={sets}
       planSets={planSets}
-      unit="lbs"
+      unit={unit}
       step={step}
       minWeight={minWeight}
       onChange={onChange}
@@ -220,6 +222,7 @@ export function EditEntryRow({
             name={name}
             sets={entry.perSet!}
             planSets={planSets ?? entry.perSet!}
+            unit={weightUnit(entry.perHand ?? false)}
             step={weightStep}
             minWeight={minWeight}
             judged={CREDIT_TIERS.includes(entry.tier)}
@@ -244,7 +247,7 @@ export function EditEntryRow({
           <Stepper
             label={`${name} weight`}
             value={entry.weight}
-            unit="lbs"
+            unit={weightUnit(entry.perHand ?? false)}
             step={WEIGHT_STEP_LBS}
             onChange={onWeight}
           />

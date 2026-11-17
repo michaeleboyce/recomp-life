@@ -12,6 +12,7 @@ import { AutoRegCallout } from "@/components/ActiveWorkout/AutoRegCallout";
 import { DiscardWorkoutDialog } from "@/components/ActiveWorkout/DiscardWorkoutDialog";
 import { DropSetPanel } from "@/components/ActiveWorkout/DropSetPanel";
 import { SetChips } from "@/components/ActiveWorkout/SetChips";
+import { weightUnit } from "@/components/SetPlan/setPlanModel";
 import { EndWorkoutConfirmDialog } from "@/components/ActiveWorkout/EndWorkoutConfirmDialog";
 import { ExerciseBlock } from "@/components/ActiveWorkout/ExerciseBlock";
 import { LogDock } from "@/components/ActiveWorkout/LogDock";
@@ -43,6 +44,8 @@ import {
   liftForecasts,
 } from "@/components/ActiveWorkout/glassForecast";
 import { WhySheet } from "@/components/ui/why-sheet";
+import { toast } from "@/components/ui/toast";
+import { errorText } from "@/components/LogEdit/format";
 import { useSessionForecasts, useStoredDecisions } from "@/hooks";
 import { findStoredDecision } from "@/lib/trace";
 
@@ -132,6 +135,7 @@ function ActiveWorkoutContent() {
       await workout.discard();
     } catch (err) {
       console.error("Failed to discard workout:", err);
+      toast({ message: `Could not discard the workout: ${errorText(err)}` });
       setLeaving(false);
       return;
     }
@@ -347,9 +351,10 @@ function ActiveWorkoutContent() {
         key={workout.activeIndex}
         name={shown.name}
         chips={workout.setChips}
-        unit={perHand ? "lbs/hand" : "lbs"}
+        unit={weightUnit(perHand)}
         step={workout.weightStep}
         minWeight={workout.minWeight}
+        {...(workout.maxWeight != null ? { maxWeight: workout.maxWeight } : {})}
         onChange={workout.setSetWeight}
       />
       {weightWhy && (

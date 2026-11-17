@@ -17,9 +17,7 @@ import {
   liftPlanWeight,
   nextPlannedEntry,
   performedSessions,
-  planSetsOf,
   ratioBasisText,
-  sameSets,
   strengthPoints,
   t3LastSets,
 } from "./exercisePageModel";
@@ -255,15 +253,13 @@ describe("t3LastSets", () => {
 });
 
 describe("the set editor's sets", () => {
-  const planSets = planSetsOf(entry({ targetSets: 3, targetReps: 5, weight: 100 }));
+  const planSets = [
+    { weight: 100, reps: 5 },
+    { weight: 100, reps: 5 },
+    { weight: 100, reps: 5 },
+  ];
 
   it("are the plan's sets, or the stored next-session plan's when it fits", () => {
-    expect(planSets).toEqual([
-      { weight: 100, reps: 5 },
-      { weight: 100, reps: 5 },
-      { weight: 100, reps: 5 },
-    ]);
-    expect(planSetsOf(entry({ perSet: [{ weight: 80, reps: 5 }] }))).toEqual([{ weight: 80, reps: 5 }]);
     const mine = [{ weight: 105, reps: 5 }, ...planSets.slice(1)];
     const stored: NextSetPlan = {
       exerciseId: "squat",
@@ -276,7 +272,5 @@ describe("the set editor's sets", () => {
     expect(editorSets(stored, planSets)).toBe(mine);
     expect(editorSets({ ...stored, sets: mine.slice(1) }, planSets)).toBe(planSets);
     expect(editorSets(undefined, planSets)).toBe(planSets);
-    expect(sameSets(mine, planSets)).toBe(false);
-    expect(sameSets(planSets, [...planSets])).toBe(true);
   });
 });

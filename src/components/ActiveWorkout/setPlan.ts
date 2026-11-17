@@ -195,7 +195,7 @@ export interface SetChip {
   /** As logged for a done set; as planned (or as changed on the spot) otherwise. */
   weight: number;
   /** The set's planned weight (for a done set, as it was planned). */
-  plannedWeight: number;
+  planWeight: number;
   /** A set still to come whose weight was changed on the spot. */
   changed: boolean;
   reps: number;
@@ -238,7 +238,7 @@ export function setChipsFor(
       return {
         index,
         weight: logged.set.weight,
-        plannedWeight: planned.weight,
+        planWeight: planned.weight,
         changed: false,
         reps: logged.set.actualReps,
         role,
@@ -253,7 +253,7 @@ export function setChipsFor(
     return {
       index,
       weight: changed ? spot : planned.weight,
-      plannedWeight: planned.weight,
+      planWeight: planned.weight,
       changed,
       reps: planned.reps,
       role,

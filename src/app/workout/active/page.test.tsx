@@ -277,6 +277,34 @@ describe("active workout page", () => {
     await waitFor(async () => expect((await db.workouts.get(nav.sessionId))!.deletedAt).toBeTruthy());
   });
 
+  it("says so when a discard cannot be saved, and keeps the workout open", async () => {
+    nav.sessionId = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+    render(
+      <>
+        <ActiveWorkoutPage />
+        <Toaster />
+      </>
+    );
+    await screen.findByRole("button", { name: /^LOG/ });
+    await logSets(1);
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Discard workout and all its sets" }));
+    await screen.findByText(/Discarding deletes all of them/);
+    const transaction = vi.spyOn(db, "transaction").mockRejectedValueOnce(new Error("disk full"));
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Discard Workout" }));
+      expect(await screen.findByText("Could not discard the workout: disk full")).toBeInTheDocument();
+      expect(nav.push).not.toHaveBeenCalled();
+      expect(await screen.findByRole("button", { name: /^LOG/ })).toBeInTheDocument();
+    } finally {
+      transaction.mockRestore();
+      error.mockRestore();
+    }
+  });
+
   it("Back from the summary goes on to Today instead of reopening the summary", async () => {
     const view = await open();
     await logSets(2);
@@ -355,7 +383,7 @@ describe("a weight per set and drop sets", () => {
     fireEvent.click(screen.getByRole("button", { name: "5 lbs lighter" }));
     expect(screen.getByTestId("weight")).toHaveTextContent("185");
     expect(screen.getByTestId("loading-line")).toHaveTextContent("per side: 45 · 25");
-    fireEvent.click(screen.getByRole("button", { name: "Back to the planned 190 lbs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to the plan's 190 lbs" }));
     expect(screen.getByTestId("weight")).toHaveTextContent("190");
     fireEvent.click(screen.getByRole("button", { name: "5 lbs lighter" }));
     fireEvent.click(logButton());
@@ -369,13 +397,13 @@ describe("a weight per set and drop sets", () => {
     fireEvent.click(screen.getByRole("button", { name: "5 lbs heavier" }));
     // The set on screen is still the plan's.
     expect(screen.getByTestId("weight")).toHaveTextContent("190");
-    const third = within(chips()).getByRole("button", { name: /^Set 3: 200 lbs × 3, planned 190 lbs/ });
+    const third = within(chips()).getByRole("button", { name: /^Set 3: 200 lbs × 3, plan 190 lbs/ });
     expect(third).toHaveTextContent("plan 190");
     expect(screen.getByTestId("plan-beside")).toHaveTextContent("Plan 190 · You 200");
 
     fireEvent.click(within(chips()).getByRole("button", { name: /^Set 4: 190 lbs × 3\./ }));
     fireEvent.click(screen.getByRole("button", { name: "5 lbs lighter" }));
-    fireEvent.click(screen.getByRole("button", { name: "Back to the planned 190 lbs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to the plan's 190 lbs" }));
     expect(within(chips()).getByRole("button", { name: /^Set 4: 190 lbs × 3\./ })).toBeInTheDocument();
 
     await logSets(3);

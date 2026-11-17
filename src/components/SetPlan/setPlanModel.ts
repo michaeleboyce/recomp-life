@@ -27,8 +27,7 @@ export function withSet(
   return sets.map((set, i) => (i === index ? { ...set, ...change } : set));
 }
 
-/** "Plan 190 · You 185", "Plan 190×3 · You 190×5": the plan's number beside yours. */
-export function planBesideText(set: PlannedSet, plan: PlannedSet): string {
-  if (set.reps === plan.reps) return `Plan ${plan.weight} · You ${set.weight}`;
-  return `Plan ${plan.weight}×${plan.reps} · You ${set.weight}×${set.reps}`;
+/** The unit a weight is shown in: "lbs a hand" for each dumbbell of a pair, else "lbs". */
+export function weightUnit(perHand: boolean): "lbs" | "lbs a hand" {
+  return perHand ? "lbs a hand" : "lbs";
 }

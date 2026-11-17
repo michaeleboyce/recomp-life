@@ -6,8 +6,9 @@ import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/ui/chip-group";
 import { Term } from "@/components/ui/term";
-import { homeNextSession, homeScheme, homeWeightLine, isPerHand, withHomeAdjustment } from "@/components/Lift/homeVersion";
+import { homeNextSession, schemeText, homeWeightLine, isPerHand, withHomeAdjustment } from "@/components/Lift/homeVersion";
 import { useHomePlanContext } from "@/components/Lift/useHomePlanContext";
+import { weightUnit } from "@/components/SetPlan/setPlanModel";
 import { displayLiftName, nameInSentence } from "@/components/Today/todayModel";
 import { tierStyle } from "@/lib/tierStyle";
 import { useLiftStates } from "@/hooks";
@@ -235,7 +236,7 @@ function HomeAdjustForm({
   const [busy, setBusy] = useState(false);
   const name = displayLiftName(substituteId);
   const perHand = isPerHand(substituteId);
-  const unit = perHand ? "lbs a hand" : "lbs";
+  const unit = weightUnit(perHand);
   const now = useMemo(() => (ctx ? homeNextSession(exerciseId, substituteId, ctx, tier) : null), [ctx, exerciseId, substituteId, tier]);
   const weightText = weight ?? String(now?.weight ?? 0);
   const stageValue = stage ?? now?.stage ?? null;
@@ -343,7 +344,7 @@ function HomeAdjustForm({
           <b className="font-mono">
             {preview.after.weight} {unit}
           </b>
-          , {homeScheme(preview.after)}.
+          , {schemeText(preview.after)}.
           {preview.after.weight !== preview.typed &&
             ` The plan takes ${preview.after.weight}: ${homeWeightLine(exerciseId, liftName(exerciseId).toLowerCase(), substituteId, preview.after, ctx.equipment).text}`}
         </p>

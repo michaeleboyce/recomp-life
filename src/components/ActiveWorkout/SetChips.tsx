@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, Minus, Plus, RotateCcw } from "lucide-react";
-import { planBesideText } from "@/components/SetPlan/setPlanModel";
+import { PlanYou } from "@/components/SetPlan/PlanYou";
 import { cn } from "@/lib/utils";
 import { roleLabel, type SetChip } from "./setPlan";
 
@@ -10,11 +10,12 @@ interface SetChipsProps {
   /** The exercise's name, for the controls' accessible names. */
   name: string;
   chips: SetChip[];
-  /** "lbs" or "lbs/hand". */
+  /** "lbs" or "lbs a hand" (`weightUnit`). */
   unit: string;
-  /** What a set's weight moves by, and its lightest value. */
+  /** What a set's weight moves by, and its lightest and heaviest values. */
   step: number;
   minWeight: number;
+  maxWeight?: number;
   /** Changes one set still to come, by its index; null puts it back to the plan. */
   onChange: (setIndex: number, weight: number | null) => void;
 }
@@ -28,7 +29,7 @@ const STEP_BUTTON =
  * set still to come opens steppers that change its weight, for that set alone; a
  * changed set shows the plan's weight beside it and can go back to it.
  */
-export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetChipsProps) {
+export function SetChips({ name, chips, unit, step, minWeight, maxWeight, onChange }: SetChipsProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   if (chips.length === 0) return null;
   const mixed = chips.some((chip) => chip.role !== "work");
@@ -58,7 +59,7 @@ export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetCh
               )}
               {chip.changed && (
                 <span className="font-mono text-[11px] leading-none tabular-nums text-accent-primary">
-                  plan {chip.plannedWeight}
+                  plan {chip.planWeight}
                 </span>
               )}
             </>
@@ -66,7 +67,7 @@ export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetCh
           const base =
             "flex min-h-11 w-full flex-col items-center justify-center gap-1 rounded-xl border-[1.5px] px-0.5 py-1.5";
           const what = `Set ${chip.index + 1}${label ? `, ${label.toLowerCase()}` : ""}: ${chip.weight} ${unit} × ${chip.reps}${
-            chip.changed ? `, planned ${chip.plannedWeight} ${unit}` : ""
+            chip.changed ? `, plan ${chip.planWeight} ${unit}` : ""
           }`;
           const isOpen = open?.index === chip.index;
           return (
@@ -112,12 +113,7 @@ export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetCh
               {open.state === "current" ? " · next" : ""}
             </span>
             {open.changed && (
-              <span data-testid="plan-beside" className="font-mono tabular-nums text-muted-foreground">
-                {planBesideText(
-                  { weight: open.weight, reps: open.reps },
-                  { weight: open.plannedWeight, reps: open.reps }
-                )}
-              </span>
+              <PlanYou data-testid="plan-beside" planWeight={open.planWeight} weight={open.weight} />
             )}
           </p>
           <div className="flex items-center gap-2">
@@ -135,6 +131,7 @@ export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetCh
               type="button"
               aria-label={`${step} ${unit} heavier`}
               className={STEP_BUTTON}
+              disabled={maxWeight != null && open.weight + step > maxWeight}
               onClick={() => onChange(open.index, open.weight + step)}
             >
               <Plus className="size-5" aria-hidden="true" />
@@ -143,12 +140,12 @@ export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetCh
             {open.changed && (
               <button
                 type="button"
-                aria-label={`Back to the planned ${open.plannedWeight} ${unit}`}
+                aria-label={`Back to the plan's ${open.planWeight} ${unit}`}
                 className={cn(STEP_BUTTON, "flex-none px-4 text-[13px]")}
                 onClick={() => onChange(open.index, null)}
               >
                 <RotateCcw className="size-4" aria-hidden="true" />
-                {open.plannedWeight}
+                {open.planWeight}
               </button>
             )}
           </div>

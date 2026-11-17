@@ -23,10 +23,6 @@ export const ADDED_EXERCISE_REPS = 12;
 type Picking = { mode: "swap"; exerciseId: string; tier: Tier } | { mode: "add" } | null;
 
 /**
- * Edit the day's workout before starting: swap, remove, add, change sets, reps and
- * weight. Every program lift shows whether it still counts toward progression.
- */
-/**
  * The program's own sets for an entry, for "Plan · You" in the per-set editor: what was
  * prescribed for the lift at its tier (the home exercise's own weight and scheme when it
  * is done as that). Undefined for an entry the program did not prescribe (an accessory,
@@ -50,6 +46,10 @@ export function prescribedSetsFor(
   return Array.from({ length: source.sets }, () => ({ weight: source.weight, reps: source.reps }));
 }
 
+/**
+ * Edit the day's workout before starting: swap, remove, add, change sets, reps and
+ * weight. Every program lift shows whether it still counts toward progression.
+ */
 export function EditWorkoutSheet({
   setup,
   open,

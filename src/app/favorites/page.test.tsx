@@ -71,4 +71,46 @@ describe("favourites page", () => {
     expect(await screen.findByRole("heading", { name: "Quick A1" })).toBeInTheDocument();
     expect((await db.favoriteWorkouts.get("fav-1"))!.deletedAt).toBeNull();
   });
+
+  it("says so when a rename or a delete cannot be saved, instead of failing silently", async () => {
+    await db.favoriteWorkouts.add(testFavorite("fav-1", "Quick A1"));
+    render(<FavoritesPage />);
+    await screen.findByRole("heading", { name: "Quick A1" });
+    const update = vi.spyOn(db.favoriteWorkouts, "update").mockRejectedValue(new Error("disk full"));
+    try {
+      fireEvent.click(screen.getByRole("button", { name: /rename/i }));
+      fireEvent.change(screen.getByRole("textbox"), { target: { value: "Heavy A1" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(() =>
+        expect(toasts.toast).toHaveBeenLastCalledWith({ message: "Could not rename Quick A1: disk full" })
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /delete/i }));
+      fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+      await waitFor(() =>
+        expect(toasts.toast).toHaveBeenLastCalledWith({ message: "Could not delete Quick A1: disk full" })
+      );
+      expect(screen.getByRole("heading", { name: "Quick A1" })).toBeInTheDocument();
+    } finally {
+      update.mockRestore();
+    }
+  });
+
+  it("says so when Undo cannot bring a deleted favourite back", async () => {
+    await db.favoriteWorkouts.add(testFavorite("fav-1", "Quick A1"));
+    render(<FavoritesPage />);
+    await screen.findByRole("heading", { name: "Quick A1" });
+    fireEvent.click(screen.getByRole("button", { name: /delete/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(toasts.toast).toHaveBeenCalled());
+    const shown = toasts.toast.mock.calls[0][0];
+
+    const update = vi.spyOn(db.favoriteWorkouts, "update").mockRejectedValue(new Error("disk full"));
+    try {
+      await shown.action.onAction();
+      expect(toasts.toast).toHaveBeenLastCalledWith({ message: "Could not restore Quick A1: disk full" });
+    } finally {
+      update.mockRestore();
+    }
+  });
 });

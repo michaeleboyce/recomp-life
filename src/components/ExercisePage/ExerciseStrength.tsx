@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { ChartEmpty, LazyTrendChart, formatShortDate } from "@/components/chart-kit";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { SectionHeader } from "@/components/ui/section-header";
+import { SkeletonCard } from "@/components/ui/skeleton";
 import { Term } from "@/components/ui/term";
 import type { LiftSession } from "@/components/Lift/sessions";
 import { strengthPoints, t3LastSets } from "./exercisePageModel";
@@ -54,7 +55,9 @@ export function OwnStrength({
           </span>
         )}
       </div>
-      {series.points.length === 0 ? (
+      {sets === undefined ? (
+        <SkeletonCard />
+      ) : series.points.length === 0 ? (
         <ChartEmpty message={`A T1 session of ${name} with a last set of 2 or more reps gives its estimate.`} height={64} />
       ) : (
         <LazyTrendChart
@@ -71,17 +74,19 @@ export function OwnStrength({
 
 /**
  * A T3's strength in the program's own terms: each recent session's last set against
- * the rep count that adds weight.
+ * the rep count that adds weight. `sessions` is undefined while loading.
  */
-export function T3Strength({ sessions }: { sessions: readonly LiftSession[] }) {
-  const rows = t3LastSets(sessions);
+export function T3Strength({ sessions }: { sessions: readonly LiftSession[] | undefined }) {
+  const rows = sessions ? t3LastSets(sessions) : [];
   return (
     <section aria-label="Strength" className="flex flex-col gap-1.5">
       <SectionHeader title="Last set" action={<EvidenceLine ruleId="t3-progression" variant="icon" />} />
       <p className="text-[13px] text-muted-foreground">
         The weight goes up when the last set reaches {T3_LAST_SET_INCREASE_REPS} reps.
       </p>
-      {rows.length === 0 ? (
+      {sessions === undefined ? (
+        <SkeletonCard />
+      ) : rows.length === 0 ? (
         <p className="py-2 text-sm text-muted-foreground">No T3 sessions yet.</p>
       ) : (
         <ul>

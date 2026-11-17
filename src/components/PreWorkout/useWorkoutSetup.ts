@@ -369,7 +369,7 @@ export function useWorkoutSetup(
       if (sets && sets.length > 0) return;
       const entry = plan.find((e) => !e.isWarmUp && e.exerciseId === exerciseId && e.tier === tier);
       if (!entry) return;
-      const key = nextSetPlanKey(entry.substituteExerciseId ?? entry.exerciseId, tier);
+      const key = nextSetPlanKey(entry.substituteExerciseId || entry.exerciseId, tier);
       if (!storedSetPlans?.[key]) return;
       setSkippedState((prev) => {
         const keys = prev.templateId === templateId ? prev.keys : NO_KEYS;

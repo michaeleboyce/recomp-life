@@ -187,6 +187,14 @@ describe("the next set's weight, changed on the spot", () => {
     act(() => hook.result.current.setNextWeight(null));
     expect(hook.result.current.entry!.weight).toBe(190);
   });
+
+  it("never above the heaviest dumbbell at home", async () => {
+    const hook = await mount(await start({ location: "home" }));
+    const max = (await db.userProfile.toCollection().first())!.settings.equipment.maxDumbbellWeight;
+    expect(hook.result.current.maxWeight).toBe(max);
+    act(() => hook.result.current.setNextWeight(max + 50));
+    expect(hook.result.current.entry!.weight).toBe(max);
+  });
 });
 
 describe("any set still to come, changed on its own (E8)", () => {

@@ -1,4 +1,5 @@
-// The home version of a program lift on the lift page (`?as=<substituteId>`). Pure.
+// A program lift's home versions: which they are, their next session as Today plans it,
+// how the plan reached its weight, and a hand-set change previewed. Pure.
 import { nameInSentence } from "@/components/Today/todayModel";
 import { DUMBBELL_LOAD_FACTOR } from "@/lib/dbConversion";
 import { EXERCISES, HOME_SUBSTITUTE_CHAINS } from "@/lib/exercises";
@@ -240,7 +241,7 @@ export function homeNextSession(
 }
 
 /** "5×3+" for a last set done for as many as you can, "3×10" otherwise. */
-export function homeScheme(next: Pick<HomeNextSession, "sets" | "reps" | "isAMRAP">): string {
+export function schemeText(next: Pick<HomeNextSession, "sets" | "reps" | "isAMRAP">): string {
   return `${next.sets}×${next.reps}${next.isAMRAP ? "+" : ""}`;
 }
 
@@ -342,7 +343,6 @@ export function homeWeightLine(
   return { text: parts.join(" "), ruleId };
 }
 
-/** A manual change to a home exercise's own weight (and stage) at a tier. */
 /**
  * The weight the plan would give `substituteId` next if its weight had not been set by
  * hand: the session planned from the states with the override taken back (its
@@ -381,6 +381,7 @@ export function homePlanWeight(
   return plan.weight > 0 && plan.weight !== next.weight ? plan.weight : null;
 }
 
+/** A manual change to a home exercise's own weight (and stage) at a tier. */
 export interface HomeAdjustment {
   liftId: string;
   exerciseId: string;

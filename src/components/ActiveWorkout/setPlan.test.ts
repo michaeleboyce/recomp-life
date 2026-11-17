@@ -259,7 +259,7 @@ describe("setChipsFor", () => {
 
   it("shows each set still to come at its own changed weight, with the plan's beside it", () => {
     const chips = setChipsFor(entry({ completedSets: 1 }), [set()], { 0: 150, 3: 200 });
-    expect(chips.map((c) => [c.weight, c.plannedWeight, c.changed])).toEqual([
+    expect(chips.map((c) => [c.weight, c.planWeight, c.changed])).toEqual([
       [190, 190, false],
       [190, 190, false],
       [190, 190, false],

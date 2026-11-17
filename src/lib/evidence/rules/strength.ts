@@ -86,7 +86,7 @@ export const STRENGTH_RULES = {
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
     surfaces: [
-      "src/components/Lift/PrLine.tsx",
+      "src/components/ExercisePage/HomeNextSession.tsx",
       "src/components/Import/StartingWeights.tsx",
       "src/components/ExercisePage/CountsToward.tsx",
     ],
@@ -119,7 +119,7 @@ export const STRENGTH_RULES = {
     ],
     surfaces: [
       "src/components/Progress/MusclesTab.tsx",
-      "src/components/Lift/PrLine.tsx",
+      "src/components/ExercisePage/HomeNextSession.tsx",
       "src/components/ExercisePage/CountsToward.tsx",
     ],
   },
@@ -147,7 +147,7 @@ export const STRENGTH_RULES = {
       "src/hooks/useStrengthSets.ts#useStrengthSets",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
-    surfaces: ["src/components/Lift/PrLine.tsx"],
+    surfaces: ["src/components/ExercisePage/HomeNextSession.tsx"],
   },
   "drop-set-evidence": {
     area: "effort",
