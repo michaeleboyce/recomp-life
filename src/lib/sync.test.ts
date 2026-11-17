@@ -473,6 +473,13 @@ describe("pullFromServer", () => {
     });
   });
 
+  it("skips entries of a page that are not rows, and merges the rest", async () => {
+    stubPull({ runs: [null, 5, "x", [], { id: "r1", clientId: "c-r1", updatedAt: 1 }] });
+    const result = await pullFromServer(database);
+    expect(result.errors).toEqual({});
+    expect((await runs().toArray()).map((r) => r.id)).toEqual(["r1"]);
+  });
+
   it("reports a table the server could not read and still merges the rest", async () => {
     stubPull({ runs: [{ id: "r1", clientId: "c-r1", updatedAt: 1 }] }, { activities: "could not read" });
     const result = await pullFromServer(database);

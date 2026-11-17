@@ -77,6 +77,9 @@ export interface SyncResult {
   pullSucceeded: boolean;
 }
 
+const isWireRow = (value: unknown): value is WireRow =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 const message = (err: unknown) => (err instanceof Error ? err.message : "Unknown error");
 
 /** Rows of `def`'s local table that have not been synced since their last change. */
@@ -288,13 +291,14 @@ async function pullTable(database: Dexie, def: SyncTableDef, result: PullResult)
       return { counts, complete: false };
     }
 
-    const data = (await response.json()) as Partial<PullPageResponse>;
+    const data = ((await response.json()) ?? {}) as Partial<PullPageResponse>;
     result.pages += 1;
     if (typeof data.serverTime === "number") {
       result.serverTime = data.serverTime;
       startedAt ??= data.serverTime;
     }
-    const rows = Array.isArray(data.rows) ? data.rows : [];
+    // An entry that is not a row would abort the page's merge every time it is read.
+    const rows = Array.isArray(data.rows) ? data.rows.filter(isWireRow) : [];
     if (rows.length > 0) {
       const merged = await mergeTable(database, def, rows);
       counts.inserted += merged.inserted;
