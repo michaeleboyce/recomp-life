@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { set, workout } from "@/components/LogEdit/testFixtures";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
 import type { BodyweightLog, RunLog } from "@/types";
 import {
+  LOG_FILTERS,
   buildEntries,
   countByDay,
   dayKey,
@@ -9,6 +11,7 @@ import {
   daysInMonth,
   filterEntries,
   groupByDay,
+  isImportedEntry,
   shiftMonth,
   workoutResultLine,
 } from "./logEntries";
@@ -61,6 +64,42 @@ describe("filterEntries", () => {
   it("narrows to one local day", () => {
     expect(filterEntries(entries, "all", "2026-11-10").map((e) => e.id)).toEqual(["r1", "w1"]);
     expect(filterEntries(entries, "weighIns", "2026-11-10")).toEqual([]);
+  });
+});
+
+describe("imported history (made-up sessions)", () => {
+  const session = importedSession([importedSet()], { id: "imp1", startedAt: new Date("2026-11-09T17:00:00") });
+  const importedRun: RunLog = { ...run("r-imp", "2026-11-07T07:00:00"), source: "import", sourceName: "Gravl", importBatchId: "b1" };
+  const healthRun: RunLog = { ...run("r-health", "2026-11-06T07:00:00"), source: "apple_health", sourceName: "Apple Watch" };
+  const entries = buildEntries({
+    ...sources,
+    runs: [...sources.runs, importedRun, healthRun],
+    imported: [session],
+  });
+
+  it("merges imported sessions among the entries by date", () => {
+    expect(entries.map((e) => e.id)).toEqual(["b1", "r1", "w1", "imp1", "r2", "r-imp", "r-health"]);
+    expect(entries.find((e) => e.id === "imp1")?.kind).toBe("imported");
+  });
+
+  it("the Imported filter keeps imported sessions, runs and activities; All includes them", () => {
+    expect(filterEntries(entries, "imported").map((e) => e.id)).toEqual(["imp1", "r-imp"]);
+    expect(filterEntries(entries, "all")).toHaveLength(entries.length);
+    // Imported sessions are not GZCLP workouts; imported runs are still runs.
+    expect(filterEntries(entries, "workouts").map((e) => e.id)).toEqual(["w1"]);
+    expect(filterEntries(entries, "cardio").map((e) => e.id)).toEqual(["r1", "r2", "r-imp", "r-health"]);
+  });
+
+  it("knows an imported entry from one entered by hand or from Apple Health", () => {
+    const byId = new Map(entries.map((e) => [e.id, e]));
+    expect(isImportedEntry(byId.get("imp1")!)).toBe(true);
+    expect(isImportedEntry(byId.get("r-imp")!)).toBe(true);
+    expect(isImportedEntry(byId.get("r-health")!)).toBe(false);
+    expect(isImportedEntry(byId.get("w1")!)).toBe(false);
+  });
+
+  it("offers the Imported filter beside the others", () => {
+    expect(LOG_FILTERS.map((f) => f.label)).toEqual(["All", "Workouts", "Cardio & activity", "Weigh-ins", "Imported"]);
   });
 });
 

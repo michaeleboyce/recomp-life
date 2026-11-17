@@ -1,32 +1,47 @@
 // Pure helpers for the Log screen: one list of entries from every log table, the
 // filter, grouping by day and the month calendar. No React, no database.
+import { isImportedRow } from "@/components/ImportedHistory/importedView";
 import { liftName } from "@/components/LogEdit/format";
 import { displayLiftName } from "@/components/Today/todayModel";
 import { EXERCISES } from "@/lib/exercises";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import type { ActivityLog, BodyweightLog, RunLog, SetLog, WorkoutSession } from "@/types";
+import type { ActivityLog, BodyweightLog, ImportedSessionRecord, RunLog, SetLog, WorkoutSession } from "@/types";
 
 export type LogEntry =
   | { kind: "workout"; id: string; date: Date; row: WorkoutSession }
   | { kind: "run"; id: string; date: Date; row: RunLog }
   | { kind: "activity"; id: string; date: Date; row: ActivityLog }
-  | { kind: "weighIn"; id: string; date: Date; row: BodyweightLog };
+  | { kind: "weighIn"; id: string; date: Date; row: BodyweightLog }
+  /** A strength session from another app's export: history, never a GZCLP workout. */
+  | { kind: "imported"; id: string; date: Date; row: ImportedSessionRecord };
 
-export type LogFilter = "all" | "workouts" | "cardio" | "weighIns";
+export type LogFilter = "all" | "workouts" | "cardio" | "weighIns" | "imported";
 
 export const LOG_FILTERS: { value: LogFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "workouts", label: "Workouts" },
   { value: "cardio", label: "Cardio & activity" },
   { value: "weighIns", label: "Weigh-ins" },
+  { value: "imported", label: "Imported" },
 ];
+
+/** How many entries the Log renders at first, and how many more each "Show more" adds. */
+export const LOG_PAGE_SIZE = 60;
 
 export interface LogSources {
   workouts?: WorkoutSession[];
   runs?: RunLog[];
   activities?: ActivityLog[];
   weighIns?: BodyweightLog[];
+  imported?: ImportedSessionRecord[];
+}
+
+/** An entry from another app's export: an imported session, or a run or activity an import added. */
+export function isImportedEntry(entry: LogEntry): boolean {
+  if (entry.kind === "imported") return true;
+  if (entry.kind === "run" || entry.kind === "activity") return isImportedRow(entry.row);
+  return false;
 }
 
 function validDate(value: Date | string | null | undefined): Date | null {
@@ -35,7 +50,10 @@ function validDate(value: Date | string | null | undefined): Date | null {
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
-/** Every entry with a readable date, newest first. Workouts are dated when they started. */
+/**
+ * Every entry with a readable date, newest first. Workouts and imported sessions are
+ * dated when they started.
+ */
 export function buildEntries(sources: LogSources): LogEntry[] {
   const entries: LogEntry[] = [];
   const add = (entry: Omit<LogEntry, "date"> & { date: Date | string | null }) => {
@@ -46,13 +64,18 @@ export function buildEntries(sources: LogSources): LogEntry[] {
   for (const row of sources.runs ?? []) add({ kind: "run", id: row.id, date: row.date, row });
   for (const row of sources.activities ?? []) add({ kind: "activity", id: row.id, date: row.date, row });
   for (const row of sources.weighIns ?? []) add({ kind: "weighIn", id: row.id, date: row.date, row });
+  for (const row of sources.imported ?? []) add({ kind: "imported", id: row.id, date: row.startedAt, row });
   return entries.sort(
     (a, b) => b.date.getTime() - a.date.getTime() || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
   );
 }
 
-const KINDS_BY_FILTER: Record<LogFilter, LogEntry["kind"][]> = {
-  all: ["workout", "run", "activity", "weighIn"],
+/**
+ * The kinds each filter keeps. "Workouts" are the app's own; an imported run is still
+ * a run. "Imported" is by origin instead (`isImportedEntry`).
+ */
+const KINDS_BY_FILTER: Record<Exclude<LogFilter, "imported">, LogEntry["kind"][]> = {
+  all: ["workout", "run", "activity", "weighIn", "imported"],
   workouts: ["workout"],
   cardio: ["run", "activity"],
   weighIns: ["weighIn"],
@@ -60,8 +83,9 @@ const KINDS_BY_FILTER: Record<LogFilter, LogEntry["kind"][]> = {
 
 /** Entries of the filter's kinds, on `day` only when one is given. */
 export function filterEntries(entries: LogEntry[], filter: LogFilter, day: string | null = null): LogEntry[] {
-  const kinds = KINDS_BY_FILTER[filter];
-  return entries.filter((e) => kinds.includes(e.kind) && (day === null || dayKey(e.date) === day));
+  const keep =
+    filter === "imported" ? isImportedEntry : (e: LogEntry) => KINDS_BY_FILTER[filter].includes(e.kind);
+  return entries.filter((e) => keep(e) && (day === null || dayKey(e.date) === day));
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");

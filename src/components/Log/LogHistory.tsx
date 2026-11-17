@@ -9,18 +9,24 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { EntryEditSheet, type EditableEntry } from "@/components/LogEdit";
+import { ImportedSessionSheet } from "@/components/ImportedHistory/ImportedSessionSheet";
+import { importedSessionSummary, type ImportedSessionSummary } from "@/components/ImportedHistory/importedView";
 import {
   useActivities,
   useBodyweightLog,
   useCompletedWorkouts,
   useE1RMs,
   useFavoriteWorkouts,
+  useImportedSessions,
   useRuns,
 } from "@/hooks";
+import { useMappingOverrides } from "@/hooks/useMappingOverrides";
+import type { ImportedSessionRecord } from "@/types";
 import { CalendarStrip } from "./CalendarStrip";
 import { LogEntryRow } from "./LogEntryRow";
 import {
   LOG_FILTERS,
+  LOG_PAGE_SIZE,
   buildEntries,
   countByDay,
   dayLabel,
@@ -40,7 +46,11 @@ function editable(entry: LogEntry): EditableEntry | null {
   return null;
 }
 
-/** The whole log, newest first, with a month strip and a type filter. */
+/**
+ * The whole log, newest first, with a month strip and a type filter. Imported sessions
+ * from other apps sit among the entries, labelled. The list renders LOG_PAGE_SIZE
+ * entries at a time ("Show more"), so years of imported history stay quick to open.
+ */
 export function LogHistory({ now: fixedNow }: { now?: Date }) {
   const [now] = useState(() => fixedNow ?? new Date());
   const workouts = useCompletedWorkouts();
@@ -48,18 +58,30 @@ export function LogHistory({ now: fixedNow }: { now?: Date }) {
   const runs = useRuns();
   const activities = useActivities();
   const weighIns = useBodyweightLog();
+  const imported = useImportedSessions();
+  const overrides = useMappingOverrides();
   const e1rms = useE1RMs();
 
   const [filter, setFilter] = useState<LogFilter>("all");
   const [day, setDay] = useState<string | null>(null);
   const [month, setMonth] = useState(() => monthOf(now));
+  const [limit, setLimit] = useState(LOG_PAGE_SIZE);
   const [editing, setEditing] = useState<EditableEntry | null>(null);
+  const [viewing, setViewing] = useState<ImportedSessionRecord | null>(null);
 
   const entries = useMemo(
-    () => buildEntries({ workouts, runs, activities, weighIns }),
-    [workouts, runs, activities, weighIns]
+    () => buildEntries({ workouts, runs, activities, weighIns, imported }),
+    [workouts, runs, activities, weighIns, imported]
   );
   const shown = useMemo(() => filterEntries(entries, filter, day), [entries, filter, day]);
+  const visible = useMemo(() => shown.slice(0, limit), [shown, limit]);
+  const groups = useMemo(() => groupByDay(visible), [visible]);
+  // Worked out for the rendered page only, with the name choices remembered now.
+  const importedSummaries = useMemo(() => {
+    const byId = new Map<string, ImportedSessionSummary>();
+    for (const e of visible) if (e.kind === "imported") byId.set(e.id, importedSessionSummary(e.row, overrides));
+    return byId;
+  }, [visible, overrides]);
   const counts = useMemo(() => countByDay(filterEntries(entries, filter)), [entries, filter]);
   const prSessions = useMemo(() => {
     const ids = new Set<string>();
@@ -67,7 +89,7 @@ export function LogHistory({ now: fixedNow }: { now?: Date }) {
     return ids;
   }, [workouts, e1rms]);
 
-  if ([workouts, runs, activities, weighIns, e1rms].some((v) => v === undefined)) {
+  if ([workouts, runs, activities, weighIns, imported, e1rms].some((v) => v === undefined)) {
     return <SkeletonCard />;
   }
 
@@ -88,8 +110,14 @@ export function LogHistory({ now: fixedNow }: { now?: Date }) {
 
   const selectDay = (key: string | null) => {
     setDay(key);
+    setLimit(LOG_PAGE_SIZE);
     if (key) setMonth(monthOf(parseDayKey(key)));
   };
+  const openEntry = (entry: LogEntry) => {
+    if (entry.kind === "imported") setViewing(entry.row);
+    else setEditing(editable(entry));
+  };
+  const older = shown.length - visible.length;
 
   return (
     <div className="flex flex-col gap-5">
@@ -106,12 +134,15 @@ export function LogHistory({ now: fixedNow }: { now?: Date }) {
         size="sm"
         options={LOG_FILTERS}
         value={filter}
-        onChange={(v) => setFilter(v as LogFilter)}
+        onChange={(v) => {
+          setFilter(v as LogFilter);
+          setLimit(LOG_PAGE_SIZE);
+        }}
       />
       {day && (
         <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
           <span>Showing {dayLabel(parseDayKey(day), now)} only</span>
-          <Button variant="ghost" className="min-h-11" onClick={() => setDay(null)}>
+          <Button variant="ghost" className="min-h-11" onClick={() => selectDay(null)}>
             <X className="size-4" aria-hidden="true" />
             Show all days
           </Button>
@@ -129,7 +160,7 @@ export function LogHistory({ now: fixedNow }: { now?: Date }) {
           }
         />
       ) : (
-        groupByDay(shown).map((group) => (
+        groups.map((group) => (
           <section key={group.key} aria-label={dayLabel(group.date, now)} className="flex flex-col">
             <SectionHeader title={dayLabel(group.date, now)} className="pb-1.5" />
             <div>
@@ -139,12 +170,29 @@ export function LogHistory({ now: fixedNow }: { now?: Date }) {
                   entry={entry}
                   hasPR={entry.kind === "workout" && prSessions.has(entry.id)}
                   favorites={favorites}
-                  onOpen={(e) => setEditing(editable(e))}
+                  importedSummary={importedSummaries.get(entry.id)}
+                  onOpen={openEntry}
                 />
               ))}
             </div>
           </section>
         ))
+      )}
+
+      {older > 0 && (
+        <Button variant="outline" className="min-h-11 w-full" onClick={() => setLimit((n) => n + LOG_PAGE_SIZE)}>
+          Show more
+          <span className="text-muted-foreground">({older} older)</span>
+        </Button>
+      )}
+
+      {viewing && (
+        <ImportedSessionSheet
+          key={viewing.id}
+          session={viewing}
+          open
+          onOpenChange={(isOpen) => !isOpen && setViewing(null)}
+        />
       )}
 
       {editing && (
