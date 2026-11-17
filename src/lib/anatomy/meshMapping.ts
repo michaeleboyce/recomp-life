@@ -121,13 +121,3 @@ export function classifyMuscleMesh(name: string, detail: string): MuscleId | nul
   if (split !== undefined) return split;
   return BY_NAME[name] ?? null;
 }
-
-/** Every model muscle name this file knows about (for tests). */
-export const KNOWN_MODEL_MUSCLES: readonly string[] = [
-  ...Object.keys(BY_NAME),
-  "Deltoid",
-  "Trapezius",
-  "Iliocostalis",
-  "Longissimus",
-  "Spinalis",
-];
