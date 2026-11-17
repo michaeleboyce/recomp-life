@@ -72,7 +72,7 @@ describe("LiftRows", () => {
     render(<LiftRows rows={buildLiftRows([home], [])} />);
     expect(screen.getByRole("link", { name: "Goblet squat" })).toHaveAttribute(
       "href",
-      "/progress/lift/squat?as=goblet_squat&from=today"
+      "/exercises/goblet_squat?from=today"
     );
     expect(screen.getByText("60")).toBeInTheDocument();
   });

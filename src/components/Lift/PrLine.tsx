@@ -84,6 +84,7 @@ export function HomeNextWeight({
   equipment,
   planWeight,
   backToPlan,
+  sets,
 }: {
   exerciseId: string;
   substituteId: string;
@@ -94,6 +95,8 @@ export function HomeNextWeight({
   planWeight?: number | null;
   /** The "Use 70" control shown beside the plan's weight. */
   backToPlan?: ReactNode;
+  /** The next session's sets, set by set, at the foot of the card. */
+  sets?: ReactNode;
 }) {
   const style = tierStyle(next.tier);
   const term = TIER_TERM[next.tier];
@@ -159,6 +162,7 @@ export function HomeNextWeight({
           <HomeLineEvidence ruleId={line.ruleId} />
         </div>
       )}
+      {sets}
     </div>
   );
 }

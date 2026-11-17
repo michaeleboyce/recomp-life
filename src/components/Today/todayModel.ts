@@ -90,21 +90,25 @@ export function photoPosition(exerciseId: string, where: "hero" | "card"): strin
 }
 
 /**
- * The lift page for a row on Today or Coming up: `as` names the home substitute the
- * row shows (the page keeps the program lift's history), `from` where to go back to.
+ * The page of the exercise performed (E10). A barbell program lift done as itself keeps
+ * its address under Progress (`/progress/lift/<id>`); every other exercise, a home
+ * version of a lift included, is `/exercises/<id>`. Both render the same exercise
+ * page. `from` says where back goes when there is no in-app history.
+ */
+export function exercisePageHref(exerciseId: string, options: { from?: "today" } = {}): string {
+  const query = options.from ? `?from=${options.from}` : "";
+  return isMainLift(exerciseId) ? `/progress/lift/${exerciseId}${query}` : `/exercises/${exerciseId}${query}`;
+}
+
+/**
+ * The page for a row on Today or Coming up: the page of the exercise performed, `as`
+ * (the home substitute the row shows) when there is one, else the lift's own.
  */
 export function liftPageHref(
   exerciseId: string,
   options: { as?: string; from?: "today" } = {}
 ): string {
-  // Only the four main lifts have a lift page; any other lift opens the page of the
-  // exercise actually shown (the home version when there is one).
-  if (!isMainLift(exerciseId)) return `/exercises/${options.as ?? exerciseId}`;
-  const params = new URLSearchParams();
-  if (options.as && options.as !== exerciseId) params.set("as", options.as);
-  if (options.from) params.set("from", options.from);
-  const query = params.toString();
-  return `/progress/lift/${exerciseId}${query ? `?${query}` : ""}`;
+  return exercisePageHref(options.as || exerciseId, options.from ? { from: options.from } : {});
 }
 
 /** A display name for use mid-sentence: "Goblet squat" -> "goblet squat", "DB bench press" stays. */

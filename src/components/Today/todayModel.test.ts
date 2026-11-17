@@ -9,6 +9,7 @@ import {
   dayName,
   displayLiftName,
   formatEyebrowDate,
+  exercisePageHref,
   liftPageHref,
   liftReason,
   nameInSentence,
@@ -67,18 +68,25 @@ describe("photoPosition", () => {
 });
 
 describe("liftPageHref", () => {
-  it("names the home substitute and where the page was opened from", () => {
+  it("opens a barbell lift done as itself under Progress, with where it was opened from", () => {
     expect(liftPageHref("squat")).toBe("/progress/lift/squat");
     expect(liftPageHref("squat", { from: "today" })).toBe("/progress/lift/squat?from=today");
-    expect(liftPageHref("squat", { as: "goblet_squat", from: "today" })).toBe(
-      "/progress/lift/squat?as=goblet_squat&from=today"
-    );
     expect(liftPageHref("squat", { as: "squat" })).toBe("/progress/lift/squat");
   });
 
-  it("opens the exercise page for a lift that has no lift page, such as a T3 row at home", () => {
-    expect(liftPageHref("lat_pulldown", { as: "db_row", from: "today" })).toBe("/exercises/db_row");
-    expect(liftPageHref("lat_pulldown", { from: "today" })).toBe("/exercises/lat_pulldown");
+  it("opens the page of the exercise performed: a home version is its own page", () => {
+    expect(liftPageHref("squat", { as: "goblet_squat", from: "today" })).toBe("/exercises/goblet_squat?from=today");
+    expect(liftPageHref("squat", { as: "bulgarian_split_squat" })).toBe("/exercises/bulgarian_split_squat");
+    expect(liftPageHref("lat_pulldown", { as: "db_row", from: "today" })).toBe("/exercises/db_row?from=today");
+    expect(liftPageHref("lat_pulldown", { from: "today" })).toBe("/exercises/lat_pulldown?from=today");
+    expect(liftPageHref("db_row")).toBe("/exercises/db_row");
+  });
+});
+
+describe("exercisePageHref", () => {
+  it("is the lift page for a barbell lift and the exercise page for anything else", () => {
+    expect(exercisePageHref("bench")).toBe("/progress/lift/bench");
+    expect(exercisePageHref("db_bench", { from: "today" })).toBe("/exercises/db_bench?from=today");
   });
 });
 

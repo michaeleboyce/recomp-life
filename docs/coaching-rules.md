@@ -102,7 +102,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Program rule
 - **Implemented in:** `src/lib/progression.ts` (`evaluateT1Progression`)
-- **Shown in:** `src/app/progress/upcoming/page.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/Today/AttentionList.tsx`
+- **Shown in:** `src/app/progress/upcoming/page.tsx`, `src/components/ExercisePage/NextSession.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Complete every set and the weight goes up; miss and the scheme changes
@@ -121,7 +121,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Program rule
 - **Implemented in:** `src/lib/progression.ts` (`evaluateT3Progression`), `src/lib/workout/completeWorkout.ts` (`computeCompletion`)
-- **Shown in:** `src/components/Log/WhatItDid.tsx`
+- **Shown in:** `src/components/Log/WhatItDid.tsx`, `src/components/ExercisePage/NextSession.tsx`, `src/components/ExercisePage/ExerciseStrength.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** T3 weight goes up when the last set reaches 25 reps
@@ -307,7 +307,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/e1rm.ts` (`calculateE1RM`)
-- **Shown in:** `src/app/1rm-calculator/page.tsx`, `src/components/Lift/PrLine.tsx`, `src/components/Today/AttentionList.tsx`
+- **Shown in:** `src/app/1rm-calculator/page.tsx`, `src/components/ExercisePage/ExerciseStrength.tsx`, `src/components/Lift/PrLine.tsx`, `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Estimated from your heavy AMRAP set; best read as a trend
@@ -329,7 +329,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/strength/coefficients.ts` (`TRANSFER_PRIORS`), `src/lib/strength/coefficients.ts` (`TRANSFER_RATIO`), `src/lib/strength/ratio.ts` (`pairSessions`), `src/lib/strength/ratio.ts` (`learnTransferRatio`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
-- **Shown in:** `src/components/Lift/PrLine.tsx`, `src/components/Import/StartingWeights.tsx`
+- **Shown in:** `src/components/Lift/PrLine.tsx`, `src/components/Import/StartingWeights.tsx`, `src/components/ExercisePage/CountsToward.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Home exercises convert to the barbell lift by a ratio learned from you
@@ -352,7 +352,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
-- **Shown in:** `src/components/Progress/MusclesTab.tsx`, `src/components/Lift/PrLine.tsx`
+- **Shown in:** `src/components/Progress/MusclesTab.tsx`, `src/components/Lift/PrLine.tsx`, `src/components/ExercisePage/CountsToward.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Barbell and home sessions pool into one estimate; home ones count less

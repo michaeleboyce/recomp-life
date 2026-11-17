@@ -82,15 +82,17 @@ function AdjustForm({
   onOpenChange,
   submit,
   weightHint,
+  initialTier = "T1",
 }: {
   exerciseId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   submit: ReturnType<typeof useCommitLogChange>["submit"];
   weightHint?: ReactNode;
+  initialTier?: AdjustTier;
 }) {
   const state = useLiftStates()?.find((s) => s.exerciseId === exerciseId);
-  const [tier, setTier] = useState<AdjustTier>("T1");
+  const [tier, setTier] = useState<AdjustTier>(initialTier);
   const now = current(state, tier);
   const [weight, setWeight] = useState<string | null>(null);
   const [stage, setStage] = useState<string | null>(null);
@@ -363,8 +365,11 @@ export function AdjustLiftSheet({
   onOpenChange,
   weightHint,
   home,
+  tier,
 }: {
   exerciseId: string;
+  /** The tier the form starts at (the next session's); T1 when not given. */
+  tier?: Tier;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   /** Says which weight the field edits. */
@@ -403,6 +408,7 @@ export function AdjustLiftSheet({
           onOpenChange={setOpen}
           submit={submit}
           weightHint={weightHint}
+          initialTier={tier === "T2" ? "T2" : tier === "T3" ? "T3" : "T1"}
         />
       )}
       {sheet}
@@ -411,9 +417,11 @@ export function AdjustLiftSheet({
 }
 
 /**
- * "Use 70": puts a home exercise whose weight was set by hand back on the plan's weight
- * (`planWeight`, from `homePlanWeight`), saved as a dated change with
- * BACK_TO_PLAN_NOTE so the override ends and the plan decides again.
+ * "Use 70": puts a weight set by hand back on the plan's weight, saved as a dated
+ * change with BACK_TO_PLAN_NOTE so the override ends and the plan decides again. With
+ * `substituteId` it is that home exercise's own weight (`planWeight` from
+ * `homePlanWeight`); without, the lift's own at the tier (`LiftState.t1PlannedWeight`
+ * and the like).
  *
  * @evidence target-evidence
  */
@@ -425,13 +433,13 @@ export function BackToPlanButton({
   unit,
 }: {
   exerciseId: string;
-  substituteId: string;
+  substituteId?: string;
   tier: "T1" | "T2" | "T3";
   planWeight: number;
   unit: string;
 }) {
   const { submit, busy, sheet } = useCommitLogChange();
-  const name = displayLiftName(substituteId);
+  const name = displayLiftName(substituteId ?? exerciseId);
   return (
     <>
       <Button

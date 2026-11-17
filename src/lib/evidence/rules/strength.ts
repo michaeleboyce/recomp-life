@@ -85,7 +85,11 @@ export const STRENGTH_RULES = {
       "src/lib/strength/ratio.ts#learnTransferRatio",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
-    surfaces: ["src/components/Lift/PrLine.tsx", "src/components/Import/StartingWeights.tsx"],
+    surfaces: [
+      "src/components/Lift/PrLine.tsx",
+      "src/components/Import/StartingWeights.tsx",
+      "src/components/ExercisePage/CountsToward.tsx",
+    ],
   },
   "strength-pooling": {
     area: "effort",
@@ -113,7 +117,11 @@ export const STRENGTH_RULES = {
       "src/lib/workout/startPlan.ts#planWorkoutStart",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
-    surfaces: ["src/components/Progress/MusclesTab.tsx", "src/components/Lift/PrLine.tsx"],
+    surfaces: [
+      "src/components/Progress/MusclesTab.tsx",
+      "src/components/Lift/PrLine.tsx",
+      "src/components/ExercisePage/CountsToward.tsx",
+    ],
   },
   "target-evidence": {
     area: "effort",

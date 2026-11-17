@@ -54,6 +54,7 @@ export const PROGRESSION_RULES = {
     implementedIn: ["src/lib/progression.ts#evaluateT1Progression"],
     surfaces: [
       "src/app/progress/upcoming/page.tsx",
+      "src/components/ExercisePage/NextSession.tsx",
       "src/components/Log/WhatItDid.tsx",
       "src/components/Today/AttentionList.tsx",
     ],
@@ -75,7 +76,11 @@ export const PROGRESSION_RULES = {
       "src/lib/progression.ts#evaluateT3Progression",
       "src/lib/workout/completeWorkout.ts#computeCompletion",
     ],
-    surfaces: ["src/components/Log/WhatItDid.tsx"],
+    surfaces: [
+      "src/components/Log/WhatItDid.tsx",
+      "src/components/ExercisePage/NextSession.tsx",
+      "src/components/ExercisePage/ExerciseStrength.tsx",
+    ],
   },
   "accessory-progression": {
     area: "progression",
