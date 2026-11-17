@@ -6,6 +6,7 @@ import { db } from "./local";
 import { initializeDatabase } from "./init";
 import { fullSync } from "@/lib/sync";
 import { FakeSyncServer, TEST_PASSPHRASE } from "@/lib/sync/testFakes";
+import { markRebuildNeeded, owedRebuild } from "@/lib/sync/rebuildMarker";
 import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES, startAdjustments } from "./seed";
 
 const LIFT_IDS = Object.keys(INITIAL_LIFT_STATES).sort();
@@ -253,5 +254,47 @@ describe("initializeDatabase", () => {
     } finally {
       db.userProfile.count = original;
     }
+  });
+
+  describe("a rebuild a sync left owing", () => {
+    it("runs at app start, so lift states made stale by a pull cut short are right again", async () => {
+      await initializeDatabase();
+      // A pulled page of the log was merged, then the app closed before its rebuild.
+      await db.liftStates.update("squat", { t1Weight: 999 });
+      await markRebuildNeeded(db);
+
+      await initializeDatabase();
+
+      expect((await db.liftStates.get("squat"))!.t1Weight).toBe(45);
+      expect((await checkDerived()).consistent).toBe(true);
+      expect(await owedRebuild(db)).toBeNull();
+    });
+
+    it("is not run when none is owed", async () => {
+      await initializeDatabase();
+      await db.liftStates.update("squat", { t1Weight: 999 });
+      await initializeDatabase();
+      expect((await db.liftStates.get("squat"))!.t1Weight).toBe(999);
+    });
+
+    it("a rebuild that fails at app start is logged, the app still starts, and the next start tries again", async () => {
+      await initializeDatabase();
+      await db.liftStates.update("squat", { t1Weight: 999 });
+      await markRebuildNeeded(db);
+      const failing = vi.spyOn(db.liftStates, "bulkPut").mockRejectedValueOnce(new Error("boom"));
+      const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        await expect(initializeDatabase()).resolves.toBeUndefined();
+        expect(logged).toHaveBeenCalled();
+        expect(await owedRebuild(db)).not.toBeNull();
+      } finally {
+        failing.mockRestore();
+        logged.mockRestore();
+      }
+
+      await initializeDatabase();
+      expect((await db.liftStates.get("squat"))!.t1Weight).toBe(45);
+      expect(await owedRebuild(db)).toBeNull();
+    });
   });
 });

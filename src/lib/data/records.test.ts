@@ -249,6 +249,8 @@ describe("clearAllData", () => {
       "painEntries",
       "readinessLogs",
       "runs",
+      // 2026-11-17: sync bookkeeping, the "rebuild needed" marker (database version 6).
+      "syncMeta",
       "userProfile",
       // 2026-11-15: the home exercises' derived states (database version 4).
       "variantStates",

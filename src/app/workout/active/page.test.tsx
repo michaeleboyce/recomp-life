@@ -331,6 +331,15 @@ describe("a weight per set and drop sets", () => {
   };
   const chips = () => screen.getByRole("region", { name: "Sets of Barbell Squat" });
   const logDrop = () => screen.getByRole("button", { name: /^Log drop/ });
+  const doneRest = () => screen.getByRole("button", { name: "Done · rest" });
+  /**
+   * Clicks a button of the drop screen once it is enabled: both stay disabled while
+   * the previous set is still being saved, which takes longer on a busy machine.
+   */
+  async function clickWhenEnabled(button: () => HTMLElement) {
+    await waitFor(() => expect(button()).toBeEnabled());
+    fireEvent.click(button());
+  }
 
   it("shows each set's own weight and plates, says which sets ramp, and logs each at its weight", async () => {
     await open({ planEdits: [RAMP_EDIT] });
@@ -377,7 +386,7 @@ describe("a weight per set and drop sets", () => {
     fireEvent.click(screen.getByRole("button", { name: "5 lbs heavier" }));
     expect(screen.getByTestId("weight")).toHaveTextContent("155");
     fireEvent.click(screen.getByRole("button", { name: "One more rep" }));
-    fireEvent.click(logDrop());
+    await clickWhenEnabled(logDrop);
     await waitFor(async () => expect(await loggedSets()).toHaveLength(2));
     await waitFor(() => expect(screen.getByTestId("drop-set")).toHaveTextContent("Drop 2"));
     expect(screen.queryByRole("timer")).toBeNull();
@@ -385,13 +394,12 @@ describe("a weight per set and drop sets", () => {
     // 155 x 0.8 = 124 -> 125.
     expect(screen.getByTestId("weight")).toHaveTextContent("125");
 
-    await waitFor(() => expect(logDrop()).toBeEnabled());
-    fireEvent.click(logDrop());
+    await clickWhenEnabled(logDrop);
     await waitFor(async () => expect(await loggedSets()).toHaveLength(3));
     await waitFor(() => expect(screen.getByTestId("drop-set")).toHaveTextContent("Drop 3"));
     expect(screen.queryByRole("timer")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Done · rest" }));
+    await clickWhenEnabled(doneRest);
     const rest = await screen.findByRole("timer");
     expect(rest).toHaveTextContent("3:30");
     const sets = await loggedSets();
@@ -412,9 +420,9 @@ describe("a weight per set and drop sets", () => {
     fireEvent.click(
       await within(await screen.findByRole("timer")).findByRole("button", { name: "Drop to 150 lbs" })
     );
-    fireEvent.click(logDrop());
+    await clickWhenEnabled(logDrop);
     await waitFor(async () => expect(await loggedSets()).toHaveLength(2));
-    fireEvent.click(await screen.findByRole("button", { name: "Done · rest" }));
+    await clickWhenEnabled(doneRest);
     fireEvent.click(within(await screen.findByRole("timer")).getByRole("button", { name: "Skip rest" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Workout overview" }));

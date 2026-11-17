@@ -48,6 +48,18 @@ export interface Stamped {
   externalId?: string;
 }
 
+/**
+ * A row of this device's own sync bookkeeping (the `syncMeta` table): local only, never
+ * synced or backed up. Today only the "rebuild needed" marker (src/lib/sync/rebuildMarker.ts).
+ */
+export interface SyncMetaRow {
+  key: string;
+  /** New on every write, so a reader can tell whether the row changed since it looked. */
+  token: string;
+  /** When it was written (epoch ms). */
+  at: number;
+}
+
 /** Where a log row came from. Absent means the user entered it by hand. */
 /** Where a row came from: entered by hand, Apple Health, or another app's export ("import", the app in `sourceName`). */
 export type RecordSource = "manual" | "apple_health" | "import";

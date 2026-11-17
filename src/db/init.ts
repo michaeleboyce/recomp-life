@@ -1,5 +1,6 @@
 import { applyRebuild, rebuildTables } from '@/lib/data/derived';
 import { resetPullState } from '@/lib/sync/pullState';
+import { rebuildIfNeeded } from '@/lib/sync/rebuildMarker';
 import { PROFILE_ID } from '@/lib/sync/registry';
 import { db, dropLegacyDatabase } from './local';
 import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES, SEED_STAMP, startAdjustments } from './seed';
@@ -13,11 +14,23 @@ export function initializeDatabase(): Promise<void> {
   if (!inFlight) {
     // Best effort and not awaited: the old database must never hold up the app.
     void dropLegacyDatabase();
-    inFlight = seed().finally(() => {
-      inFlight = null;
-    });
+    inFlight = seed()
+      .then(finishOwedRebuild)
+      .finally(() => {
+        inFlight = null;
+      });
   }
   return inFlight;
+}
+
+/**
+ * Runs a rebuild a sync left owing (its pull cut short by a closed app, or its rebuild
+ * failed), so no screen shows lift states from before the pulled log. A failure is
+ * logged, never thrown: the app still starts, and the next sync or start tries again.
+ */
+async function finishOwedRebuild(): Promise<void> {
+  const owed = await rebuildIfNeeded(db);
+  if (owed.error) console.error('Rebuilding after an unfinished sync failed:', owed.error);
 }
 
 /**

@@ -3,6 +3,7 @@
 // the real routes do: last write wins by clientId per table, soft-deleted rows kept,
 // the profile forced to PROFILE_ID. Import "fake-indexeddb/auto" before using it.
 import Dexie from "dexie";
+import { SYNC_META_TABLE } from "./rebuildMarker";
 import { PROFILE_ID, SYNC_REGISTRY, getSyncTable } from "./registry";
 import {
   MAX_CLOCK_SKEW_MS,
@@ -15,12 +16,16 @@ import {
   type WireRow,
 } from "./wire";
 
-/** A device database holding only the registry tables (primary key id, clientId index). */
+/**
+ * A device database holding the registry tables (primary key id, clientId index) and
+ * the sync bookkeeping table that holds the "rebuild needed" marker.
+ */
 export function makeDeviceDb(name: string): Dexie {
   const database = new Dexie(name);
-  database.version(1).stores(
-    Object.fromEntries(SYNC_REGISTRY.map((def) => [def.name, "id, clientId"]))
-  );
+  database.version(1).stores({
+    ...Object.fromEntries(SYNC_REGISTRY.map((def) => [def.name, "id, clientId"])),
+    [SYNC_META_TABLE]: "key",
+  });
   return database;
 }
 
