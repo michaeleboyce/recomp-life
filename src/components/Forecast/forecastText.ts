@@ -12,6 +12,7 @@ import {
   type ScoredForecast,
   type TrackRecord,
 } from "@/lib/forecast";
+import { plural } from "@/lib/text";
 import type { EvidenceStrength, Forecast, ForecastBasis, ForecastKind } from "@/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -259,7 +260,6 @@ const str = (forecast: Forecast, key: string): string | null => {
   return typeof v === "string" && v.length > 0 ? v : null;
 };
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 const REGIME_WORDS: Record<string, string> = {
   "stage-change": "a stage change",

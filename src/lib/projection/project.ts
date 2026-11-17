@@ -4,6 +4,7 @@
 // package); the constants defined here are guards and windows, not model inputs.
 import type { RuleId } from "@/lib/evidence";
 import type { Point } from "@/lib/metrics/types";
+import { plural } from "@/lib/text";
 import type { TrainingPhase } from "@/types";
 import type { ProjectionBaseline } from "./baseline";
 import { PROJECTION_COEFFICIENTS } from "./coefficients";
@@ -162,7 +163,7 @@ const times = (multiplier: number) => `x${multiplier.toFixed(2)}`;
 /** "1 week", "3 weeks" (to the nearest whole week, at least 1). */
 function weeksPhrase(weeks: number): string {
   const n = Math.max(1, Math.round(weeks));
-  return `${n} week${n === 1 ? "" : "s"}`;
+  return plural(n, "week");
 }
 
 /**

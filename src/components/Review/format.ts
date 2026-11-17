@@ -7,11 +7,6 @@ export const DASH = "—";
 export const lbs = (v: number) => formatNumber(v);
 export const whole = formatWhole;
 
-/** "1 session", "3 sessions". */
-export function plural(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? "" : "s"}`;
-}
-
 /** "3 mi · 30 min", or "30 min" without distance. */
 export function cardioLine(miles: number, minutes: number): string {
   const time = `${formatNumber(minutes, 0)} min`;

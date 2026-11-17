@@ -22,6 +22,7 @@ import { TrainingLocationRow } from "@/components/More/TrainingLocationRow";
 import { useHasSyncKey } from "@/components/More/useHasSyncKey";
 import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
 import { useFavoriteWorkouts, useNextWorkout, useSettings } from "@/hooks";
+import { plural } from "@/lib/text";
 import packageJson from "../../../package.json";
 
 const PHASE_LABEL = { cutting: "Cutting", maintaining: "Maintaining", bulking: "Bulking" } as const;
@@ -55,7 +56,7 @@ export default function MorePage() {
               ? "Saved workouts you can start again"
               : favorites.length === 0
                 ? "None saved yet"
-                : `${favorites.length} saved workout${favorites.length === 1 ? "" : "s"}`
+                : plural(favorites.length, "saved workout")
           }
           href="/favorites"
         />
