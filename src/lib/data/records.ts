@@ -22,15 +22,39 @@ import { resetPullState } from "@/lib/sync/pullState";
 
 type NewRecord<T> = Omit<T, "id" | "clientId" | "synced" | "updatedAt" | "deletedAt">;
 
+/**
+ * The single profile. Rejects when there is none (the database has not been seeded),
+ * so no write is ever made against the defaults. Call it inside the transaction that
+ * writes the profile.
+ */
+export async function requireProfile(): Promise<UserProfile> {
+  const profile = await db.userProfile.toCollection().first();
+  if (!profile) {
+    throw new Error("No user profile: the database has not been initialised");
+  }
+  return profile;
+}
+
+/**
+ * The one write of the profile's settings: replaces them with `settings`, stamps the
+ * profile and marks it unsynced. Joins the caller's transaction, which must include
+ * `db.userProfile` and must have read `profile` itself (`requireProfile`), so the
+ * read-modify-write never overwrites another tab's change unseen.
+ */
+export async function writeSettings(
+  profile: UserProfile,
+  settings: UserSettings,
+  now: number = Date.now()
+): Promise<void> {
+  await db.userProfile.update(profile.id, { settings, ...editStamps(profile, now) });
+}
+
 /** Reads the single profile and applies `change` to it, in one transaction. */
 async function modifyProfile(
   change: (profile: UserProfile) => Partial<UserProfile>
 ): Promise<void> {
   await db.transaction("rw", db.userProfile, async () => {
-    const profile = await db.userProfile.toCollection().first();
-    if (!profile) {
-      throw new Error("No user profile: the database has not been initialised");
-    }
+    const profile = await requireProfile();
     await db.userProfile.update(profile.id, { ...change(profile), ...editStamps(profile) });
   });
 }
@@ -114,12 +138,9 @@ export async function updateSettings(
   now: number = Date.now()
 ): Promise<void> {
   await db.transaction("rw", [db.userProfile, db.coachEvents], async () => {
-    const profile = await db.userProfile.toCollection().first();
-    if (!profile) {
-      throw new Error("No user profile: the database has not been initialised");
-    }
+    const profile = await requireProfile();
     const settings = { ...profile.settings, ...patch };
-    await db.userProfile.update(profile.id, { settings, ...editStamps(profile, now) });
+    await writeSettings(profile, settings, now);
 
     try {
       const event = phaseChangeEvent(profile.settings.trainingPhase, settings.trainingPhase);
