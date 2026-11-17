@@ -4,6 +4,7 @@ import {
   applyNextSetPlans,
   consumeNextSetPlans,
   nextSetPlanEdits,
+  isSetPlanCurrent,
   nextSetPlanKey,
   withNextSetPlan,
 } from "./nextSetPlans";
@@ -25,7 +26,8 @@ function planOf(exerciseId: string, liftId: string, tier: NextSetPlan["tier"], s
     liftId,
     tier,
     sets,
-    planSets: sets.map((s) => ({ ...s, weight: 190 })),
+    // No plan sets: taken as current. The staleness tests set their own.
+    planSets: [],
     createdAt: "2026-11-17T09:00:00.000Z",
   };
 }
@@ -186,5 +188,25 @@ describe("withNextSetPlan", () => {
     const removed = withNextSetPlan(both, key, null);
     expect(removed).toEqual({ "ohp|T1": other });
     expect(both[key]).toBe(plan);
+  });
+});
+
+describe("isSetPlanCurrent", () => {
+  const entry = makeEntry({ exerciseId: "bench", tier: "T2", targetSets: 3, targetReps: 10, weight: 100, isAMRAP: false });
+  const madeAgainst = (weight: number): NextSetPlan => ({
+    ...planOf("bench", "bench", "T2", [{ weight: 95, reps: 10 }, { weight: 100, reps: 10 }, { weight: 105, reps: 10 }]),
+    planSets: Array.from({ length: 3 }, () => ({ weight, reps: 10 })),
+  });
+
+  it("is current while the plan is still what it was made against", () => {
+    expect(isSetPlanCurrent(entry, madeAgainst(100))).toBe(true);
+    expect(nextSetPlanEdits([entry], { [nextSetPlanKey("bench", "T2")]: madeAgainst(100) })).toHaveLength(1);
+  });
+
+  it("is stale once the plan has moved, and is then left out", () => {
+    expect(isSetPlanCurrent(entry, madeAgainst(95))).toBe(false);
+    expect(nextSetPlanEdits([entry], { [nextSetPlanKey("bench", "T2")]: madeAgainst(95) })).toEqual([]);
+    const restaged = { ...entry, targetReps: 8 };
+    expect(isSetPlanCurrent(restaged, madeAgainst(100))).toBe(false);
   });
 });

@@ -16,7 +16,7 @@ const SETS: PlannedSet[] = [
 ];
 
 function setPlan(exerciseId: string, liftId: string, tier: NextSetPlan["tier"], sets = SETS): NextSetPlan {
-  return { exerciseId, liftId, tier, sets, planSets: sets.map((s) => ({ ...s, weight: 190 })), createdAt: "2026-11-17T09:00:00.000Z" };
+  return { exerciseId, liftId, tier, sets, planSets: [], createdAt: "2026-11-17T09:00:00.000Z" };
 }
 
 const SQUAT = { "squat|T1": setPlan("squat", "squat", "T1") };

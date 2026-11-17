@@ -666,7 +666,7 @@ describe("next-session set plans (E6)", () => {
     liftId: "squat",
     tier: "T1" as const,
     sets: SETS,
-    planSets: SETS.map((s) => ({ ...s, weight: 190 })),
+    planSets: [], // taken as current (see isSetPlanCurrent)
     createdAt: "2026-11-17T09:00:00.000Z",
   };
   const squat = (hook: Awaited<ReturnType<typeof mount>>) =>
