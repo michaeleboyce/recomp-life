@@ -3,6 +3,7 @@ import { getNextWorkoutId } from "@/lib/workoutTemplates";
 import type {
   EquipmentProfile,
   LiftState,
+  NextSetPlan,
   SetLog,
   Tier,
   UserSettings,
@@ -14,6 +15,7 @@ import type {
 import { buildWorkoutPlan, describeNextWorkout } from "./buildPlan";
 import { computeCompletion } from "./completeWorkout";
 import { createSetLog } from "./logSet";
+import { nextSetPlanKey } from "./nextSetPlans";
 import { resolveReentry } from "./reentry";
 import type { WorkoutPlan } from "./types";
 
@@ -66,6 +68,25 @@ export interface ProjectUpcomingInput {
    * projected workouts then follow from those states.
    */
   reentry?: boolean;
+  /**
+   * Next-session set plans (`UserSettings.nextSetPlans`, E6): each applies to the first
+   * coming workout with that exercise performed at that tier, and is used up there.
+   */
+  nextSetPlans?: Readonly<Record<string, NextSetPlan>>;
+}
+
+/** `plans` without those `plan` uses (its working entries' exercise performed and tier). */
+function withoutPlansUsedBy(
+  plans: Readonly<Record<string, NextSetPlan>> | undefined,
+  plan: WorkoutPlan
+): Record<string, NextSetPlan> | undefined {
+  if (!plans) return undefined;
+  const used = new Set(
+    plan
+      .filter((e) => !e.isWarmUp)
+      .map((e) => nextSetPlanKey(e.substituteExerciseId ?? e.exerciseId, e.tier))
+  );
+  return Object.fromEntries(Object.entries(plans).filter(([key]) => !used.has(key)));
 }
 
 export interface SimulateCompletedWorkoutInput {
@@ -209,8 +230,10 @@ export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWo
       ...planOptions,
       variantStates: resolved?.variantStates ?? input.variantStates,
       ...(resolved ? { reentries: resolved.reentries } : {}),
+      ...(input.nextSetPlans ? { nextSetPlans: input.nextSetPlans } : {}),
     },
   });
+  let setPlans = withoutPlansUsedBy(input.nextSetPlans, first.plan);
 
   const advanced = new Set<string>();
   const result: UpcomingWorkout[] = [
@@ -244,7 +267,14 @@ export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWo
     const templateId = getNextWorkoutId(previous.templateId);
     const template = templates[templateId];
     if (!template) throw new Error(`Workout template not found: ${templateId}`);
-    const plan = buildWorkoutPlan({ ...planOptions, template, liftStates, variantStates });
+    const plan = buildWorkoutPlan({
+      ...planOptions,
+      template,
+      liftStates,
+      variantStates,
+      ...(setPlans ? { nextSetPlans: setPlans } : {}),
+    });
+    setPlans = withoutPlansUsedBy(setPlans, plan);
     result.push({ templateId, template, plan, entries: toEntries(plan, advanced), projected: true });
     previous = { templateId, template, plan };
   }

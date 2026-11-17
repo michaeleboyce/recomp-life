@@ -39,6 +39,7 @@ import {
   writeSessionForecasts,
 } from "./forecasts";
 import { softDelete } from "./logEdits";
+import { spendNextSetPlans } from "./nextSetPlans";
 import { editStamps, newRowStamps } from "./stamp";
 
 export interface StartWorkoutInput {
@@ -233,7 +234,8 @@ export async function appendSet(workoutId: string, set: SetLog): Promise<void> {
 
 /**
  * Marks the workout finished, stores the settings progression depends on
- * (`completionContext`) and runs the rebuild, all in one transaction. Returns every
+ * (`completionContext`), runs the rebuild and uses up the next-session set plans it
+ * logged (`spendNextSetPlans`), all in one transaction. Returns every
  * lift state as it stands afterwards.
  *
  * After the rebuild, the estimated-max forecast for each lift just trained is written
@@ -267,6 +269,9 @@ export async function finishWorkout(
     });
 
     await applyRebuild();
+    // The next-session set plans this workout logged are used up (E6); a discarded
+    // workout never gets here, so its plans stay.
+    await spendNextSetPlans(workout);
     return {
       liftStates: await db.liftStates.toArray(),
       trained: [...new Set(excludeWarmUps(workout.sets ?? []).map((set) => set.exerciseId))],

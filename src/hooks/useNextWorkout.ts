@@ -15,7 +15,8 @@ import { useCompletedWorkouts, useLiftStates } from "./useWorkouts";
  * `showWarmUps` setting; no accessories. At home each lift is planned from its home
  * exercise's own weight (a first one seeded from the strength estimate, H3), and the
  * first session back at a location takes its re-entry weight (H6), exactly as the
- * Ready screen plans it.
+ * Ready screen plans it. Next-session set plans (`settings.nextSetPlans`, E6) give
+ * their entries their per-set weights.
  */
 export function useNextWorkout(location?: WorkoutLocation): NextWorkoutDescription | undefined {
   const completedWorkouts = useCompletedWorkouts();
@@ -47,6 +48,10 @@ export function useNextWorkout(location?: WorkoutLocation): NextWorkoutDescripti
         selectedAccessories: [],
         variantStates,
         strengthSets,
+        // Per-set weights set on an exercise's page for its next session (E6).
+        ...(settings.nextSetPlans && Object.keys(settings.nextSetPlans).length > 0
+          ? { nextSetPlans: settings.nextSetPlans }
+          : {}),
       },
       reentry: true,
     });

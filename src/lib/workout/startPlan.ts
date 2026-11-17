@@ -1,8 +1,9 @@
 // What a session about to start plans and stores: the plan, the program's prescription
 // for it, and the states both are built from, after re-entry. Pure.
-import type { PrescribedEntry } from "@/types";
+import type { PlanEdit, PrescribedEntry } from "@/types";
 import { buildWorkoutPlan } from "./buildPlan";
-import { prescribedFor } from "./planEdits";
+import { nextSetPlanEdits } from "./nextSetPlans";
+import { applyPlanEdits, prescribedFor } from "./planEdits";
 import { resolveReentry, type ReentryResolution } from "./reentry";
 import type { BuildPlanInput, WorkoutPlan } from "./types";
 
@@ -15,6 +16,12 @@ export interface WorkoutStartPlan extends ReentryResolution {
    * prescription (seeded or re-entered as the plan has it).
    */
   prescribed: PrescribedEntry[];
+  /**
+   * The `setWeights` edits the next-session set plans gave (E6), in the order applied
+   * (before the user's edits). Saved in the session's `planEdits` ahead of the user's,
+   * so the active workout and the rebuild plan the same sets. Empty without set plans.
+   */
+  nextSetPlanEdits: PlanEdit[];
 }
 
 /**
@@ -38,12 +45,18 @@ export function planWorkoutStart(input: Omit<BuildPlanInput, "reentries">): Work
     ...(strengthSets ? { strengthSets } : {}),
     ...(overrides ? { overrides } : {}),
   });
-  const plan = buildWorkoutPlan({
+  // The program's plan first, so the set plans are matched on the entries as planned.
+  const base = buildWorkoutPlan({
     ...input,
     liftStates: resolved.liftStates,
     variantStates: resolved.variantStates,
     reentries: resolved.reentries,
+    edits: undefined,
+    nextSetPlans: undefined,
   });
+  const setPlanEdits = nextSetPlanEdits(base, input.nextSetPlans);
+  const edits = [...setPlanEdits, ...(input.edits ?? [])];
+  const plan = edits.length ? applyPlanEdits(base, edits) : base;
   const prescribed = prescribedFor(
     template,
     resolved.liftStates,
@@ -56,5 +69,5 @@ export function planWorkoutStart(input: Omit<BuildPlanInput, "reentries">): Work
         }
       : undefined
   );
-  return { ...resolved, plan, prescribed };
+  return { ...resolved, plan, prescribed, nextSetPlanEdits: setPlanEdits };
 }
