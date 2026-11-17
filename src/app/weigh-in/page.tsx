@@ -51,6 +51,8 @@ function WeighInScreen() {
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(getDefaultTimeOfDay());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // When the screen opened, read once.
+  const [openedAt] = useState(() => Date.now());
 
   const bodyweightLog = useBodyweightLog();
   // The same weekly rate Today shows.
@@ -94,9 +96,10 @@ function WeighInScreen() {
       : null;
 
   // Rate of change per week from the shared metric, and not when it is out of date
+  // (judged against when the screen opened: rendering never reads the clock).
   const latestPoint = rate?.full.points.at(-1);
   const trendPerWeek =
-    latestPoint && Date.now() - latestPoint.t <= STALE_WEIGH_IN_DAYS * 86_400_000
+    latestPoint && openedAt - latestPoint.t <= STALE_WEIGH_IN_DAYS * 86_400_000
       ? latestPoint.v
       : null;
 

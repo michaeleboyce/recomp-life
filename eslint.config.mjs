@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored, minified Draco decoder (three.js) served as-is for the anatomy models.
+    "public/draco/**",
+    // The built web app that `npm run build:native` copies into the iPhone project.
+    "ios/App/App/public/**",
+    // Other git worktrees live here; they are linted from their own checkouts.
+    ".claude/**",
   ]),
 ]);
 

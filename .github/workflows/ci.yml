@@ -1,0 +1,44 @@
+# Type-checking, lint and the test suite on every push to main and every pull request.
+# No secrets: nothing here connects to a database or to the sync server.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Types, lint and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # src/db/drizzle.ts builds its Neon client when imported; a placeholder address
+      # is enough because no test connects to it.
+      DATABASE_URL: postgres://dummy:dummy@localhost:5432/dummy
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint .
+
+      - name: Tests
+        run: npx vitest run
