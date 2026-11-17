@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-41 active rules, 5 planned rules, 42 sources. Last reviewed against the research: November 2026.
+42 active rules, 4 planned rules, 42 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -39,7 +39,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `transfer-ratio` | Effort and estimates | Active | Limited evidence | Saeterbakken 2011, Saeterbakken 2013, Speirs 2016 |
 | `strength-pooling` | Effort and estimates | Active | Coaching heuristic | none |
 | `drop-set-evidence` | Effort and estimates | Active | Limited evidence | Havers 2026, Sødal 2023 |
-| `import-effort-words` | Effort and estimates | Planned | Coaching heuristic | none |
+| `import-effort-words` | Effort and estimates | Active | Coaching heuristic | none |
 | `rest-heavy` | Rest between sets | Active | Moderate evidence | Grgic 2018, Singer 2024 |
 | `rest-light` | Rest between sets | Active | Moderate evidence | Singer 2024 |
 | `rest-cut-bonus` | Rest between sets | Active | Coaching heuristic | none |
@@ -389,9 +389,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How are effort words from other apps read?
 
 - **Rule id:** `import-effort-words`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/import/evidence.ts` (`EFFORT_WORD_RPE`), `src/lib/import/evidence.ts` (`effortRpe`), `src/lib/import/evidence.ts` (`importedSessionStrengthSets`)
+- **Shown in:** `src/components/ImportedHistory/ImportedSessionSheet.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** An imported set's effort word becomes an approximate RPE
@@ -401,8 +402,6 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Why.** An estimated max from a set depends on how close to failure it went. The other apps record that in words, not reps, so the words are mapped to the nearest RPE that matches their usual meaning, and a set with no word is read the cautious way.
 
 **Limits.** The apps do not say what their words mean in reps; the mapping is this app's reading of them, not a research finding. Imported sets with these words also count less as they age, like any other session.
-
-**Before this is switched on.** Switch on when the import screen (src/components/Import) says how the file's effort words are read, with an evidence line.
 
 **Sources.** None: this is a coaching convention with no direct research.
 
@@ -1100,6 +1099,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **17 November 2026** — `import-effort-words` (How are effort words from other apps read?): Switched on: an imported session's detail, opened from the Log or a lift's session list, shows each set's effort word with the approximate RPE it is read as. Sources: .
 - **16 November 2026** — `home-progression` (What does a home session do to your weights?): Switched on: the home lift page cites it for a home exercise's own weight, and the Log's "What it did" and the workout summary cite it for a home session's outcome instead of the plain GZCLP rule. Sources: .
 - **16 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): Switched on: Today shows it on a home lift held at your heaviest dumbbell, beside what a pass does there; the home lift page, "What it did" and the workout summary cite it when the cap policy acted. Sources: .
 - **16 November 2026** — `transfer-ratio` (How does a home exercise count toward a barbell lift?): Switched on: the home lift page cites it for a home exercise's first weight, and the import screen for the home starting weights it suggests. Sources: Saeterbakken 2011, Saeterbakken 2013, Speirs 2016.

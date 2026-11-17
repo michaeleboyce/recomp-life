@@ -139,7 +139,7 @@ export const STRENGTH_RULES = {
   },
   "import-effort-words": {
     area: "effort",
-    status: "planned",
+    status: "active",
     title: "How are effort words from other apps read?",
     summary: "An imported set's effort word becomes an approximate RPE",
     appBehavior: `Sets imported from another app can carry an effort word. When those sets feed the strength estimate, each word is read as an approximate RPE: ${EFFORT_WORDS}. The reps left in reserve are then 10 minus that RPE, at most ${E1RM_MAX_REPS_IN_RESERVE}, as for an RPE you log yourself: a set marked Easy counts as ${10 - easyRpe} reps short of failure. A set with no word, or a word not in the list, is read as taken to its limit, which gives the lower estimate. Warm-ups give no estimate, and a drop counts as drops do.`,
@@ -155,8 +155,6 @@ export const STRENGTH_RULES = {
       "src/lib/import/evidence.ts#effortRpe",
       "src/lib/import/evidence.ts#importedSessionStrengthSets",
     ],
-    surfaces: [],
-    activationNotes:
-      "Switch on when the import screen (src/components/Import) says how the file's effort words are read, with an evidence line.",
+    surfaces: ["src/components/ImportedHistory/ImportedSessionSheet.tsx"],
   },
 } as const satisfies Record<string, EvidenceRule<SourceId>>;
