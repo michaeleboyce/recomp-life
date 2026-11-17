@@ -6,7 +6,7 @@ import {
   summarizeScenario,
   type ProjectionBaseline,
 } from "./index";
-import { MS_PER_WEEK } from "./trend";
+import { WEEK_MS } from "@/lib/dates";
 
 const NOW = new Date(2026, 10, 12, 18);
 
@@ -23,7 +23,7 @@ const baseline: ProjectionBaseline = {
 
 function weekly(values: number[], lastWeeksAgo = 0): Point[] {
   return values.map((v, i) => ({
-    t: NOW.getTime() - (lastWeeksAgo + values.length - 1 - i) * MS_PER_WEEK,
+    t: NOW.getTime() - (lastWeeksAgo + values.length - 1 - i) * WEEK_MS,
     v,
   }));
 }

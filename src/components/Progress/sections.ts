@@ -1,5 +1,6 @@
 // Rows for the Strength tab's Recovery and "Waiting for gym" sections. Pure.
 import { displayLiftName } from "@/components/Today/todayModel";
+import { DAY_MS } from "@/lib/dates";
 import { EXERCISES } from "@/lib/exercises";
 import { calculateRecoveryStatus, getMostRecent, lastTrainedDates } from "@/lib/recovery";
 import type { StrengthSet } from "@/lib/strength";
@@ -8,7 +9,6 @@ import { chooseHomeVariant } from "@/lib/workout/variant";
 import type { EquipmentProfile, LiftState, RecoveryStatus, TrainingPhase, VariantState } from "@/types";
 import { LIFT_NAMES, MAIN_LIFTS } from "./lifts";
 
-const DAY_MS = 86_400_000;
 
 /** The old Program page's fallback when no dumbbell limit is set. */
 export const DEFAULT_MAX_DUMBBELL = 50;

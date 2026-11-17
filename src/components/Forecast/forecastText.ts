@@ -12,10 +12,9 @@ import {
   type ScoredForecast,
   type TrackRecord,
 } from "@/lib/forecast";
+import { DAY_MS } from "@/lib/dates";
 import { plural } from "@/lib/text";
 import type { EvidenceStrength, Forecast, ForecastBasis, ForecastKind } from "@/types";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Below this many resolved results a share is not shown: the counts are. */
 export const MIN_RESULTS_TO_JUDGE = 10;

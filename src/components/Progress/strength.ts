@@ -6,11 +6,11 @@ import {
   type ImportedLiftIndex,
 } from "@/lib/import/history";
 import { computeMetric, inRange, summarize } from "@/lib/metrics";
+import { WEEK_MS } from "@/lib/dates";
 import type { MetricSource, Point, RangeKey, Series, SeriesSummary } from "@/lib/metrics/types";
 import type { LiftState } from "@/types";
 import { LIFT_NAMES, MAIN_LIFTS, type MainLiftId } from "./lifts";
 
-const WEEK_MS = 7 * 86_400_000;
 
 export interface TotalPoints {
   points: Point[];

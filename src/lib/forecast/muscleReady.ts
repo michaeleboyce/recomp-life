@@ -8,6 +8,7 @@
 // construction, and whether its last set met its own forecast is already scored, by the
 // reps forecast, which a short recovery does not enter. See the rule
 // `forecast-muscle-ready`.
+import { HOUR_MS } from "@/lib/dates";
 import { getMuscleLastTrained } from "@/lib/muscleLoad";
 import { MUSCLE_LABELS } from "@/lib/muscles";
 import { calculateRecoveryStatus, CUTTING_RECOVERY_BONUS_HOURS, RECOVERY_HOURS } from "@/lib/recovery";
@@ -15,7 +16,6 @@ import { getCountedExercise } from "@/lib/volumeTracking";
 import type { MuscleId, RecoveryStatus, TrainingPhase, WorkoutSession } from "@/types";
 import { finishedBy, toMs } from "./log";
 
-const HOUR_MS = 60 * 60 * 1000;
 
 export interface MuscleReadyTime {
   muscle: MuscleId;

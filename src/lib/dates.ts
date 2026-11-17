@@ -1,3 +1,7 @@
+export const HOUR_MS = 60 * 60 * 1000;
+export const DAY_MS = 24 * HOUR_MS;
+export const WEEK_MS = 7 * DAY_MS;
+
 /**
  * Whole calendar days from `from` to `to` in local time: the number of
  * midnights crossed, so 6pm yesterday to 1pm today is 1.
@@ -5,7 +9,7 @@
 export function calendarDaysBetween(from: Date, to: Date): number {
   const start = new Date(from.getFullYear(), from.getMonth(), from.getDate());
   const end = new Date(to.getFullYear(), to.getMonth(), to.getDate());
-  return Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+  return Math.round((end.getTime() - start.getTime()) / DAY_MS);
 }
 
 /** "Today", "Yesterday", "N days ago", or "Never" when there is no date. */

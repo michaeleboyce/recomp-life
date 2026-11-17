@@ -5,7 +5,8 @@ import type { Point } from "@/lib/metrics/types";
 import { PROJECTION_COEFFICIENTS as C } from "./coefficients";
 import { fitTrend, maxReliableWeeks, projectE1RM, type ProjectionBaseline } from "./index";
 import { accumulatedWeeks, MIN_RELIABLE_WEEKS } from "./project";
-import { MIN_TREND_POINTS, MS_PER_WEEK } from "./trend";
+import { WEEK_MS } from "@/lib/dates";
+import { MIN_TREND_POINTS } from "./trend";
 
 const NOW = new Date(2026, 10, 12, 18);
 
@@ -22,7 +23,7 @@ const baseline: ProjectionBaseline = {
 
 function weekly(values: number[]): Point[] {
   return values.map((v, i) => ({
-    t: NOW.getTime() - (values.length - 1 - i) * MS_PER_WEEK,
+    t: NOW.getTime() - (values.length - 1 - i) * WEEK_MS,
     v,
   }));
 }
@@ -181,7 +182,7 @@ describe("fitWindowWeeks", () => {
   });
 
   it("leaves out results older than the trend window", () => {
-    const old = weekly([150, 160, 170]).map((p) => ({ ...p, t: p.t - 40 * MS_PER_WEEK }));
+    const old = weekly([150, 160, 170]).map((p) => ({ ...p, t: p.t - 40 * WEEK_MS }));
     expect(project([...old, ...TEN_NOISY]).fitWindowWeeks).toBeCloseTo(9, 9);
   });
 

@@ -8,7 +8,8 @@ import { plural } from "@/lib/text";
 import type { TrainingPhase } from "@/types";
 import type { ProjectionBaseline } from "./baseline";
 import { PROJECTION_COEFFICIENTS } from "./coefficients";
-import { fitTrend, MIN_TREND_POINTS, MS_PER_WEEK, type TrendFit } from "./trend";
+import { WEEK_MS } from "@/lib/dates";
+import { fitTrend, MIN_TREND_POINTS, type TrendFit } from "./trend";
 
 /** Any field left out keeps the baseline value. */
 export type ProjectionScenario = Partial<
@@ -311,7 +312,7 @@ function recentWindow(
   );
   if (past.length === 0) return null;
   const latest = Math.max(...past.map((p) => p.t));
-  const windowStart = latest - TREND_WINDOW_WEEKS * MS_PER_WEEK;
+  const windowStart = latest - TREND_WINDOW_WEEKS * WEEK_MS;
   // Several results can share the latest timestamp: use their mean.
   const atLatest = past.filter((p) => p.t === latest);
   const latestValue = atLatest.reduce((sum, p) => sum + p.v, 0) / atLatest.length;
@@ -464,7 +465,7 @@ export function projectE1RM(input: {
   const recent = fitRecent(history, nowMs);
   if (!recent) return { ...insufficientData(), ...related };
   const { fit, latest, latestValue } = recent;
-  const lastResultWeeksAgo = Math.max(0, (nowMs - latest) / MS_PER_WEEK);
+  const lastResultWeeksAgo = Math.max(0, (nowMs - latest) / WEEK_MS);
   const stale = lastResultWeeksAgo > STALE_HISTORY_WEEKS;
 
   // A flat or falling trend has no personal rate to scale: hold it level and ignore
@@ -500,7 +501,7 @@ export function projectE1RM(input: {
       C.bandWidthSd * Math.hypot(levelTerm, rateTerm) * widening
     );
     points.push({
-      t: nowMs + week * MS_PER_WEEK,
+      t: nowMs + week * WEEK_MS,
       v: value,
       low: Math.max(0, value - halfWidth),
       high: value + halfWidth,

@@ -1,4 +1,5 @@
 // "Your own numbers" for a hard run or session the day before a leg workout. Pure.
+import { HOUR_MS } from "@/lib/dates";
 import { EXERCISES } from "@/lib/exercises";
 import { isLive, toMs } from "@/lib/forecast/log";
 import type { ActivityLog, RunLog } from "@/types";
@@ -13,7 +14,6 @@ import { EXPECTED_SENTENCE } from "./copy";
 import { compareStrata, rangeSentence } from "./stats";
 import type { PersonalEvidence, PersonalLog } from "./types";
 
-const HOUR_MS = 60 * 60 * 1000;
 
 /** A leg lift or the deadlift: the lifts the run rule checks. */
 export function isLowerBodyLift(exerciseId: string): boolean {

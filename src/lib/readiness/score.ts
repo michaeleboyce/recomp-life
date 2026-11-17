@@ -21,7 +21,7 @@ import {
   evaluateActivityImpact,
 } from "@/lib/activities";
 import { REGION_TARGETS, slugMuscles } from "@/lib/anatomy/regionMapping";
-import { calendarDaysBetween, formatDaysAgo } from "@/lib/dates";
+import { calendarDaysBetween, formatDaysAgo, HOUR_MS } from "@/lib/dates";
 import { EXERCISES } from "@/lib/exercises";
 import { REPS_MODEL } from "@/lib/forecast/coefficients";
 import { getMuscleLastTrained } from "@/lib/muscleLoad";
@@ -104,7 +104,6 @@ interface Factor {
   ruleId: RuleId;
 }
 
-const HOUR_MS = 3_600_000;
 const DEFAULT_PHASE: TrainingPhase = { mode: "maintaining" };
 
 type DateLike = Date | string | number;
