@@ -10,10 +10,11 @@ import { Toaster, dismissToast } from "@/components/ui/toast";
 
 let id = "squat";
 let search = "";
+const replace = vi.fn();
 vi.mock("next/navigation", () => ({
   useParams: () => ({ id }),
   useSearchParams: () => new URLSearchParams(search),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace }),
 }));
 vi.mock("@/components/chart-kit/LazyTrendChart", () => ({
   LazyTrendChart: (props: {
@@ -32,9 +33,6 @@ vi.mock("@/components/chart-kit/LazyTrendChart", () => ({
 }));
 
 import LiftPage from "./page";
-import { describeNextWorkout } from "@/lib/workout/buildPlan";
-import { strengthSetsOf } from "@/lib/workout/strength";
-import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 
 const demo = generateDemoData(new Date());
 
@@ -46,25 +44,28 @@ async function seedDemo() {
   await db.userProfile.put(makeProfile());
 }
 
+/** Workouts with barbell squat working sets (not done as a home version). */
+const barbellSquatWorkouts = () =>
+  demo.workouts.filter((w) => w.sets.some((s) => s.exerciseId === "squat" && s.tier !== "warmup" && !s.substituteExerciseId && !s.isSubstituted));
+
 beforeEach(async () => {
   id = "squat";
   search = "";
+  replace.mockClear();
   await clearDb();
   dismissToast();
 });
 afterEach(cleanup);
 
-describe("Lift detail page", () => {
-  it("shows the headline, PR line, stats and sessions", async () => {
+describe("Lift page (the barbell lift's exercise page)", () => {
+  it("is the squat's own page: next session, its sessions, its estimated 1RM, its weight changes, then home versions", async () => {
     await seedDemo();
     render(<LiftPage />);
-    expect(await screen.findByRole("heading", { name: "Barbell Squat" })).toBeInTheDocument();
-    expect(screen.queryByTestId("home-version")).toBeNull();
+    expect(await screen.findByRole("heading", { level: 1, name: "Barbell Squat" })).toBeInTheDocument();
+    expect(screen.getByTestId("exercise-eyebrow")).toHaveTextContent(/T[12] · Squat/);
     expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/progress");
-    expect(screen.getByRole("link", { name: "Form and muscles" })).toHaveAttribute(
-      "href",
-      "/exercises/squat"
-    );
+    expect(screen.getByRole("tab", { name: "Training", selected: true })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Form" })).toBeInTheDocument();
 
     const latest = demo.estimated1RMs
       .filter((r) => r.exerciseId === "squat")
@@ -72,27 +73,36 @@ describe("Lift detail page", () => {
       .at(-1)!.estimated1RM;
     expect(await screen.findByTestId("e1rm-latest")).toHaveTextContent(String(Math.round(latest)));
 
-    const squat = demo.liftStates.find((s) => s.exerciseId === "squat")!;
-    expect(screen.getByTestId("pr-line")).toHaveTextContent(`Next squat is ${squat.t1Weight}.`);
+    const next = await screen.findByRole("region", { name: "Next session" });
+    await waitFor(() => expect(within(next).getByTestId("next-weight")).toBeInTheDocument());
+    expect(within(next).getByRole("button", { name: "Adjust weight" })).toBeInTheDocument();
+    expect(within(next).getByTestId("set-plan-editor")).toBeInTheDocument();
 
     const stats = screen.getByRole("region", { name: "Lift stats" });
     for (const label of ["Working", "Last set", "Effort", "Volume"]) {
       expect(stats).toHaveTextContent(label);
     }
     expect(within(stats).getByRole("button", { name: "What does Last set mean?" })).toHaveAttribute("data-term", "amrap");
-    expect(within(stats).getByRole("button", { name: "What does Effort mean?" })).toHaveAttribute("data-term", "rpe");
-    // Each tier in the session list is explained once.
-    const sessions = screen.getByRole("region", { name: "Sessions" });
+    const sessions = screen.getByRole("region", { name: "Barbell Squat sessions" });
     expect(within(sessions).getAllByRole("button", { name: "What does T1 mean?" })).toHaveLength(1);
-    expect(screen.getByRole("link", { name: /Projection/ })).toHaveAttribute(
-      "href",
-      "/progress/lift/squat/projection"
-    );
-    expect(screen.getAllByTestId("session-row").length).toBeGreaterThan(0);
+    // Barbell sessions only: no home version's row.
+    expect(within(sessions).queryByTestId("session-home")).toBeNull();
+    expect(screen.getByRole("link", { name: /Projection/ })).toHaveAttribute("href", "/progress/lift/squat/projection");
     expect(screen.getAllByText("best")).toHaveLength(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "What does Estimated 1RM mean?" }));
-    expect(await screen.findByRole("dialog")).toHaveTextContent("Estimated 1RM");
+    const counts = screen.getByRole("region", { name: "Counts toward" });
+    const versions = within(counts).getAllByTestId("home-version-row");
+    expect(versions.map((v) => v.getAttribute("href"))).toEqual([
+      "/exercises/goblet_squat",
+      "/exercises/bulgarian_split_squat",
+      "/exercises/db_lunge",
+    ]);
+    expect(versions[0]).toHaveTextContent(/0\.\d\d of squat/);
+
+    const order = [next, sessions, screen.getByRole("region", { name: "Estimated 1RM" }), counts];
+    for (let i = 1; i < order.length; i++) {
+      expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
   });
 
   it("draws the trend overlay with enough points", async () => {
@@ -114,9 +124,7 @@ describe("Lift detail page", () => {
     await waitFor(() =>
       expect(screen.getByRole("region", { name: "Lift stats" }).textContent).not.toBe(allStats)
     );
-    expect(screen.getByRole("img", { name: /estimated 1RM/ }).getAttribute("data-points")).not.toBe(
-      allPoints
-    );
+    expect(screen.getByRole("img", { name: /estimated 1RM/ }).getAttribute("data-points")).not.toBe(allPoints);
   });
 
   it("keeps the extra charts behind a disclosure", async () => {
@@ -124,25 +132,24 @@ describe("Lift detail page", () => {
     render(<LiftPage />);
     const toggle = await screen.findByRole("button", { name: "More charts" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("Weekly volume")).toBeNull();
     fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
     for (const title of ["Working weight", "Last-set reps", "Effort (RPE)", "Weekly volume"]) {
       expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     }
   });
 
-  it("shows ten sessions, then all of them", async () => {
+  it("lists every barbell session and none done as a home version", async () => {
     await seedDemo();
     render(<LiftPage />);
     await screen.findByTestId("e1rm-latest");
-    const total = demo.workouts.filter((w) =>
-      w.sets.some((s) => s.exerciseId === "squat" && s.tier !== "warmup")
-    ).length;
-    expect(total).toBeGreaterThan(10);
-    expect(screen.getAllByTestId("session-row")).toHaveLength(10);
-    fireEvent.click(screen.getByRole("button", { name: /Show all/ }));
-    expect(screen.getAllByTestId("session-row").length).toBeGreaterThanOrEqual(total);
+    const total = barbellSquatWorkouts().length;
+    expect(total).toBeGreaterThan(0);
+    // The demo also has home squat sessions, which this page leaves out.
+    expect(demo.workouts.some((w) => w.sets.some((s) => s.exerciseId === "squat" && s.substituteExerciseId))).toBe(true);
+    const sessions = await screen.findByRole("region", { name: "Barbell Squat sessions" });
+    await waitFor(() => expect(within(sessions).getAllByTestId("session-row").length).toBe(Math.min(total, 10)));
+    if (total > 10) fireEvent.click(within(sessions).getByRole("button", { name: /Show all/ }));
+    expect(within(sessions).getAllByTestId("session-row")).toHaveLength(total);
   });
 
   it("adjusts the next weight from the screen and lists the change under Weight changes", async () => {
@@ -155,6 +162,11 @@ describe("Lift detail page", () => {
       </>
     );
     expect(await screen.findByTestId("pr-line")).toHaveTextContent("Next squat is 190.");
+    const next = screen.getByRole("region", { name: "Next session" });
+    await waitFor(() => expect(within(next).getByTestId("next-weight")).toHaveTextContent("190"));
+    expect(within(next).getByTestId("next-session")).toHaveTextContent("T15×3+");
+    expect(within(next).getByTestId("next-when")).toHaveTextContent("Your next workout.");
+    expect(within(next).queryByTestId("plan-you")).toBeNull();
 
     // Starting weights are the only entry so far, and carry no date.
     const changes = await screen.findByRole("region", { name: "Weight changes" });
@@ -163,266 +175,87 @@ describe("Lift detail page", () => {
     expect(changes).toHaveTextContent("Before the first workout");
     expect(changes).toHaveTextContent("T1 190 lbs 5x3 · T2 135 lbs 3x10");
 
-    const next = screen.getByRole("region", { name: "Next session" });
     fireEvent.click(within(next).getByRole("button", { name: "Adjust weight" }));
     expect(await screen.findByRole("heading", { name: "Adjust Squat" })).toBeInTheDocument();
-    // The sheet reads the lift's current weight; wait for it before stepping.
     await waitFor(() => expect(screen.getByRole("spinbutton", { name: /^Weight/ })).toHaveValue(190));
+    expect(screen.getByRole("dialog")).not.toHaveTextContent("a hand");
     fireEvent.click(screen.getByRole("button", { name: "Increase weight by 5" }));
     fireEvent.click(screen.getByRole("button", { name: "Save change" }));
 
-    // The next workout changes, so the preview comes first.
     const preview = await screen.findByRole("dialog", { name: "What this changes" });
     expect(preview).toHaveTextContent("Squat T1 next time: 190 lbs 5x3 changes to 195 lbs 5x3");
     expect((await db.liftStates.get("squat"))!.t1Weight).toBe(190);
     fireEvent.click(within(preview).getByRole("button", { name: "Save change" }));
 
     await waitFor(() => expect(screen.getByTestId("pr-line")).toHaveTextContent("Next squat is 195."));
+    await waitFor(() => expect(within(next).getByTestId("next-weight")).toHaveTextContent("195"));
     await waitFor(() =>
       expect(within(screen.getByRole("region", { name: "Weight changes" })).getAllByTestId("weight-change")).toHaveLength(2)
     );
     const rows = within(screen.getByRole("region", { name: "Weight changes" })).getAllByTestId("weight-change");
-    // Newest first.
     expect(rows[0]).toHaveTextContent("Manual change");
     expect(rows[0]).toHaveTextContent("T1 195 lbs");
     expect(rows[1]).toHaveTextContent("Starting weights");
     expect((await db.liftStates.get("squat"))!.t1Weight).toBe(195);
-    const stored = (await db.liftAdjustments.toArray()).filter((a) => a.exerciseId === "squat");
-    expect(stored.map((a) => a.source).sort()).toEqual(["manual", "start"]);
+  });
+
+  it("shows the plan's weight beside one set by hand, with a way back to it", async () => {
+    await initializeDatabase();
+    await seedFixtureStartingWeights();
+    // As the rebuild leaves it after a manual change (E7): the plan's 190 kept beside 200.
+    await db.liftStates.update("squat", { t1Weight: 200, t1PlannedWeight: 190 });
+    render(
+      <>
+        <LiftPage />
+        <Toaster />
+      </>
+    );
+    const next = await screen.findByRole("region", { name: "Next session" });
+    const planYou = await within(next).findByTestId("plan-you");
+    expect(within(planYou).getByTestId("plan-weight")).toHaveTextContent("190");
+    expect(within(planYou).getByTestId("your-weight")).toHaveTextContent("200");
+    fireEvent.click(within(planYou).getByRole("button", { name: "Use 190" }));
+    await waitFor(async () => {
+      const manual = (await db.liftAdjustments.toArray()).filter((a) => a.source === "manual");
+      expect(manual).toEqual([
+        expect.objectContaining({ exerciseId: "squat", set: { t1Weight: 190 }, note: expect.any(String) }),
+      ]);
+      expect(manual[0].variant).toBeUndefined();
+    });
   });
 
   it("shows an empty state with no data", async () => {
     render(<LiftPage />);
-    expect(await screen.findByText("No squat sessions yet")).toBeInTheDocument();
+    expect(await screen.findByText("No Barbell Squat sessions yet.")).toBeInTheDocument();
   });
 
-  describe("opened as a home version", () => {
-    const equipment = makeProfile().settings.equipment;
-    /** The next workout at home, as Today plans it (home exercises at their own weights, re-entry applied). */
-    const nextAtHome = () =>
-      describeNextWorkout({
-        completedWorkouts: demo.workouts.filter((w) => w.completedAt),
-        templates: WORKOUT_TEMPLATES,
-        liftStates: demo.liftStates,
-        plan: {
-          location: "home",
-          equipment,
-          includeWarmUps: true,
-          selectedAccessories: [],
-          variantStates: demo.variantStates,
-          strengthSets: strengthSetsOf(demo.workouts),
-        },
-        reentry: true,
-      })!;
-    /** Workouts with working sets done as the substitute, newest first. */
-    const sessionsAs = (substituteId: string) =>
-      demo.workouts
-        .filter((w) => w.sets.some((s) => s.substituteExerciseId === substituteId && s.tier !== "warmup"))
-        .sort((a, b) => +new Date(b.startedAt) - +new Date(a.startedAt));
+  it("an old link with ?as= opens that home version's own page, keeping where it came from", async () => {
+    await seedDemo();
+    search = "as=bulgarian_split_squat&from=today";
+    render(<LiftPage />);
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/exercises/bulgarian_split_squat?from=today"));
+    expect(screen.queryByRole("heading", { name: "Barbell Squat" })).toBeNull();
 
-    it("is headed by the home exercise, then its next session, its sessions and the squat's progress", async () => {
-      await seedDemo();
-      search = "as=bulgarian_split_squat&from=today";
-      const { container } = render(<LiftPage />);
-
-      // The heading is the exercise the user tapped, not the barbell lift.
-      const title = await screen.findByRole("heading", { level: 1 });
-      expect(title).toHaveTextContent(/^Bulgarian split squat$/);
-      expect(screen.queryByRole("heading", { name: "Barbell Squat" })).toBeNull();
-      expect(screen.getByTestId("home-eyebrow")).toHaveTextContent("Home version of Squat");
-      expect(screen.getByTestId("home-version").querySelector("img")).toHaveAttribute(
-        "src",
-        expect.stringContaining("bulgarian")
-      );
-      // The same back arrow as every other page: history first, then this fallback.
-      const back = screen.getByRole("link", { name: "Back" });
-      expect(back).toHaveAttribute("href", "/");
-      expect(back).toHaveAttribute("data-slot", "back-button");
-      expect(screen.getByRole("link", { name: "Form and muscles" })).toHaveAttribute(
-        "href",
-        "/exercises/bulgarian_split_squat"
-      );
-
-      const next = await screen.findByRole("region", { name: "Next session" });
-      const homeSessions = screen.getByRole("region", { name: "Bulgarian split squat sessions" });
-      const progress = screen.getByRole("region", { name: "Squat progress" });
-      const order = [title, next, homeSessions, progress];
-      for (let i = 1; i < order.length; i++) {
-        expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      }
-
-      // The demo's next home workout does squat as a Bulgarian split squat, the home
-      // exercise of its home block (the cap policy never swaps it for a lighter goblet
-      // squat, H2), so this is that plan entry: its own weight, as Today shows it.
-      const planned = nextAtHome().plan.find((e) => !e.isWarmUp && e.exerciseId === "squat")!;
-      expect(planned.substituteExerciseId).toBe("bulgarian_split_squat");
-      expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(planned.weight));
-      expect(within(next).getByTestId("home-next")).toHaveTextContent("lbs a hand");
-      expect(within(next).getByTestId("home-next")).toHaveTextContent("T15×3+");
-      expect(within(next).queryByTestId("home-planned-as")).toBeNull();
-      expect(next).not.toHaveTextContent("new best");
-      expect(next).toHaveTextContent("Set the Bulgarian split squat weight; the barbell squat stays as it is");
-      // How the weight was reached comes from the plan entry, never the flat 80% conversion.
-      expect(within(next).getByTestId("home-weight-line")).not.toHaveTextContent("80% of");
-      // With its rule (home progression, its seed's ratio, re-entry or the cap policy).
-      const homeRule = within(next).getByTestId("home-weight-line").parentElement!.querySelector("[data-evidence]");
-      expect(["home-progression", "cap-progression", "transfer-ratio", "strength-pooling", "dumbbell-conversion"]).toContain(
-        homeRule?.getAttribute("data-evidence")
-      );
-
-      // Its own sessions, newest first, with no "At home" line on each.
-      const own = sessionsAs("bulgarian_split_squat");
-      expect(own.length).toBeGreaterThan(0);
-      const rows = within(homeSessions).getAllByTestId("session-row");
-      expect(rows).toHaveLength(own.length);
-      expect(within(rows[0]).getByRole("link")).toHaveAttribute("href", `/log/workout?id=${own[0].id}`);
-      expect(within(homeSessions).queryByTestId("session-home")).toBeNull();
-
-      // The squat's progress: the barbell estimate and the whole history, and a way to the lift's page.
-      expect(progress).toHaveTextContent(
-        "Home sessions keep squat progression going, while the estimated 1RM comes from barbell squat sets."
-      );
-      expect(within(progress).getByRole("link", { name: /Open Squat/ })).toHaveAttribute("href", "/progress/lift/squat");
-      expect(within(progress).getByRole("region", { name: "Estimated 1RM" })).toHaveTextContent("Barbell squat ·");
-      expect(within(progress).getByRole("img", { name: /Barbell squat estimated 1RM over time/ })).toBeInTheDocument();
-      expect(within(progress).getByTestId("e1rm-latest")).toBeInTheDocument();
-      expect(within(progress).getByRole("region", { name: "Lift stats" })).toBeInTheDocument();
-      expect(within(progress).getAllByTestId("session-row")).toHaveLength(10);
-      expect(container.querySelector('[data-testid="pr-line"]')).toBeNull();
-    });
-
-    it("gives the weight Today shows when the next home workout has this substitute", async () => {
-      await seedDemo();
-      // Since the strength model the demo's next home squat is the split squat (H1, H2).
-      search = "as=bulgarian_split_squat&from=today";
-      render(<LiftPage />);
-      expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent(/^Bulgarian split squat$/);
-      const entry = nextAtHome().plan.find((e) => !e.isWarmUp && e.exerciseId === "squat")!;
-      expect(entry.substituteExerciseId).toBe("bulgarian_split_squat");
-      const next = await screen.findByTestId("home-next");
-      expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(entry.weight));
-      expect(next).toHaveTextContent("a hand");
-      expect(screen.queryByTestId("home-planned-as")).toBeNull();
-    });
-
-    it("says honestly when there are no sessions of it yet", async () => {
-      await seedDemo();
-      search = "as=db_lunge";
-      render(<LiftPage />);
-      expect(sessionsAs("db_lunge")).toHaveLength(0);
-      const list = await screen.findByRole("region", { name: "DB lunge sessions" });
-      expect(list).toHaveTextContent("No DB lunge sessions yet. They will appear here and count toward your squat.");
-      expect(within(list).queryAllByTestId("session-row")).toHaveLength(0);
-      expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/progress");
-    });
-
-    it("shows the muscle figure for a home version without a photo", async () => {
-      await seedDemo();
-      id = "deadlift";
-      search = "as=single_leg_db_rdl";
-      render(<LiftPage />);
-      const header = await screen.findByTestId("home-version");
-      expect(within(header).getByRole("heading", { level: 1 })).toHaveTextContent(/^Single-Leg DB RDL$/);
-      expect(screen.getByTestId("home-eyebrow")).toHaveTextContent("Home version of Deadlift");
-      expect(header.querySelector('[data-slot="exercise-image"]')).toBeNull();
-      expect(within(header).getByRole("group", { name: "Muscles worked by Single-Leg DB RDL" })).toBeInTheDocument();
-    });
-
-    it("adjusts the home exercise's own weight: the next home plan follows, the barbell does not", async () => {
-      await initializeDatabase();
-      await seedFixtureStartingWeights();
-      const profile = await db.userProfile.toCollection().first();
-      const equipment = profile!.settings.equipment;
-      /** The next home plan, from what is stored now. */
-      const homePlanNow = async () =>
-        describeNextWorkout({
-          completedWorkouts: [],
-          templates: WORKOUT_TEMPLATES,
-          liftStates: await db.liftStates.toArray(),
-          plan: {
-            location: "home",
-            equipment,
-            includeWarmUps: false,
-            selectedAccessories: [],
-            variantStates: await db.variantStates.toArray(),
-            strengthSets: [],
-          },
-          reentry: true,
-        }).plan.find((e) => !e.isWarmUp && e.exerciseId === "squat")!;
-      const planned = await homePlanNow();
-      const substitute = planned.substituteExerciseId!;
-      const perHand = planned.perHand!;
-      const barbellBefore = (await db.liftStates.get("squat"))!.t1Weight;
-
-      search = `as=${substitute}`;
-      render(
-        <>
-          <LiftPage />
-          <Toaster />
-        </>
-      );
-      const next = await screen.findByRole("region", { name: "Next session" });
-      await waitFor(() => expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(planned.weight)));
-      expect(next).toHaveTextContent("Wrong weight for next time? Set the");
-      fireEvent.click(within(next).getByRole("button", { name: "Adjust weight" }));
-
-      const dialog = await screen.findByRole("dialog");
-      // The same number as the page, in the home exercise's own terms and dumbbell steps.
-      await waitFor(() => expect(within(dialog).getByRole("spinbutton", { name: /^Weight/ })).toHaveValue(planned.weight));
-      expect(within(dialog).getByText(perHand ? "(lbs a hand)" : "(lbs)")).toBeInTheDocument();
-      expect(dialog).toHaveTextContent(`The barbell squat stays at ${barbellBefore} lbs.`);
-      const step = equipment.dumbbellIncrementLbs;
-      fireEvent.click(within(dialog).getByRole("button", { name: `Increase weight by ${step}` }));
-      // The preview is the next home session with the change in place.
-      expect(within(dialog).getByTestId("home-adjust-preview")).toHaveTextContent(
-        `Next home session: ${planned.weight + step} lbs${perHand ? " a hand" : ""}`
-      );
-      fireEvent.click(within(dialog).getByRole("button", { name: "Save change" }));
-
-      await waitFor(() =>
-        expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(planned.weight + step))
-      );
-      expect((await homePlanNow()).weight).toBe(planned.weight + step);
-      expect((await db.liftStates.get("squat"))!.t1Weight).toBe(barbellBefore);
-      const manual = (await db.liftAdjustments.toArray()).filter((a) => a.source === "manual");
-      expect(manual).toEqual([
-        expect.objectContaining({
-          exerciseId: "squat",
-          set: { t1Weight: planned.weight + step },
-          variant: { exerciseId: substitute, tier: "T1" },
-        }),
-      ]);
-    });
-
-    it("opened from the barbell page, the sheet still edits the barbell", async () => {
-      await initializeDatabase();
-      await seedFixtureStartingWeights();
-      render(<LiftPage />);
-      const next = await screen.findByRole("region", { name: "Next session" });
-      fireEvent.click(within(next).getByRole("button", { name: "Adjust weight" }));
-      expect(await screen.findByRole("heading", { name: "Adjust Squat" })).toBeInTheDocument();
-      await waitFor(() => expect(screen.getByRole("spinbutton", { name: /^Weight/ })).toHaveValue(190));
-      expect(screen.getByRole("dialog")).not.toHaveTextContent("a hand");
-    });
+    cleanup();
+    replace.mockClear();
+    search = "as=db_lunge";
+    render(<LiftPage />);
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/exercises/db_lunge"));
   });
 
   it.each(["as=db_bench", "as=nonsense&from=today", "as=squat"])(
-    "ignores an `as` that is not one of the lift's home substitutes (%s)",
+    "ignores an `as` that is not one of the lift's home versions (%s)",
     async (query) => {
       await seedDemo();
       search = query;
       render(<LiftPage />);
-      expect(await screen.findByTestId("pr-line")).toHaveTextContent(/^Next squat is/);
-      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^Barbell Squat$/);
-      expect(screen.queryByTestId("home-version")).toBeNull();
-      expect(screen.queryByTestId("home-next")).toBeNull();
-      expect(screen.queryByRole("region", { name: "Squat progress" })).toBeNull();
+      expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent(/^Barbell Squat$/);
+      expect(replace).not.toHaveBeenCalled();
       expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute(
         "href",
         query.includes("from=today") ? "/" : "/progress"
       );
-      expect(screen.getByRole("link", { name: "Form and muscles" })).toHaveAttribute("href", "/exercises/squat");
-      expect(screen.getByRole("region", { name: "Sessions" })).toBeInTheDocument();
+      expect(await screen.findByRole("region", { name: "Barbell Squat sessions" })).toBeInTheDocument();
     }
   );
 

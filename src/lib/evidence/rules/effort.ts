@@ -71,6 +71,7 @@ export const EFFORT_RULES = {
     implementedIn: ["src/lib/e1rm.ts#calculateE1RM"],
     surfaces: [
       "src/app/1rm-calculator/page.tsx",
+      "src/components/ExercisePage/ExerciseStrength.tsx",
       "src/components/Lift/PrLine.tsx",
       "src/components/Today/AttentionList.tsx",
     ],

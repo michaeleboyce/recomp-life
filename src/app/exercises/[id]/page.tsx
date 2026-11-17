@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { EXERCISES } from "@/lib/exercises";
-import ExerciseDetail from "@/components/Exercises/ExerciseDetail";
+import { ExercisePageClient } from "./ExercisePageClient";
 
 // Every exercise page is generated at build time so it can be cached for
 // offline use.
@@ -10,12 +10,13 @@ export function generateStaticParams() {
 
 export const dynamicParams = false;
 
-export default async function ExercisePage({
+/** /exercises/<id>: the exercise's own page, Training and Form (E1). */
+export default async function ExerciseRoute({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
   if (!EXERCISES[id]) notFound();
-  return <ExerciseDetail exerciseId={id} />;
+  return <ExercisePageClient exerciseId={id} />;
 }
