@@ -92,6 +92,9 @@ type Row = { t: number; v?: number } & Record<string, number | [number, number] 
 
 const overlayKey = (i: number) => `o${i}`;
 const bandKey = (i: number) => `b${i}`;
+/** Points imported from another app: their own line, drawn apart from the app's. */
+const IMPORTED_KEY = "vi";
+const IMPORTED_DASH = "3 3";
 
 function buildRows(points: Point[], overlays: TrendOverlay[]): Row[] {
   const rows = new Map<number, Row>();
@@ -100,7 +103,10 @@ function buildRows(points: Point[], overlays: TrendOverlay[]): Row[] {
     if (!r) rows.set(t, (r = { t }));
     return r;
   };
-  for (const p of points) row(p.t).v = p.v;
+  for (const p of points) {
+    if (p.imported) row(p.t)[IMPORTED_KEY] = p.v;
+    else row(p.t).v = p.v;
+  }
   overlays.forEach((o, i) => {
     for (const p of o.points) row(p.t)[overlayKey(i)] = p.v;
     for (const b of o.band ?? []) row(b.t)[bandKey(i)] = [b.low, b.high];
@@ -153,6 +159,7 @@ export function TrendChart(props: TrendChartProps) {
     return all.slice(0, MAX_OVERLAYS);
   }, [props.overlays]);
   const showPoints = props.showPoints ?? (variant === "line" && points.length <= 24);
+  const hasImported = useMemo(() => points.some((p) => p.imported), [points]);
 
   const [selected, setSelected] = useState<number | null>(null);
   const selectedPoint = selected !== null ? (points[selected] ?? null) : null;
@@ -212,6 +219,12 @@ export function TrendChart(props: TrendChartProps) {
     for (let r = rows.length - 1; r >= 0; r--) if (rows[r].v !== undefined) return r;
     return -1;
   })();
+  const lastImportedRow = (() => {
+    for (let r = rows.length - 1; r >= 0; r--) if (rows[r][IMPORTED_KEY] !== undefined) return r;
+    return -1;
+  })();
+  // The newest point of all gets the end dot, whichever line it is on.
+  const endIsImported = lastImportedRow > lastMainRow;
 
   function select(index: number | null) {
     const next = index === null || points.length === 0 ? null : Math.max(0, Math.min(points.length - 1, index));
@@ -249,10 +262,19 @@ export function TrendChart(props: TrendChartProps) {
   const mainStroke = "var(--chart-line)";
   const dotStyle = { r: 4, fill: mainStroke, stroke: "var(--chart-point-ring)", strokeWidth: 2 };
   const endDot = (p: { cx?: number; cy?: number; index?: number }): ReactElement => {
-    if (p.index !== lastMainRow || p.cx == null || p.cy == null) return <g key={`d${p.index}`} />;
+    if (endIsImported || p.index !== lastMainRow || p.cx == null || p.cy == null) return <g key={`d${p.index}`} />;
     return <circle key={`d${p.index}`} cx={p.cx} cy={p.cy} {...dotStyle} />;
   };
   const dot = showPoints ? dotStyle : endDot;
+  // Imported points: hollow dots on a dashed line.
+  const hollowStyle = { r: 3.5, fill: "var(--chart-point-ring)", stroke: mainStroke, strokeWidth: 2 };
+  const importedEndDot = (p: { cx?: number; cy?: number; index?: number }): ReactElement => {
+    if (!endIsImported || p.index !== lastImportedRow || p.cx == null || p.cy == null) {
+      return <g key={`i${p.index}`} />;
+    }
+    return <circle key={`i${p.index}`} data-imported="true" cx={p.cx} cy={p.cy} {...hollowStyle} />;
+  };
+  const importedDot = showPoints ? hollowStyle : importedEndDot;
   const curveType = variant === "steps" ? "stepAfter" : "linear";
 
   const xTick = (p: { x?: number | string; y?: number | string; index?: number; payload?: { value: number } }) => {
@@ -373,6 +395,23 @@ export function TrendChart(props: TrendChartProps) {
                   isAnimationActive={false}
                 />
               )}
+              {hasImported && (
+                <Line
+                  dataKey={IMPORTED_KEY}
+                  name="Imported"
+                  className="chart-imported"
+                  type={curveType}
+                  stroke={mainStroke}
+                  strokeOpacity={0.7}
+                  strokeWidth={2}
+                  strokeDasharray={IMPORTED_DASH}
+                  strokeLinecap="round"
+                  dot={importedDot}
+                  activeDot={false}
+                  connectNulls
+                  isAnimationActive={false}
+                />
+              )}
               {overlays.map((o, i) => {
                 const style = o.style ?? DEFAULT_STYLES[i];
                 return (
@@ -449,7 +488,7 @@ export function TrendChart(props: TrendChartProps) {
       <p aria-live="polite" className="sr-only">
         {inspectorText}
       </p>
-      {overlays.length > 0 && (
+      {(overlays.length > 0 || hasImported) && (
         <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-sans text-xs text-muted-foreground">
           <li className="flex items-center gap-1.5">
             <svg aria-hidden="true" width="18" height="6">
@@ -457,6 +496,15 @@ export function TrendChart(props: TrendChartProps) {
             </svg>
             {seriesLabel ?? "History"}
           </li>
+          {hasImported && (
+            <li data-testid="legend-imported" className="flex items-center gap-1.5">
+              <svg aria-hidden="true" width="18" height="8">
+                <path d="M1 4h16" stroke={mainStroke} strokeOpacity={0.7} strokeWidth={2} strokeDasharray={IMPORTED_DASH} />
+                <circle cx="9" cy="4" r="3" fill="var(--chart-point-ring)" stroke={mainStroke} strokeWidth={1.5} />
+              </svg>
+              Imported
+            </li>
+          )}
           {overlays.map((o, i) => {
             const style = o.style ?? DEFAULT_STYLES[i];
             return (

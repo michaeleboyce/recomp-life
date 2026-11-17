@@ -18,6 +18,34 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     sources: [],
   },
   {
+    date: "2026-11-17",
+    ruleId: "strength-pooling",
+    change:
+      "Sessions imported from another app now feed every plan, not only the muscle view and the starting-weight suggestions: a home exercise's first weight, re-entry and the learned ratios read them, by the same rules and with the same halving for age. They still never change the workout order or the progression. The lift page shows them, marked as imported, and cites this rule.",
+    sources: [],
+  },
+  {
+    date: "2026-11-17",
+    ruleId: "transfer-ratio",
+    change:
+      "A ratio is now also learned from imported pairs: an imported dumbbell session and an imported barbell session of the same lift close enough in time count like your own.",
+    sources: ["saeterbakken2011", "saeterbakken2013", "speirs2016"],
+  },
+  {
+    date: "2026-11-17",
+    ruleId: "home-progression",
+    change:
+      "A home exercise you have not done in the app starts from an estimate that includes your imported history, and Today names its latest imported session (\"From your history: last 45 × 10 on Nov 3\") instead of \"First time\".",
+    sources: [],
+  },
+  {
+    date: "2026-11-17",
+    ruleId: "e1rm-estimate",
+    change:
+      "Imported sets are estimated by the same formula and shown on the lift pages, the projection, the Strength tab and Today, marked as imported; a best among them is shown as history (\"Best before ReComp\") and never as a new best.",
+    sources: [],
+  },
+  {
     date: "2026-11-16",
     ruleId: "home-progression",
     change:

@@ -70,7 +70,7 @@ export const STRENGTH_RULES = {
     status: "active",
     title: "How does a home exercise count toward a barbell lift?",
     summary: "Home exercises convert to the barbell lift by a ratio learned from you",
-    appBehavior: `Each home exercise has a starting ratio to its barbell lift: its estimated max divided by the lift's, counting both dumbbells when you hold one in each hand. ${PRIOR_LIST}. The ratio is then learned from your own sessions: a home session and a barbell session of the same lift at most ${R.pairWindowDays} days apart form a pair, and the learned ratio is a weighted average of the starting ratio and your pairs (on a log scale). A starting ratio from a study counts like ${range(studied)} of your pairs and an assumed one like ${range(assumed)}, so a few of your own pairs soon outweigh it. From ${R.minPairsForOwnSpread} pairs on, pairs that disagree with each other widen the ratio's range. The app says how many pairs a ratio rests on.`,
+    appBehavior: `Each home exercise has a starting ratio to its barbell lift: its estimated max divided by the lift's, counting both dumbbells when you hold one in each hand. ${PRIOR_LIST}. The ratio is then learned from your own sessions, those imported from another app included: a home session and a barbell session of the same lift at most ${R.pairWindowDays} days apart form a pair, and the learned ratio is a weighted average of the starting ratio and your pairs (on a log scale). A starting ratio from a study counts like ${range(studied)} of your pairs and an assumed one like ${range(assumed)}, so a few of your own pairs soon outweigh it. From ${R.minPairsForOwnSpread} pairs on, pairs that disagree with each other widen the ratio's range. The app says how many pairs a ratio rests on.`,
     rationale:
       "Lifters handle less weight with dumbbells than with a barbell: in trained men the dumbbell bench press 1RM was about 17% below the barbell bench press, and the standing dumbbell shoulder press about 7% below the standing barbell press. In academy rugby players a rear-foot-elevated split squat 1RM, on one leg, was about half the back squat 1RM. How much less differs between people, so your own sessions become the better guide once there are a few of them.",
     caveat: `Only ${STUDIED_COUNT} of the ${priors.length} pairs have a study, and each is one small study: the bench press (12 trained men), the shoulder press (15 men) and a split squat loaded with a barbell rather than dumbbells (18 rugby players; the half is our reading of their averages). The other starting ratios are assumptions. A ratio between estimated maxes also shifts with rep range and fatigue, and two sessions up to ${R.pairWindowDays} days apart include some real change in strength.`,
@@ -82,6 +82,7 @@ export const STRENGTH_RULES = {
       "src/lib/strength/coefficients.ts#TRANSFER_RATIO",
       "src/lib/strength/ratio.ts#pairSessions",
       "src/lib/strength/ratio.ts#learnTransferRatio",
+      "src/lib/workout/strength.ts#transferRatioOf",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
     surfaces: ["src/components/Lift/PrLine.tsx", "src/components/Import/StartingWeights.tsx"],
@@ -91,7 +92,7 @@ export const STRENGTH_RULES = {
     status: "active",
     title: "How do gym and home sessions combine into one strength estimate?",
     summary: "Barbell and home sessions pool into one estimate; home ones count less",
-    appBehavior: `Every session gives an estimated max with the same formula and limits as the barbell lift (T1 sets taken as far as you can, ${E1RM_MAX_REPS} reps or fewer), on the total weight moved: both dumbbells when you hold one in each hand, the single dumbbell for a goblet squat. A lift's estimate starts from its latest barbell session; with only barbell sessions it is exactly your latest estimated 1RM. Home sessions after it are converted through the exercise's ratio and added, each counting ${pct(P.transferWeight)} as much as a barbell session, and a session's weight halves for every ${P.evidenceHalfLifeDays} days it is older than the newest one. The range assumes one session's estimate is off by about ${pct(P.sessionSdFraction)}, a home session by more, plus the uncertainty of the ratio. Back at the gym after home sessions, the barbell weight is the smaller of your last barbell weight plus the steps your home passes earned and the heaviest weight at which the estimate says the stage's reps are possible, rounded down to plates you can load; the first home weight after gym sessions follows the same rule, capped by your heaviest dumbbell. Each muscle's trend averages every exercise that works it, a primary muscle at ${M.primary} and a secondary one at ${M.secondary}, each exercise against its own earlier sessions; an exercise not done for ${I.staleAfterDays} days drops out until you do it again.`,
+    appBehavior: `Every session gives an estimated max with the same formula and limits as the barbell lift (T1 sets taken as far as you can, ${E1RM_MAX_REPS} reps or fewer), on the total weight moved: both dumbbells when you hold one in each hand, the single dumbbell for a goblet squat. A lift's estimate starts from its latest barbell session; with only barbell sessions it is exactly your latest estimated 1RM. Home sessions after it are converted through the exercise's ratio and added, each counting ${pct(P.transferWeight)} as much as a barbell session, and a session's weight halves for every ${P.evidenceHalfLifeDays} days it is older than the newest one. The range assumes one session's estimate is off by about ${pct(P.sessionSdFraction)}, a home session by more, plus the uncertainty of the ratio. Back at the gym after home sessions, the barbell weight is the smaller of your last barbell weight plus the steps your home passes earned and the heaviest weight at which the estimate says the stage's reps are possible, rounded down to plates you can load; the first home weight after gym sessions follows the same rule, capped by your heaviest dumbbell. Each muscle's trend averages every exercise that works it, a primary muscle at ${M.primary} and a secondary one at ${M.secondary}, each exercise against its own earlier sessions; an exercise not done for ${I.staleAfterDays} days drops out until you do it again. Sessions imported from another app count by the same rules and the same ${P.evidenceHalfLifeDays}-day halving, so a session years old informs the trend but not next week's weight: they feed every plan (a home exercise's first weight, re-entry and the learned ratios) and the lift pages, where they are marked as imported, but they never change the workout order or the progression.`,
     rationale:
       "A barbell session measures the lift itself; a home session measures the same muscles through a different movement, so it says something about the lift, but less. Counting it for less keeps one good home day from moving the barbell weight much, while a run of home sessions still shows. Taking the smaller of the two re-entry rules means the barbell weight never jumps past what either your passes or your measured strength supports.",
     caveat:
@@ -110,9 +111,16 @@ export const STRENGTH_RULES = {
       "src/lib/strength/reentry.ts#homeReentryWeight",
       "src/lib/workout/reentry.ts#resolveReentry",
       "src/lib/workout/startPlan.ts#planWorkoutStart",
+      "src/lib/workout/strength.ts#strengthEvidenceOf",
+      "src/lib/data/forecasts.ts#strengthSetsFrom",
+      "src/lib/import/history.ts#importedLiftIndex",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
-    surfaces: ["src/components/Progress/MusclesTab.tsx", "src/components/Lift/PrLine.tsx"],
+    surfaces: [
+      "src/components/Progress/MusclesTab.tsx",
+      "src/components/Lift/PrLine.tsx",
+      "src/components/Lift/ImportedHistory.tsx",
+    ],
   },
   "drop-set-evidence": {
     area: "effort",

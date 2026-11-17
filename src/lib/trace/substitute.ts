@@ -213,9 +213,14 @@ function seedStep(
   const asked = seed.cappedFrom ?? weight;
   const share = perHand ? " in all, split between two hands" : " in one dumbbell";
   const r = ratio.toFixed(2);
+  const history = seed.source === "estimate" ? seed.history : undefined;
+  // New to the app but with imported history: what the estimate rests on, not "a first time".
+  const first = history
+    ? `new here, but your imported history has it at ${num(history.weight)}${history.perHand ? " per hand" : ""} × ${history.reps} on ${new Date(history.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}, so it starts`
+    : "a first time here, so it starts";
   const detail =
     seed.source === "estimate" && seed.estimate != null
-      ? `${lead}: a first time here, so it starts from your ${lift} strength estimate, ${num(seed.estimate)}, at ${r} of it: the heaviest weight for ${seed.targetReps ?? 1} reps, rounded down to ${num(increment)}, is ${num(asked)}${each}.${capped}${limit}`
+      ? `${lead}: ${first} from your ${lift} strength estimate, ${num(seed.estimate)}, at ${r} of it: the heaviest weight for ${seed.targetReps ?? 1} reps, rounded down to ${num(increment)}, is ${num(asked)}${each}.${capped}${limit}`
       : `${lead}: a first time here, so it starts at ${r} of your ${lift}: ${r} × ${num(seed.barbellWeight)} is ${num(Math.round((ratio * seed.barbellWeight + 1e-9) * 10) / 10)}${share}, rounded to ${num(increment)}, is ${num(asked)}${each}.${capped}${limit}`;
   return step("dumbbell", "At home with dumbbells", detail, "set", "lb", weight, TRANSFER_RATIO_RULE);
 }

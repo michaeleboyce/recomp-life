@@ -13,6 +13,7 @@ import { AdjustLiftSheet } from "@/components/LogEdit";
 import { LIFT_NAMES, type MainLiftId } from "@/components/Progress/lifts";
 import { validHomeSubstitute } from "./homeVersion";
 import { HomeVersionDetail } from "./HomeVersionDetail";
+import { ImportedHistoryControl } from "./ImportedHistory";
 import { LiftHeadline } from "./LiftHeadline";
 import { LiftStats, ProjectionLink } from "./LiftStats";
 import { MoreCharts } from "./MoreCharts";
@@ -55,7 +56,8 @@ export function LiftDetail({
 function ProgramLiftDetail({ exerciseId, from }: { exerciseId: MainLiftId; from?: string | null }) {
   const adjustments = useLiftAdjustments(exerciseId);
   const [range, setRange] = useState<RangeKey>("3m");
-  const view = useLiftView(exerciseId, range);
+  const [showImported, setShowImported] = useState(true);
+  const view = useLiftView(exerciseId, range, showImported);
   const name = EXERCISES[exerciseId]?.name ?? LIFT_NAMES[exerciseId].label;
 
   const header = (
@@ -79,7 +81,7 @@ function ProgramLiftDetail({ exerciseId, from }: { exerciseId: MainLiftId; from?
     );
   }
 
-  const hasData = view.metrics.e1rm.full.points.length > 0 || view.sessions.length > 0;
+  const hasData = view.metrics.e1rm.full.points.length > 0 || view.sessions.length > 0 || view.imported.count > 0;
   const short = LIFT_NAMES[exerciseId].short;
 
   // The next session's weight, and the way to change it, belong together.
@@ -99,6 +101,7 @@ function ProgramLiftDetail({ exerciseId, from }: { exerciseId: MainLiftId; from?
       {hasData ? (
         <>
           <LiftHeadline e1rm={view.metrics.e1rm} liftName={name} range={range} onRangeChange={setRange} />
+          <ImportedHistoryControl imported={view.imported} shown={showImported} onShownChange={setShowImported} />
           {nextSession(view.next.opportunity)}
           <LiftStats stats={view.stats} />
           <ProjectionLink exerciseId={exerciseId} teaser={view.teaser} />

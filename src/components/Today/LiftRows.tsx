@@ -21,6 +21,7 @@ import {
   displayLiftName,
   liftPageHref,
   liftReason,
+  reasonText,
   type LiftReason,
 } from "./todayModel";
 
@@ -72,6 +73,8 @@ function Reason({ reason }: { reason: LiftReason }) {
       return <>Held at {formatLbs(reason.weight)}</>;
     case "capped":
       return <>Held at {formatLbs(reason.weight)}, your heaviest dumbbell</>;
+    case "history":
+      return <>{reasonText(reason)}</>;
     case "first":
       return <>First time</>;
   }

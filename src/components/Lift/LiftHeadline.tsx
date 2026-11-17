@@ -8,7 +8,8 @@ import { rangeSuffix } from "@/components/Progress/rangeText";
 import { trendOverlay, type RangedMetric } from "./liftSeries";
 
 /**
- * "Estimated 1RM": the latest value, its change over the range, and the e1RM line.
+ * "Estimated 1RM": the latest value (marked "Imported" when it comes from a session
+ * imported from another app), its change over the range, and the e1RM line.
  * `subject` names whose estimate it is when the page is about something else, e.g.
  * "Barbell squat" under a home version.
  */
@@ -34,6 +35,11 @@ export function LiftHeadline({
           <h2 className="text-xs font-normal text-muted-foreground">
             {subject && <span className="font-semibold text-foreground">{subject} · </span>}
             <Term id="e1rm">Estimated 1RM</Term>
+            {summary.latest?.imported && (
+              <span data-testid="e1rm-latest-imported" className="font-semibold">
+                {" · "}Imported
+              </span>
+            )}
           </h2>
           <div className="flex items-baseline gap-2">
             <span

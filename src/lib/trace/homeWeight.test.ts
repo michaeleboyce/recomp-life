@@ -74,6 +74,14 @@ describe("homeWeightSteps", () => {
     for (const s of steps) expect(isRuleId(s.ruleId!)).toBe(true);
   });
 
+  it("names sets imported from another app as imported, not as home sets", () => {
+    const v = variant();
+    const withImported = sets.map((s) => (s.sessionId === "h1" ? { ...s, imported: true as const } : s));
+    const steps = homeWeightSteps(entry(v), context({ home: { variantStates: [v], sets: withImported } }));
+    expect(steps[2].title).toMatch(/^From imported sets: Bulgarian Split Squat 75×8 ≈ squat \d+/);
+    expect(steps[2].detail).toMatch(/^That imported session's estimated max/);
+  });
+
   it("names the cap: a harder variant, or more reps", () => {
     const squat = variant({ exerciseId: "goblet_squat", perHand: false, weight: 80, id: variantKey("squat", "goblet_squat", "T1") });
     const harder = homeWeightSteps(entry(squat), context({ home: { variantStates: [squat] } }));

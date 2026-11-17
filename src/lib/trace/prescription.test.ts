@@ -11,7 +11,9 @@ import {
   runSession,
   startSim,
 } from "@/lib/rebuild/testHelpers";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
 import { buildWorkoutPlan } from "@/lib/workout/buildPlan";
+import { strengthEvidenceOf } from "@/lib/workout/strength";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
   DecisionTrace,
@@ -424,6 +426,46 @@ describe("explainPrescription: at home", () => {
     expect(replayTrace(squat)).toBe(50);
     // The steps before it are still about the barbell weight.
     expect(byId(squat, "progression").effect).toEqual({ op: "add", value: 10, unit: "lb" });
+  });
+
+  it("names the imported session a first home weight from the estimate rests on (made-up history)", () => {
+    const sim = simOf({});
+    const at = new Date(2026, 1, 20, 12);
+    const imported = [
+      importedSession(
+        [0, 1, 2].map(() =>
+          importedSet({ exerciseName: "Dumbbell Bench Press", mappedExerciseId: "db_bench", weightPerImplementLb: 45, reps: 10 })
+        ),
+        { startedAt: at }
+      ),
+    ];
+    const sets = strengthEvidenceOf(sim.workouts, imported);
+    const rebuilt = rebuildDerived(rebuildInput(sim));
+    const plan = buildWorkoutPlan({
+      template: WORKOUT_TEMPLATES.A1,
+      liftStates: rebuilt.liftStates,
+      location: "home",
+      equipment: sim.settings.equipment,
+      includeWarmUps: false,
+      selectedAccessories: [],
+      strengthSets: sets,
+    });
+    const entry = plan.find((e) => e.exerciseId === "bench" && e.tier === "T2")!;
+    expect(entry.seed).toMatchObject({ source: "estimate", history: { weight: 45, reps: 10, perHand: true } });
+    const context: TraceContext = {
+      now: NOW,
+      location: "home",
+      equipment: sim.settings.equipment,
+      phase: sim.settings.trainingPhase,
+      liftStates: rebuilt.liftStates,
+      history: { workouts: sim.workouts, outcomes: rebuilt.outcomes, adjustments: sim.adjustments },
+      home: { variantStates: [], sets },
+    };
+    const trace = explainPrescription(entry, context, plan);
+    expect(trace.steps.at(-1)!.detail).toContain(
+      "DB Bench Press: new here, but your imported history has it at 45 per hand × 10 on Feb 20, 2026, so it starts from your bench press strength estimate"
+    );
+    expect(replayTrace(trace)).toBe(entry.weight);
   });
 
   it("when even the substitute's first weight is too heavy, it is capped at your heaviest dumbbell", () => {

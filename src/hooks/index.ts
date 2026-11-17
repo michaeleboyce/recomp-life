@@ -21,7 +21,7 @@ export {
   useLiftAdjustments,
 } from "./useRecords";
 export { useVariantStates } from "./useVariantStates";
-export { useStrengthSets } from "./useStrengthSets";
+export { useStrengthEvidence } from "./useStrengthEvidence";
 export { useMuscleStrength } from "./useMuscleStrength";
 export { useForecasts } from "./useForecasts";
 export { useCoachEvents } from "./useCoachEvents";
@@ -54,3 +54,4 @@ export {
   type DerivedCheckStatus,
 } from "./useLogEdit";
 export { useImportedSessions } from "./useImportedSessions";
+export { useImportedLiftIndex, useImportedStrengthSets, useLiftE1RM } from "./useImportedHistory";

@@ -36,7 +36,9 @@ import type { StrengthSet } from "@/lib/strength";
 import { describeNextWorkout, overridesFromSession } from "@/lib/workout/buildPlan";
 import { prescribedFor } from "@/lib/workout/planEdits";
 import { markReentries, resolveReentry } from "@/lib/workout/reentry";
-import { strengthSetsOf } from "@/lib/workout/strength";
+import { mappingOverridesSnapshot } from "@/lib/import/remembered";
+import type { MappingOverrides } from "@/lib/import/mapping/types";
+import { strengthEvidenceOf } from "@/lib/workout/strength";
 import type { NextWorkoutDescription, WorkoutPlan } from "@/lib/workout/types";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
@@ -44,6 +46,7 @@ import type {
   BodyweightLog,
   Estimated1RM,
   Forecast,
+  ImportedSessionRecord,
   LiftAdjustment,
   LiftState,
   PainSorenessEntry,
@@ -125,6 +128,15 @@ export interface LedgerRecords {
    * by hand), home lifts are planned from their seeds.
    */
   variantStates?: VariantState[];
+  /**
+   * Sessions imported from other apps, as stored (an undone import included; it is left
+   * out where it is read). Strength evidence for planning only (`strengthSetsFrom`):
+   * never the rotation, progression, the forecast models or their scoring. Left out
+   * (records built by hand), there is no imported history.
+   */
+  importedSessions?: ImportedSessionRecord[];
+  /** The exercise-name choices remembered on this device, which imported names are read through. */
+  mappingOverrides?: MappingOverrides;
   /** The profile's settings, or the defaults before the database has been seeded. */
   settings: UserSettings;
 }
@@ -142,12 +154,19 @@ export function ledgerTables(): Table[] {
     db.activities,
     db.painEntries,
     db.variantStates,
+    db.importedSessions,
     db.userProfile,
   ];
 }
 
-/** Reads the records in one transaction. An empty database gives empty lists. */
-export async function readLedgerRecords(readAt: Date = new Date()): Promise<LedgerRecords> {
+/**
+ * Reads the records in one transaction. An empty database gives empty lists. Imported
+ * names are read through `overrides` (default: the choices remembered on this device).
+ */
+export async function readLedgerRecords(
+  readAt: Date = new Date(),
+  overrides: MappingOverrides = mappingOverridesSnapshot()
+): Promise<LedgerRecords> {
   return db.transaction("r", ledgerTables(), async () => ({
     readAt,
     workouts: await db.workouts.toArray(),
@@ -162,22 +181,36 @@ export async function readLedgerRecords(readAt: Date = new Date()): Promise<Ledg
     variantStates: (await db.variantStates.toArray()).sort((a, b) =>
       a.id < b.id ? -1 : a.id > b.id ? 1 : 0
     ),
+    importedSessions: await db.importedSessions.toArray(),
+    mappingOverrides: overrides,
     settings: await readSettings(),
   }));
 }
 
-const strengthSetsCache = new WeakMap<readonly WorkoutSession[], StrengthSet[]>();
+const NO_IMPORTED: readonly ImportedSessionRecord[] = [];
+const strengthSetsCache = new WeakMap<
+  readonly WorkoutSession[],
+  { imported: readonly ImportedSessionRecord[]; overrides: MappingOverrides | undefined; sets: StrengthSet[] }
+>();
 
 /**
- * Every set of the finished, live workouts in the records as strength evidence
- * (`strengthSetsOf`), worked out once per read so the estimates made from it are kept.
+ * The strength evidence every plan is worked out from (`strengthEvidenceOf`): the
+ * finished, live workouts' sets and the live imported sessions' sets, names read
+ * through the records' remembered choices. The same evidence Today, Configure and the
+ * active workout read (`useStrengthEvidence`), so every path plans the same weights.
+ * Worked out once per read so the estimates made from it are kept.
+ *
+ * @evidence strength-pooling
  */
-export function strengthSetsFrom(records: Pick<LedgerRecords, "workouts">): StrengthSet[] {
-  let sets = strengthSetsCache.get(records.workouts);
-  if (!sets) {
-    sets = strengthSetsOf(records.workouts);
-    strengthSetsCache.set(records.workouts, sets);
-  }
+export function strengthSetsFrom(
+  records: Pick<LedgerRecords, "workouts" | "importedSessions" | "mappingOverrides">
+): StrengthSet[] {
+  const imported = records.importedSessions ?? NO_IMPORTED;
+  const overrides = records.mappingOverrides;
+  const cached = strengthSetsCache.get(records.workouts);
+  if (cached && cached.imported === imported && cached.overrides === overrides) return cached.sets;
+  const sets = strengthEvidenceOf(records.workouts, imported, overrides);
+  strengthSetsCache.set(records.workouts, { imported, overrides, sets });
   return sets;
 }
 

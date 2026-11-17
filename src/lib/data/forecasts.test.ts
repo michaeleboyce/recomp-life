@@ -6,7 +6,15 @@ import { db } from "@/db/local";
 import type { Forecast } from "@/types";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { horizonSlot } from "@/lib/forecast";
-import { forecastTables, listForecasts, recordLiftForecasts, writeForecasts } from "./forecasts";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
+import {
+  forecastTables,
+  listForecasts,
+  readLedgerRecords,
+  recordLiftForecasts,
+  strengthSetsFrom,
+  writeForecasts,
+} from "./forecasts";
 import { clearDb } from "./testUtils";
 
 beforeEach(clearDb);
@@ -141,5 +149,27 @@ describe("recordLiftForecasts", () => {
     const after = await db.forecasts.toArray();
     for (const row of rows) expect(after.find((other) => other.id === row.id)).toEqual(row);
     expect(after.filter((row) => row.exerciseId === "squat")).toHaveLength(rows.length);
+  });
+});
+
+describe("readLedgerRecords and strengthSetsFrom", () => {
+  it("plan from the app's sets and the imported sessions', names read through the remembered choices (made-up)", async () => {
+    const mystery = importedSession([importedSet({ exerciseName: "Mystery Press", mappedExerciseId: null, weightPerImplementLb: 50 })]);
+    const squat = importedSession([importedSet()]);
+    const undone = importedSession([importedSet()], { deletedAt: 3 });
+    await db.importedSessions.bulkPut([mystery, squat, undone]);
+
+    const plain = await readLedgerRecords(new Date(), {});
+    expect(plain.importedSessions).toHaveLength(3);
+    const sets = strengthSetsFrom(plain);
+    expect(sets.map((s) => s.sessionId)).toEqual([squat.id]);
+    expect(sets.every((s) => s.imported)).toBe(true);
+    // The same evidence while the records are the same.
+    expect(strengthSetsFrom(plain)).toBe(sets);
+
+    const remapped = await readLedgerRecords(new Date(), { "Mystery Press": { kind: "exercise", exerciseId: "db_bench" } });
+    expect(strengthSetsFrom(remapped).map((s) => s.exerciseId).sort()).toEqual(["db_bench", "squat"]);
+    // Records built by hand, without imported sessions, plan from the log alone.
+    expect(strengthSetsFrom({ workouts: [] })).toEqual([]);
   });
 });

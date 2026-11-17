@@ -192,6 +192,8 @@ function homeSetSteps(estimate: PooledEstimate, sets: readonly StrengthSet[]): T
   return [...latest.values()].map((r) => {
     const session = sessionEstimates(sets, r.exerciseId).find((s) => s.sessionId === r.sessionId);
     const best = session?.bestSet;
+    // A session imported from another app was not necessarily done at home: say where it came from.
+    const imported = sets.some((s) => s.sessionId === r.sessionId && s.imported);
     const sample = best ? `${num(best.weight)}×${best.reps}` : `${num(r.strength)} total`;
     const basis =
       r.ratio.pairs > 0
@@ -200,8 +202,8 @@ function homeSetSteps(estimate: PooledEstimate, sets: readonly StrengthSet[]): T
     const both = best?.perHand && best.load !== best.weight ? " (a dumbbell in each hand)" : "";
     return step(
       `home-set-${r.exerciseId.replace(/_/g, "-")}`,
-      `From home sets: ${nameOf(r.exerciseId)} ${sample} ≈ ${lift} ${num(Math.round(r.liftEquivalent))} (${basis})`,
-      `That session's estimated max${both} is ${num(Math.round(r.strength))}; divided by the ratio it says ${num(Math.round(r.liftEquivalent))} for the ${lift}. It counts ${Math.round(r.weight * 100) / 100} of a barbell session.`,
+      `From ${imported ? "imported" : "home"} sets: ${nameOf(r.exerciseId)} ${sample} ≈ ${lift} ${num(Math.round(r.liftEquivalent))} (${basis})`,
+      `That ${imported ? "imported " : ""}session's estimated max${both} is ${num(Math.round(r.strength))}; divided by the ratio it says ${num(Math.round(r.liftEquivalent))} for the ${lift}. It counts ${Math.round(r.weight * 100) / 100} of a barbell session.`,
       "none",
       "lb",
       undefined,

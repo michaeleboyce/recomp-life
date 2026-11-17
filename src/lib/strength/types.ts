@@ -32,6 +32,11 @@ export interface StrengthSet {
   date: Date | string;
   /** For a drop: the id of the set it continues (a working set or an earlier drop). */
   dropOf?: string;
+  /**
+   * From a session imported from another app: history, counted by the same rules as
+   * every other set, never a GZCLP session. Absent on the app's own sets.
+   */
+  imported?: true;
 }
 
 /** The best set of one session for one exercise. */

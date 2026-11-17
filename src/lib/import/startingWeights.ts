@@ -92,9 +92,9 @@ export interface StartingWeightInput {
   /** Every set as strength evidence: the log's and the imported (`strengthEvidenceOf`). */
   sets: readonly StrengthSet[];
   /**
-   * The log's sets alone, as planning reads them (`strengthSetsOf`): the home weight
-   * planned now (`current`) is worked out from them, after re-entry and with a home
-   * exercise never used seeded, exactly as Today plans it.
+   * The sets planning reads (in the app the same as `sets`, `strengthEvidenceOf`): the
+   * home weight planned now (`current`) is worked out from them, after re-entry and with
+   * a home exercise never used seeded, exactly as Today plans it.
    */
   planStrengthSets?: readonly StrengthSet[];
   liftStates: readonly LiftState[];
@@ -235,7 +235,7 @@ function withTimeOff(worked: Worked, ageDays: number, newest: Date, phase: Train
  *
  * The home exercise and its weight planned now come from the same source Today plans
  * from (`describeNextWorkout`): the states after re-entry at home (`resolveReentry`),
- * with a home exercise never used seeded from the log's evidence (`planStrengthSets`).
+ * with a home exercise never used seeded from the evidence planning reads (`planStrengthSets`).
  */
 export function suggestStartingWeights(input: StartingWeightInput): StartingWeightSuggestion[] {
   const { sets, equipment, phase, now } = input;

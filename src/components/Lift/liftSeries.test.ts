@@ -14,6 +14,9 @@ import {
   zeroFilledWeeks,
 } from "./liftSeries";
 import { computeMetric } from "@/lib/metrics";
+import { importedStrengthSets } from "@/lib/import/evidence";
+import { importedHistoryOf } from "@/lib/import/history";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
 import { measureBaseline, projectionTeaser } from "@/lib/projection";
 
 const DAY = 86_400_000;
@@ -102,6 +105,35 @@ describe("liftMetrics and liftStats", () => {
 
 const line = (n: number, slope = 2): Point[] =>
   Array.from({ length: n }, (_, i) => ({ t: i * WEEK, v: 200 + slope * i }));
+
+describe("liftMetrics with imported sessions (made-up)", () => {
+  const sets = importedStrengthSets([
+    importedSession([importedSet({ weightPerImplementLb: 225, reps: 5 }), importedSet({ weightPerImplementLb: 225, reps: 4 })], {
+      startedAt: new Date(now.getTime() - 400 * DAY),
+    }),
+  ]);
+  const history = importedHistoryOf(sets, "squat");
+
+  it("adds a marked point to the estimated max, working weight and volume, and nothing to reps or effort", () => {
+    const without = liftMetrics(source, "squat", "all", now.getTime());
+    const m = liftMetrics(source, "squat", "all", now.getTime(), history);
+    expect(m.e1rm.full.points.length).toBe(without.e1rm.full.points.length + 1);
+    expect(m.e1rm.full.points[0]).toMatchObject({ imported: true, label: "Imported · 225 x 5" });
+    expect(m.workingWeight.full.points[0]).toMatchObject({ v: 225, imported: true });
+    expect(m.liftVolume.full.points[0]).toMatchObject({ v: 225 * 9, imported: true });
+    expect(m.amrapReps.full.points).toEqual(without.amrapReps.full.points);
+    expect(m.avgRpe.full.points).toEqual(without.avgRpe.full.points);
+    // A range that does not reach back that far shows the app's sessions only.
+    expect(liftMetrics(source, "squat", "3m", now.getTime(), history).e1rm.series.points.some((p) => p.imported)).toBe(false);
+  });
+
+  it("gives the imported working weight and estimate when the app has none", () => {
+    const empty = { ...source, workouts: [], e1rms: [] };
+    const stats = liftStats(liftMetrics(empty, "squat", "all", now.getTime(), history));
+    expect(stats.working.value).toBe(225);
+    expect(stats.lastSetReps).toBeNull();
+  });
+});
 
 describe("trendOverlay", () => {
   it("needs four points", () => {
