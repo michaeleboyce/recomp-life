@@ -143,6 +143,7 @@ export const PROGRESSION_RULES = {
       "src/lib/workout/credit.ts#sessionCountsForRotation",
       "src/lib/workout/reentry.ts#resolveReentry",
       "src/lib/workout/startPlan.ts#planWorkoutStart",
+      "src/lib/workout/liftResolution.ts#resolveLifts",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
     surfaces: [

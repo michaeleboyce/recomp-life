@@ -1,3 +1,4 @@
+import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { DEFAULT_ACCESSORY_WEIGHTS, EXERCISES } from "@/lib/exercises";
 import type { StrengthSet } from "@/lib/strength";
 import type {
@@ -12,13 +13,9 @@ import type {
   VariantState,
   WorkoutTemplate,
 } from "@/types";
-import { getPrescription } from "./prescription";
+import { prescriptionOf, resolveLifts } from "./liftResolution";
 import { excludeWarmUps, isWorkingSet } from "./setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "./types";
-import { chooseHomeVariant, homePrescriptionOf, isVariantTier } from "./variant";
-
-/** Tiers the program prescribes and progresses. */
-const PROGRAM_TIERS: readonly Tier[] = ["T1", "T2", "T3"];
 
 function isWorkingEntry(entry: WorkoutExerciseState, exerciseId: string, tier: Tier): boolean {
   return !entry.isWarmUp && entry.exerciseId === exerciseId && entry.tier === tier;
@@ -160,54 +157,33 @@ export interface HomePrescriptionContext {
 
 /**
  * What the program prescribes for each program lift (T1, T2, T3) of a day, from the
- * current lift states and before any edit. Stored on the session row at start. With
- * `home` (a session at home), each lift done as a home exercise also records that
- * exercise's own prescription (`PrescribedEntry.home`), exactly as the plan builds it.
+ * given lift states and before any edit: `prescriptionOf(resolveLifts(...))`, the same
+ * resolution the plan is built from. With `home` (a session at home), each lift done as
+ * a home exercise also records that exercise's own prescription (`PrescribedEntry.home`).
+ * A session about to start records `planWorkoutStart(...).prescribed` instead, which is
+ * this after re-entry.
  */
 export function prescribedFor(
   template: WorkoutTemplate,
   liftStates: LiftState[],
   home?: HomePrescriptionContext
 ): PrescribedEntry[] {
-  const byId = new Map(liftStates.map((ls) => [ls.exerciseId, ls]));
-  const prescribed: PrescribedEntry[] = [];
-
-  for (const templateEx of template.exercises) {
-    if (!PROGRAM_TIERS.includes(templateEx.tier)) continue;
-    const liftState = byId.get(templateEx.exerciseId);
-    const { weight, sets, reps } = getPrescription(templateEx, liftState);
-    const stage =
-      templateEx.tier === "T1"
-        ? liftState?.t1Stage
-        : templateEx.tier === "T2"
-          ? liftState?.t2Stage
-          : undefined;
-    const choice =
-      home && isVariantTier(templateEx.tier)
-        ? chooseHomeVariant({
-            liftId: templateEx.exerciseId,
-            tier: templateEx.tier,
-            liftState,
+  return prescriptionOf(
+    resolveLifts({
+      template,
+      liftStates,
+      location: home ? "home" : "gym",
+      // At the gym nothing is converted, so the equipment is not read.
+      equipment: home?.equipment ?? DEFAULT_USER_PROFILE.settings.equipment,
+      ...(home
+        ? {
             variantStates: home.variantStates,
-            equipment: home.equipment,
-            overrideId: home.overrides?.[templateEx.exerciseId],
+            ...(home.overrides ? { overrides: home.overrides } : {}),
             ...(home.strengthSets ? { strengthSets: home.strengthSets } : {}),
-          })
-        : null;
-    prescribed.push({
-      exerciseId: templateEx.exerciseId,
-      tier: templateEx.tier,
-      weight,
-      sets,
-      reps,
-      ...(stage ? { stage } : {}),
-      ...(choice
-        ? { home: homePrescriptionOf(choice, { sets: templateEx.sets, reps: templateEx.reps }) }
+          }
         : {}),
-    });
-  }
-
-  return prescribed;
+    })
+  );
 }
 
 /** The edits that change which exercises are performed: swaps, removals and additions. */

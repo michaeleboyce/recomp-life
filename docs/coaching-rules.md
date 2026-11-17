@@ -181,7 +181,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `home-progression`
 - **Status:** Active
 - **Evidence:** Program rule
-- **Implemented in:** `src/lib/workout/variant.ts` (`chooseHomeVariant`), `src/lib/workout/variant.ts` (`seedVariantState`), `src/lib/workout/variant.ts` (`evaluateVariant`), `src/lib/workout/variant.ts` (`homeStepsEarned`), `src/lib/workout/credit.ts` (`sessionCountsForRotation`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Implemented in:** `src/lib/workout/variant.ts` (`chooseHomeVariant`), `src/lib/workout/variant.ts` (`seedVariantState`), `src/lib/workout/variant.ts` (`evaluateVariant`), `src/lib/workout/variant.ts` (`homeStepsEarned`), `src/lib/workout/credit.ts` (`sessionCountsForRotation`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/workout/liftResolution.ts` (`resolveLifts`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
 - **Shown in:** `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/WorkoutSummary/WhatItChanged.tsx`
 - **Reviewed:** November 2026
 
