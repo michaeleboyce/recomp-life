@@ -28,7 +28,7 @@ export interface ReentryInput {
   variantStates: readonly VariantState[];
   location: WorkoutLocation;
   equipment: EquipmentProfile;
-  /** Every logged set as strength evidence (`strengthSetsOf`); without, only the steps rule. */
+  /** Every set as strength evidence, app and imported (`strengthEvidenceOf`); without, only the steps rule. */
   strengthSets?: readonly StrengthSet[];
   /** Home substitutes picked on Configure (template exerciseId -> substitute id). */
   overrides?: Record<string, string>;

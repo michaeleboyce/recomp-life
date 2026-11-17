@@ -196,6 +196,13 @@ export interface VariantSeed {
   estimate?: number;
   /** For "estimate": the reps per set the weight was worked out for. */
   targetReps?: number;
+  /**
+   * For "estimate": the exercise's latest session imported from another app (its
+   * heaviest working set, as lifted), when the evidence the estimate was worked from
+   * has one. What the first weight is based on, shown instead of "First time". Never
+   * set by the rebuild, which reads the log alone.
+   */
+  history?: { at: number; weight: number; reps: number; perHand: boolean };
 }
 
 /**

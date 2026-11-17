@@ -69,15 +69,20 @@ export function strengthSetsOf(
 /**
  * The strength evidence of everything logged: the finished workouts' sets
  * (`strengthSetsOf`) and the sets of the live imported sessions
- * (`importedStrengthSets`: mapped exercises only, warm-ups and drops kept as such,
- * weighted for recency by the library's half-life like every other session).
+ * (`importedStrengthSets`: mapped exercises only, marked `imported`, warm-ups and drops
+ * kept as such, weighted for recency by the library's half-life like every other
+ * session). Imported names are mapped as of now: a choice remembered since the import
+ * (`overrides`) wins.
  *
- * For what is shown about strength (the muscle strength index, `useMuscleStrength`) and
- * for the starting weights suggested from imported history. Not for planning: the
- * plan, seeding, re-entry, the rebuild and the estimates that explain a planned weight
- * read `strengthSetsOf` alone, so imported history never moves a planned weight until
- * the lifter confirms a starting weight from it. Imported names
- * are mapped as of now: a choice remembered since the import (`overrides`) wins.
+ * What every plan reads (requirement I9): the pooled estimate, the learned ratios, the
+ * first weight of a home exercise (H3) and re-entry (H6) on every path (Today,
+ * Configure, the active workout, the ledger's plan and the forecasts written at start,
+ * `strengthSetsFrom`), and what the app shows about strength (the muscle strength
+ * index) and suggests as starting weights. Imported sessions stay history: the
+ * rotation, GZCLP progression, the rebuild of the lift states and the forecast models
+ * read the workouts alone, a weight set by hand still wins, and a barbell weight moves
+ * only by progression (re-entry within its bounds) or a starting weight the lifter
+ * confirms.
  */
 export function strengthEvidenceOf(
   workouts: readonly Pick<WorkoutSession, "id" | "completedAt" | "deletedAt" | "sets">[],

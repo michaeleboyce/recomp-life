@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useLiftStates, useNextWorkout, useSettings, useStrengthSets, useVariantStates } from "@/hooks";
+import { useLiftStates, useNextWorkout, useSettings, useStrengthEvidence, useVariantStates } from "@/hooks";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { HomePlanContext } from "./homeVersion";
 
@@ -14,7 +14,7 @@ export function useHomePlanContext(): HomePlanContext | undefined {
   const next = useNextWorkout("home");
   const liftStates = useLiftStates();
   const variantStates = useVariantStates();
-  const strengthSets = useStrengthSets();
+  const strengthSets = useStrengthEvidence();
   const settings = useSettings();
 
   return useMemo(() => {

@@ -5,7 +5,7 @@ import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { NextWorkoutDescription } from "@/lib/workout/types";
 import type { WorkoutLocation } from "@/types";
 import { useSettings } from "./useProfile";
-import { useStrengthSets } from "./useStrengthSets";
+import { useStrengthEvidence } from "./useStrengthEvidence";
 import { useVariantStates } from "./useVariantStates";
 import { useCompletedWorkouts, useLiftStates } from "./useWorkouts";
 
@@ -15,13 +15,14 @@ import { useCompletedWorkouts, useLiftStates } from "./useWorkouts";
  * `showWarmUps` setting; no accessories. At home each lift is planned from its home
  * exercise's own weight (a first one seeded from the strength estimate, H3), and the
  * first session back at a location takes its re-entry weight (H6), exactly as the
- * Ready screen plans it.
+ * Ready screen and the ledger (`nextWorkoutFrom`) plan it: from the app's and the
+ * imported sessions' sets (`useStrengthEvidence`).
  */
 export function useNextWorkout(location?: WorkoutLocation): NextWorkoutDescription | undefined {
   const completedWorkouts = useCompletedWorkouts();
   const liftStates = useLiftStates();
   const variantStates = useVariantStates();
-  const strengthSets = useStrengthSets();
+  const strengthSets = useStrengthEvidence();
   const loadedSettings = useSettings();
 
   return useMemo(() => {

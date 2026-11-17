@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Dumbbell } from "lucide-react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
-import { useImportedLiftIndex, useMetricSource, useStrengthSets, useVariantStates } from "@/hooks";
+import { useImportedLiftIndex, useMetricSource, useStrengthEvidence, useVariantStates } from "@/hooks";
 import type { RangeKey } from "@/lib/metrics/types";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -20,7 +20,8 @@ export function StrengthTab() {
   const source = useMetricSource();
   const imported = useImportedLiftIndex();
   const variantStates = useVariantStates();
-  const strengthSets = useStrengthSets();
+  // The evidence the gym plan reads, so "waiting for gym" gives the weight it will plan.
+  const strengthSets = useStrengthEvidence();
   const [range, setRange] = useState<RangeKey>("3m");
   // Taken once per mount so the range window does not slide on every render.
   const [now] = useState(() => Date.now());
