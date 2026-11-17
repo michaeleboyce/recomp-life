@@ -325,6 +325,105 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
     expect(variantOf(rebuilt(sim).variantStates, split).plannedWeight).toBeUndefined();
   });
 
+  it("keeps the plan's weight beside a barbell weight set by hand until the tier is lifted or put back (E7)", () => {
+    const sim = startSim();
+    runSession(sim, { templateId: "A1" });
+    const plan = stateOf(rebuilt(sim).liftStates, "squat").t1Weight;
+    const at = (minutes: number) => new Date(sim.workouts.at(-1)!.completedAt!.getTime() + minutes * 60_000);
+    const hand = (id: string, set: Record<string, number>, minutes: number, note?: string) =>
+      sim.adjustments.push(
+        makeAdjustment("squat", set, at(minutes), {
+          id,
+          clientId: id,
+          source: "manual",
+          ...(note ? { note } : {}),
+        })
+      );
+
+    hand("adj-1", { t1Weight: plan + 15 }, 1);
+    let squat = stateOf(rebuilt(sim).liftStates, "squat");
+    expect(squat).toMatchObject({ t1Weight: plan + 15, t1PlannedWeight: plan });
+    expect(squat.t1SetByHandAt).toBeDefined();
+    expect(squat.t2PlannedWeight).toBeUndefined();
+    // A second change keeps the plan's weight from before the first.
+    hand("adj-2", { t1Weight: plan + 20 }, 2);
+    expect(stateOf(rebuilt(sim).liftStates, "squat")).toMatchObject({ t1Weight: plan + 20, t1PlannedWeight: plan });
+    // Back to the plan's weight ends the override.
+    hand("adj-3", { t1Weight: plan }, 3, BACK_TO_PLAN_NOTE);
+    squat = stateOf(rebuilt(sim).liftStates, "squat");
+    expect(squat.t1PlannedWeight).toBeUndefined();
+    expect(squat.t1SetByHandAt).toBeUndefined();
+    // So does setting the plan's own weight, without the note.
+    hand("adj-4", { t1Weight: plan + 10 }, 4);
+    hand("adj-5", { t1Weight: plan }, 5);
+    squat = stateOf(rebuilt(sim).liftStates, "squat");
+    expect(squat.t1PlannedWeight).toBeUndefined();
+    expect(squat.t1SetByHandAt).toBeUndefined();
+
+    // Lifted at that tier: the hand-set weight is the plan's from then on.
+    hand("adj-6", { t1Weight: plan + 15 }, 6);
+    runSession(sim, { templateId: "B1" }); // squat not trained: still set by hand
+    expect(stateOf(rebuilt(sim).liftStates, "squat").t1PlannedWeight).toBe(plan);
+    runSession(sim, { templateId: "A2" }); // squat at T2 only: T1 still set by hand
+    expect(stateOf(rebuilt(sim).liftStates, "squat").t1PlannedWeight).toBe(plan);
+    runSession(sim, { templateId: "B2" });
+    runSession(sim, { templateId: "A1" });
+    expect(stateOf(rebuilt(sim).liftStates, "squat").t1PlannedWeight).toBeUndefined();
+  });
+
+  it("keeps the plan's weight per tier: T2 and T3 on their own", () => {
+    const sim = startSim();
+    runSession(sim, { templateId: "A1" });
+    const before = stateOf(rebuilt(sim).liftStates, "lat_pulldown");
+    const squatBefore = stateOf(rebuilt(sim).liftStates, "squat");
+    const at = new Date(sim.workouts.at(-1)!.completedAt!.getTime() + 60_000);
+    sim.adjustments.push(
+      makeAdjustment("squat", { t2Weight: squatBefore.t2Weight + 10 }, at, { id: "a-sq", clientId: "a-sq" }),
+      makeAdjustment("lat_pulldown", { t3Weight: before.t3Weight + 10 }, at, { id: "a-lp", clientId: "a-lp" })
+    );
+    let after = rebuilt(sim);
+    expect(stateOf(after.liftStates, "squat")).toMatchObject({ t2PlannedWeight: squatBefore.t2Weight });
+    expect(stateOf(after.liftStates, "squat").t1PlannedWeight).toBeUndefined();
+    expect(stateOf(after.liftStates, "lat_pulldown")).toMatchObject({
+      t3Weight: before.t3Weight + 10,
+      t3PlannedWeight: before.t3Weight,
+    });
+
+    // A home exercise's adjustment leaves the barbell lift's plan alone.
+    sim.adjustments.push(
+      makeAdjustment("squat", { t1Weight: 60 }, new Date(at.getTime() + 1000), {
+        id: "a-bss",
+        clientId: "a-bss",
+        variant: { exerciseId: "bulgarian_split_squat", tier: "T1" },
+      })
+    );
+    expect(stateOf(rebuilt(sim).liftStates, "squat").t1PlannedWeight).toBeUndefined();
+
+    // Starting weights are not an override.
+    const start = startSim();
+    expect(rebuilt(start).liftStates.every((ls) => ls.t1PlannedWeight === undefined && ls.t3PlannedWeight === undefined)).toBe(true);
+
+    // Logging the T3 (A2 has lat_pulldown at T3) clears it; the squat T2 too.
+    runSession(sim, { templateId: "B1" });
+    runSession(sim, { templateId: "A2" });
+    after = rebuilt(sim);
+    expect(stateOf(after.liftStates, "lat_pulldown").t3PlannedWeight).toBeUndefined();
+    expect(stateOf(after.liftStates, "squat").t2PlannedWeight).toBeUndefined();
+  });
+
+  it("a barbell weight done at home as its home exercise does not lift the barbell's own override", () => {
+    const sim = startSim();
+    runSession(sim, { templateId: "A1" });
+    const plan = stateOf(rebuilt(sim).liftStates, "squat").t1Weight;
+    const at = new Date(sim.workouts.at(-1)!.completedAt!.getTime() + 60_000);
+    sim.adjustments.push(makeAdjustment("squat", { t1Weight: plan + 20 }, at, { id: "a-1", clientId: "a-1" }));
+    runSession(sim, { templateId: "B1" });
+    runSession(sim, { templateId: "A2" });
+    runSession(sim, { templateId: "B2" });
+    runSession(sim, { templateId: "A1", location: "home" });
+    expect(stateOf(rebuilt(sim).liftStates, "squat").t1PlannedWeight).toBe(plan);
+  });
+
   it("a barbell weight set by hand replaces the steps the home passes earned at that tier", () => {
     const sim = startSim();
     runSession(sim, { templateId: "A1", location: "home" });
