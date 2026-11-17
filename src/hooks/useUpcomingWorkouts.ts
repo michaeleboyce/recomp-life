@@ -49,6 +49,10 @@ export function useUpcomingWorkouts(
       variantStates,
       strengthSets,
       reentry: true,
+      // Each per-set plan shows on the first coming workout that does it (E6).
+      ...(settings.nextSetPlans && Object.keys(settings.nextSetPlans).length > 0
+        ? { nextSetPlans: settings.nextSetPlans }
+        : {}),
     });
   }, [completedWorkouts, liftStates, variantStates, strengthSets, loadedSettings, location, count]);
 }

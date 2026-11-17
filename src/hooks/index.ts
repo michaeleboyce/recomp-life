@@ -35,6 +35,8 @@ export {
 export { useReadinessToday } from "./useReadinessToday";
 export { useDecisionTrace, useStoredDecisions } from "./useDecisions";
 export { useNextWorkout } from "./useNextWorkout";
+export { useNextSetPlans } from "./useNextSetPlans";
+export { saveNextSetPlan } from "@/lib/data/nextSetPlans";
 export { useReadinessLogs, useMetricSource, useMetric } from "./useMetric";
 export { useInsights } from "./useInsights";
 export { useWeeklyReview, type WeeklyReviewResult } from "./useWeeklyReview";

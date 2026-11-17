@@ -20,6 +20,7 @@ import type {
   LiftState,
   PrescribedEntry,
   ProgressionOutcome,
+  SetLog,
   T1Stage,
   T2Stage,
   UserSettings,
@@ -101,6 +102,35 @@ const VARIANT_FIELDS = {
   T3: { weight: "t3Weight" },
 } as const satisfies Record<VariantState["tier"], Partial<Record<string, AdjustableField>>>;
 
+/** Per tier of a barbell lift: its weight, the plan's weight beside a hand-set one, and when it was set (E7). */
+const LIFT_PLAN_FIELDS = {
+  T1: { weight: "t1Weight", planned: "t1PlannedWeight", byHand: "t1SetByHandAt" },
+  T2: { weight: "t2Weight", planned: "t2PlannedWeight", byHand: "t2SetByHandAt" },
+  T3: { weight: "t3Weight", planned: "t3PlannedWeight", byHand: null },
+} as const satisfies Record<
+  "T1" | "T2" | "T3",
+  { weight: AdjustableField; planned: keyof LiftState; byHand: keyof LiftState | null }
+>;
+
+/**
+ * `state` after a session that logged sets of the lift itself (not a home exercise for
+ * it) at some tiers: a weight set by hand at those tiers has been lifted, so it is the
+ * plan's now (`t1PlannedWeight` etc. cleared, as `withoutHandOverride` does at home).
+ */
+export function withoutLoggedOverrides(state: LiftState, sets: readonly SetLog[]): LiftState {
+  let out = state;
+  for (const [tier, fields] of Object.entries(LIFT_PLAN_FIELDS)) {
+    if (out[fields.planned] === undefined) continue;
+    const logged = sets.some(
+      (set) => set.exerciseId === state.exerciseId && set.tier === tier && !set.substituteExerciseId
+    );
+    if (!logged) continue;
+    out = { ...out };
+    delete out[fields.planned];
+  }
+  return out;
+}
+
 /**
  * When an adjustment set a weight by hand: a manual change or starting weights, with a
  * real date (seeded starting weights are dated at the epoch, before everything, and
@@ -126,7 +156,11 @@ function handSetDate(adjustment: LiftAdjustment): Date | null {
  * `t2SetByHandAt`), so re-entry leaves it as it is until the other location is trained.
  * A manual one for a home exercise also keeps the plan's weight from before
  * (`withHandSetWeight`: `plannedWeight`, until the exercise is logged or put back on
- * the plan's weight).
+ * the plan's weight). A manual one for the barbell lift does the same per tier
+ * (`t1PlannedWeight`, `t2PlannedWeight`, `t3PlannedWeight`; E7): the weight before the
+ * first change since the tier was logged, cleared (with `t1SetByHandAt` /
+ * `t2SetByHandAt`) when the weight is put back, and by `withoutLoggedOverrides` when
+ * the tier is logged.
  */
 function applyAdjustment(
   states: Map<string, LiftState>,
@@ -182,6 +216,20 @@ function applyAdjustment(
   }
   if (byHand && set.t1Weight !== undefined) next.t1SetByHandAt = byHand;
   if (byHand && set.t2Weight !== undefined) next.t2SetByHandAt = byHand;
+  if (byHand && adjustment.source === "manual") {
+    const backToPlan = adjustment.note === BACK_TO_PLAN_NOTE;
+    for (const fields of Object.values(LIFT_PLAN_FIELDS)) {
+      const value = set[fields.weight];
+      if (value === undefined) continue;
+      const planned = current[fields.planned] ?? current[fields.weight];
+      if (backToPlan || value === planned) {
+        delete next[fields.planned];
+        if (fields.byHand) delete next[fields.byHand];
+      } else {
+        next[fields.planned] = planned;
+      }
+    }
+  }
   states.set(adjustment.exerciseId, next as unknown as LiftState);
 
   for (const [tier, fields] of Object.entries(VARIANT_FIELDS)) {
@@ -449,6 +497,12 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
       for (const update of completion.variantStateUpdates) variants.set(update.id, update);
       sessionOutcomes = completion.outcomes;
       sessionVariantOutcomes = completion.variantOutcomes;
+    }
+
+    // A weight set by hand at a tier the session logged is the plan's from now on (E7).
+    for (const [id, state] of states) {
+      const cleared = withoutLoggedOverrides(state, session.sets ?? []);
+      if (cleared !== state) states.set(id, cleared);
     }
 
     outcomes.set(session.id, sessionOutcomes);

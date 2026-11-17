@@ -655,6 +655,79 @@ describe("editing the workout", () => {
   });
 });
 
+describe("next-session set plans (E6)", () => {
+  const SETS = [
+    { weight: 185, reps: 3 },
+    { weight: 195, reps: 3 },
+    { weight: 205, reps: 3 },
+  ];
+  const squatPlan = {
+    exerciseId: "squat",
+    liftId: "squat",
+    tier: "T1" as const,
+    sets: SETS,
+    planSets: SETS.map((s) => ({ ...s, weight: 190 })),
+    createdAt: "2026-11-17T09:00:00.000Z",
+  };
+  const squat = (hook: Awaited<ReturnType<typeof mount>>) =>
+    hook.result.current.plan.find((e) => !e.isWarmUp && e.exerciseId === "squat" && e.tier === "T1")!;
+
+  beforeEach(() => patchSettings({ nextSetPlans: { "squat|T1": squatPlan }, showWarmUps: false }));
+
+  it("shows the plan with the set plan's sets on Ready and in Edit workout, without counting as the user's edit", async () => {
+    const hook = await mount("A1");
+    expect(squat(hook).perSet).toEqual(SETS);
+    expect(squat(hook).weight).toBe(205);
+    expect(hook.result.current.edits).toEqual([]);
+    expect(hook.result.current.nextSetPlanEdits).toEqual([
+      { kind: "setWeights", exerciseId: "squat", tier: "T1", sets: SETS },
+    ]);
+    // The impact line says the lift is changed from the program.
+    expect(hook.result.current.impact).toContainEqual(
+      expect.objectContaining({ exerciseId: "squat", tier: "T1", edited: true })
+    );
+  });
+
+  it("lets the user's own per-set weights win, and clearing them goes back to the program", async () => {
+    const hook = await mount("A1");
+    const mine = [{ weight: 200, reps: 3 }, { weight: 200, reps: 3 }];
+    act(() => hook.result.current.setSetWeights("squat", "T1", mine));
+    expect(squat(hook).perSet).toEqual(mine);
+    act(() => hook.result.current.setSetWeights("squat", "T1", null));
+    expect(squat(hook).perSet).toBeUndefined();
+    expect(hook.result.current.nextSetPlanEdits).toEqual([]);
+    // Reset puts the set plan back.
+    act(() => hook.result.current.resetEdits());
+    expect(squat(hook).perSet).toEqual(SETS);
+  });
+
+  it("saves the set plan's edits in the session's planEdits, ahead of the user's, so the active workout plans the same sets", async () => {
+    const hook = await mount("A1");
+    act(() => hook.result.current.setWeight("bench", "T2", 120));
+    const preview = hook.result.current.plan;
+    let sessionId: string | null = null;
+    await act(async () => {
+      sessionId = await hook.result.current.start();
+    });
+    const session = (await db.workouts.get(sessionId!))!;
+    expect(session.planEdits).toEqual([
+      { kind: "setWeights", exerciseId: "squat", tier: "T1", sets: SETS },
+      { kind: "weight", exerciseId: "bench", tier: "T2", weight: 120 },
+    ]);
+    const active = renderHook(() => useActiveWorkout(sessionId));
+    await waitFor(() => expect(active.result.current.status).toBe("active"));
+    expect(active.result.current.plan).toEqual(preview);
+    // Starting does not use the plan up: finishing does.
+    expect((await db.userProfile.toCollection().first())!.settings.nextSetPlans).toHaveProperty("squat|T1");
+  });
+
+  it("does not apply on a day without that exercise at that tier", async () => {
+    const hook = await mount("B1");
+    expect(hook.result.current.plan.some((e) => e.perSet)).toBe(false);
+    expect(hook.result.current.nextSetPlanEdits).toEqual([]);
+  });
+});
+
 describe("choosing the day", () => {
   it("overrides the URL and exposes the due day from the rotation", async () => {
     const hook = await mount("B2");

@@ -33,7 +33,7 @@ import { RECOVERY_HOURS, lastTrainedDates } from "@/lib/recovery";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
 import { sleepBucket } from "@/lib/health/sleep";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
-import { getPrescription, planWorkoutStart, substituteModification } from "@/lib/workout";
+import { getPrescription, nextSetPlanKey, planWorkoutStart, substituteModification } from "@/lib/workout";
 import { ACCESSORY_RECOMMENDATIONS, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { addEdit, removeEdit, schemeEdit, setWeightsEdit, swapEdit, weightEdit } from "./editList";
 import { computeImpact } from "./impact";
@@ -61,6 +61,7 @@ const NO_LIFT_STATES: LiftState[] = [];
 const NO_VARIANT_STATES: VariantState[] = [];
 const NO_EDITS: PlanEdit[] = [];
 const NO_PRESCRIBED: PrescribedEntry[] = [];
+const NO_KEYS: readonly string[] = [];
 
 /** What the user can do about a run advisory. */
 export type RunChoice = "proceed" | "extra_warmups" | "reduce_10" | "skip";
@@ -176,6 +177,19 @@ export function useWorkoutSetup(
       })),
     [templateId]
   );
+  // Next-session set plans (E6) the user cleared in Edit workout, by their key: like
+  // edits, for this day only.
+  const [skippedState, setSkippedState] = useState<{ templateId: string | undefined; keys: readonly string[] }>(
+    { templateId: undefined, keys: NO_KEYS }
+  );
+  const skippedSetPlans = skippedState.templateId === templateId ? skippedState.keys : NO_KEYS;
+  const storedSetPlans = settings.nextSetPlans;
+  const nextSetPlans = useMemo(() => {
+    if (!storedSetPlans || skippedSetPlans.length === 0) return storedSetPlans;
+    return Object.fromEntries(
+      Object.entries(storedSetPlans).filter(([key]) => !skippedSetPlans.includes(key))
+    );
+  }, [storedSetPlans, skippedSetPlans]);
   // An exercise the program does not prescribe starts at the last weight logged for it.
   const lastWeights = useMemo(() => lastLoggedWeights(completedWorkouts ?? []), [completedWorkouts]);
   const swapExercise = useCallback(
@@ -211,13 +225,10 @@ export function useWorkoutSetup(
       changeEdits((list) => weightEdit(list, exerciseId, tier, weight)),
     [changeEdits]
   );
-  /** Each set its own weight and rep target; null makes the entry's sets uniform again. */
-  const setSetWeights = useCallback(
-    (exerciseId: string, tier: Tier, sets: PlannedSet[] | null) =>
-      changeEdits((list) => setWeightsEdit(list, exerciseId, tier, sets)),
-    [changeEdits]
-  );
-  const resetEdits = useCallback(() => changeEdits(() => NO_EDITS), [changeEdits]);
+  const resetEdits = useCallback(() => {
+    changeEdits(() => NO_EDITS);
+    setSkippedState({ templateId, keys: NO_KEYS });
+  }, [changeEdits, templateId]);
 
   // The location is the saved training location, shared with Today and More.
   // A change made here is shown at once and saved as the new default; `pending`
@@ -331,14 +342,42 @@ export function useWorkoutSetup(
             edits: pinned,
             variantStates,
             ...(strengthSets ? { strengthSets } : {}),
+            ...(nextSetPlans ? { nextSetPlans } : {}),
           })
         : null,
-    [template, liftStates, location, equipment, warmUps, selectedAccessories, overrides, pinned, variantStates, strengthSets]
+    [template, liftStates, location, equipment, warmUps, selectedAccessories, overrides, pinned, variantStates, strengthSets, nextSetPlans]
   );
   const plan = useMemo(() => startPlan?.plan ?? [], [startPlan]);
   const prescribed = startPlan?.prescribed ?? NO_PRESCRIBED;
+  /** The per-set weights set on an exercise's page for this session, as edits (E6). */
+  const setPlanEdits = startPlan?.nextSetPlanEdits ?? NO_EDITS;
+  /** Everything that changes the program's plan, as saved on the session: set plans first, so the user's edits win. */
+  const sessionEdits = useMemo(
+    () => (setPlanEdits.length === 0 ? pinned : [...setPlanEdits, ...pinned]),
+    [setPlanEdits, pinned]
+  );
   /** Per program lift: counts toward progression, logged only, or not done. Empty without edits. */
-  const impact = useMemo(() => computeImpact(plan, prescribed, pinned), [plan, prescribed, pinned]);
+  const impact = useMemo(() => computeImpact(plan, prescribed, sessionEdits), [plan, prescribed, sessionEdits]);
+
+  /**
+   * Each set its own weight and rep target; null makes the entry's sets uniform again
+   * (a next-session set plan on it is left out of this workout too, until reset).
+   */
+  const setSetWeights = useCallback(
+    (exerciseId: string, tier: Tier, sets: PlannedSet[] | null) => {
+      changeEdits((list) => setWeightsEdit(list, exerciseId, tier, sets));
+      if (sets && sets.length > 0) return;
+      const entry = plan.find((e) => !e.isWarmUp && e.exerciseId === exerciseId && e.tier === tier);
+      if (!entry) return;
+      const key = nextSetPlanKey(entry.substituteExerciseId ?? entry.exerciseId, tier);
+      if (!storedSetPlans?.[key]) return;
+      setSkippedState((prev) => {
+        const keys = prev.templateId === templateId ? prev.keys : NO_KEYS;
+        return keys.includes(key) ? prev : { templateId, keys: [...keys, key] };
+      });
+    },
+    [changeEdits, plan, storedSetPlans, templateId]
+  );
 
   const homeAdaptations = useMemo<HomeAdaptation[]>(() => {
     if (!template || location !== "home") return [];
@@ -642,7 +681,7 @@ export function useWorkoutSetup(
     try {
       sessionId = await startWorkout({
         prescribed,
-        planEdits: pinned,
+        planEdits: sessionEdits,
         favoriteId,
         templateId,
         location,
@@ -667,7 +706,7 @@ export function useWorkoutSetup(
       return null;
     }
     // The choices made on this screen, now that they belong to a real workout.
-    for (const note of notesToWrite(pendingNotes, { sessionId, templateId, edits: pinned })) {
+    for (const note of notesToWrite(pendingNotes, { sessionId, templateId, edits: sessionEdits })) {
       noteAdvisory(note);
     }
     setPendingNotes([]);
@@ -685,7 +724,7 @@ export function useWorkoutSetup(
     sleepHours,
     stressLevel,
     prescribed,
-    pinned,
+    sessionEdits,
     favoriteId,
     sleepIsFromHealth,
     healthSleepMinutes,
@@ -705,6 +744,11 @@ export function useWorkoutSetup(
     plan,
     /** The edits in effect at this location (a favourite's pins from the other one left out). */
     edits: pinned,
+    /**
+     * The `setWeights` edits from next-session set plans (set on an exercise's page,
+     * E6) that this plan uses; saved on the session ahead of `edits`. Not in `edits`.
+     */
+    nextSetPlanEdits: setPlanEdits,
     prescribed,
     impact,
     favoriteId,

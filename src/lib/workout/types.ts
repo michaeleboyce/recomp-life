@@ -3,6 +3,7 @@ import type { ReentryRule, StrengthSet } from "@/lib/strength";
 import type {
   EquipmentProfile,
   LiftState,
+  NextSetPlan,
   PlanEdit,
   PlannedSet,
   SetLog,
@@ -134,6 +135,12 @@ export interface BuildPlanInput {
    * must already be the resolved ones.
    */
   reentries?: ReadonlyMap<string, PlanReentry>;
+  /**
+   * Per-set weights for the next session of an exercise (`UserSettings.nextSetPlans`,
+   * E6): each entry that has one (by the exercise performed and tier) gets its sets as
+   * a `setWeights` edit, applied before `edits` so the user's own changes win.
+   */
+  nextSetPlans?: Readonly<Record<string, NextSetPlan>>;
 }
 
 export interface RehydratedPlan {

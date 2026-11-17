@@ -8,6 +8,7 @@ import type {
   WorkoutTemplate,
 } from "@/types";
 import { foldRotation, type RotationSession } from "./credit";
+import { nextSetPlanEdits } from "./nextSetPlans";
 import { applyPlanEdits } from "./planEdits";
 import { getPrescription } from "./prescription";
 import { markReentries, resolveReentry } from "./reentry";
@@ -33,7 +34,9 @@ export const WARM_UP_TIERS: readonly Tier[] = ["T1"];
  * in `overrides` selects one of that adaptation's alternatives instead. The barbell
  * weight the exercise stands for is kept as `originalWeight`.
  *
- * `edits` are then applied in order (see `applyPlanEdits`). A `swap` edit and an
+ * Next-session set plans (`nextSetPlans`, E6) become `setWeights` edits for the entries
+ * they match (`nextSetPlanEdits`), applied first; then `edits` in order (see
+ * `applyPlanEdits`), so the user's own change to an entry wins. A `swap` edit and an
  * `overrides` entry are different things: an override is the program lift on other
  * equipment and still credits that lift, a swap is a different exercise and is only
  * logged. When both name the same exercise the swap wins, and a swapped-in exercise
@@ -139,7 +142,8 @@ export function buildWorkoutPlan(input: BuildPlanInput): WorkoutPlan {
   }
 
   const marked = markReentries(plan, input.reentries);
-  return input.edits?.length ? applyPlanEdits(marked, input.edits) : marked;
+  const edits = [...nextSetPlanEdits(marked, input.nextSetPlans), ...(input.edits ?? [])];
+  return edits.length ? applyPlanEdits(marked, edits) : marked;
 }
 
 // `WorkoutModification` has no field for the substitute's id, so it travels in the
