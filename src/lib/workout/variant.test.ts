@@ -226,6 +226,14 @@ describe("chooseHomeVariant with home history", () => {
     expect(choice).toMatchObject({ weight: 70, cappedFrom: 80 });
   });
 
+  it("a current variant whose exercise is no longer a home option for the lift is passed over", () => {
+    // A state left from an older catalogue (the exercise renamed or dropped from the chain).
+    const stale = variant({ id: "squat|retired_squat|T1", exerciseId: "retired_squat", weight: 80, current: true });
+    const choice = chooseHomeVariant({ liftId: "squat", tier: "T1", liftState: squat(), variantStates: [stale], equipment: EQUIPMENT })!;
+    expect(choice.state.exerciseId).not.toBe("retired_squat");
+    expect(homeOptionsFor("squat")).toContain(choice.state.exerciseId);
+  });
+
   it("an override among the conversion's alternatives wins over the current variant", () => {
     const current = variant({ weight: 80, current: true });
     const choice = chooseHomeVariant({ liftId: "squat", tier: "T1", liftState: squat(), variantStates: [current], equipment: EQUIPMENT, overrideId: "goblet_squat" })!;

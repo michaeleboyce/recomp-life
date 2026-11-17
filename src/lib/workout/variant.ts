@@ -303,7 +303,17 @@ export function chooseHomeVariant(input: HomeVariantInput): HomeVariantChoice | 
   const overridden = overrideId
     ? adaptation.alternatives.find((alt) => alt.exercise.id === overrideId)?.exercise.id
     : undefined;
-  const current = variantStates.find((v) => v.liftId === liftId && v.tier === tier && v.current);
+  // A current variant left from an older catalogue (its exercise gone, or no longer a
+  // home option for the lift) is passed over: the plan never names an unknown exercise.
+  const options = new Set([
+    ...homeOptionsFor(liftId),
+    adaptation.adaptedExercise.id,
+    ...adaptation.alternatives.map((alt) => alt.exercise.id),
+  ]);
+  const current = variantStates.find(
+    (v) =>
+      v.liftId === liftId && v.tier === tier && v.current && EXERCISES[v.exerciseId] && options.has(v.exerciseId)
+  );
   const exerciseId = overridden ?? current?.exerciseId ?? adaptation.adaptedExercise.id;
 
   const stored = variantStates.find((v) => v.id === variantKey(liftId, exerciseId, tier));
