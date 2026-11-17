@@ -99,14 +99,52 @@ export function dropSetWeight(
  * drop sets left out (a drop continues a set, it is not one of the entry's sets), and a
  * per-set entry keeping its working weight (`weight` is its heaviest working set; each
  * set's own weight is in `perSet`). A uniform entry resumes at the weight of its last
- * set, exactly as `rehydratePlan` has it.
+ * set, exactly as `rehydratePlan` has it, except that a set logged at a weight changed
+ * on the spot (`spotWeights`) is for that set alone: the entry resumes at its last set
+ * logged at its own weight, or at its planned weight when there is none.
  */
-export function screenPlan(basePlan: WorkoutPlan, sets: SetLog[]): WorkoutPlan {
-  const { plan } = rehydratePlan(
-    basePlan,
-    sets.filter((set) => !isDropSet(set))
-  );
-  return plan.map((entry, i) => (entry.perSet ? { ...entry, weight: basePlan[i].weight } : entry));
+export function screenPlan(
+  basePlan: WorkoutPlan,
+  sets: SetLog[],
+  spotWeights: SpotWeightsByKey = {}
+): WorkoutPlan {
+  const working = sets.filter((set) => !isDropSet(set));
+  const { plan } = rehydratePlan(basePlan, working);
+  return plan.map((entry, i) => {
+    if (entry.perSet) return { ...entry, weight: basePlan[i].weight };
+    if (entry.isWarmUp || entry.completedSets === 0) return entry;
+    const rows = entrySetsFor(working, entry.exerciseId, entry.tier);
+    const atSpotWeight = (j: number) => rows[j] != null && spotWeights[spotKey(i, j)] === rows[j].weight;
+    if (!atSpotWeight(entry.completedSets - 1)) return entry;
+    let j = entry.completedSets - 2;
+    while (j >= 0 && atSpotWeight(j)) j -= 1;
+    const weight = j >= 0 ? rows[j].weight : basePlan[i].weight;
+    return weight === entry.weight ? entry : { ...entry, weight };
+  });
+}
+
+/**
+ * Weights changed on the spot during a workout, for one set each, by `spotKey` (the
+ * entry's index in the plan and the set's index in the entry).
+ */
+export type SpotWeightsByKey = Readonly<Record<string, number>>;
+
+/** One entry's weights changed on the spot, by set index. */
+export type SpotWeights = Readonly<Record<number, number>>;
+
+/** The key of a set in `SpotWeightsByKey`. */
+export function spotKey(entryIndex: number, setIndex: number): string {
+  return `${entryIndex}:${setIndex}`;
+}
+
+/** The weights changed on the spot for one entry, by set index. */
+export function spotWeightsOf(weights: SpotWeightsByKey, entryIndex: number): Record<number, number> {
+  const prefix = `${entryIndex}:`;
+  const out: Record<number, number> = {};
+  for (const [key, weight] of Object.entries(weights)) {
+    if (key.startsWith(prefix)) out[Number(key.slice(prefix.length))] = weight;
+  }
+  return out;
 }
 
 /**
@@ -156,6 +194,10 @@ export interface SetChip {
   index: number;
   /** As logged for a done set; as planned (or as changed on the spot) otherwise. */
   weight: number;
+  /** The set's planned weight (for a done set, as it was planned). */
+  plannedWeight: number;
+  /** A set still to come whose weight was changed on the spot. */
+  changed: boolean;
   reps: number;
   role: SetRole;
   state: "done" | "current" | "todo";
@@ -177,13 +219,13 @@ export function plannedSetsOf(
 
 /**
  * Every set of an entry for the set chips: the done ones as they were logged (with how
- * many drops followed each), the next one at its planned weight or the one changed on
- * the spot, the rest as planned.
+ * many drops followed each), each one still to come at its planned weight or at the
+ * weight changed on the spot for it (`spotWeights`, by set index).
  */
 export function setChipsFor(
   entry: WorkoutExerciseState,
   sets: SetLog[],
-  weightOverride: number | null
+  spotWeights: SpotWeights
 ): SetChip[] {
   const rows = attachDrops(entrySetsFor(sets, entry.exerciseId, entry.tier)).filter(
     (row) => !isDropSet(row.set)
@@ -196,6 +238,8 @@ export function setChipsFor(
       return {
         index,
         weight: logged.set.weight,
+        plannedWeight: planned.weight,
+        changed: false,
         reps: logged.set.actualReps,
         role,
         state: "done",
@@ -204,9 +248,13 @@ export function setChipsFor(
       };
     }
     const current = index === entry.completedSets;
+    const spot = spotWeights[index];
+    const changed = spot != null && spot !== planned.weight;
     return {
       index,
-      weight: current && weightOverride != null ? weightOverride : planned.weight,
+      weight: changed ? spot : planned.weight,
+      plannedWeight: planned.weight,
+      changed,
       reps: planned.reps,
       role,
       state: current ? "current" : "todo",

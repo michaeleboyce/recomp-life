@@ -15,6 +15,8 @@ import {
   roleLabel,
   screenPlan,
   setChipsFor,
+  spotKey,
+  spotWeightsOf,
   weightStepFor,
 } from "./setPlan";
 
@@ -138,6 +140,39 @@ describe("screenPlan", () => {
     const sets = [top, set({ exerciseId: "bench", tier: "T2", role: "drop", dropOf: top.id, weight: 75 })];
     expect(screenPlan(base, sets)[1]).toMatchObject({ completedSets: 1, weight: 95 });
   });
+
+  describe("with weights changed on the spot", () => {
+    const bench = (weight: number) =>
+      set({ exerciseId: "bench", tier: "T2", weight, targetReps: 10, actualReps: 10 });
+
+    it("does not carry a set's changed weight on to the sets after it", () => {
+      const sets = [bench(110)];
+      expect(screenPlan(base, sets, { [spotKey(1, 0)]: 110 })[1]).toMatchObject({ completedSets: 1, weight: 100 });
+    });
+
+    it("goes back to the last set logged at its own weight", () => {
+      const sets = [bench(95), bench(110)];
+      expect(screenPlan(base, sets, { [spotKey(1, 1)]: 110 })[1].weight).toBe(95);
+    });
+
+    it("carries on a weight corrected after it was logged, as before", () => {
+      const sets = [bench(105)];
+      expect(screenPlan(base, sets, { [spotKey(1, 0)]: 110 })[1].weight).toBe(105);
+    });
+
+    it("leaves a per-set entry alone", () => {
+      const sets = [set({ weight: 155, role: "ramp" })];
+      expect(screenPlan(base, sets, { [spotKey(0, 0)]: 155 })[0].weight).toBe(190);
+    });
+  });
+});
+
+describe("spotWeightsOf", () => {
+  it("picks one entry's changed weights by set index", () => {
+    const weights = { [spotKey(0, 2)]: 150, [spotKey(1, 0)]: 90, [spotKey(1, 3)]: 95 };
+    expect(spotWeightsOf(weights, 1)).toEqual({ 0: 90, 3: 95 });
+    expect(spotWeightsOf(weights, 4)).toEqual({});
+  });
 });
 
 describe("nextSetView", () => {
@@ -202,7 +237,7 @@ describe("setChipsFor", () => {
       set({ role: "drop", dropOf: first.id, weight: 120 }),
       set({ weight: 170, role: "ramp", actualReps: 4 }),
     ];
-    const chips = setChipsFor(planned, sets, null);
+    const chips = setChipsFor(planned, sets, {});
     expect(chips.map((c) => [c.state, c.weight, c.reps, c.role])).toEqual([
       ["done", 150, 3, "ramp"],
       ["done", 170, 4, "ramp"],
@@ -218,8 +253,19 @@ describe("setChipsFor", () => {
   });
 
   it("shows a weight changed on the spot on the current set", () => {
-    const chips = setChipsFor(entry({ completedSets: 1 }), [set()], 180);
+    const chips = setChipsFor(entry({ completedSets: 1 }), [set()], { 1: 180 });
     expect(chips.map((c) => c.weight)).toEqual([190, 180, 190, 190, 190]);
+  });
+
+  it("shows each set still to come at its own changed weight, with the plan's beside it", () => {
+    const chips = setChipsFor(entry({ completedSets: 1 }), [set()], { 0: 150, 3: 200 });
+    expect(chips.map((c) => [c.weight, c.plannedWeight, c.changed])).toEqual([
+      [190, 190, false],
+      [190, 190, false],
+      [190, 190, false],
+      [200, 190, true],
+      [190, 190, false],
+    ]);
   });
 });
 

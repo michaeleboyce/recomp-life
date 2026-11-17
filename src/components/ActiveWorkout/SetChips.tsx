@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Minus, Plus, RotateCcw } from "lucide-react";
+import { planBesideText } from "@/components/SetPlan/setPlanModel";
 import { cn } from "@/lib/utils";
 import { roleLabel, type SetChip } from "./setPlan";
 
@@ -11,14 +12,11 @@ interface SetChipsProps {
   chips: SetChip[];
   /** "lbs" or "lbs/hand". */
   unit: string;
-  /** What the next set's weight moves by, and its lightest value. */
+  /** What a set's weight moves by, and its lightest value. */
   step: number;
   minWeight: number;
-  /** The next set's weight as changed on the spot; null when it is as planned. */
-  override: number | null;
-  /** The next set's planned weight, for "back to plan". */
-  plannedWeight: number;
-  onChange: (weight: number | null) => void;
+  /** Changes one set still to come, by its index; null puts it back to the plan. */
+  onChange: (setIndex: number, weight: number | null) => void;
 }
 
 const STEP_BUTTON =
@@ -26,24 +24,16 @@ const STEP_BUTTON =
 
 /**
  * Every set of the exercise on screen as a chip: done ones as logged, the next one
- * highlighted, the rest as planned, with which are ramp and back-off sets. Tapping the
- * next set opens steppers that change its weight on the spot.
+ * highlighted, the rest as planned, with which are ramp and back-off sets. Tapping any
+ * set still to come opens steppers that change its weight, for that set alone; a
+ * changed set shows the plan's weight beside it and can go back to it.
  */
-export function SetChips({
-  name,
-  chips,
-  unit,
-  step,
-  minWeight,
-  override,
-  plannedWeight,
-  onChange,
-}: SetChipsProps) {
-  const [open, setOpen] = useState(false);
+export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetChipsProps) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   if (chips.length === 0) return null;
-  const current = chips.find((chip) => chip.state === "current");
   const mixed = chips.some((chip) => chip.role !== "work");
-  const showEditor = open && !!current;
+  // A set closes once it is done.
+  const open = chips.find((chip) => chip.index === openIndex && chip.state !== "done");
 
   return (
     <section aria-label={`Sets of ${name}`} className="flex flex-col gap-2">
@@ -66,78 +56,102 @@ export function SetChips({
                   {chip.drops > 0 ? ` +${chip.drops}↓` : ""}
                 </span>
               )}
+              {chip.changed && (
+                <span className="font-mono text-[11px] leading-none tabular-nums text-accent-primary">
+                  plan {chip.plannedWeight}
+                </span>
+              )}
             </>
           );
           const base =
             "flex min-h-11 w-full flex-col items-center justify-center gap-1 rounded-xl border-[1.5px] px-0.5 py-1.5";
-          const what = `Set ${chip.index + 1}${label ? `, ${label.toLowerCase()}` : ""}: ${chip.weight} ${unit} × ${chip.reps}`;
+          const what = `Set ${chip.index + 1}${label ? `, ${label.toLowerCase()}` : ""}: ${chip.weight} ${unit} × ${chip.reps}${
+            chip.changed ? `, planned ${chip.plannedWeight} ${unit}` : ""
+          }`;
+          const isOpen = open?.index === chip.index;
           return (
-            <li key={chip.index} data-chip={chip.state} data-role={chip.role}>
-              {chip.state === "current" ? (
+            <li key={chip.index} data-chip={chip.state} data-role={chip.role} data-changed={chip.changed || undefined}>
+              {chip.state === "done" ? (
+                <span className={cn(base, "border-transparent bg-card text-foreground/80")}>
+                  <span aria-hidden="true" className="contents">
+                    {body}
+                  </span>
+                  <span className="sr-only">{`${what}, done`}</span>
+                </span>
+              ) : (
                 <button
                   type="button"
-                  aria-expanded={showEditor}
-                  aria-label={`${what}, next. Change its weight`}
-                  onClick={() => setOpen((was) => !was)}
+                  aria-expanded={isOpen}
+                  aria-label={`${what}${chip.state === "current" ? ", next" : ""}. Change its weight`}
+                  onClick={() => setOpenIndex(isOpen ? null : chip.index)}
                   className={cn(
                     base,
-                    "border-accent-primary bg-accent-primary-soft text-foreground transition-colors active:bg-card-raised"
+                    "transition-colors active:bg-card-raised",
+                    chip.state === "current"
+                      ? "border-accent-primary bg-accent-primary-soft text-foreground"
+                      : isOpen
+                        ? "border-accent-primary/70 bg-card text-foreground"
+                        : chip.changed
+                          ? "border-accent-primary/40 text-foreground"
+                          : "border-border text-muted-foreground"
                   )}
                 >
                   {body}
                 </button>
-              ) : (
-                <span
-                  className={cn(
-                    base,
-                    chip.state === "done"
-                      ? "border-transparent bg-card text-foreground/80"
-                      : "border-border text-muted-foreground"
-                  )}
-                >
-                  <span aria-hidden="true" className="contents">
-                    {body}
-                  </span>
-                  <span className="sr-only">{`${what}${chip.state === "done" ? ", done" : ""}`}</span>
-                </span>
               )}
             </li>
           );
         })}
       </ol>
 
-      {showEditor && current && (
-        <div role="group" aria-label={`Set ${current.index + 1} weight`} className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label={`${step} ${unit} lighter`}
-            className={STEP_BUTTON}
-            disabled={current.weight - step < minWeight}
-            onClick={() => onChange(current.weight - step)}
-          >
-            <Minus className="size-5" aria-hidden="true" />
-            {step}
-          </button>
-          <button
-            type="button"
-            aria-label={`${step} ${unit} heavier`}
-            className={STEP_BUTTON}
-            onClick={() => onChange(current.weight + step)}
-          >
-            <Plus className="size-5" aria-hidden="true" />
-            {step}
-          </button>
-          {override != null && (
+      {open && (
+        <div role="group" aria-label={`Set ${open.index + 1} weight`} className="flex flex-col gap-1.5">
+          <p className="flex items-baseline justify-between gap-2 text-[13px]">
+            <span className="font-semibold">
+              Set {open.index + 1}
+              {open.state === "current" ? " · next" : ""}
+            </span>
+            {open.changed && (
+              <span data-testid="plan-beside" className="font-mono tabular-nums text-muted-foreground">
+                {planBesideText(
+                  { weight: open.weight, reps: open.reps },
+                  { weight: open.plannedWeight, reps: open.reps }
+                )}
+              </span>
+            )}
+          </p>
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              aria-label={`Back to the planned ${plannedWeight} ${unit}`}
-              className={cn(STEP_BUTTON, "flex-none px-4 text-[13px]")}
-              onClick={() => onChange(null)}
+              aria-label={`${step} ${unit} lighter`}
+              className={STEP_BUTTON}
+              disabled={open.weight - step < minWeight}
+              onClick={() => onChange(open.index, open.weight - step)}
             >
-              <RotateCcw className="size-4" aria-hidden="true" />
-              {plannedWeight}
+              <Minus className="size-5" aria-hidden="true" />
+              {step}
             </button>
-          )}
+            <button
+              type="button"
+              aria-label={`${step} ${unit} heavier`}
+              className={STEP_BUTTON}
+              onClick={() => onChange(open.index, open.weight + step)}
+            >
+              <Plus className="size-5" aria-hidden="true" />
+              {step}
+            </button>
+            {open.changed && (
+              <button
+                type="button"
+                aria-label={`Back to the planned ${open.plannedWeight} ${unit}`}
+                className={cn(STEP_BUTTON, "flex-none px-4 text-[13px]")}
+                onClick={() => onChange(open.index, null)}
+              >
+                <RotateCcw className="size-4" aria-hidden="true" />
+                {open.plannedWeight}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </section>

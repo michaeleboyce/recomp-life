@@ -158,10 +158,13 @@ describe("the edit sheet", () => {
 describe("weight per set", () => {
   const perSetList = (sheet: HTMLElement) =>
     within(sheet).getByRole("list", { name: "Barbell Squat sets" });
+  // Each set is a chip; its steppers open when it is tapped.
   const setWeights = (sheet: HTMLElement) =>
-    [...sheet.querySelectorAll("[data-stepper-value^='Barbell Squat set'][data-stepper-value$='weight']")].map(
-      (el) => Number.parseFloat(el.textContent!)
+    [...perSetList(sheet).querySelectorAll("[data-set-weight]")].map((el) =>
+      Number(el.getAttribute("data-set-weight"))
     );
+  const openSet = (sheet: HTMLElement, n: number) =>
+    fireEvent.click(within(perSetList(sheet)).getByRole("button", { name: new RegExp(`^Set ${n}\\b`) }));
 
   async function perSetSheet() {
     const sheet = await openSheet();
@@ -187,6 +190,7 @@ describe("weight per set", () => {
     const sheet = await perSetSheet();
     fireEvent.click(within(sheet).getByRole("button", { name: "Ramp up" }));
     expect(setWeights(sheet)).toEqual([150, 170, 190, 190, 190, 190, 190]);
+    openSet(sheet, 1);
     expect(within(sheet).getByRole("button", { name: "Set 1: ramp" })).toHaveAttribute("aria-pressed", "true");
     expect(within(sheet).getByTestId("working-sets")).toHaveTextContent("Sets 3 to 7 are the working sets");
     expect(within(sheet).getByText("Counts toward progression")).toBeInTheDocument();
@@ -196,12 +200,14 @@ describe("weight per set", () => {
     const sheet = await perSetSheet();
     fireEvent.click(within(sheet).getByRole("button", { name: "Back-off set" }));
     expect(setWeights(sheet)).toEqual([190, 190, 190, 190, 190, 150]);
+    openSet(sheet, 6);
     expect(within(sheet).getByRole("button", { name: "Set 6: back-off" })).toHaveAttribute("aria-pressed", "true");
     expect(within(sheet).getByText("Counts toward progression")).toBeInTheDocument();
   });
 
   it("changes one set by the plate step, and a working set turned into a ramp leaves the lift logged only", async () => {
     const sheet = await perSetSheet();
+    openSet(sheet, 1);
     fireEvent.click(within(sheet).getByRole("button", { name: "Decrease Barbell Squat set 1 weight" }));
     expect(setWeights(sheet)).toEqual([185, 190, 190, 190, 190]);
     fireEvent.click(within(sheet).getByRole("button", { name: "Set 1: ramp" }));
@@ -211,6 +217,7 @@ describe("weight per set", () => {
 
   it("removes and adds sets", async () => {
     const sheet = await perSetSheet();
+    openSet(sheet, 5);
     fireEvent.click(within(sheet).getByRole("button", { name: "Remove set 5 of Barbell Squat" }));
     expect(setWeights(sheet)).toHaveLength(4);
     fireEvent.click(within(sheet).getByRole("button", { name: "Add a set to Barbell Squat" }));

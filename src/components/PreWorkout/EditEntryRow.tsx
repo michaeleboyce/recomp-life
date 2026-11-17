@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronsUp, ListPlus, Plus, Repeat2, Rows3, Trash2 } from "lucide-react";
+import { SetPlanEditor } from "@/components/SetPlan/SetPlanEditor";
 import { TierBadge } from "@/components/ui/tier-badge";
 import { getExercise } from "@/lib/exercises";
 import { cn } from "@/lib/utils";
@@ -44,13 +45,14 @@ export function workingSetsText(sets: readonly PlannedSet[]): string {
 }
 
 /**
- * Each set of an entry with its own weight, rep target and role (ramp, working, back-off),
- * quick fills for a ramp up to the working weight and a back-off set, and which sets
- * pass or fail is judged on.
+ * Each set of an entry with its own weight, rep target and role (ramp, working, back-off)
+ * as chips to tap open (`SetPlanEditor`), quick fills for a ramp up to the working weight
+ * and a back-off set, and which sets pass or fail is judged on.
  */
 function PerSetEditor({
   name,
   sets,
+  planSets,
   step,
   minWeight,
   judged,
@@ -58,76 +60,68 @@ function PerSetEditor({
 }: {
   name: string;
   sets: PlannedSet[];
+  /** The plan's own sets, shown beside a changed set. */
+  planSets: PlannedSet[];
   step: number;
   minWeight: number;
   /** A program lift: say which sets decide its pass or fail. */
   judged: boolean;
-  onChange: (sets: PlannedSet[]) => void;
+  /** The new sets; null goes back to the plan (one weight for every set). */
+  onChange: (sets: PlannedSet[] | null) => void;
 }) {
   const update = (index: number, change: Partial<PlannedSet>) =>
     onChange(sets.map((set, i) => (i === index ? { ...set, ...change } : set)));
 
+  // The open set's role and its remove button, under its steppers.
+  const setTools = (i: number) => {
+    const role = sets[i].role ?? "work";
+    return (
+      <div className="flex items-center gap-2">
+        <div role="group" aria-label={`Set ${i + 1} role`} className="flex min-w-0 flex-1 gap-1">
+          {ROLES.map((option) => (
+            <button
+              key={option.role}
+              type="button"
+              aria-pressed={role === option.role}
+              aria-label={`Set ${i + 1}: ${option.name}`}
+              onClick={() => update(i, { role: option.role })}
+              className={cn(
+                "min-h-11 flex-1 rounded-lg border px-1 text-xs font-semibold outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                role === option.role
+                  ? option.role === "work"
+                    ? "border-accent-primary bg-accent-primary-soft text-foreground"
+                    : "border-foreground/40 bg-muted text-foreground"
+                  : "border-transparent text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className={iconButton}
+          aria-label={`Remove set ${i + 1} of ${name}`}
+          disabled={sets.length <= 1}
+          onClick={() => onChange(sets.filter((_, j) => j !== i))}
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+        </button>
+      </div>
+    );
+  };
+
   return (
-    <div className="flex flex-col gap-2">
-      <ol aria-label={`${name} sets`} className="flex flex-col divide-y divide-border rounded-xl bg-background/40">
-        {sets.map((set, i) => {
-          const role = set.role ?? "work";
-          return (
-            <li key={i} className="flex flex-col gap-1 px-2 py-2">
-              <div className="flex items-center gap-2">
-                <span className="w-12 shrink-0 font-mono text-xs text-muted-foreground">Set {i + 1}</span>
-                <div role="group" aria-label={`Set ${i + 1} role`} className="flex min-w-0 flex-1 gap-1">
-                  {ROLES.map((option) => (
-                    <button
-                      key={option.role}
-                      type="button"
-                      aria-pressed={role === option.role}
-                      aria-label={`Set ${i + 1}: ${option.name}`}
-                      onClick={() => update(i, { role: option.role })}
-                      className={cn(
-                        "min-h-11 flex-1 rounded-lg border px-1 text-xs font-semibold outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                        role === option.role
-                          ? option.role === "work"
-                            ? "border-accent-primary bg-accent-primary-soft text-foreground"
-                            : "border-foreground/40 bg-muted text-foreground"
-                          : "border-transparent text-muted-foreground hover:bg-muted"
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  className={iconButton}
-                  aria-label={`Remove set ${i + 1} of ${name}`}
-                  disabled={sets.length <= 1}
-                  onClick={() => onChange(sets.filter((_, j) => j !== i))}
-                >
-                  <Trash2 className="size-4" aria-hidden="true" />
-                </button>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                <Stepper
-                  label={`${name} set ${i + 1} weight`}
-                  value={set.weight}
-                  unit="lbs"
-                  step={step}
-                  min={minWeight}
-                  onChange={(weight) => update(i, { weight })}
-                />
-                <span aria-hidden="true" className="px-0.5 font-mono text-sm text-muted-foreground">×</span>
-                <Stepper
-                  label={`${name} set ${i + 1} reps`}
-                  value={set.reps}
-                  min={1}
-                  onChange={(reps) => update(i, { reps })}
-                />
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+    <SetPlanEditor
+      name={name}
+      sets={sets}
+      planSets={planSets}
+      unit="lbs"
+      step={step}
+      minWeight={minWeight}
+      onChange={onChange}
+      setTools={setTools}
+    >
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -152,7 +146,7 @@ function PerSetEditor({
           {workingSetsText(sets)}
         </p>
       )}
-    </div>
+    </SetPlanEditor>
   );
 }
 
@@ -167,6 +161,7 @@ export function EditEntryRow({
   onSetWeights,
   weightStep = WEIGHT_STEP_LBS,
   minWeight = 0,
+  planSets,
 }: {
   entry: WorkoutExerciseState;
   /** Set when the entry is a program lift of an edited day and has been edited. */
@@ -181,6 +176,11 @@ export function EditEntryRow({
   weightStep?: number;
   /** The lightest a per-set weight can be: the empty bar for a barbell at the gym. */
   minWeight?: number;
+  /**
+   * The plan's own sets, for "Plan · You" on a set changed from them and "Back to plan".
+   * Absent: the per-set weights are not compared with anything.
+   */
+  planSets?: PlannedSet[];
 }) {
   const name = getExercise(entry.substituteExerciseId || entry.exerciseId).name;
   const perSet = !!entry.perSet;
@@ -219,6 +219,7 @@ export function EditEntryRow({
           <PerSetEditor
             name={name}
             sets={entry.perSet!}
+            planSets={planSets ?? entry.perSet!}
             step={weightStep}
             minWeight={minWeight}
             judged={CREDIT_TIERS.includes(entry.tier)}
