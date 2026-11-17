@@ -1,12 +1,19 @@
 "use client";
 
-import { Activity, Dumbbell, Footprints, House, Scale, Trophy } from "lucide-react";
+import { Activity, Dumbbell, Footprints, History, House, Scale, Trophy } from "lucide-react";
 import { ListRow } from "@/components/ui/list-row";
 import { FavoriteStarFor } from "@/components/Favorites/FavoriteStar";
+import { ImportedTag } from "@/components/ImportedHistory/ImportedTag";
+import {
+  importedSessionSummary,
+  importedSummaryLine,
+  isImportedRow,
+  type ImportedSessionSummary,
+} from "@/components/ImportedHistory/importedView";
 import { formatDuration, formatLbs } from "@/components/LogEdit/format";
 import { workoutTitle } from "@/components/LogEdit";
 import { describeActivity } from "@/lib/activities";
-import type { FavoriteWorkout, RunCategory, RunType } from "@/types";
+import type { FavoriteWorkout, RecordSource, RunCategory, RunType } from "@/types";
 import { workoutResultLine, type LogEntry } from "./logEntries";
 import { workoutDetailHref } from "@/lib/routes";
 
@@ -28,11 +35,22 @@ function minutes(value: number): string {
   return formatDuration(value * 60);
 }
 
-function cardioSubtitle(distanceMiles: number | null, durationMinutes: number, effort: number | null): string {
+interface CardioRow {
+  distanceMiles: number | null;
+  durationMinutes: number;
+  perceivedEffort: number | null;
+  source?: RecordSource;
+  sourceName?: string;
+  importBatchId?: string;
+}
+
+/** "3.1 mi · 30 min · easy effort", led by the app for a row an import added ("Gravl · …"). */
+function cardioSubtitle(row: CardioRow): string {
   return [
-    distanceMiles != null ? `${formatLbs(distanceMiles)} mi` : null,
-    minutes(durationMinutes),
-    effort != null ? EFFORT[effort] ?? null : null,
+    isImportedRow(row) ? row.sourceName ?? null : null,
+    row.distanceMiles != null ? `${formatLbs(row.distanceMiles)} mi` : null,
+    minutes(row.durationMinutes),
+    row.perceivedEffort != null ? EFFORT[row.perceivedEffort] ?? null : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -40,12 +58,14 @@ function cardioSubtitle(distanceMiles: number | null, durationMinutes: number, e
 
 /**
  * One log entry as a row. A workout links to its detail page; every other entry calls
- * `onOpen` so the screen can show its edit sheet.
+ * `onOpen` so the screen can show its edit sheet, or an imported session's detail.
+ * Rows from another app's export carry the "Imported" label.
  */
 export function LogEntryRow({
   entry,
   hasPR = false,
   favorites,
+  importedSummary,
   onOpen,
 }: {
   entry: LogEntry;
@@ -53,6 +73,8 @@ export function LogEntryRow({
   favorites?: FavoriteWorkout[];
   /** The workout set a new best estimated 1RM against earlier sessions. */
   hasPR?: boolean;
+  /** An imported session's summary, worked out once by the list (with the remembered name choices). */
+  importedSummary?: ImportedSessionSummary;
   onOpen: (entry: LogEntry) => void;
 }) {
   switch (entry.kind) {
@@ -88,7 +110,8 @@ export function LogEntryRow({
           onClick={() => onOpen(entry)}
           leading={<Footprints className={iconClass} aria-hidden="true" />}
           title={`${RUN_TYPE[r.type] ?? "Run"} run, ${RUN_CATEGORY[r.category] ?? r.category}`}
-          subtitle={cardioSubtitle(r.distanceMiles, r.durationMinutes, r.perceivedEffort)}
+          subtitle={cardioSubtitle(r)}
+          trailing={isImportedRow(r) ? <ImportedTag /> : undefined}
         />
       );
     }
@@ -99,7 +122,20 @@ export function LogEntryRow({
           onClick={() => onOpen(entry)}
           leading={<Activity className={iconClass} aria-hidden="true" />}
           title={describeActivity(a)}
-          subtitle={cardioSubtitle(a.distanceMiles, a.durationMinutes, a.perceivedEffort)}
+          subtitle={cardioSubtitle(a)}
+          trailing={isImportedRow(a) ? <ImportedTag /> : undefined}
+        />
+      );
+    }
+    case "imported": {
+      const summary = importedSummary ?? importedSessionSummary(entry.row);
+      return (
+        <ListRow
+          onClick={() => onOpen(entry)}
+          leading={<History className={iconClass} aria-hidden="true" />}
+          title={summary.title}
+          subtitle={importedSummaryLine(summary)}
+          trailing={<ImportedTag />}
         />
       );
     }

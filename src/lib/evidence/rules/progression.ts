@@ -127,7 +127,7 @@ export const PROGRESSION_RULES = {
     title: "What does a home session do to your weights?",
     summary: "Home sessions progress their own weight; the barbell moves when you return",
     appBehavior:
-      "At home, each exercise keeps its own weight, stage and reps: a Bulgarian split squat done for the squat has its own working weight, and the same pass, miss and reset rules move it in dumbbell steps. A home session counts for the rotation like any other, so the next workout is still the next one in the order. The barbell weight does not move at home: that session is held for the barbell lift. Home sessions still count as evidence for the program lift, through the strength estimate, and the first barbell weight back at the gym is the smaller of the last barbell weight plus the steps your home passes earned and what the estimate allows, rounded down to plates you can load.",
+      "At home, each exercise keeps its own weight, stage and reps: a Bulgarian split squat done for the squat has its own working weight, and the same pass, miss and reset rules move it in dumbbell steps. A home session counts for the rotation like any other, so the next workout is still the next one in the order. The barbell weight does not move at home: that session is held for the barbell lift. Home sessions still count as evidence for the program lift, through the strength estimate, and the first barbell weight back at the gym is the smaller of the last barbell weight plus the steps your home passes earned and what the estimate allows, rounded down to plates you can load. A home exercise you have not done in the app starts from that estimate, which reads sessions imported from another app too; when the exercise has imported sessions, Today names the latest one instead of saying \"First time\". Imported sessions never count as home sessions for the workout order or the progression.",
     rationale:
       "A home exercise is a different movement with its own load, so a pass on it says the movement went well, not that the barbell is ready for more. Letting it progress by itself keeps home training moving, while moving the barbell only at re-entry, and never past what your passes or your measured strength support, keeps a run of home sessions from over- or under-loading the bar.",
     caveat:
@@ -137,6 +137,7 @@ export const PROGRESSION_RULES = {
     reviewedOn: "2026-11",
     implementedIn: [
       "src/lib/workout/variant.ts#chooseHomeVariant",
+      "src/lib/workout/variant.ts#seedVariantState",
       "src/lib/workout/variant.ts#evaluateVariant",
       "src/lib/workout/variant.ts#homeStepsEarned",
       "src/lib/workout/credit.ts#sessionCountsForRotation",

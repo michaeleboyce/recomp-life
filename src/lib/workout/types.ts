@@ -124,7 +124,8 @@ export interface BuildPlanInput {
    */
   variantStates?: VariantState[];
   /**
-   * Every logged set as strength evidence (`strengthSetsOf`). At home, a variant never
+   * Every set as strength evidence: the app's and the imported sessions'
+   * (`strengthEvidenceOf`; the rebuild passes the log's alone). At home, a variant never
    * used is seeded from the program lift's pooled estimate through them (H3); left out,
    * from its starting ratio times the barbell weight.
    */

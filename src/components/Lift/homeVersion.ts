@@ -1,6 +1,6 @@
 // A program lift's home versions: which they are, their next session as Today plans it,
 // how the plan reached its weight, and a hand-set change previewed. Pure.
-import { nameInSentence } from "@/components/Today/todayModel";
+import { historyDay, nameInSentence } from "@/components/Today/todayModel";
 import { DUMBBELL_LOAD_FACTOR } from "@/lib/dbConversion";
 import { EXERCISES, HOME_SUBSTITUTE_CHAINS } from "@/lib/exercises";
 import type { StrengthSet } from "@/lib/strength";
@@ -70,7 +70,7 @@ export interface HomePlanContext {
   liftStates: LiftState[];
   /** The stored home exercises' states (before re-entry). */
   variantStates: VariantState[];
-  /** Every logged set as strength evidence (`useStrengthSets`). */
+  /** Every set as strength evidence, the app's and the imported (`useStrengthEvidence`). */
   strengthSets?: readonly StrengthSet[];
   equipment: EquipmentProfile;
 }
@@ -273,7 +273,8 @@ function capText(exerciseId: string, liftId: string, next: HomeNextSession, equi
  * How the home weight was reached, from the plan entry, never from the flat conversion:
  * back at home after barbell sessions (the re-entry rule), a first time (the seed: the
  * strength estimate or the starting ratio, or the conversion for an exercise without
- * one), or the exercise's own weight from its home sessions; then, at the heaviest
+ * one; led by the exercise's last imported session when it has imported history), or
+ * the exercise's own weight from its home sessions; then, at the heaviest
  * dumbbell, what the cap policy does next. Empty with no weight.
  */
 export function homeWeightLine(
@@ -314,10 +315,15 @@ export function homeWeightLine(
   } else if (seed && (seed.source === "estimate" || seed.source === "ratio") && seed.ratio != null) {
     ruleId = "transfer-ratio";
     const r = seed.ratio.toFixed(2);
+    const fromEstimate = `from your ${liftShort} strength estimate, ${seed.estimate}, at ${r} of it, the heaviest for ${plural(seed.targetReps ?? next.reps, "rep")}, rounded down to ${step} lbs.`;
+    const history = seed.source === "estimate" ? seed.history : undefined;
     parts.push(
-      seed.source === "estimate" && seed.estimate != null
-        ? `A first time: from your ${liftShort} strength estimate, ${seed.estimate}, at ${r} of it, the heaviest for ${plural(seed.targetReps ?? next.reps, "rep")}, rounded down to ${step} lbs.`
-        : `A first time: ${r} of your ${seed.barbellWeight} lbs barbell ${liftShort}, ${next.perHand ? "split between two dumbbells" : "in one dumbbell"}, rounded to ${step} lbs.`
+      history && seed.estimate != null
+        ? // New to the app but not to the lifter: say what the weight rests on.
+          `From your history: last ${lbsText(history.weight, history.perHand)} × ${history.reps} on ${historyDay(history.at)}. Its first weight here is ${fromEstimate}`
+        : seed.source === "estimate" && seed.estimate != null
+          ? `A first time: ${fromEstimate}`
+          : `A first time: ${r} of your ${seed.barbellWeight} lbs barbell ${liftShort}, ${next.perHand ? "split between two dumbbells" : "in one dumbbell"}, rounded to ${step} lbs.`
     );
   } else if (seed) {
     ruleId = "dumbbell-conversion";

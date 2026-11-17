@@ -3,11 +3,14 @@
 import { v4 as uuidv4 } from "uuid";
 import { db } from "@/db/local";
 import { getPhaseAccessoryCap } from "@/lib/accessories";
+import { setScopedPreference } from "@/lib/exercisePreferences";
 import { REPS_MODEL } from "@/lib/forecast/coefficients";
 import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
 import type {
   BodyweightLog,
+  ExercisePreference,
   PainSorenessEntry,
+  PreferenceScope,
   RunLog,
   ActivityLog,
   TrainingPhase,
@@ -126,20 +129,23 @@ export function phaseChangeEvent(from: TrainingPhase, to: TrainingPhase): CoachE
 
 /**
  * Merges a patch into the single profile's settings and marks the profile unsynced.
+ * The patch may be a function of the settings as stored when the transaction runs,
+ * for a change that depends on them (see `setExercisePreference`).
+ *
  * A change of training phase is also recorded in the coach's change log, in the same
  * transaction, so the two are saved together whenever the event can be saved at all.
- *
  * The change log never costs the user their setting: a failure to describe or store
  * the event is caught inside the transaction (which keeps it alive), logged, and the
  * settings are saved without it.
  */
 export async function updateSettings(
-  patch: Partial<UserSettings>,
+  patch: Partial<UserSettings> | ((current: UserSettings) => Partial<UserSettings>),
   now: number = Date.now()
 ): Promise<void> {
   await db.transaction("rw", [db.userProfile, db.coachEvents], async () => {
     const profile = await requireProfile();
-    const settings = { ...profile.settings, ...patch };
+    const change = typeof patch === "function" ? patch(profile.settings) : patch;
+    const settings = { ...profile.settings, ...change };
     await writeSettings(profile, settings, now);
 
     try {
@@ -149,6 +155,34 @@ export async function updateSettings(
       console.error("Recording a settings change failed; the setting is saved without it", error);
     }
   });
+}
+
+/**
+ * Sets one exercise's preference (blocked, normal or preferred) everywhere, at the gym
+ * or at home. The new preferences are worked out from the settings as stored, inside
+ * the same transaction that stamps the edit, never from a copy a screen read earlier:
+ * two quick taps cannot undo each other, and the newer stamp carries the change to the
+ * other devices on their next sync.
+ */
+export async function setExercisePreference(
+  scope: PreferenceScope,
+  exerciseId: string,
+  preference: ExercisePreference,
+  now: number = Date.now()
+): Promise<void> {
+  await updateSettings((current) => {
+    const next = setScopedPreference(
+      current.exercisePreferences,
+      current.exercisePreferencesByLocation,
+      scope,
+      exerciseId,
+      preference
+    );
+    return {
+      exercisePreferences: next.overall,
+      exercisePreferencesByLocation: next.byLocation,
+    };
+  }, now);
 }
 
 /** Merges a patch into the single profile (name, bodyweight, height) and marks it unsynced. */

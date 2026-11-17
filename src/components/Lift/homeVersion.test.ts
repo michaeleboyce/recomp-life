@@ -214,6 +214,17 @@ describe("homeWeightLine", () => {
     });
   });
 
+  it("names the imported session a first weight rests on, instead of 'A first time'", () => {
+    const at = new Date(new Date().getFullYear(), 10, 3, 18).getTime();
+    const history = { at, weight: 45, reps: 10, perHand: true };
+    expect(
+      line({ seed: { source: "estimate", barbellWeight: 190, ratio: 0.5, estimate: 230, targetReps: 3, history } })
+    ).toEqual({
+      text: "From your history: last 45 lbs a hand × 10 on Nov 3. Its first weight here is from your squat strength estimate, 230, at 0.50 of it, the heaviest for 3 reps, rounded down to 5 lbs.",
+      ruleId: "transfer-ratio",
+    });
+  });
+
   it("at the heaviest dumbbell, names the cap policy's next step", () => {
     expect(line({ weight: 80, atCap: true, variant: bss({ weight: 80 }) })).toEqual({
       text: "Its own weight from your home sessions: each pass adds 5 lbs a hand. 80 is your heaviest dumbbell: a pass adds 1 rep a set.",

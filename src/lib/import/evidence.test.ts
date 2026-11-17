@@ -132,9 +132,19 @@ describe("imported history in the strength model (I9)", () => {
     expect(ratio.basis).toBe("learned");
   });
 
-  it("is not what the plan reads: strengthSetsOf is the log alone", () => {
+  it("adds to the log's own sets (strengthSetsOf), marked imported", () => {
     expect(strengthSetsOf([])).toEqual([]);
-    expect(strengthEvidenceOf([], [bench(0, 150)])).toHaveLength(1);
+    const sets = strengthEvidenceOf([], [bench(0, 150)]);
+    expect(sets).toHaveLength(1);
+    expect(sets[0].imported).toBe(true);
+  });
+
+  it("is worked out once per list of sessions and remembered choices", () => {
+    const sessions = [bench(0, 150)];
+    const overrides = {};
+    expect(importedStrengthSets(sessions, overrides)).toBe(importedStrengthSets(sessions, overrides));
+    expect(importedStrengthSets(sessions)).toBe(importedStrengthSets(sessions));
+    expect(importedStrengthSets([...sessions])).not.toBe(importedStrengthSets(sessions));
   });
 
   it("feeds the muscle strength index", () => {

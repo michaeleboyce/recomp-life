@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb, makeProfile, seedFixtureStartingWeights } from "@/lib/data/testUtils";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { initializeDatabase } from "@/db/init";
 import { Toaster, dismissToast } from "@/components/ui/toast";
@@ -33,6 +34,7 @@ vi.mock("@/components/chart-kit/LazyTrendChart", () => ({
 }));
 
 import LiftPage from "./page";
+import { ExercisePage } from "@/components/ExercisePage/ExercisePage";
 
 const demo = generateDemoData(new Date());
 
@@ -264,5 +266,74 @@ describe("Lift page (the barbell lift's exercise page)", () => {
     render(<LiftPage />);
     expect(screen.getByText("No such lift")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to Progress" })).toHaveAttribute("href", "/progress");
+  });
+
+  // Made-up imported history only: the repository is public.
+  describe("with imported history", () => {
+    const legDay = () =>
+      importedSession(
+        [
+          importedSet({ exerciseName: "Made-up Goblet", mappedExerciseId: "goblet_squat", weightPerImplementLb: 60, reps: 12 }),
+          importedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 185, reps: 5, role: "warmup" }),
+          importedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 225, reps: 5, setOrder: 2 }),
+          importedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 135, reps: 5 }),
+        ],
+        // Newer than every demo workout, so it heads the list.
+        { id: "imp-legs", sourceApp: "fitbod", title: "Leg Day", startedAt: new Date(Date.now() + 60_000) }
+      );
+
+    it("lists the lift's own imported sessions, labelled, and leaves the GZCLP numbers alone", async () => {
+      await seedDemo();
+      const first = render(<LiftPage />);
+      const nextSession = async () => (await screen.findByRole("region", { name: "Next session" })).textContent;
+      await screen.findByRole("region", { name: / sessions$/ });
+      const nextBefore = await nextSession();
+      const statesBefore = await db.liftStates.toArray();
+      first.unmount();
+
+      await db.importedSessions.add(legDay());
+      render(<LiftPage />);
+      const sessions = await screen.findByRole("region", { name: / sessions$/ });
+      await waitFor(() => expect(within(sessions).getByTestId("imported-control")).toBeInTheDocument());
+      const rows = within(sessions).getAllByTestId("session-row");
+      expect(within(rows[0]).getByTestId("session-imported")).toHaveTextContent(/^ImportedFitbod$/);
+      expect(rows[0]).toHaveTextContent("225 ×5");
+      // The goblet squat (a home version, with a page of its own) and the bench sets of
+      // the same session are not on the squat's list.
+      expect(within(sessions).getAllByText("Imported")).toHaveLength(1);
+
+      expect(await nextSession()).toBe(nextBefore);
+      expect(await db.liftStates.toArray()).toEqual(statesBefore);
+
+      fireEvent.click(within(sessions).getByRole("button", { name: "Hide imported" }));
+      expect(within(sessions).queryAllByText("Imported")).toHaveLength(0);
+      expect(sessions.querySelector("[data-imported]")).toBeNull();
+    });
+
+    it("shows imported sessions before the first logged one", async () => {
+      id = "bench";
+      await db.importedSessions.add(legDay());
+      render(<LiftPage />);
+      // Imported history fills the page, so it is not "empty" before the first logged session.
+      const sessions = await screen.findByRole("region", { name: / sessions$/ });
+      expect(screen.queryByText("No bench sessions yet")).not.toBeInTheDocument();
+      const row = await within(sessions).findByTestId("session-row");
+      expect(row).toHaveTextContent("135 ×5");
+      fireEvent.click(within(row).getByRole("button", { name: /Open imported session/ }));
+      expect(await screen.findByRole("dialog", { name: "Leg Day" })).toHaveTextContent("Counts as Barbell Bench Press");
+    });
+
+    it("on a home version's page, lists that exercise's imported sessions", async () => {
+      await seedDemo();
+      await db.importedSessions.add(legDay());
+      // `?as=goblet_squat` sends to the goblet squat's own page (tested above); render it.
+      render(<ExercisePage exerciseId="goblet_squat" backHref="/" />);
+      const list = await screen.findByRole("region", { name: "Goblet squat sessions" });
+      const row = await within(list).findByText("Imported");
+      // One dumbbell held at the chest: the weight is the load, not per hand.
+      expect(row.closest("[data-testid=session-row]")).toHaveTextContent("60 ×12");
+      expect(within(list).getAllByText("Imported")).toHaveLength(1);
+      expect(within(list).getByTestId("session-imported")).toHaveTextContent(/^ImportedFitbod$/);
+    });
   });
 });

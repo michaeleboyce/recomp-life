@@ -15,7 +15,8 @@ import { LocationChip } from "@/components/ui/location-chip";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useTrainingLocation } from "@/hooks";
 import { SkeletonCard } from "@/components/ui/skeleton";
-import { resolvePreferences, setScopedPreference } from "@/lib/exercisePreferences";
+import { setExercisePreference } from "@/lib/data/records";
+import { resolvePreferences } from "@/lib/exercisePreferences";
 import type {
   ExercisePreference,
   ExercisePreferences,
@@ -71,25 +72,9 @@ export default function ExercisesPage() {
   );
 
   const handlePreferenceChange = useCallback(
-    async (exerciseId: string, pref: ExercisePreference) => {
-      if (!profile) return;
-      const next = setScopedPreference(
-        profile.settings.exercisePreferences,
-        profile.settings.exercisePreferencesByLocation,
-        scope,
-        exerciseId,
-        pref
-      );
-      await db.userProfile.update(profile.id, {
-        settings: {
-          ...profile.settings,
-          exercisePreferences: next.overall,
-          exercisePreferencesByLocation: next.byLocation,
-        },
-        synced: false,
-      });
-    },
-    [profile, scope]
+    (exerciseId: string, pref: ExercisePreference) =>
+      setExercisePreference(scope, exerciseId, pref),
+    [scope]
   );
 
   if (!dbReady || !profile) {

@@ -11,7 +11,7 @@ import {
   usePainEntries,
   useRuns,
   useSettings,
-  useStrengthSets,
+  useStrengthEvidence,
   useTrainingLocation,
   useLastNightSleep,
   useVariantStates,
@@ -143,7 +143,8 @@ export function useWorkoutSetup(
   const activities = useActivities();
   const completedWorkouts = useCompletedWorkouts();
   const loadedVariantStates = useVariantStates();
-  const strengthSets = useStrengthSets();
+  // App and imported sets: the evidence every plan reads, Today's and the ledger's too.
+  const strengthSets = useStrengthEvidence();
 
   const settings = loadedSettings ?? DEFAULT_USER_PROFILE.settings;
   const liftStates = loadedLiftStates ?? NO_LIFT_STATES;

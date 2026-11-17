@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb, makeE1RM, makeSet, makeWorkout } from "@/lib/data/testUtils";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { LOG_PAGE_SIZE } from "@/components/Log/logEntries";
 import type { BodyweightLog, RunLog } from "@/types";
 import LogPage from "./page";
 
@@ -176,5 +178,132 @@ describe("/log", () => {
     render(<LogPage />);
     fireEvent.click(await screen.findByRole("button", { name: row }));
     expect(await screen.findByRole("heading", { name: title })).toBeInTheDocument();
+  });
+});
+
+// Made-up imported history only: the repository is public.
+describe("/log with imported history", () => {
+  const pushDay = () =>
+    importedSession(
+      [
+        importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 30, role: "warmup" }),
+        importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, setOrder: 2, effort: "Hard" }),
+        importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 40, reps: 8, setOrder: 3, role: "drop" }),
+        importedSet({ exerciseName: "Made-up Cable Row", mappedExerciseId: "lat_pulldown", weightPerImplementLb: 120, reps: 12 }),
+      ],
+      {
+        id: "imp-push",
+        sourceApp: "gravl",
+        title: "Push Day",
+        startedAt: new Date("2026-11-08T17:00:00"),
+        endedAt: new Date("2026-11-08T17:45:00"),
+      }
+    );
+  const untitled = () =>
+    importedSession(
+      [
+        importedSet({ exerciseName: "Zorbing Curl", mappedExerciseId: null, muscles: ["biceps"] }),
+        importedSet({ exerciseName: "Zorbing Curl", mappedExerciseId: null, muscles: ["biceps"], setOrder: 2 }),
+      ],
+      { id: "imp-untitled", sourceApp: "fitbod", startedAt: new Date("2026-11-07T08:00:00"), endedAt: null }
+    );
+  const importedRun = (): RunLog => ({
+    ...run("r-imp", "2026-11-06T07:00:00"),
+    category: "other",
+    perceivedEffort: null,
+    source: "import",
+    sourceName: "Gravl",
+    importBatchId: "batch-1",
+  });
+
+  async function seedImported() {
+    await seed();
+    await db.importedSessions.bulkAdd([pushDay(), untitled()]);
+    await db.runs.add(importedRun());
+  }
+
+  const rows = (container: HTMLElement) => container.querySelectorAll("[data-slot=list-row]");
+
+  it("lists imported sessions among the entries by date, labelled with their app, sets and duration", async () => {
+    await seedImported();
+    render(<LogPage />);
+    const push = await screen.findByRole("button", { name: /^Push Day/ });
+    expect(push).toHaveTextContent("Gravl · 2 working sets · 45 min");
+    expect(within(push).getByText("Imported")).toBeInTheDocument();
+    // No title: the top exercise names, as written for a name the library does not know.
+    const curl = screen.getByRole("button", { name: /^Zorbing Curl/ });
+    expect(curl).toHaveTextContent("Fitbod · 2 working sets");
+    expect(within(curl).getByText("Imported")).toBeInTheDocument();
+    expect(days().map((d) => d.getAttribute("aria-label"))).toEqual([
+      "Yesterday",
+      "Tue, Nov 10",
+      "Sun, Nov 8",
+      "Sat, Nov 7",
+      "Fri, Nov 6",
+      "Tue, Nov 3",
+    ]);
+  });
+
+  it("labels an imported run, which still opens its edit sheet", async () => {
+    await seedImported();
+    render(<LogPage />);
+    const runRow = await screen.findByRole("button", { name: /Outdoor run, other/ });
+    expect(runRow).toHaveTextContent("Gravl · 3.1 mi · 30 min");
+    expect(within(runRow).getByText("Imported")).toBeInTheDocument();
+    // A run entered by hand carries no label.
+    expect(within(screen.getByRole("button", { name: /Outdoor run, easy/ })).queryByText("Imported")).toBeNull();
+    fireEvent.click(runRow);
+    expect(await screen.findByRole("heading", { name: "Edit run" })).toBeInTheDocument();
+  });
+
+  it("the Imported filter shows imported entries only; All and the others as before", async () => {
+    await seedImported();
+    const { container } = render(<LogPage />);
+    await screen.findByRole("button", { name: /^Push Day/ });
+    expect(rows(container)).toHaveLength(7);
+    fireEvent.click(screen.getByRole("radio", { name: "Imported" }));
+    expect(days().map((d) => d.getAttribute("aria-label"))).toEqual(["Sun, Nov 8", "Sat, Nov 7", "Fri, Nov 6"]);
+    expect(screen.queryByText("Weigh-in")).toBeNull();
+    expect(screen.queryByRole("link", { name: /Squat/ })).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "Workouts" }));
+    expect(screen.queryByRole("button", { name: /^Push Day/ })).toBeNull();
+    expect(screen.getAllByRole("link", { name: /Squat/ })).toHaveLength(2);
+  });
+
+  it("tapping an imported session opens its read-only detail", async () => {
+    await seedImported();
+    render(<LogPage />);
+    fireEvent.click(await screen.findByRole("button", { name: /^Push Day/ }));
+    const sheet = await screen.findByRole("dialog", { name: "Push Day" });
+    expect(within(sheet).getByRole("region", { name: "Made-up DB Press" })).toHaveTextContent("Counts as DB Bench Press");
+    expect(sheet).toHaveTextContent("50 lb × 2");
+    expect(sheet).toHaveTextContent("never move the workout rotation or GZCLP progression");
+    expect(within(sheet).queryByRole("button", { name: /save/i })).toBeNull();
+  });
+
+  it("renders a long history in pages, not all at once", async () => {
+    const DAY = 86_400_000;
+    const latest = new Date("2026-11-11T17:00:00").getTime();
+    const many = Array.from({ length: 900 }, (_, i) =>
+      importedSession(
+        [
+          importedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 185 }),
+          importedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 185, setOrder: 2 }),
+          importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50 }),
+        ],
+        { id: `imp-${String(i).padStart(4, "0")}`, startedAt: new Date(latest - i * DAY) }
+      )
+    );
+    await db.importedSessions.bulkAdd(many);
+    const { container } = render(<LogPage />);
+    await screen.findAllByRole("button", { name: /^Squat, DB Bench Press/ });
+    expect(rows(container)).toHaveLength(LOG_PAGE_SIZE);
+    const more = screen.getByRole("button", { name: /Show more/ });
+    expect(more).toHaveTextContent(`${900 - LOG_PAGE_SIZE} older`);
+    fireEvent.click(more);
+    expect(rows(container)).toHaveLength(2 * LOG_PAGE_SIZE);
+    // A filter starts again from the first page.
+    fireEvent.click(screen.getByRole("radio", { name: "Imported" }));
+    expect(rows(container)).toHaveLength(LOG_PAGE_SIZE);
   });
 });

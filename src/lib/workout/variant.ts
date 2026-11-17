@@ -5,6 +5,7 @@
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { barbellToBothHands, barbellToDumbbell, ceilToStep, roundToStep } from "@/lib/dbConversion";
 import { EXERCISES, HOME_SUBSTITUTE_CHAINS } from "@/lib/exercises";
+import { lastImportedSession } from "@/lib/import/history";
 import { asLifted, homeReentryWeight, priorFor, type StrengthSet } from "@/lib/strength";
 import {
   RESET_FACTOR,
@@ -130,7 +131,7 @@ export interface VariantSeedInput {
   /** Reps per set of the stage the variant starts at (the estimate rule is worked for them). */
   targetReps: number;
   equipment: EquipmentProfile;
-  /** Every logged set as strength evidence (`strengthSetsOf`); left out, no estimate is used. */
+  /** Every set as strength evidence, app and imported (`strengthEvidenceOf`); left out, no estimate is used. */
   strengthSets?: readonly StrengthSet[];
 }
 
@@ -201,7 +202,8 @@ export function seedVariantWeight(input: VariantSeedInput): VariantSeedWeight {
 /**
  * A variant the first time it is used: its weight from `seedVariantWeight` (for the
  * stage the lift is at), its stage and fail count from the program lift's. Not current
- * and not stored until a session uses it.
+ * and not stored until a session uses it. A seed from the estimate names the exercise's
+ * latest imported session when `strengthSets` have one (`seed.history`).
  */
 export function seedVariantState(input: {
   liftId: string;
@@ -226,6 +228,9 @@ export function seedVariantState(input: {
     equipment,
     ...(strengthSets ? { strengthSets } : {}),
   });
+  // What an estimate-based first weight rests on, when the exercise has imported history.
+  const last = seed.source === "estimate" && strengthSets ? lastImportedSession(strengthSets, exerciseId) : null;
+  const history = last?.topSet ? { at: last.t, ...last.topSet } : null;
   return {
     id: variantKey(liftId, exerciseId, tier),
     liftId,
@@ -247,6 +252,7 @@ export function seedVariantState(input: {
       ...(seed.cappedFrom != null ? { cappedFrom: seed.cappedFrom } : {}),
       ...(seed.ratio != null ? { ratio: seed.ratio } : {}),
       ...(seed.estimate != null ? { estimate: seed.estimate, targetReps } : {}),
+      ...(history ? { history } : {}),
     },
   };
 }

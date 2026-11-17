@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useLiftAdjustments, useMetricSource, useSettings, useStrengthSets, useUpcomingWorkouts } from "@/hooks";
+import { useLiftAdjustments, useMetricSource, useSettings, useStrengthEvidence, useUpcomingWorkouts } from "@/hooks";
 import type { RangeKey } from "@/lib/metrics/types";
 import type { WorkoutLocation } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +11,7 @@ import { LiftHeadline } from "@/components/Lift/LiftHeadline";
 import { LiftStats, ProjectionLink } from "@/components/Lift/LiftStats";
 import { MoreCharts } from "@/components/Lift/MoreCharts";
 import { PrLine } from "@/components/Lift/PrLine";
+import { ImportedHistoryControl } from "@/components/Lift/ImportedHistory";
 import { SessionList } from "@/components/Lift/SessionList";
 import { useLiftView, type LiftView } from "@/components/Lift/useLiftView";
 import { WeightChanges } from "@/components/Lift/WeightChanges";
@@ -43,16 +44,22 @@ function LiftStrength({
   view,
   range,
   onRangeChange,
+  showImported,
+  onShowImportedChange,
 }: {
   liftId: MainLiftId;
   name: string;
   view: LiftView;
   range: RangeKey;
   onRangeChange: (range: RangeKey) => void;
+  /** Whether imported history counts in the charts and stats (`ImportedHistoryControl`). */
+  showImported: boolean;
+  onShowImportedChange: (shown: boolean) => void;
 }) {
   return (
     <div className="flex flex-col gap-5">
       <LiftHeadline e1rm={view.metrics.e1rm} liftName={name} range={range} onRangeChange={onRangeChange} />
+      <ImportedHistoryControl imported={view.imported} shown={showImported} onShownChange={onShowImportedChange} />
       <LiftStats stats={view.stats} />
       <ProjectionLink exerciseId={liftId} teaser={view.teaser} />
       <MoreCharts metrics={view.metrics} liftName={name} />
@@ -79,9 +86,10 @@ export function ExercisePage({ exerciseId, backHref }: { exerciseId: string; bac
     [upcoming, exerciseId]
   );
   const source = useMetricSource();
-  const view = useLiftView(exerciseId, range);
+  const [showImported, setShowImported] = useState(true);
+  const view = useLiftView(exerciseId, range, showImported);
   const allAdjustments = useLiftAdjustments();
-  const strengthSets = useStrengthSets();
+  const strengthSets = useStrengthEvidence();
   const store = useNextSetPlanStore();
 
   const sessions = useMemo(
@@ -139,6 +147,8 @@ export function ExercisePage({ exerciseId, backHref }: { exerciseId: string; bac
               sessions={sessions}
               title={`${title} sessions`}
               homeOnly={kind.kind === "home"}
+              // This exercise's own imported sessions only: home versions have pages of their own.
+              importedFor={[exerciseId]}
               empty={
                 kind.kind === "home"
                   ? `No ${title} sessions yet. They will appear here and count toward your ${LIFT_NAMES[kind.liftId].short}.`
@@ -149,7 +159,15 @@ export function ExercisePage({ exerciseId, backHref }: { exerciseId: string; bac
 
           {lift ? (
             view ? (
-              <LiftStrength liftId={lift} name={title} view={view} range={range} onRangeChange={setRange} />
+              <LiftStrength
+                liftId={lift}
+                name={title}
+                view={view}
+                range={range}
+                onRangeChange={setRange}
+                showImported={showImported}
+                onShowImportedChange={setShowImported}
+              />
             ) : (
               <SkeletonCard />
             )

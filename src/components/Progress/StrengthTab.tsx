@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Dumbbell } from "lucide-react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
-import { useMetricSource, useStrengthSets, useVariantStates } from "@/hooks";
+import { useImportedLiftIndex, useMetricSource, useStrengthEvidence, useVariantStates } from "@/hooks";
 import type { RangeKey } from "@/lib/metrics/types";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -18,18 +18,21 @@ import { strengthOverview } from "./strength";
 /** Progress > Strength: the four-lift total, one row per lift, recovery and gym debt. */
 export function StrengthTab() {
   const source = useMetricSource();
+  const imported = useImportedLiftIndex();
   const variantStates = useVariantStates();
-  const strengthSets = useStrengthSets();
+  // The evidence the gym plan reads, so "waiting for gym" gives the weight it will plan.
+  const strengthSets = useStrengthEvidence();
   const [range, setRange] = useState<RangeKey>("3m");
   // Taken once per mount so the range window does not slide on every render.
   const [now] = useState(() => Date.now());
 
   const view = useMemo(() => {
-    if (!source || !variantStates || !strengthSets) return undefined;
+    if (!source || !imported || !variantStates || !strengthSets) return undefined;
     const equipment = source.settings?.equipment ?? DEFAULT_USER_PROFILE.settings.equipment;
     const maxDumbbell = source.settings?.equipment?.maxDumbbellWeight ?? DEFAULT_MAX_DUMBBELL;
     return {
-      overview: strengthOverview(source, range, now),
+      // Imported sessions of each lift are history too (marked imported).
+      overview: strengthOverview(source, range, now, imported),
       recovery: recoveryRows(
         source.liftStates,
         new Date(now),
@@ -44,7 +47,7 @@ export function StrengthTab() {
       }),
       maxDumbbell,
     };
-  }, [source, variantStates, strengthSets, range, now]);
+  }, [source, imported, variantStates, strengthSets, range, now]);
 
   if (!view) {
     return (

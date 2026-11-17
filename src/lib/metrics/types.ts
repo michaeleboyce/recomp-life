@@ -39,6 +39,11 @@ export interface Point {
   label?: string;
   /** Id of the workout, weigh-in or run the point came from, for drill-down. */
   refId?: string;
+  /**
+   * From a session imported from another app: history, drawn apart and labelled
+   * "Imported", never a new best in the app. Absent on the app's own points.
+   */
+  imported?: boolean;
 }
 
 export type MetricId =

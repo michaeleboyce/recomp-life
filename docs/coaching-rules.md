@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-42 active rules, 5 planned rules, 42 sources. Last reviewed against the research: November 2026.
+43 active rules, 4 planned rules, 42 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -40,7 +40,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `strength-pooling` | Effort and estimates | Active | Coaching heuristic | none |
 | `target-evidence` | Effort and estimates | Active | Coaching heuristic | none |
 | `drop-set-evidence` | Effort and estimates | Active | Limited evidence | Havers 2026, Sødal 2023 |
-| `import-effort-words` | Effort and estimates | Planned | Coaching heuristic | none |
+| `import-effort-words` | Effort and estimates | Active | Coaching heuristic | none |
 | `rest-heavy` | Rest between sets | Active | Moderate evidence | Grgic 2018, Singer 2024 |
 | `rest-light` | Rest between sets | Active | Moderate evidence | Singer 2024 |
 | `rest-cut-bonus` | Rest between sets | Active | Coaching heuristic | none |
@@ -181,13 +181,13 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `home-progression`
 - **Status:** Active
 - **Evidence:** Program rule
-- **Implemented in:** `src/lib/workout/variant.ts` (`chooseHomeVariant`), `src/lib/workout/variant.ts` (`evaluateVariant`), `src/lib/workout/variant.ts` (`homeStepsEarned`), `src/lib/workout/credit.ts` (`sessionCountsForRotation`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Implemented in:** `src/lib/workout/variant.ts` (`chooseHomeVariant`), `src/lib/workout/variant.ts` (`seedVariantState`), `src/lib/workout/variant.ts` (`evaluateVariant`), `src/lib/workout/variant.ts` (`homeStepsEarned`), `src/lib/workout/credit.ts` (`sessionCountsForRotation`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
 - **Shown in:** `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/WorkoutSummary/WhatItChanged.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Home sessions progress their own weight; the barbell moves when you return
 
-**What the app does.** At home, each exercise keeps its own weight, stage and reps: a Bulgarian split squat done for the squat has its own working weight, and the same pass, miss and reset rules move it in dumbbell steps. A home session counts for the rotation like any other, so the next workout is still the next one in the order. The barbell weight does not move at home: that session is held for the barbell lift. Home sessions still count as evidence for the program lift, through the strength estimate, and the first barbell weight back at the gym is the smaller of the last barbell weight plus the steps your home passes earned and what the estimate allows, rounded down to plates you can load.
+**What the app does.** At home, each exercise keeps its own weight, stage and reps: a Bulgarian split squat done for the squat has its own working weight, and the same pass, miss and reset rules move it in dumbbell steps. A home session counts for the rotation like any other, so the next workout is still the next one in the order. The barbell weight does not move at home: that session is held for the barbell lift. Home sessions still count as evidence for the program lift, through the strength estimate, and the first barbell weight back at the gym is the smaller of the last barbell weight plus the steps your home passes earned and what the estimate allows, rounded down to plates you can load. A home exercise you have not done in the app starts from that estimate, which reads sessions imported from another app too; when the exercise has imported sessions, Today names the latest one instead of saying "First time". Imported sessions never count as home sessions for the workout order or the progression.
 
 **Why.** A home exercise is a different movement with its own load, so a pass on it says the movement went well, not that the barbell is ready for more. Letting it progress by itself keeps home training moving, while moving the barbell only at re-entry, and never past what your passes or your measured strength support, keeps a run of home sessions from over- or under-loading the bar.
 
@@ -306,13 +306,13 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `e1rm-estimate`
 - **Status:** Active
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/e1rm.ts` (`calculateE1RM`)
+- **Implemented in:** `src/lib/e1rm.ts` (`calculateE1RM`), `src/lib/import/history.ts` (`importedLiftIndex`)
 - **Shown in:** `src/app/1rm-calculator/page.tsx`, `src/components/ExercisePage/ExerciseStrength.tsx`, `src/components/Lift/PrLine.tsx`, `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Estimated from your heavy AMRAP set; best read as a trend
 
-**What the app does.** Uses the Epley formula (weight × (1 + reps ÷ 30)) on T1 AMRAP sets of 10 reps or fewer. If you log an RPE, the reps you had left are added first (up to 4). The trend arrow compares your last 3 estimates. Today reports a new best estimate from the last 7 days, and notes when a lift's last three estimates have fallen.
+**What the app does.** Uses the Epley formula (weight × (1 + reps ÷ 30)) on T1 AMRAP sets of 10 reps or fewer. If you log an RPE, the reps you had left are added first (up to 4). The trend arrow compares your last 3 estimates. Today reports a new best estimate from the last 7 days, and notes when a lift's last three estimates have fallen. Sets imported from another app are estimated the same way, each session's best normal set (warm-ups and drops never count), and shown on the lift pages, the projection, the Strength tab and Today, marked as imported; a best among them is labelled as history and never counts as a new best, which is judged on the workouts you log here.
 
 **Why.** No formula fits everyone: the reps possible at a given percentage of 1RM differ between exercises and between people, and estimates get worse as reps climb. Within one lift the same formula still tracks change well, so the trend is more trustworthy than the number.
 
@@ -328,13 +328,13 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `transfer-ratio`
 - **Status:** Active
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/strength/coefficients.ts` (`TRANSFER_PRIORS`), `src/lib/strength/coefficients.ts` (`TRANSFER_RATIO`), `src/lib/strength/ratio.ts` (`pairSessions`), `src/lib/strength/ratio.ts` (`learnTransferRatio`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Implemented in:** `src/lib/strength/coefficients.ts` (`TRANSFER_PRIORS`), `src/lib/strength/coefficients.ts` (`TRANSFER_RATIO`), `src/lib/strength/ratio.ts` (`pairSessions`), `src/lib/strength/ratio.ts` (`learnTransferRatio`), `src/lib/workout/strength.ts` (`transferRatioOf`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
 - **Shown in:** `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/Import/StartingWeights.tsx`, `src/components/ExercisePage/CountsToward.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Home exercises convert to the barbell lift by a ratio learned from you
 
-**What the app does.** Each home exercise has a starting ratio to its barbell lift: its estimated max divided by the lift's, counting both dumbbells when you hold one in each hand. Goblet Squat 0.45 of the squat (assumed); Bulgarian Split Squat 0.5 of the squat (study); DB Lunge 0.55 of the squat (assumed); DB Bench Press 0.83 of the bench press (study); DB Floor Press 0.83 of the bench press (assumed); DB Romanian Deadlift 0.6 of the deadlift (assumed); Single-Leg DB RDL 0.35 of the deadlift (assumed); DB Shoulder Press 0.93 of the overhead press (study); DB Arnold Press 0.8 of the overhead press (assumed). The ratio is then learned from your own sessions: a home session and a barbell session of the same lift at most 14 days apart form a pair, and the learned ratio is a weighted average of the starting ratio and your pairs (on a log scale). A starting ratio from a study counts like 0.4–0.6 of your pairs and an assumed one like 0.1, so a few of your own pairs soon outweigh it. From 3 pairs on, pairs that disagree with each other widen the ratio's range. The app says how many pairs a ratio rests on.
+**What the app does.** Each home exercise has a starting ratio to its barbell lift: its estimated max divided by the lift's, counting both dumbbells when you hold one in each hand. Goblet Squat 0.45 of the squat (assumed); Bulgarian Split Squat 0.5 of the squat (study); DB Lunge 0.55 of the squat (assumed); DB Bench Press 0.83 of the bench press (study); DB Floor Press 0.83 of the bench press (assumed); DB Romanian Deadlift 0.6 of the deadlift (assumed); Single-Leg DB RDL 0.35 of the deadlift (assumed); DB Shoulder Press 0.93 of the overhead press (study); DB Arnold Press 0.8 of the overhead press (assumed). The ratio is then learned from your own sessions, those imported from another app included: a home session and a barbell session of the same lift at most 14 days apart form a pair, and the learned ratio is a weighted average of the starting ratio and your pairs (on a log scale). A starting ratio from a study counts like 0.4–0.6 of your pairs and an assumed one like 0.1, so a few of your own pairs soon outweigh it. From 3 pairs on, pairs that disagree with each other widen the ratio's range. The app says how many pairs a ratio rests on.
 
 **Why.** Lifters handle less weight with dumbbells than with a barbell: in trained men the dumbbell bench press 1RM was about 17% below the barbell bench press, and the standing dumbbell shoulder press about 7% below the standing barbell press. In academy rugby players a rear-foot-elevated split squat 1RM, on one leg, was about half the back squat 1RM. How much less differs between people, so your own sessions become the better guide once there are a few of them.
 
@@ -351,13 +351,13 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `strength-pooling`
 - **Status:** Active
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
-- **Shown in:** `src/components/Progress/MusclesTab.tsx`, `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/ExercisePage/CountsToward.tsx`
+- **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/workout/strength.ts` (`strengthEvidenceOf`), `src/lib/data/forecasts.ts` (`strengthSetsFrom`), `src/lib/import/history.ts` (`importedLiftIndex`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Shown in:** `src/components/Progress/MusclesTab.tsx`, `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/ExercisePage/CountsToward.tsx`, `src/components/Lift/ImportedHistory.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Barbell and home sessions pool into one estimate; home ones count less
 
-**What the app does.** Every session gives an estimated max with the same formula and limits as the barbell lift (T1 sets taken as far as you can, 10 reps or fewer), on the total weight moved: both dumbbells when you hold one in each hand, the single dumbbell for a goblet squat. A lift's estimate starts from its latest barbell session; with only barbell sessions it is exactly your latest estimated 1RM. Home sessions after it are converted through the exercise's ratio and added, each counting 40% as much as a barbell session, and a session's weight halves for every 14 days it is older than the newest one. The range assumes one session's estimate is off by about 3.5%, a home session by more, plus the uncertainty of the ratio. Back at the gym after home sessions, the barbell weight is the smaller of your last barbell weight plus the steps your home passes earned and the heaviest weight at which the estimate says the stage's reps are possible, rounded down to plates you can load; the first home weight after gym sessions follows the same rule, capped by your heaviest dumbbell. Each muscle's trend averages every exercise that works it, a primary muscle at 1 and a secondary one at 0.5, each exercise against its own earlier sessions; an exercise not done for 42 days drops out until you do it again.
+**What the app does.** Every session gives an estimated max with the same formula and limits as the barbell lift (T1 sets taken as far as you can, 10 reps or fewer), on the total weight moved: both dumbbells when you hold one in each hand, the single dumbbell for a goblet squat. A lift's estimate starts from its latest barbell session; with only barbell sessions it is exactly your latest estimated 1RM. Home sessions after it are converted through the exercise's ratio and added, each counting 40% as much as a barbell session, and a session's weight halves for every 14 days it is older than the newest one. The range assumes one session's estimate is off by about 3.5%, a home session by more, plus the uncertainty of the ratio. Back at the gym after home sessions, the barbell weight is the smaller of your last barbell weight plus the steps your home passes earned and the heaviest weight at which the estimate says the stage's reps are possible, rounded down to plates you can load; the first home weight after gym sessions follows the same rule, capped by your heaviest dumbbell. Each muscle's trend averages every exercise that works it, a primary muscle at 1 and a secondary one at 0.5, each exercise against its own earlier sessions; an exercise not done for 42 days drops out until you do it again. Sessions imported from another app count by the same rules and the same 14-day halving, so a session years old informs the trend but not next week's weight: they feed every plan (a home exercise's first weight, re-entry and the learned ratios) and the lift pages, where they are marked as imported, but they never change the workout order or the progression.
 
 **Why.** A barbell session measures the lift itself; a home session measures the same muscles through a different movement, so it says something about the lift, but less. Counting it for less keeps one good home day from moving the barbell weight much, while a run of home sessions still shows. Taking the smaller of the two re-entry rules means the barbell weight never jumps past what either your passes or your measured strength supports.
 
@@ -370,7 +370,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `target-evidence`
 - **Status:** Active
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/strength/coefficients.ts` (`TARGET_EVIDENCE`), `src/lib/strength/estimate.ts` (`targetEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/workout/variant.ts` (`targetStrengthSets`), `src/lib/workout/variant.ts` (`withHandSetWeight`), `src/components/Lift/homeVersion.ts` (`homePlanWeight`), `src/components/LogEdit/AdjustLiftSheet.tsx` (`BackToPlanButton`), `src/hooks/useStrengthSets.ts` (`useStrengthSets`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Implemented in:** `src/lib/strength/coefficients.ts` (`TARGET_EVIDENCE`), `src/lib/strength/estimate.ts` (`targetEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/workout/variant.ts` (`targetStrengthSets`), `src/lib/workout/variant.ts` (`withHandSetWeight`), `src/components/Lift/homeVersion.ts` (`homePlanWeight`), `src/components/LogEdit/AdjustLiftSheet.tsx` (`BackToPlanButton`), `src/hooks/useStrengthEvidence.ts` (`useStrengthEvidence`), `src/lib/data/forecasts.ts` (`strengthSetsFrom`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
 - **Shown in:** `src/components/ExercisePage/HomeNextSession.tsx`
 - **Reviewed:** November 2026
 
@@ -409,9 +409,10 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How are effort words from other apps read?
 
 - **Rule id:** `import-effort-words`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/import/evidence.ts` (`EFFORT_WORD_RPE`), `src/lib/import/evidence.ts` (`effortRpe`), `src/lib/import/evidence.ts` (`importedSessionStrengthSets`)
+- **Shown in:** `src/components/ImportedHistory/ImportedSessionSheet.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** An imported set's effort word becomes an approximate RPE
@@ -421,8 +422,6 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Why.** An estimated max from a set depends on how close to failure it went. The other apps record that in words, not reps, so the words are mapped to the nearest RPE that matches their usual meaning, and a set with no word is read the cautious way.
 
 **Limits.** The apps do not say what their words mean in reps; the mapping is this app's reading of them, not a research finding. Imported sets with these words also count less as they age, like any other session.
-
-**Before this is switched on.** Switch on when the import screen (src/components/Import) says how the file's effort words are read, with an evidence line.
 
 **Sources.** None: this is a coaching convention with no direct research.
 
@@ -1120,6 +1119,11 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **17 November 2026** — `import-effort-words` (How are effort words from other apps read?): Switched on: an imported session's detail, opened from the Log or a lift's session list, shows each set's effort word with the approximate RPE it is read as. Sources: .
+- **17 November 2026** — `strength-pooling` (How do gym and home sessions combine into one strength estimate?): Sessions imported from another app now feed every plan, not only the muscle view and the starting-weight suggestions: a home exercise's first weight, re-entry and the learned ratios read them, by the same rules and with the same halving for age. They still never change the workout order or the progression. The lift page shows them, marked as imported, and cites this rule. Sources: .
+- **17 November 2026** — `transfer-ratio` (How does a home exercise count toward a barbell lift?): A ratio is now also learned from imported pairs: an imported dumbbell session and an imported barbell session of the same lift close enough in time count like your own. Sources: Saeterbakken 2011, Saeterbakken 2013, Speirs 2016.
+- **17 November 2026** — `home-progression` (What does a home session do to your weights?): A home exercise you have not done in the app starts from an estimate that includes your imported history, and Today names its latest imported session ("From your history: last 45 × 10 on Nov 3") instead of "First time". Sources: .
+- **17 November 2026** — `e1rm-estimate` (How is my 1RM estimated?): Imported sets are estimated by the same formula and shown on the lift pages, the projection, the Strength tab and Today, marked as imported; a best among them is shown as history ("Best before ReComp") and never as a new best. Sources: .
 - **17 November 2026** — `target-evidence` (Does a home weight I set myself count before I lift it?): New rule. A home weight you set yourself is kept beside the app's own weight, and until you lift it, it counts at half a logged home session toward the barbell lift's strength estimate. Sources: .
 - **17 November 2026** — `strength-pooling` (How do gym and home sessions combine into one strength estimate?): A set logged at no weight no longer counts as a session's estimate. It had counted as a max of 0, which pulled the lift's estimate down and could bring the first gym weight after time at home down to the empty bar. Sources: .
 - **16 November 2026** — `home-progression` (What does a home session do to your weights?): Switched on: the home lift page cites it for a home exercise's own weight, and the Log's "What it did" and the workout summary cite it for a home session's outcome instead of the plain GZCLP rule. Sources: .

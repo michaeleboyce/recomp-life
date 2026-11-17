@@ -1,11 +1,14 @@
 // The sync client. Tables come only from SYNC_REGISTRY. Push sends dirty rows; pull
 // reads each table in pages and merges by clientId with last write wins on
-// `updatedAt`. Lift states and e1RMs do not travel: after a pull that changed the
-// log, this device rebuilds them.
+// `updatedAt`. Lift states and e1RMs do not travel: a merged page that changed the log
+// leaves a persisted "rebuild needed" marker (src/lib/sync/rebuildMarker.ts), and this
+// device rebuilds them at the end of the pull, or at the next sync or app start if
+// that pull never finished or its rebuild failed.
 import type Dexie from "dexie";
+import type { Table } from "dexie";
 import { db } from "@/db/local";
-import { applyRebuild } from "@/lib/data/derived";
 import { sanitizeSettings } from "@/lib/data/settingsShape";
+import { SYNC_META_TABLE, markRebuildNeeded, rebuildIfNeeded } from "@/lib/sync/rebuildMarker";
 import { PROFILE_ID, SYNC_REGISTRY, type SyncTableDef } from "@/lib/sync/registry";
 import {
   MAX_PUSH_BYTES,
@@ -54,9 +57,12 @@ export interface PullResult {
   kept: number;
   /** Tables the server could not read, or that failed to merge here. */
   errors: Record<string, string>;
-  /** True when `applyRebuild()` ran because workouts or adjustments changed. */
+  /**
+   * True when `applyRebuild()` ran because a rebuild was owed: workouts or adjustments
+   * merged by this pull, or by an earlier one whose rebuild never ran or failed.
+   */
   rebuilt: boolean;
-  /** Set when the rebuild after the pull failed. The pulled rows are stored anyway. */
+  /** Set when the rebuild after the pull failed. The pulled rows are stored anyway and the rebuild stays owed. */
   rebuildError?: string;
   /** Pages received, every table together. */
   pages: number;
@@ -194,61 +200,74 @@ interface MergeCounts {
   kept: number;
 }
 
-/** Merges one pulled table into the local one, inside one transaction. */
+/**
+ * Merges one pulled page into the local table, inside one transaction. A page of a
+ * table that feeds the rebuild that inserted or overwrote a row also writes the
+ * "rebuild needed" marker in that transaction: the rows and the marker are saved
+ * together or not at all.
+ */
 async function mergeTable(database: Dexie, def: SyncTableDef, rows: WireRow[]): Promise<MergeCounts> {
   const counts: MergeCounts = { inserted: 0, overwritten: 0, kept: 0 };
   const table = database.table<Row>(def.name);
+  const feedsRebuild = REBUILD_TABLES.has(def.name);
+  const scope = feedsRebuild ? [table, database.table(SYNC_META_TABLE)] : [table];
 
-  await database.transaction("rw", table, async () => {
-    if (def.singleRow) {
-      // Exactly one profile, id and clientId PROFILE_ID. The server keeps one row; if it
-      // ever sends more, the newest wins.
-      //
-      // The conflict rule for settings: the profile is one row, so last write wins for
-      // the WHOLE row, settings JSON included; fields are never merged. When two
-      // devices change settings between syncs, the change with the older `updatedAt`
-      // is dropped entirely, whichever fields it touched (a set plan saved on one
-      // device, the theme changed on the other: only the newer of the two survives).
-      // Within one device, every settings write is a read-modify-write in one
-      // transaction (`writeSettings`), so two tabs never lose each other's change.
-      const server = rows.reduce<WireRow | undefined>(
-        (best, row) => (!best || stampOf(row) > stampOf(best) ? row : best),
-        undefined
-      );
-      if (!server) return;
-      const local = await table.toCollection().first();
-      const decision = decidePull(local, server);
-      if (decision === "keep") {
-        counts.kept += 1;
-        return;
-      }
-      const row = toLocalRow(server);
-      row.clientId = PROFILE_ID;
-      row.id = local ? local.id : PROFILE_ID;
-      // Another app version may have written a shape this one would crash on.
-      row.settings = sanitizeSettings(row.settings);
-      await table.put(row);
-      counts[decision === "insert" ? "inserted" : "overwritten"] += 1;
-      return;
-    }
-
-    for (const server of rows) {
-      const clientId = server.clientId;
-      if (typeof clientId !== "string" || !clientId) continue;
-      const local = await table.where("clientId").equals(clientId).first();
-      const decision = decidePull(local, server);
-      if (decision === "keep") {
-        counts.kept += 1;
-        continue;
-      }
-      const row = toLocalRow(server);
-      if (local) row.id = local.id;
-      await table.put(row);
-      counts[decision === "insert" ? "inserted" : "overwritten"] += 1;
-    }
+  await database.transaction("rw", scope, async () => {
+    await mergeRows(table, def, rows, counts);
+    if (feedsRebuild && counts.inserted + counts.overwritten > 0) await markRebuildNeeded(database);
   });
 
   return counts;
+}
+
+/** The merge itself, inside `mergeTable`'s transaction. Adds to `counts`. */
+async function mergeRows(table: Table<Row>, def: SyncTableDef, rows: WireRow[], counts: MergeCounts): Promise<void> {
+  if (def.singleRow) {
+    // Exactly one profile, id and clientId PROFILE_ID. The server keeps one row; if it
+    // ever sends more, the newest wins.
+    //
+    // The conflict rule for settings: the profile is one row, so last write wins for
+    // the WHOLE row, settings JSON included; fields are never merged. When two devices
+    // change settings between syncs, the change with the older `updatedAt` is dropped
+    // entirely, whichever fields it touched (a set plan saved on one device, the theme
+    // changed on the other: only the newer of the two survives). Within one device,
+    // every settings write is a read-modify-write in one transaction (`writeSettings`),
+    // so two tabs never lose each other's change.
+    const server = rows.reduce<WireRow | undefined>(
+      (best, row) => (!best || stampOf(row) > stampOf(best) ? row : best),
+      undefined
+    );
+    if (!server) return;
+    const local = await table.toCollection().first();
+    const decision = decidePull(local, server);
+    if (decision === "keep") {
+      counts.kept += 1;
+      return;
+    }
+    const row = toLocalRow(server);
+    row.clientId = PROFILE_ID;
+    row.id = local ? local.id : PROFILE_ID;
+    // Another app version may have written a shape this one would crash on.
+    row.settings = sanitizeSettings(row.settings);
+    await table.put(row);
+    counts[decision === "insert" ? "inserted" : "overwritten"] += 1;
+    return;
+  }
+
+  for (const server of rows) {
+    const clientId = server.clientId;
+    if (typeof clientId !== "string" || !clientId) continue;
+    const local = await table.where("clientId").equals(clientId).first();
+    const decision = decidePull(local, server);
+    if (decision === "keep") {
+      counts.kept += 1;
+      continue;
+    }
+    const row = toLocalRow(server);
+    if (local) row.id = local.id;
+    await table.put(row);
+    counts[decision === "insert" ? "inserted" : "overwritten"] += 1;
+  }
 }
 
 /** The pull lost its connection: nothing more can be read now. */
@@ -343,7 +362,8 @@ async function pullTable(database: Dexie, def: SyncTableDef, result: PullResult)
  * only when the server's `updatedAt` is greater than the local one (missing counts as
  * 0), keeping the local primary key. After the first complete pull, a table's next
  * pull asks only for rows the server wrote since shortly before the last one began.
- * Afterwards, if workouts or adjustments changed, rebuilds derived tables.
+ * Afterwards, even when the pull stopped early, rebuilds the derived tables if a
+ * rebuild is owed (this pull or an earlier one merged workouts or adjustments).
  */
 export async function pullFromServer(database: Dexie = db): Promise<PullResult> {
   const result: PullResult = {
@@ -355,8 +375,6 @@ export async function pullFromServer(database: Dexie = db): Promise<PullResult> 
     rebuilt: false,
     pages: 0,
   };
-  let logChanged = false;
-
   try {
     for (const def of SYNC_REGISTRY) {
       let pulled: TablePull;
@@ -372,32 +390,35 @@ export async function pullFromServer(database: Dexie = db): Promise<PullResult> 
       result.inserted += pulled.counts.inserted;
       result.overwritten += pulled.counts.overwritten;
       result.kept += pulled.counts.kept;
-      if (REBUILD_TABLES.has(def.name) && pulled.counts.inserted + pulled.counts.overwritten > 0) {
-        logChanged = true;
-      }
     }
   } finally {
     result.pulled = result.inserted + result.overwritten;
-    // Rows already merged stay merged; rebuild from them even when the pull stopped.
-    if (logChanged) {
-      result.rebuilt = true;
-      try {
-        await applyRebuild();
-      } catch (err) {
-        result.rebuildError = message(err);
-      }
-    }
+    // Rows already merged stay merged, and each merged page of the log left the marker:
+    // rebuild from them even when the pull stopped.
+    const owed = await rebuildIfNeeded(database);
+    result.rebuilt = owed.rebuilt;
+    if (owed.error) result.rebuildError = owed.error;
   }
 
   return result;
 }
 
-/** Push, then pull. Every failure is reported in `errors`; nothing throws. */
+/**
+ * A rebuild an earlier sync left owing (its pull cut short, or its rebuild failed),
+ * then push, then pull. Every failure is reported in `errors`; nothing throws.
+ */
 export async function fullSync(database: Dexie = db): Promise<SyncResult> {
   const errors: string[] = [];
   let pushed = 0;
   let pulled = 0;
   let pullSucceeded = false;
+  const reportRebuild = (error?: string) => {
+    // A rebuild that fails before the pull and again after it is one problem.
+    if (error && !errors.includes(`Rebuild: ${error}`)) errors.push(`Rebuild: ${error}`);
+  };
+
+  // First, so the screens are right again before the network is touched.
+  reportRebuild((await rebuildIfNeeded(database)).error);
 
   try {
     const push = await pushUnsynced(database);
@@ -416,7 +437,7 @@ export async function fullSync(database: Dexie = db): Promise<SyncResult> {
     for (const [table, reason] of Object.entries(pull.errors)) {
       errors.push(`Pull ${table}: ${reason}`);
     }
-    if (pull.rebuildError) errors.push(`Rebuild: ${pull.rebuildError}`);
+    reportRebuild(pull.rebuildError);
   } catch (err) {
     errors.push(`Pull: ${message(err)}`);
   }

@@ -5,6 +5,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { db } from "@/db/local";
 import { clearDb } from "@/lib/data/testUtils";
 import { installNavHistory, resetNavHistoryForTests } from "@/components/nav/navHistory";
+import { STALE_WEIGH_IN_DAYS } from "@/components/Today/GlanceTiles";
 import WeighInPage from "./page";
 
 const push = vi.fn();
@@ -93,6 +94,37 @@ describe("WeighInPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save Weight" }));
     await waitFor(() => expect(back).toHaveBeenCalledTimes(1));
     expect(push).not.toHaveBeenCalled();
+  });
+
+  describe("the weekly trend", () => {
+    const DAY = 86_400_000;
+    /** Three weeks of daily weigh-ins (synthetic), the last one `daysAgo` days before now. */
+    async function weighIns(daysAgo: number) {
+      const last = Date.now() - daysAgo * DAY;
+      await db.bodyweight.bulkAdd(
+        Array.from({ length: 21 }, (_, i) => ({
+          id: `bw${i}`,
+          clientId: `bw${i}`,
+          date: new Date(last - (20 - i) * DAY),
+          weight: 190 - i * 0.2,
+          timeOfDay: "morning" as const,
+          synced: true,
+        }))
+      );
+    }
+
+    it("shows while the latest weigh-in is recent", async () => {
+      await weighIns(1);
+      render(<WeighInPage />);
+      expect(await screen.findByText("Trend", {}, { timeout: 10000 })).toBeInTheDocument();
+    });
+
+    it("is hidden once the latest weigh-in is out of date", async () => {
+      await weighIns(STALE_WEIGH_IN_DAYS + 3);
+      render(<WeighInPage />);
+      expect(await screen.findByText("7-day avg", {}, { timeout: 10000 })).toBeInTheDocument();
+      expect(screen.queryByText("Trend")).toBeNull();
+    });
   });
 
   it("with no entries the field starts empty and Save is disabled", async () => {

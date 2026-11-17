@@ -60,6 +60,11 @@ function LiftCard({ lift }: { lift: LiftOverview }) {
           <span className="font-display text-[44px] leading-none font-bold tabular-nums text-foreground">
             {summary.latest ? Math.round(summary.latest.v) : "–"}
           </span>
+          {summary.latest?.imported && (
+            <span data-testid="lift-latest-imported" className="text-xs font-semibold text-muted-foreground">
+              Imported
+            </span>
+          )}
           {delta}
         </span>
         {series.points.length > 0 && (

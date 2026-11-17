@@ -1,6 +1,6 @@
 // Pure helpers for the Today and Coming up screens: display names, the date line,
 // photo framing and the one-line reason under each lift. No React, no database.
-import type { EquipmentProfile, Tier, WorkoutSession } from "@/types";
+import type { EquipmentProfile, Tier, VariantSeed, WorkoutSession } from "@/types";
 import { EXERCISES } from "@/lib/exercises";
 import { isMainLift } from "@/lib/liftNames";
 import { capNextStep, type CapNext } from "@/lib/trace/homeWeight";
@@ -127,6 +127,8 @@ export type LiftReason =
   | { kind: "up" | "down"; change: number; from: number }
   | { kind: "held"; weight: number }
   | { kind: "capped"; weight: number; next: CapNext }
+  /** A first home weight worked out from history imported from another app. */
+  | { kind: "history"; weight: number; reps: number; perHand: boolean; at: number }
   | { kind: "first" };
 
 export interface ReasonEntry {
@@ -134,6 +136,8 @@ export interface ReasonEntry {
   substituteExerciseId?: string;
   tier: Tier;
   weight: number;
+  /** How a first home weight was seeded; its `history` is the imported session it rests on. */
+  seed?: Pick<VariantSeed, "history">;
 }
 
 /**
@@ -175,7 +179,17 @@ export function liftReason(
       from: last,
     };
   }
+  // Never done in the app, but its first weight rests on imported history: say what.
+  const history = entry.substituteExerciseId ? entry.seed?.history : undefined;
+  if (history) return { kind: "history", ...history };
   return { kind: "first" };
+}
+
+/** "Nov 3", or "Nov 3, 2024" when it is not this year. */
+export function historyDay(at: number, now: Date = new Date()): string {
+  const date = new Date(at);
+  const sameYear = date.getFullYear() === now.getFullYear();
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) });
 }
 
 /**
@@ -213,7 +227,10 @@ export function capNextText(reason: LiftReason): string | null {
   return "The last set asks for as many reps as you can";
 }
 
-/** The reason as plain text, e.g. "▲ 10 from 205", "Held at 65", "First time". */
+/**
+ * The reason as plain text, e.g. "▲ 10 from 205", "Held at 65", "First time", or for a
+ * first home weight from imported history "From your history: last 45 × 10 on Nov 3".
+ */
 export function reasonText(reason: LiftReason): string {
   switch (reason.kind) {
     case "up":
@@ -224,6 +241,8 @@ export function reasonText(reason: LiftReason): string {
       return `Held at ${formatLbs(reason.weight)}`;
     case "capped":
       return `Held at ${formatLbs(reason.weight)}, your heaviest dumbbell`;
+    case "history":
+      return `From your history: last ${formatLbs(reason.weight)} × ${reason.reps} on ${historyDay(reason.at)}`;
     case "first":
       return "First time";
   }

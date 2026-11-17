@@ -3,6 +3,9 @@ import type { Point } from "@/lib/metrics/types";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { MetricSource } from "@/lib/metrics/types";
+import { importedStrengthSets } from "@/lib/import/evidence";
+import { importedLiftIndex } from "@/lib/import/history";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
 import { stallOf, strengthOverview, totalE1RMPoints, totalLabel } from "./strength";
 
 const DAY = 86_400_000;
@@ -106,5 +109,39 @@ describe("strengthOverview", () => {
     const empty = strengthOverview({ ...source, e1rms: [], workouts: [] }, "3m", now.getTime());
     expect(empty.hasData).toBe(false);
     expect(empty.total.series.points).toEqual([]);
+  });
+
+  describe("with imported history (made-up sessions)", () => {
+    const benchAt = (daysAgo: number, weight: number) =>
+      importedSession(
+        [importedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench", weightPerImplementLb: weight, reps: 5 })],
+        { startedAt: new Date(now.getTime() - daysAgo * DAY) }
+      );
+    const index = importedLiftIndex(importedStrengthSets([benchAt(30, 150), benchAt(20, 150), benchAt(10, 150)]));
+    const empty = { ...source, e1rms: [], workouts: [], liftStates: [] };
+
+    it("has data from imported sessions alone, marked imported", () => {
+      const o = strengthOverview(empty, "3m", now.getTime(), index);
+      expect(o.hasData).toBe(true);
+      const bench = o.lifts.find((l) => l.id === "bench")!;
+      expect(bench.series.points).toHaveLength(3);
+      expect(bench.summary.latest).toMatchObject({ v: Math.round(150 * (1 + 5 / 30)), imported: true });
+      expect(o.total.series.points.every((x) => x.imported)).toBe(true);
+    });
+
+    it("judges a stall on the app's own estimates only", () => {
+      const o = strengthOverview(empty, "3m", now.getTime(), index);
+      // Three flat imported estimates are history, not a stall in the program.
+      expect(o.lifts.find((l) => l.id === "bench")!.stall).toBeNull();
+    });
+
+    it("adds the imported estimates to the app's, in time order", () => {
+      const without = strengthOverview(source, "all", now.getTime());
+      const withImported = strengthOverview(source, "all", now.getTime(), index);
+      const count = (o: typeof without) => o.lifts.find((l) => l.id === "bench")!.full.points.length;
+      expect(count(withImported)).toBe(count(without) + 3);
+      const points = withImported.lifts.find((l) => l.id === "bench")!.full.points;
+      expect(points.map((x) => x.t)).toEqual([...points.map((x) => x.t)].sort((a, b) => a - b));
+    });
   });
 });

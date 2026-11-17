@@ -1,23 +1,43 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { db } from "@/db/local";
+import { getMonday } from "@/lib/dates";
 import { clearDb } from "@/lib/data/testUtils";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
 import MuscleHeatCard from "./MuscleHeatCard";
 
-const EMPTY = "Log a workout to see which muscles you have trained.";
+vi.mock("@/components/Anatomy/MuscleMap", () => ({ MuscleMap: () => null }));
+vi.mock("@/components/Anatomy/MuscleLegend", () => ({ MuscleLegend: () => null }));
+
+beforeEach(clearDb);
 
 describe("MuscleHeatCard", () => {
-  beforeEach(clearDb);
-  afterEach(cleanup);
-
-  it("does not tell the user to log a workout before this week's workouts have loaded", () => {
+  it("asks for a workout when nothing was trained this week", async () => {
     render(<MuscleHeatCard />);
-    expect(screen.queryByText(EMPTY)).toBeNull();
+    expect(await screen.findByText(/Log a workout to see/)).toBeInTheDocument();
   });
 
-  it("asks for a workout once it knows there is none this week", async () => {
+  it("counts this week's imported sessions, as the Muscles tab does (made-up sessions)", async () => {
+    const monday = getMonday(new Date());
+    const startedAt = new Date(Math.min(Date.now() - 60_000, monday.getTime() + 12 * 3_600_000));
+    await db.importedSessions.bulkPut([
+      importedSession(
+        [
+          importedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench" }),
+          importedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench" }),
+          importedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench" }),
+        ],
+        { startedAt }
+      ),
+      // Last week and an undone import count for nothing.
+      importedSession([importedSet()], { startedAt: new Date(monday.getTime() - 3 * 86_400_000) }),
+      importedSession([importedSet()], { startedAt, deletedAt: 5 }),
+    ]);
     render(<MuscleHeatCard />);
-    expect(await screen.findByText(EMPTY)).toBeInTheDocument();
+    expect(await screen.findByText("3 sets")).toBeInTheDocument();
+    expect(screen.getByText("Chest")).toBeInTheDocument();
+    expect(screen.queryByText("Quads")).toBeNull();
   });
 });

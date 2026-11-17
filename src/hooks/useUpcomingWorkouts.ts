@@ -4,7 +4,7 @@ import { projectUpcomingWorkouts, type UpcomingWorkout } from "@/lib/workout/upc
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { WorkoutLocation } from "@/types";
 import { useSettings } from "./useProfile";
-import { useStrengthSets } from "./useStrengthSets";
+import { useStrengthEvidence } from "./useStrengthEvidence";
 import { useVariantStates } from "./useVariantStates";
 import { useCompletedWorkouts, useLiftStates } from "./useWorkouts";
 
@@ -20,7 +20,7 @@ export function useUpcomingWorkouts(
   const completedWorkouts = useCompletedWorkouts();
   const liftStates = useLiftStates();
   const variantStates = useVariantStates();
-  const strengthSets = useStrengthSets();
+  const strengthSets = useStrengthEvidence();
   const loadedSettings = useSettings();
 
   return useMemo(() => {

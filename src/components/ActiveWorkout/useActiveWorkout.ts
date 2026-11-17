@@ -6,7 +6,7 @@ import {
   useE1RMs,
   useLiftStates,
   useSettings,
-  useStrengthSets,
+  useStrengthEvidence,
   useVariantStates,
   useWorkout,
 } from "@/hooks";
@@ -116,7 +116,7 @@ export function useActiveWorkout(
   const settings = useSettings();
   const liftStates = useLiftStates();
   const variantStates = useVariantStates();
-  const strengthSets = useStrengthSets();
+  const strengthSets = useStrengthEvidence();
 
   const viewedEntryIndex = useWorkoutStore((s) => s.viewedEntryIndex);
   const pendingDrop = useWorkoutStore((s) => s.pendingDrop);

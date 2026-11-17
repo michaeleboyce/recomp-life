@@ -17,6 +17,13 @@ import {
   type PrOpportunity,
   type ProjectionTeaser,
 } from "@/lib/projection";
+import {
+  importedE1rmPoints,
+  importedVolumePoints,
+  importedWorkingWeightPoints,
+  withImportedPoints,
+  type ImportedLiftSession,
+} from "@/lib/import/history";
 import { getPrescription } from "@/lib/workout";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, SetLog, WorkoutTemplateExercise } from "@/types";
@@ -64,15 +71,30 @@ export function barbellOnlySource(source: MetricSource, exerciseId: string): Met
   };
 }
 
+/** The imported points each lift series takes; the others are the app's alone. */
+const IMPORTED_POINTS: Partial<Record<LiftMetricId, (history: readonly ImportedLiftSession[]) => Point[]>> = {
+  e1rm: importedE1rmPoints,
+  workingWeight: importedWorkingWeightPoints,
+  liftVolume: importedVolumePoints,
+};
+
+/**
+ * The lift's series over `range`. With `imported` (the lift's imported sessions), the
+ * estimated max, working weight and volume also have one point per imported session,
+ * marked imported; last-set reps and effort stay the app's (an imported set was not an
+ * AMRAP set, and its effort word is only an approximate RPE).
+ */
 export function liftMetrics(
   source: MetricSource,
   exerciseId: string,
   range: RangeKey,
-  now: number
+  now: number,
+  imported?: readonly ImportedLiftSession[]
 ): LiftMetrics {
   const barbell = barbellOnlySource(source, exerciseId);
   const entries = LIFT_METRICS.map((id) => {
-    const full = computeMetric(id, barbell, { exerciseId });
+    const extra = imported ? (IMPORTED_POINTS[id]?.(imported) ?? []) : [];
+    const full = withImportedPoints(computeMetric(id, barbell, { exerciseId }), extra);
     const series = inRange(full, range, now);
     return [id, { full, series, summary: summarize(series) }] as const;
   });

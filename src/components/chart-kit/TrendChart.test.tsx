@@ -204,6 +204,31 @@ describe("TrendChart", () => {
     expect(live.textContent).toBe("");
   });
 
+  it("draws imported points apart: a dashed line of hollow dots, named in the legend and the inspector", () => {
+    const withImported: Series = {
+      ...series,
+      points: [
+        { t: T0 - 21 * DAY, v: 180, label: "Imported · 155 x 5", imported: true },
+        { t: T0 - 14 * DAY, v: 185, label: "Imported · 160 x 5", imported: true },
+        ...pts,
+      ],
+    };
+    const { container } = render(<TrendChart series={withImported} seriesLabel="Estimated 1RM" ariaLabel="Squat e1RM" />);
+    const lines = curves(container);
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toHaveAttribute("stroke-dasharray", "3 3");
+    expect(screen.getByTestId("legend-imported")).toHaveTextContent("Imported");
+    expect(screen.getByText("Estimated 1RM")).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole("img", { name: "Squat e1RM" }), { key: "Home" });
+    expect(document.querySelector("[aria-live='polite']")!.textContent).toContain("Imported · 155 x 5");
+  });
+
+  it("shows no legend or second line without imported points or overlays", () => {
+    const { container } = render(<TrendChart series={series} ariaLabel="x" />);
+    expect(curves(container)).toHaveLength(1);
+    expect(screen.queryByTestId("legend-imported")).toBeNull();
+  });
+
   it("LazyTrendChart loads the chart on the client", async () => {
     render(<LazyTrendChart series={series} ariaLabel="Lazy squat" />);
     expect(await screen.findByRole("img", { name: "Lazy squat" })).toBeInTheDocument();

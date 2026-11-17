@@ -39,6 +39,11 @@ export interface StrengthSet {
    * makes an estimated max, a new best, a ratio pair or a muscle trend point.
    */
   provisional?: boolean;
+  /**
+   * From a session imported from another app: history, counted by the same rules as
+   * every other set, never a GZCLP session. Absent on the app's own sets.
+   */
+  imported?: true;
 }
 
 /** The best set of one session for one exercise. */

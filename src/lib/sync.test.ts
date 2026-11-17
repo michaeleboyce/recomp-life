@@ -6,6 +6,7 @@ import { PROFILE_ID, SYNC_REGISTRY } from "@/lib/sync/registry";
 import { FakeSyncServer, TEST_PASSPHRASE, makeDeviceDb } from "@/lib/sync/testFakes";
 import { MAX_PUSH_BYTES, MAX_PUSH_ROWS, PULL_SINCE_OVERLAP_MS, decodePullCursor } from "@/lib/sync/wire";
 import { loadPullState, resetPullState } from "@/lib/sync/pullState";
+import { owedRebuild } from "@/lib/sync/rebuildMarker";
 import {
   REBUILD_TABLES,
   SYNC_UNAUTHORIZED,
@@ -688,6 +689,120 @@ describe("pullFromServer", () => {
       const result = await pullFromServer(database);
       expect(result.rebuildError).toBe("applyRebuild is not implemented yet");
       expect(await workouts().get("w1")).toBeDefined();
+    });
+  });
+
+  // F2: a pull that merged log rows owes a rebuild until one succeeds, whatever happens
+  // to the pull or the rebuild in between.
+  describe("a rebuild owed across syncs", () => {
+    let server: FakeSyncServer;
+    const workoutRow = (i: number) => ({ ...makeWorkout({ id: `w${i}`, clientId: `c-w${i}` }), updatedAt: 1 });
+
+    beforeEach(() => {
+      server = new FakeSyncServer();
+      vi.stubGlobal("fetch", server.fetch);
+    });
+
+    it("a dropped connection after the first workouts page still rebuilds from that page", async () => {
+      server.pageRows = 1;
+      server.store("workouts", workoutRow(1), 100);
+      server.store("workouts", workoutRow(2), 101);
+      let workoutPages = 0;
+      vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes("table=workouts") && ++workoutPages === 2) throw new TypeError("Failed to fetch");
+        return server.fetch(input, init);
+      });
+
+      await expect(pullFromServer(database)).rejects.toThrow("Failed to fetch");
+
+      expect(await workouts().count()).toBe(1);
+      expect(derived.applyRebuild).toHaveBeenCalledTimes(1);
+      expect(await owedRebuild(database)).toBeNull();
+    });
+
+    it("the app closed after the first workouts page: the next sync rebuilds, though no new rows arrive", async () => {
+      server.store("workouts", workoutRow(1), 100);
+      let reached!: () => void;
+      const nextTableAsked = new Promise<void>((resolve) => (reached = resolve));
+      vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+        // The request after the workouts page never answers: the app was closed.
+        if (String(input).includes("table=liftAdjustments")) {
+          reached();
+          return new Promise<Response>(() => {});
+        }
+        return server.fetch(input, init);
+      });
+
+      void pullFromServer(database);
+      await nextTableAsked;
+      expect(await workouts().count()).toBe(1);
+      expect(derived.applyRebuild).not.toHaveBeenCalled();
+      expect(await owedRebuild(database)).not.toBeNull();
+
+      // The app starts again: a new connection to the same database.
+      database.close();
+      const reopened = makeDeviceDb(database.name);
+      await reopened.open();
+      try {
+        vi.stubGlobal("fetch", server.fetch);
+        const result = await fullSync(reopened);
+
+        expect(result.errors).toEqual([]);
+        expect(result.pulled).toBe(0);
+        expect(derived.applyRebuild).toHaveBeenCalledTimes(1);
+        expect(await owedRebuild(reopened)).toBeNull();
+      } finally {
+        reopened.close();
+      }
+    });
+
+    it("a rebuild that throws runs again on the next sync, then not again once nothing changes", async () => {
+      server.store("workouts", workoutRow(1), 100);
+      derived.applyRebuild.mockRejectedValueOnce(new Error("boom"));
+
+      const first = await fullSync(database);
+      expect(first.errors).toEqual(["Rebuild: boom"]);
+      expect(await workouts().count()).toBe(1);
+      expect(await owedRebuild(database)).not.toBeNull();
+
+      const second = await fullSync(database);
+      expect(second.errors).toEqual([]);
+      expect(second.pulled).toBe(0);
+      expect(derived.applyRebuild).toHaveBeenCalledTimes(2);
+      expect(await owedRebuild(database)).toBeNull();
+
+      await fullSync(database);
+      await fullSync(database);
+      expect(derived.applyRebuild).toHaveBeenCalledTimes(2);
+    });
+
+    it("a rebuild that keeps failing is reported once per sync", async () => {
+      server.store("workouts", workoutRow(1), 100);
+      derived.applyRebuild.mockRejectedValue(new Error("boom"));
+      await fullSync(database);
+
+      const again = await fullSync(database);
+
+      expect(again.errors).toEqual(["Rebuild: boom"]);
+      expect(await owedRebuild(database)).not.toBeNull();
+    });
+
+    it("no rebuild when nothing in the log changed", async () => {
+      server.store("runs", { id: "r1", clientId: "c-r1", notes: "easy", updatedAt: 1 }, 100);
+      await fullSync(database);
+      server.store("runs", { id: "r1", clientId: "c-r1", notes: "edited", updatedAt: 2 }, Date.now());
+      await fullSync(database);
+      await fullSync(database);
+      expect((await runs().get("r1")).notes).toBe("edited");
+      expect(derived.applyRebuild).not.toHaveBeenCalled();
+    });
+
+    it("a page of workouts that changed nothing owes no rebuild", async () => {
+      await workouts().add({ ...workoutRow(1), synced: true });
+      server.store("workouts", workoutRow(1), 100);
+      await pullFromServer(database);
+      expect(await owedRebuild(database)).toBeNull();
+      expect(derived.applyRebuild).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,11 +1,15 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronRight } from "lucide-react";
 import type { MuscleId } from "@/types";
 import { db } from "@/db/local";
+import { liveRows } from "@/hooks/liveRows";
+import { useMappingOverrides } from "@/hooks/useMappingOverrides";
 import { getMonday } from "@/lib/dates";
+import { addMuscleValues, importedMuscleLoad } from "@/lib/import/evidence";
 import { getWeeklyMuscleLoad, weeklyHeatLevels } from "@/lib/muscleLoad";
 import { MUSCLE_IDS, formatMuscle } from "@/lib/muscles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,16 +17,35 @@ import { SkeletonText } from "@/components/ui/skeleton";
 import { MuscleMap } from "@/components/Anatomy/MuscleMap";
 import { MuscleLegend } from "@/components/Anatomy/MuscleLegend";
 
-/** Dashboard card: this week's training load drawn on the body. */
+/**
+ * Dashboard card: this week's training load drawn on the body. Sessions imported from
+ * other apps count for it as the Muscles tab counts them (`importedMuscleLoad`, names as
+ * remapped now); they never touch the rotation or progression.
+ */
 export default function MuscleHeatCard() {
-  const weekWorkouts = useLiveQuery(async () => {
+  const week = useLiveQuery(async () => {
     const monday = getMonday(new Date());
     const nextMonday = new Date(monday);
     nextMonday.setDate(nextMonday.getDate() + 7);
-    return db.workouts.where("startedAt").between(monday, nextMonday).toArray();
+    return {
+      monday,
+      nextMonday,
+      workouts: await db.workouts.where("startedAt").between(monday, nextMonday).toArray(),
+      imported: liveRows(await db.importedSessions.where("startedAt").between(monday, nextMonday).toArray()),
+    };
   });
+  const overrides = useMappingOverrides();
 
-  const load = getWeeklyMuscleLoad(weekWorkouts ?? [], getMonday(new Date()));
+  const load = useMemo(
+    () =>
+      week
+        ? addMuscleValues(
+            getWeeklyMuscleLoad(week.workouts, week.monday),
+            importedMuscleLoad(week.imported, week.monday, week.nextMonday, overrides)
+          )
+        : getWeeklyMuscleLoad([], getMonday(new Date())),
+    [week, overrides]
+  );
   const heat = weeklyHeatLevels(load);
 
   const ranked = (Object.entries(load) as [MuscleId, number][])
@@ -47,7 +70,7 @@ export default function MuscleHeatCard() {
             label="Training load this week by muscle"
           />
           <div className="min-w-0 flex-1 space-y-2">
-            {weekWorkouts === undefined ? (
+            {week === undefined ? (
               // Still loading: no "log a workout" to someone who has.
               <SkeletonText width="80%" />
             ) : top.length === 0 ? (

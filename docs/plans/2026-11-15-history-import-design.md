@@ -1,7 +1,9 @@
 # Importing training history from other apps
 
 Status: approved by Michael on 2026-11-15, including the new table and preloading his history. Builds on the strength-model spec
-(`docs/plans/2026-11-15-strength-model-design.md`).
+(`docs/plans/2026-11-15-strength-model-design.md`). Deployed and preloaded on 2026-11-17;
+I9 was wired only to the muscle view and starting weights, and I10 was not built. Both are
+being completed under `docs/plans/2026-11-17-imported-history-and-planning-paths.md`.
 
 This repository is public. This document describes the file formats in general terms only.
 Real exports never go into the repo, tests, fixtures, commit messages or any outside service;

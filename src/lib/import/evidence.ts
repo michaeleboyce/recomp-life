@@ -139,18 +139,38 @@ export function importedSessionStrengthSets(
       isAMRAP: estimable,
       date: new Date(start + index * SET_SPACING_MS),
       ...(role === "drop" && previous ? { dropOf: previous } : {}),
+      imported: true,
     });
     lastByExercise.set(exerciseId, set.id);
   });
   return out;
 }
 
-/** Every live imported session's sets as strength evidence, mapped as of now (`overrides`). */
+const NO_OVERRIDES: MappingOverrides = {};
+const importedSetsCache = new WeakMap<readonly ImportedSessionRecord[], WeakMap<MappingOverrides, StrengthSet[]>>();
+
+/**
+ * Every live imported session's sets as strength evidence, mapped as of now
+ * (`overrides`), each marked `imported`. Worked out once per list of sessions and
+ * choices (the same array is returned while neither changes, so the estimates worked
+ * out from it are kept); do not change it.
+ */
 export function importedStrengthSets(
   sessions: readonly ImportedSessionRecord[],
   overrides?: MappingOverrides
 ): StrengthSet[] {
-  return sessions.filter(isLive).flatMap((session) => importedSessionStrengthSets(session, overrides));
+  const key = overrides ?? NO_OVERRIDES;
+  let byOverrides = importedSetsCache.get(sessions);
+  if (!byOverrides) {
+    byOverrides = new WeakMap();
+    importedSetsCache.set(sessions, byOverrides);
+  }
+  let sets = byOverrides.get(key);
+  if (!sets) {
+    sets = sessions.filter(isLive).flatMap((session) => importedSessionStrengthSets(session, overrides));
+    byOverrides.set(key, sets);
+  }
+  return sets;
 }
 
 /** One imported set as muscle work. */

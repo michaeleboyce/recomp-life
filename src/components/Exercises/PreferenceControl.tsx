@@ -3,13 +3,9 @@
 import { useState } from "react";
 import type { ExercisePreference, PreferenceScope, WorkoutLocation } from "@/types";
 import { useSettings, useTrainingLocation } from "@/hooks";
-import { updateSettings } from "@/lib/data/records";
+import { setExercisePreference } from "@/lib/data/records";
 import { isPreferenceEditable } from "@/lib/exerciseCategories";
-import {
-  getScopedPreference,
-  isLocationOverride,
-  setScopedPreference,
-} from "@/lib/exercisePreferences";
+import { getScopedPreference, isLocationOverride } from "@/lib/exercisePreferences";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { cn } from "@/lib/utils";
 
@@ -83,13 +79,8 @@ export function PreferenceControl({
   const current = getScopedPreference(overall, byLocation, scope, exerciseId);
   const overridden = scope !== "all" && isLocationOverride(byLocation, scope, exerciseId);
 
-  const choose = async (preference: ExercisePreference) => {
-    const next = setScopedPreference(overall, byLocation, scope, exerciseId, preference);
-    await updateSettings({
-      exercisePreferences: next.overall,
-      exercisePreferencesByLocation: next.byLocation,
-    });
-  };
+  const choose = (preference: ExercisePreference) =>
+    setExercisePreference(scope, exerciseId, preference);
 
   return (
     <div className={cn("space-y-2", className)} data-preference-control={exerciseId}>

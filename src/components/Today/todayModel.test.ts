@@ -10,6 +10,7 @@ import {
   displayLiftName,
   formatEyebrowDate,
   exercisePageHref,
+  historyDay,
   liftPageHref,
   liftReason,
   nameInSentence,
@@ -109,6 +110,29 @@ describe("liftReason", () => {
     });
     expect(liftReason(entry, [other])).toEqual({ kind: "first" });
     expect(reasonText({ kind: "first" })).toBe("First time");
+  });
+
+  it("names the imported session a first home weight rests on, instead of 'First time'", () => {
+    const at = new Date(2025, 10, 3, 18).getTime();
+    const home = {
+      exerciseId: "bench",
+      substituteExerciseId: "db_bench",
+      tier: "T1" as const,
+      weight: 50,
+      seed: { history: { at, weight: 45, reps: 10, perHand: true } },
+    };
+    const reason = liftReason(home, []);
+    expect(reason).toEqual({ kind: "history", at, weight: 45, reps: 10, perHand: true });
+    expect(reasonText(reason)).toBe("From your history: last 45 × 10 on Nov 3, 2025");
+    expect(historyDay(at, new Date(2025, 11, 1))).toBe("Nov 3");
+    // Once done in the app, the app's own last session is the reason.
+    const done1 = makeWorkout({
+      completedAt: done,
+      sets: [makeSet({ exerciseId: "bench", tier: "T1", weight: 50, isSubstituted: true, substituteExerciseId: "db_bench" })],
+    });
+    expect(liftReason(home, [done1])).toEqual({ kind: "held", weight: 50 });
+    // A barbell lift is never given an imported reason.
+    expect(liftReason({ ...home, substituteExerciseId: undefined }, [])).toEqual({ kind: "first" });
   });
 
   it("compares with the newest finished workout that had the lift", () => {
