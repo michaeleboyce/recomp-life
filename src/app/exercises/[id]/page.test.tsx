@@ -26,7 +26,7 @@ vi.mock("@/components/chart-kit/LazyTrendChart", () => ({
 vi.mock("@/components/ExerciseDemo/ExerciseViewer", () => ({
   ExerciseViewer: () => <div data-testid="viewer" />,
 }));
-// The set editor is package P3's; here it shows the sets it is given and changes the first.
+// The set editor has tests of its own; here it shows the sets it is given and changes the first.
 vi.mock("@/components/SetPlan/SetPlanEditor", () => ({
   SetPlanEditor: (props: { sets: PlannedSet[]; planSets: PlannedSet[]; unit: string; onChange: (s: PlannedSet[] | null) => void }) => (
     <div data-testid="set-plan-editor" data-unit={props.unit}>
@@ -101,9 +101,9 @@ describe("an exercise's page", () => {
     const next = await screen.findByRole("region", { name: "Next session" });
     const planned = nextAtHome().plan.find((e) => !e.isWarmUp && e.exerciseId === "squat")!;
     expect(planned.substituteExerciseId).toBe("bulgarian_split_squat");
-    await waitFor(() => expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(planned.weight)));
-    expect(within(next).getByTestId("home-next")).toHaveTextContent("lbs a hand");
-    expect(within(next).getByTestId("home-next")).toHaveTextContent("T15×3+");
+    await waitFor(() => expect(within(next).getByTestId("next-weight")).toHaveTextContent(String(planned.weight)));
+    expect(within(next).getByTestId("next-session")).toHaveTextContent("lbs a hand");
+    expect(within(next).getByTestId("next-session")).toHaveTextContent("T15×3+");
     expect(next).toHaveTextContent("Set the Bulgarian split squat weight; the barbell squat stays as it is");
     expect(within(next).getByTestId("home-weight-line")).not.toHaveTextContent("80% of");
     expect(within(next).getByRole("button", { name: "Adjust weight" })).toBeInTheDocument();
@@ -228,7 +228,7 @@ describe("an exercise's page", () => {
       </>
     );
     const next = await screen.findByRole("region", { name: "Next session" });
-    const weight = await within(next).findByTestId("home-next-weight");
+    const weight = await within(next).findByTestId("next-weight");
     const before = Number(weight.textContent);
     fireEvent.click(within(next).getByRole("button", { name: "Adjust weight" }));
     const dialog = await screen.findByRole("dialog");
@@ -236,10 +236,10 @@ describe("an exercise's page", () => {
     const step = equipment.dumbbellIncrementLbs;
     fireEvent.click(within(dialog).getByRole("button", { name: `Increase weight by ${step}` }));
     fireEvent.click(within(dialog).getByRole("button", { name: "Save change" }));
-    await waitFor(() => expect(within(next).getByTestId("home-next-weight")).toHaveTextContent(String(before + step)));
+    await waitFor(() => expect(within(next).getByTestId("next-weight")).toHaveTextContent(String(before + step)));
     expect((await db.liftStates.get("squat"))!.t1Weight).toBe(barbellBefore);
     // Set by hand: the plan's own weight stays beside it, one tap from coming back.
-    await waitFor(() => expect(within(next).getByTestId("home-plan-weight")).toHaveTextContent(String(before)));
+    await waitFor(() => expect(within(next).getByTestId("plan-weight")).toHaveTextContent(String(before)));
     expect(within(next).getByRole("button", { name: `Use ${before}` })).toBeInTheDocument();
     // The change shows under its own weight changes.
     const changes = await screen.findByRole("region", { name: "Weight changes" });

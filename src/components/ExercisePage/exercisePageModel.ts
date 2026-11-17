@@ -240,25 +240,10 @@ export function ratioBasisText(ratio: Pick<TransferRatio, "pairs">): string {
   return ratio.pairs === 0 ? "starting ratio" : `from ${ratio.pairs} ${ratio.pairs === 1 ? "pair" : "pairs"} of your sessions`;
 }
 
-/** The sets the next session plans, one per set. */
-export function planSetsOf(
-  entry: Pick<WorkoutExerciseState, "targetSets" | "targetReps" | "weight" | "perSet">
-): PlannedSet[] {
-  return (
-    entry.perSet?.map((s) => ({ ...s })) ??
-    Array.from({ length: entry.targetSets }, () => ({ weight: entry.weight, reps: entry.targetReps }))
-  );
-}
-
 /**
  * The sets to show in the set editor: the stored next-session plan's when it has one
  * with as many sets as the plan, else the plan's own.
  */
 export function editorSets(stored: NextSetPlan | undefined, planSets: PlannedSet[]): PlannedSet[] {
   return stored && stored.sets.length === planSets.length ? stored.sets : planSets;
-}
-
-/** True when two set lists are the same weights and reps in the same order. */
-export function sameSets(a: readonly PlannedSet[], b: readonly PlannedSet[]): boolean {
-  return a.length === b.length && a.every((s, i) => s.weight === b[i].weight && s.reps === b[i].reps);
 }

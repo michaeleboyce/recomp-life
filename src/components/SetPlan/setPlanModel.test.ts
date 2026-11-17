@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampWeight, differsFromPlan, planBesideText, setDiffers, withSet } from "./setPlanModel";
+import { clampWeight, differsFromPlan, setDiffers, weightUnit, withSet } from "./setPlanModel";
 
 const plan = [
   { weight: 150, reps: 3, role: "ramp" as const },
@@ -32,8 +32,8 @@ describe("setPlanModel", () => {
     expect(next[1]).toBe(plan[1]);
   });
 
-  it("puts the plan's number beside yours", () => {
-    expect(planBesideText({ weight: 70, reps: 8 }, { weight: 60, reps: 8 })).toBe("Plan 60 · You 70");
-    expect(planBesideText({ weight: 60, reps: 10 }, { weight: 60, reps: 8 })).toBe("Plan 60×8 · You 60×10");
+  it("names the unit, per dumbbell where it is per hand", () => {
+    expect(weightUnit(false)).toBe("lbs");
+    expect(weightUnit(true)).toBe("lbs a hand");
   });
 });

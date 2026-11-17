@@ -5,7 +5,8 @@ import { Check, Minus, Plus, RotateCcw } from "lucide-react";
 import { roleLabel } from "@/components/ActiveWorkout/setPlan";
 import { cn } from "@/lib/utils";
 import type { PlannedSet } from "@/types";
-import { clampWeight, differsFromPlan, planBesideText, setDiffers, withSet } from "./setPlanModel";
+import { PlanYou } from "./PlanYou";
+import { clampWeight, differsFromPlan, setDiffers, withSet } from "./setPlanModel";
 
 export interface SetPlanEditorProps {
   /** The exercise's name, for the controls' accessible names. */
@@ -196,9 +197,14 @@ export function SetPlanEditor({
               {roleLabel(openSet.role) ? ` · ${roleLabel(openSet.role)}` : ""}
             </span>
             {openChanged && openPlan && (
-              <span data-testid="plan-beside" className="font-mono text-xs tabular-nums text-muted-foreground">
-                {planBesideText(openSet, openPlan)}
-              </span>
+              <PlanYou
+                data-testid="plan-beside"
+                className="text-xs"
+                planWeight={openPlan.weight}
+                weight={openSet.weight}
+                planReps={openPlan.reps}
+                reps={openSet.reps}
+              />
             )}
           </div>
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">

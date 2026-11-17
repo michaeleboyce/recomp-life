@@ -10,7 +10,7 @@ import type { LiftState, VariantState } from "@/types";
 import {
   homeNextSession,
   homePlanWeight,
-  homeScheme,
+  schemeText,
   homeSubstitutesOf,
   homeWeightLine,
   isPerHand,
@@ -99,7 +99,7 @@ describe("homeNextSession", () => {
     });
     expect(next.variant?.weight).toBe(70);
     expect(next.seed).toBeUndefined();
-    expect(homeScheme(next)).toBe("5×3+");
+    expect(schemeText(next)).toBe("5×3+");
   });
 
   it("plans the next workout in the rotation that has the lift when the next one does not", () => {

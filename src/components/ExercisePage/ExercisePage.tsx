@@ -18,7 +18,8 @@ import { LIFT_NAMES, type MainLiftId } from "@/components/Progress/lifts";
 import { CountsToward } from "./CountsToward";
 import { ExerciseHeader } from "./ExerciseHeader";
 import { OwnStrength, T3Strength } from "./ExerciseStrength";
-import { HomeNextSession, PlannedNextSession } from "./NextSession";
+import { HomeNextSession } from "./HomeNextSession";
+import { PlannedNextSession } from "./NextSession";
 import {
   classifyExercise,
   exerciseAdjustments,
@@ -121,7 +122,7 @@ export function ExercisePage({ exerciseId, backHref }: { exerciseId: string; bac
               kind={kind}
               next={next}
               location={location}
-              sessions={sessions ?? []}
+              sessions={sessions}
               store={store}
               prLine={
                 showPr ? (

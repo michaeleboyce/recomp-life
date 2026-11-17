@@ -12,6 +12,7 @@ import { AutoRegCallout } from "@/components/ActiveWorkout/AutoRegCallout";
 import { DiscardWorkoutDialog } from "@/components/ActiveWorkout/DiscardWorkoutDialog";
 import { DropSetPanel } from "@/components/ActiveWorkout/DropSetPanel";
 import { SetChips } from "@/components/ActiveWorkout/SetChips";
+import { weightUnit } from "@/components/SetPlan/setPlanModel";
 import { EndWorkoutConfirmDialog } from "@/components/ActiveWorkout/EndWorkoutConfirmDialog";
 import { ExerciseBlock } from "@/components/ActiveWorkout/ExerciseBlock";
 import { LogDock } from "@/components/ActiveWorkout/LogDock";
@@ -347,7 +348,7 @@ function ActiveWorkoutContent() {
         key={workout.activeIndex}
         name={shown.name}
         chips={workout.setChips}
-        unit={perHand ? "lbs/hand" : "lbs"}
+        unit={weightUnit(perHand)}
         step={workout.weightStep}
         minWeight={workout.minWeight}
         onChange={workout.setSetWeight}

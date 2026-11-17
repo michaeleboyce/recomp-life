@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, Minus, Plus, RotateCcw } from "lucide-react";
-import { planBesideText } from "@/components/SetPlan/setPlanModel";
+import { PlanYou } from "@/components/SetPlan/PlanYou";
 import { cn } from "@/lib/utils";
 import { roleLabel, type SetChip } from "./setPlan";
 
@@ -10,7 +10,7 @@ interface SetChipsProps {
   /** The exercise's name, for the controls' accessible names. */
   name: string;
   chips: SetChip[];
-  /** "lbs" or "lbs/hand". */
+  /** "lbs" or "lbs a hand" (`weightUnit`). */
   unit: string;
   /** What a set's weight moves by, and its lightest value. */
   step: number;
@@ -112,12 +112,7 @@ export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetCh
               {open.state === "current" ? " · next" : ""}
             </span>
             {open.changed && (
-              <span data-testid="plan-beside" className="font-mono tabular-nums text-muted-foreground">
-                {planBesideText(
-                  { weight: open.weight, reps: open.reps },
-                  { weight: open.plannedWeight, reps: open.reps }
-                )}
-              </span>
+              <PlanYou data-testid="plan-beside" planWeight={open.plannedWeight} weight={open.weight} />
             )}
           </p>
           <div className="flex items-center gap-2">
