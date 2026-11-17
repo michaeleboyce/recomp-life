@@ -377,7 +377,6 @@ export function anchorVariant(
   };
 }
 
-/** The variant with no steps earned at the gym: absent means 0. */
 /**
  * The home weights set by hand and not lifted yet, each as one provisional set: the
  * weight as set, at the scheme's reps, taken as far as it goes on T1 (so it reads as
@@ -416,11 +415,27 @@ export function targetStrengthSets(variantStates: readonly VariantState[]): Stre
 export const BACK_TO_PLAN_NOTE = "Back to the plan's weight";
 
 /**
+ * The plan's weight to keep beside a weight set by hand (E7): the weight before the
+ * first change since it was last logged (`plannedWeight` when one is already kept,
+ * else the weight as it stood). `undefined` when the change ends the override: going
+ * back to the plan (`backToPlan`) or setting the plan's weight itself. Shared by home
+ * exercises (`withHandSetWeight`) and the barbell tiers (`t1PlannedWeight` etc.).
+ */
+export function plannedWeightAfterHandSet(
+  before: { weight: number; plannedWeight?: number },
+  weight: number,
+  backToPlan: boolean
+): number | undefined {
+  const planned = before.plannedWeight ?? before.weight;
+  return backToPlan || weight === planned ? undefined : planned;
+}
+
+/**
  * `next` (the state with a weight set by hand at `at`) with the override recorded
  * against `before`, the state as the plan had it: `plannedWeight` keeps the plan's
- * weight from before the first change since the exercise was last logged, and
- * `setByHandAt` says when. Going back to the plan (`backToPlan`, or a weight equal to
- * the plan's) ends the override: both are cleared and the plan decides again.
+ * weight (`plannedWeightAfterHandSet`) and `setByHandAt` says when. Going back to the
+ * plan (`backToPlan`, or a weight equal to the plan's) ends the override: both are
+ * cleared and the plan decides again.
  */
 export function withHandSetWeight(
   before: VariantState,
@@ -428,9 +443,9 @@ export function withHandSetWeight(
   at: Date,
   backToPlan = false
 ): VariantState {
-  const planned = before.plannedWeight ?? before.weight;
+  const planned = plannedWeightAfterHandSet(before, next.weight, backToPlan);
   const out: VariantState = { ...next };
-  if (backToPlan || next.weight === planned) {
+  if (planned === undefined) {
     delete out.plannedWeight;
     delete out.setByHandAt;
     return out;
@@ -446,6 +461,7 @@ export function withoutHandOverride(state: VariantState): VariantState {
   return rest;
 }
 
+/** The variant with no steps earned at the gym: absent means 0. */
 export function withoutGymPasses(state: VariantState): VariantState {
   if (state.gymPassesSinceHome === undefined) return state;
   const rest: VariantState = { ...state };

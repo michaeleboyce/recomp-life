@@ -15,7 +15,7 @@ import type {
 import { buildWorkoutPlan, describeNextWorkout } from "./buildPlan";
 import { computeCompletion } from "./completeWorkout";
 import { createSetLog } from "./logSet";
-import { nextSetPlanKey } from "./nextSetPlans";
+import { performedSetPlanKey } from "./nextSetPlans";
 import { resolveReentry } from "./reentry";
 import type { WorkoutPlan } from "./types";
 
@@ -81,11 +81,7 @@ function withoutPlansUsedBy(
   plan: WorkoutPlan
 ): Record<string, NextSetPlan> | undefined {
   if (!plans) return undefined;
-  const used = new Set(
-    plan
-      .filter((e) => !e.isWarmUp)
-      .map((e) => nextSetPlanKey(e.substituteExerciseId ?? e.exerciseId, e.tier))
-  );
+  const used = new Set(plan.filter((e) => !e.isWarmUp).map(performedSetPlanKey));
   return Object.fromEntries(Object.entries(plans).filter(([key]) => !used.has(key)));
 }
 

@@ -19,6 +19,7 @@ import {
   totalLoad,
   variantKey,
   variantScheme,
+  plannedWeightAfterHandSet,
   withHandSetWeight,
   type EvaluateVariantInput,
   type VariantSeedInput,
@@ -375,6 +376,13 @@ describe("weights set by hand", () => {
     expect(back.setByHandAt).toBeUndefined();
     const explicit = withHandSetWeight(set, { ...set, weight: 65 }, at, true);
     expect(explicit.plannedWeight).toBeUndefined();
+  });
+
+  it("plannedWeightAfterHandSet keeps the first planned weight and ends on the plan's own", () => {
+    expect(plannedWeightAfterHandSet({ weight: 60 }, 70, false)).toBe(60);
+    expect(plannedWeightAfterHandSet({ weight: 70, plannedWeight: 60 }, 75, false)).toBe(60);
+    expect(plannedWeightAfterHandSet({ weight: 70, plannedWeight: 60 }, 60, false)).toBeUndefined();
+    expect(plannedWeightAfterHandSet({ weight: 70, plannedWeight: 60 }, 65, true)).toBeUndefined();
   });
 
   it("a logged session ends the override", () => {

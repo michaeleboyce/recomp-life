@@ -49,9 +49,7 @@ export function useNextWorkout(location?: WorkoutLocation): NextWorkoutDescripti
         variantStates,
         strengthSets,
         // Per-set weights set on an exercise's page for its next session (E6).
-        ...(settings.nextSetPlans && Object.keys(settings.nextSetPlans).length > 0
-          ? { nextSetPlans: settings.nextSetPlans }
-          : {}),
+        nextSetPlans: settings.nextSetPlans,
       },
       reentry: true,
     });

@@ -11,6 +11,16 @@ export function nextSetPlanKey(exerciseId: string, tier: Tier): string {
 }
 
 /**
+ * The set-plan key of a plan entry or a logged set: the exercise performed (the home
+ * exercise when one stands in, `substituteExerciseId`) and its tier.
+ */
+export function performedSetPlanKey(
+  item: { exerciseId: string; substituteExerciseId?: string; tier: Tier }
+): string {
+  return nextSetPlanKey(item.substituteExerciseId ?? item.exerciseId, item.tier);
+}
+
+/**
  * The plan with each entry that has a next-session set plan (matched on the exercise
  * performed, `substituteExerciseId ?? exerciseId`, and tier) given those sets, as a
  * `setWeights` edit would. Entries are copied, never changed in place.
@@ -37,7 +47,7 @@ export function nextSetPlanEdits(
   const edits: PlanEdit[] = [];
   for (const entry of plan) {
     if (entry.isWarmUp) continue;
-    const setPlan = plans[nextSetPlanKey(entry.substituteExerciseId ?? entry.exerciseId, entry.tier)];
+    const setPlan = plans[performedSetPlanKey(entry)];
     if (!setPlan || setPlan.sets.length === 0) continue;
     edits.push({
       kind: "setWeights",
@@ -55,9 +65,7 @@ export function consumeNextSetPlans(
   session: Pick<WorkoutSession, "sets">
 ): Record<string, NextSetPlan> {
   const logged = new Set(
-    (session.sets ?? [])
-      .filter((set) => !isWarmUpSet(set))
-      .map((set) => nextSetPlanKey(set.substituteExerciseId ?? set.exerciseId, set.tier))
+    (session.sets ?? []).filter((set) => !isWarmUpSet(set)).map(performedSetPlanKey)
   );
   const left: Record<string, NextSetPlan> = {};
   for (const [key, plan] of Object.entries(plans ?? {})) {
