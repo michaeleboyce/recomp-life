@@ -236,7 +236,9 @@ export async function appendSet(workoutId: string, set: SetLog): Promise<void> {
  * Marks the workout finished, stores the settings progression depends on
  * (`completionContext`), runs the rebuild and uses up the next-session set plans it
  * logged (`spendNextSetPlans`), all in one transaction. Returns every
- * lift state as it stands afterwards.
+ * lift state as it stands afterwards. Finishing a workout that is already finished
+ * changes nothing and returns the lift states as they are; a discarded or missing
+ * workout rejects.
  *
  * After the rebuild, the estimated-max forecast for each lift just trained is written
  * to the ledger, at most one per lift per week. A failure there is logged and the
@@ -250,6 +252,17 @@ export async function finishWorkout(
     const workout = await db.workouts.get(workoutId);
     if (!workout) {
       throw new Error(`finishWorkout: workout ${workoutId} does not exist`);
+    }
+    // Discarded meanwhile (another tab, or the user): finishing it would count a
+    // workout that is gone and spend its set plans.
+    if (workout.deletedAt != null) {
+      throw new Error(`finishWorkout: workout ${workoutId} was discarded`);
+    }
+    // Already finished (a double tap, a retry after a lost reply): nothing changes. A
+    // second write would move its finish time, restamp its settings and spend set
+    // plans saved since.
+    if (workout.completedAt != null) {
+      return { liftStates: await db.liftStates.toArray(), trained: [] };
     }
     const settings = await readSettings();
 
@@ -278,9 +291,11 @@ export async function finishWorkout(
     };
   });
 
-  await attemptLedgerWrite("Forecasting the lifts of a finished workout", () =>
-    recordLiftForecasts(trained, new Date(finish.completedAt))
-  );
+  if (trained.length > 0) {
+    await attemptLedgerWrite("Forecasting the lifts of a finished workout", () =>
+      recordLiftForecasts(trained, new Date(finish.completedAt))
+    );
+  }
 
   return liftStates;
 }

@@ -386,6 +386,35 @@ describe("finishWorkout", () => {
     ).rejects.toThrow(/missing/);
   });
 
+  it("finishing twice (a double tap, a retry) changes nothing the second time", async () => {
+    const id = await start();
+    for (let i = 1; i <= 5; i++) {
+      await appendSet(id, makeSet({ id: `s${i}`, setNumber: i, isAMRAP: i === 5 }));
+    }
+    const completedAt = new Date(Date.now() - 60_000);
+    const first = await finishWorkout(id, { completedAt, totalDurationSeconds: 1800, endedEarly: false });
+    const stored = (await db.workouts.get(id))!;
+    const settings = (await db.userProfile.toCollection().first())!.settings;
+    await updateSettings({ trainingPhase: { mode: settings.trainingPhase.mode === "bulking" ? "cutting" : "bulking" } });
+
+    const again = await finishWorkout(id, { completedAt: new Date(), totalDurationSeconds: 1900, endedEarly: true });
+
+    expect(again).toEqual(first);
+    expect(await db.workouts.get(id)).toEqual(stored);
+  });
+
+  it("rejects for a workout that was discarded, and writes nothing", async () => {
+    const id = await start();
+    await appendSet(id, makeSet({ id: "s1" }));
+    await discardWorkout(id);
+    const stored = (await db.workouts.get(id))!;
+
+    await expect(
+      finishWorkout(id, { completedAt: new Date(), totalDurationSeconds: 60, endedEarly: true })
+    ).rejects.toThrow(/discarded/);
+    expect(await db.workouts.get(id)).toEqual(stored);
+  });
+
   it("never keeps a lift state the log does not explain", async () => {
     // A hand-edited lift state is not part of the log: the rebuild at finish puts it right.
     await db.liftStates.put(makeLiftState({ exerciseId: "deadlift", t1Weight: 999 }));
