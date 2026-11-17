@@ -356,7 +356,7 @@ export function useActiveWorkout(
     (setIndex: number, weight: number | null) => {
       if (!session || !planEntry || setIndex < planEntry.completedSets) return;
       const key = spotKey(activeIndex, setIndex);
-      const planned = setChips[setIndex]?.plannedWeight;
+      const planned = setChips[setIndex]?.planWeight;
       setSpotChoice((was) => {
         const weights: Record<string, number> = { ...(was?.sessionId === session.id ? was.weights : {}) };
         // Stepping back onto the plan's weight is the plan again.
@@ -735,8 +735,6 @@ export function useActiveWorkout(
     setChips,
     /** The next set's weight as changed on the spot; null when it is as planned. */
     weightOverride,
-    /** The next set's weight as planned. */
-    plannedNextWeight: planEntry ? nextSetView(planEntry, null).weight : 0,
     setNextWeight,
     /** Changes one set still to come of the entry on screen, by set index; null: back to plan. */
     setSetWeight,

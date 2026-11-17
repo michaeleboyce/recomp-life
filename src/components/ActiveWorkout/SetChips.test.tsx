@@ -8,7 +8,7 @@ function chip(index: number, overrides: Partial<SetChip> = {}): SetChip {
   return {
     index,
     weight: 190,
-    plannedWeight: 190,
+    planWeight: 190,
     changed: false,
     reps: 3,
     role: "work",
@@ -51,22 +51,22 @@ describe("SetChips", () => {
     expect(onChange).toHaveBeenLastCalledWith(2, 195);
     fireEvent.click(within(panel).getByRole("button", { name: "5 lbs lighter" }));
     expect(onChange).toHaveBeenLastCalledWith(2, 185);
-    expect(within(panel).queryByRole("button", { name: /^Back to the planned/ })).toBeNull();
+    expect(within(panel).queryByRole("button", { name: /^Back to the plan's/ })).toBeNull();
   });
 
   it("shows the plan's weight beside a changed set and puts that set back", () => {
     const { region, onChange } = renderChips();
-    const changed = within(region).getByRole("button", { name: "Set 4: 200 lbs × 3, planned 190 lbs. Change its weight" });
+    const changed = within(region).getByRole("button", { name: "Set 4: 200 lbs × 3, plan 190 lbs. Change its weight" });
     expect(changed).toHaveTextContent("plan 190");
     fireEvent.click(changed);
     expect(changed).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByTestId("plan-beside")).toHaveTextContent("Plan 190 · You 200");
-    fireEvent.click(screen.getByRole("button", { name: "Back to the planned 190 lbs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to the plan's 190 lbs" }));
     expect(onChange).toHaveBeenLastCalledWith(3, null);
   });
 
   it("does not go below the lightest weight", () => {
-    const { region } = renderChips([chip(0, { state: "current", weight: 45, plannedWeight: 45 })]);
+    const { region } = renderChips([chip(0, { state: "current", weight: 45, planWeight: 45 })]);
     fireEvent.click(within(region).getByRole("button", { name: /^Set 1:/ }));
     expect(screen.getByRole("button", { name: "5 lbs lighter" })).toBeDisabled();
   });

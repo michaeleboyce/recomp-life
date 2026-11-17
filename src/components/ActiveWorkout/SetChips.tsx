@@ -58,7 +58,7 @@ export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetCh
               )}
               {chip.changed && (
                 <span className="font-mono text-[11px] leading-none tabular-nums text-accent-primary">
-                  plan {chip.plannedWeight}
+                  plan {chip.planWeight}
                 </span>
               )}
             </>
@@ -66,7 +66,7 @@ export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetCh
           const base =
             "flex min-h-11 w-full flex-col items-center justify-center gap-1 rounded-xl border-[1.5px] px-0.5 py-1.5";
           const what = `Set ${chip.index + 1}${label ? `, ${label.toLowerCase()}` : ""}: ${chip.weight} ${unit} × ${chip.reps}${
-            chip.changed ? `, planned ${chip.plannedWeight} ${unit}` : ""
+            chip.changed ? `, plan ${chip.planWeight} ${unit}` : ""
           }`;
           const isOpen = open?.index === chip.index;
           return (
@@ -112,7 +112,7 @@ export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetCh
               {open.state === "current" ? " · next" : ""}
             </span>
             {open.changed && (
-              <PlanYou data-testid="plan-beside" planWeight={open.plannedWeight} weight={open.weight} />
+              <PlanYou data-testid="plan-beside" planWeight={open.planWeight} weight={open.weight} />
             )}
           </p>
           <div className="flex items-center gap-2">
@@ -138,12 +138,12 @@ export function SetChips({ name, chips, unit, step, minWeight, onChange }: SetCh
             {open.changed && (
               <button
                 type="button"
-                aria-label={`Back to the planned ${open.plannedWeight} ${unit}`}
+                aria-label={`Back to the plan's ${open.planWeight} ${unit}`}
                 className={cn(STEP_BUTTON, "flex-none px-4 text-[13px]")}
                 onClick={() => onChange(open.index, null)}
               >
                 <RotateCcw className="size-4" aria-hidden="true" />
-                {open.plannedWeight}
+                {open.planWeight}
               </button>
             )}
           </div>

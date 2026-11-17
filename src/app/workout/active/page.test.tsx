@@ -355,7 +355,7 @@ describe("a weight per set and drop sets", () => {
     fireEvent.click(screen.getByRole("button", { name: "5 lbs lighter" }));
     expect(screen.getByTestId("weight")).toHaveTextContent("185");
     expect(screen.getByTestId("loading-line")).toHaveTextContent("per side: 45 · 25");
-    fireEvent.click(screen.getByRole("button", { name: "Back to the planned 190 lbs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to the plan's 190 lbs" }));
     expect(screen.getByTestId("weight")).toHaveTextContent("190");
     fireEvent.click(screen.getByRole("button", { name: "5 lbs lighter" }));
     fireEvent.click(logButton());
@@ -369,13 +369,13 @@ describe("a weight per set and drop sets", () => {
     fireEvent.click(screen.getByRole("button", { name: "5 lbs heavier" }));
     // The set on screen is still the plan's.
     expect(screen.getByTestId("weight")).toHaveTextContent("190");
-    const third = within(chips()).getByRole("button", { name: /^Set 3: 200 lbs × 3, planned 190 lbs/ });
+    const third = within(chips()).getByRole("button", { name: /^Set 3: 200 lbs × 3, plan 190 lbs/ });
     expect(third).toHaveTextContent("plan 190");
     expect(screen.getByTestId("plan-beside")).toHaveTextContent("Plan 190 · You 200");
 
     fireEvent.click(within(chips()).getByRole("button", { name: /^Set 4: 190 lbs × 3\./ }));
     fireEvent.click(screen.getByRole("button", { name: "5 lbs lighter" }));
-    fireEvent.click(screen.getByRole("button", { name: "Back to the planned 190 lbs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to the plan's 190 lbs" }));
     expect(within(chips()).getByRole("button", { name: /^Set 4: 190 lbs × 3\./ })).toBeInTheDocument();
 
     await logSets(3);
