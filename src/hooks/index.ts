@@ -54,3 +54,4 @@ export {
   type DerivedCheckStatus,
 } from "./useLogEdit";
 export { useImportedSessions } from "./useImportedSessions";
+export { useImportedLiftIndex, useImportedStrengthSets, useLiftE1RM } from "./useImportedHistory";

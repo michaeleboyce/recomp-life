@@ -14,6 +14,8 @@ import {
   type ProjectionScenario,
 } from "@/lib/projection";
 import { MIN_TREND_POINTS } from "@/lib/projection/trend";
+import { importedE1rmPoints, withImportedPoints } from "@/lib/import/history";
+import { useImportedLiftIndex } from "./useImportedHistory";
 import { useMetricSource } from "./useMetric";
 
 export interface ProjectionResult {
@@ -22,7 +24,7 @@ export interface ProjectionResult {
   current: Projection;
   /** The projection under the given scenario. */
   scenario: Projection;
-  /** The lift's estimated-1RM history. */
+  /** The lift's estimated-1RM history, its imported sessions' included (marked imported). */
   history: Point[];
   /** The plain-language sentence for the top of the screen. */
   summary: string;
@@ -43,14 +45,19 @@ export function useProjection(
   weeks: number
 ): ProjectionResult | undefined {
   const source = useMetricSource();
+  const imported = useImportedLiftIndex();
   const [now] = useState(() => Date.now());
   // Callers usually pass a fresh scenario object each render; key on its contents.
   const { sessionsPerWeek, directWeeklySets, relatedWeeklySets, passRate, phase } = scenario;
 
   const inputs = useMemo(() => {
-    if (!source) return undefined;
+    if (!source || !imported) return undefined;
     const date = new Date(now);
-    const history = computeMetric("e1rm", source, { exerciseId }).points;
+    // The lift's estimates, with those of its imported sessions (marked imported).
+    const history = withImportedPoints(
+      computeMetric("e1rm", source, { exerciseId }),
+      importedE1rmPoints(imported.get(exerciseId) ?? [])
+    ).points;
     const baseline = measureBaseline(source, exerciseId, date);
     const relatedHistory: Record<string, Point[]> = {};
     for (const id of relatedExerciseIds(exerciseId)) {
@@ -58,7 +65,7 @@ export function useProjection(
       if (points.length >= MIN_TREND_POINTS) relatedHistory[id] = points;
     }
     return { date, history, baseline, relatedHistory };
-  }, [source, exerciseId, now]);
+  }, [source, imported, exerciseId, now]);
 
   const current = useMemo(() => {
     if (!inputs) return undefined;

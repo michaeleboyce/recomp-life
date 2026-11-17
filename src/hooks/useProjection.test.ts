@@ -4,6 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
 import { MIN_TREND_POINTS } from "@/lib/projection/trend";
 import type { ProjectionScenario } from "@/lib/projection";
 import { useProjection } from "./index";
@@ -81,5 +82,22 @@ describe("useProjection", () => {
     expect(r.result.current!.current.status).toBe("insufficient-data");
     expect(r.result.current!.resultsNeeded).toBe(MIN_TREND_POINTS);
     expect(r.result.current!.history).toEqual([]);
+  });
+
+  it("projects from imported history alone, its points marked imported (made-up sessions)", async () => {
+    await db.userProfile.put(makeProfile());
+    const DAY = 86_400_000;
+    await db.importedSessions.bulkPut(
+      [185, 190, 195, 200, 205].map((weight, i) =>
+        importedSession([importedSet({ weightPerImplementLb: weight, reps: 5 })], {
+          startedAt: new Date(NOW.getTime() - (5 - i) * 7 * DAY),
+        })
+      )
+    );
+    const r = await loaded();
+    const p = r.result.current!;
+    expect(p.history).toHaveLength(5);
+    expect(p.history.every((point) => point.imported)).toBe(true);
+    expect(p.current.status).toBe("ok");
   });
 });

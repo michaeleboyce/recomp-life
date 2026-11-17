@@ -1,4 +1,10 @@
 // Series maths for the Progress > Strength tab. Pure: no React, no database.
+import {
+  appPointsOnly,
+  importedE1rmPoints,
+  withImportedPoints,
+  type ImportedLiftIndex,
+} from "@/lib/import/history";
 import { computeMetric, inRange, summarize } from "@/lib/metrics";
 import type { MetricSource, Point, RangeKey, Series, SeriesSummary } from "@/lib/metrics/types";
 import type { LiftState } from "@/types";
@@ -28,13 +34,16 @@ export function totalE1RMPoints(byLift: Partial<Record<MainLiftId, Point[]>>): T
     .sort((a, b) => a - b);
 
   const cursor = sorted.map(() => 0);
-  const points = times.map((t) => {
+  const points = times.map((t): Point => {
     let v = 0;
+    let imported = false;
     sorted.forEach((pts, i) => {
       while (cursor[i] + 1 < pts.length && pts[cursor[i] + 1].t <= t) cursor[i]++;
       v += pts[cursor[i]].v;
+      imported ||= pts[cursor[i]].imported === true;
     });
-    return { t, v };
+    // A total that adds an imported estimate is drawn as imported.
+    return imported ? { t, v, imported } : { t, v };
   });
   return { points, lifts };
 }
@@ -78,19 +87,28 @@ export interface LiftOverview {
 }
 
 export interface StrengthOverview {
-  /** False when there are no estimates and no completed workouts at all. */
+  /** False when there are no estimates, no completed workouts and no imported sessions of a lift. */
   hasData: boolean;
   lifts: LiftOverview[];
   total: { label: string; lifts: MainLiftId[]; series: Series; summary: SeriesSummary };
 }
 
+/**
+ * Each main lift's estimated 1RM over `range` and their total. With `imported` (the
+ * imported sessions per exercise), each lift's series also has the estimates of its
+ * imported sessions, marked imported; a stall is judged on the app's own estimates.
+ */
 export function strengthOverview(
   source: MetricSource,
   range: RangeKey,
-  now: number
+  now: number,
+  imported?: ImportedLiftIndex
 ): StrengthOverview {
   const lifts = MAIN_LIFTS.map((id): LiftOverview => {
-    const full = computeMetric("e1rm", source, { exerciseId: id });
+    const full = withImportedPoints(
+      computeMetric("e1rm", source, { exerciseId: id }),
+      importedE1rmPoints(imported?.get(id) ?? [])
+    );
     const series = inRange(full, range, now);
     return {
       id,
@@ -99,7 +117,7 @@ export function strengthOverview(
       full,
       series,
       summary: summarize(series),
-      stall: stallOf(full.points),
+      stall: stallOf(appPointsOnly(full.points)),
     };
   });
 
@@ -116,7 +134,7 @@ export function strengthOverview(
   const totalSeries = inRange(totalFull, range, now);
 
   return {
-    hasData: source.e1rms.length > 0 || source.workouts.length > 0,
+    hasData: source.e1rms.length > 0 || source.workouts.length > 0 || lifts.some((l) => l.full.points.length > 0),
     lifts,
     total: {
       label: totalLabel(totals.lifts),

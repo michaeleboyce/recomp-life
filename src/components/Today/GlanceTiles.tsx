@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useBodyweightLog, useMetric, useNextWorkout, useSettings } from "@/hooks";
+import { useBodyweightLog, useImportedSessions, useLiftE1RM, useMetric, useNextWorkout, useSettings } from "@/hooks";
 import { getMonday } from "@/lib/dates";
+import { importedSessionsBetween } from "@/lib/import/history";
 import { Sparkline, type SparklineTone } from "@/components/chart-kit";
 import { Delta, type DeltaBetter } from "@/components/ui/delta";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +31,13 @@ const PACE_TONE: Record<PaceWord, SparklineTone> = {
 
 function Hint({ children }: { children: React.ReactNode }) {
   return <span className="text-xs text-muted-foreground">{children}</span>;
+}
+
+/** "Nov 3", or "Nov 3, 2025" when it is not this year. */
+function formatTileDay(t: number): string {
+  const date = new Date(t);
+  const thisYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(thisYear ? {} : { year: "numeric" }) });
 }
 
 function toneFor(change: number | null | undefined, better: DeltaBetter): SparklineTone {
@@ -103,26 +111,40 @@ function WeightTile() {
   );
 }
 
+/**
+ * Sessions this week: the app's workouts and the sessions imported from other apps
+ * started this week (history: they count as training, never for the rotation).
+ */
 function WeekTile() {
   const sessions = useMetric("sessionsPerWeek");
+  const imported = useImportedSessions();
   const [weekStart] = useState(() => getMonday(new Date()).getTime());
-  if (!sessions) return <TileSkeleton />;
+  if (!sessions || !imported) return <TileSkeleton />;
 
   const points = sessions.full.points;
-  const thisWeek = points.find((p) => p.t === weekStart)?.v ?? 0;
+  const appThisWeek = points.find((p) => p.t === weekStart)?.v ?? 0;
+  const nextWeek = new Date(weekStart);
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  const importedThisWeek = importedSessionsBetween(imported, new Date(weekStart), nextWeek);
+  const none = points.length === 0 && imported.length === 0;
 
   return (
     <StatTile
       href="/log"
       label="This week"
-      value={points.length === 0 ? DASH : `${thisWeek} / ${WEEKLY_SESSION_TARGET}`}
-      delta={<Hint>{points.length === 0 ? "No workouts yet" : "sessions"}</Hint>}
+      value={none ? DASH : `${appThisWeek + importedThisWeek} / ${WEEKLY_SESSION_TARGET}`}
+      delta={
+        <Hint>
+          {none ? "No workouts yet" : importedThisWeek > 0 ? `sessions, ${importedThisWeek} imported` : "sessions"}
+        </Hint>
+      }
     />
   );
 }
 
 function LiftTile({ exerciseId }: { exerciseId: string }) {
-  const e1rm = useMetric("e1rm", { exerciseId }, "3m");
+  // The app's estimates and those of the lift's imported sessions (marked imported).
+  const e1rm = useLiftE1RM(exerciseId, "3m");
   if (!e1rm) return <TileSkeleton />;
 
   const latest = e1rm.full.points.at(-1);
@@ -141,6 +163,8 @@ function LiftTile({ exerciseId }: { exerciseId: string }) {
         delta={
           !latest ? (
             <Hint>Finish a workout to estimate it</Hint>
+          ) : latest.imported ? (
+            <Hint>Imported, {formatTileDay(latest.t)}</Hint>
           ) : change !== null ? (
             // The real span of the points, not the nominal 3 months.
             <Delta value={Math.round(change)} unit="lb" suffix={rangeSuffix(e1rm.series.points)} better="up" />
