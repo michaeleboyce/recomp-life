@@ -35,6 +35,11 @@ export function impliedWeightForReps(estimatedMax: number, reps: number): number
   return estimatedMax / (1 + reps / 30);
 }
 
+/** An estimate re-entry can work from: a positive, finite number (0 or NaN says nothing). */
+function isUsableEstimate(estimate: number | null): estimate is number {
+  return estimate !== null && Number.isFinite(estimate) && estimate > 0;
+}
+
 /** The heaviest load at or below `weight` the plates can make; never under the bar. */
 export function roundDownToPlates(
   weight: number,
@@ -75,10 +80,9 @@ export function barbellReentryWeight(input: BarbellReentryInput): ReentryResult 
     input.lastWeight === null
       ? null
       : roundDownToPlates(input.lastWeight + Math.max(0, input.stepsEarned) * input.stepLbs, input.equipment);
-  const fromEstimate =
-    input.estimate === null
-      ? null
-      : roundDownToPlates(impliedWeightForReps(input.estimate, input.targetReps), input.equipment);
+  const fromEstimate = isUsableEstimate(input.estimate)
+    ? roundDownToPlates(impliedWeightForReps(input.estimate, input.targetReps), input.equipment)
+    : null;
   if (fromSteps === null && fromEstimate === null) return null;
   if (fromEstimate !== null && (fromSteps === null || fromEstimate < fromSteps)) {
     return { weight: fromEstimate, fromSteps, fromEstimate, rule: "estimate" };
@@ -116,7 +120,7 @@ export function homeReentryWeight(input: HomeReentryInput): ReentryResult | null
       ? null
       : roundDownToDumbbell(input.lastWeight + Math.max(0, input.stepsEarned) * step, step);
   const fromEstimate =
-    input.estimate === null || input.ratio === null || !(input.ratio > 0)
+    !isUsableEstimate(input.estimate) || input.ratio === null || !(input.ratio > 0)
       ? null
       : roundDownToDumbbell(
           asLifted(impliedWeightForReps(input.estimate * input.ratio, input.targetReps), input.exerciseId),

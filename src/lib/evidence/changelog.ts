@@ -345,4 +345,11 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
       "New rule. A home weight you set yourself is kept beside the app's own weight, and until you lift it, it counts at half a logged home session toward the barbell lift's strength estimate.",
     sources: [],
   },
+  {
+    date: "2026-11-17",
+    ruleId: "strength-pooling",
+    change:
+      "A set logged at no weight no longer counts as a session's estimate. It had counted as a max of 0, which pulled the lift's estimate down and could bring the first gym weight after time at home down to the empty bar.",
+    sources: [],
+  },
 ];

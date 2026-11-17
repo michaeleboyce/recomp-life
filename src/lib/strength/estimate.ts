@@ -47,9 +47,14 @@ export function asLifted(totalLoad: number, exerciseId: string): number {
   return loadingOf(exerciseId) === "two-dumbbells" ? totalLoad / 2 : totalLoad;
 }
 
-/** A normal set (not a warm-up or a drop) that the app's rule accepts for an estimate. */
+/**
+ * A normal set (not a warm-up or a drop) that the app's rule accepts for an estimate,
+ * with a load: a set logged at no weight (or an unreadable one) says nothing about
+ * strength, and an estimate of 0 would drag the pooled estimate toward the empty bar.
+ */
 export function isEstimateSet(set: StrengthSet): boolean {
   if (set.role === "warmup" || set.role === "drop") return false;
+  if (!(externalLoad(set) > 0) || !Number.isFinite(set.weight)) return false;
   return isE1RMEligibleSet(set.tier, set.isAMRAP, set.reps);
 }
 
@@ -121,7 +126,7 @@ function estimateForSession(exerciseId: string, sessionId: string, sets: Strengt
   // First drops within the formula's limits (a drop is taken as far as it goes, so it is
   // treated as an AMRAP set), after their fatigue allowance.
   const dropValues = firstDrops(sets)
-    .filter((drop) => isE1RMEligibleSet(drop.tier, true, drop.reps))
+    .filter((drop) => externalLoad(drop) > 0 && isE1RMEligibleSet(drop.tier, true, drop.reps))
     .map((drop) => setEstimate(drop))
     .filter((value): value is number => value !== null)
     .map((value) => value / (1 - DROP_SETS.fatigueDiscount));
