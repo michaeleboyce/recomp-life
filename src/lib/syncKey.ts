@@ -2,6 +2,9 @@
 // every sync request. It must match SYNC_SECRET on the server.
 const STORAGE_KEY = 'recomp-sync-key';
 
+/** Dispatched on window after the passphrase is saved or removed on this device. */
+export const SYNC_KEY_CHANGED_EVENT = 'recomp-sync-key-changed';
+
 export function getSyncKey(): string | null {
   try {
     return localStorage.getItem(STORAGE_KEY) || null;
