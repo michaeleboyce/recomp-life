@@ -160,7 +160,15 @@ export function NextSetPlanEditor({
   // the save comes back steps from the first, not from the sets as stored.
   const [draft, setDraft] = useState<PlannedSet[] | null>(null);
   const key = nextSetPlanKey(exerciseId, tier);
-  const stored = store.plans?.[key];
+  const found = store.plans?.[key];
+  // A stored set plan counts only while it is current (`isSetPlanCurrent`): the entry
+  // shows its sets (applied to the next plan) or the plan it was made against (where the
+  // plan is built without set plans). Once the plan has moved, it is ignored here too.
+  const stored =
+    found &&
+    (!found.planSets?.length || !differsFromPlan(planSets, found.sets) || !differsFromPlan(planSets, found.planSets))
+      ? found
+      : undefined;
   // The next session's plan already has a stored set plan applied (`applyNextSetPlans`),
   // so "Plan" is the plan's own sets as they were when it was set.
   const plan = stored && stored.planSets.length > 0 ? stored.planSets : planSets;
