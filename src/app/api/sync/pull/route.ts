@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { neonSql } from '@/db/drizzle';
-import { isSyncAuthorized, isSyncTableName, buildSelectPage, pagePullRows, type PgRow } from '@/lib/syncGuard';
+import { isSyncTableName, buildSelectPage, pagePullRows, type PgRow } from '@/lib/syncGuard';
 import {
   PULL_PAGE_BYTES,
   PULL_PAGE_ROWS,
@@ -8,7 +8,7 @@ import {
   type PullCursor,
   type PullPageResponse,
 } from '@/lib/sync/wire';
-import { READ_FAILED_REASON, SYNC_ERROR_CODE, syncJson } from '../respond';
+import { READ_FAILED_REASON, SYNC_ERROR_CODE, refuseUnauthorized, syncJson } from '../respond';
 
 /** Seconds this route may run: one page is one query, so a minute is far more than enough. A literal: Next.js reads it from the source. */
 export const maxDuration = 60;
@@ -21,9 +21,8 @@ export const maxDuration = 60;
  * asks again with `nextCursor` until it is null. See `PullPageResponse`.
  */
 export async function GET(request: NextRequest) {
-  if (!isSyncAuthorized(request.headers.get('authorization'), process.env.SYNC_SECRET)) {
-    return syncJson({ error: 'Unauthorized' }, 401);
-  }
+  const refused = refuseUnauthorized(request);
+  if (refused) return refused;
 
   const params = request.nextUrl.searchParams;
   const table = params.get('table');

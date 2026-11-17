@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { neonSql } from '@/db/drizzle';
-import { isSyncAuthorized, prepareBatch, buildUpsert } from '@/lib/syncGuard';
+import { prepareBatch, buildUpsert } from '@/lib/syncGuard';
 import { MAX_PUSH_ROWS, type PushRequest, type PushResponse } from '@/lib/sync/wire';
-import { PUSH_FAILED_MESSAGE, SYNC_ERROR_CODE, syncJson } from '../respond';
+import { PUSH_FAILED_MESSAGE, SYNC_ERROR_CODE, refuseUnauthorized, syncJson } from '../respond';
 
 /**
  * Seconds this route may run: a full batch of MAX_PUSH_ROWS is one upsert per row, a
@@ -17,9 +17,8 @@ const PUSH_FAILURES_BEFORE_STOP = 3;
 
 /** Last-write-wins upsert of one batch of rows into one registry table. */
 export async function POST(request: NextRequest) {
-  if (!isSyncAuthorized(request.headers.get('authorization'), process.env.SYNC_SECRET)) {
-    return syncJson({ error: 'Unauthorized' }, 401);
-  }
+  const refused = refuseUnauthorized(request);
+  if (refused) return refused;
 
   let body: Partial<PushRequest>;
   try {
@@ -53,14 +52,14 @@ export async function POST(request: NextRequest) {
   const failed: number[] = [];
   for (const [index, row] of batch.rows.entries()) {
     try {
-      const { text, values } = buildUpsert(body.table as string, row);
+      const { text, values } = buildUpsert(batch.table, row);
       const result = await neonSql.query(text, values);
       succeeded += 1;
       if (result.length > 0) applied += 1;
     } catch (error) {
       failed.push(index);
       // The database error stays in the log: it can name tables, users or hosts.
-      console.error(`Sync push error (${String(body.table)}, row ${index}):`, error);
+      console.error(`Sync push error (${batch.table}, row ${index}):`, error);
       if (succeeded === 0 && failed.length >= PUSH_FAILURES_BEFORE_STOP) break;
     }
   }

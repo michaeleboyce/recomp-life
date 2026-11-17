@@ -1,6 +1,7 @@
 // Response helpers shared by the /api/sync routes. Server only.
 import { NextResponse } from 'next/server';
 import { SYNC_CACHE_CONTROL } from '@/lib/apiBase';
+import { isSyncAuthorized } from '@/lib/syncGuard';
 
 /**
  * A JSON response for a sync route, marked `Cache-Control: no-store`. Every sync
@@ -8,6 +9,12 @@ import { SYNC_CACHE_CONTROL } from '@/lib/apiBase';
  */
 export function syncJson(body: unknown, status = 200): NextResponse {
   return NextResponse.json(body, { status, headers: { 'Cache-Control': SYNC_CACHE_CONTROL } });
+}
+
+/** The 401 for a request whose passphrase does not match SYNC_SECRET, or null when it does. */
+export function refuseUnauthorized(request: Request): NextResponse | null {
+  if (isSyncAuthorized(request.headers.get('authorization'), process.env.SYNC_SECRET)) return null;
+  return syncJson({ error: 'Unauthorized' }, 401);
 }
 
 /**
