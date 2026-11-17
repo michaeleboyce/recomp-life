@@ -1,11 +1,12 @@
 import { toRecentE1RMSeries } from "@/lib/e1rm";
 import type { StrengthSet } from "@/lib/strength";
 import { strengthSetOf } from "@/lib/workout/strength";
-import { buildWorkoutPlan, overridesFromSession } from "@/lib/workout/buildPlan";
 import { computeCompletion } from "@/lib/workout/completeWorkout";
+import { planFromLifts, type LiftResolution } from "@/lib/workout/liftResolution";
+import { applyPlanEdits } from "@/lib/workout/planEdits";
 import { T1_STAGE_SCHEME, T2_STAGE_SCHEME } from "@/lib/workout/prescription";
+import { resolveSavedSession } from "@/lib/workout/savedSession";
 import {
-  anchorVariant,
   isVariantTier,
   plannedWeightAfterHandSet,
   seedVariantState,
@@ -328,46 +329,39 @@ function sortedVariants(variants: Map<string, VariantState>): VariantState[] {
 }
 
 /**
- * Rule 4 for home exercises: a session that stored a home prescription for a lift takes
- * it as a fact, so the variant takes the stored weight and scheme before the session is
- * evaluated. A variant that already exists keeps the anchored values (in `variants`); one
- * the session would use for the first time is anchored only in the returned map, and is
- * stored only if the session performed it, as the live app stores it.
+ * Rule 4: the session's stored prescription is a fact, read as resume reads it
+ * (`resolveSavedSession`). The running lift states take its weights and stages, and
+ * each stored home exercise its weight and scheme, before the session is evaluated. A
+ * variant that already exists keeps the anchored values (in `variants`); one the session
+ * used for the first time is anchored only in the returned map, and is stored only if
+ * the session performed it, as the live app stores it. The lifts are what the session
+ * did: the exercise, weight and scheme it recorded.
  */
-function anchorHomePrescriptions(
-  variants: Map<string, VariantState>,
+function readSavedSession(
   states: Map<string, LiftState>,
+  variants: Map<string, VariantState>,
   session: WorkoutSession,
   settings: UserSettings,
   strengthSets: readonly StrengthSet[]
-): Map<string, VariantState> {
-  const forSession = new Map(variants);
-  const template = WORKOUT_TEMPLATES[session.templateId];
+): { forSession: Map<string, VariantState>; lifts: LiftResolution[] } {
+  const saved = resolveSavedSession({
+    session,
+    template: WORKOUT_TEMPLATES[session.templateId],
+    liftStates: [...states.values()],
+    variantStates: [...variants.values()],
+    equipment: settings.equipment,
+    strengthSets,
+  });
+  const anchoredLifts = new Map(saved.liftStates.map((state) => [state.exerciseId, state]));
   for (const entry of session.prescribed ?? []) {
-    if (!entry.home || !isVariantTier(entry.tier)) continue;
-    const tier = entry.tier;
-    const id = variantKey(entry.exerciseId, entry.home.exerciseId, tier);
-    const existing = variants.get(id);
-    // Seeded from the sets before the session, as the plan seeded it (its weight is then
-    // the stored one; the seed says how the plan got there).
-    const going =
-      existing ??
-      seedVariantState({
-        liftId: entry.exerciseId,
-        exerciseId: entry.home.exerciseId,
-        tier,
-        liftState: states.get(entry.exerciseId),
-        equipment: settings.equipment,
-        strengthSets,
-      });
-    const slot = template?.exercises.find(
-      (ex) => ex.exerciseId === entry.exerciseId && ex.tier === tier
-    );
-    const anchored = anchorVariant(going, entry.home, slot ? { sets: slot.sets, reps: slot.reps } : undefined);
-    if (existing) variants.set(id, anchored);
+    if (states.has(entry.exerciseId)) states.set(entry.exerciseId, anchoredLifts.get(entry.exerciseId)!);
+  }
+  const forSession = new Map(variants);
+  for (const [id, anchored] of saved.anchored) {
+    if (variants.has(id)) variants.set(id, anchored);
     forSession.set(id, anchored);
   }
-  return forSession;
+  return { forSession, lifts: saved.lifts };
 }
 
 /** Fresh, normalised copies sorted by exerciseId, safe to hand out. */
@@ -443,32 +437,24 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
       applyAdjustment(states, variants, adjustments[nextAdjustment], input.settings);
       nextAdjustment += 1;
     }
-    for (const entry of session.prescribed ?? []) {
-      const state = states.get(entry.exerciseId);
-      if (state) states.set(entry.exerciseId, anchorToPrescription(state, entry));
-    }
     const settings = settingsFor(input.settings, session);
-    const sessionVariants = anchorHomePrescriptions(variants, states, session, settings, strengthSets);
+    const saved = readSavedSession(states, variants, session, settings, strengthSets);
     before.set(session.id, sortedStates(states));
 
     let sessionOutcomes: ProgressionOutcome[] = [];
     let sessionVariantOutcomes: VariantOutcome[] = [];
     const template = WORKOUT_TEMPLATES[session.templateId];
     if (template) {
-      // Rule 5.
+      // Rule 5: the plan of what the session did, as resume plans it.
       const anchored = [...states.values()];
-      const variantStates = [...sessionVariants.values()];
-      const plan = buildWorkoutPlan({
-        template,
-        liftStates: anchored,
+      const variantStates = [...saved.forSession.values()];
+      const program = planFromLifts(saved.lifts, {
         location: session.location,
         equipment: settings.equipment,
         includeWarmUps: false,
         selectedAccessories: session.selectedAccessories ?? [],
-        overrides: overridesFromSession(session),
-        edits: session.planEdits,
-        variantStates,
       });
+      const plan = session.planEdits?.length ? applyPlanEdits(program, session.planEdits) : program;
 
       // Rule 6. The series is what the live app reads at finish: every row that existed
       // by then, plus this workout's own rows (a late set is dated after `completedAt`).

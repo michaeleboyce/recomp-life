@@ -267,7 +267,10 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
     if (performedId) {
       const going = variantFor(performedId);
       const max = settings.equipment.maxDumbbellWeight;
-      const prescribedVariant: VariantState = { ...going, weight: Math.min(going.weight, max) };
+      // A saved session keeps the weight it recorded (`resolveSavedSession`): the stored
+      // home prescription is not capped again by a heaviest dumbbell set since.
+      const recorded = homePrescribed?.exerciseId === performedId && homePrescribed.weight === going.weight;
+      const prescribedVariant: VariantState = recorded ? going : { ...going, weight: Math.min(going.weight, max) };
       const scheme = variantScheme(prescribedVariant, t3Scheme);
       const target = { weight: prescribedVariant.weight, sets: scheme.sets, reps: scheme.reps };
       /** The lift's own outcome: held when the home exercise was evaluated, else the same hold. */
