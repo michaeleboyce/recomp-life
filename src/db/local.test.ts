@@ -13,12 +13,12 @@ async function makeLegacyDatabase() {
 }
 
 describe("the local database", () => {
-  it("is one fresh database, at version 5 since imported sessions, with no sets table or synced index", async () => {
+  it("is one fresh database, at version 6 since the rebuild marker, with no sets table or synced index", async () => {
     const { db, DATABASE_NAME } = await import("./local");
     expect(DATABASE_NAME).toBe("recomp-life-2");
     expect(db.name).toBe("recomp-life-2");
     await db.open();
-    expect(db.verno).toBe(5);
+    expect(db.verno).toBe(6);
 
     const schema = Object.fromEntries(
       db.tables.map((t) => [
@@ -43,6 +43,7 @@ describe("the local database", () => {
       forecasts: "id, clientId, slot, kind, workoutId, exerciseId, madeAt",
       coachEvents: "id, clientId, at, kind",
       variantStates: "id, liftId",
+      syncMeta: "key",
     });
   });
 
@@ -50,6 +51,11 @@ describe("the local database", () => {
     const { SYNC_REGISTRY } = await import("@/lib/sync/registry");
     expect(SYNC_REGISTRY.map((t) => t.name)).not.toContain("variantStates");
     expect(SYNC_REGISTRY.map((t) => t.name)).not.toContain("liftStates");
+  });
+
+  it("keeps the sync bookkeeping (the rebuild marker) out of sync", async () => {
+    const { SYNC_REGISTRY } = await import("@/lib/sync/registry");
+    expect(SYNC_REGISTRY.map((t) => t.name)).not.toContain("syncMeta");
   });
 });
 

@@ -2,7 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type {
   WorkoutSession, RunLog, ActivityLog, BodyweightLog,
   FavoriteWorkout, PainSorenessEntry, Estimated1RM, LiftState, UserProfile, ReadinessLog, LiftAdjustment,
-  HealthDailyLog, Forecast, CoachEvent, VariantState, ImportedSessionRecord
+  HealthDailyLog, Forecast, CoachEvent, VariantState, ImportedSessionRecord, SyncMetaRow
 } from '@/types';
 
 /** The current database. A fresh name: the schema started clean on 12 Nov 2026. */
@@ -35,6 +35,8 @@ export class RecompDatabase extends Dexie {
   estimated1RMs!: Table<Estimated1RM>;
   /** Home exercises' own weights and progression. Local only: never synced. */
   variantStates!: Table<VariantState>;
+  /** This device's sync bookkeeping (the "rebuild needed" marker). Local only: never synced. */
+  syncMeta!: Table<SyncMetaRow, string>;
 
   constructor() {
     super(DATABASE_NAME);
@@ -68,6 +70,10 @@ export class RecompDatabase extends Dexie {
     // 16 Nov 2026: sessions imported from other apps' exports. Only the new table.
     this.version(5).stores({
       importedSessions: 'id, clientId, startedAt, importBatchId',
+    });
+    // 17 Nov 2026: the "rebuild needed" marker a pull leaves (src/lib/sync/rebuildMarker.ts).
+    this.version(6).stores({
+      syncMeta: 'key',
     });
   }
 }
