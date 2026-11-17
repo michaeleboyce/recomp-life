@@ -8,7 +8,8 @@ import { tierStyle } from "@/lib/tierStyle";
 import { cn } from "@/lib/utils";
 import { nextSetPlanKey } from "@/lib/workout/nextSetPlans";
 import type { TermId } from "@/lib/glossary";
-import type { PlannedSet, Tier, WorkoutLocation } from "@/types";
+import type { NextSetPlan, PlannedSet, Tier, WorkoutLocation } from "@/types";
+import { toast } from "@/components/ui/toast";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SkeletonCard } from "@/components/ui/skeleton";
@@ -67,28 +68,32 @@ function NextSetPlanEditor({
 }) {
   const key = nextSetPlanKey(exerciseId, tier);
   const stored = store.plans?.[key];
-  const sets = editorSets(stored, planSets);
-  if (planSets.length === 0) return null;
+  // The next session's plan already has a stored set plan applied (`applyNextSetPlans`),
+  // so "Plan" is the plan's own sets as they were when it was set.
+  const plan = stored && stored.planSets.length > 0 ? stored.planSets : planSets;
+  const sets = editorSets(stored, plan);
+  if (plan.length === 0) return null;
+  const save = (value: NextSetPlan | null) =>
+    store.save(value, key).catch((e: unknown) =>
+      toast({ message: `Could not save the set weights: ${e instanceof Error ? e.message : String(e)}` })
+    );
   return (
     <div data-testid="next-set-plan" className="flex flex-col gap-1.5 border-t border-border pt-2">
       <p className="text-xs text-muted-foreground">Each set, next session only. Tap one to change it.</p>
       <SetPlanEditor
         name={name}
         sets={sets}
-        planSets={planSets}
+        planSets={plan}
         unit={unit}
         step={step}
         minWeight={minWeight}
         {...(maxWeight !== undefined ? { maxWeight } : {})}
         onChange={(next) => {
-          if (!next || sameSets(next, planSets)) {
-            void store.save(null, key);
+          if (!next || sameSets(next, plan)) {
+            void save(null);
             return;
           }
-          void store.save(
-            { exerciseId, liftId, tier, sets: next, planSets, createdAt: new Date().toISOString() },
-            key
-          );
+          void save({ exerciseId, liftId, tier, sets: next, planSets: plan, createdAt: new Date().toISOString() });
         }}
       />
     </div>

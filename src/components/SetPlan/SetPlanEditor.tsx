@@ -120,7 +120,7 @@ export function SetPlanEditor({
   const openChanged = !!openSet && setDiffers(openSet, openPlan);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div data-testid="set-plan-editor" className="flex flex-col gap-2">
       <ol
         aria-label={`${name} sets`}
         className="grid grid-cols-[repeat(auto-fill,minmax(3.25rem,1fr))] gap-1.5"
