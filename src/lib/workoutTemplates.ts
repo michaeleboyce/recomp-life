@@ -143,10 +143,23 @@ export const ACCESSORY_RECOMMENDATIONS: Record<string, string[]> = {
   B2: ["bicep_curls", "lateral_raises", "back_extensions", "calf_raises"],
 };
 
-/** Home-friendly replacements for gym-only accessories */
+/**
+ * Home-friendly replacements for gym-only accessories. A gym-only accessory with no
+ * entry (barbell Romanian deadlift: no hinge accessory at home) is left out at home.
+ */
 export const HOME_ACCESSORY_ALTERNATIVES: Record<string, string> = {
   face_pulls: "lateral_raises",
   leg_curls: "hip_thrust",
   leg_extensions: "calf_raises",
   back_extensions: "ab_rollout",
+  tricep_pushdowns: "oh_tricep_ext",
+  pendulum_squat: "db_lunge",
+  hack_squat: "db_lunge",
+  leg_press: "db_lunge",
+  glute_drive: "hip_thrust",
+  glute_kickback_machine: "hip_thrust",
+  barbell_incline_bench: "incline_db_press",
+  machine_chest_fly: "db_fly",
+  machine_row: "db_bent_over_row",
+  cable_row: "db_bent_over_row",
 };

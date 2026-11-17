@@ -396,9 +396,23 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
   },
   {
     date: "2026-11-17",
+    ruleId: "accessory-selection",
+    change:
+      "New rule, not yet shown. How the app will choose a workout's accessories by default: pins, preferences, habit, this week's shortfall, fit with the day, recovery and spread, each with a named weight. Graded heuristic.",
+    sources: [],
+  },
+  {
+    date: "2026-11-17",
     ruleId: "transfer-ratio",
     change:
       "A home exercise with no recent sets of its own now starts from the barbell lift's estimate through the ratio learned from your pairs when there are any. It had always used the starting ratio, and an exercise with no starting ratio used the flat conversion even when pairs gave a ratio.",
+    sources: [],
+  },
+  {
+    date: "2026-11-17",
+    ruleId: "accessory-progression",
+    change:
+      "The step for dumbbell accessories is now the dumbbell increment instead of 5 lb, a weight set by hand wins until the exercise is next logged, and a first weight can come from the exercise's own history (capped at the heaviest weight lifted plus one step). Still not shown.",
     sources: [],
   },
 ];

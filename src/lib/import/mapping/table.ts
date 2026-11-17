@@ -7,9 +7,11 @@
  * Rules the table follows (checked in table.test.ts):
  * - A name maps to a program lift, or to one of its home substitutes, only when it is
  *   that exact lift, and then with high confidence. "Dumbbell Bench Press" is the
- *   dumbbell bench press, never the barbell bench press; "Pause Squat", "Front Squat",
- *   "Romanian Deadlift" and "Close-Grip Bench Press" are not program lifts and are left
- *   to the muscle guess.
+ *   dumbbell bench press, never the barbell bench press; "Pause Squat", "Front Squat"
+ *   and "Close-Grip Bench Press" are not program lifts and are left to the muscle guess
+ *   ("Romanian Deadlift" is its own accessory, `barbell_rdl`).
+ * - A name that has its own library entry maps there, not to a broader one: "Incline
+ *   Dumbbell Curl" is the incline curl, not a plain curl.
  * - Medium confidence is for accessories only: the same movement and equipment with a
  *   small change of stance, seat, bench angle or grip.
  * - Every library exercise's own display name maps to itself, except the few in
@@ -108,7 +110,6 @@ export const NAME_TABLE: readonly TableEntry[] = [
     names: [
       "Seated Dumbbell Curl",
       "Seated Dumbbell Bicep Curl",
-      "Incline Dumbbell Curl",
       "Alternating Dumbbell Curl",
       "Concentration Curl",
     ],
@@ -121,7 +122,7 @@ export const NAME_TABLE: readonly TableEntry[] = [
   {
     exerciseId: "hammer_curls",
     confidence: "medium",
-    names: ["Incline Hammer Curl", "Seated Hammer Curl", "Cross Body Hammer Curl"],
+    names: ["Seated Hammer Curl", "Cross Body Hammer Curl"],
   },
   {
     exerciseId: "tricep_pushdowns",
@@ -211,6 +212,57 @@ export const NAME_TABLE: readonly TableEntry[] = [
   { exerciseId: "bench_dip", confidence: "high", names: ["Bench Dip", "Tricep Bench Dip"] },
   { exerciseId: "sit_up", confidence: "high", names: ["Sit Up"] },
   { exerciseId: "crunch", confidence: "high", names: ["Crunch", "Abdominal Crunch"] },
+
+  // ─── Accessory library additions ─────────────────────────────────────────────
+  {
+    exerciseId: "hack_squat",
+    confidence: "high",
+    names: ["Hack Squat", "Hack Squat (Machine)", "Machine Hack Squat", "Sled Hack Squat", "Plate Loaded Hack Squat"],
+  },
+  {
+    exerciseId: "glute_kickback_machine",
+    confidence: "high",
+    names: ["Glute Kickback Machine", "Machine Glute Kickback", "Glute Kickback (Machine)", "Glute Pushback"],
+  },
+  { exerciseId: "glute_kickback_machine", confidence: "medium", names: ["Glute Kickback", "Glute Push Back Machine"] },
+  {
+    exerciseId: "barbell_incline_bench",
+    confidence: "high",
+    names: [
+      "Barbell Incline Bench Press",
+      "Incline Barbell Bench Press",
+      "Incline Bench Press",
+      "Incline Bench Press (Barbell)",
+      "Incline Barbell Press",
+    ],
+  },
+  {
+    exerciseId: "barbell_rdl",
+    confidence: "high",
+    names: ["Romanian Deadlift", "Barbell Romanian Deadlift", "Romanian Deadlift (Barbell)", "Barbell RDL", "RDL"],
+  },
+  {
+    exerciseId: "machine_chest_fly",
+    confidence: "high",
+    names: ["Machine Fly", "Machine Chest Fly", "Chest Fly (Machine)", "Pec Deck", "Pec Deck Fly", "Butterfly"],
+  },
+  { exerciseId: "machine_chest_fly", confidence: "medium", names: ["Seated Machine Fly", "Pec Fly"] },
+  {
+    exerciseId: "machine_row",
+    confidence: "high",
+    names: ["Machine Row", "Seated Machine Row", "Seated Row (Machine)", "Row (Machine)", "Machine Seated Row"],
+  },
+  { exerciseId: "machine_row", confidence: "medium", names: ["Chest Supported Machine Row", "Plate Loaded Row"] },
+  {
+    exerciseId: "incline_db_curl",
+    confidence: "high",
+    names: ["Incline Dumbbell Curl", "Incline Curl", "Incline Bicep Curl", "Incline Dumbbell Bicep Curl", "Incline Seated Dumbbell Curl"],
+  },
+  {
+    exerciseId: "incline_hammer_curl",
+    confidence: "high",
+    names: ["Incline Hammer Curl", "Incline Dumbbell Hammer Curl", "Incline Hammer", "Seated Incline Hammer Curl"],
+  },
 ];
 
 /**

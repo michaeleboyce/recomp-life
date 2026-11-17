@@ -149,12 +149,13 @@ describe("library entries added for imported history", () => {
     }
   });
 
-  it("are not program lifts, substitutes or default accessories", () => {
+  it("are not program lifts or substitutes; only the loaded ones a lifter does as accessories are accessories", () => {
+    const selectable = new Set(["db_fly", "db_bent_over_row", "cable_row", "leg_press"]);
     for (const id of ADDED_IDS) {
       expect(PROGRAM_LIFT_IDS.has(id), id).toBe(false);
       expect(EXERCISES[id].barbellEquivalent, id).toBeUndefined();
       expect(EXERCISES[id].dumbbellAlternative, id).toBeUndefined();
-      expect(ACCESSORY_IDS, id).not.toContain(id);
+      expect(ACCESSORY_IDS.includes(id), id).toBe(selectable.has(id));
     }
   });
 });

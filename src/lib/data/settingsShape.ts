@@ -2,6 +2,7 @@
 // made safe to read before they are stored. Another app version, an older backup or a
 // hand-edited file may hold a shape this version would crash on. Pure: no database.
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
+import { sanitizeAccessorySettings } from "@/lib/accessories/settings";
 import type { NextSetPlan, PlannedSet, UserSettings } from "@/types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -70,5 +71,7 @@ export function sanitizeSettings(value: unknown): UserSettings {
   const plans = sanitizeNextSetPlans(source.nextSetPlans);
   if (plans) settings.nextSetPlans = plans;
   else delete settings.nextSetPlans;
+  // Accessory mode, pins and hand-set weights (A5): unreadable values are dropped.
+  sanitizeAccessorySettings(settings);
   return settings;
 }
