@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
 import { toast } from "@/components/ui/toast";
 import {
-  listImportBatches,
   restoreImportBatch,
   undoImportBatch,
   type ImportBatchCounts,
@@ -14,6 +12,7 @@ import {
 } from "@/lib/data/imported";
 import { SOURCE_APP_NAMES } from "@/lib/import/records";
 import { pluralGrouped } from "@/lib/text";
+import { useImportBatches } from "@/hooks";
 
 const MONTH = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" });
 const DAY = new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
@@ -56,7 +55,7 @@ function rangeText(batch: Pick<ImportBatchSummary, "from" | "to">): string | nul
  * restored. Imports sync, so every device lists and undoes the same ones.
  */
 export function ImportBatches() {
-  const batches = useLiveQuery(() => listImportBatches(), []);
+  const batches = useImportBatches();
   const [busy, setBusy] = useState<string | null>(null);
 
   if (!batches || batches.length === 0) return null;
