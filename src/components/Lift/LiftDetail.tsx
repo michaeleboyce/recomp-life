@@ -18,6 +18,7 @@ import { LiftStats, ProjectionLink } from "./LiftStats";
 import { MoreCharts } from "./MoreCharts";
 import { PrLine } from "./PrLine";
 import { SessionList } from "./SessionList";
+import { importedPoolFor } from "./sessions";
 import { useLiftView } from "./useLiftView";
 import { WeightChanges } from "./WeightChanges";
 
@@ -103,7 +104,7 @@ function ProgramLiftDetail({ exerciseId, from }: { exerciseId: MainLiftId; from?
           <ProjectionLink exerciseId={exerciseId} teaser={view.teaser} />
           <MoreCharts metrics={view.metrics} liftName={name} />
           <WeightChanges adjustments={adjustments} />
-          <SessionList sessions={view.sessions} />
+          <SessionList sessions={view.sessions} importedFor={importedPoolFor(exerciseId)} />
         </>
       ) : (
         <>
@@ -114,6 +115,7 @@ function ProgramLiftDetail({ exerciseId, from }: { exerciseId: MainLiftId; from?
           />
           {nextSession(null)}
           <WeightChanges adjustments={adjustments} />
+          <SessionList sessions={[]} importedFor={importedPoolFor(exerciseId)} />
         </>
       )}
     </div>

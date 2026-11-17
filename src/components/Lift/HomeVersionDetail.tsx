@@ -22,6 +22,7 @@ import { LiftStats, ProjectionLink } from "./LiftStats";
 import { MoreCharts } from "./MoreCharts";
 import { HomeNextWeight } from "./PrLine";
 import { SessionList } from "./SessionList";
+import { importedPoolFor } from "./sessions";
 import { useHomePlanContext } from "./useHomePlanContext";
 import { useLiftView } from "./useLiftView";
 import { WeightChanges } from "./WeightChanges";
@@ -114,6 +115,7 @@ export function HomeVersionDetail({
         sessions={homeSessions}
         title={`${title} sessions`}
         homeOnly
+        importedFor={[substituteId]}
         empty={`No ${title} sessions yet. They will appear here and count toward your ${short}.`}
       />
 
@@ -149,7 +151,7 @@ export function HomeVersionDetail({
             <ProjectionLink exerciseId={exerciseId} teaser={view.teaser} />
             <MoreCharts metrics={view.metrics} liftName={name} />
             <WeightChanges adjustments={adjustments} />
-            <SessionList sessions={view.sessions} title={`All ${short} sessions`} />
+            <SessionList sessions={view.sessions} title={`All ${short} sessions`} importedFor={importedPoolFor(exerciseId)} />
           </>
         ) : (
           <>
