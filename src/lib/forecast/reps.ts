@@ -7,7 +7,8 @@
 // new best and the chance of passing are two readings of the same curve.
 import { E1RM_MAX_REPS, repsInReserveFromRPE } from "@/lib/e1rm";
 import { prChanceFromProbability, repsToBeat, type PrChance } from "@/lib/projection/prOpportunity";
-import { fitTrend, MS_PER_WEEK } from "@/lib/projection/trend";
+import { WEEK_MS } from "@/lib/dates";
+import { fitTrend } from "@/lib/projection/trend";
 import { T1_STAGE_SCHEME } from "@/lib/workout/prescription";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
 import type { ForecastBasis, T1Stage, TrainingPhase, WorkoutSession } from "@/types";
@@ -204,7 +205,7 @@ function regimeBetween(
   earlier: Pick<LastSetPoint, "t" | "weight" | "stage">,
   later: { t: number; weight: number; stage: T1Stage | null }
 ): RegimeChange | null {
-  if ((later.t - earlier.t) / MS_PER_WEEK >= REPS_MODEL.regimeChangeWeeksOff) return "break";
+  if ((later.t - earlier.t) / WEEK_MS >= REPS_MODEL.regimeChangeWeeksOff) return "break";
   if (earlier.stage && later.stage && earlier.stage !== later.stage) return "stage-change";
   if (later.weight <= earlier.weight * (1 - REPS_MODEL.regimeChangeWeightDrop)) return "reset";
   return null;
@@ -363,7 +364,7 @@ export function repsOutlook(input: RepsModelInput): RepsOutlook {
       const error = Math.sqrt(Math.max(0, total ** 2 - baseDaySd ** 2));
       baseErrors = [() => error];
     } else {
-      const windowStart = nowMs - REPS_MODEL.trendWindowWeeks * MS_PER_WEEK;
+      const windowStart = nowMs - REPS_MODEL.trendWindowWeeks * WEEK_MS;
       const recent = run.filter((p) => p.t >= windowStart);
       const fit =
         recent.length >= REPS_MODEL.minTrendPoints
@@ -383,7 +384,7 @@ export function repsOutlook(input: RepsModelInput): RepsOutlook {
         baseErrors = [
           () => single / Math.sqrt(n),
           (tMs) =>
-            (single * ((tMs - fit.meanTime) / MS_PER_WEEK)) / Math.sqrt(fit.timeSumSquares),
+            (single * ((tMs - fit.meanTime) / WEEK_MS)) / Math.sqrt(fit.timeSumSquares),
         ];
       } else {
         basis = "persistence";

@@ -5,7 +5,7 @@ import {
   formatRegion,
 } from "./painModifications";
 import { EXERCISES } from "./exercises";
-import type { PainSorenessEntry, Exercise } from "@/types";
+import type { PainSorenessEntry } from "@/types";
 
 // Helper to create a pain entry
 function makePainEntry(

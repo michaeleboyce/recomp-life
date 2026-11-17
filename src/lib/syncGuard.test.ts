@@ -277,7 +277,10 @@ describe('prepareBatch (unknown tables and columns refuse the whole batch)', () 
   it('maps every row of a valid batch', () => {
     const batch = prepareBatch('bodyweight', [good, { ...good, id: 'b2', clientId: 'b2' }], NOW);
     expect(batch.ok).toBe(true);
-    if (batch.ok) expect(batch.rows.map((r) => r.client_id)).toEqual(['b1', 'b2']);
+    if (batch.ok) {
+      expect(batch.table).toBe('bodyweight');
+      expect(batch.rows.map((r) => r.client_id)).toEqual(['b1', 'b2']);
+    }
   });
 
   it('refuses an unknown table, including old ones that no longer sync', () => {
@@ -310,7 +313,7 @@ describe('prepareBatch (unknown tables and columns refuse the whole batch)', () 
   });
 
   it('accepts an empty batch', () => {
-    expect(prepareBatch('runs', [], NOW)).toEqual({ ok: true, rows: [] });
+    expect(prepareBatch('runs', [], NOW)).toEqual({ ok: true, table: 'runs', rows: [] });
   });
 });
 

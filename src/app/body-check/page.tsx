@@ -3,7 +3,7 @@
 import { Suspense, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import type { BodyRegion, PainSorenessEntry } from "@/types";
+import type { BodyRegion } from "@/types";
 import { shouldShowRedFlag, type RedFlagDismissal } from "@/lib/painModifications";
 import { usePainEntries } from "@/hooks";
 import { PageShell } from "@/components/ui/page-shell";

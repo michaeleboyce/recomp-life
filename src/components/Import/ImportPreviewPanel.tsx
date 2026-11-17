@@ -7,7 +7,8 @@ import type { MappingOverride } from "@/lib/import/mapping";
 import type { ImportPreview } from "@/lib/import/preview";
 import { SOURCE_APP_NAMES } from "@/lib/import/records";
 import { NameReview } from "./NameReview";
-import { formatRange, joinWords, plural } from "./format";
+import { formatRange } from "./format";
+import { joinList, pluralGrouped } from "@/lib/text";
 
 const CARDIO_WORDS: Record<string, [string, string]> = {
   run: ["run", "runs"],
@@ -39,7 +40,7 @@ export function ImportPreviewPanel({
   const app = preview.app === "unknown" ? "Unknown" : SOURCE_APP_NAMES[preview.app];
   const fresh = preview.sessions - alreadyStored;
   const cardioParts = Object.entries(preview.cardioByKind).map(([kind, count]) =>
-    plural(count ?? 0, ...(CARDIO_WORDS[kind] ?? ["session", "sessions"]))
+    pluralGrouped(count ?? 0, ...(CARDIO_WORDS[kind] ?? ["session", "sessions"]))
   );
 
   return (
@@ -48,7 +49,7 @@ export function ImportPreviewPanel({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground">{app} export</p>
           <p className="truncate text-xs text-muted-foreground">
-            {fileName} · {plural(preview.rowCount, "row", "rows")}
+            {fileName} · {pluralGrouped(preview.rowCount, "row", "rows")}
           </p>
           {preview.firstDate && (
             <p className="mt-1 text-sm text-foreground" data-testid="import-range">
@@ -68,28 +69,28 @@ export function ImportPreviewPanel({
       </div>
       <p className="text-xs text-muted-foreground">
         {[
-          preview.warmups > 0 && plural(preview.warmups, "warm-up set", "warm-up sets"),
-          preview.drops > 0 && plural(preview.drops, "drop set", "drop sets"),
+          preview.warmups > 0 && pluralGrouped(preview.warmups, "warm-up set", "warm-up sets"),
+          preview.drops > 0 && pluralGrouped(preview.drops, "drop set", "drop sets"),
         ]
           .filter(Boolean)
           .join(" and ") || "No warm-ups or drop sets"}
-        {cardioParts.length > 0 ? `. Cardio: ${joinWords(cardioParts)}.` : "."} Runs become runs and the rest
+        {cardioParts.length > 0 ? `. Cardio: ${joinList(cardioParts)}.` : "."} Runs become runs and the rest
         activities; any that overlap a session already logged (from Apple Health, say) are left out.
       </p>
 
       {alreadyStored > 0 && (
-        <Callout variant="info" title={fresh > 0 ? `${plural(fresh, "new session", "new sessions")}` : "Already imported"}>
-          {plural(alreadyStored, "session in this file is", "sessions in this file are")} stored already and will not be
+        <Callout variant="info" title={fresh > 0 ? `${pluralGrouped(fresh, "new session", "new sessions")}` : "Already imported"}>
+          {pluralGrouped(alreadyStored, "session in this file is", "sessions in this file are")} stored already and will not be
           added again.
         </Callout>
       )}
 
       {preview.rejected.total > 0 && (
-        <Callout variant="warning" title={`${plural(preview.rejected.total, "row", "rows")} left out`}>
+        <Callout variant="warning" title={`${pluralGrouped(preview.rejected.total, "row", "rows")} left out`}>
           <ul className="mt-1 space-y-0.5" data-testid="import-rejected">
             {preview.rejected.reasons.map((r) => (
               <li key={r.reason}>
-                {plural(r.count, "row", "rows")}: {r.reason} (row {r.rows.join(", ")}
+                {pluralGrouped(r.count, "row", "rows")}: {r.reason} (row {r.rows.join(", ")}
                 {r.count > r.rows.length ? ", …" : ""})
               </li>
             ))}
@@ -137,7 +138,7 @@ export function ImportPreviewPanel({
       {/* Stays in reach above the tab bar while the names are reviewed. */}
       <div className="sticky bottom-24 z-10 rounded-xl bg-background/95 py-2 backdrop-blur">
         <Button size="lg" className="min-h-11 w-full" onClick={onImport} disabled={fresh <= 0 && preview.cardio === 0}>
-          {fresh > 0 ? `Import ${plural(fresh, "session", "sessions")}` : "Import cardio"}
+          {fresh > 0 ? `Import ${pluralGrouped(fresh, "session", "sessions")}` : "Import cardio"}
         </Button>
       </div>
     </div>

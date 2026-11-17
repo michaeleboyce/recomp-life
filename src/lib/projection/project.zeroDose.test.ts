@@ -10,13 +10,13 @@ import {
   type ProjectionBaseline,
   type ProjectionScenario,
 } from "./index";
-import { MS_PER_WEEK } from "./trend";
+import { WEEK_MS } from "@/lib/dates";
 
 const NOW = new Date(2026, 10, 12, 18);
 const WEEKS = 12;
 
 const history: Point[] = [2, -3, 1, 4, -2, -1, 3, -4, 2, 0].map((noise, i) => ({
-  t: NOW.getTime() - (9 - i) * MS_PER_WEEK,
+  t: NOW.getTime() - (9 - i) * WEEK_MS,
   v: 250 + 2 * i + noise,
 }));
 

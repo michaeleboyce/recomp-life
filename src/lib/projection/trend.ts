@@ -1,7 +1,6 @@
 // Straight-line trend through a series of points. Pure.
+import { WEEK_MS } from "@/lib/dates";
 import type { Point } from "@/lib/metrics/types";
-
-export const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
 
 /** A line through fewer points than this says too little to project from. */
 export const MIN_TREND_POINTS = 4;
@@ -54,14 +53,14 @@ export function fitTrend(points: Point[]): TrendFit | null {
   let sxx = 0;
   let sxy = 0;
   for (const p of usable) {
-    const x = (p.t - meanT) / MS_PER_WEEK;
+    const x = (p.t - meanT) / WEEK_MS;
     sxx += x * x;
     sxy += x * (p.v - meanV);
   }
   if (sxx === 0) return null;
 
   const slopePerWeek = sxy / sxx;
-  const valueAt = (at: number) => meanV + (slopePerWeek * (at - meanT)) / MS_PER_WEEK;
+  const valueAt = (at: number) => meanV + (slopePerWeek * (at - meanT)) / WEEK_MS;
 
   let ssr = 0;
   for (const p of usable) {
@@ -72,7 +71,7 @@ export function fitTrend(points: Point[]): TrendFit | null {
   const residualSd = Math.sqrt(ssr / (n - 2));
   const times = usable.map((p) => p.t);
   const predictionSd = (at: number, sd: number = residualSd) => {
-    const weeksFromMean = (at - meanT) / MS_PER_WEEK;
+    const weeksFromMean = (at - meanT) / WEEK_MS;
     return sd * Math.sqrt(1 + 1 / n + (weeksFromMean * weeksFromMean) / sxx);
   };
 
@@ -83,7 +82,7 @@ export function fitTrend(points: Point[]): TrendFit | null {
     pointsUsed: n,
     slopeSe: residualSd / Math.sqrt(sxx),
     timeSumSquares: sxx,
-    spanWeeks: (Math.max(...times) - Math.min(...times)) / MS_PER_WEEK,
+    spanWeeks: (Math.max(...times) - Math.min(...times)) / WEEK_MS,
     meanTime: meanT,
     predictionSd,
   };

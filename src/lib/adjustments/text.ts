@@ -76,12 +76,6 @@ export function lowerFirst(text: string): string {
   return isAbbreviation(first) ? text : text.charAt(0).toLowerCase() + text.slice(1);
 }
 
-/** "a", "a and b", "a, b and c". */
-export function joinList(items: string[]): string {
-  if (items.length <= 1) return items.join("");
-  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
-}
-
 /** 0.7 -> "7 in 10". */
 export function inTen(fraction: number): string {
   return `${Math.round(fraction * 10)} in 10`;

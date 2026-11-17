@@ -7,7 +7,8 @@ import { ExerciseImage } from "@/components/ui/exercise-image";
 import { ListRow } from "@/components/ui/list-row";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Term } from "@/components/ui/term";
-import { DASH, lbs, plural } from "./format";
+import { plural } from "@/lib/text";
+import { DASH, lbs } from "./format";
 
 function BestChip() {
   return (

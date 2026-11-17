@@ -2,7 +2,8 @@
 import type { MetricSource, Point } from "@/lib/metrics/types";
 import { measureBaseline } from "@/lib/projection/baseline";
 import { projectE1RM, STALE_HISTORY_WEEKS } from "@/lib/projection/project";
-import { fitTrend, MS_PER_WEEK } from "@/lib/projection/trend";
+import { WEEK_MS } from "@/lib/dates";
+import { fitTrend } from "@/lib/projection/trend";
 import { e1rmsForWorkout } from "@/lib/rebuild/e1rm";
 import type { BodyweightLog, ForecastBasis, WorkoutSession } from "@/types";
 import { BODYWEIGHT_MODEL, CALIBRATION, E1RM_HORIZON_MODEL } from "./coefficients";
@@ -88,7 +89,7 @@ export function forecastE1RM(source: ForecastSource, exerciseId: string): Horizo
 
   const sdScale = widening(source, "e1rm4w");
   return {
-    dueAt: nowMs + weeks * MS_PER_WEEK,
+    dueAt: nowMs + weeks * WEEK_MS,
     point: end.v,
     low: Math.max(0, end.v - (end.v - end.low) * sdScale),
     high: end.v + (end.high - end.v) * sdScale,

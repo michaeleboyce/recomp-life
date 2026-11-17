@@ -190,13 +190,14 @@ export function toPostgresRow(table: string, row: WireRow, serverNow: number): P
 }
 
 export type PreparedBatch =
-  | { ok: true; rows: PgRow[] }
+  | { ok: true; table: string; rows: PgRow[] }
   | { ok: false; error: string };
 
 /**
  * Validates a whole push batch before anything is written: the table must be in the
  * registry, `rows` an array of objects, and every field of every row a known client
- * field. Returns the mapped rows, or the reason the batch is refused.
+ * field. Returns the validated table name and the mapped rows, or the reason the
+ * batch is refused.
  */
 export function prepareBatch(table: unknown, rows: unknown, serverNow: number): PreparedBatch {
   if (!isSyncTableName(table)) {
@@ -213,7 +214,7 @@ export function prepareBatch(table: unknown, rows: unknown, serverNow: number): 
       return { ok: false, error: `Unknown column in rows for table: ${table}` };
     }
   }
-  return { ok: true, rows: rows.map((row) => toPostgresRow(table, row as WireRow, serverNow)) };
+  return { ok: true, table, rows: rows.map((row) => toPostgresRow(table, row as WireRow, serverNow)) };
 }
 
 /**

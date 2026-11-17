@@ -1,3 +1,4 @@
+import { percent } from "@/lib/text";
 import { cn } from "@/lib/utils";
 
 export interface RepColumn {
@@ -57,7 +58,6 @@ export function repForecastColumns(
   return columns;
 }
 
-const percent = (p: number) => `${Math.round(p * 100)}%`;
 
 /**
  * A bar and percentage per rep count, the likely range highlighted. Display

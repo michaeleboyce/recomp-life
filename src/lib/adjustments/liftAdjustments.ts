@@ -13,10 +13,10 @@ import type {
   Tier,
   WorkoutSession,
 } from "@/types";
+import { joinList } from "@/lib/text";
 import {
   compareIds,
   isLive,
-  joinList,
   lbs,
   liftHref,
   liftLabel,

@@ -1,7 +1,8 @@
 // Changes to the app's own rules as log entries, from the evidence changelog. Pure.
 import { getRule, getSource, isSourceId } from "@/lib/evidence";
 import type { EvidenceChange } from "@/types";
-import { joinList, realRuleId, ruleHref } from "./text";
+import { joinList } from "@/lib/text";
+import { realRuleId, ruleHref } from "./text";
 import { SOURCE_RANK, type RankedEntry } from "./types";
 
 /**

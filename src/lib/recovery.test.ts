@@ -8,7 +8,7 @@ import {
   getMostRecent,
   lastTrainedDates,
 } from "./recovery";
-import type { TrainingPhase, RecoveryStatus, RunLog } from "@/types";
+import type { TrainingPhase, RunLog } from "@/types";
 
 // Helpers for creating dates relative to "now"
 function hoursAgo(hours: number, now: Date = new Date()): Date {

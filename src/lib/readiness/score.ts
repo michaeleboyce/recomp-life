@@ -21,12 +21,13 @@ import {
   evaluateActivityImpact,
 } from "@/lib/activities";
 import { REGION_TARGETS, slugMuscles } from "@/lib/anatomy/regionMapping";
-import { calendarDaysBetween, formatDaysAgo } from "@/lib/dates";
+import { calendarDaysBetween, formatDaysAgo, HOUR_MS } from "@/lib/dates";
 import { EXERCISES } from "@/lib/exercises";
 import { REPS_MODEL } from "@/lib/forecast/coefficients";
 import { getMuscleLastTrained } from "@/lib/muscleLoad";
 import { MUSCLE_LABELS } from "@/lib/muscles";
 import { calculateRecoveryStatus } from "@/lib/recovery";
+import { plural } from "@/lib/text";
 import { RUN_ADVISORY_WINDOW_HOURS, evaluateRunImpact } from "@/lib/runRecovery";
 import { median } from "./median";
 import { READINESS_WEIGHTS as W, formatPoints } from "./weights";
@@ -103,7 +104,6 @@ interface Factor {
   ruleId: RuleId;
 }
 
-const HOUR_MS = 3_600_000;
 const DEFAULT_PHASE: TrainingPhase = { mode: "maintaining" };
 
 type DateLike = Date | string | number;
@@ -112,7 +112,6 @@ const hoursSince = (date: DateLike, now: Date) => (now.getTime() - timeOf(date))
 
 const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 const capitalise = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
 
 /** "less than an hour ago", "19 hours ago", "2 days ago". */
 function describeAgo(hours: number): string {

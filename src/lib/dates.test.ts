@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { getMonday, calendarDaysBetween, formatDaysAgo } from "./dates";
+import { getMonday, calendarDaysBetween, formatDaysAgo, HOUR_MS, DAY_MS, WEEK_MS } from "./dates";
+
+describe("time constants", () => {
+  it("are milliseconds", () => {
+    expect(HOUR_MS).toBe(3_600_000);
+    expect(DAY_MS).toBe(86_400_000);
+    expect(WEEK_MS).toBe(604_800_000);
+  });
+});
 
 describe("calendarDaysBetween", () => {
   it("is 0 within the same calendar day", () => {

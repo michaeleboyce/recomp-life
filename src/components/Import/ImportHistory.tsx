@@ -11,24 +11,25 @@ import { useImportFlow, type ImportResult } from "@/hooks/useImportFlow";
 import type { ImportUndoRecord } from "@/lib/import/remembered";
 import { ImportPreviewPanel } from "./ImportPreviewPanel";
 import { StartingWeights } from "./StartingWeights";
-import { formatDay, joinWords, plural } from "./format";
+import { formatDay } from "./format";
+import { joinList, pluralGrouped } from "@/lib/text";
 
 function describeResult(result: ImportResult): string {
   const added = [
     result.sessionsAdded > 0 &&
-      `${plural(result.sessionsAdded, "session", "sessions")} (${plural(result.setsAdded, "set", "sets")})`,
-    result.runsAdded > 0 && plural(result.runsAdded, "run", "runs"),
-    result.activitiesAdded > 0 && plural(result.activitiesAdded, "activity", "activities"),
+      `${pluralGrouped(result.sessionsAdded, "session", "sessions")} (${pluralGrouped(result.setsAdded, "set", "sets")})`,
+    result.runsAdded > 0 && pluralGrouped(result.runsAdded, "run", "runs"),
+    result.activitiesAdded > 0 && pluralGrouped(result.activitiesAdded, "activity", "activities"),
   ].filter((p): p is string => Boolean(p));
   const left = [
-    result.sessionsAlready > 0 && `${plural(result.sessionsAlready, "session was", "sessions were")} imported before`,
-    result.cardioAlready > 0 && `${plural(result.cardioAlready, "cardio entry was", "cardio entries were")} imported before`,
+    result.sessionsAlready > 0 && `${pluralGrouped(result.sessionsAlready, "session was", "sessions were")} imported before`,
+    result.cardioAlready > 0 && `${pluralGrouped(result.cardioAlready, "cardio entry was", "cardio entries were")} imported before`,
     result.cardioOverlapping > 0 &&
-      `${plural(result.cardioOverlapping, "cardio entry overlaps", "cardio entries overlap")} one already logged`,
-    result.cardioNoDuration > 0 && `${plural(result.cardioNoDuration, "cardio entry has", "cardio entries have")} no duration`,
+      `${pluralGrouped(result.cardioOverlapping, "cardio entry overlaps", "cardio entries overlap")} one already logged`,
+    result.cardioNoDuration > 0 && `${pluralGrouped(result.cardioNoDuration, "cardio entry has", "cardio entries have")} no duration`,
   ].filter((p): p is string => Boolean(p));
-  const first = added.length > 0 ? `Added ${joinWords(added)}.` : "Nothing new to add.";
-  const second = left.length > 0 ? ` Left out: ${joinWords(left)}.` : "";
+  const first = added.length > 0 ? `Added ${joinList(added)}.` : "Nothing new to add.";
+  const second = left.length > 0 ? ` Left out: ${joinList(left)}.` : "";
   return first + second;
 }
 
@@ -63,8 +64,8 @@ function LastImport({ record, onUndo }: { record: ImportUndoRecord; onUndo: () =
     <div className="flex flex-col gap-2 rounded-xl bg-card px-4 py-3">
       <p className="text-sm font-medium text-foreground">Last import on this device</p>
       <p className="text-xs text-muted-foreground">
-        {record.fileName}, {formatDay(new Date(record.at))}: {plural(record.sessions, "session", "sessions")}
-        {cardio > 0 ? ` and ${plural(cardio, "cardio entry", "cardio entries")}` : ""}.
+        {record.fileName}, {formatDay(new Date(record.at))}: {pluralGrouped(record.sessions, "session", "sessions")}
+        {cardio > 0 ? ` and ${pluralGrouped(cardio, "cardio entry", "cardio entries")}` : ""}.
       </p>
       <Button variant="outline" className="min-h-11" onClick={onUndo}>
         Undo this import
@@ -110,7 +111,7 @@ export function ImportHistory() {
         <p className="text-sm font-medium text-foreground">Importing {state.fileName}</p>
         <Progress value={percent} aria-label="Import progress" />
         <p className="text-xs text-muted-foreground" role="status" aria-live="polite">
-          {state.done.toLocaleString("en-US")} of {plural(state.total, "session", "sessions")} written
+          {state.done.toLocaleString("en-US")} of {pluralGrouped(state.total, "session", "sessions")} written
         </p>
       </div>
     );
@@ -136,8 +137,8 @@ export function ImportHistory() {
       )}
       {state.step === "undone" && (
         <Callout variant="info" title="Import undone">
-          Removed {plural(state.sessions, "session", "sessions")}
-          {state.cardio > 0 ? ` and ${plural(state.cardio, "cardio entry", "cardio entries")}` : ""}. Importing the file
+          Removed {pluralGrouped(state.sessions, "session", "sessions")}
+          {state.cardio > 0 ? ` and ${pluralGrouped(state.cardio, "cardio entry", "cardio entries")}` : ""}. Importing the file
           again will not bring them back.
         </Callout>
       )}

@@ -15,11 +15,16 @@ import { BackButton } from "@/components/nav/BackButton";
 import { useGoBack } from "@/components/nav/useNavHistory";
 import { DateField, dateFromInput, toDateInputValue } from "@/components/Activity/DateField";
 import { STALE_WEIGH_IN_DAYS } from "@/components/Today/GlanceTiles";
-
-function getDefaultTimeOfDay(): TimeOfDay {
-  const hour = new Date().getHours();
-  return hour < 12 ? "morning" : "evening";
-}
+import {
+  averageOfLatest,
+  currentRate,
+  defaultTimeOfDay,
+  entryOnDay,
+  MAX_BODYWEIGHT_LBS,
+  MIN_BODYWEIGHT_LBS,
+  parseBodyweight,
+  startOfDay,
+} from "@/lib/weighIn";
 
 function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString("en-US", {
@@ -34,12 +39,6 @@ function timeOfDayLabel(tod: TimeOfDay): string {
   return "";
 }
 
-function startOfDay(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 function WeighInScreen() {
   // Back, and Save, return to the previous screen; with none, a known `from` is
   // used and anything else goes to Today.
@@ -48,7 +47,7 @@ function WeighInScreen() {
   const [date, setDate] = useState(() => toDateInputValue(new Date()));
   // What the user has typed; empty until they do.
   const [typedWeight, setWeight] = useState("");
-  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(getDefaultTimeOfDay());
+  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(() => defaultTimeOfDay(new Date()));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // When the screen opened, read once.
@@ -72,42 +71,23 @@ function WeighInScreen() {
   const lastWeight = recentEntries.length > 0 ? String(recentEntries[0].weight) : null;
 
   // The entry already logged on the chosen day, if any
-  const todayEntry = useMemo(() => {
-    const dayStart = startOfDay(dateFromInput(date));
-    const nextDayStart = new Date(dayStart);
-    nextDayStart.setDate(nextDayStart.getDate() + 1);
+  const todayEntry = useMemo(
+    () => entryOnDay(bodyweightLog ?? [], dateFromInput(date)),
+    [bodyweightLog, date]
+  );
 
-    // The log is oldest first, so the first match is the earliest entry that day.
-    return (
-      (bodyweightLog ?? []).find((e) => {
-        const t = new Date(e.date).getTime();
-        return t >= dayStart.getTime() && t < nextDayStart.getTime();
-      }) ?? null
-    );
-  }, [bodyweightLog, date]);
-
-  // Calculate 7-day average (from first 7 entries)
-  const avg7Day =
-    recentEntries.length > 0
-      ? recentEntries
-          .slice(0, Math.min(7, recentEntries.length))
-          .reduce((sum, e) => sum + e.weight, 0) /
-        Math.min(7, recentEntries.length)
-      : null;
+  // The average of the latest 7 entries
+  const avg7Day = averageOfLatest(recentEntries, 7);
 
   // Rate of change per week from the shared metric, and not when it is out of date
   // (judged against when the screen opened: rendering never reads the clock).
-  const latestPoint = rate?.full.points.at(-1);
-  const trendPerWeek =
-    latestPoint && openedAt - latestPoint.t <= STALE_WEIGH_IN_DAYS * 86_400_000
-      ? latestPoint.v
-      : null;
+  const trendPerWeek = currentRate(rate?.full.points.at(-1), openedAt, STALE_WEIGH_IN_DAYS);
 
   const handleSave = useCallback(async () => {
     setError(null);
 
-    const parsedWeight = parseFloat(weight);
-    if (isNaN(parsedWeight) || parsedWeight < 50 || parsedWeight > 500) {
+    const parsedWeight = parseBodyweight(weight);
+    if (parsedWeight === null) {
       setError("Please enter a valid weight between 50 and 500 lbs.");
       return;
     }
@@ -167,8 +147,8 @@ function WeighInScreen() {
                 type="number"
                 inputMode="decimal"
                 step="0.1"
-                min="50"
-                max="500"
+                min={MIN_BODYWEIGHT_LBS}
+                max={MAX_BODYWEIGHT_LBS}
                 aria-label="Weight in pounds"
                 value={weight}
                 onChange={(e) => {

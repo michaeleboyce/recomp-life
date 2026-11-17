@@ -15,6 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import type { MouseHandlerDataParam } from "recharts/types/synchronisation/types";
+import { DAY_MS } from "@/lib/dates";
 import type { Point, Series, Unit } from "@/lib/metrics/types";
 import { cn } from "@/lib/utils";
 import { ChartEmpty } from "./ChartEmpty";
@@ -86,7 +87,6 @@ const END_LABEL_CHAR_W = 6.9;
 const X_AXIS_HEIGHT = 22;
 const MARGIN_TOP = 8;
 const LABEL_GAP = 12;
-const DAY = 86_400_000;
 
 type Row = { t: number; v?: number } & Record<string, number | [number, number] | undefined>;
 
@@ -185,7 +185,7 @@ export function TrendChart(props: TrendChartProps) {
 
   const minT = rows[0].t;
   const maxT = rows[rows.length - 1].t;
-  const xDomain: [number, number] = minT === maxT ? [minT - DAY, maxT + DAY] : [minT, maxT];
+  const xDomain: [number, number] = minT === maxT ? [minT - DAY_MS, maxT + DAY_MS] : [minT, maxT];
   const [lo, hi] = scale.domain;
   const fmt = (v: number) => (formatValue ? formatValue(v) : formatNumber(v));
   // Room for the longest tick label on the left and the longest end label on the right,

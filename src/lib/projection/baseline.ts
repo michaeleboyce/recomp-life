@@ -4,7 +4,7 @@ import type { MetricSource } from "@/lib/metrics/types";
 import { calculateMuscleLoad } from "@/lib/muscleLoad";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
 import type { MuscleId, SetLog, SetStatus, TrainingPhase } from "@/types";
-import { MS_PER_WEEK } from "./trend";
+import { WEEK_MS } from "@/lib/dates";
 
 /** What the lifter is actually doing for one lift, measured from their records. */
 export interface ProjectionBaseline {
@@ -117,7 +117,7 @@ export function measureBaseline(
     .map((w) => ({ workout: w, t: new Date(w.startedAt).getTime() }))
     .filter(({ t }) => Number.isFinite(t) && t <= nowMs);
 
-  const windowStart = nowMs - BASELINE_MAX_WEEKS * MS_PER_WEEK;
+  const windowStart = nowMs - BASELINE_MAX_WEEKS * WEEK_MS;
   const inWindow = dated.filter(({ t }) => t >= windowStart).map(({ workout }) => workout);
 
   if (inWindow.length === 0) {
@@ -136,7 +136,7 @@ export function measureBaseline(
   const firstEver = Math.min(...dated.map(({ t }) => t));
   const windowWeeks = Math.min(
     BASELINE_MAX_WEEKS,
-    Math.max(BASELINE_MIN_WEEKS, (nowMs - firstEver) / MS_PER_WEEK)
+    Math.max(BASELINE_MIN_WEEKS, (nowMs - firstEver) / WEEK_MS)
   );
 
   let sessions = 0;

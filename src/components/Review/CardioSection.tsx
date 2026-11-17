@@ -3,7 +3,8 @@
 import { ListRow } from "@/components/ui/list-row";
 import { SectionHeader } from "@/components/ui/section-header";
 import type { CardioReview, ReadinessReview } from "@/lib/review";
-import { cardioLine, plural } from "./format";
+import { plural } from "@/lib/text";
+import { cardioLine } from "./format";
 
 /** Runs, other activities and readiness check-ins; nothing when there are none. */
 export function CardioSection({

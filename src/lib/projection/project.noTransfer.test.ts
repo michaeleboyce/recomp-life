@@ -10,11 +10,11 @@ vi.mock("./coefficients", async (importOriginal) => {
 });
 
 import { projectE1RM, type ProjectionBaseline } from "./index";
-import { MS_PER_WEEK } from "./trend";
+import { WEEK_MS } from "@/lib/dates";
 
 const NOW = new Date(2026, 2, 30, 18);
 const history: Point[] = [2, -3, 1, 4, -2, -1, 3, -4].map((noise, i) => ({
-  t: NOW.getTime() - (7 - i) * MS_PER_WEEK,
+  t: NOW.getTime() - (7 - i) * WEEK_MS,
   v: 250 + 2 * i + noise,
 }));
 const baseline: ProjectionBaseline = {

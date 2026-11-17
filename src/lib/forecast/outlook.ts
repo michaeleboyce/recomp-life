@@ -10,7 +10,7 @@
 // points) rather than drawn afresh each time; only the day-to-day part is.
 import { EXERCISES } from "@/lib/exercises";
 import { evaluateT1, getIncrement } from "@/lib/progression";
-import { MS_PER_WEEK } from "@/lib/projection/trend";
+import { WEEK_MS } from "@/lib/dates";
 import { progressionLiftType } from "@/lib/workout/completeWorkout";
 import { T1_STAGE_SCHEME } from "@/lib/workout/prescription";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
@@ -75,7 +75,7 @@ export interface LiftPace {
  */
 export function liftPace(workouts: WorkoutSession[], exerciseId: string, now: Date): LiftPace | null {
   const nowMs = now.getTime();
-  const from = nowMs - LIFT_OUTLOOK_MODEL.paceWindowWeeks * MS_PER_WEEK;
+  const from = nowMs - LIFT_OUTLOOK_MODEL.paceWindowWeeks * WEEK_MS;
   const times = finishedBy(workouts, nowMs)
     .filter((w) => workingSetsFor(w.sets ?? [], exerciseId, "T1").length > 0)
     .map((w) => toMs(w.completedAt))
@@ -455,7 +455,7 @@ export function forecastMilestone(
   const nowMs = source.now.getTime();
   const target = nextRoundWeight(lift.liftState.t1Weight);
   const first = nextSessionTimes(lift.pace, source.now, 1)[0];
-  const horizon = nowMs + MILESTONE_MODEL.maxWeeks * MS_PER_WEEK;
+  const horizon = nowMs + MILESTONE_MODEL.maxWeeks * WEEK_MS;
   const count = Math.max(2, Math.floor((horizon - first) / (lift.pace.gapDays * DAY_MS)) + 1);
   const times = nextSessionTimes(lift.pace, source.now, count);
   const walk = walkProgram({

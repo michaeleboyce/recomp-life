@@ -1,7 +1,7 @@
 // Reading the log for the forecast models and resolvers. Pure.
 import type { SetLog, SetStatus, WorkoutSession } from "@/types";
 
-export const DAY_MS = 24 * 60 * 60 * 1000;
+export { DAY_MS } from "@/lib/dates";
 
 /** Epoch milliseconds of a stored date, which may be a Date or an ISO string. */
 export function toMs(value: Date | string | number | null | undefined): number {

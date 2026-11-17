@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
 import type { Point } from "@/lib/metrics/types";
 import { fitTrend, projectE1RM, type ProjectionBaseline } from "./index";
 import { STALE_HISTORY_WEEKS } from "./project";
-import { MS_PER_WEEK } from "./trend";
+import { WEEK_MS } from "@/lib/dates";
 
 const NOW = new Date(2026, 10, 12, 18);
 const WEEKS = 12;
@@ -23,7 +23,7 @@ const baseline: ProjectionBaseline = {
 /** One result a week, the last one `lastWeeksAgo` weeks before now. */
 function weekly(values: number[], lastWeeksAgo = 0): Point[] {
   return values.map((v, i) => ({
-    t: NOW.getTime() - (lastWeeksAgo + values.length - 1 - i) * MS_PER_WEEK,
+    t: NOW.getTime() - (lastWeeksAgo + values.length - 1 - i) * WEEK_MS,
     v,
   }));
 }

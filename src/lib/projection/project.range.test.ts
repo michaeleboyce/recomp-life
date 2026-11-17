@@ -12,7 +12,8 @@ import {
   scenarioWidening,
   TREND_WINDOW_WEEKS,
 } from "./project";
-import { MIN_TREND_POINTS, MS_PER_WEEK } from "./trend";
+import { WEEK_MS } from "@/lib/dates";
+import { MIN_TREND_POINTS } from "./trend";
 
 const NOW = new Date(2026, 2, 30, 18);
 const WEEKS = 12;
@@ -20,13 +21,13 @@ const WEEKS = 12;
 /** Points ending at `now`, one a week, exactly on a line (residual SD 0). */
 function linear(perWeek: number, count = 8, start = 200): Point[] {
   return Array.from({ length: count }, (_, i) => ({
-    t: NOW.getTime() - (count - 1 - i) * MS_PER_WEEK,
+    t: NOW.getTime() - (count - 1 - i) * WEEK_MS,
     v: start + perWeek * i,
   }));
 }
 
 const NOISY: Point[] = [2, -3, 1, 4, -2, -1, 3, -4, 2, 0].map((n, i) => ({
-  t: NOW.getTime() - (9 - i) * MS_PER_WEEK,
+  t: NOW.getTime() - (9 - i) * WEEK_MS,
   v: 250 + 2 * i + n,
 }));
 
@@ -179,9 +180,9 @@ describe("resultsNeeded", () => {
   });
 
   it("ignores points after now and outside the window", () => {
-    const old = linear(2, 6).map((p) => ({ ...p, t: p.t - (TREND_WINDOW_WEEKS + 10) * MS_PER_WEEK }));
+    const old = linear(2, 6).map((p) => ({ ...p, t: p.t - (TREND_WINDOW_WEEKS + 10) * WEEK_MS }));
     const recent = linear(2, 2);
-    const future = { t: NOW.getTime() + MS_PER_WEEK, v: 999 };
+    const future = { t: NOW.getTime() + WEEK_MS, v: 999 };
     expect(resultsNeeded([...old, ...recent, future], NOW)).toBe(MIN_TREND_POINTS - 2);
   });
 

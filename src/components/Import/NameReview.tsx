@@ -7,7 +7,7 @@ import type { MappingOverride } from "@/lib/import/mapping";
 import type { ImportPreview, PreviewName } from "@/lib/import/preview";
 import { MUSCLE_IDS, formatMuscle } from "@/lib/muscles";
 import type { MuscleId } from "@/types";
-import { plural } from "./format";
+import { pluralGrouped } from "@/lib/text";
 
 type Choose = (name: string, choice: MappingOverride | null) => void;
 
@@ -93,7 +93,7 @@ function NameRow({
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-foreground">{row.name}</p>
           <p className="text-xs text-muted-foreground">
-            {plural(row.sets, "set", "sets")} · {row.mapping.kind === "unknown" ? "not recognised" : row.label}
+            {pluralGrouped(row.sets, "set", "sets")} · {row.mapping.kind === "unknown" ? "not recognised" : row.label}
             {chosen ? " · your choice" : ""}
           </p>
         </div>
@@ -152,7 +152,7 @@ function Group({
         <span className="text-sm font-semibold text-foreground">
           {title} <span className="font-mono tabular-nums text-muted-foreground">{rows.length}</span>
         </span>
-        <span className="text-xs text-muted-foreground">{plural(sets, "set", "sets")}</span>
+        <span className="text-xs text-muted-foreground">{pluralGrouped(sets, "set", "sets")}</span>
       </summary>
       <p className="pb-2 text-xs text-muted-foreground">{hint}</p>
       <ul>

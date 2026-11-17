@@ -17,7 +17,7 @@ import {
   PROJECTION_EVIDENCE_IDS,
   TREND_WINDOW_WEEKS,
 } from "./project";
-import { MS_PER_WEEK } from "./trend";
+import { WEEK_MS } from "@/lib/dates";
 
 const NOW = new Date(2026, 2, 30, 18);
 const WEEKS = 12;
@@ -26,7 +26,7 @@ const NOISE = [2, -3, 1, 4, -2, -1, 3, -4, 2, 0];
 /** Ten weekly points ending at `now`, rising `perWeek` with fixed scatter. */
 function history(perWeek = 2, noise: number[] = NOISE): Point[] {
   return noise.map((n, i) => ({
-    t: NOW.getTime() - (noise.length - 1 - i) * MS_PER_WEEK,
+    t: NOW.getTime() - (noise.length - 1 - i) * WEEK_MS,
     v: 250 + perWeek * i + n,
   }));
 }
@@ -67,7 +67,7 @@ describe("projectE1RM", () => {
     const p = project();
     expect(p.status).toBe("ok");
     expect(p.points).toHaveLength(WEEKS + 1);
-    p.points.forEach((point, w) => expect(point.t).toBe(NOW.getTime() + w * MS_PER_WEEK));
+    p.points.forEach((point, w) => expect(point.t).toBe(NOW.getTime() + w * WEEK_MS));
   });
 
   it("starts at the fitted value now, not at the last raw point", () => {
@@ -278,7 +278,7 @@ describe("projectE1RM", () => {
 
   it("clamps the low end at zero for tiny, noisy series", () => {
     const tiny = [5, 60, 2, 70, 3, 65].map((v, i) => ({
-      t: NOW.getTime() - (5 - i) * MS_PER_WEEK,
+      t: NOW.getTime() - (5 - i) * WEEK_MS,
       v,
     }));
     const p = projectE1RM({ history: tiny, baseline, weeks: WEEKS, now: NOW });
@@ -306,7 +306,7 @@ describe("projectE1RM", () => {
   it("fits only the recent window of the history", () => {
     // An old steep climb followed by a recent plateau: the plateau is what projects.
     const old: Point[] = Array.from({ length: 10 }, (_, i) => ({
-      t: NOW.getTime() - (TREND_WINDOW_WEEKS + 30 - i) * MS_PER_WEEK,
+      t: NOW.getTime() - (TREND_WINDOW_WEEKS + 30 - i) * WEEK_MS,
       v: 100 + 10 * i,
     }));
     const recent = history(0.5);
@@ -325,7 +325,7 @@ describe("projectE1RM", () => {
   it("does not depend on the order of the history and ignores points after now", () => {
     const h = history();
     const shuffled = [...h].reverse();
-    const future = { t: NOW.getTime() + 3 * MS_PER_WEEK, v: 999 };
+    const future = { t: NOW.getTime() + 3 * WEEK_MS, v: 999 };
     expect(project(undefined, { history: [...shuffled, future] }).points).toEqual(
       project().points
     );
@@ -401,7 +401,7 @@ describe("projectE1RM", () => {
 
   describe("relatedTrend", () => {
     const rising: Point[] = Array.from({ length: 6 }, (_, i) => ({
-      t: NOW.getTime() - (5 - i) * MS_PER_WEEK,
+      t: NOW.getTime() - (5 - i) * WEEK_MS,
       v: 50 + 2.5 * i,
     }));
     const tooShort = rising.slice(0, 3);

@@ -13,6 +13,7 @@ import {
   saveHealthSettings,
   type HealthDeviceSettings,
 } from "@/lib/health/deviceSettings";
+import { plural } from "@/lib/text";
 import { HEALTH_CATEGORIES, type HealthAvailability, type HealthCategory } from "@/lib/health/types";
 import {
   connectAppleHealth,
@@ -38,7 +39,6 @@ const CATEGORY_TEXT: Record<HealthCategory, { label: string; detail: string }> =
   },
 };
 
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 /** "Added 2 weigh-ins and 1 run.", or a plain "nothing new". */
 export function describeImport(result: HealthImportResult): string {

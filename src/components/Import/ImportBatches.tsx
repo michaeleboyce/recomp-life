@@ -1,25 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
 import { toast } from "@/components/ui/toast";
 import {
-  listImportBatches,
   restoreImportBatch,
   undoImportBatch,
   type ImportBatchCounts,
   type ImportBatchSummary,
 } from "@/lib/data/imported";
 import { SOURCE_APP_NAMES } from "@/lib/import/records";
+import { pluralGrouped } from "@/lib/text";
+import { useImportBatches } from "@/hooks";
 
 const MONTH = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" });
 const DAY = new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-
-function plural(n: number, one: string, many = `${one}s`): string {
-  return `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
-}
 
 /** "832 sessions (11,708 sets), 265 runs, 299 activities": the parts that are not zero. */
 export function batchCountsText(counts: ImportBatchCounts & { sets?: number }): string {
@@ -27,12 +23,12 @@ export function batchCountsText(counts: ImportBatchCounts & { sets?: number }): 
   if (counts.sessions > 0) {
     parts.push(
       counts.sets !== undefined
-        ? `${plural(counts.sessions, "session")} (${plural(counts.sets, "set")})`
-        : plural(counts.sessions, "session")
+        ? `${pluralGrouped(counts.sessions, "session")} (${pluralGrouped(counts.sets, "set")})`
+        : pluralGrouped(counts.sessions, "session")
     );
   }
-  if (counts.runs > 0) parts.push(plural(counts.runs, "run"));
-  if (counts.activities > 0) parts.push(plural(counts.activities, "activity", "activities"));
+  if (counts.runs > 0) parts.push(pluralGrouped(counts.runs, "run"));
+  if (counts.activities > 0) parts.push(pluralGrouped(counts.activities, "activity", "activities"));
   return parts.length > 0 ? parts.join(", ") : "nothing";
 }
 
@@ -59,7 +55,7 @@ function rangeText(batch: Pick<ImportBatchSummary, "from" | "to">): string | nul
  * restored. Imports sync, so every device lists and undoes the same ones.
  */
 export function ImportBatches() {
-  const batches = useLiveQuery(() => listImportBatches(), []);
+  const batches = useImportBatches();
   const [busy, setBusy] = useState<string | null>(null);
 
   if (!batches || batches.length === 0) return null;

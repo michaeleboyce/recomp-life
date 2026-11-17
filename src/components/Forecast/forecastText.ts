@@ -12,9 +12,10 @@ import {
   type ScoredForecast,
   type TrackRecord,
 } from "@/lib/forecast";
+import { DAY_MS } from "@/lib/dates";
+import { isMainLift, LIFT_NAMES, MAIN_LIFTS } from "@/lib/liftNames";
+import { percent, plural } from "@/lib/text";
 import type { EvidenceStrength, Forecast, ForecastBasis, ForecastKind } from "@/types";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Below this many resolved results a share is not shown: the counts are. */
 export const MIN_RESULTS_TO_JUDGE = 10;
@@ -31,19 +32,12 @@ export const TARGET_IN_TEN = `${Math.round(CALIBRATION.targetCoverage * 10)} tim
 // ── Names ──────────────────────────────────────────────────────────────────
 
 /** Lifts with a page of their own (`/progress/lift/<id>`, built at export time). */
-export const LIFTS_WITH_PAGE: readonly string[] = ["squat", "bench", "deadlift", "ohp"];
-
-const LIFT_LABELS: Record<string, string> = {
-  squat: "Squat",
-  bench: "Bench press",
-  deadlift: "Deadlift",
-  ohp: "Overhead press",
-};
+export const LIFTS_WITH_PAGE: readonly string[] = MAIN_LIFTS;
 
 /** "Bench press"; another exercise's own name; the id when it is unknown. */
 export function liftLabel(exerciseId: string | undefined): string {
   if (!exerciseId) return "Lift";
-  if (LIFT_LABELS[exerciseId]) return LIFT_LABELS[exerciseId];
+  if (isMainLift(exerciseId)) return LIFT_NAMES[exerciseId].label;
   try {
     return getExercise(exerciseId).name;
   } catch {
@@ -112,11 +106,6 @@ export function formatAmount(value: number): string {
   return rounded.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
 
-/** 0.643 -> "64%". */
-export function formatPercent(fraction: number): string {
-  return `${Math.round(fraction * 100)}%`;
-}
-
 /** Seconds -> "52 min" (or "1 h 5 min"). */
 export function formatMinutes(seconds: number): string {
   const minutes = Math.round(seconds / 60);
@@ -135,7 +124,7 @@ export function dayDate(days: number): string {
 function formatIn(unit: string, value: number): string {
   if (unit === "s") return formatMinutes(value);
   if (unit === "reps") return String(Math.round(value));
-  if (unit === "chance") return formatPercent(value);
+  if (unit === "chance") return percent(value);
   if (unit === "day") return dayDate(value);
   return formatAmount(value);
 }
@@ -259,7 +248,6 @@ const str = (forecast: Forecast, key: string): string | null => {
   return typeof v === "string" && v.length > 0 ? v : null;
 };
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 const REGIME_WORDS: Record<string, string> = {
   "stage-change": "a stage change",
@@ -356,7 +344,7 @@ export function viewOf(forecast: Forecast, now: Date, earlierOpen = 0): Forecast
     const first = passFirst === null ? null : Math.min(p.probability, Math.max(0, 1 - passFirst));
     return {
       ...base,
-      value: formatPercent(p.probability),
+      value: percent(p.probability),
       range: "chance of a stall",
       ...(first !== null
         ? {
@@ -364,10 +352,10 @@ export function viewOf(forecast: Forecast, now: Date, earlierOpen = 0): Forecast
               low: first,
               high: p.probability,
               point: p.probability,
-              format: formatPercent,
+              format: percent,
               min: 0,
               max: 1,
-              label: `Chance of a miss: ${formatPercent(first)} at the next session, ${formatPercent(p.probability)} within two`,
+              label: `Chance of a miss: ${percent(first)} at the next session, ${percent(p.probability)} within two`,
             },
           }
         : {}),
@@ -376,7 +364,7 @@ export function viewOf(forecast: Forecast, now: Date, earlierOpen = 0): Forecast
   if (p.probability !== undefined) {
     return {
       ...base,
-      value: formatPercent(p.probability),
+      value: percent(p.probability),
       range: forecast.kind === "liftPass" ? "chance of passing" : "chance",
     };
   }
@@ -512,7 +500,7 @@ export function inputLines(forecast: Forecast): InputLine[] {
     const regime = str(forecast, "regimeChange");
     if (regime) add("Recent change", REGIME_WORDS[regime] ?? regime);
     if ((n("regimeMultiplier") ?? 1) !== 1) add("Scatter widened after the change", `× ${n("regimeMultiplier")}`);
-    if ((n("cuttingShift") ?? 0) !== 0) add("Lowered for the cut", formatPercent(Math.abs(n("cuttingShift")!)));
+    if ((n("cuttingShift") ?? 0) !== 0) add("Lowered for the cut", percent(Math.abs(n("cuttingShift")!)));
     if (forecast.kind === "newBest") {
       add("Best estimated max to beat", lb("bestE1RM"));
       add("Reps needed for a new best", n("repsNeeded") === null ? null : String(n("repsNeeded")));
@@ -529,15 +517,15 @@ export function inputLines(forecast: Forecast): InputLine[] {
     if (gap !== null) add("Days between sessions of this lift", formatAmount(gap));
     if (forecast.kind === "stallRisk") {
       const first = n("passFirst");
-      if (first !== null) add("Chance the next session passes", formatPercent(first));
+      if (first !== null) add("Chance the next session passes", percent(first));
     } else {
       add("Round number", lb("target"));
       const reach = n("reachChance");
-      if (reach !== null) add("Chance of getting there within the walk", formatPercent(reach));
+      if (reach !== null) add("Chance of getting there within the walk", percent(reach));
       const inRange = n("rangeChance");
-      if (inRange !== null) add("Chance the range itself gives", formatPercent(inRange));
+      if (inRange !== null) add("Chance the range itself gives", percent(inRange));
     }
-    if ((n("cuttingShift") ?? 0) !== 0) add("Lowered for the cut", formatPercent(Math.abs(n("cuttingShift")!)));
+    if ((n("cuttingShift") ?? 0) !== 0) add("Lowered for the cut", percent(Math.abs(n("cuttingShift")!)));
   } else if (forecast.kind === "sessionLength") {
     add("Planned sets and rests", n("plannedSeconds") === null ? null : formatMinutes(n("plannedSeconds")!));
     add("Past sessions used", n("sampleSize") === null ? null : String(n("sampleSize")));
@@ -609,7 +597,7 @@ export interface Judged {
 export function judgeShare(part: number, whole: number, what: string): Judged {
   const counts = `${part} of ${whole} ${what}`;
   if (whole < MIN_RESULTS_TO_JUDGE) return { enough: false, value: null, counts };
-  return { enough: true, value: formatPercent(part / whole), counts };
+  return { enough: true, value: percent(part / whole), counts };
 }
 
 const VOID_WORDS: Record<string, string> = {
@@ -714,9 +702,9 @@ export function kindRows(scored: readonly ScoredForecast[]): KindRow[] {
       title: "Pass calls",
       subtitle:
         r.chances.meanStated !== null
-          ? `Said ${formatPercent(r.chances.meanStated)} on average · passed ${r.chances.hits} of ${r.chances.n}`
+          ? `Said ${percent(r.chances.meanStated)} on average · passed ${r.chances.hits} of ${r.chances.n}`
           : `${r.chances.n} results`,
-      value: r.chances.n < MIN_RESULTS_TO_JUDGE || r.chances.observed === null ? null : formatPercent(r.chances.observed),
+      value: r.chances.n < MIN_RESULTS_TO_JUDGE || r.chances.observed === null ? null : percent(r.chances.observed),
       n: pass.length,
     });
   }
@@ -729,9 +717,9 @@ export function kindRows(scored: readonly ScoredForecast[]): KindRow[] {
       title: "Stall calls",
       subtitle:
         r.chances.meanStated !== null
-          ? `Said ${formatPercent(r.chances.meanStated)} on average · stalled ${r.chances.hits} of ${r.chances.n}`
+          ? `Said ${percent(r.chances.meanStated)} on average · stalled ${r.chances.hits} of ${r.chances.n}`
           : `${r.chances.n} results`,
-      value: r.chances.n < MIN_RESULTS_TO_JUDGE || r.chances.observed === null ? null : formatPercent(r.chances.observed),
+      value: r.chances.n < MIN_RESULTS_TO_JUDGE || r.chances.observed === null ? null : percent(r.chances.observed),
       n: stalls.length,
     });
   }
@@ -825,7 +813,7 @@ export function wrongest(scored: readonly ScoredForecast[]): WrongestFinding | n
     candidates.push({
       lean: gap / 0.5,
       subject,
-      text: `${subject}: ${verdict}. It said ${formatPercent(r.chances.meanStated)} on average and ${formatPercent(r.chances.observed)} happened, over ${plural(r.chances.n, "result")}.`,
+      text: `${subject}: ${verdict}. It said ${percent(r.chances.meanStated)} on average and ${percent(r.chances.observed)} happened, over ${plural(r.chances.n, "result")}.`,
     });
   };
 
