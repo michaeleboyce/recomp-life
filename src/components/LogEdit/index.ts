@@ -17,5 +17,5 @@ export { WeighInEditSheet } from "./WeighInEditSheet";
 export { PainEditSheet } from "./PainEditSheet";
 export { RecentlyDeleted } from "./RecentlyDeleted";
 export { DataIntegrityCard } from "./DataIntegrityCard";
-export { AdjustLiftSheet, buildManualAdjustment } from "./AdjustLiftSheet";
+export { AdjustLiftSheet, BackToPlanButton, buildManualAdjustment } from "./AdjustLiftSheet";
 export { inverseChange } from "./inverse";

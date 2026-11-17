@@ -247,6 +247,13 @@ export interface VariantState {
    * is: the user has the final say. Absent when it never was.
    */
   setByHandAt?: Date;
+  /**
+   * The app's own weight when the weight was set by hand and not lifted since: what the
+   * plan had before the change. Absent once the exercise is logged, after going back to
+   * the plan's weight, or when it never was set by hand. While present, the hand-set
+   * weight counts as provisional strength evidence (`targetStrengthSets`).
+   */
+  plannedWeight?: number;
   seed: VariantSeed;
 }
 

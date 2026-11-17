@@ -32,6 +32,13 @@ export interface StrengthSet {
   date: Date | string;
   /** For a drop: the id of the set it continues (a working set or an earlier drop). */
   dropOf?: string;
+  /**
+   * A weight set by hand for this exercise and not lifted yet, standing in as one set at
+   * the planned reps (`targetStrengthSets`). Only the pooled estimate reads it, at
+   * TARGET_EVIDENCE.weight of a logged session; `sessionEstimates` skips it, so it never
+   * makes an estimated max, a new best, a ratio pair or a muscle trend point.
+   */
+  provisional?: boolean;
 }
 
 /** The best set of one session for one exercise. */
@@ -64,6 +71,8 @@ export interface SessionEstimate {
   bestSet: EstimateSet;
   /** First drops that entered `strength`. */
   dropsCounted: number;
+  /** From a weight set by hand and not lifted yet (`targetEstimates`). */
+  provisional?: boolean;
 }
 
 /** A ratio between a home exercise and its barbell lift, as the app currently believes it. */
@@ -106,8 +115,10 @@ export interface RelatedEvidence {
   /** `strength ÷ ratio`: what it says about the lift. */
   liftEquivalent: number;
   ratio: TransferRatio;
-  /** Weight in the pool, after the transfer weight and the age decay. */
+  /** Weight in the pool, after the transfer weight, the age decay and, for a target, TARGET_EVIDENCE.weight. */
   weight: number;
+  /** A weight set by hand and not lifted yet, not a logged session. */
+  provisional?: boolean;
 }
 
 /** One strength estimate for a program lift, pooled from its own and related sessions. */

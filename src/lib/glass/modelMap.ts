@@ -59,6 +59,7 @@ export const MODELS: readonly ModelDef[] = [
       "strength-pooling",
       "transfer-ratio",
       "drop-set-evidence",
+      "target-evidence",
       "import-effort-words",
     ],
   },

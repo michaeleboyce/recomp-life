@@ -160,9 +160,24 @@ function estimateForSession(exerciseId: string, sessionId: string, sets: Strengt
  * @evidence drop-set-evidence
  */
 export function sessionEstimates(sets: readonly StrengthSet[], exerciseId: string): SessionEstimate[] {
+  return estimatesOf(sets, exerciseId, false);
+}
+
+/**
+ * What the exercise's weights set by hand and not lifted yet say (`provisional` sets),
+ * oldest first, each marked `provisional`. Read by the pooled estimate alone.
+ *
+ * @evidence target-evidence
+ */
+export function targetEstimates(sets: readonly StrengthSet[], exerciseId: string): SessionEstimate[] {
+  return estimatesOf(sets, exerciseId, true).map((estimate) => ({ ...estimate, provisional: true }));
+}
+
+function estimatesOf(sets: readonly StrengthSet[], exerciseId: string, provisional: boolean): SessionEstimate[] {
   const bySession = new Map<string, StrengthSet[]>();
   for (const set of sets) {
     if (set.exerciseId !== exerciseId || Number.isNaN(timeOf(set.date))) continue;
+    if ((set.provisional === true) !== provisional) continue;
     const list = bySession.get(set.sessionId);
     if (list) list.push(set);
     else bySession.set(set.sessionId, [set]);

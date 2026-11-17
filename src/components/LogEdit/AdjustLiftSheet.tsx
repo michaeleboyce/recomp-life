@@ -18,6 +18,7 @@ import { FieldError, FieldLabel, StepperField } from "./fields";
 import { liftName } from "./format";
 import { WEIGHT_MAX } from "./setChanges";
 import { useCommitLogChange } from "./useCommitLogChange";
+import { BACK_TO_PLAN_NOTE } from "@/lib/workout/variant";
 
 type AdjustTier = "T1" | "T2" | "T3";
 const T1_STAGES: T1Stage[] = ["5x3", "6x2", "10x1"];
@@ -32,7 +33,8 @@ const TIERS = [
  * The `adjustLift` change for a manual weight (and stage) change from `at` on. With
  * `variantExerciseId` it is for that home exercise standing in for `exerciseId` at the
  * tier: the rebuild sets the home exercise's own weight (as lifted) and leaves the
- * barbell lift alone.
+ * barbell lift alone. `note` BACK_TO_PLAN_NOTE puts a home exercise back on the plan's
+ * weight, ending its override.
  */
 export function buildManualAdjustment(
   exerciseId: string,
@@ -41,7 +43,8 @@ export function buildManualAdjustment(
   stage: T1Stage | T2Stage | null,
   at: Date = new Date(),
   newId: () => string = uuidv4,
-  variantExerciseId?: string
+  variantExerciseId?: string,
+  note?: string
 ): LogChange {
   const set: LiftAdjustment["set"] =
     tier === "T1"
@@ -60,6 +63,7 @@ export function buildManualAdjustment(
       source: "manual",
       set,
       ...(variantExerciseId ? { variant: { exerciseId: variantExerciseId, tier } } : {}),
+      ...(note ? { note } : {}),
       synced: false,
     },
   };
@@ -401,6 +405,49 @@ export function AdjustLiftSheet({
           weightHint={weightHint}
         />
       )}
+      {sheet}
+    </>
+  );
+}
+
+/**
+ * "Use 70": puts a home exercise whose weight was set by hand back on the plan's weight
+ * (`planWeight`, from `homePlanWeight`), saved as a dated change with
+ * BACK_TO_PLAN_NOTE so the override ends and the plan decides again.
+ *
+ * @evidence target-evidence
+ */
+export function BackToPlanButton({
+  exerciseId,
+  substituteId,
+  tier,
+  planWeight,
+  unit,
+}: {
+  exerciseId: string;
+  substituteId: string;
+  tier: "T1" | "T2" | "T3";
+  planWeight: number;
+  unit: string;
+}) {
+  const { submit, busy, sheet } = useCommitLogChange();
+  const name = displayLiftName(substituteId);
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-11 shrink-0"
+        disabled={busy}
+        onClick={() =>
+          void submit(
+            buildManualAdjustment(exerciseId, tier, planWeight, null, new Date(), uuidv4, substituteId, BACK_TO_PLAN_NOTE),
+            { message: `${name} back to the plan's ${planWeight} ${unit}` }
+          )
+        }
+      >
+        Use {planWeight}
+      </Button>
       {sheet}
     </>
   );

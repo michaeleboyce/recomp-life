@@ -15,9 +15,11 @@ import {
   homeStepsEarned,
   seedVariantState,
   seedVariantWeight,
+  targetStrengthSets,
   totalLoad,
   variantKey,
   variantScheme,
+  withHandSetWeight,
   type EvaluateVariantInput,
   type VariantSeedInput,
 } from "./variant";
@@ -357,5 +359,54 @@ describe("anchorVariant and homeStepsEarned", () => {
     expect(homeStepsEarned([t1, goblet, t2], "squat", "T2")).toBe(4);
     expect(homeStepsEarned([], "bench", "T1")).toBe(0);
     expect(equipment.dumbbellIncrementLbs).toBe(5);
+  });
+});
+
+describe("weights set by hand", () => {
+  const at = new Date("2026-11-16T12:00:00Z");
+
+  it("withHandSetWeight keeps the plan's weight, and a weight equal to it ends the override", () => {
+    const plan = variant({ weight: 60 });
+    const set = withHandSetWeight(plan, { ...plan, weight: 70 }, at);
+    expect(set).toMatchObject({ weight: 70, plannedWeight: 60, setByHandAt: at });
+    expect(withHandSetWeight(set, { ...set, weight: 75 }, at)).toMatchObject({ weight: 75, plannedWeight: 60 });
+    const back = withHandSetWeight(set, { ...set, weight: 60 }, at);
+    expect(back.plannedWeight).toBeUndefined();
+    expect(back.setByHandAt).toBeUndefined();
+    const explicit = withHandSetWeight(set, { ...set, weight: 65 }, at, true);
+    expect(explicit.plannedWeight).toBeUndefined();
+  });
+
+  it("a logged session ends the override", () => {
+    const set = variant({ weight: 70, plannedWeight: 60, setByHandAt: at });
+    const { state } = evaluateVariant({
+      state: set,
+      sets: homeSets(5, 3, 70),
+      partial: false,
+      heavier: null,
+      equipment: EQUIPMENT,
+      now: NOW,
+    } as EvaluateVariantInput);
+    expect(state.plannedWeight).toBeUndefined();
+  });
+
+  it("targetStrengthSets gives one provisional set per override not lifted yet", () => {
+    const states = [
+      variant({ weight: 70, plannedWeight: 60, setByHandAt: at }),
+      variant({ id: "squat|goblet_squat|T1", exerciseId: "goblet_squat", weight: 50 }),
+    ];
+    const sets: StrengthSet[] = targetStrengthSets(states);
+    expect(sets).toEqual([
+      expect.objectContaining({
+        exerciseId: "bulgarian_split_squat",
+        weight: 70,
+        perHand: true,
+        reps: variantScheme(states[0]).reps,
+        tier: "T1",
+        isAMRAP: true,
+        date: at,
+        provisional: true,
+      }),
+    ]);
   });
 });

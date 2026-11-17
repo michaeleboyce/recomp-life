@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SETTINGS, makeSession, makeSet, makeSets } from "@/lib/workout/testFixtures";
+import { BACK_TO_PLAN_NOTE } from "@/lib/workout/variant";
 import type { UserSettings } from "@/types";
 import { anchorToPrescription, applyChange, e1rmsForWorkout, emptyLiftState, rebuildDerived } from "./index";
 import {
@@ -288,6 +289,40 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
       settings: SETTINGS,
     });
     expect(stateOf(seeded.liftStates, "squat").t1SetByHandAt).toBeUndefined();
+  });
+
+  it("keeps the plan's weight beside a home weight set by hand until it is lifted or put back", () => {
+    const sim = startSim();
+    runSession(sim, { templateId: "A1", location: "home" });
+    const split = "squat|bulgarian_split_squat|T1";
+    const plan = variantOf(rebuilt(sim).variantStates, split).weight;
+    const at = (minutes: number) => new Date(sim.workouts.at(-1)!.completedAt!.getTime() + minutes * 60_000);
+    const hand = (id: string, weight: number, minutes: number, note?: string) =>
+      sim.adjustments.push(
+        makeAdjustment("squat", { t1Weight: weight }, at(minutes), {
+          id,
+          clientId: id,
+          source: "manual",
+          variant: { exerciseId: "bulgarian_split_squat", tier: "T1" },
+          ...(note ? { note } : {}),
+        })
+      );
+
+    hand("adj-1", plan + 15, 1);
+    expect(variantOf(rebuilt(sim).variantStates, split)).toMatchObject({ weight: plan + 15, plannedWeight: plan });
+    // A second change keeps the plan's weight from before the first.
+    hand("adj-2", plan + 20, 2);
+    expect(variantOf(rebuilt(sim).variantStates, split)).toMatchObject({ weight: plan + 20, plannedWeight: plan });
+    // Back to the plan's weight ends the override.
+    hand("adj-3", plan, 3, BACK_TO_PLAN_NOTE);
+    const back = variantOf(rebuilt(sim).variantStates, split);
+    expect(back.plannedWeight).toBeUndefined();
+    expect(back.setByHandAt).toBeUndefined();
+
+    // Lifted: the hand-set weight is the plan's from then on.
+    hand("adj-4", plan + 15, 4);
+    runSession(sim, { templateId: "A1", location: "home" });
+    expect(variantOf(rebuilt(sim).variantStates, split).plannedWeight).toBeUndefined();
   });
 
   it("a barbell weight set by hand replaces the steps the home passes earned at that tier", () => {

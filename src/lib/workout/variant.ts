@@ -378,6 +378,74 @@ export function anchorVariant(
 }
 
 /** The variant with no steps earned at the gym: absent means 0. */
+/**
+ * The home weights set by hand and not lifted yet, each as one provisional set: the
+ * weight as set, at the scheme's reps, taken as far as it goes on T1 (so it reads as
+ * those reps at the most the lifter could do: a cautious reading of a target), dated
+ * when it was set. Only states with `plannedWeight` (an override not lifted since) and
+ * a date give one. The pooled estimate counts each at TARGET_EVIDENCE.weight of a
+ * logged session until the exercise is logged after it.
+ *
+ * @evidence target-evidence
+ */
+export function targetStrengthSets(variantStates: readonly VariantState[]): StrengthSet[] {
+  const out: StrengthSet[] = [];
+  for (const state of variantStates) {
+    if (state.plannedWeight === undefined || !state.setByHandAt || !(state.weight > 0)) continue;
+    const date = new Date(state.setByHandAt);
+    if (Number.isNaN(date.getTime())) continue;
+    out.push({
+      id: `target:${state.id}`,
+      sessionId: `target:${state.id}`,
+      exerciseId: state.exerciseId,
+      weight: state.weight,
+      perHand: state.perHand,
+      reps: variantScheme(state).reps,
+      rpe: null,
+      role: "working",
+      tier: state.tier,
+      isAMRAP: state.tier === "T1",
+      date,
+      provisional: true,
+    });
+  }
+  return out;
+}
+
+/** The note on a change that puts a home exercise back on the plan's weight. */
+export const BACK_TO_PLAN_NOTE = "Back to the plan's weight";
+
+/**
+ * `next` (the state with a weight set by hand at `at`) with the override recorded
+ * against `before`, the state as the plan had it: `plannedWeight` keeps the plan's
+ * weight from before the first change since the exercise was last logged, and
+ * `setByHandAt` says when. Going back to the plan (`backToPlan`, or a weight equal to
+ * the plan's) ends the override: both are cleared and the plan decides again.
+ */
+export function withHandSetWeight(
+  before: VariantState,
+  next: VariantState,
+  at: Date,
+  backToPlan = false
+): VariantState {
+  const planned = before.plannedWeight ?? before.weight;
+  const out: VariantState = { ...next };
+  if (backToPlan || next.weight === planned) {
+    delete out.plannedWeight;
+    delete out.setByHandAt;
+    return out;
+  }
+  return { ...out, plannedWeight: planned, setByHandAt: at };
+}
+
+/** `state` as logged: a weight set by hand has been lifted, so it is the plan's now. */
+export function withoutHandOverride(state: VariantState): VariantState {
+  if (state.plannedWeight === undefined) return state;
+  const rest: VariantState = { ...state };
+  delete rest.plannedWeight;
+  return rest;
+}
+
 export function withoutGymPasses(state: VariantState): VariantState {
   if (state.gymPassesSinceHome === undefined) return state;
   const rest: VariantState = { ...state };
@@ -510,7 +578,11 @@ export function evaluateVariant(input: EvaluateVariantInput): VariantEvaluation 
   });
 
   // Done at home: any steps the gym had earned for it are behind it now.
-  const performed: VariantState = { ...withoutGymPasses(start), current: true, lastSessionDate: now };
+  const performed: VariantState = {
+    ...withoutHandOverride(withoutGymPasses(start)),
+    current: true,
+    lastSessionDate: now,
+  };
   const hold = getHoldReason(tier, sets);
   if (partial) return result(performed, hold ? "held" : "partial", hold ?? undefined);
 

@@ -6,7 +6,7 @@
 // fields; no number is worked out again here.
 import { DUMBBELL_LOAD_FACTOR, ceilToStep } from "@/lib/dbConversion";
 import { EXERCISES } from "@/lib/exercises";
-import { pooledLiftEstimate, sessionEstimates } from "@/lib/strength";
+import { pooledLiftEstimate, sessionEstimates, targetEstimates } from "@/lib/strength";
 import type { PooledEstimate, ReentryRule, StrengthSet, TransferRatio } from "@/lib/strength";
 import {
   CAP_REP_STEP,
@@ -23,6 +23,7 @@ export const HOME_PROGRESSION_RULE = "home-progression";
 export const CAP_PROGRESSION_RULE = "cap-progression";
 export const STRENGTH_POOLING_RULE = "strength-pooling";
 export const TRANSFER_RATIO_RULE = "transfer-ratio";
+export const TARGET_EVIDENCE_RULE = "target-evidence";
 
 /**
  * Which re-entry rule decided the first weight after a stretch at the other location, as
@@ -190,9 +191,22 @@ function homeSetSteps(estimate: PooledEstimate, sets: readonly StrengthSet[]): T
   for (const r of estimate.related) latest.set(r.exerciseId, r); // oldest first: the last wins
   const lift = liftWord(estimate.liftId);
   return [...latest.values()].map((r) => {
-    const session = sessionEstimates(sets, r.exerciseId).find((s) => s.sessionId === r.sessionId);
+    const session = (r.provisional ? targetEstimates : sessionEstimates)(sets, r.exerciseId).find(
+      (s) => s.sessionId === r.sessionId
+    );
     const best = session?.bestSet;
     const sample = best ? `${num(best.weight)}×${best.reps}` : `${num(r.strength)} total`;
+    if (r.provisional) {
+      return step(
+        `home-target-${r.exerciseId.replace(/_/g, "-")}`,
+        `From the weight you set: ${nameOf(r.exerciseId)} ${sample}, not lifted yet ≈ ${lift} ${num(Math.round(r.liftEquivalent))}`,
+        `Read as ${best ? plural(best.reps, "rep") : "the planned reps"} taken as far as you can, which says ${num(Math.round(r.liftEquivalent))} for the ${lift} through the ratio ${r.ratio.ratio.toFixed(2)}. Until you lift it, it counts ${Math.round(r.weight * 100) / 100} of a barbell session; your first session of it replaces it.`,
+        "none",
+        "lb",
+        undefined,
+        TARGET_EVIDENCE_RULE
+      );
+    }
     const basis =
       r.ratio.pairs > 0
         ? `ratio ${r.ratio.ratio.toFixed(2)} from ${plural(r.ratio.pairs, "pair")}`
@@ -292,6 +306,7 @@ function reentryStep(reentry: ReentryTrace, entry: PlanEntry): TraceStep {
  * @evidence cap-progression
  * @evidence strength-pooling
  * @evidence transfer-ratio
+ * @evidence target-evidence
  */
 export function homeWeightSteps(entry: PlanEntry, context: HomeContext): TraceStep[] {
   const home = context.home;

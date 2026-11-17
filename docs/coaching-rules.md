@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-41 active rules, 5 planned rules, 42 sources. Last reviewed against the research: November 2026.
+42 active rules, 5 planned rules, 42 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -38,6 +38,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `e1rm-estimate` | Effort and estimates | Active | Limited evidence | Nuzzo 2024, Halperin 2022 |
 | `transfer-ratio` | Effort and estimates | Active | Limited evidence | Saeterbakken 2011, Saeterbakken 2013, Speirs 2016 |
 | `strength-pooling` | Effort and estimates | Active | Coaching heuristic | none |
+| `target-evidence` | Effort and estimates | Active | Coaching heuristic | none |
 | `drop-set-evidence` | Effort and estimates | Active | Limited evidence | Havers 2026, Sødal 2023 |
 | `import-effort-words` | Effort and estimates | Planned | Coaching heuristic | none |
 | `rest-heavy` | Rest between sets | Active | Moderate evidence | Grgic 2018, Singer 2024 |
@@ -361,6 +362,25 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Why.** A barbell session measures the lift itself; a home session measures the same muscles through a different movement, so it says something about the lift, but less. Counting it for less keeps one good home day from moving the barbell weight much, while a run of home sessions still shows. Taking the smaller of the two re-entry rules means the barbell weight never jumps past what either your passes or your measured strength supports.
 
 **Limits.** No research gives these weights. The share a home session counts follows the app's projection rule, where a set of another exercise for the same muscles counts that much toward training the lift, which is a related but different question. The half-life, the scatter and the reading of a muscle's trend from several exercises are this app's assumptions.
+
+**Sources.** None: this is a coaching convention with no direct research.
+
+### Does a home weight I set myself count before I lift it?
+
+- **Rule id:** `target-evidence`
+- **Status:** Active
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/strength/coefficients.ts` (`TARGET_EVIDENCE`), `src/lib/strength/estimate.ts` (`targetEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/workout/variant.ts` (`targetStrengthSets`), `src/lib/workout/variant.ts` (`withHandSetWeight`), `src/components/Lift/homeVersion.ts` (`homePlanWeight`), `src/components/LogEdit/AdjustLiftSheet.tsx` (`BackToPlanButton`), `src/hooks/useStrengthSets.ts` (`useStrengthSets`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`)
+- **Shown in:** `src/components/Lift/PrLine.tsx`
+- **Reviewed:** November 2026
+
+**In one line.** A weight you set counts a little toward the lift's estimate until you lift it
+
+**What the app does.** When you set a home exercise's weight yourself, the app keeps its own weight beside yours ("Plan 60 · You 70") and you can go back to it in one tap. Until you lift your weight, it counts toward the barbell lift's strength estimate as one session at the planned reps taken as far as you can, which is a cautious reading of what you expect to manage, through the exercise's ratio, at 50% of a logged home session. That estimate sets the first weight of the lift's other home exercises and bounds the barbell weight when you go back to the gym, so your weight shifts those a little. The first session of the exercise after your change replaces it, and it never makes an estimated max, a new best, a ratio pair or a muscle trend point. The barbell weight itself does not move: GZCLP still progresses it from barbell sessions.
+
+**Why.** A weight you pick says something about your strength that the log does not yet show, for example after training elsewhere or when the app's start was too light. Counting it for less than a lifted session lets it nudge the plan without letting a guess outweigh what you have done, and you always have the final say on the weight itself.
+
+**Limits.** No study measures how well a lifter's own pick predicts the weight they then lift. The share it counts and the reading of a target as reps taken as far as you can are this app's judgment.
 
 **Sources.** None: this is a coaching convention with no direct research.
 
@@ -1100,6 +1120,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **17 November 2026** — `target-evidence` (Does a home weight I set myself count before I lift it?): New rule. A home weight you set yourself is kept beside the app's own weight, and until you lift it, it counts at half a logged home session toward the barbell lift's strength estimate. Sources: .
 - **16 November 2026** — `home-progression` (What does a home session do to your weights?): Switched on: the home lift page cites it for a home exercise's own weight, and the Log's "What it did" and the workout summary cite it for a home session's outcome instead of the plain GZCLP rule. Sources: .
 - **16 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): Switched on: Today shows it on a home lift held at your heaviest dumbbell, beside what a pass does there; the home lift page, "What it did" and the workout summary cite it when the cap policy acted. Sources: .
 - **16 November 2026** — `transfer-ratio` (How does a home exercise count toward a barbell lift?): Switched on: the home lift page cites it for a home exercise's first weight, and the import screen for the home starting weights it suggests. Sources: Saeterbakken 2011, Saeterbakken 2013, Speirs 2016.

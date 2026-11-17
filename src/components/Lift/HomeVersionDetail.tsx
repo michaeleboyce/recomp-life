@@ -13,10 +13,10 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { Term } from "@/components/ui/term";
 import { WorkoutFigure } from "@/components/ui/workout-figure";
-import { AdjustLiftSheet } from "@/components/LogEdit";
+import { AdjustLiftSheet, BackToPlanButton } from "@/components/LogEdit";
 import { LIFT_NAMES, type MainLiftId } from "@/components/Progress/lifts";
 import { displayLiftName, nameInSentence, photoPosition } from "@/components/Today/todayModel";
-import { homeNextSession } from "./homeVersion";
+import { homeNextSession, homePlanWeight } from "./homeVersion";
 import { LiftHeadline } from "./LiftHeadline";
 import { LiftStats, ProjectionLink } from "./LiftStats";
 import { MoreCharts } from "./MoreCharts";
@@ -62,6 +62,12 @@ export function HomeVersionDetail({
     [plan, exerciseId, substituteId]
   );
 
+  // The plan's own weight beside one set by hand, worked out without the override.
+  const planWeight = useMemo(
+    () => (plan && next ? homePlanWeight(exerciseId, substituteId, plan, next) : null),
+    [plan, next, exerciseId, substituteId]
+  );
+
   const homeSessions = useMemo(
     () => view?.sessions.filter((s) => s.substituteExerciseId === substituteId) ?? [],
     [view, substituteId]
@@ -101,10 +107,23 @@ export function HomeVersionDetail({
           liftShort={short}
           next={next}
           equipment={plan.equipment}
+          planWeight={planWeight}
+          backToPlan={
+            planWeight != null && (
+              <BackToPlanButton
+                exerciseId={exerciseId}
+                substituteId={substituteId}
+                tier={next.tier === "T2" ? "T2" : next.tier === "T3" ? "T3" : "T1"}
+                planWeight={planWeight}
+                unit={next.perHand ? "lbs a hand" : "lbs"}
+              />
+            )
+          }
         />
         <div className="flex items-center justify-between gap-3">
           <p className="min-w-0 text-xs text-muted-foreground">
-            Wrong weight for next time? Set the {inSentence} weight; the barbell {short} stays as it is.
+            Wrong weight for next time? Set the {inSentence} weight; the barbell {short} stays as it is, and
+            the app keeps its own number beside yours.
           </p>
           <AdjustLiftSheet exerciseId={exerciseId} home={{ substituteId, tier: next.tier }} />
         </div>

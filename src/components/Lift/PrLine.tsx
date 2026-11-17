@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { House, TrendingUp } from "lucide-react";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Term } from "@/components/ui/term";
@@ -81,12 +82,18 @@ export function HomeNextWeight({
   liftShort,
   next,
   equipment,
+  planWeight,
+  backToPlan,
 }: {
   exerciseId: string;
   substituteId: string;
   liftShort: string;
   next: HomeNextSession;
   equipment: EquipmentProfile;
+  /** The plan's own weight when the weight was set by hand (`homePlanWeight`). */
+  planWeight?: number | null;
+  /** The "Use 70" control shown beside the plan's weight. */
+  backToPlan?: ReactNode;
 }) {
   const style = tierStyle(next.tier);
   const term = TIER_TERM[next.tier];
@@ -115,6 +122,28 @@ export function HomeNextWeight({
           {next.isAMRAP ? <Term id="amrap-plus">{scheme}</Term> : <span>{scheme}</span>}
         </p>
       </div>
+      {planWeight != null && (
+        <div data-testid="home-hand-set" className="flex items-center gap-3 border-t border-border pt-2">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <p className="flex items-baseline gap-3 font-mono text-sm">
+              <span>
+                <span className="text-xs text-muted-foreground">Plan </span>
+                <b data-testid="home-plan-weight">{planWeight}</b>
+              </span>
+              <span>
+                <span className="text-xs text-muted-foreground">You </span>
+                <b data-testid="home-your-weight">{next.weight}</b>
+              </span>
+            </p>
+            <p className="text-[13px] text-muted-foreground">
+              Set by you. Until you lift it, it counts a little toward your {liftShort} estimate, so your other{" "}
+              {liftShort} weights shift with it.
+            </p>
+          </div>
+          <EvidenceLine ruleId="target-evidence" variant="icon" />
+          {backToPlan}
+        </div>
+      )}
       {next.plannedAs && (
         <p data-testid="home-planned-as" className="text-[13px] text-foreground">
           Your next home workout has {nameInSentence(next.plannedAs)} for {liftShort}; this is the

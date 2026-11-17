@@ -5,8 +5,8 @@
  * @evidence strength-pooling
  */
 
-import { STRENGTH_POOLING } from "./coefficients";
-import { compareEstimates, sessionEstimates } from "./estimate";
+import { STRENGTH_POOLING, TARGET_EVIDENCE } from "./coefficients";
+import { compareEstimates, sessionEstimates, targetEstimates } from "./estimate";
 import { learnTransferRatios } from "./ratio";
 import type { PooledEstimate, RelatedEvidence, SessionEstimate, StrengthSet, TransferRatio } from "./types";
 
@@ -30,7 +30,10 @@ export interface PooledEstimateOptions {
  * 2. Sessions of related exercises (those with a ratio for the lift) after it, and not
  *    in the same workout, are translated into the lift's units (`strength ÷ ratio`) and
  *    added with weight STRENGTH_POOLING.transferWeight. With no session of the lift, all
- *    related sessions are pooled.
+ *    related sessions are pooled. A weight set by hand for a related exercise and not
+ *    lifted since (`targetEstimates`) joins them at TARGET_EVIDENCE.weight of that.
+ *
+ * @evidence target-evidence
  * 3. Every weight halves for each STRENGTH_POOLING.evidenceHalfLifeDays a session is
  *    older than the newest one pooled. The value is the weighted mean, rounded to a pound.
  * 4. The standard deviation treats each session as scattering by
@@ -54,8 +57,16 @@ export function pooledLiftEstimate(
   const candidates: Array<{ estimate: SessionEstimate; ratio: TransferRatio }> = [];
   for (const [exerciseId, ratio] of Object.entries(ratios)) {
     if (exerciseId === liftId || !(ratio.ratio > 0)) continue;
-    for (const estimate of sessionEstimates(sets, exerciseId)) {
+    const logged = sessionEstimates(sets, exerciseId);
+    for (const estimate of logged) {
       if (own && (estimate.sessionId === own.sessionId || compareEstimates(estimate, own) <= 0)) continue;
+      candidates.push({ estimate, ratio });
+    }
+    // A target counts until the exercise is logged at or after it.
+    const lastLogged = logged.length > 0 ? logged[logged.length - 1].date.getTime() : -Infinity;
+    for (const estimate of targetEstimates(sets, exerciseId)) {
+      if (estimate.date.getTime() <= lastLogged) continue;
+      if (own && compareEstimates(estimate, own) <= 0) continue;
       candidates.push({ estimate, ratio });
     }
   }
@@ -75,7 +86,11 @@ export function pooledLiftEstimate(
     strength: estimate.strength,
     liftEquivalent: estimate.strength / ratio.ratio,
     ratio,
-    weight: STRENGTH_POOLING.transferWeight * decay(estimate.date.getTime()),
+    weight:
+      STRENGTH_POOLING.transferWeight *
+      (estimate.provisional ? TARGET_EVIDENCE.weight : 1) *
+      decay(estimate.date.getTime()),
+    ...(estimate.provisional ? { provisional: true } : {}),
   }));
 
   // With the lift's own session alone the value is that session's, untouched by

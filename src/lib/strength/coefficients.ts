@@ -51,6 +51,24 @@ export const STRENGTH_POOLING = {
 } as const;
 
 /**
+ * How a weight set by hand, and not lifted yet, counts toward the pooled estimate.
+ *
+ * @evidence target-evidence
+ */
+export const TARGET_EVIDENCE = {
+  /**
+   * How much a target counts relative to a logged session of the same exercise (on top
+   * of STRENGTH_POOLING.transferWeight for a home exercise).
+   *
+   * Source: none. A weight the lifter picks says what they expect to manage, which is
+   * information, but nobody has measured how well a lifter's own pick predicts what
+   * they then lift. Judgment: half a logged session, so a target moves the estimate a
+   * little and the first session at that weight replaces it.
+   */
+  weight: 0.5,
+} as const;
+
+/**
  * How ratios between a home exercise and its barbell lift are learned from the
  * lifter's own sessions (`learnTransferRatio`).
  *

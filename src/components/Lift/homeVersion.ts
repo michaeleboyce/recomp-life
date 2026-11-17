@@ -12,6 +12,7 @@ import {
   seedVariantState,
   variantKey,
   variantScheme,
+  withHandSetWeight,
   withoutGymPasses,
   type VariantTier,
 } from "@/lib/workout/variant";
@@ -342,6 +343,44 @@ export function homeWeightLine(
 }
 
 /** A manual change to a home exercise's own weight (and stage) at a tier. */
+/**
+ * The weight the plan would give `substituteId` next if its weight had not been set by
+ * hand: the session planned from the states with the override taken back (its
+ * `plannedWeight` as its weight, no hand-set date) and the evidence without the
+ * provisional sets (`targetStrengthSets`), so the app's own number stays live as the
+ * log changes. Null when its weight is not set by hand, or when the plan's is the same.
+ *
+ * @evidence target-evidence
+ */
+export function homePlanWeight(
+  exerciseId: string,
+  substituteId: string,
+  ctx: HomePlanContext,
+  next: HomeNextSession
+): number | null {
+  const tier = next.tier as VariantTier;
+  if (!isVariantTier(tier)) return null;
+  const id = variantKey(exerciseId, substituteId, tier);
+  const overridden = ctx.variantStates.find((v) => v.id === id && v.plannedWeight !== undefined);
+  if (!overridden) return null;
+  const restored: VariantState = { ...overridden, weight: overridden.plannedWeight! };
+  delete restored.plannedWeight;
+  delete restored.setByHandAt;
+  const plan = homeNextSession(
+    exerciseId,
+    substituteId,
+    {
+      ...ctx,
+      // Built again from the restored states: the stored next plan has the override in it.
+      next: ctx.next ? { templateId: ctx.next.templateId } : undefined,
+      variantStates: ctx.variantStates.map((v) => (v.id === id ? restored : v)),
+      ...(ctx.strengthSets ? { strengthSets: ctx.strengthSets.filter((s) => !s.provisional) } : {}),
+    },
+    tier
+  );
+  return plan.weight > 0 && plan.weight !== next.weight ? plan.weight : null;
+}
+
 export interface HomeAdjustment {
   liftId: string;
   exerciseId: string;
@@ -350,6 +389,8 @@ export interface HomeAdjustment {
   stage?: T1Stage | T2Stage | null;
   /** When it is set; defaults to now. */
   at?: Date;
+  /** Back to the plan's weight: ends the override (`BACK_TO_PLAN_NOTE`). */
+  backToPlan?: boolean;
 }
 
 /**
@@ -376,12 +417,16 @@ export function withHomeAdjustment(
       liftState: liftStates.find((s) => s.exerciseId === change.liftId),
       equipment,
     });
-  const next = withoutGymPasses({
-    ...current,
-    weight: change.weight,
-    ...(change.stage && change.tier !== "T3" ? { stage: change.stage } : {}),
-    setByHandAt: change.at ?? new Date(),
-  });
+  const next = withHandSetWeight(
+    current,
+    withoutGymPasses({
+      ...current,
+      weight: change.weight,
+      ...(change.stage && change.tier !== "T3" ? { stage: change.stage } : {}),
+    }),
+    change.at ?? new Date(),
+    change.backToPlan
+  );
   const others = variantStates.filter((v) => v.id !== id);
   return [...others, next].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }

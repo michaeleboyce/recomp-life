@@ -8,7 +8,9 @@ import {
   anchorVariant,
   isVariantTier,
   seedVariantState,
+  BACK_TO_PLAN_NOTE,
   variantKey,
+  withHandSetWeight,
   withoutGymPasses,
 } from "@/lib/workout/variant";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
@@ -122,6 +124,9 @@ function handSetDate(adjustment: LiftAdjustment): Date | null {
  * had earned at that tier: the weight is the user's, re-entry adds nothing to it. A
  * weight set by hand (`handSetDate`) records when (`setByHandAt`, `t1SetByHandAt`,
  * `t2SetByHandAt`), so re-entry leaves it as it is until the other location is trained.
+ * A manual one for a home exercise also keeps the plan's weight from before
+ * (`withHandSetWeight`: `plannedWeight`, until the exercise is logged or put back on
+ * the plan's weight).
  */
 function applyAdjustment(
   states: Map<string, LiftState>,
@@ -154,7 +159,11 @@ function applyAdjustment(
     }
     if (fields.weight && set[fields.weight] !== undefined) {
       next = { ...withoutGymPasses(next), current: true };
-      if (byHand) next = { ...next, setByHandAt: byHand };
+      if (byHand && adjustment.source === "manual") {
+        next = withHandSetWeight(current, next, byHand, adjustment.note === BACK_TO_PLAN_NOTE);
+      } else if (byHand) {
+        next = { ...next, setByHandAt: byHand };
+      }
       for (const other of variants.values()) {
         if (other.id !== id && other.liftId === adjustment.exerciseId && other.tier === tier && other.current) {
           variants.set(other.id, { ...other, current: false });

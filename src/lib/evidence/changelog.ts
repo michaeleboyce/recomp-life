@@ -338,4 +338,11 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
       "The deadlift and its home substitutes now count as lower-body lifts, so a pass adds the lower-body step. They had been adding the smaller upper-body step.",
     sources: [],
   },
+  {
+    date: "2026-11-17",
+    ruleId: "target-evidence",
+    change:
+      "New rule. A home weight you set yourself is kept beside the app's own weight, and until you lift it, it counts at half a logged home session toward the barbell lift's strength estimate.",
+    sources: [],
+  },
 ];

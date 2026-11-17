@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES } from "@/db/seed";
 import { describeNextWorkout } from "@/lib/workout/buildPlan";
 import { planWorkoutStart } from "@/lib/workout/startPlan";
-import { seedVariantState, variantKey } from "@/lib/workout/variant";
+import { seedVariantState, seedVariantWeight, targetStrengthSets, variantKey } from "@/lib/workout/variant";
+import { strengthSetOf } from "@/lib/workout/strength";
+import { makeSets } from "@/lib/workout/testFixtures";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, VariantState } from "@/types";
 import {
   homeNextSession,
+  homePlanWeight,
   homeScheme,
   homeSubstitutesOf,
   homeWeightLine,
@@ -293,5 +296,57 @@ describe("withHomeAdjustment", () => {
       weight: 40,
     });
     expect(next[0]).toMatchObject({ id: variantKey("squat", "goblet_squat", "T1"), weight: 40, perHand: false });
+  });
+});
+
+describe("a home weight set by hand", () => {
+  const at = new Date(2026, 10, 16);
+  const liftStates = [lift({ t1Weight: 245 })];
+  const setTo = (weight: number, backToPlan = false) =>
+    withHomeAdjustment([bss()], liftStates, equipment, {
+      liftId: "squat",
+      exerciseId: "bulgarian_split_squat",
+      tier: "T1",
+      weight,
+      at,
+      backToPlan,
+    });
+
+  it("keeps the plan's weight beside it, and the plan's weight is worked out without it", () => {
+    const variantStates = setTo(80);
+    expect(variantStates[0]).toMatchObject({ weight: 80, plannedWeight: 70 });
+    const ctx = { ...context({ liftStates, variantStates }), strengthSets: targetStrengthSets(variantStates) };
+    const next = homeNextSession("squat", "bulgarian_split_squat", ctx);
+    expect(next.weight).toBe(80);
+    expect(homePlanWeight("squat", "bulgarian_split_squat", ctx, next)).toBe(70);
+  });
+
+  it("has no plan weight to show without an override, or once put back", () => {
+    for (const variantStates of [[bss()], setTo(65, true)]) {
+      const ctx = context({ liftStates, variantStates });
+      const next = homeNextSession("squat", "bulgarian_split_squat", ctx);
+      expect(homePlanWeight("squat", "bulgarian_split_squat", ctx, next)).toBeNull();
+    }
+  });
+
+  it("moves the squat estimate, and so the first weight of another squat substitute", () => {
+    const gym = makeSets("squat", "T1", 5, 3, { weight: 245, completedAt: new Date(2026, 10, 10) }).map((s, i, all) =>
+      strengthSetOf(i === all.length - 1 ? { ...s, isAMRAP: true, actualReps: 5 } : s, "gym")
+    );
+    const lunge = (strengthSets: ReturnType<typeof targetStrengthSets>) =>
+      seedVariantWeight({
+        liftId: "squat",
+        exerciseId: "db_lunge",
+        tier: "T1",
+        barbellWeight: 245,
+        targetReps: 3,
+        equipment: { ...equipment, maxDumbbellWeight: 200 },
+        strengthSets,
+      });
+    const without = lunge(gym);
+    const withTarget = lunge([...gym, ...targetStrengthSets(setTo(110))]);
+    expect(without.source).toBe("estimate");
+    expect(withTarget.estimate!).toBeGreaterThan(without.estimate!);
+    expect(withTarget.weight).toBeGreaterThanOrEqual(without.weight);
   });
 });

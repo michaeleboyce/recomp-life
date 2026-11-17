@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { calculateE1RM } from "@/lib/e1rm";
 import { e1rmsForWorkout, sortE1RMs } from "@/lib/rebuild/e1rm";
 import type { SetLog, Tier, WorkoutSession } from "@/types";
-import { STRENGTH_POOLING, TRANSFER_PRIORS } from "./coefficients";
+import { STRENGTH_POOLING, TARGET_EVIDENCE, TRANSFER_PRIORS } from "./coefficients";
+import { sessionEstimates, targetEstimates } from "./estimate";
 import { pooledLiftEstimate } from "./pooled";
 import { learnTransferRatio } from "./ratio";
 import { day, set, t1Session } from "./testHelpers";
@@ -261,5 +262,55 @@ describe("pooledLiftEstimate with home sessions", () => {
     expect(pooledLiftEstimate("squat", [])).toBeNull();
     const dropOnly = [set({ role: "drop", dropOf: "missing" })];
     expect(pooledLiftEstimate("squat", dropOnly)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A weight set by hand and not lifted yet: provisional evidence
+// ---------------------------------------------------------------------------
+
+describe("pooledLiftEstimate with a target set by hand", () => {
+  const gym = () => t1Session({ sessionId: "gym", exerciseId: "squat", weight: 200, amrapReps: 6, day: 0 });
+  const gymMax = calculateE1RM(200, 6)!;
+  /** BSS 70 a hand for 3 reps, set by hand on day `d`. */
+  const target = (d: number, weight = 70) =>
+    set({ id: `target-${d}`, sessionId: `target:${d}`, exerciseId: BSS, weight, perHand: true, reps: 3, date: day(d), provisional: true });
+  const ratios = { [BSS]: fixedRatio(0.5) };
+
+  it("counts at TARGET_EVIDENCE.weight of a logged home session", () => {
+    const pooled = pooledLiftEstimate("squat", [...gym(), target(2)], { ratios })!;
+    expect(pooled.related).toHaveLength(1);
+    expect(pooled.related[0].provisional).toBe(true);
+    expect(pooled.related[0].weight).toBeCloseTo(STRENGTH_POOLING.transferWeight * TARGET_EVIDENCE.weight, 6);
+    const equivalent = calculateE1RM(140, 3)! / 0.5;
+    expect(pooled.related[0].liftEquivalent).toBeCloseTo(equivalent, 6);
+    expect(pooled.value).toBeGreaterThan(gymMax);
+  });
+
+  it("moves the estimate less than a logged session at the same weight and reps", () => {
+    const fromTarget = pooledLiftEstimate("squat", [...gym(), target(2)], { ratios })!;
+    const lifted = t1Session({ sessionId: "home", exerciseId: BSS, weight: 70, perHand: true, amrapReps: 3, day: 2 });
+    const fromSession = pooledLiftEstimate("squat", [...gym(), ...lifted], { ratios })!;
+    expect(fromTarget.value - gymMax).toBeGreaterThan(0);
+    expect(fromTarget.value - gymMax).toBeLessThan(fromSession.value - gymMax);
+  });
+
+  it("stops counting once the exercise is logged after it", () => {
+    const lifted = t1Session({ sessionId: "home", exerciseId: BSS, weight: 60, perHand: true, amrapReps: 5, day: 4 });
+    const pooled = pooledLiftEstimate("squat", [...gym(), target(2), ...lifted], { ratios })!;
+    expect(pooled.related.map((r) => r.sessionId)).toEqual(["home"]);
+  });
+
+  it("is ignored when older than the latest barbell session", () => {
+    const later = t1Session({ sessionId: "gym2", exerciseId: "squat", weight: 205, amrapReps: 5, day: 5 });
+    const pooled = pooledLiftEstimate("squat", [...gym(), target(2), ...later], { ratios })!;
+    expect(pooled.basis).toBe("own");
+  });
+
+  it("never makes an estimated max or a ratio pair", () => {
+    const sets = [...gym(), target(2)];
+    expect(sessionEstimates(sets, BSS)).toEqual([]);
+    expect(targetEstimates(sets, BSS)).toHaveLength(1);
+    expect(learnTransferRatio("squat", BSS, sets)?.pairs).toBe(0);
   });
 });
