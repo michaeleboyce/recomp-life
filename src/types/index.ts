@@ -34,6 +34,27 @@ export interface UserSettings {
   exercisePreferences?: ExercisePreferences;
   /** Per-location overrides; an entry here wins over the overall preference. */
   exercisePreferencesByLocation?: LocationExercisePreferences;
+  /**
+   * Per-set weights for the next session of an exercise, set on its page, keyed by
+   * `nextSetPlanKey(exerciseId, tier)`. Used up when a session that logged it is
+   * finished. Spec: docs/plans/2026-11-17-exercise-page-design.md (E6).
+   */
+  nextSetPlans?: Record<string, NextSetPlan>;
+}
+
+/** Each set's weight and reps for the next session of one exercise at one tier (E6). */
+export interface NextSetPlan {
+  /** The exercise performed: the home exercise at home, the lift itself otherwise. */
+  exerciseId: string;
+  /** The program lift it stands in for; the same as `exerciseId` for a lift done as itself. */
+  liftId: string;
+  tier: Tier;
+  /** The sets as the user set them, in order. */
+  sets: PlannedSet[];
+  /** The plan's own sets when they were set, for "Plan · You" per set. */
+  planSets: PlannedSet[];
+  /** ISO time it was set (settings are stored as JSON). */
+  createdAt: string;
 }
 
 /**
@@ -162,6 +183,13 @@ export interface LiftState {
    */
   t1SetByHandAt?: Date;
   t2SetByHandAt?: Date;
+  /**
+   * The plan's own weight for the tier while its weight is set by hand and not lifted
+   * since (E7, as `VariantState.plannedWeight`). Absent otherwise. Derived by the rebuild.
+   */
+  t1PlannedWeight?: number;
+  t2PlannedWeight?: number;
+  t3PlannedWeight?: number;
   deloadActive: boolean;
   deloadSessionsRemaining: number;
   preDeloadT1Weight: number | null;
