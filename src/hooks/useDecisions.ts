@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db/local";
 import {
-  nextPrescriptionFrom,
   nextWorkoutFrom,
   readinessTodayFrom,
   traceContextFrom,
@@ -53,7 +52,7 @@ export function useDecisionTrace(input: {
       // weight re-entry decided says so itself (`entry.reentry`), so the trace goes from
       // the stored weight to it.
       liftStates: records.liftStates,
-      prescribed: nextPrescriptionFrom(records, next, location),
+      prescribed: next.prescribed,
       readiness: readiness ? { score: readiness.score } : undefined,
       withStrengthSets: true,
     });

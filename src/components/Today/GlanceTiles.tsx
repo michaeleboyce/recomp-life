@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useBodyweightLog, useImportedSessions, useLiftE1RM, useMetric, useNextWorkout, useSettings } from "@/hooks";
+import { useBodyweightLog, useDueTemplateId, useImportedSessions, useLiftE1RM, useMetric, useSettings } from "@/hooks";
+import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { getMonday } from "@/lib/dates";
 import { importedSessionsBetween } from "@/lib/import/history";
 import { Sparkline, type SparklineTone } from "@/components/chart-kit";
@@ -47,8 +48,8 @@ function toneFor(change: number | null | undefined, better: DeltaBetter): Sparkl
 
 /** The glance row under the hero: weight, this week, and the two lifts trained next. */
 export function GlanceTiles() {
-  const next = useNextWorkout();
-  const lifts = next?.template.exercises
+  const due = useDueTemplateId();
+  const lifts = (due ? WORKOUT_TEMPLATES[due] : undefined)?.exercises
     .filter((e) => e.tier === "T1" || e.tier === "T2")
     .map((e) => e.exerciseId);
 

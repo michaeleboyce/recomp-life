@@ -1,8 +1,6 @@
 import { useMemo } from "react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
-import { describeNextWorkout } from "@/lib/workout/buildPlan";
-import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import type { NextWorkoutDescription } from "@/lib/workout/types";
+import { resolveNextWorkout, type ResolvedNextWorkout } from "@/lib/workout/nextWorkout";
 import type { WorkoutLocation } from "@/types";
 import { useSettings } from "./useProfile";
 import { useStrengthEvidence } from "./useStrengthEvidence";
@@ -11,15 +9,15 @@ import { useCompletedWorkouts, useLiftStates } from "./useWorkouts";
 
 /**
  * The upcoming workout in the rotation with its plan for the given location
- * (defaults to the profile's default location, else "gym"). Warm-ups follow the
- * `showWarmUps` setting; no accessories. At home each lift is planned from its home
- * exercise's own weight (a first one seeded from the strength estimate, H3), and the
- * first session back at a location takes its re-entry weight (H6), exactly as the
- * Ready screen and the ledger (`nextWorkoutFrom`) plan it: from the app's and the
- * imported sessions' sets (`useStrengthEvidence`). Next-session set plans
+ * (defaults to the profile's default location, else "gym"): `resolveNextWorkout`, the
+ * one function every screen plans the next workout with, over the live rows. Warm-ups
+ * follow the `showWarmUps` setting; no accessories. At home each lift is planned from
+ * its home exercise's own weight (a first one seeded from the strength estimate, H3),
+ * and the first session back at a location takes its re-entry weight (H6), from the
+ * app's and the imported sessions' sets (`useStrengthEvidence`). Next-session set plans
  * (`settings.nextSetPlans`, E6) give their entries their per-set weights.
  */
-export function useNextWorkout(location?: WorkoutLocation): NextWorkoutDescription | undefined {
+export function useNextWorkout(location?: WorkoutLocation): ResolvedNextWorkout | undefined {
   const completedWorkouts = useCompletedWorkouts();
   const liftStates = useLiftStates();
   const variantStates = useVariantStates();
@@ -38,21 +36,6 @@ export function useNextWorkout(location?: WorkoutLocation): NextWorkoutDescripti
     }
     // No profile (not yet seeded, or just cleared): plan with the seed defaults.
     const settings = loadedSettings ?? DEFAULT_USER_PROFILE.settings;
-    return describeNextWorkout({
-      completedWorkouts,
-      templates: WORKOUT_TEMPLATES,
-      liftStates,
-      plan: {
-        location: location ?? settings.defaultLocation ?? "gym",
-        equipment: settings.equipment,
-        includeWarmUps: settings.showWarmUps,
-        selectedAccessories: [],
-        variantStates,
-        strengthSets,
-        // Per-set weights set on an exercise's page for its next session (E6).
-        nextSetPlans: settings.nextSetPlans,
-      },
-      reentry: true,
-    });
+    return resolveNextWorkout({ completedWorkouts, liftStates, variantStates, strengthSets, settings, location });
   }, [completedWorkouts, liftStates, variantStates, strengthSets, loadedSettings, location]);
 }

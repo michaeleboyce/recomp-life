@@ -16,7 +16,7 @@ import { buildWorkoutPlan, describeNextWorkout } from "./buildPlan";
 import { computeCompletion } from "./completeWorkout";
 import { createSetLog } from "./logSet";
 import { performedSetPlanKey } from "./nextSetPlans";
-import { resolveReentry } from "./reentry";
+import { resolveNextWorkout } from "./nextWorkout";
 import type { WorkoutPlan } from "./types";
 
 export interface UpcomingEntry {
@@ -206,29 +206,30 @@ export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWo
     selectedAccessories: [],
     ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
   };
-  // Re-entry is worked out once, for every lift, from the real states: the simulated
-  // sessions after it carry its weights on, and their made-up dates must not trigger it
-  // again.
-  const resolved = input.reentry
-    ? resolveReentry({
+  // The first is the next workout exactly as every screen resolves it. Re-entry is
+  // worked out once, for every lift, from the real states: the simulated sessions after
+  // it carry its weights on, and their made-up dates must not trigger it again.
+  const first = input.reentry
+    ? resolveNextWorkout({
+        completedWorkouts,
+        templates,
         liftStates: input.liftStates,
         variantStates: input.variantStates ?? [],
-        location,
-        equipment,
         ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
+        settings: { equipment, showWarmUps: includeWarmUps, nextSetPlans: input.nextSetPlans },
+        location,
+        reentry: "everyLift",
       })
-    : null;
-  const first = describeNextWorkout({
-    completedWorkouts,
-    templates,
-    liftStates: resolved?.liftStates ?? input.liftStates,
-    plan: {
-      ...planOptions,
-      variantStates: resolved?.variantStates ?? input.variantStates,
-      ...(resolved ? { reentries: resolved.reentries } : {}),
-      ...(input.nextSetPlans ? { nextSetPlans: input.nextSetPlans } : {}),
-    },
-  });
+    : describeNextWorkout({
+        completedWorkouts,
+        templates,
+        liftStates: input.liftStates,
+        plan: {
+          ...planOptions,
+          variantStates: input.variantStates,
+          ...(input.nextSetPlans ? { nextSetPlans: input.nextSetPlans } : {}),
+        },
+      });
   let setPlans = withoutPlansUsedBy(input.nextSetPlans, first.plan);
 
   const advanced = new Set<string>();

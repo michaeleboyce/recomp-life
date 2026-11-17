@@ -6,8 +6,8 @@ import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import {
   useActivities,
   useCompletedWorkouts,
+  useDueTemplateId,
   useLiftStates,
-  useNextWorkout,
   usePainEntries,
   useRuns,
   useSettings,
@@ -137,7 +137,6 @@ export function useWorkoutSetup(
 ) {
   const loadedSettings = useSettings();
   const loadedLiftStates = useLiftStates();
-  const nextWorkout = useNextWorkout();
   const painEntries = usePainEntries();
   const runs = useRuns();
   const activities = useActivities();
@@ -153,7 +152,8 @@ export function useWorkoutSetup(
 
   // A day picked on this screen wins, then the URL's, then the rotation's next day.
   const [chosenTemplateId, setChosenTemplateId] = useState<string | null>(null);
-  const dueTemplateId = nextWorkout?.templateId;
+  // The rotation's due day, read directly: the plan below is this screen's own.
+  const dueTemplateId = useDueTemplateId();
   const templateId =
     chosenTemplateId && WORKOUT_TEMPLATES[chosenTemplateId]
       ? chosenTemplateId

@@ -31,7 +31,7 @@ import type { WorkoutPlan } from "@/lib/workout/types";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import type { ImportedSessionRecord, PrescribedEntry, WorkoutLocation } from "@/types";
-import { useNextWorkout } from "./index";
+import { useNextWorkout, useTodayWorkout } from "./index";
 
 const DAY = 86_400_000;
 const NOW = new Date("2026-06-15T09:00:00Z");
@@ -105,6 +105,12 @@ async function expectPathsAgree(location: WorkoutLocation): Promise<Paths> {
   const ledger = nextWorkoutFrom(records, location);
   expect(ledger.templateId).toBe(next.templateId);
   expect(fromPlan(ledger.plan)).toEqual(rows);
+
+  // Today's hero resolves it once for its rows, tiles and readiness (R1).
+  const hero = renderHook(() => useTodayWorkout(location));
+  await waitFor(() => expect(hero.result.current).toBeDefined(), { timeout: 15_000 });
+  expect(hero.result.current!.next.plan).toEqual(next.plan);
+  hero.unmount();
 
   nav.params = `location=${location}`;
   const setup = renderHook(() => useWorkoutSetup());
