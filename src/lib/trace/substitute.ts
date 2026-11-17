@@ -3,6 +3,7 @@
 // only reads which of its options the plan took.
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { DUMBBELL_LOAD_FACTOR, barbellToBothHands, barbellToDumbbell, roundToStep } from "@/lib/dbConversion";
+import { repsInReserveFromRPE } from "@/lib/e1rm";
 import { EXERCISES } from "@/lib/exercises";
 import { asLifted, impliedWeightForReps, roundDownToDumbbell } from "@/lib/strength";
 import { CREDIT_TIERS, classifyEntry } from "@/lib/workout/credit";
@@ -113,9 +114,10 @@ export function homeSteps(
   // A substitute the conversion does not offer was chosen some other way.
   if (!chosen) return [];
 
-  // A first session of this exercise seeded from its starting ratio (H3).
+  // A first session of this exercise seeded from its own history (F6) or through its
+  // ratio to the lift (H3).
   const seed = entry.seed;
-  if (seed && (seed.source === "ratio" || seed.source === "estimate") && seed.ratio != null) {
+  if (seed && isRatioOrHistorySeed(seed)) {
     return [seedStep(entry, chosen.exercise, adaptation, seed, context)];
   }
   // An exercise done here before keeps a weight of its own (H1), not a conversion.
@@ -165,21 +167,46 @@ export function homeSteps(
   ];
 }
 
+/** A seed from the exercise's own history, or through its ratio to the lift, with the numbers it needs. */
+function isRatioOrHistorySeed(seed: VariantSeed): boolean {
+  if (seed.source === "history") return seed.ownEstimate != null;
+  return (seed.source === "ratio" || seed.source === "estimate" || seed.source === "learned") && seed.ratio != null;
+}
+
+/** " with 1 rep left" for a logged effort short of the limit (the estimate credits it); "" otherwise. */
+function repsLeftText(rpe: number | null | undefined): string {
+  const left = rpe != null ? repsInReserveFromRPE(rpe) : 0;
+  return left > 0 ? ` with ${num(left)} ${left === 1 ? "rep" : "reps"} left` : "";
+}
+
+/** "Nov 3, 2026". */
+const dayText = (at: number) =>
+  new Date(at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
 /**
- * The weight a seed gave (`seedVariantWeight`), from what the seed records: the ratio
- * times the barbell weight, rounded to the dumbbell step; or what the estimate allows
- * for the stage's reps through the ratio, rounded down; capped at the heaviest dumbbell.
+ * The weight a seed gave (`seedVariantWeight`), from what the seed records: what the
+ * exercise's own estimate allows for the stage's reps, rounded down and held to one
+ * step above the heaviest weight it was lifted at when that decided; what the lift's
+ * estimate allows through the ratio, rounded down; or the ratio times the barbell
+ * weight, rounded to the dumbbell step. Capped at the heaviest dumbbell.
  */
 function seededWeight(seed: VariantSeed, exerciseId: string, context: HomeContext): number {
   const step = context.equipment.dumbbellIncrementLbs;
   const max = context.equipment.maxDumbbellWeight;
   const ratio = seed.ratio ?? 0;
-  const wanted =
-    seed.source === "estimate" && seed.estimate != null
-      ? roundDownToDumbbell(asLifted(impliedWeightForReps(seed.estimate * ratio, seed.targetReps ?? 1), exerciseId), step)
-      : ratio * seed.barbellWeight > 0
-        ? roundToStep(asLifted(ratio * seed.barbellWeight, exerciseId), step)
-        : 0;
+  const forReps = (estimatedMax: number) =>
+    roundDownToDumbbell(asLifted(impliedWeightForReps(estimatedMax, seed.targetReps ?? 1), exerciseId), step);
+  let wanted: number;
+  if (seed.source === "history" && seed.ownEstimate != null) {
+    wanted =
+      seed.limitedByHeaviest && seed.heaviestLifted != null
+        ? roundDownToDumbbell(seed.heaviestLifted + step, step)
+        : forReps(seed.ownEstimate);
+  } else if ((seed.source === "estimate" || seed.source === "learned") && seed.estimate != null) {
+    wanted = forReps(seed.estimate * ratio);
+  } else {
+    wanted = ratio * seed.barbellWeight > 0 ? roundToStep(asLifted(ratio * seed.barbellWeight, exerciseId), step) : 0;
+  }
   return Math.min(wanted, max);
 }
 
@@ -213,15 +240,34 @@ function seedStep(
   const asked = seed.cappedFrom ?? weight;
   const share = perHand ? " in all, split between two hands" : " in one dumbbell";
   const r = ratio.toFixed(2);
-  const history = seed.source === "estimate" ? seed.history : undefined;
-  // New to the app but with imported history: what the estimate rests on, not "a first time".
-  const first = history
-    ? `new here, but your imported history has it at ${num(history.weight)}${history.perHand ? " per hand" : ""} × ${history.reps} on ${new Date(history.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}, so it starts`
-    : "a first time here, so it starts";
+  const reps = seed.targetReps ?? 1;
+  // Not done here yet: a first time, or when it was last done (older than the window).
+  const first =
+    seed.lastDone != null
+      ? `last done ${dayText(seed.lastDone)}, too long ago to set its weight, so it starts`
+      : "a first time here, so it starts";
+
+  if (seed.source === "history" && seed.ownEstimate != null) {
+    const h = seed.history;
+    const session = h
+      ? `${num(h.weight)}${h.perHand ? " per hand" : ""} × ${h.reps}${repsLeftText(h.rpe)} on ${dayText(h.at)}${h.imported ? " (imported)" : ""}`
+      : "your latest session";
+    const fromEstimate = `${lead}: from your own history: ${session} gives an estimated max of ${num(seed.ownEstimate)} in all; the heaviest weight for ${reps} reps, rounded down to ${num(increment)}`;
+    const held =
+      seed.limitedByHeaviest && seed.heaviestLifted != null
+        ? ` would be more, but a first session goes at most one step past the heaviest you lifted recently, ${num(seed.heaviestLifted)}${each}, so it is ${num(asked)}${each}.`
+        : `, is ${num(asked)}${each}.`;
+    return step("dumbbell", "At home with dumbbells", `${fromEstimate}${held}${capped}${limit}`, "set", "lb", weight, HOME_PROGRESSION_RULE);
+  }
+
+  const learned = seed.source === "learned" && seed.pairs != null && seed.pairs > 0;
+  const ratioText = learned
+    ? `${r} of it (learned from ${seed.pairs} ${seed.pairs === 1 ? "pair" : "pairs"} of your sessions)`
+    : `${r} of it (the exercise's starting ratio)`;
   const detail =
-    seed.source === "estimate" && seed.estimate != null
-      ? `${lead}: ${first} from your ${lift} strength estimate, ${num(seed.estimate)}, at ${r} of it: the heaviest weight for ${seed.targetReps ?? 1} reps, rounded down to ${num(increment)}, is ${num(asked)}${each}.${capped}${limit}`
-      : `${lead}: a first time here, so it starts at ${r} of your ${lift}: ${r} × ${num(seed.barbellWeight)} is ${num(Math.round((ratio * seed.barbellWeight + 1e-9) * 10) / 10)}${share}, rounded to ${num(increment)}, is ${num(asked)}${each}.${capped}${limit}`;
+    (seed.source === "estimate" || seed.source === "learned") && seed.estimate != null
+      ? `${lead}: ${first} from your ${lift} strength estimate, ${num(seed.estimate)}, at ${ratioText}: the heaviest weight for ${reps} reps, rounded down to ${num(increment)}, is ${num(asked)}${each}.${capped}${limit}`
+      : `${lead}: ${first} at ${r} of your ${lift}: ${r} × ${num(seed.barbellWeight)} is ${num(Math.round((ratio * seed.barbellWeight + 1e-9) * 10) / 10)}${share}, rounded to ${num(increment)}, is ${num(asked)}${each}.${capped}${limit}`;
   return step("dumbbell", "At home with dumbbells", detail, "set", "lb", weight, TRANSFER_RATIO_RULE);
 }
 

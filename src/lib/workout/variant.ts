@@ -5,8 +5,7 @@
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { barbellToBothHands, barbellToDumbbell, ceilToStep, roundToStep } from "@/lib/dbConversion";
 import { EXERCISES, HOME_SUBSTITUTE_CHAINS } from "@/lib/exercises";
-import { lastImportedSession } from "@/lib/import/history";
-import { asLifted, homeReentryWeight, priorFor, type StrengthSet } from "@/lib/strength";
+import { asLifted, impliedWeightForReps, priorFor, roundDownToDumbbell, type StrengthSet } from "@/lib/strength";
 import {
   RESET_FACTOR,
   T1_NEXT_STAGE,
@@ -31,7 +30,7 @@ import type {
   VariantState,
 } from "@/types";
 import { T1_STAGE_SCHEME, T2_STAGE_SCHEME } from "./prescription";
-import { pooledEstimateOf } from "./strength";
+import { ownHistoryOf, pooledEstimateOf, transferRatioOf } from "./strength";
 
 export type VariantTier = VariantState["tier"];
 
@@ -135,75 +134,168 @@ export interface VariantSeedInput {
   strengthSets?: readonly StrengthSet[];
 }
 
+/** The exercise's own session a first weight was worked from (source "history"). */
+export interface VariantSeedSession {
+  /** When its best set was done, epoch ms. */
+  at: number;
+  sessionId: string;
+  /** Its best set, as lifted. */
+  weight: number;
+  reps: number;
+  perHand: boolean;
+  rpe: number | null;
+  /** The session was imported from another app. */
+  imported?: true;
+}
+
 export interface VariantSeedWeight {
   /** As lifted: per hand for a per-hand exercise. */
   weight: number;
   /** What the seed asked for when it was more than the heaviest dumbbell. */
   cappedFrom?: number;
-  source: "estimate" | "ratio" | "conversion";
-  /** For "estimate" and "ratio": the exercise's starting ratio to the lift. */
+  /**
+   * "history": the exercise's own recent estimate. "learned": the program lift's pooled
+   * estimate through the ratio learned from the lifter's pairs. "estimate": the pooled
+   * estimate through the starting ratio. "ratio": the starting ratio times the barbell
+   * weight. "conversion": the flat dumbbell conversion.
+   */
+  source: "history" | "learned" | "estimate" | "ratio" | "conversion";
+  /** For "learned", "estimate" and "ratio": the exercise's ratio to the lift. */
   ratio?: number;
-  /** For "estimate": the pooled strength estimate it was worked from. */
+  /** For "learned": the lifter's session pairs the ratio was learned from. */
+  pairs?: number;
+  /** For "learned" and "estimate": the program lift's pooled strength estimate. */
   estimate?: number;
+  /** For "history": the exercise's own estimated max (total load). */
+  ownEstimate?: number;
+  /** For "history": the session that estimate came from. */
+  session?: VariantSeedSession;
+  /**
+   * For "history", when it held the seed down: the heaviest weight, as lifted, the
+   * exercise was done at inside the evidence window (OWN_HISTORY_WINDOW_WEEKS). The seed
+   * is then that plus one dumbbell step.
+   */
+  heaviestLifted?: number;
+  /** The seed was held down to `heaviestLifted` plus one step. */
+  limitedByHeaviest?: true;
+  /** When the exercise was last done at all (epoch ms), when it was and the seed is not from its history. */
+  lastDone?: number;
 }
 
 /**
- * The first weight of a home exercise nothing has been logged for (H3).
+ * The heaviest weight, as lifted, at which an estimated max (total load) says `reps`
+ * reps are possible, rounded down to the dumbbell step: the strength library's rule
+ * (`impliedWeightForReps`, `roundDownToDumbbell`), uncapped.
+ */
+function weightForReps(estimatedMax: number, exerciseId: string, reps: number, step: number): number {
+  return roundDownToDumbbell(asLifted(impliedWeightForReps(estimatedMax, reps), exerciseId), step);
+}
+
+/**
+ * The first weight of a home exercise with no state of its own (H3, F6), for T1, T2 and
+ * T3 alike, in this order:
  *
- * With a starting ratio for the exercise (`TRANSFER_PRIORS`) and a pooled strength
- * estimate for the program lift (from `strengthSets`): the heaviest weight at which the
- * estimate, through that ratio, says the stage's reps are possible, rounded down to the
- * dumbbell step (`homeReentryWeight` with no last weight; source "estimate"). With the
- * ratio and no estimate (no barbell or home T1 set yet): the ratio times the barbell
- * working weight, as lifted, rounded to the dumbbell step (source "ratio"). An exercise
- * with no starting ratio keeps the flat conversion, 80% of the barbell weight (source
- * "conversion"). Every one is capped at the heaviest dumbbell.
+ * 1. Its own history: when `strengthSets` (app and imported) give the exercise an
+ *    estimate from its sets in the last OWN_HISTORY_WINDOW_WEEKS (`ownHistoryOf`: its
+ *    latest session's, effort credited), the heaviest weight at which that estimate says
+ *    the stage's reps are possible, as lifted, rounded down to the dumbbell step
+ *    (source "history"), and never more than one dumbbell step above the heaviest
+ *    weight the exercise was lifted at inside the window (a first session does not jump
+ *    past what was done; `limitedByHeaviest`).
+ * 2. Else the program lift's pooled estimate through the exercise's ratio: the ratio
+ *    learned from the lifter's own pairs when there are any (`transferRatioOf`, source
+ *    "learned"), else the starting ratio (`TRANSFER_PRIORS`, source "estimate"), for the
+ *    stage's reps, rounded down.
+ * 3. Else, with a starting ratio, the ratio times the barbell working weight, as lifted,
+ *    rounded to the step (source "ratio"); with none, the flat conversion, 80% of the
+ *    barbell weight (source "conversion").
+ *
+ * Every one is capped at the heaviest dumbbell (`cappedFrom`). A seed not from the
+ * exercise's own history says when it was last done, if ever (`lastDone`).
+ * Weights set by hand and not lifted are not the exercise's history; a weight set by
+ * hand wins over any seed, since it gives the variant a state of its own.
  *
  * @evidence home-progression
+ * @evidence transfer-ratio
  */
 export function seedVariantWeight(input: VariantSeedInput): VariantSeedWeight {
   const { liftId, exerciseId, barbellWeight, targetReps, equipment, strengthSets } = input;
   const step = equipment.dumbbellIncrementLbs;
-  const capped = (wanted: number, seed: Omit<VariantSeedWeight, "weight" | "cappedFrom">): VariantSeedWeight =>
-    wanted > equipment.maxDumbbellWeight
-      ? { weight: equipment.maxDumbbellWeight, cappedFrom: wanted, ...seed }
-      : { weight: wanted, ...seed };
+  const own = strengthSets ? ownHistoryOf(strengthSets, exerciseId) : null;
+  const bound = own?.heaviest != null ? roundDownToDumbbell(own.heaviest + step, step) : null;
+  const finish = (wanted: number, seed: Omit<VariantSeedWeight, "weight" | "cappedFrom">): VariantSeedWeight => {
+    // Rule 1's limit. The pooled estimate through a ratio (rules 2 and 3) is not held to
+    // it: the lift's own sessions say more about it than a lighter tier's sets of the exercise.
+    const limited = seed.source === "history" && bound != null && wanted > bound;
+    const asked = limited ? bound : wanted;
+    const base = {
+      ...seed,
+      ...(limited ? { heaviestLifted: own!.heaviest!, limitedByHeaviest: true as const } : {}),
+      ...(seed.source !== "history" && own?.lastDone != null ? { lastDone: own.lastDone } : {}),
+    };
+    return asked > equipment.maxDumbbellWeight
+      ? { weight: equipment.maxDumbbellWeight, cappedFrom: asked, ...base }
+      : { weight: asked, ...base };
+  };
 
+  // 1. The exercise's own recent history.
+  const ownEstimate = own?.estimate;
+  if (ownEstimate?.own && ownEstimate.value > 0 && strengthSets) {
+    const best = ownEstimate.own.bestSet;
+    const imported = strengthSets.find((s) => s.id === best.id)?.imported === true;
+    return finish(weightForReps(ownEstimate.value, exerciseId, targetReps, step), {
+      source: "history",
+      ownEstimate: ownEstimate.value,
+      session: {
+        at: ownEstimate.own.date.getTime(),
+        sessionId: ownEstimate.own.sessionId,
+        weight: best.weight,
+        reps: best.reps,
+        perHand: best.perHand,
+        rpe: best.rpe,
+        ...(imported ? { imported: true as const } : {}),
+      },
+    });
+  }
+
+  // 2. The program lift's estimate through the learned, else the starting, ratio.
   const prior = priorFor(liftId, exerciseId);
+  const learned = strengthSets ? transferRatioOf(strengthSets, liftId, exerciseId) : null;
+  const ratio =
+    learned && learned.basis === "learned" && learned.ratio > 0
+      ? { value: learned.ratio, pairs: learned.pairs }
+      : prior
+        ? { value: prior.ratio, pairs: 0 }
+        : null;
+  const estimate = strengthSets ? (pooledEstimateOf(strengthSets, liftId)?.value ?? null) : null;
+  if (ratio && estimate != null && estimate > 0) {
+    return finish(
+      weightForReps(estimate * ratio.value, exerciseId, targetReps, step),
+      ratio.pairs > 0
+        ? { source: "learned", ratio: ratio.value, pairs: ratio.pairs, estimate }
+        : { source: "estimate", ratio: ratio.value, estimate }
+    );
+  }
+
+  // 3. The barbell weight: through the starting ratio, else the flat conversion.
   if (!prior) {
     const wanted =
       EXERCISES[exerciseId]?.grip === "both_hands"
         ? barbellToBothHands(barbellWeight, step)
         : barbellToDumbbell(barbellWeight, step);
-    return capped(wanted, { source: "conversion" });
-  }
-
-  const estimate = strengthSets ? (pooledEstimateOf(strengthSets, liftId)?.value ?? null) : null;
-  if (estimate != null && estimate > 0) {
-    const fromEstimate = homeReentryWeight({
-      lastWeight: null,
-      stepsEarned: 0,
-      estimate,
-      ratio: prior.ratio,
-      exerciseId,
-      targetReps,
-      // Uncapped here: the cap is applied below, so `cappedFrom` says what was asked.
-      equipment: { ...equipment, maxDumbbellWeight: Infinity },
-    });
-    if (fromEstimate) {
-      return capped(fromEstimate.weight, { source: "estimate", ratio: prior.ratio, estimate });
-    }
+    return finish(wanted, { source: "conversion" });
   }
   const total = prior.ratio * barbellWeight;
   const wanted = total > 0 ? roundToStep(asLifted(total, exerciseId), step) : 0;
-  return capped(wanted, { source: "ratio", ratio: prior.ratio });
+  return finish(wanted, { source: "ratio", ratio: prior.ratio });
 }
 
 /**
  * A variant the first time it is used: its weight from `seedVariantWeight` (for the
  * stage the lift is at), its stage and fail count from the program lift's. Not current
- * and not stored until a session uses it. A seed from the estimate names the exercise's
- * latest imported session when `strengthSets` have one (`seed.history`).
+ * and not stored until a session uses it. A seed from the exercise's own history names
+ * the session it came from (`seed.history`); any other says when the exercise was last
+ * done, when it was (`seed.lastDone`).
  */
 export function seedVariantState(input: {
   liftId: string;
@@ -228,9 +320,7 @@ export function seedVariantState(input: {
     equipment,
     ...(strengthSets ? { strengthSets } : {}),
   });
-  // What an estimate-based first weight rests on, when the exercise has imported history.
-  const last = seed.source === "estimate" && strengthSets ? lastImportedSession(strengthSets, exerciseId) : null;
-  const history = last?.topSet ? { at: last.t, ...last.topSet } : null;
+  const session = seed.source === "history" ? seed.session : undefined;
   return {
     id: variantKey(liftId, exerciseId, tier),
     liftId,
@@ -251,8 +341,25 @@ export function seedVariantState(input: {
       barbellWeight,
       ...(seed.cappedFrom != null ? { cappedFrom: seed.cappedFrom } : {}),
       ...(seed.ratio != null ? { ratio: seed.ratio } : {}),
+      ...(seed.pairs != null ? { pairs: seed.pairs } : {}),
       ...(seed.estimate != null ? { estimate: seed.estimate, targetReps } : {}),
-      ...(history ? { history } : {}),
+      ...(seed.ownEstimate != null ? { ownEstimate: seed.ownEstimate, targetReps } : {}),
+      ...(session
+        ? {
+            history: {
+              at: session.at,
+              weight: session.weight,
+              reps: session.reps,
+              perHand: session.perHand,
+              sessionId: session.sessionId,
+              ...(session.rpe != null ? { rpe: session.rpe } : {}),
+              ...(session.imported ? { imported: true as const } : {}),
+            },
+          }
+        : {}),
+      ...(seed.heaviestLifted != null ? { heaviestLifted: seed.heaviestLifted } : {}),
+      ...(seed.limitedByHeaviest ? { limitedByHeaviest: true as const } : {}),
+      ...(seed.lastDone != null ? { lastDone: seed.lastDone } : {}),
     },
   };
 }

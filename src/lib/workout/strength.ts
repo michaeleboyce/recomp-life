@@ -5,6 +5,8 @@ import { EXERCISES } from "@/lib/exercises";
 import { importedStrengthSets } from "@/lib/import/evidence";
 import type { MappingOverrides } from "@/lib/import/mapping/types";
 import {
+  asLifted,
+  externalLoad,
   learnTransferRatio,
   pooledLiftEstimate,
   type PooledEstimate,
@@ -12,6 +14,7 @@ import {
   type StrengthSetRole,
   type TransferRatio,
 } from "@/lib/strength";
+import { timeOf } from "@/lib/strength/estimate";
 import type { ImportedSessionRecord, SetLog, WorkoutSession } from "@/types";
 
 /** What a stored set was for, in the strength library's terms. */
@@ -131,4 +134,86 @@ export function transferRatioOf(
   const key = `${liftId}|${exerciseId}`;
   if (!byPair.has(key)) byPair.set(key, learnTransferRatio(liftId, exerciseId, sets));
   return byPair.get(key) ?? null;
+}
+
+/**
+ * How far back a home exercise's own sets count for its first weight (`ownHistoryOf`,
+ * `seedVariantWeight`), in weeks, measured back from the newest set in the evidence.
+ *
+ * Source: none. Four of the pooled estimate's evidence half-lives
+ * (STRENGTH_POOLING.evidenceHalfLifeDays), where an older session would count a
+ * sixteenth of a new one: long enough to span a block at the gym between home
+ * stretches, short enough that the sets still describe the lifter being planned for.
+ * Judgment.
+ *
+ * @evidence home-progression
+ */
+export const OWN_HISTORY_WINDOW_WEEKS = 8;
+
+const WEEK_MS = 7 * 86_400_000;
+
+/** What a home exercise's own sets say, for its first weight (`ownHistoryOf`). */
+export interface OwnHistory {
+  /**
+   * The exercise's own estimate inside the window, on the total load: its latest
+   * session's, as a program lift's own estimate starts from its latest session
+   * (`pooledLiftEstimate` with no related exercise), the logged effort credited. Null
+   * when no set inside the window gives an estimate.
+   */
+  estimate: PooledEstimate | null;
+  /**
+   * The heaviest weight, as lifted (per dumbbell when it uses two), of the exercise's
+   * loaded normal sets (not warm-ups or drops) inside the window; null when there are none.
+   */
+  heaviest: number | null;
+  /** When the exercise's latest loaded normal set was done, at any date (epoch ms); null when never. */
+  lastDone: number | null;
+}
+
+const ownCache = new WeakMap<readonly StrengthSet[], Map<string, OwnHistory>>();
+
+/** A set the lifter did with a load: not a warm-up, a drop or a weight set by hand and not lifted. */
+function isLoadedWorkSet(set: StrengthSet): boolean {
+  if (set.provisional || set.role === "warmup" || set.role === "drop") return false;
+  return Number.isFinite(set.weight) && externalLoad(set) > 0 && set.reps >= 1;
+}
+
+/**
+ * A home exercise's own history, for its first weight: its own estimate and the
+ * heaviest weight it was lifted at, from its sets in the OWN_HISTORY_WINDOW_WEEKS before
+ * the newest set in `sets` (of any exercise: the evidence's own clock, as the pooled
+ * estimate's halving runs back from its newest session), and when it was last done at
+ * all. App and imported sets count alike. A weight set by hand and not lifted
+ * (`provisional`) is not history: the library reads it only through the pooled
+ * estimate. Worked out once per list of sets and exercise.
+ *
+ * @evidence home-progression
+ */
+export function ownHistoryOf(sets: readonly StrengthSet[], exerciseId: string): OwnHistory {
+  let byExercise = ownCache.get(sets);
+  if (!byExercise) {
+    byExercise = new Map();
+    ownCache.set(sets, byExercise);
+  }
+  const cached = byExercise.get(exerciseId);
+  if (cached) return cached;
+
+  let newest = -Infinity;
+  for (const set of sets) {
+    const t = set.provisional ? NaN : timeOf(set.date);
+    if (t > newest) newest = t;
+  }
+  const since = newest - OWN_HISTORY_WINDOW_WEEKS * WEEK_MS;
+  // Every set of the exercise in the window goes to the estimate (it counts drops by its
+  // own rules and warm-ups for nothing); only loaded normal sets bound the weight.
+  const recent = sets.filter((set) => set.exerciseId === exerciseId && !set.provisional && timeOf(set.date) >= since);
+  const own = sets.filter((set) => set.exerciseId === exerciseId && isLoadedWorkSet(set) && !Number.isNaN(timeOf(set.date)));
+  const inWindow = own.filter((set) => timeOf(set.date) >= since);
+  const result: OwnHistory = {
+    estimate: recent.length > 0 ? pooledLiftEstimate(exerciseId, recent, { ratios: {} }) : null,
+    heaviest: inWindow.length > 0 ? Math.max(...inWindow.map((set) => asLifted(externalLoad(set), exerciseId))) : null,
+    lastDone: own.length > 0 ? Math.max(...own.map((set) => timeOf(set.date))) : null,
+  };
+  byExercise.set(exerciseId, result);
+  return result;
 }

@@ -71,7 +71,7 @@ export const STRENGTH_RULES = {
     status: "active",
     title: "How does a home exercise count toward a barbell lift?",
     summary: "Home exercises convert to the barbell lift by a ratio learned from you",
-    appBehavior: `Each home exercise has a starting ratio to its barbell lift: its estimated max divided by the lift's, counting both dumbbells when you hold one in each hand. ${PRIOR_LIST}. The ratio is then learned from your own sessions, those imported from another app included: a home session and a barbell session of the same lift at most ${R.pairWindowDays} days apart form a pair, and the learned ratio is a weighted average of the starting ratio and your pairs (on a log scale). A starting ratio from a study counts like ${range(studied)} of your pairs and an assumed one like ${range(assumed)}, so a few of your own pairs soon outweigh it. From ${R.minPairsForOwnSpread} pairs on, pairs that disagree with each other widen the ratio's range. The app says how many pairs a ratio rests on.`,
+    appBehavior: `Each home exercise has a starting ratio to its barbell lift: its estimated max divided by the lift's, counting both dumbbells when you hold one in each hand. ${PRIOR_LIST}. The ratio is then learned from your own sessions, those imported from another app included: a home session and a barbell session of the same lift at most ${R.pairWindowDays} days apart form a pair, and the learned ratio is a weighted average of the starting ratio and your pairs (on a log scale). A starting ratio from a study counts like ${range(studied)} of your pairs and an assumed one like ${range(assumed)}, so a few of your own pairs soon outweigh it. From ${R.minPairsForOwnSpread} pairs on, pairs that disagree with each other widen the ratio's range. The app says how many pairs a ratio rests on. A home exercise with no weight of its own and no recent sets of its own starts from the barbell lift's estimate through this ratio, the learned one as soon as there is a pair; with recent sets of its own, those decide instead.`,
     rationale:
       "Lifters handle less weight with dumbbells than with a barbell: in trained men the dumbbell bench press 1RM was about 17% below the barbell bench press, and the standing dumbbell shoulder press about 7% below the standing barbell press. In academy rugby players a rear-foot-elevated split squat 1RM, on one leg, was about half the back squat 1RM. How much less differs between people, so your own sessions become the better guide once there are a few of them.",
     caveat: `Only ${STUDIED_COUNT} of the ${priors.length} pairs have a study, and each is one small study: the bench press (12 trained men), the shoulder press (15 men) and a split squat loaded with a barbell rather than dumbbells (18 rugby players; the half is our reading of their averages). The other starting ratios are assumptions. A ratio between estimated maxes also shifts with rep range and fatigue, and two sessions up to ${R.pairWindowDays} days apart include some real change in strength.`,
@@ -84,6 +84,7 @@ export const STRENGTH_RULES = {
       "src/lib/strength/ratio.ts#pairSessions",
       "src/lib/strength/ratio.ts#learnTransferRatio",
       "src/lib/workout/strength.ts#transferRatioOf",
+      "src/lib/workout/variant.ts#seedVariantWeight",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
     ],
     surfaces: [

@@ -216,33 +216,55 @@ export interface LiftState {
 /** How a home variant's first weight was chosen. */
 export interface VariantSeed {
   /**
-   * How `seedVariantWeight` worked it out. "estimate": the program lift's pooled
-   * strength estimate through the exercise's starting ratio, for the stage's reps (H3).
-   * "ratio": no estimate yet, so the starting ratio times the barbell working weight.
-   * "conversion": an exercise with no starting ratio, by the flat dumbbell conversion
-   * (80% of the barbell weight). "harderVariant": the cap policy moved here from a
-   * variant that had reached the heaviest dumbbell.
+   * How `seedVariantWeight` worked it out. "history": the exercise's own recent
+   * estimate (its sets inside the evidence window, app or imported), for the stage's
+   * reps (F6). "learned": the program lift's pooled strength estimate through the ratio
+   * learned from the lifter's own pairs. "estimate": the pooled estimate through the
+   * exercise's starting ratio (H3). "ratio": no estimate yet, so the starting ratio
+   * times the barbell working weight. "conversion": an exercise with no ratio, by the
+   * flat dumbbell conversion (80% of the barbell weight). "harderVariant": the cap
+   * policy moved here from a variant that had reached the heaviest dumbbell.
    */
-  source: "conversion" | "harderVariant" | "estimate" | "ratio";
+  source: "conversion" | "harderVariant" | "history" | "learned" | "estimate" | "ratio";
   /** The program lift's weight the seed was worked out from, in barbell terms. */
   barbellWeight: number;
   /** The weight the seed asked for when it was more than the heaviest dumbbell. */
   cappedFrom?: number;
   /** For "harderVariant": the variant the cap policy moved on from. */
   fromVariantId?: string;
-  /** For "estimate" and "ratio": the exercise's starting ratio to the program lift. */
+  /** For "learned", "estimate" and "ratio": the exercise's ratio to the program lift. */
   ratio?: number;
-  /** For "estimate": the program lift's pooled strength estimate, lbs. */
+  /** For "learned": how many of the lifter's session pairs the ratio was learned from. */
+  pairs?: number;
+  /** For "learned" and "estimate": the program lift's pooled strength estimate, lbs. */
   estimate?: number;
-  /** For "estimate": the reps per set the weight was worked out for. */
+  /** For "history": the exercise's own estimated max, lbs on the total load. */
+  ownEstimate?: number;
+  /** For "history", "learned" and "estimate": the reps per set the weight was worked out for. */
   targetReps?: number;
   /**
-   * For "estimate": the exercise's latest session imported from another app (its
-   * heaviest working set, as lifted), when the evidence the estimate was worked from
-   * has one. What the first weight is based on, shown instead of "First time". Never
-   * set by the rebuild, which reads the log alone.
+   * For "history": the exercise's own session the estimate came from (its best set, as
+   * lifted), app or imported. What the first weight is based on, shown instead of
+   * "First time".
    */
-  history?: { at: number; weight: number; reps: number; perHand: boolean };
+  history?: {
+    at: number;
+    weight: number;
+    reps: number;
+    perHand: boolean;
+    sessionId?: string;
+    rpe?: number;
+    imported?: true;
+  };
+  /**
+   * For "history", when it held the seed down: the heaviest weight, as lifted, the
+   * exercise was done at inside the evidence window; the seed is that plus one step.
+   */
+  heaviestLifted?: number;
+  /** The seed was held down to `heaviestLifted` plus one dumbbell step. */
+  limitedByHeaviest?: true;
+  /** When the exercise was last done (epoch ms), for a seed not from its own history. */
+  lastDone?: number;
 }
 
 /**

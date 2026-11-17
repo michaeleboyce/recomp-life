@@ -214,15 +214,31 @@ describe("homeWeightLine", () => {
     });
   });
 
-  it("names the imported session a first weight rests on, instead of 'A first time'", () => {
+  it("names the session a first weight from the exercise's own history rests on, instead of 'A first time'", () => {
     const at = new Date(new Date().getFullYear(), 10, 3, 18).getTime();
-    const history = { at, weight: 45, reps: 10, perHand: true };
+    const history = { at, weight: 25, reps: 9, perHand: true };
+    expect(line({ seed: { source: "history", barbellWeight: 190, ownEstimate: 65, targetReps: 3, history } })).toEqual({
+      text: "From your history: last 25 lbs a hand × 9 on Nov 3, an estimated max of 65. Its first weight here is the heaviest for 3 reps, rounded down to 5 lbs.",
+      ruleId: "home-progression",
+    });
+    // Held to one step past the heaviest lifted.
     expect(
-      line({ seed: { source: "estimate", barbellWeight: 190, ratio: 0.5, estimate: 230, targetReps: 3, history } })
+      line({ seed: { source: "history", barbellWeight: 190, ownEstimate: 90, targetReps: 3, history, heaviestLifted: 25, limitedByHeaviest: true } }).text
+    ).toContain("Held to one step past the heaviest you lifted recently, 25 lbs a hand.");
+  });
+
+  it("a seed through the lift's estimate says so, with a learned ratio's pairs, and never names a session", () => {
+    const history = { at: Date.now(), weight: 45, reps: 10, perHand: true };
+    expect(
+      line({ seed: { source: "learned", barbellWeight: 190, ratio: 0.47, pairs: 6, estimate: 230, targetReps: 3, history } })
     ).toEqual({
-      text: "From your history: last 45 lbs a hand × 10 on Nov 3. Its first weight here is from your squat strength estimate, 230, at 0.50 of it, the heaviest for 3 reps, rounded down to 5 lbs.",
+      text: "A first time: from your squat strength estimate, 230, at 0.47 of it, learned from 6 pairs of your sessions, the heaviest for 3 reps, rounded down to 5 lbs.",
       ruleId: "transfer-ratio",
     });
+    const lastDone = new Date(new Date().getFullYear(), 6, 2, 18).getTime();
+    expect(line({ seed: { source: "estimate", barbellWeight: 190, ratio: 0.5, estimate: 230, targetReps: 3, lastDone } }).text).toMatch(
+      /^Last done Jul 2, too long ago to set its weight: from your squat strength estimate, 230, at 0\.50 of it/
+    );
   });
 
   it("at the heaviest dumbbell, names the cap policy's next step", () => {

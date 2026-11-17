@@ -387,4 +387,18 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
       "A set logged at no weight no longer counts as a session's estimate. It had counted as a max of 0, which pulled the lift's estimate down and could bring the first gym weight after time at home down to the empty bar.",
     sources: [],
   },
+  {
+    date: "2026-11-17",
+    ruleId: "home-progression",
+    change:
+      "A home exercise's first weight now comes from its own sets of the last 8 weeks (app or imported) when it has them, never more than one dumbbell step above the heaviest weight lifted in them. It had always come from the barbell lift's estimate, which could plan twice what the exercise was last done at. Today names the session only when it set the weight, and says \"Last done\" instead of \"First time\" for an exercise done before.",
+    sources: [],
+  },
+  {
+    date: "2026-11-17",
+    ruleId: "transfer-ratio",
+    change:
+      "A home exercise with no recent sets of its own now starts from the barbell lift's estimate through the ratio learned from your pairs when there are any. It had always used the starting ratio, and an exercise with no starting ratio used the flat conversion even when pairs gave a ratio.",
+    sources: [],
+  },
 ];

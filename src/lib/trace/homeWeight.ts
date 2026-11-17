@@ -90,10 +90,29 @@ function seedText(variant: VariantState): string {
       const from = seed.fromVariantId?.split("|")[1];
       return `It started here when ${from ? nameOf(from) : "the lighter exercise"} reached the heaviest dumbbell, at a load no lighter.`;
     }
+    case "history":
+      if (seed.ownEstimate != null) {
+        const reps = seed.targetReps != null ? `, the heaviest for ${plural(seed.targetReps, "rep")}` : "";
+        const h = seed.history;
+        const from = h
+          ? `${asLiftedText(h.weight, h.perHand)} × ${h.reps} on ${new Date(h.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+          : "its latest session";
+        const held =
+          seed.limitedByHeaviest && seed.heaviestLifted != null
+            ? ` Held to one step past the heaviest you had lifted, ${asLiftedText(seed.heaviestLifted, variant.perHand)}.`
+            : "";
+        return `It started from its own history: ${from}, an estimated max of ${num(seed.ownEstimate)}${reps}.${held}${capped}`;
+      }
+      break;
+    case "learned":
     case "estimate":
       if (seed.estimate != null && seed.ratio != null) {
         const reps = seed.targetReps != null ? `: the heaviest for ${plural(seed.targetReps, "rep")}` : "";
-        return `It started from your ${lift} strength estimate, ${num(seed.estimate)}, at ${seed.ratio.toFixed(2)} of it${reps}.${capped}`;
+        const basis =
+          seed.source === "learned" && seed.pairs
+            ? `, learned from ${plural(seed.pairs, "pair")} of your sessions`
+            : "";
+        return `It started from your ${lift} strength estimate, ${num(seed.estimate)}, at ${seed.ratio.toFixed(2)} of it${basis}${reps}.${capped}`;
       }
       break;
     case "ratio":

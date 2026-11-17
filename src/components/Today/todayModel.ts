@@ -3,6 +3,7 @@
 import type { EquipmentProfile, Tier, VariantSeed, WorkoutSession } from "@/types";
 import { EXERCISES } from "@/lib/exercises";
 import { isMainLift } from "@/lib/liftNames";
+import { DUMBBELL_LOAD_FACTOR } from "@/lib/dbConversion";
 import { capNextStep, type CapNext } from "@/lib/trace/homeWeight";
 import { formatLbs, shortLiftName } from "./format";
 
@@ -127,17 +128,60 @@ export type LiftReason =
   | { kind: "up" | "down"; change: number; from: number }
   | { kind: "held"; weight: number }
   | { kind: "capped"; weight: number; next: CapNext }
-  /** A first home weight worked out from history imported from another app. */
+  /** A first home weight worked out from the exercise's own recent sessions (app or imported). */
   | { kind: "history"; weight: number; reps: number; perHand: boolean; at: number }
+  /**
+   * A first home weight worked out some other way (`SeedBasis`): from the program lift,
+   * at `ratio`, or converted. `lastDone`: when the exercise was last done, when it was
+   * (too long ago to set its weight); without it, a first time.
+   */
+  | { kind: "seeded"; basis: SeedBasis; lastDone?: number }
   | { kind: "first" };
+
+/** What a first home weight not from the exercise's own history was worked out from. */
+export type SeedBasis =
+  /** The lift's strength estimate through a ratio learned from `pairs` of the lifter's sessions. */
+  | { from: "learned"; lift: string; ratio: number; pairs: number }
+  /** The lift's strength estimate through the starting ratio. */
+  | { from: "estimate"; lift: string; ratio: number }
+  /** The starting ratio times the barbell weight. */
+  | { from: "ratio"; lift: string; ratio: number; barbellWeight: number }
+  /** The flat conversion of the barbell weight. */
+  | { from: "conversion"; lift: string; barbellWeight: number }
+  /** The cap policy moved here from a lighter exercise. */
+  | { from: "harderVariant" };
 
 export interface ReasonEntry {
   exerciseId: string;
   substituteExerciseId?: string;
   tier: Tier;
   weight: number;
-  /** How a first home weight was seeded; its `history` is the imported session it rests on. */
-  seed?: Pick<VariantSeed, "history">;
+  /** How a first home weight was seeded (`seedVariantWeight`). */
+  seed?: Pick<VariantSeed, "source" | "history" | "ratio" | "pairs" | "barbellWeight" | "lastDone">;
+}
+
+/** "Barbell Bench Press" -> "bench press", "Barbell OHP" -> "overhead press": the lift in a sentence. */
+function liftInSentence(liftId: string): string {
+  return displayLiftName(liftId).toLowerCase();
+}
+
+/** What a seed not from the exercise's own history rests on, or null without its numbers. */
+function seedBasis(liftId: string, seed: NonNullable<ReasonEntry["seed"]>): SeedBasis | null {
+  const lift = liftInSentence(liftId);
+  switch (seed.source) {
+    case "learned":
+      return seed.ratio != null ? { from: "learned", lift, ratio: seed.ratio, pairs: seed.pairs ?? 0 } : null;
+    case "estimate":
+      return seed.ratio != null ? { from: "estimate", lift, ratio: seed.ratio } : null;
+    case "ratio":
+      return seed.ratio != null ? { from: "ratio", lift, ratio: seed.ratio, barbellWeight: seed.barbellWeight } : null;
+    case "conversion":
+      return { from: "conversion", lift, barbellWeight: seed.barbellWeight };
+    case "harderVariant":
+      return { from: "harderVariant" };
+    default:
+      return null;
+  }
 }
 
 /**
@@ -179,10 +223,33 @@ export function liftReason(
       from: last,
     };
   }
-  // Never done in the app, but its first weight rests on imported history: say what.
-  const history = entry.substituteExerciseId ? entry.seed?.history : undefined;
-  if (history) return { kind: "history", ...history };
-  return { kind: "first" };
+  // Not done at this tier yet: say what its first weight rests on. Only a seed from the
+  // exercise's own history names a session; "First time" only for an exercise never done.
+  const seed = entry.substituteExerciseId ? entry.seed : undefined;
+  if (!seed) return { kind: "first" };
+  if (seed.source === "history" && seed.history) {
+    const { at, weight, reps, perHand } = seed.history;
+    return { kind: "history", at, weight, reps, perHand };
+  }
+  const basis = seedBasis(entry.exerciseId, seed);
+  if (!basis) return { kind: "first" };
+  return { kind: "seeded", basis, ...(seed.lastDone != null ? { lastDone: seed.lastDone } : {}) };
+}
+
+/** "0.89 of your bench press estimate (20 pairs)": a seed's basis, short. */
+export function seedBasisText(basis: SeedBasis): string {
+  switch (basis.from) {
+    case "learned":
+      return `${basis.ratio.toFixed(2)} of your ${basis.lift} estimate (${basis.pairs} ${basis.pairs === 1 ? "pair" : "pairs"})`;
+    case "estimate":
+      return `${basis.ratio.toFixed(2)} of your ${basis.lift} estimate`;
+    case "ratio":
+      return `${basis.ratio.toFixed(2)} of your ${formatLbs(basis.barbellWeight)} ${basis.lift}`;
+    case "conversion":
+      return `${Math.round(DUMBBELL_LOAD_FACTOR * 100)}% of your ${formatLbs(basis.barbellWeight)} ${basis.lift}`;
+    case "harderVariant":
+      return "harder version, same load";
+  }
 }
 
 /** "Nov 3", or "Nov 3, 2024" when it is not this year. */
@@ -243,6 +310,8 @@ export function reasonText(reason: LiftReason): string {
       return `Held at ${formatLbs(reason.weight)}, your heaviest dumbbell`;
     case "history":
       return `From your history: last ${formatLbs(reason.weight)} × ${reason.reps} on ${historyDay(reason.at)}`;
+    case "seeded":
+      return `${reason.lastDone != null ? `Last done ${historyDay(reason.lastDone)}` : "First time"} · ${seedBasisText(reason.basis)}`;
     case "first":
       return "First time";
   }

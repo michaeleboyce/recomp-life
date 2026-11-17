@@ -112,14 +112,14 @@ describe("liftReason", () => {
     expect(reasonText({ kind: "first" })).toBe("First time");
   });
 
-  it("names the imported session a first home weight rests on, instead of 'First time'", () => {
+  it("names the session a first home weight from the exercise's own history rests on, instead of 'First time'", () => {
     const at = new Date(2025, 10, 3, 18).getTime();
     const home = {
       exerciseId: "bench",
       substituteExerciseId: "db_bench",
       tier: "T1" as const,
       weight: 50,
-      seed: { history: { at, weight: 45, reps: 10, perHand: true } },
+      seed: { source: "history" as const, barbellWeight: 145, history: { at, weight: 45, reps: 10, perHand: true } },
     };
     const reason = liftReason(home, []);
     expect(reason).toEqual({ kind: "history", at, weight: 45, reps: 10, perHand: true });
@@ -133,6 +133,26 @@ describe("liftReason", () => {
     expect(liftReason(home, [done1])).toEqual({ kind: "held", weight: 50 });
     // A barbell lift is never given an imported reason.
     expect(liftReason({ ...home, substituteExerciseId: undefined }, [])).toEqual({ kind: "first" });
+  });
+
+  it("states the basis of a first home weight not from the exercise's own history, with its numbers", () => {
+    const home = { exerciseId: "bench", substituteExerciseId: "db_bench", tier: "T1" as const, weight: 55 };
+    const text = (seed: NonNullable<Parameters<typeof liftReason>[0]["seed"]>) => reasonText(liftReason({ ...home, seed }, []));
+    // Never done anywhere: "First time", and what the weight came from.
+    expect(text({ source: "learned", barbellWeight: 145, ratio: 0.89, pairs: 20 })).toBe(
+      "First time · 0.89 of your bench press estimate (20 pairs)"
+    );
+    expect(text({ source: "estimate", barbellWeight: 145, ratio: 0.83 })).toBe("First time · 0.83 of your bench press estimate");
+    expect(text({ source: "ratio", barbellWeight: 145, ratio: 0.83 })).toBe("First time · 0.83 of your 145 bench press");
+    expect(text({ source: "conversion", barbellWeight: 145 })).toBe("First time · 80% of your 145 bench press");
+    // Done before, too long ago to set its weight: when, never "First time" or "From your history".
+    const lastDone = new Date(2025, 7, 2, 18).getTime();
+    const old = text({ source: "estimate", barbellWeight: 145, ratio: 0.83, lastDone });
+    expect(old).toBe("Last done Aug 2, 2025 · 0.83 of your bench press estimate");
+    // A history object on a seed from another source is never shown as history.
+    expect(
+      liftReason({ ...home, seed: { source: "estimate", barbellWeight: 145, ratio: 0.83, history: { at: lastDone, weight: 45, reps: 10, perHand: true } } }, []).kind
+    ).toBe("seeded");
   });
 
   it("compares with the newest finished workout that had the lift", () => {

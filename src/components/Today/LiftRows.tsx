@@ -74,6 +74,7 @@ function Reason({ reason }: { reason: LiftReason }) {
     case "capped":
       return <>Held at {formatLbs(reason.weight)}, your heaviest dumbbell</>;
     case "history":
+    case "seeded":
       return <>{reasonText(reason)}</>;
     case "first":
       return <>First time</>;

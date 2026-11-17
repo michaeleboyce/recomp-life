@@ -24,6 +24,7 @@ import {
   type EvaluateVariantInput,
   type VariantSeedInput,
 } from "./variant";
+import { OWN_HISTORY_WINDOW_WEEKS, pooledEstimateOf, transferRatioOf } from "./strength";
 
 const NOW = new Date("2026-11-15T18:00:00Z");
 const squat = (overrides: Partial<LiftState> = {}): LiftState => ({
@@ -207,6 +208,157 @@ describe("seeding (H3): the pooled estimate through the exercise's starting rati
   it("is null for a lift that works at home", () => {
     const row = { ...squat(), exerciseId: "db_row", t3Weight: 35 };
     expect(chooseHomeVariant({ liftId: "db_row", tier: "T3", liftState: row, variantStates: [], equipment: EQUIPMENT })).toBeNull();
+  });
+});
+
+/** One imported session of a home exercise: `count` sets at `weight` (as lifted), the last `lastReps`. */
+function ownSession(
+  exerciseId: string,
+  weight: number,
+  reps: number,
+  date: string,
+  extra: Partial<StrengthSet> = {},
+  count = 3
+): StrengthSet[] {
+  const sessionId = `own:${exerciseId}:${date}`;
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${sessionId}:${i}`,
+    sessionId,
+    exerciseId,
+    weight,
+    perHand: EXERCISES[exerciseId]?.grip === "per_hand",
+    reps,
+    rpe: null,
+    role: "working" as const,
+    tier: "T1" as const,
+    isAMRAP: true,
+    date: new Date(new Date(date).getTime() + i * 1000),
+    imported: true as const,
+    ...extra,
+  }));
+}
+
+describe("seeding (F6): the exercise's own history first", () => {
+  // The barbell squat says 253 (200 x 8 on Nov 1): through the split squat's 0.5, about
+  // 55 a hand for 5x3. The split squat itself was 25 x 9 on Nov 3: its own estimate is
+  // 50 x (1 + 9/30) = 65 in all.
+  const barbell = barbellSquat(200, 8);
+  const bss = ownSession("bulgarian_split_squat", 25, 9, "2026-11-03T18:00:00Z");
+  const sets = [...barbell, ...bss];
+  const seedFor = (exerciseId: string, tier: "T1" | "T2" | "T3", targetReps: number, strengthSets: StrengthSet[], extra: Partial<VariantSeedInput> = {}) =>
+    seedVariantWeight({ liftId: "squat", exerciseId, tier, barbellWeight: 200, targetReps, equipment: EQUIPMENT, strengthSets, ...extra });
+
+  it("follows its own sets, not the barbell estimate, for T1, T2 and T3 (per hand)", () => {
+    // The barbell estimate alone would give 55 a hand.
+    expect(seedFor("bulgarian_split_squat", "T1", 3, barbell).weight).toBe(55);
+    // 65 / 1.1 = 59.1 in all, 29.5 a hand, rounded down: 25.
+    expect(seedFor("bulgarian_split_squat", "T1", 3, sets)).toEqual({
+      weight: 25,
+      source: "history",
+      ownEstimate: 65,
+      session: { at: bss[2].date.valueOf(), sessionId: bss[0].sessionId, weight: 25, reps: 9, perHand: true, rpe: null, imported: true },
+    });
+    // T2 3x10: 65 / (1 + 10/30) = 48.75 in all, 24.4 a hand: 20. T3 3x15: 65 / 1.5 = 43.3, 21.7 a hand: 20.
+    expect(seedFor("bulgarian_split_squat", "T2", 10, sets)).toMatchObject({ weight: 20, source: "history" });
+    expect(seedFor("bulgarian_split_squat", "T3", 15, sets)).toMatchObject({ weight: 20, source: "history" });
+  });
+
+  it("follows its own sets for an exercise held in both hands", () => {
+    // Goblet squat 50 x 9: 65 in one dumbbell; for 3 reps 59.1: 55. The barbell estimate
+    // through 0.45 asks 103.5, capped at 80.
+    const goblet = ownSession("goblet_squat", 50, 9, "2026-11-03T18:00:00Z");
+    expect(seedFor("goblet_squat", "T1", 3, barbell)).toMatchObject({ weight: 80, source: "estimate" });
+    expect(seedFor("goblet_squat", "T1", 3, [...barbell, ...goblet])).toMatchObject({ weight: 55, source: "history", ownEstimate: 65 });
+    expect(seedFor("goblet_squat", "T2", 10, [...barbell, ...goblet])).toMatchObject({ weight: 45, source: "history" });
+  });
+
+  it("credits the logged effort as the strength library does", () => {
+    // RPE 8 leaves 2 reps: 50 x (1 + 11/30) = 68.3; for 3 reps 62.1 in all, 31 a hand: 30.
+    const easier = ownSession("bulgarian_split_squat", 25, 9, "2026-11-03T18:00:00Z", { rpe: 8 });
+    expect(seedFor("bulgarian_split_squat", "T1", 3, [...barbell, ...easier])).toMatchObject({ weight: 30, ownEstimate: 68 });
+  });
+
+  it("never seeds more than one dumbbell step above the heaviest weight it was lifted at", () => {
+    // 25 x 10 at RPE 6 (4 reps left): 50 x (1 + 14/30) = 73.3; for 1 rep (10x1) 71 in all,
+    // 35.5 a hand: 35. The heaviest lifted is 25, so at most 30.
+    const easy = ownSession("bulgarian_split_squat", 25, 10, "2026-11-03T18:00:00Z", { rpe: 6 });
+    expect(seedFor("bulgarian_split_squat", "T1", 1, [...barbell, ...easy])).toMatchObject({
+      weight: 30,
+      source: "history",
+      heaviestLifted: 25,
+      limitedByHeaviest: true,
+    });
+    // A heavier set inside the window raises the limit.
+    const heavier = ownSession("bulgarian_split_squat", 30, 3, "2026-10-20T18:00:00Z", { isAMRAP: false, tier: "T2" });
+    expect(seedFor("bulgarian_split_squat", "T1", 1, [...barbell, ...easy, ...heavier])).toMatchObject({ weight: 35 });
+    expect(seedFor("bulgarian_split_squat", "T1", 1, [...barbell, ...easy, ...heavier]).limitedByHeaviest).toBeUndefined();
+  });
+
+  it("caps at the heaviest dumbbell and says what was asked", () => {
+    const strong = ownSession("bulgarian_split_squat", 80, 9, "2026-11-03T18:00:00Z");
+    // 160 x 1.3 = 208; for 3 reps 189 in all, 94.5 a hand: 90, held to 80 + 5 = 85, more than the heaviest dumbbell.
+    expect(seedFor("bulgarian_split_squat", "T1", 3, [...barbell, ...strong])).toMatchObject({ weight: 80, cappedFrom: 85, source: "history" });
+  });
+
+  it("falls back to the lift's estimate when its own sets are older than the window", () => {
+    const old = new Date(new Date("2026-11-01T18:00:00Z").getTime() - (OWN_HISTORY_WINDOW_WEEKS * 7 + 1) * 86_400_000);
+    const stale = ownSession("bulgarian_split_squat", 25, 9, old.toISOString());
+    const seed = seedFor("bulgarian_split_squat", "T1", 3, [...barbell, ...stale]);
+    expect(seed).toMatchObject({ weight: 55, source: "estimate", ratio: 0.5, estimate: 253, lastDone: stale[2].date.valueOf() });
+    expect(seed.session).toBeUndefined();
+    // Just inside the window, it counts.
+    const recent = new Date(new Date("2026-11-01T18:00:00Z").getTime() - (OWN_HISTORY_WINDOW_WEEKS * 7 - 1) * 86_400_000);
+    expect(seedFor("bulgarian_split_squat", "T1", 3, [...barbell, ...ownSession("bulgarian_split_squat", 25, 9, recent.toISOString())]).source).toBe("history");
+  });
+
+  it("uses the learned ratio when there are pairs and no own history in the window", () => {
+    // A pair 70 days back (split squat 40 x 8 beside the squat at 200 x 8), and today's squat.
+    const pairDay = new Date(new Date("2026-11-01T18:00:00Z").getTime() - 70 * 86_400_000);
+    const pair = [
+      ...ownSession("bulgarian_split_squat", 40, 8, pairDay.toISOString()),
+      ...barbellSquat(200, 8, new Date(pairDay.getTime() + 86_400_000).toISOString()).map((s) => ({ ...s, id: `p${s.id}`, sessionId: "pair" })),
+    ];
+    const all = [...pair, ...barbell];
+    const learned = transferRatioOf(all, "squat", "bulgarian_split_squat")!;
+    expect(learned).toMatchObject({ basis: "learned", pairs: 1 });
+    const seed = seedFor("bulgarian_split_squat", "T1", 3, all);
+    expect(seed).toMatchObject({ source: "learned", ratio: learned.ratio, pairs: 1 });
+    expect(seed.estimate).toBe(pooledEstimateOf(all, "squat")!.value);
+    const wanted = Math.floor(asLifted((seed.estimate! * learned.ratio) / 1.1, "bulgarian_split_squat") / 5) * 5;
+    expect(seed.weight).toBe(wanted);
+  });
+
+  it("a T3 dumbbell row with no starting ratio follows its own sets instead of the flat conversion", () => {
+    const row = ownSession("db_row", 50, 12, "2026-11-03T18:00:00Z", { reps: 10 });
+    const seed = (strengthSets?: StrengthSet[]) =>
+      seedVariantWeight({ liftId: "lat_pulldown", exerciseId: "db_row", tier: "T3", barbellWeight: 100, targetReps: 15, equipment: EQUIPMENT, ...(strengthSets ? { strengthSets } : {}) });
+    expect(seed().source).toBe("conversion");
+    // 100 x (1 + 10/30) = 133.3 in all; for 15 reps 88.9, 44.4 a hand: 40.
+    expect(seed(row)).toMatchObject({ weight: 40, source: "history", ownEstimate: 133 });
+  });
+
+  it("a weight set by hand is not its history, and a hand-set weight wins over any seed", () => {
+    const handSet = variant({ weight: 45, current: true, plannedWeight: 55, setByHandAt: new Date("2026-11-04T10:00:00Z") });
+    const targets = targetStrengthSets([handSet]);
+    expect(seedFor("bulgarian_split_squat", "T1", 3, [...barbell, ...targets]).source).not.toBe("history");
+    const choice = chooseHomeVariant({ liftId: "squat", tier: "T1", liftState: squat({ t1Weight: 200 }), variantStates: [handSet], equipment: EQUIPMENT, strengthSets: [...sets, ...targets] })!;
+    expect(choice).toMatchObject({ weight: 45, seeded: false });
+  });
+
+  it("seedVariantState records the basis and the session it came from", () => {
+    const state = seedVariantState({ liftId: "squat", exerciseId: "bulgarian_split_squat", tier: "T1", liftState: squat({ t1Weight: 200 }), equipment: EQUIPMENT, strengthSets: sets });
+    expect(state.weight).toBe(25);
+    expect(state.seed).toEqual({
+      source: "history",
+      barbellWeight: 200,
+      ownEstimate: 65,
+      targetReps: 3,
+      history: { at: bss[2].date.valueOf(), weight: 25, reps: 9, perHand: true, sessionId: bss[0].sessionId, imported: true },
+    });
+    // From the lift's estimate, no session is named.
+    const fromLift = seedVariantState({ liftId: "squat", exerciseId: "bulgarian_split_squat", tier: "T1", liftState: squat({ t1Weight: 200 }), equipment: EQUIPMENT, strengthSets: barbell });
+    expect(fromLift.seed.history).toBeUndefined();
+    expect(fromLift.seed.lastDone).toBeUndefined();
   });
 });
 

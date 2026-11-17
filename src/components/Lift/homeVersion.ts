@@ -312,23 +312,35 @@ export function homeWeightLine(
         reentry.rule === "cap" ? "Both are more than your heaviest dumbbell, so it stops there." : "The smaller decides."
       }`
     );
-  } else if (seed && (seed.source === "estimate" || seed.source === "ratio") && seed.ratio != null) {
+  } else if (seed?.source === "history" && seed.ownEstimate != null && seed.history) {
+    // Its own recent sessions set the weight: say which, and the numbers.
+    const h = seed.history;
+    const held =
+      seed.limitedByHeaviest && seed.heaviestLifted != null
+        ? ` Held to one step past the heaviest you lifted recently, ${lbsText(seed.heaviestLifted, next.perHand)}.`
+        : "";
+    parts.push(
+      `From your history: last ${lbsText(h.weight, h.perHand)} × ${h.reps} on ${historyDay(h.at)}, an estimated max of ${seed.ownEstimate}. Its first weight here is the heaviest for ${plural(seed.targetReps ?? next.reps, "rep")}, rounded down to ${step} lbs.${held}`
+    );
+  } else if (
+    seed &&
+    (seed.source === "learned" || seed.source === "estimate" || seed.source === "ratio") &&
+    seed.ratio != null
+  ) {
     ruleId = "transfer-ratio";
     const r = seed.ratio.toFixed(2);
-    const fromEstimate = `from your ${liftShort} strength estimate, ${seed.estimate}, at ${r} of it, the heaviest for ${plural(seed.targetReps ?? next.reps, "rep")}, rounded down to ${step} lbs.`;
-    const history = seed.source === "estimate" ? seed.history : undefined;
+    const learned = seed.source === "learned" && seed.pairs ? `, learned from ${plural(seed.pairs, "pair")} of your sessions` : "";
+    const fromEstimate = `from your ${liftShort} strength estimate, ${seed.estimate}, at ${r} of it${learned}, the heaviest for ${plural(seed.targetReps ?? next.reps, "rep")}, rounded down to ${step} lbs.`;
+    const lead = seed.lastDone != null ? `Last done ${historyDay(seed.lastDone)}, too long ago to set its weight` : "A first time";
     parts.push(
-      history && seed.estimate != null
-        ? // New to the app but not to the lifter: say what the weight rests on.
-          `From your history: last ${lbsText(history.weight, history.perHand)} × ${history.reps} on ${historyDay(history.at)}. Its first weight here is ${fromEstimate}`
-        : seed.source === "estimate" && seed.estimate != null
-          ? `A first time: ${fromEstimate}`
-          : `A first time: ${r} of your ${seed.barbellWeight} lbs barbell ${liftShort}, ${next.perHand ? "split between two dumbbells" : "in one dumbbell"}, rounded to ${step} lbs.`
+      seed.source !== "ratio" && seed.estimate != null
+        ? `${lead}: ${fromEstimate}`
+        : `${lead}: ${r} of your ${seed.barbellWeight} lbs barbell ${liftShort}, ${next.perHand ? "split between two dumbbells" : "in one dumbbell"}, rounded to ${step} lbs.`
     );
   } else if (seed) {
     ruleId = "dumbbell-conversion";
     parts.push(
-      `A first time: ${Math.round(DUMBBELL_LOAD_FACTOR * 100)}% of your ${seed.barbellWeight} lbs barbell ${liftShort}, ${next.perHand ? "split between two dumbbells" : "in one dumbbell"}, rounded to ${step} lbs.`
+      `${seed.lastDone != null ? `Last done ${historyDay(seed.lastDone)}, too long ago to set its weight` : "A first time"}: ${Math.round(DUMBBELL_LOAD_FACTOR * 100)}% of your ${seed.barbellWeight} lbs barbell ${liftShort}, ${next.perHand ? "split between two dumbbells" : "in one dumbbell"}, rounded to ${step} lbs.`
     );
   } else {
     const passes = next.variant?.passesSinceGym ?? 0;
