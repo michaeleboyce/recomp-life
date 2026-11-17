@@ -30,17 +30,35 @@ export async function readNextSetPlans(): Promise<Record<string, NextSetPlan>> {
 }
 
 /**
- * Removes the set plans a finished session used (it logged that exercise at that tier),
- * and any stored plan too damaged to use, which would otherwise stop the workout from
- * finishing. Joins the caller's transaction, which must include `db.userProfile`;
- * writes nothing when nothing is removed or there is no profile.
+ * True when `plan` was set after the session started: the session was planned without
+ * it, so it is still for the next one. An unreadable time counts as before.
  */
-export async function spendNextSetPlans(session: Pick<WorkoutSession, "sets">): Promise<void> {
+function setAfterStart(plan: NextSetPlan, startedAt: Date | string): boolean {
+  const set = Date.parse(plan.createdAt);
+  const started = new Date(startedAt).getTime();
+  return Number.isFinite(set) && Number.isFinite(started) && set > started;
+}
+
+/**
+ * Removes the set plans a finished session used (it logged that exercise at that tier,
+ * and the plan was there when it started), and any stored plan too damaged to use,
+ * which would otherwise stop the workout from finishing. Joins the caller's
+ * transaction, which must include `db.userProfile`; writes nothing when nothing is
+ * removed or there is no profile.
+ */
+export async function spendNextSetPlans(
+  session: Pick<WorkoutSession, "sets" | "startedAt">
+): Promise<void> {
   const profile = await db.userProfile.toCollection().first();
   const stored: unknown = profile?.settings.nextSetPlans;
   if (!profile || stored === undefined) return;
   const usable = sanitizeNextSetPlans(stored) ?? {};
-  const left = consumeNextSetPlans(usable, session);
+  const kept: Record<string, NextSetPlan> = {};
+  const spendable: Record<string, NextSetPlan> = {};
+  for (const [key, plan] of Object.entries(usable)) {
+    (setAfterStart(plan, session.startedAt) ? kept : spendable)[key] = plan;
+  }
+  const left = { ...consumeNextSetPlans(spendable, session), ...kept };
   const before = typeof stored === "object" && stored !== null ? Object.keys(stored).length : -1;
   if (Object.keys(left).length === before) return;
   await writeSettings(profile, { ...profile.settings, nextSetPlans: left });
