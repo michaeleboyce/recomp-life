@@ -421,7 +421,7 @@ export function targetStrengthSets(variantStates: readonly VariantState[]): Stre
   return out;
 }
 
-/** The note on a change that puts a home exercise back on the plan's weight. */
+/** The note on a manual change that puts a home exercise or a barbell tier back on the plan's weight. */
 export const BACK_TO_PLAN_NOTE = "Back to the plan's weight";
 
 /**
