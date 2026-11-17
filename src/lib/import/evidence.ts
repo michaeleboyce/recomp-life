@@ -10,8 +10,15 @@
  * of the lift and halves every session's weight for each STRENGTH_POOLING
  * .evidenceHalfLifeDays it is older than the newest one pooled, so a session years old
  * informs the trend but not next week's weight.
+ *
+ * What a set's exported name maps to is worked out when it is read: a choice remembered
+ * since the import (`overrides`, the import screen's) wins over the mapping stored with
+ * the set at import time, so remapping a name changes the evidence without importing
+ * the file again.
  */
 import { EXERCISES } from "@/lib/exercises";
+import { applyOverrides } from "@/lib/import/mapping";
+import type { MappingOverrides } from "@/lib/import/mapping/types";
 import { isMuscleId } from "@/lib/muscles";
 import { MUSCLE_WEIGHTS, volumeCredits, type StrengthSet, type StrengthSetRole } from "@/lib/strength";
 import type { ImportedSessionRecord, ImportedSetRecord, MuscleGroupVolume, MuscleId } from "@/types";
@@ -57,6 +64,31 @@ export function liftedWeight(set: Pick<ImportedSetRecord, "weightPerImplementLb"
 
 const isLive = (session: Pick<ImportedSessionRecord, "deletedAt">) => session.deletedAt == null;
 
+/** What an imported set reads as now: a library exercise, or muscles only. */
+interface ResolvedSet {
+  exerciseId: string | null;
+  /** Muscles of a name kept under its own name (guessed at import, or chosen since). */
+  muscles: { primary: MuscleId[]; secondary: MuscleId[] } | null;
+}
+
+/**
+ * The mapping of an imported set's name as of now: a remembered choice for the name
+ * (`applyOverrides`) when there is one, else the mapping stored with the set.
+ */
+export function resolveImportedSet(
+  set: Pick<ImportedSetRecord, "exerciseName" | "mappedExerciseId" | "muscles">,
+  overrides?: MappingOverrides
+): ResolvedSet {
+  const chosen = applyOverrides(set.exerciseName, overrides);
+  if (chosen?.kind === "mapped") return { exerciseId: chosen.exerciseId, muscles: null };
+  if (chosen?.kind === "custom") {
+    return { exerciseId: null, muscles: chosen.muscles.primary.length > 0 ? chosen.muscles : null };
+  }
+  if (set.mappedExerciseId && EXERCISES[set.mappedExerciseId]) return { exerciseId: set.mappedExerciseId, muscles: null };
+  const primary = (set.muscles ?? []).filter(isMuscleId);
+  return { exerciseId: null, muscles: primary.length > 0 ? { primary, secondary: [] } : null };
+}
+
 function sessionTime(session: Pick<ImportedSessionRecord, "startedAt">): number {
   return new Date(session.startedAt).getTime();
 }
@@ -76,14 +108,18 @@ function sessionTime(session: Pick<ImportedSessionRecord, "startedAt">): number 
  *   kind (T1, as many reps as possible), and the library's rep limits still apply. Sets
  *   with no load (bodyweight, assistance, timed holds) give no estimate.
  * - Each set is a second after the one before it, from the session's start.
+ * - The name's mapping is the one in force now (`resolveImportedSet` with `overrides`).
  */
-export function importedSessionStrengthSets(session: ImportedSessionRecord): StrengthSet[] {
+export function importedSessionStrengthSets(
+  session: ImportedSessionRecord,
+  overrides?: MappingOverrides
+): StrengthSet[] {
   const start = sessionTime(session);
   if (!Number.isFinite(start)) return [];
   const out: StrengthSet[] = [];
   const lastByExercise = new Map<string, string>();
   session.sets.forEach((set, index) => {
-    const exerciseId = set.mappedExerciseId;
+    const exerciseId = resolveImportedSet(set, overrides).exerciseId;
     if (!exerciseId || !EXERCISES[exerciseId]) return;
     const weight = liftedWeight(set);
     const reps = set.reps ?? 0;
@@ -109,9 +145,12 @@ export function importedSessionStrengthSets(session: ImportedSessionRecord): Str
   return out;
 }
 
-/** Every live imported session's sets as strength evidence. */
-export function importedStrengthSets(sessions: readonly ImportedSessionRecord[]): StrengthSet[] {
-  return sessions.filter(isLive).flatMap(importedSessionStrengthSets);
+/** Every live imported session's sets as strength evidence, mapped as of now (`overrides`). */
+export function importedStrengthSets(
+  sessions: readonly ImportedSessionRecord[],
+  overrides?: MappingOverrides
+): StrengthSet[] {
+  return sessions.filter(isLive).flatMap((session) => importedSessionStrengthSets(session, overrides));
 }
 
 /** One imported set as muscle work. */
@@ -125,20 +164,23 @@ export interface ImportedMuscleSet {
   credit: number;
 }
 
-function musclesOf(set: ImportedSetRecord): { primary: MuscleId[]; secondary: MuscleId[] } | null {
-  const exercise = set.mappedExerciseId ? EXERCISES[set.mappedExerciseId] : undefined;
+function musclesOf(set: ImportedSetRecord, overrides?: MappingOverrides): { primary: MuscleId[]; secondary: MuscleId[] } | null {
+  const resolved = resolveImportedSet(set, overrides);
+  const exercise = resolved.exerciseId ? EXERCISES[resolved.exerciseId] : undefined;
   if (exercise) return { primary: exercise.primaryMuscles, secondary: exercise.secondaryMuscles };
-  const primary = (set.muscles ?? []).filter(isMuscleId);
-  return primary.length > 0 ? { primary, secondary: [] } : null;
+  return resolved.muscles;
 }
 
 /**
  * Every set of the live imported sessions that works a known muscle: a mapped exercise
  * by its library muscles, a name kept under its own name by its guessed or chosen
  * muscles (as primary). Names with no muscles are left out. Drops count as the strength
- * library counts them for volume (`volumeCredits`).
+ * library counts them for volume (`volumeCredits`). Names are mapped as of now (`overrides`).
  */
-export function importedMuscleSets(sessions: readonly ImportedSessionRecord[]): ImportedMuscleSet[] {
+export function importedMuscleSets(
+  sessions: readonly ImportedSessionRecord[],
+  overrides?: MappingOverrides
+): ImportedMuscleSet[] {
   const out: ImportedMuscleSet[] = [];
   for (const session of sessions) {
     if (!isLive(session)) continue;
@@ -148,7 +190,7 @@ export function importedMuscleSets(sessions: readonly ImportedSessionRecord[]): 
     const pseudo: StrengthSet[] = [];
     const lastByName = new Map<string, string>();
     session.sets.forEach((set, index) => {
-      const key = set.mappedExerciseId ?? `name:${set.exerciseName}`;
+      const key = resolveImportedSet(set, overrides).exerciseId ?? `name:${set.exerciseName}`;
       const previous = lastByName.get(key);
       pseudo.push({
         id: set.id,
@@ -167,7 +209,7 @@ export function importedMuscleSets(sessions: readonly ImportedSessionRecord[]): 
     });
     const credits = volumeCredits(pseudo);
     session.sets.forEach((set, index) => {
-      const muscles = musclesOf(set);
+      const muscles = musclesOf(set, overrides);
       if (!muscles) return;
       out.push({
         id: set.id,
@@ -192,10 +234,11 @@ export type MuscleValues = Partial<Record<MuscleId, number>>;
 export function importedMuscleLoad(
   sessions: readonly ImportedSessionRecord[],
   from: Date,
-  to: Date
+  to: Date,
+  overrides?: MappingOverrides
 ): MuscleValues {
   const load: MuscleValues = {};
-  for (const set of importedMuscleSets(sessionsIn(sessions, from, to))) {
+  for (const set of importedMuscleSets(sessionsIn(sessions, from, to), overrides)) {
     if (set.credit <= 0) continue;
     for (const m of set.primary) load[m] = (load[m] ?? 0) + set.credit * MUSCLE_WEIGHTS.primary;
     for (const m of set.secondary) load[m] = (load[m] ?? 0) + set.credit * MUSCLE_WEIGHTS.secondary;
@@ -219,13 +262,14 @@ export function addImportedVolume(
   volume: Readonly<Record<string, MuscleGroupVolume>>,
   sessions: readonly ImportedSessionRecord[],
   from: Date,
-  to: Date
+  to: Date,
+  overrides?: MappingOverrides
 ): Record<string, MuscleGroupVolume> {
   const out: Record<string, MuscleGroupVolume> = Object.fromEntries(
     Object.entries(volume).map(([muscle, v]) => [muscle, { ...v }])
   );
   const add = (muscle: MuscleId) => (out[muscle] ??= { directSets: 0, indirectSets: 0, totalFractional: 0 });
-  for (const set of importedMuscleSets(sessionsIn(sessions, from, to))) {
+  for (const set of importedMuscleSets(sessionsIn(sessions, from, to), overrides)) {
     if (set.credit <= 0) continue;
     for (const m of set.primary) {
       const v = add(m);
@@ -242,10 +286,13 @@ export function addImportedVolume(
 }
 
 /** When each muscle was last worked by an imported set that counts (not a warm-up): the session's start. */
-export function importedMuscleLastTrained(sessions: readonly ImportedSessionRecord[]): Partial<Record<MuscleId, Date>> {
+export function importedMuscleLastTrained(
+  sessions: readonly ImportedSessionRecord[],
+  overrides?: MappingOverrides
+): Partial<Record<MuscleId, Date>> {
   const last: Partial<Record<MuscleId, Date>> = {};
   const startById = new Map(sessions.map((s) => [s.id, sessionTime(s)]));
-  for (const set of importedMuscleSets(sessions)) {
+  for (const set of importedMuscleSets(sessions, overrides)) {
     if (set.credit <= 0) continue;
     const when = startById.get(set.sessionId) ?? set.date.getTime();
     for (const m of [...set.primary, ...set.secondary]) {

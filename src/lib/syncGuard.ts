@@ -6,7 +6,16 @@ import { getTableColumns, getTableName, is } from 'drizzle-orm';
 import { PgTable } from 'drizzle-orm/pg-core';
 import * as schema from '@/db/schema';
 import { SYNC_REGISTRY, PROFILE_ID, type SyncTableDef } from '@/lib/sync/registry';
-import { MAX_CLOCK_SKEW_MS, type WireRow } from '@/lib/sync/wire';
+import { MAX_CLOCK_SKEW_MS, encodePullCursor, type PullCursor, type WireRow } from '@/lib/sync/wire';
+
+/**
+ * The column holding the server's own clock (epoch ms) when it last wrote a row. Set
+ * by `toPostgresRow` on every write; never accepted from or sent to a device. Pull
+ * pages, their cursors and `since` follow it, not the device's `updated_at`: an edit
+ * made offline keeps its old `updated_at` but is stamped when it reaches the server,
+ * so every other device's next pull still finds it.
+ */
+export const SERVER_STAMP_COLUMN = 'server_updated_at';
 
 /**
  * The shortest SYNC_SECRET the guard should accept.
@@ -100,9 +109,10 @@ function buildInfo(def: SyncTableDef): SyncTableInfo {
   const mappedTargets = new Set(Object.values(def.columns));
   const fieldToColumn = new Map<string, string>(Object.entries(def.columns));
   // An unmapped client field keeps its name, so every column that is not the target
-  // of a mapping is reachable under its own name.
+  // of a mapping is reachable under its own name. The server write stamp is not a
+  // client field at all.
   for (const column of columns) {
-    if (!mappedTargets.has(column)) fieldToColumn.set(column, column);
+    if (!mappedTargets.has(column) && column !== SERVER_STAMP_COLUMN) fieldToColumn.set(column, column);
   }
   const columnToField = new Map<string, string>();
   for (const [field, column] of fieldToColumn) columnToField.set(column, field);
@@ -143,7 +153,8 @@ export function findUnknownFields(table: string, row: WireRow): string[] {
  * server forever. `updatedAt`
  * defaults to the server clock and is clamped to it when the client's clock runs more
  * than MAX_CLOCK_SKEW_MS ahead, so one bad clock cannot win every future conflict.
- * The profile always gets the fixed PROFILE_ID, so two devices share one row.
+ * The profile always gets the fixed PROFILE_ID, so two devices share one row. The
+ * server write stamp (SERVER_STAMP_COLUMN) is always `serverNow`.
  *
  * Unknown fields are passed through under their own name; reject them first with
  * `prepareBatch` / `findUnknownFields` (column names are interpolated into SQL).
@@ -174,6 +185,7 @@ export function toPostgresRow(table: string, row: WireRow, serverNow: number): P
     result.client_id = PROFILE_ID;
   }
   result.synced = true;
+  result[SERVER_STAMP_COLUMN] = serverNow;
   return result;
 }
 
@@ -235,9 +247,80 @@ export function buildUpsert(table: string, row: PgRow): { text: string; values: 
   };
 }
 
-/** The query that reads every row of a table for pull, soft-deleted rows included. */
-export function buildSelectAll(table: string): string {
-  return `SELECT * FROM "${getSyncTableInfo(table).def.pgName}"`;
+/** Where one pull page starts and how many rows it reads. */
+export interface PullPageQuery {
+  /** Only rows the server wrote at or after this stamp (epoch ms). */
+  since?: number;
+  /** Only rows strictly after this one, in server write order. */
+  cursor?: PullCursor;
+  limit: number;
+}
+
+/**
+ * The query for one pull page: rows in server write order (SERVER_STAMP_COLUMN, then
+ * client_id, a total order), soft-deleted rows included, from `since` and after
+ * `cursor`, at most `limit`. Keyset paging: a row written while a pull is under way
+ * gets a later stamp, so it moves behind the cursor and a later page still reads it.
+ * Every value is a parameter.
+ */
+export function buildSelectPage(table: string, query: PullPageQuery): { text: string; values: unknown[] } {
+  const { pgName } = getSyncTableInfo(table).def;
+  if (!Number.isInteger(query.limit) || query.limit < 1) {
+    throw new Error(`Invalid pull page size: ${query.limit}`);
+  }
+  const values: unknown[] = [];
+  const where: string[] = [];
+  if (query.since !== undefined) {
+    values.push(query.since);
+    where.push(`"${SERVER_STAMP_COLUMN}" >= $${values.length}::bigint`);
+  }
+  if (query.cursor) {
+    values.push(query.cursor.stamp, query.cursor.clientId);
+    const stampAt = values.length - 1;
+    where.push(`("${SERVER_STAMP_COLUMN}", "client_id") > ($${stampAt}::bigint, $${stampAt + 1}::text)`);
+  }
+  const filter = where.length > 0 ? ` WHERE ${where.join(' AND ')}` : '';
+  return {
+    text: `SELECT * FROM "${pgName}"${filter} ORDER BY "${SERVER_STAMP_COLUMN}", "client_id" LIMIT ${query.limit}`,
+    values,
+  };
+}
+
+/**
+ * Turns the rows one page query returned (at most `maxRows`, in server write order)
+ * into the page sent back: wire rows up to about `maxBytes` of JSON (always at least
+ * one), and the cursor of the last row sent when more may follow (the page was cut
+ * short by size, or the query filled `maxRows`), else null.
+ */
+export function pagePullRows(
+  table: string,
+  pgRows: PgRow[],
+  limits: { maxRows: number; maxBytes: number }
+): { rows: WireRow[]; nextCursor: string | null } {
+  const rows: WireRow[] = [];
+  let bytes = 0;
+  let last: PgRow | undefined;
+  let cut = false;
+  for (const pgRow of pgRows.slice(0, limits.maxRows)) {
+    const wire = fromPostgresRow(table, pgRow);
+    const size = Buffer.byteLength(JSON.stringify(wire), 'utf8');
+    if (rows.length > 0 && bytes + size > limits.maxBytes) {
+      cut = true;
+      break;
+    }
+    rows.push(wire);
+    bytes += size;
+    last = pgRow;
+  }
+  const more = cut || pgRows.length >= limits.maxRows;
+  if (!more || !last) return { rows, nextCursor: null };
+  return {
+    rows,
+    nextCursor: encodePullCursor({
+      stamp: Number(last[SERVER_STAMP_COLUMN] ?? 0),
+      clientId: String(last.client_id),
+    }),
+  };
 }
 
 function toStampNumber(value: unknown): unknown {
@@ -249,12 +332,14 @@ function toStampNumber(value: unknown): unknown {
 /**
  * Turns a row read from Postgres into a wire row: columns become client fields (the
  * reverse of the registry map), and bigint stamps, which the driver returns as
- * strings, become numbers (null stays null). JSON columns already arrive parsed.
+ * strings, become numbers (null stays null). JSON columns already arrive parsed. The
+ * server write stamp stays on the server.
  */
 export function fromPostgresRow(table: string, row: PgRow): WireRow {
   const { columnToField, bigintColumns } = getSyncTableInfo(table);
   const result: WireRow = {};
   for (const [column, value] of Object.entries(row)) {
+    if (column === SERVER_STAMP_COLUMN) continue;
     const field = columnToField.get(column) ?? column;
     result[field] = bigintColumns.has(column) ? toStampNumber(value) : value;
   }

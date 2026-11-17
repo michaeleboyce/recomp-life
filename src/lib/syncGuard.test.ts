@@ -10,12 +10,14 @@ import {
   toPostgresRow,
   prepareBatch,
   buildUpsert,
-  buildSelectAll,
+  buildSelectPage,
   fromPostgresRow,
+  pagePullRows,
+  SERVER_STAMP_COLUMN,
 } from './syncGuard';
 import * as schema from '@/db/schema';
 import { SYNC_REGISTRY, PROFILE_ID } from '@/lib/sync/registry';
-import { MAX_CLOCK_SKEW_MS } from '@/lib/sync/wire';
+import { MAX_CLOCK_SKEW_MS, decodePullCursor } from '@/lib/sync/wire';
 import { DEFAULT_USER_PROFILE } from '@/db/seed';
 
 const NOW = 1_763_000_000_000;
@@ -136,8 +138,12 @@ describe('registry and Drizzle schema agree', () => {
         expect([...fromRegistry].sort()).toEqual(jsonColumns.sort());
       });
 
-      it('every Drizzle column is reachable from a client field', () => {
+      it('every Drizzle column but the server write stamp is reachable from a client field', () => {
         for (const name of columnNames) {
+          if (name === SERVER_STAMP_COLUMN) {
+            expect(info.columnToField.has(name), name).toBe(false);
+            continue;
+          }
           const field = info.columnToField.get(name);
           expect(field, `${def.name}.${name}`).toBeDefined();
           expect(info.fieldToColumn.get(field!)).toBe(name);
@@ -145,8 +151,8 @@ describe('registry and Drizzle schema agree', () => {
       });
 
       it('carries the sync stamps as epoch-ms bigints', () => {
-        expect([...info.bigintColumns].sort()).toEqual(['deleted_at', 'updated_at']);
-        for (const stamp of ['id', 'client_id', 'updated_at', 'deleted_at', 'external_id', 'synced']) {
+        expect([...info.bigintColumns].sort()).toEqual(['deleted_at', 'server_updated_at', 'updated_at']);
+        for (const stamp of ['id', 'client_id', 'updated_at', 'deleted_at', 'external_id', 'synced', 'server_updated_at']) {
           expect(columnNames).toContain(stamp);
         }
       });
@@ -250,7 +256,7 @@ describe('toPostgresRow', () => {
     expect(row).toEqual({
       id: 'la1', client_id: 'la1', exercise_id: 'squat', at: '2026-11-11T10:00:00.000Z',
       source: 'start', set: '{"t1Weight":135}', note: null, variant: null, updated_at: NOW, deleted_at: null,
-      external_id: null, synced: true,
+      external_id: null, synced: true, server_updated_at: NOW,
     });
   });
 
@@ -316,17 +322,17 @@ describe('buildUpsert', () => {
     }, NOW);
     expect(buildUpsert('bodyweight', row)).toEqual({
       text:
-        'INSERT INTO "bodyweight" ("id", "client_id", "date", "weight", "time_of_day", "updated_at", "deleted_at", "synced", "external_id", "source", "source_name") ' +
-        'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ' +
+        'INSERT INTO "bodyweight" ("id", "client_id", "date", "weight", "time_of_day", "updated_at", "deleted_at", "synced", "external_id", "source", "source_name", "server_updated_at") ' +
+        'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ' +
         'ON CONFLICT ("client_id") DO UPDATE SET ' +
         '"date" = EXCLUDED."date", "weight" = EXCLUDED."weight", ' +
         '"time_of_day" = EXCLUDED."time_of_day", "updated_at" = EXCLUDED."updated_at", ' +
         '"deleted_at" = EXCLUDED."deleted_at", "synced" = EXCLUDED."synced", ' +
         '"external_id" = EXCLUDED."external_id", "source" = EXCLUDED."source", ' +
-        '"source_name" = EXCLUDED."source_name" ' +
+        '"source_name" = EXCLUDED."source_name", "server_updated_at" = EXCLUDED."server_updated_at" ' +
         'WHERE COALESCE(EXCLUDED."updated_at", 0) >= COALESCE("bodyweight"."updated_at", 0) ' +
         'RETURNING "client_id"',
-      values: ['b1', 'c1', '2026-11-11T07:00:00.000Z', 226, 'morning', NOW, null, true, null, null, null],
+      values: ['b1', 'c1', '2026-11-11T07:00:00.000Z', 226, 'morning', NOW, null, true, null, null, null, NOW],
     });
   });
 
@@ -397,8 +403,92 @@ describe('fromPostgresRow', () => {
   });
 });
 
-describe('buildSelectAll', () => {
-  it('reads every row, soft-deleted included, from the Postgres table', () => {
-    expect(buildSelectAll('readinessLogs')).toBe('SELECT * FROM "readiness_logs"');
+describe('the server write stamp', () => {
+  it('is set by the server on every row it maps, whatever the device sent', () => {
+    const row = toPostgresRow('runs', { id: 'r1', clientId: 'r1', updatedAt: NOW - 5 }, NOW);
+    expect(row[SERVER_STAMP_COLUMN]).toBe(NOW);
+    expect(row.updated_at).toBe(NOW - 5);
+  });
+
+  it('cannot be sent by a device: a batch that names it is refused', () => {
+    expect(findUnknownFields('runs', { id: 'r1', server_updated_at: 1 })).toEqual(['server_updated_at']);
+    expect(findUnknownFields('runs', { id: 'r1', serverUpdatedAt: 1 })).toEqual(['serverUpdatedAt']);
+  });
+
+  it('is written and overwritten by the upsert with the rest of the row', () => {
+    const { text } = buildUpsert('runs', toPostgresRow('runs', { id: 'r1', clientId: 'r1', updatedAt: 1 }, NOW));
+    expect(text).toContain('"server_updated_at" = EXCLUDED."server_updated_at"');
+  });
+
+  it('does not travel back to devices', () => {
+    expect(fromPostgresRow('runs', { id: 'r1', client_id: 'r1', updated_at: '1', server_updated_at: '9' })).toEqual({
+      id: 'r1', clientId: 'r1', updatedAt: 1,
+    });
+  });
+});
+
+describe('buildSelectPage', () => {
+  it('reads one page in server write order, soft-deleted rows included', () => {
+    expect(buildSelectPage('readinessLogs', { limit: 500 })).toEqual({
+      text: 'SELECT * FROM "readiness_logs" ORDER BY "server_updated_at", "client_id" LIMIT 500',
+      values: [],
+    });
+  });
+
+  it('keeps rows written at or after `since`', () => {
+    expect(buildSelectPage('runs', { since: 1234, limit: 10 })).toEqual({
+      text: 'SELECT * FROM "runs" WHERE "server_updated_at" >= $1::bigint ORDER BY "server_updated_at", "client_id" LIMIT 10',
+      values: [1234],
+    });
+  });
+
+  it('continues strictly after a cursor (stamp, then clientId), as parameters', () => {
+    expect(buildSelectPage('runs', { cursor: { stamp: 77, clientId: "x'; DROP" }, limit: 10 })).toEqual({
+      text:
+        'SELECT * FROM "runs" WHERE ("server_updated_at", "client_id") > ($1::bigint, $2::text) ' +
+        'ORDER BY "server_updated_at", "client_id" LIMIT 10',
+      values: [77, "x'; DROP"],
+    });
+    expect(buildSelectPage('runs', { since: 5, cursor: { stamp: 77, clientId: 'c' }, limit: 10 }).values).toEqual([5, 77, 'c']);
+  });
+
+  it('refuses a table outside the registry and a limit that is not a positive integer', () => {
+    expect(() => buildSelectPage('sets', { limit: 10 })).toThrow(/Unknown sync table/);
+    expect(() => buildSelectPage('runs', { limit: 0 })).toThrow();
+    expect(() => buildSelectPage('runs', { limit: 1.5 })).toThrow();
+  });
+});
+
+describe('pagePullRows', () => {
+  const pg = (i: number, stamp: number, notes = '') => ({
+    id: `r${i}`, client_id: `r${String(i).padStart(4, '0')}`, updated_at: '1', server_updated_at: String(stamp), notes,
+  });
+
+  it('maps every row and ends when fewer rows came back than were asked for', () => {
+    const page = pagePullRows('runs', [pg(1, 10), pg(2, 11)], { maxRows: 3, maxBytes: 1_000_000 });
+    expect(page.rows.map((r) => r.id)).toEqual(['r1', 'r2']);
+    expect(page.rows[0]).not.toHaveProperty('server_updated_at');
+    expect(page.nextCursor).toBeNull();
+  });
+
+  it('a full page names the last row as the next cursor', () => {
+    const page = pagePullRows('runs', [pg(1, 10), pg(2, 11)], { maxRows: 2, maxBytes: 1_000_000 });
+    expect(decodePullCursor(page.nextCursor)).toEqual({ stamp: 11, clientId: 'r0002' });
+  });
+
+  it('stops before the byte budget, always keeping one row', () => {
+    const big = 'x'.repeat(400);
+    const rows = [pg(1, 10, big), pg(2, 10, big), pg(3, 12, big)];
+    const page = pagePullRows('runs', rows, { maxRows: 500, maxBytes: 1_000 });
+    expect(page.rows.map((r) => r.id)).toEqual(['r1', 'r2']);
+    expect(decodePullCursor(page.nextCursor)).toEqual({ stamp: 10, clientId: 'r0002' });
+
+    const one = pagePullRows('runs', rows, { maxRows: 500, maxBytes: 10 });
+    expect(one.rows.map((r) => r.id)).toEqual(['r1']);
+    expect(decodePullCursor(one.nextCursor)).toEqual({ stamp: 10, clientId: 'r0001' });
+  });
+
+  it('an empty page ends the table', () => {
+    expect(pagePullRows('runs', [], { maxRows: 500, maxBytes: 1_000 })).toEqual({ rows: [], nextCursor: null });
   });
 });

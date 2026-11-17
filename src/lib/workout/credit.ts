@@ -23,6 +23,22 @@ export const CREDIT_MIN_WEIGHT_RATIO = 1;
  */
 export const CREDIT_DECIDING_STATUSES: readonly SetStatus[] = ["completed", "failed"];
 
+/**
+ * Whether the deciding working sets, by weight, make up the prescription: all of them
+ * at or above `required`, or at least `prescribedSets` of them when some were lighter.
+ * A lighter working set never stands in for one at weight, so four lighter sets and one
+ * at weight are not a pass; a session ended early with every set at weight still is
+ * (progression's freeze rule deals with the sets it lacks).
+ */
+export function workingSetsReachPrescription(
+  weights: readonly number[],
+  required: number,
+  prescribedSets: number
+): boolean {
+  const atWeight = weights.filter((weight) => weight >= required).length;
+  return atWeight === weights.length || atWeight >= prescribedSets;
+}
+
 type CreditEntry = Pick<
   WorkoutExerciseState,
   "exerciseId" | "tier" | "targetSets" | "targetReps" | "weight" | "originalWeight" | "isWarmUp"
@@ -41,9 +57,10 @@ type CreditEntry = Pick<
  * Weight is judged from the logged sets when given, otherwise from the entry (the
  * pre-workout preview). The weight compared is `originalWeight ?? weight`, so a home
  * substitute counts as the program lift it stands for. Only sets with a status in
- * CREDIT_DECIDING_STATUSES decide, and the lift is lighter only when every one of them
- * is below the prescription, so a single mistyped set does not flip it. With no
- * deciding set logged, the entry itself decides.
+ * CREDIT_DECIDING_STATUSES decide, and they must make up the prescription
+ * (`workingSetsReachPrescription`): every one at the weight, or at least the
+ * prescribed number of them when any was lighter. With no deciding set logged, the
+ * entry itself decides.
  *
  * A session with no `prescribed` list predates this rule: its T1/T2/T3 entries are
  * all "program". The answer depends only on the arguments, never on how an edit was
@@ -77,7 +94,11 @@ export function classifyEntry(
   );
   const reached =
     deciding.length > 0
-      ? deciding.some((set) => (set.originalWeight ?? set.weight) >= required)
+      ? workingSetsReachPrescription(
+          deciding.map((set) => set.originalWeight ?? set.weight),
+          required,
+          target.sets
+        )
       : (entry.originalWeight ?? entry.weight) >= required;
 
   return reached ? "program" : "logged-only";
@@ -120,8 +141,8 @@ export interface VariantTarget {
  * `classifyEntry` for a lift done as its home exercise: judged against the exercise's
  * own prescription (`target`) and by the weight as lifted, not the barbell weight it
  * stands for. A lift the edits removed, or one done at another scheme or lighter than
- * the home exercise's prescription, is only logged. Without `prescribed` (a session
- * from before the rule), always "program".
+ * the home exercise's prescription (`workingSetsReachPrescription`), is only logged.
+ * Without `prescribed` (a session from before the rule), always "program".
  *
  * @evidence off-program-credit
  */
@@ -141,7 +162,11 @@ export function classifyVariantEntry(
   );
   const reached =
     deciding.length > 0
-      ? deciding.some((set) => set.weight >= target.weight)
+      ? workingSetsReachPrescription(
+          deciding.map((set) => set.weight),
+          target.weight,
+          target.sets
+        )
       : entry.weight >= target.weight;
   return reached ? "program" : "logged-only";
 }
@@ -167,7 +192,7 @@ export function heavierVariantWeight(
 
 /** The fields of a workout row the rotation depends on. */
 export type RotationSession = Pick<WorkoutSession, "templateId" | "startedAt" | "completedAt"> &
-  Partial<Pick<WorkoutSession, "id" | "prescribed" | "planEdits" | "sets">>;
+  Partial<Pick<WorkoutSession, "id" | "location" | "prescribed" | "planEdits" | "sets">>;
 
 /**
  * Whether a finished session advances the A1 -> B1 -> A2 -> B2 rotation, given the
@@ -175,6 +200,9 @@ export type RotationSession = Pick<WorkoutSession, "templateId" | "startedAt" | 
  * swapped out, removed, done at another scheme nor done lighter than prescribed.
  * Decided from the session row alone (its prescription, edits and logged sets). With
  * no T1 set logged, the weight is taken as prescribed, so a day ended early counts.
+ * When the T1 lift was done as its home exercise (the stored `prescribed.home`), the
+ * scheme and weight are that exercise's own, as lifted. Weight per set and a ramp in
+ * front count exactly as a plain session: only the working sets decide.
  *
  * A session without `prescribed` predates this rule and always counts, whatever its
  * day, exactly as before.
@@ -192,25 +220,43 @@ export function sessionCountsForRotation(
 
   const target = prescribed.find((p) => p.tier === "T1");
   if (!target) return false;
+  const sets = session.sets ?? [];
 
-  // The T1 slot as the program prescribed it, then as the user's structural and
-  // scheme edits left it. Weight edits are left to the logged sets.
+  // Done as its home exercise: judged against that exercise's own prescription, as
+  // completeWorkout judges it, not against the barbell lift's scheme and weight.
+  const home = target.home;
+  const performed = workingSetsFor(sets, target.exerciseId, "T1").map((set) => set.substituteExerciseId);
+  const asHome = home != null && performed.every((id) => id === home.exerciseId);
+
+  // The T1 slot as the program prescribed it, then as the user's structural, scheme and
+  // per-set edits left it. The weight is left to the logged sets (with none logged it
+  // is taken as prescribed), so weight per set and the ramp quick fill count exactly
+  // as a plain session does.
   const slot: WorkoutPlan = [
     {
       exerciseId: target.exerciseId,
+      ...(asHome ? { substituteExerciseId: home.exerciseId } : {}),
       tier: "T1",
-      targetSets: target.sets,
-      targetReps: target.reps,
-      weight: target.weight,
+      targetSets: asHome ? home.sets : target.sets,
+      targetReps: asHome ? home.reps : target.reps,
+      weight: asHome ? home.weight : target.weight,
       isAMRAP: false,
       isWarmUp: false,
       completedSets: 0,
     },
   ];
   const edits = (session.planEdits ?? []).filter((edit) => edit.kind !== "weight");
-  const t1 = applyPlanEdits(slot, edits).find((entry) => entry.tier === "T1");
-  if (!t1) return false;
-  return classifyEntry(t1, prescribed, session.sets ?? []) === "program";
+  const edited = applyPlanEdits(slot, edits).find(
+    (entry) => entry.tier === "T1" && entry.exerciseId === target.exerciseId && !entry.isWarmUp
+  );
+  if (!edited) return false;
+  const t1 = { ...edited, weight: slot[0].weight };
+
+  if (asHome) {
+    const homeTarget: VariantTarget = { weight: home.weight, sets: home.sets, reps: home.reps };
+    return classifyVariantEntry(t1, homeTarget, prescribed, sets) === "program";
+  }
+  return classifyEntry(t1, prescribed, sets) === "program";
 }
 
 export interface RotationFold {

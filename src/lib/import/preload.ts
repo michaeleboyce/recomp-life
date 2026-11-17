@@ -58,7 +58,7 @@ export function planPreload(files: readonly PreloadFile[], batchId: string): Pre
   for (const file of files) {
     const parsed = parseExport(file.text);
     const sessions = buildSessionRecords(parsed, batchId);
-    const built = buildCardioRows(parsed);
+    const built = buildCardioRows(parsed, batchId);
     noDuration += built.noDuration;
     cardio.push(...built.rows);
     for (const s of sessions) if (!byId.has(s.id)) byId.set(s.id, s);

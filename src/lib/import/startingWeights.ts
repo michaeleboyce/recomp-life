@@ -36,6 +36,7 @@ import {
   type StrengthSet,
 } from "@/lib/strength";
 import { calculateWeightDecay } from "@/lib/weightDecay";
+import { resolveReentry } from "@/lib/workout/reentry";
 import { chooseHomeVariant } from "@/lib/workout/variant";
 import { pooledEstimateOf, transferRatioOf } from "@/lib/workout/strength";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
@@ -90,6 +91,12 @@ export interface StartingWeightSuggestion {
 export interface StartingWeightInput {
   /** Every set as strength evidence: the log's and the imported (`strengthEvidenceOf`). */
   sets: readonly StrengthSet[];
+  /**
+   * The log's sets alone, as planning reads them (`strengthSetsOf`): the home weight
+   * planned now (`current`) is worked out from them, after re-entry and with a home
+   * exercise never used seeded, exactly as Today plans it.
+   */
+  planStrengthSets?: readonly StrengthSet[];
   liftStates: readonly LiftState[];
   variantStates: readonly VariantState[];
   equipment: EquipmentProfile;
@@ -225,10 +232,23 @@ function withTimeOff(worked: Worked, ageDays: number, newest: Date, phase: Train
  * The starting weights the evidence suggests: per program lift and tier at the gym,
  * per home exercise the plan would use for T1 and T2 lifts, and per T3 lift. A lift
  * with no evidence gets none. Nothing is changed; see `adjustmentFor`.
+ *
+ * The home exercise and its weight planned now come from the same source Today plans
+ * from (`describeNextWorkout`): the states after re-entry at home (`resolveReentry`),
+ * with a home exercise never used seeded from the log's evidence (`planStrengthSets`).
  */
 export function suggestStartingWeights(input: StartingWeightInput): StartingWeightSuggestion[] {
   const { sets, equipment, phase, now } = input;
+  const planSets = input.planStrengthSets;
   const stateOf = new Map(input.liftStates.map((s) => [s.exerciseId, s]));
+  const atHome = resolveReentry({
+    liftStates: input.liftStates,
+    variantStates: input.variantStates,
+    location: "home",
+    equipment,
+    ...(planSets ? { strengthSets: planSets } : {}),
+  });
+  const homeStateOf = new Map(atHome.liftStates.map((s) => [s.exerciseId, s]));
   const out: StartingWeightSuggestion[] = [];
 
   for (const tier of ["T1", "T2"] as const) {
@@ -261,13 +281,14 @@ export function suggestStartingWeights(input: StartingWeightInput): StartingWeig
         adjustment: adjustmentFor(gymBase, gymWeight),
       });
 
-      // At home, for the exercise the plan would use.
+      // At home, for the exercise and at the weight Today plans.
       const choice = chooseHomeVariant({
         liftId,
         tier,
-        liftState: state,
-        variantStates: input.variantStates,
+        liftState: homeStateOf.get(liftId),
+        variantStates: atHome.variantStates,
         equipment,
+        ...(planSets ? { strengthSets: planSets } : {}),
       });
       if (!choice) continue;
       const exerciseId = choice.state.exerciseId;

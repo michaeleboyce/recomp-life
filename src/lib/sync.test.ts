@@ -4,7 +4,8 @@ import type Dexie from "dexie";
 import { makeProfile, makeSet, makeWorkout } from "@/lib/data/testUtils";
 import { PROFILE_ID, SYNC_REGISTRY } from "@/lib/sync/registry";
 import { FakeSyncServer, TEST_PASSPHRASE, makeDeviceDb } from "@/lib/sync/testFakes";
-import { MAX_PUSH_ROWS } from "@/lib/sync/wire";
+import { MAX_PUSH_ROWS, PULL_SINCE_OVERLAP_MS, decodePullCursor } from "@/lib/sync/wire";
+import { loadPullState, resetPullState } from "@/lib/sync/pullState";
 import {
   REBUILD_TABLES,
   SYNC_UNAUTHORIZED,
@@ -40,8 +41,12 @@ const bodies = (mock: ReturnType<typeof vi.fn>) =>
 const reply = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status });
 const pushOk = (applied: number, skipped = 0) => reply({ success: true, applied, skipped });
-const pullReply = (rows: Record<string, unknown[]>, errors: Record<string, string> = {}) =>
-  reply({ rows, errors, serverTime: 1_000 });
+/** A pull answer for one table: its rows in one page, or a 500 when the table is in `errors`. */
+const pullReply = (url: string, rows: Record<string, unknown[]>, errors: Record<string, string> = {}) => {
+  const table = new URL(url, "http://fake.local").searchParams.get("table") ?? "";
+  if (table in errors) return reply({ error: errors[table], code: "read_failed" }, 500);
+  return reply({ table, rows: rows[table] ?? [], nextCursor: null, serverTime: 1_000 });
+};
 
 const workouts = () => database.table("workouts");
 const runs = () => database.table("runs");
@@ -240,7 +245,7 @@ describe("pushUnsynced", () => {
 
 describe("pullFromServer", () => {
   const stubPull = (rows: Record<string, unknown[]>, errors: Record<string, string> = {}) =>
-    vi.stubGlobal("fetch", vi.fn(async () => pullReply(rows, errors)));
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => pullReply(url, rows, errors)));
 
   it("inserts a row it does not have, marked synced", async () => {
     stubPull({ runs: [{ id: "r1", clientId: "c-r1", notes: "easy", updatedAt: 5, deletedAt: null }] });
@@ -388,18 +393,172 @@ describe("pullFromServer", () => {
     });
   });
 
-  it("reports tables listed in errors and still merges the rest", async () => {
-    stubPull({ runs: [{ id: "r1", clientId: "c-r1", updatedAt: 1 }] }, { activities: 'relation "activities" does not exist' });
+  it("reports a table the server could not read and still merges the rest", async () => {
+    stubPull({ runs: [{ id: "r1", clientId: "c-r1", updatedAt: 1 }] }, { activities: "could not read" });
     const result = await pullFromServer(database);
-    expect(result.errors).toEqual({ activities: 'relation "activities" does not exist' });
+    expect(result.errors).toEqual({ activities: "500 could not read" });
     expect(await runs().get("r1")).toBeDefined();
   });
 
-  it("throws SYNC_UNAUTHORIZED on 401 and a status error otherwise", async () => {
+  it("asks for each registry table by name", async () => {
+    stubPull({});
+    await pullFromServer(database);
+    const urls = (vi.mocked(fetch).mock.calls as unknown as [string][]).map(([url]) => url);
+    expect(urls).toEqual(SYNC_REGISTRY.map((def) => `/api/sync/pull?table=${def.name}`));
+  });
+
+  it("throws SYNC_UNAUTHORIZED on 401 and when the connection fails; a 500 is a table's error", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => reply({}, 401)));
     await expect(pullFromServer(database)).rejects.toThrow(SYNC_UNAUTHORIZED);
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("Failed to fetch"); }));
+    await expect(pullFromServer(database)).rejects.toThrow("Failed to fetch");
     vi.stubGlobal("fetch", vi.fn(async () => reply({}, 500)));
-    await expect(pullFromServer(database)).rejects.toThrow("Pull failed: 500");
+    const result = await pullFromServer(database);
+    expect(Object.keys(result.errors)).toEqual(SYNC_REGISTRY.map((def) => def.name));
+    expect(result.errors.runs).toBe("500");
+  });
+
+  describe("pages", () => {
+    const runOn = (i: number, notes = "") => ({ id: `r${i}`, clientId: `c-r${String(i).padStart(3, "0")}`, notes, updatedAt: 1 });
+    let server: FakeSyncServer;
+
+    beforeEach(() => {
+      server = new FakeSyncServer();
+      server.pageRows = 3;
+      vi.stubGlobal("fetch", server.fetch);
+    });
+
+    const runPulls = () => server.requests.filter((r) => r.path === "/api/sync/pull" && r.table === "runs");
+
+    it("pulls a table larger than one page completely, in several requests", async () => {
+      for (let i = 0; i < 10; i += 1) server.store("runs", runOn(i), 100 + i);
+      const result = await pullFromServer(database);
+      expect(await runs().count()).toBe(10);
+      expect(result.inserted).toBe(10);
+      // Three full pages, then a last one with the tenth row.
+      expect(runPulls()).toHaveLength(4);
+      expect(runPulls()[0].cursor).toBeUndefined();
+      expect(decodePullCursor(runPulls()[1].cursor)).toEqual({ stamp: 102, clientId: "c-r002" });
+      expect(result.errors).toEqual({});
+    });
+
+    it("stops when a page ends the table, even after an exactly full one", async () => {
+      for (let i = 0; i < 6; i += 1) server.store("runs", runOn(i), 100 + i);
+      await pullFromServer(database);
+      // Two full pages and an empty one that says the table is done.
+      expect(runPulls()).toHaveLength(3);
+      expect(await runs().count()).toBe(6);
+    });
+
+    it("after a complete pull, asks only for what the server wrote since shortly before it", async () => {
+      server.clock = () => 1_000_000;
+      for (let i = 0; i < 4; i += 1) server.store("runs", runOn(i), 1_000 + i);
+      await pullFromServer(database);
+      expect(loadPullState(database.name).runs).toEqual({ since: 1_000_000 - PULL_SINCE_OVERLAP_MS });
+
+      // One new row and one edit, written after the first pull.
+      server.store("runs", runOn(9), 1_000_500);
+      server.store("runs", { ...runOn(0, "edited"), updatedAt: 2 }, 1_000_600);
+      server.requests.length = 0;
+      const result = await pullFromServer(database);
+
+      expect(runPulls()[0].since).toBe(1_000_000 - PULL_SINCE_OVERLAP_MS);
+      expect(result).toMatchObject({ inserted: 1, overwritten: 1, kept: 0 });
+      expect((await runs().get("r0")).notes).toBe("edited");
+      expect(await runs().count()).toBe(5);
+    });
+
+    it("an edit made offline long ago still arrives: since follows the server's write stamp", async () => {
+      server.clock = () => 1_000_000;
+      server.store("runs", runOn(0), 1_000);
+      await pullFromServer(database);
+      // Another device edited the row a week before and pushed it only now.
+      server.store("runs", { ...runOn(0, "from the other device"), updatedAt: 5 }, 1_000_100);
+      await pullFromServer(database);
+      expect((await runs().get("r0")).notes).toBe("from the other device");
+    });
+
+    it("does not lose a row changed between pages", async () => {
+      for (let i = 0; i < 7; i += 1) server.store("runs", runOn(i), 100 + i);
+      let page = 0;
+      server.onPull = (request) => {
+        if (request.table !== "runs" || ++page !== 2) return;
+        // Before page two: a row already read and a row not read yet both change.
+        server.store("runs", { ...runOn(1, "changed after page one"), updatedAt: 5 }, 900);
+        server.store("runs", { ...runOn(5, "changed before it was read"), updatedAt: 5 }, 901);
+      };
+
+      await pullFromServer(database);
+
+      expect(await runs().count()).toBe(7);
+      expect((await runs().get("r1")).notes).toBe("changed after page one");
+      expect((await runs().get("r5")).notes).toBe("changed before it was read");
+    });
+
+    it("an interrupted pull resumes from the last page it merged", async () => {
+      for (let i = 0; i < 8; i += 1) server.store("runs", runOn(i), 100 + i);
+      let page = 0;
+      const realFetch = server.fetch;
+      vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes("table=runs") && ++page === 2) throw new TypeError("Failed to fetch");
+        return realFetch(input, init);
+      });
+
+      await expect(pullFromServer(database)).rejects.toThrow("Failed to fetch");
+      expect(await runs().count()).toBe(3);
+      expect(decodePullCursor(loadPullState(database.name).runs?.cursor)).toEqual({ stamp: 102, clientId: "c-r002" });
+
+      server.requests.length = 0;
+      await pullFromServer(database);
+      expect(await runs().count()).toBe(8);
+      // It went on from the third row, not from the start.
+      expect(decodePullCursor(runPulls()[0].cursor)).toEqual({ stamp: 102, clientId: "c-r002" });
+      expect(loadPullState(database.name).runs?.cursor).toBeUndefined();
+    });
+
+    it("a table emptied on this device is read in full again, whatever was recorded", async () => {
+      server.clock = () => 1_000_000;
+      for (let i = 0; i < 4; i += 1) server.store("runs", runOn(i), 1_000 + i);
+      await pullFromServer(database);
+      await runs().clear();
+      server.requests.length = 0;
+      await pullFromServer(database);
+      expect(runPulls()[0].since).toBeUndefined();
+      expect(await runs().count()).toBe(4);
+    });
+
+    it("forgets every table's progress when reset", async () => {
+      server.store("runs", runOn(0), 100);
+      await pullFromServer(database);
+      expect(loadPullState(database.name).runs).toBeDefined();
+      resetPullState(database.name);
+      expect(loadPullState(database.name)).toEqual({});
+    });
+
+    it("stops a table whose server repeats the same page, without looping", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string) => {
+          const table = new URL(url, "http://fake.local").searchParams.get("table");
+          if (table !== "runs") return reply({ table, rows: [], nextCursor: null, serverTime: 1 });
+          return reply({ table, rows: [runOn(0)], nextCursor: "5:c-r000", serverTime: 1 });
+        })
+      );
+      const result = await pullFromServer(database);
+      expect(result.errors.runs).toMatch(/same page twice/);
+      expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("table=runs"))).toHaveLength(2);
+    });
+
+    it("a cursor the server refuses is dropped, so the next pull starts over", async () => {
+      server.store("runs", runOn(0), 100);
+      localStorage.setItem(`recomp-sync-pull:${database.name}`, JSON.stringify({ runs: { cursor: "not-a-cursor" } }));
+      await runs().add({ id: "x", clientId: "x", updatedAt: 1 });
+      const result = await pullFromServer(database);
+      expect(result.errors.runs).toBe("400 bad cursor");
+      expect(loadPullState(database.name).runs).toEqual({});
+      await pullFromServer(database);
+      expect(await runs().get("r0")).toBeDefined();
+    });
   });
 
   describe("rebuild", () => {
@@ -455,7 +614,10 @@ describe("fullSync", () => {
     const result = await fullSync(database);
 
     expect(result).toEqual({ pushed: 1, pulled: 0, errors: [], pullSucceeded: true });
-    expect(server.requests.map((r) => r.path)).toEqual(["/api/sync/push", "/api/sync/pull"]);
+    expect(server.requests.map((r) => r.path)).toEqual([
+      "/api/sync/push",
+      ...SYNC_REGISTRY.map(() => "/api/sync/pull"),
+    ]);
   });
 
   it("collects push, pull and rebuild failures as strings, never throwing", async () => {
@@ -469,7 +631,7 @@ describe("fullSync", () => {
 
     const result = await fullSync(database);
 
-    expect(result.errors).toEqual(["Push runs: 500 Boom", "Pull activities: missing", "Rebuild: nope"]);
+    expect(result.errors).toEqual(["Push runs: 500 Boom", "Pull activities: 500 missing", "Rebuild: nope"]);
     expect(result.pullSucceeded).toBe(true);
   });
 

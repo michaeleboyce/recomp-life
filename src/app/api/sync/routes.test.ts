@@ -1,14 +1,23 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { MAX_PUSH_ROWS, type PullResponse, type PushResponse } from '@/lib/sync/wire';
+import {
+  MAX_PUSH_ROWS,
+  PULL_PAGE_BYTES,
+  PULL_PAGE_ROWS,
+  PULL_SINCE_OVERLAP_MS,
+  decodePullCursor,
+  encodePullCursor,
+  type PullPageResponse,
+  type PushResponse,
+} from '@/lib/sync/wire';
 import { SYNC_REGISTRY } from '@/lib/sync/registry';
 
 const query = vi.fn();
 vi.mock('@/db/drizzle', () => ({ neonSql: { query: (...args: unknown[]) => query(...args) } }));
 
-import { POST } from './push/route';
-import { GET } from './pull/route';
+import { POST, maxDuration as pushMaxDuration } from './push/route';
+import { GET, maxDuration as pullMaxDuration } from './pull/route';
 import { GET as STATUS } from './status/route';
 import { PUSH_FAILED_MESSAGE, READ_FAILED_REASON } from './respond';
 
@@ -24,8 +33,8 @@ function pushRequest(body: unknown, headers: Record<string, string> = AUTH) {
   });
 }
 
-function pullRequest(headers: Record<string, string> = AUTH) {
-  return new NextRequest('http://localhost/api/sync/pull', { headers });
+function pullRequest(headers: Record<string, string> = AUTH, query = 'table=runs') {
+  return new NextRequest(`http://localhost/api/sync/pull?${query}`, { headers });
 }
 
 const run = (id: string, updatedAt: number) => ({
@@ -166,31 +175,73 @@ describe('GET /api/sync/pull', () => {
     expect(query).not.toHaveBeenCalled();
   });
 
-  it('returns every registry table with client field names and numeric stamps', async () => {
-    query.mockImplementation(async (text: string) => {
-      if (text === 'SELECT * FROM "workouts"') {
-        return [{
-          id: 'w1', client_id: 'w1', template_id: 'A1', updated_at: '1763000000000',
-          deleted_at: '1763000000500', external_id: null, completion_context: { phaseMode: 'cutting' },
-          ended_early: false, synced: true,
-        }];
-      }
-      return [];
-    });
-    const before = Date.now();
-    const res = await GET(pullRequest());
-    expect(res.status).toBe(200);
-    const body: PullResponse = await res.json();
+  it('400 for a missing or unknown table, a bad since or a bad cursor, before any read', async () => {
+    for (const q of ['', 'table=nope', 'table=sets', 'table=runs&since=-1', 'table=runs&since=abc', 'table=runs&cursor=x']) {
+      const res = await GET(pullRequest(AUTH, q));
+      expect(res.status, q).toBe(400);
+      expect(res.headers.get('cache-control'), q).toBe('no-store');
+    }
+    expect(query).not.toHaveBeenCalled();
+  });
 
-    expect(Object.keys(body.rows).sort()).toEqual(SYNC_REGISTRY.map((d) => d.name).sort());
-    expect(body.errors).toEqual({});
+  it('returns one page of the table with client field names and numeric stamps', async () => {
+    query.mockResolvedValueOnce([{
+      id: 'w1', client_id: 'w1', template_id: 'A1', updated_at: '1763000000000',
+      deleted_at: '1763000000500', external_id: null, completion_context: { phaseMode: 'cutting' },
+      ended_early: false, synced: true, server_updated_at: '1763000000900',
+    }]);
+    const before = Date.now();
+    const res = await GET(pullRequest(AUTH, 'table=workouts'));
+    expect(res.status).toBe(200);
+    const body: PullPageResponse = await res.json();
+
+    expect(body.table).toBe('workouts');
+    expect(body.nextCursor).toBeNull();
     expect(body.serverTime).toBeGreaterThanOrEqual(before);
-    expect(body.rows.workouts).toEqual([{
+    expect(body.rows).toEqual([{
       id: 'w1', clientId: 'w1', templateId: 'A1', updatedAt: 1763000000000, deletedAt: 1763000000500,
       externalId: null, completionContext: { phaseMode: 'cutting' }, endedEarly: false, synced: true,
     }]);
-    // Soft-deleted rows are included: no WHERE on deleted_at.
-    for (const [text] of query.mock.calls) expect(text).not.toMatch(/WHERE/);
+    // Soft-deleted rows are included: no filter on deleted_at.
+    const [text, values] = query.mock.calls[0];
+    expect(text).toBe(`SELECT * FROM "workouts" ORDER BY "server_updated_at", "client_id" LIMIT ${PULL_PAGE_ROWS}`);
+    expect(values).toEqual([]);
+  });
+
+  it('passes since and the cursor to the query as parameters', async () => {
+    query.mockResolvedValue([]);
+    const cursor = encodePullCursor({ stamp: 42, clientId: 'c-9' });
+    await GET(pullRequest(AUTH, `table=runs&since=40&cursor=${encodeURIComponent(cursor)}`));
+    const [text, values] = query.mock.calls[0];
+    expect(text).toContain('WHERE "server_updated_at" >= $1::bigint AND ("server_updated_at", "client_id") > ($2::bigint, $3::text)');
+    expect(values).toEqual([40, 42, 'c-9']);
+  });
+
+  it('a full page names its last row as the next cursor', async () => {
+    query.mockResolvedValueOnce(
+      Array.from({ length: PULL_PAGE_ROWS }, (_, i) => ({
+        id: `r${i}`, client_id: `r${String(i).padStart(4, '0')}`, updated_at: '1', server_updated_at: String(100 + i),
+      }))
+    );
+    const body: PullPageResponse = await (await GET(pullRequest())).json();
+    expect(body.rows).toHaveLength(PULL_PAGE_ROWS);
+    expect(decodePullCursor(body.nextCursor)).toEqual({ stamp: 100 + PULL_PAGE_ROWS - 1, clientId: `r0${PULL_PAGE_ROWS - 1}` });
+  });
+
+  it('keeps a page of large rows under the byte budget, far below the 4.5 MB response limit', async () => {
+    const notes = 'n'.repeat(10_000);
+    query.mockResolvedValueOnce(
+      Array.from({ length: PULL_PAGE_ROWS }, (_, i) => ({
+        id: `r${i}`, client_id: `r${String(i).padStart(4, '0')}`, updated_at: '1', server_updated_at: '7', notes,
+      }))
+    );
+    const res = await GET(pullRequest());
+    const text = await res.text();
+    const body: PullPageResponse = JSON.parse(text);
+    expect(body.rows.length).toBeLessThan(PULL_PAGE_ROWS);
+    expect(Buffer.byteLength(text)).toBeLessThan(PULL_PAGE_BYTES + 20_000);
+    expect(Buffer.byteLength(text)).toBeLessThan(4_500_000);
+    expect(decodePullCursor(body.nextCursor)?.clientId).toBe(body.rows[body.rows.length - 1].clientId);
   });
 
   it('a pushed date comes back from pull as the same instant', async () => {
@@ -204,36 +255,43 @@ describe('GET /api/sync/pull', () => {
 
     // Pull: the driver parses timestamptz into a Date; the response carries the same instant.
     query.mockReset();
-    query.mockImplementation(async (sql: string) =>
-      sql.includes('"runs"')
-        ? [{ id: 'r1', client_id: 'r1', date: new Date(iso), updated_at: '1', deleted_at: null }]
-        : []
-    );
-    const body: PullResponse = await (await GET(pullRequest())).json();
-    const pulled = body.rows.runs[0].date as string;
+    query.mockResolvedValueOnce([{ id: 'r1', client_id: 'r1', date: new Date(iso), updated_at: '1', deleted_at: null }]);
+    const body: PullPageResponse = await (await GET(pullRequest())).json();
+    const pulled = body.rows[0].date as string;
     expect(pulled).toBe(iso);
     expect(new Date(pulled).getTime()).toBe(Date.parse(iso));
   });
 
-  it('a table that cannot be read goes into errors; the rest still arrive with 200', async () => {
+  it('a table that cannot be read answers 500 with a generic reason; the database error only in the log', async () => {
     const dbError = new Error('relation "lift_adjustments" does not exist');
-    query.mockImplementation(async (text: string) => {
-      if (text.includes('"lift_adjustments"')) throw dbError;
-      if (text.includes('"runs"')) return [{ id: 'r1', client_id: 'r1', updated_at: '7', deleted_at: null }];
-      return [];
-    });
-    const res = await GET(pullRequest());
-    expect(res.status).toBe(200);
+    query.mockRejectedValueOnce(dbError);
+    const res = await GET(pullRequest(AUTH, 'table=liftAdjustments'));
+    expect(res.status).toBe(500);
     const text = await res.text();
-    const body: PullResponse = JSON.parse(text);
-    // A generic reason with its code; the database message stays in the server log.
-    expect(body.errors).toEqual({ liftAdjustments: READ_FAILED_REASON });
+    expect(JSON.parse(text)).toEqual({ error: READ_FAILED_REASON, code: 'read_failed' });
     expect(READ_FAILED_REASON).toContain('read_failed');
     expect(text).not.toMatch(/relation|does not exist/);
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('liftAdjustments'), dbError);
-    expect(body.rows.liftAdjustments).toBeUndefined();
-    expect(body.rows.runs).toEqual([{ id: 'r1', clientId: 'r1', updatedAt: 7, deletedAt: null }]);
-    expect(Object.keys(body.rows)).toHaveLength(SYNC_REGISTRY.length - 1);
+  });
+
+  it('every registry table can be pulled by its client name', async () => {
+    query.mockResolvedValue([]);
+    for (const { name, pgName } of SYNC_REGISTRY) {
+      const res = await GET(pullRequest(AUTH, `table=${name}`));
+      expect(res.status, name).toBe(200);
+      expect(query.mock.calls.at(-1)?.[0], name).toContain(`FROM "${pgName}"`);
+    }
+  });
+});
+
+describe('route time limits', () => {
+  it('push and pull may run a minute: a 500-row batch is one upsert per row', () => {
+    expect(pushMaxDuration).toBe(60);
+    expect(pullMaxDuration).toBe(60);
+  });
+
+  it("the next pull's overlap covers a push that runs its whole time limit", () => {
+    expect(PULL_SINCE_OVERLAP_MS).toBeGreaterThan(pushMaxDuration * 1000);
   });
 });
 
@@ -251,10 +309,11 @@ describe('no sync response is cached', () => {
     noStore(await POST(pushRequest({ table: 'runs', rows: [run('r1', 1)] })), '200');
   });
 
-  it('pull: refused, partly failed and accepted', async () => {
+  it('pull: refused, invalid, failed and accepted', async () => {
     noStore(await GET(pullRequest({})), '401');
+    noStore(await GET(pullRequest(AUTH, 'table=nope')), '400');
     query.mockRejectedValue(new Error('boom'));
-    noStore(await GET(pullRequest()), '200 with errors');
+    noStore(await GET(pullRequest()), '500');
     query.mockReset().mockResolvedValue([]);
     noStore(await GET(pullRequest()), '200');
   });

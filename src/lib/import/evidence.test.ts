@@ -210,3 +210,30 @@ describe("imported muscle work", () => {
     expect(latestPerMuscle({ chest: a }, { chest: b, quads: a })).toEqual({ chest: b, quads: a });
   });
 });
+
+describe("a name remapped after the import", () => {
+  const session = () =>
+    importedSession([
+      importedSet({ exerciseName: "Made-up Press", mappedExerciseId: null, muscles: ["chest"], weightPerImplementLb: 40 }),
+      importedSet({ exerciseName: "Test Squat", mappedExerciseId: "squat" }),
+    ]);
+
+  it("changes the strength evidence without a re-import", () => {
+    expect(importedStrengthSets([session()]).map((s) => s.exerciseId)).toEqual(["squat"]);
+    const remapped = importedStrengthSets([session()], { "made-up press": { kind: "exercise", exerciseId: "db_bench" } });
+    expect(remapped.map((s) => s.exerciseId)).toEqual(["db_bench", "squat"]);
+    expect(remapped[0]).toMatchObject({ weight: 40, perHand: true });
+  });
+
+  it("a name kept under its own name since is no longer evidence about a lift, and works its chosen muscles", () => {
+    const overrides = { "Test Squat": { kind: "custom" as const, primary: ["glutes" as const] } };
+    expect(importedStrengthSets([session()], overrides)).toEqual([]);
+    const squatSet = importedMuscleSets([session()], overrides).find((m) => m.primary.includes("glutes"));
+    expect(squatSet).toBeDefined();
+  });
+
+  it("strengthEvidenceOf reads the remembered choices too", () => {
+    const sets = strengthEvidenceOf([], [session()], { "Made-up Press": { kind: "exercise", exerciseId: "db_bench" } });
+    expect(sets.map((s) => s.exerciseId)).toContain("db_bench");
+  });
+});

@@ -1,11 +1,20 @@
 // The sync client. Tables come only from SYNC_REGISTRY. Push sends dirty rows; pull
-// merges by clientId with last write wins on `updatedAt`. Lift states and e1RMs do not
-// travel: after a pull that changed the log, this device rebuilds them.
+// reads each table in pages and merges by clientId with last write wins on
+// `updatedAt`. Lift states and e1RMs do not travel: after a pull that changed the
+// log, this device rebuilds them.
 import type Dexie from "dexie";
 import { db } from "@/db/local";
 import { applyRebuild } from "@/lib/data/derived";
 import { PROFILE_ID, SYNC_REGISTRY, type SyncTableDef } from "@/lib/sync/registry";
-import { MAX_PUSH_ROWS, type PullResponse, type PushRequest, type PushResponse, type WireRow } from "@/lib/sync/wire";
+import {
+  MAX_PUSH_ROWS,
+  PULL_SINCE_OVERLAP_MS,
+  type PullPageResponse,
+  type PushRequest,
+  type PushResponse,
+  type WireRow,
+} from "@/lib/sync/wire";
+import { loadPullState, saveTablePullState, type TablePullState } from "@/lib/sync/pullState";
 import { decidePull, stampOf, toLocalRow } from "@/lib/sync/revive";
 import { syncRequest } from "@/lib/sync/request";
 
@@ -45,8 +54,16 @@ export interface PullResult {
   rebuilt: boolean;
   /** Set when the rebuild after the pull failed. The pulled rows are stored anyway. */
   rebuildError?: string;
+  /** Pages received, every table together. */
+  pages: number;
   serverTime?: number;
 }
+
+/**
+ * The most pages one table may take in one pull: a guard against a server that never
+ * says it is done (500 rows a page, so far beyond any real table).
+ */
+export const MAX_PULL_PAGES = 10_000;
 
 export interface SyncResult {
   pushed: number;
@@ -183,52 +200,140 @@ async function mergeTable(database: Dexie, def: SyncTableDef, rows: WireRow[]): 
   return counts;
 }
 
+/** The pull lost its connection: nothing more can be read now. */
+class PullConnectionError extends Error {}
+
+/** What pulling one table changed. */
+interface TablePull {
+  counts: MergeCounts;
+  /** False when the table's pull stopped early (recorded in `errors`). */
+  complete: boolean;
+}
+
 /**
- * Pulls every registry table and merges it by clientId: a row this device lacks is
- * inserted (soft-deleted rows too); an existing row is replaced only when the server's
- * `updatedAt` is greater than the local one (missing counts as 0), keeping the local
- * primary key. Afterwards, if workouts or adjustments changed, rebuilds derived tables.
+ * Pulls one table page by page, merging each page as it arrives and recording after
+ * each one where the pull got to, so a pull cut short (closed app, lost signal)
+ * continues from there next time instead of starting over. A table with no local rows
+ * is read in full whatever was recorded: its rows were erased here, not on the server.
+ * A 401 throws SYNC_UNAUTHORIZED and a network failure throws; any other failure is
+ * recorded for the table and ends its pull, keeping the pages already merged.
+ */
+async function pullTable(database: Dexie, def: SyncTableDef, result: PullResult): Promise<TablePull> {
+  const counts: MergeCounts = { inserted: 0, overwritten: 0, kept: 0 };
+  const recorded: TablePullState =
+    (await database.table(def.name).count()) > 0 ? (loadPullState(database.name)[def.name] ?? {}) : {};
+  // A pull under way resumes from its cursor; a new one starts from `since`.
+  let cursor = recorded.cursor;
+  let startedAt = recorded.cursor ? recorded.startedAt : undefined;
+  const since = recorded.cursor ? undefined : recorded.since;
+
+  for (let page = 0; page < MAX_PULL_PAGES; page += 1) {
+    const params = new URLSearchParams({ table: def.name });
+    if (cursor) params.set("cursor", cursor);
+    else if (since !== undefined) params.set("since", String(since));
+
+    let response: Response;
+    try {
+      response = await syncRequest(`/api/sync/pull?${params}`);
+    } catch (err) {
+      throw new PullConnectionError(message(err));
+    }
+    if (response.status === 401) throw new Error(SYNC_UNAUTHORIZED);
+    if (!response.ok) {
+      const detail = (await response.json().catch(() => null)) as { error?: string } | null;
+      result.errors[def.name] = `${response.status}${detail?.error ? ` ${detail.error}` : ""}`;
+      // A request the server refuses (for example a cursor it no longer reads) is not
+      // retried from the same place: the next pull reads the table again in full.
+      if (response.status === 400) saveTablePullState(database.name, def.name, {});
+      return { counts, complete: false };
+    }
+
+    const data = (await response.json()) as Partial<PullPageResponse>;
+    result.pages += 1;
+    if (typeof data.serverTime === "number") {
+      result.serverTime = data.serverTime;
+      startedAt ??= data.serverTime;
+    }
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    if (rows.length > 0) {
+      const merged = await mergeTable(database, def, rows);
+      counts.inserted += merged.inserted;
+      counts.overwritten += merged.overwritten;
+      counts.kept += merged.kept;
+    }
+
+    const next = typeof data.nextCursor === "string" && data.nextCursor ? data.nextCursor : null;
+    if (!next) {
+      // Done: the next pull reads what the server wrote from shortly before this one began.
+      const nextSince = startedAt !== undefined ? Math.max(0, startedAt - PULL_SINCE_OVERLAP_MS) : since;
+      saveTablePullState(database.name, def.name, nextSince !== undefined ? { since: nextSince } : {});
+      return { counts, complete: true };
+    }
+    if (next === cursor) {
+      result.errors[def.name] = "The server sent the same page twice; the pull of this table stopped.";
+      return { counts, complete: false };
+    }
+    cursor = next;
+    saveTablePullState(database.name, def.name, {
+      cursor,
+      ...(startedAt !== undefined ? { startedAt } : {}),
+      ...(recorded.since !== undefined ? { since: recorded.since } : {}),
+    });
+  }
+
+  result.errors[def.name] = `More than ${MAX_PULL_PAGES} pages; the pull of this table stopped.`;
+  return { counts, complete: false };
+}
+
+/**
+ * Pulls every registry table, one page at a time, and merges it by clientId: a row
+ * this device lacks is inserted (soft-deleted rows too); an existing row is replaced
+ * only when the server's `updatedAt` is greater than the local one (missing counts as
+ * 0), keeping the local primary key. After the first complete pull, a table's next
+ * pull asks only for rows the server wrote since shortly before the last one began.
+ * Afterwards, if workouts or adjustments changed, rebuilds derived tables.
  */
 export async function pullFromServer(database: Dexie = db): Promise<PullResult> {
-  const response = await syncRequest("/api/sync/pull");
-  if (response.status === 401) throw new Error(SYNC_UNAUTHORIZED);
-  if (!response.ok) throw new Error(`Pull failed: ${response.status}`);
-
-  const data = (await response.json()) as Partial<PullResponse>;
   const result: PullResult = {
     pulled: 0,
     inserted: 0,
     overwritten: 0,
     kept: 0,
-    errors: { ...(data.errors ?? {}) },
+    errors: {},
     rebuilt: false,
-    serverTime: data.serverTime,
+    pages: 0,
   };
   let logChanged = false;
 
-  for (const def of SYNC_REGISTRY) {
-    const rows = data.rows?.[def.name];
-    if (!Array.isArray(rows) || rows.length === 0) continue;
-    try {
-      const counts = await mergeTable(database, def, rows);
-      result.inserted += counts.inserted;
-      result.overwritten += counts.overwritten;
-      result.kept += counts.kept;
-      if (REBUILD_TABLES.has(def.name) && counts.inserted + counts.overwritten > 0) {
+  try {
+    for (const def of SYNC_REGISTRY) {
+      let pulled: TablePull;
+      try {
+        pulled = await pullTable(database, def, result);
+      } catch (err) {
+        // A rejected passphrase or a lost connection ends the whole pull.
+        if (err instanceof Error && err.message === SYNC_UNAUTHORIZED) throw err;
+        if (err instanceof PullConnectionError) throw err;
+        result.errors[def.name] = message(err);
+        continue;
+      }
+      result.inserted += pulled.counts.inserted;
+      result.overwritten += pulled.counts.overwritten;
+      result.kept += pulled.counts.kept;
+      if (REBUILD_TABLES.has(def.name) && pulled.counts.inserted + pulled.counts.overwritten > 0) {
         logChanged = true;
       }
-    } catch (err) {
-      result.errors[def.name] = message(err);
     }
-  }
-  result.pulled = result.inserted + result.overwritten;
-
-  if (logChanged) {
-    result.rebuilt = true;
-    try {
-      await applyRebuild();
-    } catch (err) {
-      result.rebuildError = message(err);
+  } finally {
+    result.pulled = result.inserted + result.overwritten;
+    // Rows already merged stay merged; rebuild from them even when the pull stopped.
+    if (logChanged) {
+      result.rebuilt = true;
+      try {
+        await applyRebuild();
+      } catch (err) {
+        result.rebuildError = message(err);
+      }
     }
   }
 

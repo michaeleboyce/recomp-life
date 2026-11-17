@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { overlaps, planCardio, type TimedRow } from "./cardio";
+import { mergeSameStartCardio, overlaps, planCardio, type TimedRow } from "./cardio";
+import type { ImportedCardio } from "./parse/types";
 import type { CardioRow } from "./records";
 
 // Made-up sessions only.
@@ -81,5 +82,50 @@ describe("planCardio", () => {
     expect(plan.add).toEqual([]);
     expect(plan.alreadyStored).toBe(1);
     expect(plan.overlapping).toBe(1);
+  });
+});
+
+describe("mergeSameStartCardio", () => {
+  // Every cardio row of one Fitbod-style workout carries the workout's start time.
+  const entry = (over: Partial<ImportedCardio>): ImportedCardio => ({
+    id: "fitbod-cardio-1",
+    sourceApp: "fitbod",
+    kind: "run",
+    name: "Running",
+    start: "2023-04-01T07:00:00.000Z",
+    startIsLocal: false,
+    durationSec: 600,
+    distanceM: 1600,
+    rowNumber: 2,
+    ...over,
+  });
+
+  it("joins rows of one exercise at one start into one entry, summing duration and distance", () => {
+    const merged = mergeSameStartCardio([
+      entry({ id: "b", rowNumber: 5, durationSec: 300, distanceM: 800 }),
+      entry({ id: "a", rowNumber: 3 }),
+      entry({ id: "c", rowNumber: 7, durationSec: 120, distanceM: null }),
+    ]);
+    expect(merged).toEqual([entry({ id: "a", rowNumber: 3, durationSec: 1020, distanceM: 2400 })]);
+  });
+
+  it("keeps a duration or distance only one of the rows had", () => {
+    const merged = mergeSameStartCardio([entry({ id: "a", durationSec: null }), entry({ id: "b", rowNumber: 3, distanceM: null })]);
+    expect(merged).toEqual([entry({ id: "a", durationSec: 600, distanceM: 1600 })]);
+  });
+
+  it("leaves different exercises, starts and apps apart", () => {
+    const rows = [
+      entry({ id: "a" }),
+      entry({ id: "b", rowNumber: 3, name: "Walking", kind: "walk" }),
+      entry({ id: "c", rowNumber: 4, start: "2023-04-01T08:00:00.000Z" }),
+      entry({ id: "d", rowNumber: 5, sourceApp: "gravl" }),
+    ];
+    expect(mergeSameStartCardio(rows).map((e) => e.id)).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("keeps the overlap rule for genuinely different entries", () => {
+    const merged = mergeSameStartCardio([entry({ id: "a" }), entry({ id: "b", rowNumber: 3, name: "Walking", kind: "walk" })]);
+    expect(merged).toHaveLength(2);
   });
 });

@@ -1,9 +1,10 @@
 /**
  * What the import screen remembers on this device: the exercise-name choices made in
- * a preview (read before the built-in table on the next import), and the last import,
- * so it can still be undone after the screen is closed. The choices only steer how the
- * next file is mapped; what a name mapped to is stored with each imported set, so every
- * device reads the same history.
+ * a preview (read before the built-in table on the next import, and when imported sets
+ * are read as evidence, so a later choice remaps history without a re-import), and the
+ * last import, so it can still be undone after the screen is closed. What a name mapped
+ * to at import time is stored with each imported set too, so a device without the
+ * choices reads the history as it was imported.
  *
  * Every read and write is guarded: storage can be missing or refuse (private mode).
  */
@@ -64,8 +65,33 @@ export function loadMappingOverrides(store: KeyValueStore | null = defaultStore(
   return out;
 }
 
+/** Sent on `window` after the remembered choices change, so evidence reads them again. */
+export const MAPPINGS_CHANGED_EVENT = "recomp-import-mappings-changed";
+
 export function saveMappingOverrides(overrides: MappingOverrides, store: KeyValueStore | null = defaultStore()): void {
   writeJson(MAPPINGS_KEY, overrides, store);
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(MAPPINGS_CHANGED_EVENT));
+}
+
+let snapshotRaw: string | null | undefined;
+let snapshotValue: MappingOverrides = {};
+
+/**
+ * The remembered choices as one object that stays the same while what is stored does
+ * not change (for `useSyncExternalStore`).
+ */
+export function mappingOverridesSnapshot(store: KeyValueStore | null = defaultStore()): MappingOverrides {
+  let raw: string | null = null;
+  try {
+    raw = store?.getItem(MAPPINGS_KEY) ?? null;
+  } catch {
+    raw = null;
+  }
+  if (raw !== snapshotRaw) {
+    snapshotRaw = raw;
+    snapshotValue = loadMappingOverrides(store);
+  }
+  return snapshotValue;
 }
 
 /** What undoing an import needs: its batch (the sessions) and the cardio rows it added. */

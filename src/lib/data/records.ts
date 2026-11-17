@@ -18,6 +18,7 @@ import { recordCoachEvent, type CoachEventInput } from "./coachEvents";
 import { attemptLedgerWrite, recordBodyweightForecast } from "./forecasts";
 import { softDelete } from "./logEdits";
 import { editStamps, newRowStamps } from "./stamp";
+import { resetPullState } from "@/lib/sync/pullState";
 
 type NewRecord<T> = Omit<T, "id" | "clientId" | "synced" | "updatedAt" | "deletedAt">;
 
@@ -216,9 +217,13 @@ export async function logActivity(activity: NewRecord<ActivityLog>): Promise<str
   return id;
 }
 
-/** Empties every local table (Settings > Data). Does not re-seed. */
+/**
+ * Empties every local table (Settings > Data). Does not re-seed. Sync forgets how far
+ * it pulled, so the next pull reads everything again.
+ */
 export async function clearAllData(): Promise<void> {
   await db.transaction("rw", db.tables, async () => {
     await Promise.all(db.tables.map((table) => table.clear()));
   });
+  resetPullState(db.name);
 }

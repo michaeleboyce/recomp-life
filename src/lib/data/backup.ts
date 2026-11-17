@@ -4,6 +4,7 @@
 // them. See docs/plans/2026-11-12-edit-rebuild-plan.md (E12).
 import type { Table } from "dexie";
 import { db } from "@/db/local";
+import { resetPullState } from "@/lib/sync/pullState";
 import { reviveDates } from "@/lib/sync/revive";
 import type {
   ActivityLog,
@@ -159,7 +160,8 @@ type StampedRow = { updatedAt?: number; deletedAt?: number | null };
 /**
  * Replaces the log with the backup's rows, then rebuilds the derived tables. One
  * transaction. Restored rows are marked unsynced with a fresh stamp so the restore
- * wins on the next sync.
+ * wins on the next sync, and sync forgets how far it pulled, so the next pull reads
+ * the server's rows the backup lacks again.
  */
 export async function importBackup(backup: BackupV2): Promise<void> {
   const now = Date.now();
@@ -176,4 +178,5 @@ export async function importBackup(backup: BackupV2): Promise<void> {
     }
     await applyRebuild();
   });
+  resetPullState(db.name);
 }

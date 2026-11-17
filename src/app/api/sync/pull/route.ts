@@ -1,34 +1,65 @@
 import { NextRequest } from 'next/server';
 import { neonSql } from '@/db/drizzle';
-import { isSyncAuthorized, buildSelectAll, fromPostgresRow, type PgRow } from '@/lib/syncGuard';
-import { SYNC_REGISTRY } from '@/lib/sync/registry';
-import type { PullResponse, WireRow } from '@/lib/sync/wire';
-import { READ_FAILED_REASON, syncJson } from '../respond';
+import { isSyncAuthorized, isSyncTableName, buildSelectPage, pagePullRows, type PgRow } from '@/lib/syncGuard';
+import {
+  PULL_PAGE_BYTES,
+  PULL_PAGE_ROWS,
+  decodePullCursor,
+  type PullCursor,
+  type PullPageResponse,
+} from '@/lib/sync/wire';
+import { READ_FAILED_REASON, SYNC_ERROR_CODE, syncJson } from '../respond';
+
+/** Seconds this route may run: one page is one query, so a minute is far more than enough. A literal: Next.js reads it from the source. */
+export const maxDuration = 60;
 
 /**
- * Every row of every registry table, soft-deleted rows included. Each table is read on
- * its own, so one that cannot be read (for example not created yet) is reported in
- * `errors` and the rest still arrive.
+ * One page of one registry table (`?table=<name>`), soft-deleted rows included, in the
+ * server's write order: from `since` (epoch ms, optional) and after `cursor` (the
+ * previous page's `nextCursor`, optional). A page holds at most PULL_PAGE_ROWS rows and
+ * about PULL_PAGE_BYTES of JSON, far below the size a function may return. The client
+ * asks again with `nextCursor` until it is null. See `PullPageResponse`.
  */
 export async function GET(request: NextRequest) {
   if (!isSyncAuthorized(request.headers.get('authorization'), process.env.SYNC_SECRET)) {
     return syncJson({ error: 'Unauthorized' }, 401);
   }
 
-  const rows: Record<string, WireRow[]> = {};
-  const errors: Record<string, string> = {};
-
-  for (const { name } of SYNC_REGISTRY) {
-    try {
-      const result = await neonSql.query(buildSelectAll(name));
-      rows[name] = (result as PgRow[]).map((row) => fromPostgresRow(name, row));
-    } catch (error) {
-      // The database error stays in the log: it can name tables, users or hosts.
-      console.error(`Sync pull error (${name}):`, error);
-      errors[name] = READ_FAILED_REASON;
-    }
+  const params = request.nextUrl.searchParams;
+  const table = params.get('table');
+  if (!isSyncTableName(table)) {
+    return syncJson({ error: `Unknown table: ${String(table)}` }, 400);
   }
 
-  const response: PullResponse = { rows, errors, serverTime: Date.now() };
-  return syncJson(response);
+  let since: number | undefined;
+  const sinceText = params.get('since');
+  if (sinceText !== null) {
+    if (!/^\d{1,16}$/.test(sinceText)) return syncJson({ error: 'since must be a stamp in epoch milliseconds' }, 400);
+    since = Number(sinceText);
+  }
+
+  let cursor: PullCursor | undefined;
+  const cursorText = params.get('cursor');
+  if (cursorText !== null) {
+    const decoded = decodePullCursor(cursorText);
+    if (!decoded) return syncJson({ error: 'cursor must be a nextCursor from an earlier page' }, 400);
+    cursor = decoded;
+  }
+
+  try {
+    const { text, values } = buildSelectPage(table, { since, cursor, limit: PULL_PAGE_ROWS });
+    const result = (await neonSql.query(text, values)) as PgRow[];
+    const page = pagePullRows(table, result, { maxRows: PULL_PAGE_ROWS, maxBytes: PULL_PAGE_BYTES });
+    const response: PullPageResponse = {
+      table,
+      rows: page.rows,
+      nextCursor: page.nextCursor,
+      serverTime: Date.now(),
+    };
+    return syncJson(response);
+  } catch (error) {
+    // The database error stays in the log: it can name tables, users or hosts.
+    console.error(`Sync pull error (${table}):`, error);
+    return syncJson({ error: READ_FAILED_REASON, code: SYNC_ERROR_CODE.readFailed }, 500);
+  }
 }

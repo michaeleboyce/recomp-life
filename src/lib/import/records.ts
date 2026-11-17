@@ -9,6 +9,7 @@
  */
 import { metresToMiles } from "@/lib/health/units";
 import { mapExercise, type ExerciseMapping, type MappingOverrides } from "@/lib/import/mapping";
+import { mergeSameStartCardio } from "./cardio";
 import type {
   CardioKind,
   ImportedCardio,
@@ -129,9 +130,10 @@ export type CardioRow = { table: "runs"; row: RunLog } | { table: "activities"; 
  * hikes, rides and the rest, with the exported name as the note for "other"). Null
  * when the entry has no duration: the log needs one and the app never guesses it.
  * The row carries no external id, so a later Apple Health import that finds the same
- * session links to it instead of adding a second one.
+ * session links to it instead of adding a second one. With `batchId`, the row records
+ * the import that added it, so undoing that import removes it on any device.
  */
-export function cardioRow(entry: ImportedCardio): CardioRow | null {
+export function cardioRow(entry: ImportedCardio, batchId?: string): CardioRow | null {
   if (entry.durationSec === null || !(entry.durationSec > 0)) return null;
   const base = {
     id: entry.id,
@@ -140,7 +142,9 @@ export function cardioRow(entry: ImportedCardio): CardioRow | null {
     durationMinutes: Math.round((entry.durationSec / 60) * 10) / 10,
     distanceMiles: entry.distanceM !== null && entry.distanceM > 0 ? metresToMiles(entry.distanceM) : null,
     perceivedEffort: null,
+    source: "import" as const,
     sourceName: SOURCE_APP_NAMES[entry.sourceApp],
+    ...(batchId ? { importBatchId: batchId } : {}),
     updatedAt: 0,
     deletedAt: null,
     synced: false,
@@ -169,12 +173,16 @@ export interface CardioRows {
   noDuration: number;
 }
 
-/** Every cardio entry of a parsed export as rows, oldest first. */
-export function buildCardioRows(parsed: Pick<ParsedExport, "cardio">): CardioRows {
+/**
+ * Every cardio entry of a parsed export as rows, oldest first, each marked with
+ * `batchId` when given. Rows of one exercise that share a start time are one entry
+ * (`mergeSameStartCardio`).
+ */
+export function buildCardioRows(parsed: Pick<ParsedExport, "cardio">, batchId?: string): CardioRows {
   const rows: CardioRow[] = [];
   let noDuration = 0;
-  for (const entry of parsed.cardio) {
-    const row = cardioRow(entry);
+  for (const entry of mergeSameStartCardio(parsed.cardio)) {
+    const row = cardioRow(entry, batchId);
     if (row) rows.push(row);
     else noDuration += 1;
   }

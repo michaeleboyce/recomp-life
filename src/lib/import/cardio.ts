@@ -3,7 +3,42 @@
  * overlaps in time with a run or activity already logged (by hand, from Apple Health or
  * from another export). Pure.
  */
+import type { ImportedCardio } from "./parse/types";
 import type { CardioRow } from "./records";
+
+/**
+ * Joins the cardio rows of one exercise that share a start time into one entry,
+ * duration and distance summed. A Fitbod-style export stamps every row of a workout
+ * with the workout's start, so a run logged as several rows would otherwise read as
+ * entries overlapping the first one and be left out. The joined entry keeps the id
+ * and row number of its first row in the file, so importing the file again gives the
+ * same id. Rows of different exercises, starts or apps stay apart, and the overlap
+ * rule (`planCardio`) still decides between them. Pure.
+ */
+export function mergeSameStartCardio(entries: readonly ImportedCardio[]): ImportedCardio[] {
+  const groups = new Map<string, ImportedCardio[]>();
+  for (const entry of entries) {
+    const key = [entry.sourceApp, entry.start, entry.kind, entry.name.trim().toLowerCase()].join("\u001f");
+    const group = groups.get(key);
+    if (group) group.push(entry);
+    else groups.set(key, [entry]);
+  }
+  const sum = (values: (number | null)[]): number | null => {
+    const present = values.filter((v): v is number => v !== null && Number.isFinite(v));
+    return present.length > 0 ? present.reduce((total, v) => total + v, 0) : null;
+  };
+  return [...groups.values()]
+    .map((group) => {
+      const ordered = [...group].sort((a, b) => a.rowNumber - b.rowNumber);
+      if (ordered.length === 1) return ordered[0];
+      return {
+        ...ordered[0],
+        durationSec: sum(ordered.map((e) => e.durationSec)),
+        distanceM: sum(ordered.map((e) => e.distanceM)),
+      };
+    })
+    .sort((a, b) => a.rowNumber - b.rowNumber);
+}
 
 /** The time a logged session takes up. */
 export interface TimedRow {
