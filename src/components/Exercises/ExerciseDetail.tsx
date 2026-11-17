@@ -27,6 +27,7 @@ import { Term } from "@/components/ui/term";
 import { inSentence } from "@/components/Today/format";
 import { liftPageHref } from "@/components/Today/todayModel";
 import { ExerciseViewer } from "@/components/ExerciseDemo/ExerciseViewer";
+import { ExerciseSessions } from "./ExerciseSessions";
 import { PreferenceControl } from "./PreferenceControl";
 
 const EQUIPMENT_LABELS: Record<string, string> = {
@@ -281,6 +282,8 @@ export default function ExerciseDetail({ exerciseId }: { exerciseId: string }) {
           )}
         </CardContent>
       </Card>
+
+      <ExerciseSessions exerciseId={exerciseId} />
     </div>
   );
 }

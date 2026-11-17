@@ -11,6 +11,13 @@ import type { SourceId } from "./sources";
 
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
+    date: "2026-11-17",
+    ruleId: "import-effort-words",
+    change:
+      "Switched on: an imported session's detail, opened from the Log or a lift's session list, shows each set's effort word with the approximate RPE it is read as.",
+    sources: [],
+  },
+  {
     date: "2026-11-16",
     ruleId: "home-progression",
     change:

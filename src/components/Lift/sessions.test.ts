@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { makeSet, makeWorkout } from "@/lib/data/testUtils";
+import { importDay, importedSession, importedSet } from "@/lib/import/testRecords";
+import { relatedExercises } from "@/lib/strength";
 import type { Estimated1RM } from "@/types";
-import { liftSessions } from "./sessions";
+import { importedLiftSessions, importedPoolFor, liftSessions } from "./sessions";
 
 describe("liftSessions", () => {
   it("lists every session with the lift, newest first, one row per tier", () => {
@@ -93,5 +95,75 @@ describe("liftSessions", () => {
       [215, undefined],
       [60, "goblet_squat"],
     ]);
+  });
+});
+
+// Made-up imported sessions only: the repository is public.
+describe("importedLiftSessions", () => {
+  const benchDay = importedSession(
+    [
+      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 30, reps: 12, role: "warmup" }),
+      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, setOrder: 2 }),
+      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 9, setOrder: 3 }),
+      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 40, reps: 8, setOrder: 4, role: "drop" }),
+      importedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 135, reps: 5 }),
+      importedSet({ exerciseName: "Made-up Curl", mappedExerciseId: "bicep_curls", weightPerImplementLb: 25, reps: 12 }),
+    ],
+    { id: "imp-a", sourceApp: "gravl", startedAt: importDay(10) }
+  );
+  const unmapped = importedSession(
+    [importedSet({ exerciseName: "Zorbing Press", mappedExerciseId: null, muscles: ["chest"] })],
+    { id: "imp-b", startedAt: importDay(12) }
+  );
+  const kept = importedSession(
+    [importedSet({ exerciseName: "Made-up Floor Thing", mappedExerciseId: null, weightPerImplementLb: 45, reps: 12 })],
+    { id: "imp-c", startedAt: importDay(11) }
+  );
+  const warmupOnly = importedSession(
+    [importedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", role: "warmup" })],
+    { id: "imp-d", startedAt: importDay(13) }
+  );
+  const all = [benchDay, unmapped, kept, warmupOnly];
+
+  it("pools the lift with the exercises its strength estimate pools", () => {
+    expect(importedPoolFor("bench")).toEqual(["bench", ...relatedExercises("bench")]);
+    expect(importedPoolFor("bench")).toContain("db_bench");
+  });
+
+  it("gives a row per exercise of the pool, warm-ups left out, weight as lifted", () => {
+    const rows = importedLiftSessions(all, importedPoolFor("bench"));
+    expect(rows.map((r) => r.key)).toEqual(["imported-imp-a-db_bench", "imported-imp-a-bench"]);
+    expect(rows[0]).toMatchObject({
+      exerciseId: "db_bench",
+      isVariant: true,
+      source: "Gravl",
+      weight: 50,
+      perHand: true,
+      sets: [
+        { reps: 10, drop: false },
+        { reps: 9, drop: false },
+        { reps: 8, drop: true },
+      ],
+    });
+    expect(rows[0].session).toBe(benchDay);
+    expect(rows[1]).toMatchObject({ exerciseId: "bench", isVariant: false, weight: 135, perHand: false, sets: [{ reps: 5, drop: false }] });
+  });
+
+  it("reads a remapped name as it maps now, newest first", () => {
+    const rows = importedLiftSessions(all, importedPoolFor("bench"), {
+      "Made-up Floor Thing": { kind: "exercise", exerciseId: "db_floor_press" },
+    });
+    expect(rows.map((r) => r.key)).toEqual(["imported-imp-c-db_floor_press", "imported-imp-a-db_bench", "imported-imp-a-bench"]);
+    expect(rows[0]).toMatchObject({ weight: 45, perHand: true });
+  });
+
+  it("for one exercise, lists that exercise only", () => {
+    expect(importedLiftSessions(all, ["db_bench"]).map((r) => r.exerciseId)).toEqual(["db_bench"]);
+    expect(importedLiftSessions(all, ["db_bench"])[0].isVariant).toBe(false);
+  });
+
+  it("leaves out names the library does not know and deleted sessions", () => {
+    expect(importedLiftSessions([unmapped], ["bench"])).toEqual([]);
+    expect(importedLiftSessions([{ ...benchDay, deletedAt: 5 }], ["bench"])).toEqual([]);
   });
 });
