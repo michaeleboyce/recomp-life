@@ -40,6 +40,29 @@ export interface UserSettings {
    * finished. Spec: docs/plans/2026-11-17-exercise-page-design.md (E6).
    */
   nextSetPlans?: Record<string, NextSetPlan>;
+  /**
+   * How a workout's accessories are chosen: "auto" (chosen by the app, the default:
+   * absent reads as "auto"), "ask" (offered, none ticked) or "none".
+   * Spec: docs/plans/2026-11-17-accessories-design.md (A5).
+   */
+  accessories?: AccessoryMode;
+  /** Accessories pinned to a workout day ("Always on this day"), by template id, in pin order. */
+  accessoryPins?: Record<string, string[]>;
+  /**
+   * Accessory weights set by hand, by exercise id. Each applies until a session logged
+   * after `setAt` contains the exercise (`handSetAccessoryWeight`); then double
+   * progression over the log takes over again.
+   */
+  accessoryWeights?: Record<string, AccessoryHandSetWeight>;
+}
+
+export type AccessoryMode = "auto" | "ask" | "none";
+
+/** An accessory weight set by hand: as lifted (per dumbbell for a two-dumbbell exercise). */
+export interface AccessoryHandSetWeight {
+  weight: number;
+  /** Epoch ms it was set. */
+  setAt: number;
 }
 
 /** Each set's weight and reps for the next session of one exercise at one tier (E6). */

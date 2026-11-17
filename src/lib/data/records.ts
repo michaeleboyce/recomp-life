@@ -3,6 +3,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { db } from "@/db/local";
 import { getPhaseAccessoryCap } from "@/lib/accessories";
+import { withAccessoryPin, withAccessoryWeight } from "@/lib/accessories/settings";
 import { setScopedPreference } from "@/lib/exercisePreferences";
 import { REPS_MODEL } from "@/lib/forecast/coefficients";
 import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
@@ -13,6 +14,7 @@ import type {
   PreferenceScope,
   RunLog,
   ActivityLog,
+  AccessoryMode,
   TrainingPhase,
   UserProfile,
   UserSettings,
@@ -183,6 +185,58 @@ export async function setExercisePreference(
       exercisePreferencesByLocation: next.byLocation,
     };
   }, now);
+}
+
+/**
+ * Changes the accessory settings (A5): the mode ("auto", "ask" or "none"), and/or one
+ * exercise pinned to (added at the end of) or unpinned from a workout day. Worked out
+ * from the settings as stored, inside the transaction that stamps the edit, like
+ * `setExercisePreference`, so two quick taps never undo each other.
+ */
+export async function setAccessorySettings(
+  change: {
+    mode?: AccessoryMode;
+    pin?: { templateId: string; exerciseId: string; pinned: boolean };
+  },
+  now: number = Date.now()
+): Promise<void> {
+  await updateSettings((current) => {
+    const patch: Partial<UserSettings> = {};
+    if (change.mode) patch.accessories = change.mode;
+    if (change.pin) {
+      const { templateId, exerciseId, pinned } = change.pin;
+      patch.accessoryPins = withAccessoryPin(current.accessoryPins, templateId, exerciseId, pinned);
+    }
+    return patch;
+  }, now);
+}
+
+/**
+ * Sets an accessory's weight by hand (as lifted: per dumbbell for a two-dumbbell
+ * exercise), stamped `now`. It applies until a session logged after `now` contains the
+ * exercise (`handSetAccessoryWeight`); nothing has to clear it when a workout ends.
+ * Rejects a weight that is not a finite number of at least 0.
+ */
+export async function setAccessoryWeight(
+  exerciseId: string,
+  weight: number,
+  now: number = Date.now()
+): Promise<void> {
+  if (!Number.isFinite(weight) || weight < 0) throw new Error(`Not a weight: ${weight}`);
+  await updateSettings(
+    (current) => ({
+      accessoryWeights: withAccessoryWeight(current.accessoryWeights, exerciseId, { weight, setAt: now }),
+    }),
+    now
+  );
+}
+
+/** Removes an accessory's hand-set weight ("Use plan's weight"): the plan decides again. */
+export async function clearAccessoryWeight(exerciseId: string, now: number = Date.now()): Promise<void> {
+  await updateSettings(
+    (current) => ({ accessoryWeights: withAccessoryWeight(current.accessoryWeights, exerciseId, null) }),
+    now
+  );
 }
 
 /** Merges a patch into the single profile (name, bodyweight, height) and marks it unsynced. */
