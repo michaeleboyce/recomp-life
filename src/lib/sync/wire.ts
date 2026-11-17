@@ -90,5 +90,13 @@ export function decodePullCursor(text: string | null | undefined): PullCursor | 
  */
 export const MAX_PUSH_ROWS = 500;
 
+/**
+ * About the most JSON one push request carries, in bytes: well under the 4.5 MB body
+ * a serverless function accepts (a larger one is refused before the route runs, every
+ * time, so that table would never sync). A batch stops at whichever of this and
+ * MAX_PUSH_ROWS comes first; a single row larger than this goes on its own.
+ */
+export const MAX_PUSH_BYTES = 1_000_000;
+
 /** A client stamp further ahead of the server clock than this is clamped to it. */
 export const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;

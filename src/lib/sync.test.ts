@@ -4,7 +4,7 @@ import type Dexie from "dexie";
 import { makeProfile, makeSet, makeWorkout } from "@/lib/data/testUtils";
 import { PROFILE_ID, SYNC_REGISTRY } from "@/lib/sync/registry";
 import { FakeSyncServer, TEST_PASSPHRASE, makeDeviceDb } from "@/lib/sync/testFakes";
-import { MAX_PUSH_ROWS, PULL_SINCE_OVERLAP_MS, decodePullCursor } from "@/lib/sync/wire";
+import { MAX_PUSH_BYTES, MAX_PUSH_ROWS, PULL_SINCE_OVERLAP_MS, decodePullCursor } from "@/lib/sync/wire";
 import { loadPullState, resetPullState } from "@/lib/sync/pullState";
 import {
   REBUILD_TABLES,
@@ -216,6 +216,34 @@ describe("pushUnsynced", () => {
       expect(await runs().filter((r) => r.synced === true).count()).toBe(500);
       expect(await runs().filter((r) => r.synced !== true).count()).toBe(700);
       expect((await workouts().get("w1")).synced).toBe(true);
+    });
+
+    it("keeps each request under MAX_PUSH_BYTES, so large rows never hit the platform's body limit", async () => {
+      // 40 KB a row: 500 of them would be 20 MB, far over the 4.5 MB a function accepts.
+      const note = "x".repeat(40_000);
+      await runs().bulkAdd(
+        Array.from({ length: 120 }, (_, i) => ({ id: `r${i}`, clientId: `c-r${i}`, synced: false, updatedAt: 1, note }))
+      );
+      const fetchMock = acceptAll();
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await pushUnsynced(database);
+
+      const sizes = fetchMock.mock.calls.map((call) => new TextEncoder().encode((call as unknown as Call)[1].body as string).length);
+      expect(sizes.length).toBeGreaterThan(1);
+      expect(Math.max(...sizes)).toBeLessThanOrEqual(MAX_PUSH_BYTES);
+      expect(result).toMatchObject({ pushed: 120, marked: 120, errors: {} });
+    });
+
+    it("sends a single row larger than MAX_PUSH_BYTES on its own", async () => {
+      await runs().bulkAdd([
+        { id: "big", clientId: "c-big", synced: false, updatedAt: 1, note: "x".repeat(MAX_PUSH_BYTES) },
+        { id: "small", clientId: "c-small", synced: false, updatedAt: 1 },
+      ]);
+      const fetchMock = acceptAll();
+      vi.stubGlobal("fetch", fetchMock);
+      await pushUnsynced(database);
+      expect(bodies(fetchMock).map((b) => b.rows.map((r: { id: string }) => r.id))).toEqual([["big"], ["small"]]);
     });
 
     it("a 401 on a later batch still stops everything", async () => {

@@ -8,6 +8,7 @@ import { applyRebuild } from "@/lib/data/derived";
 import { sanitizeSettings } from "@/lib/data/settingsShape";
 import { PROFILE_ID, SYNC_REGISTRY, type SyncTableDef } from "@/lib/sync/registry";
 import {
+  MAX_PUSH_BYTES,
   MAX_PUSH_ROWS,
   PULL_SINCE_OVERLAP_MS,
   type PullPageResponse,
@@ -83,9 +84,33 @@ async function dirtyRows(database: Dexie, def: SyncTableDef): Promise<Row[]> {
 }
 
 /**
- * Sends every dirty row of every registry table, in requests of at most
- * MAX_PUSH_ROWS rows (the server refuses larger ones), so a first sync or a large
- * backup import still uploads everything. A row is marked synced only if its
+ * `rows` in push batches: at most MAX_PUSH_ROWS rows and about MAX_PUSH_BYTES of JSON
+ * each, in order; a row larger than MAX_PUSH_BYTES is a batch of its own.
+ */
+export function pushBatches<T>(rows: readonly T[]): T[][] {
+  const encoder = new TextEncoder();
+  const batches: T[][] = [];
+  let batch: T[] = [];
+  let bytes = 0;
+  for (const row of rows) {
+    // The comma between rows is one byte; the request's own wrapper is a few dozen.
+    const size = encoder.encode(JSON.stringify(row)).length + 1;
+    if (batch.length > 0 && (batch.length >= MAX_PUSH_ROWS || bytes + size > MAX_PUSH_BYTES - 1_000)) {
+      batches.push(batch);
+      batch = [];
+      bytes = 0;
+    }
+    batch.push(row);
+    bytes += size;
+  }
+  if (batch.length > 0) batches.push(batch);
+  return batches;
+}
+
+/**
+ * Sends every dirty row of every registry table, in batches of at most MAX_PUSH_ROWS
+ * rows and about MAX_PUSH_BYTES (`pushBatches`; larger requests are refused), so a
+ * first sync or a large backup import still uploads everything. A row is marked synced only if its
  * `updatedAt` is still the value that was sent. A 401 stops everything (throws
  * SYNC_UNAUTHORIZED); another failure is recorded for its table and ends that
  * table's push: batches already accepted stay synced, the rest stays dirty for the
@@ -95,9 +120,8 @@ export async function pushUnsynced(database: Dexie = db): Promise<PushResult> {
   const result: PushResult = { pushed: 0, applied: 0, skipped: 0, marked: 0, errors: {} };
 
   for (const def of SYNC_REGISTRY) {
-    const rows = await dirtyRows(database, def);
-    for (let start = 0; start < rows.length; start += MAX_PUSH_ROWS) {
-      const accepted = await pushBatch(database, def, rows.slice(start, start + MAX_PUSH_ROWS), result);
+    for (const batch of pushBatches(await dirtyRows(database, def))) {
+      const accepted = await pushBatch(database, def, batch, result);
       if (!accepted) break;
     }
   }
