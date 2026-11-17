@@ -1,9 +1,11 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { initializeDatabase } from "@/db/init";
+import { db } from "@/db/local";
 import { updateSettings } from "@/lib/data/records";
+import { getExercise } from "@/lib/exercises";
 import { clearDb } from "@/lib/data/testUtils";
 import ExercisesPage from "./page";
 
@@ -38,5 +40,24 @@ describe("exercises page", () => {
     expect(marked[0]).toHaveTextContent("current");
     // The scope still starts on All.
     expect(within(scopeBlock()).queryByText(/apply to Home workouts only/)).toBeNull();
+  });
+
+  it("saves a row's preference through the data layer, stamped so it reaches other devices", async () => {
+    const before = (await db.userProfile.toCollection().first())!;
+    await db.userProfile.update(before.id, { synced: true });
+    render(<ExercisesPage />);
+    const name = await screen.findByText(getExercise("incline_db_press").name, {}, { timeout: 10000 });
+    const row = name.closest(".rounded-2xl") as HTMLElement;
+
+    fireEvent.click(within(row).getByRole("button", { name: "Preferred" }));
+
+    await waitFor(async () =>
+      expect(
+        (await db.userProfile.toCollection().first())!.settings.exercisePreferences?.incline_db_press
+      ).toBe("preferred")
+    );
+    const after = (await db.userProfile.toCollection().first())!;
+    expect(after.updatedAt!).toBeGreaterThan(before.updatedAt!);
+    expect(after.synced).toBe(false);
   });
 });
