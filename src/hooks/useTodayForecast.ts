@@ -6,6 +6,7 @@ import {
   type LedgerRecords,
 } from "@/lib/data/forecasts";
 import { makeSessionForecasts } from "@/lib/forecast";
+import type { ResolvedNextWorkout } from "@/lib/workout/nextWorkout";
 import { prChanceFromProbability, repsToBeat, type PrChance } from "@/lib/projection";
 import type { WorkoutPlan } from "@/lib/workout/types";
 import type { Forecast, ReadinessScore } from "@/types/glass";
@@ -55,10 +56,11 @@ let failureReported = false;
  */
 export function todayForecastFrom(
   records: LedgerRecords,
-  location?: WorkoutLocation
+  location?: WorkoutLocation,
+  next?: Pick<ResolvedNextWorkout, "plan">
 ): TodayForecast {
   try {
-    return buildTodayForecast(records, location);
+    return buildTodayForecast(records, location, next ?? nextWorkoutFrom(records, location));
   } catch (error) {
     if (!failureReported) {
       failureReported = true;
@@ -68,11 +70,15 @@ export function todayForecastFrom(
   }
 }
 
-/** The forecast itself. Pure; may throw on records no model expects. */
-function buildTodayForecast(records: LedgerRecords, location?: WorkoutLocation): TodayForecast {
+/** The forecast itself, for the next workout as resolved. Pure; may throw on records no model expects. */
+function buildTodayForecast(
+  records: LedgerRecords,
+  location: WorkoutLocation | undefined,
+  next: Pick<ResolvedNextWorkout, "plan">
+): TodayForecast {
   const now = records.readAt;
-  const { plan } = nextWorkoutFrom(records, location);
-  const readiness = readinessTodayFrom(records, { now, location });
+  const { plan } = next;
+  const readiness = readinessTodayFrom(records, { now, location, next });
   const rows = makeSessionForecasts(
     { id: "today" },
     plan,
@@ -149,6 +155,29 @@ export function useTodayForecast(location?: WorkoutLocation): TodayForecast | un
     () => (records ? todayForecastFrom(records, location) : undefined),
     [records, location]
   );
+}
+
+/** Today's next workout and its forecast tiles, from one resolution. */
+export interface TodayWorkout {
+  /** The next workout at the location (`nextWorkoutFrom` → `resolveNextWorkout`). */
+  next: ResolvedNextWorkout;
+  /** The forecast tiles and readiness, made for exactly that plan. */
+  forecast: TodayForecast;
+}
+
+/**
+ * The next workout at `location` (the saved default when omitted), resolved ONCE from
+ * one snapshot of the records, with the forecast tiles and readiness worked out from
+ * that same plan: Today's lift rows, tiles and readiness cannot plan it differently.
+ * `undefined` while loading.
+ */
+export function useTodayWorkout(location?: WorkoutLocation): TodayWorkout | undefined {
+  const records = useLedgerRecords();
+  return useMemo(() => {
+    if (!records) return undefined;
+    const next = nextWorkoutFrom(records, location);
+    return { next, forecast: todayForecastFrom(records, location, next) };
+  }, [records, location]);
 }
 
 /**

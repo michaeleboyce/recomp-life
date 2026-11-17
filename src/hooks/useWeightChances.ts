@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import {
   forecastSourceFrom,
-  nextPrescriptionFrom,
   nextWorkoutFrom,
   readinessTodayFrom,
   type LedgerRecords,
@@ -40,7 +39,7 @@ export function weightChancesFrom(
     if (!entry || entry.substituteExerciseId || input.weights.length === 0) return chances;
     const readiness = readinessTodayFrom(records, { now, location: input.location });
     const source = forecastSourceFrom(records, now, readiness);
-    const session = { id: "why", prescribed: nextPrescriptionFrom(records, next, input.location) };
+    const session = { id: "why", prescribed: next.prescribed };
     for (const weight of input.weights) {
       const rows = makeSessionForecasts(session, [{ ...entry, weight }], source);
       const row = rows.find(

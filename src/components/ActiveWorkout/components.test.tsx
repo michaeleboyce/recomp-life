@@ -134,6 +134,34 @@ describe("WeightDisplay", () => {
     expect(screen.queryByTestId("program-line")).toBeNull();
   });
 
+  it("keeps a recorded home weight above the heaviest dumbbell, with a plain note", () => {
+    const exercise = entry({
+      exerciseId: "bench",
+      substituteExerciseId: "db_bench",
+      weight: 70,
+      originalWeight: 185,
+    });
+    render(<WeightDisplay exercise={exercise} location="home" equipment={{ ...EQUIPMENT, maxDumbbellWeight: 50 }} />);
+    expect(screen.getByTestId("weight")).toHaveTextContent("70");
+    expect(screen.getByTestId("equipment-line")).toHaveTextContent(
+      "Your heaviest dumbbell is set to 50 lbs, lighter than the 70 lbs this workout recorded. Change the weight below if you need to."
+    );
+  });
+
+  it("notes a recorded home weight off the dumbbell step", () => {
+    const exercise = entry({ exerciseId: "bench", substituteExerciseId: "db_bench", weight: 75 });
+    render(<WeightDisplay exercise={exercise} location="home" equipment={{ ...EQUIPMENT, dumbbellIncrementLbs: 10 }} />);
+    expect(screen.getByTestId("equipment-line")).toHaveTextContent("10 lb steps, so 75 lbs may not be one you have");
+  });
+
+  it("adds no equipment note when the dumbbells allow the weight, or at the gym", () => {
+    const exercise = entry({ exerciseId: "bench", substituteExerciseId: "db_bench", weight: 70 });
+    const { rerender } = render(<WeightDisplay exercise={exercise} location="home" equipment={EQUIPMENT} />);
+    expect(screen.queryByTestId("equipment-line")).toBeNull();
+    rerender(<WeightDisplay exercise={entry({ weight: 245 })} location="gym" equipment={{ ...EQUIPMENT, maxDumbbellWeight: 50 }} />);
+    expect(screen.queryByTestId("equipment-line")).toBeNull();
+  });
+
   it("adds nothing for a cable exercise", () => {
     render(
       <WeightDisplay

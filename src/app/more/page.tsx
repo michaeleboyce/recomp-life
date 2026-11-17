@@ -21,14 +21,14 @@ import { MoreGroup, MoreRow } from "@/components/More/MoreGroup";
 import { TrainingLocationRow } from "@/components/More/TrainingLocationRow";
 import { useHasSyncKey } from "@/components/More/useHasSyncKey";
 import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
-import { useFavoriteWorkouts, useNextWorkout, useSettings } from "@/hooks";
+import { useDueTemplateId, useFavoriteWorkouts, useSettings } from "@/hooks";
 import { plural } from "@/lib/text";
 import packageJson from "../../../package.json";
 
 const PHASE_LABEL = { cutting: "Cutting", maintaining: "Maintaining", bulking: "Bulking" } as const;
 
 export default function MorePage() {
-  const next = useNextWorkout();
+  const dueTemplateId = useDueTemplateId();
   const settings = useSettings();
   const favorites = useFavoriteWorkouts();
   const hasSyncKey = useHasSyncKey();
@@ -45,7 +45,7 @@ export default function MorePage() {
         <MoreRow
           icon={CalendarClock}
           title="Coming up"
-          subtitle={next ? `Next: ${templateTitle(next.templateId)}` : "The next workouts in your rotation"}
+          subtitle={dueTemplateId ? `Next: ${templateTitle(dueTemplateId)}` : "The next workouts in your rotation"}
           href="/progress/upcoming"
         />
         <MoreRow

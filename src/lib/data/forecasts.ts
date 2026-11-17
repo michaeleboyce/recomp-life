@@ -33,14 +33,14 @@ import {
 import { anchorToPrescription, emptyLiftState, rebuildDerived } from "@/lib/rebuild";
 import { buildSessionDecisions, type TraceContext, type TraceReadiness } from "@/lib/trace";
 import type { StrengthSet } from "@/lib/strength";
-import { describeNextWorkout, overridesFromSession } from "@/lib/workout/buildPlan";
-import { prescribedFor } from "@/lib/workout/planEdits";
+import { overridesFromSession } from "@/lib/workout/buildPlan";
+import { resolveNextWorkout, type ResolvedNextWorkout } from "@/lib/workout/nextWorkout";
 import { markReentries, resolveReentry } from "@/lib/workout/reentry";
 import { mappingOverridesSnapshot } from "@/lib/import/remembered";
 import type { MappingOverrides } from "@/lib/import/mapping/types";
 import { strengthEvidenceOf } from "@/lib/workout/strength";
 import { targetStrengthSets } from "@/lib/workout/variant";
-import type { NextWorkoutDescription, WorkoutPlan } from "@/lib/workout/types";
+import type { WorkoutPlan } from "@/lib/workout/types";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
   ActivityLog,
@@ -379,56 +379,23 @@ export function traceContextFrom(
 }
 
 /**
- * The upcoming workout in the rotation with its plan, as `useNextWorkout` describes
- * it: at `location` (else the saved default, else the gym), warm-ups as the settings
- * say, no accessories; home exercises at their own weights (a first one seeded from
- * the strength estimate) and the first session back at a location at its re-entry
- * weight. Its `liftStates` and `variantStates` are the ones the plan was built from.
+ * The upcoming workout in the rotation with its plan, from the records: the same
+ * `resolveNextWorkout` that `useNextWorkout` calls, at `location` (else the saved
+ * default, else the gym), warm-ups as the settings say, no accessories; home exercises
+ * at their own weights (a first one seeded from the strength estimate), the first
+ * session back at a location at its re-entry weight, and the next-session set plans
+ * (`settings.nextSetPlans`, E6). Its `liftStates` and `variantStates` are the ones the
+ * plan was built from; `prescribed` is what starting it would store.
  */
-export function nextWorkoutFrom(
-  records: LedgerRecords,
-  location?: WorkoutLocation
-): NextWorkoutDescription {
-  const { settings } = records;
-  return describeNextWorkout({
+export function nextWorkoutFrom(records: LedgerRecords, location?: WorkoutLocation): ResolvedNextWorkout {
+  return resolveNextWorkout({
     completedWorkouts: live(records.workouts).filter((workout) => workout.completedAt != null),
-    templates: WORKOUT_TEMPLATES,
     liftStates: records.liftStates,
-    plan: {
-      location: location ?? settings.defaultLocation ?? "gym",
-      equipment: settings.equipment,
-      includeWarmUps: settings.showWarmUps,
-      selectedAccessories: [],
-      variantStates: records.variantStates ?? [],
-      strengthSets: strengthSetsFrom(records),
-      // Per-set weights set on an exercise's page for its next session (E6).
-      nextSetPlans: settings.nextSetPlans,
-    },
-    reentry: true,
+    variantStates: records.variantStates ?? [],
+    strengthSets: strengthSetsFrom(records),
+    settings: records.settings,
+    location,
   });
-}
-
-/**
- * What the program prescribes for the next workout's lifts, before edits, from the
- * states its plan was built from (`nextWorkoutFrom`): what starting it would store.
- */
-export function nextPrescriptionFrom(
-  records: LedgerRecords,
-  next: NextWorkoutDescription,
-  location?: WorkoutLocation
-): PrescribedEntry[] {
-  const at = location ?? records.settings.defaultLocation ?? "gym";
-  return prescribedFor(
-    next.template,
-    next.liftStates ?? records.liftStates,
-    at === "home"
-      ? {
-          variantStates: next.variantStates ?? records.variantStates ?? [],
-          equipment: records.settings.equipment,
-          strengthSets: strengthSetsFrom(records),
-        }
-      : undefined
-  );
 }
 
 /**
@@ -457,11 +424,18 @@ function inProgressWorkout(records: LedgerRecords, now: Date): WorkoutSession | 
  *
  * "Today's workout" is the workout in progress, with the sleep and energy answers
  * saved when it started; otherwise the next workout in the rotation, with `answers`
- * when the caller has some that are not saved yet (the pre-workout check).
+ * when the caller has some that are not saved yet (the pre-workout check). `next` is
+ * that next workout when the caller has resolved it already (`nextWorkoutFrom` of the
+ * same records and location), so it is not planned twice.
  */
 export function readinessTodayFrom(
   records: LedgerRecords,
-  input: { now: Date; location?: WorkoutLocation; answers?: ReadinessAnswers | null }
+  input: {
+    now: Date;
+    location?: WorkoutLocation;
+    answers?: ReadinessAnswers | null;
+    next?: Pick<ResolvedNextWorkout, "plan">;
+  }
 ): ReadinessScore | null {
   const { now } = input;
   const session = inProgressWorkout(records, now);
@@ -477,7 +451,7 @@ export function readinessTodayFrom(
       now
     );
   }
-  const next = nextWorkoutFrom(records, input.location);
+  const next = input.next ?? nextWorkoutFrom(records, input.location);
   return readinessFrom(
     records,
     { log: input.answers ?? null, exerciseIds: readinessExerciseIds(next.plan) },

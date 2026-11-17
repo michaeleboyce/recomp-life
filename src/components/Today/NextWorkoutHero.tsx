@@ -6,11 +6,10 @@ import { AlertTriangle } from "lucide-react";
 import {
   useCompletedWorkouts,
   useLiftStates,
-  useNextWorkout,
   useOpenWorkoutForecast,
   usePainEntries,
   useSettings,
-  useTodayForecast,
+  useTodayWorkout,
   useTrainingLocation,
   useUnfinishedWorkout,
 } from "@/hooks";
@@ -38,8 +37,11 @@ import { dayName } from "./todayModel";
  */
 export function NextWorkoutHero() {
   const { location, setLocation } = useTrainingLocation();
-  const next = useNextWorkout(location);
-  const nextForecast = useTodayForecast(location);
+  // The next workout resolved once: the lift rows, the forecast tiles and readiness all
+  // read this one plan.
+  const today = useTodayWorkout(location);
+  const next = today?.next;
+  const nextForecast = today?.forecast;
   const finished = useCompletedWorkouts();
   const open = useUnfinishedWorkout();
   const openPlan = useOpenPlan(open);

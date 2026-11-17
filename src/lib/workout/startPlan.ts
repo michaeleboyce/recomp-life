@@ -1,13 +1,23 @@
 // What a session about to start plans and stores: the plan, the program's prescription
 // for it, and the states both are built from, after re-entry. Pure.
 import type { PlanEdit, PrescribedEntry } from "@/types";
-import { buildWorkoutPlan } from "./buildPlan";
-import { nextSetPlanEdits } from "./nextSetPlans";
-import { applyPlanEdits, prescribedFor } from "./planEdits";
+import {
+  planFromLifts,
+  prescriptionOf,
+  resolveLifts,
+  withPlanEdits,
+  type LiftResolution,
+} from "./liftResolution";
 import { resolveReentry, type ReentryResolution } from "./reentry";
 import type { BuildPlanInput, WorkoutPlan } from "./types";
 
 export interface WorkoutStartPlan extends ReentryResolution {
+  /**
+   * Each program lift resolved once (`resolveLifts`): the exercise performed, its weight
+   * as lifted, its scheme, the program's barbell prescription and any re-entry decision.
+   * `prescribed` and the plan before edits are both read from these.
+   */
+  lifts: LiftResolution[];
   /** Exactly what the active workout will perform. */
   plan: WorkoutPlan;
   /**
@@ -24,50 +34,67 @@ export interface WorkoutStartPlan extends ReentryResolution {
   nextSetPlanEdits: PlanEdit[];
 }
 
+export interface StartPlanInput extends BuildPlanInput {
+  /**
+   * Which lifts re-entry (H6) is worked out for: "day" (the default) the template's,
+   * "everyLift" every program lift (a projection of several workouts ahead carries the
+   * states on), "none" the states are used as given, with `reentries` if any.
+   */
+  reentry?: "day" | "everyLift" | "none";
+}
+
 /**
- * The plan and prescription of a session about to start, from the current states: the
- * states are resolved for a first session back at a location (`resolveReentry`, H6),
- * home exercises never used are seeded from `strengthSets` (H3), and the prescription
- * is built from the same states and choices as the plan, so the rebuild credits the
- * session against what was planned.
+ * The plan and prescription of a session about to start, from the current states, in
+ * three steps that every planning path shares:
+ *
+ * 1. Resolve the lifts: the states for a first session back at a location
+ *    (`resolveReentry`, H6), then each program lift once (`resolveLifts`): the exercise
+ *    performed, a home exercise never used seeded from `strengthSets` (H3).
+ * 2. Record the prescription from those lifts (`prescriptionOf`), so the rebuild credits
+ *    the session against exactly what was planned.
+ * 3. Apply the edits to the program's plan (`planFromLifts`): next-session set plans
+ *    first, then the user's own (`withPlanEdits`).
  *
  * @evidence strength-pooling
  * @evidence home-progression
  */
-export function planWorkoutStart(input: Omit<BuildPlanInput, "reentries">): WorkoutStartPlan {
+export function planWorkoutStart(input: StartPlanInput): WorkoutStartPlan {
   const { template, location, equipment, overrides, strengthSets } = input;
-  const resolved = resolveReentry({
-    liftStates: input.liftStates,
-    variantStates: input.variantStates ?? [],
+  const scope = input.reentry ?? "day";
+
+  // 1. Resolve the lifts.
+  const resolved: ReentryResolution =
+    scope === "none"
+      ? {
+          liftStates: input.liftStates,
+          variantStates: input.variantStates ?? [],
+          reentries: new Map(input.reentries ?? []),
+        }
+      : resolveReentry({
+          liftStates: input.liftStates,
+          variantStates: input.variantStates ?? [],
+          location,
+          equipment,
+          ...(scope === "day" ? { template } : {}),
+          ...(strengthSets ? { strengthSets } : {}),
+          ...(overrides ? { overrides } : {}),
+        });
+  const lifts = resolveLifts({
+    template,
+    liftStates: resolved.liftStates,
     location,
     equipment,
-    template,
+    variantStates: resolved.variantStates,
+    reentries: resolved.reentries,
     ...(strengthSets ? { strengthSets } : {}),
     ...(overrides ? { overrides } : {}),
   });
-  // The program's plan first, so the set plans are matched on the entries as planned.
-  const base = buildWorkoutPlan({
-    ...input,
-    liftStates: resolved.liftStates,
-    variantStates: resolved.variantStates,
-    reentries: resolved.reentries,
-    edits: undefined,
-    nextSetPlans: undefined,
-  });
-  const setPlanEdits = nextSetPlanEdits(base, input.nextSetPlans);
-  const edits = [...setPlanEdits, ...(input.edits ?? [])];
-  const plan = edits.length ? applyPlanEdits(base, edits) : base;
-  const prescribed = prescribedFor(
-    template,
-    resolved.liftStates,
-    location === "home"
-      ? {
-          variantStates: resolved.variantStates,
-          equipment,
-          ...(overrides ? { overrides } : {}),
-          ...(strengthSets ? { strengthSets } : {}),
-        }
-      : undefined
-  );
-  return { ...resolved, plan, prescribed, nextSetPlanEdits: setPlanEdits };
+
+  // 2. Record the prescription.
+  const prescribed = prescriptionOf(lifts);
+
+  // 3. Apply the edits: set plans are matched on the entries as the program plans them.
+  const base = planFromLifts(lifts, input);
+  const { plan, nextSetPlanEdits } = withPlanEdits(base, input.nextSetPlans, input.edits);
+  return { ...resolved, lifts, plan, prescribed, nextSetPlanEdits };
 }

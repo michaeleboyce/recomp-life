@@ -57,6 +57,31 @@ function programLine(exercise: WorkoutExerciseState, location: WorkoutLocation):
   return `${lift} in the program: ${exercise.originalWeight} lbs`;
 }
 
+/**
+ * At home, for a dumbbell weight the equipment set now cannot give (heavier than the
+ * heaviest dumbbell, or off the dumbbell step): a plain note. A saved workout keeps the
+ * weight it recorded (`resolveSavedSession`), so this shows when the equipment was
+ * changed after it started; the weight can still be changed for the set. Null otherwise.
+ */
+export function equipmentLine(
+  exercise: Pick<WorkoutExerciseState, "exerciseId" | "substituteExerciseId" | "weight">,
+  location: WorkoutLocation,
+  equipment: EquipmentProfile
+): string | null {
+  if (location !== "home") return null;
+  const info = getExercise(exercise.substituteExerciseId || exercise.exerciseId);
+  if (info.type !== "dumbbell" || !(exercise.weight > 0)) return null;
+  const max = equipment.maxDumbbellWeight;
+  const step = equipment.dumbbellIncrementLbs;
+  if (exercise.weight > max) {
+    return `Your heaviest dumbbell is set to ${max} lbs, lighter than the ${exercise.weight} lbs this workout recorded. Change the weight below if you need to.`;
+  }
+  if (step > 0 && exercise.weight % step !== 0) {
+    return `Your dumbbells are set to go up in ${step} lb steps, so ${exercise.weight} lbs may not be one you have. Change the weight below if you need to.`;
+  }
+  return null;
+}
+
 /** The weight for the set on screen, as the largest thing on it. */
 export function WeightDisplay({
   exercise,
@@ -67,6 +92,7 @@ export function WeightDisplay({
 }: WeightDisplayProps) {
   const line = loadingLine(exercise, location, equipment);
   const program = programLine(exercise, location);
+  const beyond = equipmentLine(exercise, location, equipment);
 
   return (
     <AMRAPGlow
@@ -102,6 +128,11 @@ export function WeightDisplay({
       {program && (
         <p data-testid="program-line" className="text-center text-[13px] text-muted-foreground">
           {program}
+        </p>
+      )}
+      {beyond && (
+        <p data-testid="equipment-line" role="note" className="text-center text-[13px] text-warning">
+          {beyond}
         </p>
       )}
     </AMRAPGlow>
