@@ -10,7 +10,7 @@ import { applyPreferences } from "@/lib/exercisePreferences";
 import { DEFAULT_ACCESSORY_WEIGHTS, EXERCISES, getExercise } from "@/lib/exercises";
 import { swapCandidates } from "@/lib/swapCandidates";
 import { cn } from "@/lib/utils";
-import type { Tier } from "@/types";
+import type { PlannedSet, PrescribedEntry, Tier } from "@/types";
 import { EditEntryRow } from "./EditEntryRow";
 import { ExercisePicker } from "./ExercisePicker";
 import { ImpactLine } from "./ImpactLine";
@@ -26,6 +26,30 @@ type Picking = { mode: "swap"; exerciseId: string; tier: Tier } | { mode: "add" 
  * Edit the day's workout before starting: swap, remove, add, change sets, reps and
  * weight. Every program lift shows whether it still counts toward progression.
  */
+/**
+ * The program's own sets for an entry, for "Plan · You" in the per-set editor: what was
+ * prescribed for the lift at its tier (the home exercise's own weight and scheme when it
+ * is done as that). Undefined for an entry the program did not prescribe (an accessory,
+ * an added exercise, a swap to something else), which then compares with nothing.
+ */
+export function prescribedSetsFor(
+  entry: { exerciseId: string; substituteExerciseId?: string; tier: Tier },
+  prescribed: readonly PrescribedEntry[]
+): PlannedSet[] | undefined {
+  const found = prescribed.find((p) => p.exerciseId === entry.exerciseId && p.tier === entry.tier);
+  if (!found) return undefined;
+  const performed = entry.substituteExerciseId || entry.exerciseId;
+  const source = found.home
+    ? found.home.exerciseId === performed
+      ? found.home
+      : null
+    : performed === found.exerciseId
+      ? found
+      : null;
+  if (!source || !(source.sets > 0)) return undefined;
+  return Array.from({ length: source.sets }, () => ({ weight: source.weight, reps: source.reps }));
+}
+
 export function EditWorkoutSheet({
   setup,
   open,
@@ -126,6 +150,7 @@ export function EditWorkoutSheet({
                   onScheme={(sets, reps) => setup.setScheme(entry.exerciseId, entry.tier, sets, reps)}
                   onWeight={(weight) => setup.setWeight(entry.exerciseId, entry.tier, weight)}
                   onSetWeights={(sets) => setup.setSetWeights(entry.exerciseId, entry.tier, sets)}
+                  planSets={prescribedSetsFor(entry, setup.prescribed)}
                   weightStep={weightStepFor(entry.substituteExerciseId || entry.exerciseId, location, equipment)}
                   minWeight={minWeightFor(entry.substituteExerciseId || entry.exerciseId, location, equipment)}
                 />

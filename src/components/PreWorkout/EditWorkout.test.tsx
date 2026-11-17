@@ -247,3 +247,27 @@ describe("the day selector", () => {
     expect(plannedNames()[0]).toBe("Barbell OHP");
   });
 });
+
+describe("prescribedSetsFor", () => {
+  it("is the prescription's sets for the lift or its home exercise, and nothing for anything else", async () => {
+    const { prescribedSetsFor } = await import("./EditWorkoutSheet");
+    const prescribed = [
+      { exerciseId: "squat", tier: "T1" as const, weight: 200, sets: 5, reps: 3 },
+      {
+        exerciseId: "bench",
+        tier: "T2" as const,
+        weight: 135,
+        sets: 3,
+        reps: 10,
+        home: { exerciseId: "db_bench", weight: 45, perHand: true, sets: 3, reps: 10 },
+      },
+    ];
+    expect(prescribedSetsFor({ exerciseId: "squat", tier: "T1" }, prescribed)).toEqual(
+      Array.from({ length: 5 }, () => ({ weight: 200, reps: 3 }))
+    );
+    expect(prescribedSetsFor({ exerciseId: "bench", substituteExerciseId: "db_bench", tier: "T2" }, prescribed)).toHaveLength(3);
+    expect(prescribedSetsFor({ exerciseId: "bench", substituteExerciseId: "db_bench", tier: "T2" }, prescribed)?.[0]).toEqual({ weight: 45, reps: 10 });
+    expect(prescribedSetsFor({ exerciseId: "bench", tier: "T2" }, prescribed)).toBeUndefined();
+    expect(prescribedSetsFor({ exerciseId: "db_row", tier: "T3" }, prescribed)).toBeUndefined();
+  });
+});

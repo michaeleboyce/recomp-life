@@ -54,6 +54,7 @@ import {
   weightStepFor,
   type SpotWeightsByKey,
 } from "./setPlan";
+import { loadSpotWeights, saveSpotWeights } from "./spotWeightStorage";
 
 const NO_SPOT_WEIGHTS: SpotWeightsByKey = {};
 
@@ -177,6 +178,10 @@ export function useActiveWorkout(
   const storeReady = !!session && storeSessionId === session.id;
 
   const sets = useMemo(() => session?.sets ?? [], [session]);
+  // Kept per workout in sessionStorage, so a reload keeps the weights changed on the spot.
+  if (session && spotChoice?.sessionId !== session.id) {
+    setSpotChoice({ sessionId: session.id, weights: loadSpotWeights(session.id) });
+  }
   const spotWeights = useMemo<SpotWeightsByKey>(
     () => (session && spotChoice?.sessionId === session.id ? spotChoice.weights : NO_SPOT_WEIGHTS),
     [session, spotChoice]
@@ -357,6 +362,7 @@ export function useActiveWorkout(
         // Stepping back onto the plan's weight is the plan again.
         if (weight == null || Math.max(minWeight, weight) === planned) delete weights[key];
         else weights[key] = Math.max(minWeight, weight);
+        saveSpotWeights(session.id, weights);
         return { sessionId: session.id, weights };
       });
     },
