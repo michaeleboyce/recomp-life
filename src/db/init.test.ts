@@ -63,6 +63,31 @@ describe("initializeDatabase", () => {
     expect(profiles[0].settings.trainingPhase).toEqual({ mode: "bulking" });
   });
 
+  it("an emptied database pulls everything again, not only what changed since an earlier pull", async () => {
+    // An earlier pull on this device left a `since` stamp beyond every row on the server.
+    const server = new FakeSyncServer();
+    server.store("liftAdjustments", {
+      ...JSON.parse(JSON.stringify(startAdjustments()[0])),
+      set: { t1Weight: 300 },
+      updatedAt: 1,
+      synced: true,
+    }, 10);
+    localStorage.setItem(`recomp-sync-pull:${db.name}`, JSON.stringify({ liftAdjustments: { since: 1_000 } }));
+    localStorage.setItem("recomp-sync-key", TEST_PASSPHRASE);
+    vi.stubGlobal("fetch", server.fetch);
+    try {
+      await initializeDatabase();
+      const result = await fullSync(db);
+      expect(result.errors).toEqual([]);
+    } finally {
+      vi.unstubAllGlobals();
+      localStorage.removeItem("recomp-sync-key");
+    }
+    const pulls = server.requests.filter((r) => r.path === "/api/sync/pull" && r.table === "liftAdjustments");
+    expect(pulls[0].since).toBeUndefined();
+    expect((await db.liftAdjustments.get(startAdjustments()[0].id))!.set).toEqual({ t1Weight: 300 });
+  });
+
   it("the default starting weights never replace ones an account already synced, in either direction", async () => {
     // Start adjustments pushed by an earlier version of the app: its seed stamp (1) and
     // other (made-up) weights.

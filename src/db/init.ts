@@ -1,4 +1,5 @@
 import { applyRebuild, rebuildTables } from '@/lib/data/derived';
+import { resetPullState } from '@/lib/sync/pullState';
 import { PROFILE_ID } from '@/lib/sync/registry';
 import { db, dropLegacyDatabase } from './local';
 import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES, SEED_STAMP, startAdjustments } from './seed';
@@ -25,11 +26,13 @@ export function initializeDatabase(): Promise<void> {
  * projection of the log. Idempotent: a second run adds nothing and rebuilds nothing.
  */
 async function seed(): Promise<void> {
+  let fresh = false;
   await db.transaction('rw', rebuildTables(), async () => {
     let changed = false;
 
     const existingProfile = await db.userProfile.count();
     if (existingProfile === 0) {
+      fresh = true;
       await db.userProfile.add({
         ...DEFAULT_USER_PROFILE,
         id: PROFILE_ID,
@@ -58,4 +61,8 @@ async function seed(): Promise<void> {
     }
     if (changed) await applyRebuild();
   });
+  // A database with no profile was empty: whatever this device pulled before is gone
+  // (site data partly cleared, or the database recreated), so the next pull reads
+  // everything again rather than only what changed since that earlier pull.
+  if (fresh) resetPullState(db.name);
 }

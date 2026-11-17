@@ -14,6 +14,7 @@ import {
   usePainEntries,
   useSettings,
 } from "@/hooks";
+import { useMappingOverrides } from "@/hooks/useMappingOverrides";
 import { getMonday } from "@/lib/dates";
 import {
   addImportedVolume,
@@ -73,6 +74,8 @@ export function MusclesTab() {
   // Sessions imported from other apps count for this week's load and for recovery, as
   // they do for strength; they never touch the rotation or progression.
   const imported = useImportedSessions();
+  // Names the user has remapped since the import are read as remapped.
+  const overrides = useMappingOverrides();
   const strengthIndex = useMuscleStrength();
   const settings = useSettings();
   const allPain = usePainEntries();
@@ -92,21 +95,21 @@ export function MusclesTab() {
     const phase: TrainingPhase = settings?.trainingPhase ?? { mode: "maintaining" };
     const weekLoad = addMuscleValues(
       getWeeklyMuscleLoad(list, monday),
-      importedMuscleLoad(sessions, monday, nextMonday)
+      importedMuscleLoad(sessions, monday, nextMonday, overrides)
     );
-    const lastTrained = latestPerMuscle(getMuscleLastTrained(list), importedMuscleLastTrained(sessions));
+    const lastTrained = latestPerMuscle(getMuscleLastTrained(list), importedMuscleLastTrained(sessions, overrides));
     const recovery = recoveryFromLastTrained(lastTrained, now, phase);
     return {
       weekLoad,
       weekHeat: weeklyHeatLevels(weekLoad),
-      weekVolume: addImportedVolume(getWeeklyVolumeSummary(list, monday).muscleGroups, sessions, monday, nextMonday),
+      weekVolume: addImportedVolume(getWeeklyVolumeSummary(list, monday).muscleGroups, sessions, monday, nextMonday, overrides),
       lastTrained,
       recovery,
       recoveryColors: Object.fromEntries(
         Object.entries(recovery).map(([m, status]) => [m, RECOVERY_COLORS[status]])
       ) as Record<MuscleId, string>,
     };
-  }, [workouts, imported, settings]);
+  }, [workouts, imported, overrides, settings]);
 
   if (workouts === undefined || imported === undefined) {
     return (
