@@ -8,6 +8,7 @@ import type { StrengthSet } from "@/lib/strength";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Badge } from "@/components/ui/badge";
 import { SectionHeader } from "@/components/ui/section-header";
+import { SkeletonCard } from "@/components/ui/skeleton";
 import { Term } from "@/components/ui/term";
 import { LIFT_NAMES, type MainLiftId } from "@/components/Progress/lifts";
 import { displayLiftName, exercisePageHref } from "@/components/Today/todayModel";
@@ -23,6 +24,7 @@ const LINK = "-my-3 flex min-h-11 items-center gap-0.5 font-bold text-accent-pri
 /**
  * A home version: the program lift's pooled estimate, what this exercise's latest
  * session says the lift is ("≈ squat 205"), the ratio and its pairs, and the lift's page.
+ * A placeholder while the strength sets load (`sets` undefined).
  */
 function HomeCounts({
   exerciseId,
@@ -46,36 +48,40 @@ function HomeCounts({
           </Link>
         }
       />
-      <div data-testid="counts-toward" className="flex flex-col gap-2 rounded-xl bg-card px-4 py-3">
-        <p className="flex items-baseline justify-between gap-3 text-sm">
-          <span>
-            Your {short} <Term id="e1rm">strength estimate</Term>
-          </span>
-          <b data-testid="pooled-estimate" className="font-mono tabular-nums">
-            {counts.pooled != null ? `${counts.pooled} lbs` : "–"}
-          </b>
-        </p>
-        {counts.says != null && (
-          <p data-testid="counts-says" className="text-[13px] text-muted-foreground">
-            {counts.fromTarget ? "The weight you set says" : "Your latest session says"}{" "}
-            <b className="font-mono text-foreground">
-              ≈ {short} {counts.says}
+      {sets === undefined ? (
+        <SkeletonCard />
+      ) : (
+        <div data-testid="counts-toward" className="flex flex-col gap-2 rounded-xl bg-card px-4 py-3">
+          <p className="flex items-baseline justify-between gap-3 text-sm">
+            <span>
+              Your {short} <Term id="e1rm">strength estimate</Term>
+            </span>
+            <b data-testid="pooled-estimate" className="font-mono tabular-nums">
+              {counts.pooled != null ? `${counts.pooled} lbs` : "–"}
             </b>
-            .
           </p>
-        )}
-        {counts.ratio && (
-          <div className="flex items-start gap-2 border-t border-border pt-2">
-            <p data-testid="counts-ratio" className="flex-1 text-[13px] text-muted-foreground">
-              {displayLiftName(exerciseId)} is about{" "}
-              <b className="font-mono text-foreground">{counts.ratio.ratio.toFixed(2)}</b> of your {short},{" "}
-              {ratioBasisText(counts.ratio)}.
+          {counts.says != null && (
+            <p data-testid="counts-says" className="text-[13px] text-muted-foreground">
+              {counts.fromTarget ? "The weight you set says" : "Your latest session says"}{" "}
+              <b className="font-mono text-foreground">
+                ≈ {short} {counts.says}
+              </b>
+              .
             </p>
-            <EvidenceLine ruleId="transfer-ratio" variant="icon" />
-            <EvidenceLine ruleId="strength-pooling" variant="icon" />
-          </div>
-        )}
-      </div>
+          )}
+          {counts.ratio && (
+            <div className="flex items-start gap-2 border-t border-border pt-2">
+              <p data-testid="counts-ratio" className="flex-1 text-[13px] text-muted-foreground">
+                {displayLiftName(exerciseId)} is about{" "}
+                <b className="font-mono text-foreground">{counts.ratio.ratio.toFixed(2)}</b> of your {short},{" "}
+                {ratioBasisText(counts.ratio)}.
+              </p>
+              <EvidenceLine ruleId="transfer-ratio" variant="icon" />
+              <EvidenceLine ruleId="strength-pooling" variant="icon" />
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }

@@ -2,7 +2,7 @@
 // The pieces both next-session cards are built from (a planned lift's and a home
 // version's), so the two read the same: the section, the weight with tier and scheme,
 // "Plan · You" while the weight is set by hand, the sets and the Adjust weight row.
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { tierStyle } from "@/lib/tierStyle";
 import { cn } from "@/lib/utils";
 import { nextSetPlanKey } from "@/lib/workout/nextSetPlans";
@@ -156,17 +156,25 @@ export function NextSetPlanEditor({
   maxWeight?: number;
   store: NextSetPlanStore;
 }) {
+  // The sets as last changed here, until the store gives them back: a second tap before
+  // the save comes back steps from the first, not from the sets as stored.
+  const [draft, setDraft] = useState<PlannedSet[] | null>(null);
   const key = nextSetPlanKey(exerciseId, tier);
   const stored = store.plans?.[key];
   // The next session's plan already has a stored set plan applied (`applyNextSetPlans`),
   // so "Plan" is the plan's own sets as they were when it was set.
   const plan = stored && stored.planSets.length > 0 ? stored.planSets : planSets;
-  const sets = editorSets(stored, plan);
+  const storedSets = editorSets(stored, plan);
+  if (draft && !differsFromPlan(storedSets, draft)) setDraft(null);
+  const sets = draft ?? storedSets;
   if (plan.length === 0) return null;
-  const save = (value: NextSetPlan | null) =>
-    store.save(value, key).catch((e: unknown) =>
-      toast({ message: `Could not save the set weights: ${e instanceof Error ? e.message : String(e)}` })
-    );
+  const save = (value: NextSetPlan | null) => {
+    setDraft(value ? value.sets : plan);
+    return store.save(value, key).catch((e: unknown) => {
+      setDraft(null);
+      toast({ message: `Could not save the set weights: ${e instanceof Error ? e.message : String(e)}` });
+    });
+  };
   return (
     <div data-testid="next-set-plan" className="flex flex-col gap-1.5 border-t border-border pt-2">
       <p className="text-xs text-muted-foreground">Each set, next session only. Tap one to change it.</p>

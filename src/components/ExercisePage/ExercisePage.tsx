@@ -154,7 +154,7 @@ export function ExercisePage({ exerciseId, backHref }: { exerciseId: string; bac
               <SkeletonCard />
             )
           ) : kind.kind === "t3" ? (
-            <T3Strength sessions={sessions ?? []} />
+            <T3Strength sessions={sessions} />
           ) : (
             <OwnStrength exerciseId={exerciseId} name={title} sets={strengthSets} />
           )}
