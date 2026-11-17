@@ -22,6 +22,7 @@ import type {
   WorkoutSession,
 } from "@/types";
 import { applyRebuild, rebuildTables } from "./derived";
+import { sanitizeSettings } from "./settingsShape";
 import { editStamps } from "./stamp";
 
 export interface BackupTables {
@@ -155,13 +156,20 @@ export function parseBackup(text: string): BackupV2 {
   return { version: 2, exportedAt, tables: tables as unknown as BackupTables };
 }
 
-type StampedRow = { updatedAt?: number; deletedAt?: number | null };
+type StampedRow = {
+  id: string;
+  clientId?: unknown;
+  settings?: unknown;
+  updatedAt?: number;
+  deletedAt?: number | null;
+};
 
 /**
  * Replaces the log with the backup's rows, then rebuilds the derived tables. One
  * transaction. Restored rows are marked unsynced with a fresh stamp so the restore
  * wins on the next sync, and sync forgets how far it pulled, so the next pull reads
- * the server's rows the backup lacks again.
+ * the server's rows the backup lacks again. A row without a `clientId` gets its `id`,
+ * and the profile's settings are made safe to read (`sanitizeSettings`).
  */
 export async function importBackup(backup: BackupV2): Promise<void> {
   const now = Date.now();
@@ -171,6 +179,9 @@ export async function importBackup(backup: BackupV2): Promise<void> {
       await table.clear();
       const rows = (backup.tables[name] as unknown as StampedRow[]).map((row) => ({
         ...row,
+        // Every synced row needs one; the server refuses a row without it, for good.
+        clientId: typeof row.clientId === "string" && row.clientId ? row.clientId : row.id,
+        ...(name === "userProfile" ? { settings: sanitizeSettings(row.settings) } : {}),
         ...editStamps(row, now),
         deletedAt: row.deletedAt ?? null,
       }));

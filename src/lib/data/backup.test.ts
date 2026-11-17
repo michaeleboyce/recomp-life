@@ -152,6 +152,42 @@ describe("parseBackup", () => {
     expect((await db.liftStates.get("squat"))?.t1Weight).toBe(INITIAL_LIFT_STATES.squat.t1Weight);
   });
 
+  it("restores usable settings and a clientId on every row from a damaged or hand-made file", async () => {
+    const [profile] = await db.userProfile.toArray();
+    const older: Partial<typeof profile.settings> = { ...profile.settings };
+    delete older.equipment;
+    const file = JSON.stringify({
+      version: 1,
+      workouts: [{ id: "w1", startedAt: "2026-04-01T10:00:00.000Z", sets: [] }],
+      userProfile: [
+        {
+          ...profile,
+          settings: {
+            ...older,
+            nextSetPlans: {
+              "squat|T1": {
+                exerciseId: "squat", liftId: "squat", tier: "T1",
+                sets: [{ weight: 185, reps: 3 }], planSets: [], createdAt: "2026-11-17T09:00:00.000Z",
+              },
+              broken: { sets: null },
+            },
+          },
+        },
+      ],
+    });
+    await importBackup(parseBackup(file));
+    const [restored] = await db.userProfile.toArray();
+    expect(restored.settings.equipment).toEqual(profile.settings.equipment);
+    expect(restored.settings.nextSetPlans).toEqual({
+      "squat|T1": {
+        exerciseId: "squat", liftId: "squat", tier: "T1",
+        sets: [{ weight: 185, reps: 3 }], planSets: [], createdAt: "2026-11-17T09:00:00.000Z",
+      },
+    });
+    // Without a clientId the server could never take the row: its push would fail for good.
+    expect((await db.workouts.get("w1"))!.clientId).toBe("w1");
+  });
+
   it("rejects malformed JSON, wrong versions and missing tables with a message", () => {
     expect(() => parseBackup("{not json")).toThrow(/could not be read/);
     expect(() => parseBackup("[]")).toThrow(/not a Recomp Life backup/);

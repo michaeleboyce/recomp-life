@@ -63,6 +63,17 @@ describe("finishing a workout uses up its set plans (E6)", () => {
     expect(Object.keys((await settings()).nextSetPlans!)).toEqual(["squat|T2"]);
   });
 
+  it("keeps a plan saved after the workout started: that workout never used it", async () => {
+    const id = await start();
+    const startedAt = (await db.workouts.get(id))!.startedAt;
+    const later = { ...plan("squat", "T1"), createdAt: new Date(new Date(startedAt).getTime() + 60_000).toISOString() };
+    await saveNextSetPlan(later, "squat|T1");
+    await appendSet(id, makeSet({ id: "s1" }));
+    await appendSet(id, makeSet({ id: "s2", tier: "T2" }));
+    await finishWorkout(id, { completedAt: new Date(), totalDurationSeconds: 60, endedEarly: true });
+    expect((await settings()).nextSetPlans).toEqual({ "squat|T1": later });
+  });
+
   it("keeps them when the exercise was not logged", async () => {
     const id = await start();
     await appendSet(id, makeSet({ id: "s1", exerciseId: "bench", tier: "T2" }));
@@ -75,6 +86,22 @@ describe("finishing a workout uses up its set plans (E6)", () => {
     await appendSet(id, makeSet({ id: "s1" }));
     await discardWorkout(id);
     expect(Object.keys((await settings()).nextSetPlans!).sort()).toEqual(["squat|T1", "squat|T2"]);
+  });
+
+  it("a damaged set plan (from another app version) does not stop the workout finishing", async () => {
+    const profile = (await db.userProfile.toCollection().first())!;
+    await db.userProfile.update(profile.id, {
+      settings: {
+        ...profile.settings,
+        nextSetPlans: { ...profile.settings.nextSetPlans, broken: null, noSets: { exerciseId: "x" } },
+      } as never,
+    });
+    const id = await start();
+    await appendSet(id, makeSet({ id: "s1" }));
+    await finishWorkout(id, { completedAt: new Date(), totalDurationSeconds: 60, endedEarly: true });
+    expect((await db.workouts.get(id))!.completedAt).not.toBeNull();
+    expect(Object.keys((await settings()).nextSetPlans!)).toEqual(["squat|T2"]);
+    expect(await readNextSetPlans()).toEqual({ "squat|T2": plan("squat", "T2") });
   });
 
   it("does not touch the profile when nothing was used", async () => {

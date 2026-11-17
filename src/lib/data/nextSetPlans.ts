@@ -1,48 +1,65 @@
 // Data layer: next-session set plans (E6), kept in the profile's settings JSON, which
-// already syncs. Spec: docs/plans/2026-11-17-exercise-page-design.md.
+// already syncs. Every write goes through `writeSettings`, as `updateSettings` does.
+// Spec: docs/plans/2026-11-17-exercise-page-design.md.
 import { db } from "@/db/local";
 import { consumeNextSetPlans, withNextSetPlan } from "@/lib/workout/nextSetPlans";
 import type { NextSetPlan, WorkoutSession } from "@/types";
 import { readSettings } from "./derived";
-import { editStamps } from "./stamp";
+import { requireProfile, writeSettings } from "./records";
+import { sanitizeNextSetPlans } from "./settingsShape";
 
 /**
  * Sets the next-session set plan at `key` (`nextSetPlanKey(exerciseId, tier)`), or
- * removes it when `plan` is null, and marks the profile unsynced, as `updateSettings`
- * does. Read and written in one transaction, so two quick saves never lose one.
+ * removes it when `plan` is null. Read and written in one transaction, so two quick
+ * saves (or two tabs) never lose one. Rejects when there is no profile.
  */
 export async function saveNextSetPlan(plan: NextSetPlan | null, key: string): Promise<void> {
   await db.transaction("rw", db.userProfile, async () => {
-    const profile = await db.userProfile.toCollection().first();
-    if (!profile) {
-      throw new Error("No user profile: the database has not been initialised");
-    }
-    const settings = {
+    const profile = await requireProfile();
+    await writeSettings(profile, {
       ...profile.settings,
-      nextSetPlans: withNextSetPlan(profile.settings.nextSetPlans, key, plan),
-    };
-    await db.userProfile.update(profile.id, { settings, ...editStamps(profile) });
+      // A stored plan too damaged to use goes with this write.
+      nextSetPlans: withNextSetPlan(sanitizeNextSetPlans(profile.settings.nextSetPlans), key, plan),
+    });
   });
 }
 
-/** The stored next-session set plans (an empty record when there are none). */
+/** The stored next-session set plans that can be used (an empty record when there are none). */
 export async function readNextSetPlans(): Promise<Record<string, NextSetPlan>> {
-  return { ...((await readSettings()).nextSetPlans ?? {}) };
+  return sanitizeNextSetPlans((await readSettings()).nextSetPlans) ?? {};
 }
 
 /**
- * Removes the set plans a finished session used (it logged that exercise at that tier).
- * Must run inside a transaction that includes `db.userProfile`; writes nothing when no
- * plan was used.
+ * True when `plan` was set after the session started: the session was planned without
+ * it, so it is still for the next one. An unreadable time counts as before.
  */
-export async function spendNextSetPlans(session: Pick<WorkoutSession, "sets">): Promise<void> {
+function setAfterStart(plan: NextSetPlan, startedAt: Date | string): boolean {
+  const set = Date.parse(plan.createdAt);
+  const started = new Date(startedAt).getTime();
+  return Number.isFinite(set) && Number.isFinite(started) && set > started;
+}
+
+/**
+ * Removes the set plans a finished session used (it logged that exercise at that tier,
+ * and the plan was there when it started), and any stored plan too damaged to use,
+ * which would otherwise stop the workout from finishing. Joins the caller's
+ * transaction, which must include `db.userProfile`; writes nothing when nothing is
+ * removed or there is no profile.
+ */
+export async function spendNextSetPlans(
+  session: Pick<WorkoutSession, "sets" | "startedAt">
+): Promise<void> {
   const profile = await db.userProfile.toCollection().first();
-  const plans = profile?.settings.nextSetPlans;
-  if (!profile || !plans) return;
-  const left = consumeNextSetPlans(plans, session);
-  if (Object.keys(left).length === Object.keys(plans).length) return;
-  await db.userProfile.update(profile.id, {
-    settings: { ...profile.settings, nextSetPlans: left },
-    ...editStamps(profile),
-  });
+  const stored: unknown = profile?.settings.nextSetPlans;
+  if (!profile || stored === undefined) return;
+  const usable = sanitizeNextSetPlans(stored) ?? {};
+  const kept: Record<string, NextSetPlan> = {};
+  const spendable: Record<string, NextSetPlan> = {};
+  for (const [key, plan] of Object.entries(usable)) {
+    (setAfterStart(plan, session.startedAt) ? kept : spendable)[key] = plan;
+  }
+  const left = { ...consumeNextSetPlans(spendable, session), ...kept };
+  const before = typeof stored === "object" && stored !== null ? Object.keys(stored).length : -1;
+  if (Object.keys(left).length === before) return;
+  await writeSettings(profile, { ...profile.settings, nextSetPlans: left });
 }

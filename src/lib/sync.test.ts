@@ -4,7 +4,7 @@ import type Dexie from "dexie";
 import { makeProfile, makeSet, makeWorkout } from "@/lib/data/testUtils";
 import { PROFILE_ID, SYNC_REGISTRY } from "@/lib/sync/registry";
 import { FakeSyncServer, TEST_PASSPHRASE, makeDeviceDb } from "@/lib/sync/testFakes";
-import { MAX_PUSH_ROWS, PULL_SINCE_OVERLAP_MS, decodePullCursor } from "@/lib/sync/wire";
+import { MAX_PUSH_BYTES, MAX_PUSH_ROWS, PULL_SINCE_OVERLAP_MS, decodePullCursor } from "@/lib/sync/wire";
 import { loadPullState, resetPullState } from "@/lib/sync/pullState";
 import {
   REBUILD_TABLES,
@@ -218,6 +218,34 @@ describe("pushUnsynced", () => {
       expect((await workouts().get("w1")).synced).toBe(true);
     });
 
+    it("keeps each request under MAX_PUSH_BYTES, so large rows never hit the platform's body limit", async () => {
+      // 40 KB a row: 500 of them would be 20 MB, far over the 4.5 MB a function accepts.
+      const note = "x".repeat(40_000);
+      await runs().bulkAdd(
+        Array.from({ length: 120 }, (_, i) => ({ id: `r${i}`, clientId: `c-r${i}`, synced: false, updatedAt: 1, note }))
+      );
+      const fetchMock = acceptAll();
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await pushUnsynced(database);
+
+      const sizes = fetchMock.mock.calls.map((call) => new TextEncoder().encode((call as unknown as Call)[1].body as string).length);
+      expect(sizes.length).toBeGreaterThan(1);
+      expect(Math.max(...sizes)).toBeLessThanOrEqual(MAX_PUSH_BYTES);
+      expect(result).toMatchObject({ pushed: 120, marked: 120, errors: {} });
+    });
+
+    it("sends a single row larger than MAX_PUSH_BYTES on its own", async () => {
+      await runs().bulkAdd([
+        { id: "big", clientId: "c-big", synced: false, updatedAt: 1, note: "x".repeat(MAX_PUSH_BYTES) },
+        { id: "small", clientId: "c-small", synced: false, updatedAt: 1 },
+      ]);
+      const fetchMock = acceptAll();
+      vi.stubGlobal("fetch", fetchMock);
+      await pushUnsynced(database);
+      expect(bodies(fetchMock).map((b) => b.rows.map((r: { id: string }) => r.id))).toEqual([["big"], ["small"]]);
+    });
+
     it("a 401 on a later batch still stops everything", async () => {
       await dirtyRuns(600);
       let calls = 0;
@@ -230,6 +258,35 @@ describe("pushUnsynced", () => {
       await expect(pushUnsynced(database)).rejects.toThrow(SYNC_UNAUTHORIZED);
       expect(await runs().filter((r) => r.synced !== true).count()).toBe(100);
     });
+  });
+
+  it("a row the server could not save stays dirty and is reported; the rest are synced", async () => {
+    await runs().bulkAdd([
+      { id: "r1", clientId: "c-r1", synced: false, updatedAt: 1 },
+      { id: "r2", clientId: "c-r2", synced: false, updatedAt: 1 },
+      { id: "r3", clientId: "c-r3", synced: false, updatedAt: 1 },
+    ]);
+    await workouts().add(makeWorkout({ id: "w1", synced: false }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        const body = JSON.parse(init.body as string);
+        return body.table === "runs"
+          ? reply({ success: true, applied: 2, skipped: 0, failed: [1] })
+          : pushOk(body.rows.length);
+      })
+    );
+
+    const result = await pushUnsynced(database);
+
+    expect((await runs().toArray()).map((r) => [r.id, r.synced])).toEqual([
+      ["r1", true],
+      ["r2", false],
+      ["r3", true],
+    ]);
+    expect(result.errors).toEqual({ runs: "1 row could not be saved by the server" });
+    expect(result.marked).toBe(3);
+    expect((await workouts().get("w1")).synced).toBe(true);
   });
 
   it("surfaces the server's applied and skipped counts", async () => {
@@ -380,6 +437,29 @@ describe("pullFromServer", () => {
       expect(all.map((p) => p.name)).toEqual(["Local"]);
     });
 
+    it("stores settings a reader can use: a damaged set plan is dropped, a missing field defaulted", async () => {
+      const settings: Partial<ReturnType<typeof makeProfile>["settings"]> = { ...makeProfile().settings };
+      delete settings.equipment;
+      const plan = {
+        exerciseId: "squat",
+        liftId: "squat",
+        tier: "T1",
+        sets: [{ weight: 185, reps: 3 }],
+        planSets: [],
+        createdAt: "2026-11-17T09:00:00.000Z",
+      };
+      stubPull({
+        userProfile: [
+          serverProfile({ updatedAt: 3, settings: { ...settings, nextSetPlans: { "squat|T1": plan, "bad|T1": { sets: 5 } } } }),
+        ],
+      });
+      await pullFromServer(database);
+      const [stored] = await profiles().toArray();
+      // createdAt stays the ISO string it was saved as, though dates are revived elsewhere.
+      expect(stored.settings.nextSetPlans).toEqual({ "squat|T1": plan });
+      expect(stored.settings.equipment).toEqual(makeProfile().settings.equipment);
+    });
+
     it("takes only the newest when the server sends several", async () => {
       stubPull({
         userProfile: [
@@ -391,6 +471,13 @@ describe("pullFromServer", () => {
       const all = await profiles().toArray();
       expect(all.map((p) => [p.id, p.name])).toEqual([[PROFILE_ID, "B"]]);
     });
+  });
+
+  it("skips entries of a page that are not rows, and merges the rest", async () => {
+    stubPull({ runs: [null, 5, "x", [], { id: "r1", clientId: "c-r1", updatedAt: 1 }] });
+    const result = await pullFromServer(database);
+    expect(result.errors).toEqual({});
+    expect((await runs().toArray()).map((r) => r.id)).toEqual(["r1"]);
   });
 
   it("reports a table the server could not read and still merges the rest", async () => {

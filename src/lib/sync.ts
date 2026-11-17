@@ -5,8 +5,10 @@
 import type Dexie from "dexie";
 import { db } from "@/db/local";
 import { applyRebuild } from "@/lib/data/derived";
+import { sanitizeSettings } from "@/lib/data/settingsShape";
 import { PROFILE_ID, SYNC_REGISTRY, type SyncTableDef } from "@/lib/sync/registry";
 import {
+  MAX_PUSH_BYTES,
   MAX_PUSH_ROWS,
   PULL_SINCE_OVERLAP_MS,
   type PullPageResponse,
@@ -39,6 +41,8 @@ export interface PushResult {
   marked: number;
   /** Tables whose push failed, with the reason. The other tables still ran. */
   errors: Record<string, string>;
+  /** Per table, rows the server could not store; they stay dirty. */
+  refused: Record<string, number>;
 }
 
 export interface PullResult {
@@ -73,6 +77,9 @@ export interface SyncResult {
   pullSucceeded: boolean;
 }
 
+const isWireRow = (value: unknown): value is WireRow =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 const message = (err: unknown) => (err instanceof Error ? err.message : "Unknown error");
 
 /** Rows of `def`'s local table that have not been synced since their last change. */
@@ -82,21 +89,44 @@ async function dirtyRows(database: Dexie, def: SyncTableDef): Promise<Row[]> {
 }
 
 /**
- * Sends every dirty row of every registry table, in requests of at most
- * MAX_PUSH_ROWS rows (the server refuses larger ones), so a first sync or a large
- * backup import still uploads everything. A row is marked synced only if its
+ * `rows` in push batches: at most MAX_PUSH_ROWS rows and about MAX_PUSH_BYTES of JSON
+ * each, in order; a row larger than MAX_PUSH_BYTES is a batch of its own.
+ */
+export function pushBatches<T>(rows: readonly T[]): T[][] {
+  const encoder = new TextEncoder();
+  const batches: T[][] = [];
+  let batch: T[] = [];
+  let bytes = 0;
+  for (const row of rows) {
+    // The comma between rows is one byte; the request's own wrapper is a few dozen.
+    const size = encoder.encode(JSON.stringify(row)).length + 1;
+    if (batch.length > 0 && (batch.length >= MAX_PUSH_ROWS || bytes + size > MAX_PUSH_BYTES - 1_000)) {
+      batches.push(batch);
+      batch = [];
+      bytes = 0;
+    }
+    batch.push(row);
+    bytes += size;
+  }
+  if (batch.length > 0) batches.push(batch);
+  return batches;
+}
+
+/**
+ * Sends every dirty row of every registry table, in batches of at most MAX_PUSH_ROWS
+ * rows and about MAX_PUSH_BYTES (`pushBatches`; larger requests are refused), so a
+ * first sync or a large backup import still uploads everything. A row is marked synced only if its
  * `updatedAt` is still the value that was sent. A 401 stops everything (throws
  * SYNC_UNAUTHORIZED); another failure is recorded for its table and ends that
  * table's push: batches already accepted stay synced, the rest stays dirty for the
  * next sync, and the other tables still run.
  */
 export async function pushUnsynced(database: Dexie = db): Promise<PushResult> {
-  const result: PushResult = { pushed: 0, applied: 0, skipped: 0, marked: 0, errors: {} };
+  const result: PushResult = { pushed: 0, applied: 0, skipped: 0, marked: 0, errors: {}, refused: {} };
 
   for (const def of SYNC_REGISTRY) {
-    const rows = await dirtyRows(database, def);
-    for (let start = 0; start < rows.length; start += MAX_PUSH_ROWS) {
-      const accepted = await pushBatch(database, def, rows.slice(start, start + MAX_PUSH_ROWS), result);
+    for (const batch of pushBatches(await dirtyRows(database, def))) {
+      const accepted = await pushBatch(database, def, batch, result);
       if (!accepted) break;
     }
   }
@@ -133,6 +163,17 @@ async function pushBatch(database: Dexie, def: SyncTableDef, rows: Row[], result
   result.applied += Number(reply?.applied ?? 0);
   result.skipped += Number(reply?.skipped ?? 0);
 
+  // Rows the server could not store stay dirty, for the next sync to try again.
+  const failed = Array.isArray(reply?.failed)
+    ? reply.failed.filter((index): index is number => Number.isInteger(index) && index >= 0 && index < rows.length)
+    : [];
+  for (const index of failed) sentStamps.delete(rows[index].id);
+  if (failed.length > 0) {
+    const count = (result.refused[def.name] ?? 0) + failed.length;
+    result.refused[def.name] = count;
+    result.errors[def.name] = `${count} row${count === 1 ? "" : "s"} could not be saved by the server`;
+  }
+
   // Only rows unchanged since they were read: a later edit carries a new stamp.
   await database
     .table<Row>(def.name)
@@ -162,6 +203,14 @@ async function mergeTable(database: Dexie, def: SyncTableDef, rows: WireRow[]): 
     if (def.singleRow) {
       // Exactly one profile, id and clientId PROFILE_ID. The server keeps one row; if it
       // ever sends more, the newest wins.
+      //
+      // The conflict rule for settings: the profile is one row, so last write wins for
+      // the WHOLE row, settings JSON included; fields are never merged. When two
+      // devices change settings between syncs, the change with the older `updatedAt`
+      // is dropped entirely, whichever fields it touched (a set plan saved on one
+      // device, the theme changed on the other: only the newer of the two survives).
+      // Within one device, every settings write is a read-modify-write in one
+      // transaction (`writeSettings`), so two tabs never lose each other's change.
       const server = rows.reduce<WireRow | undefined>(
         (best, row) => (!best || stampOf(row) > stampOf(best) ? row : best),
         undefined
@@ -176,6 +225,8 @@ async function mergeTable(database: Dexie, def: SyncTableDef, rows: WireRow[]): 
       const row = toLocalRow(server);
       row.clientId = PROFILE_ID;
       row.id = local ? local.id : PROFILE_ID;
+      // Another app version may have written a shape this one would crash on.
+      row.settings = sanitizeSettings(row.settings);
       await table.put(row);
       counts[decision === "insert" ? "inserted" : "overwritten"] += 1;
       return;
@@ -248,13 +299,14 @@ async function pullTable(database: Dexie, def: SyncTableDef, result: PullResult)
       return { counts, complete: false };
     }
 
-    const data = (await response.json()) as Partial<PullPageResponse>;
+    const data = ((await response.json()) ?? {}) as Partial<PullPageResponse>;
     result.pages += 1;
     if (typeof data.serverTime === "number") {
       result.serverTime = data.serverTime;
       startedAt ??= data.serverTime;
     }
-    const rows = Array.isArray(data.rows) ? data.rows : [];
+    // An entry that is not a row would abort the page's merge every time it is read.
+    const rows = Array.isArray(data.rows) ? data.rows.filter(isWireRow) : [];
     if (rows.length > 0) {
       const merged = await mergeTable(database, def, rows);
       counts.inserted += merged.inserted;
