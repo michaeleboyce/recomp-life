@@ -362,6 +362,27 @@ describe("a weight per set and drop sets", () => {
     await waitFor(async () => expect((await loggedSets())[0]?.weight).toBe(185));
   });
 
+  it("changes a later set from its own chip, for that set alone, and puts it back to plan", async () => {
+    await open();
+    fireEvent.click(within(chips()).getByRole("button", { name: /^Set 3: 190 lbs × 3\. Change its weight/ }));
+    fireEvent.click(screen.getByRole("button", { name: "5 lbs heavier" }));
+    fireEvent.click(screen.getByRole("button", { name: "5 lbs heavier" }));
+    // The set on screen is still the plan's.
+    expect(screen.getByTestId("weight")).toHaveTextContent("190");
+    const third = within(chips()).getByRole("button", { name: /^Set 3: 200 lbs × 3, planned 190 lbs/ });
+    expect(third).toHaveTextContent("plan 190");
+    expect(screen.getByTestId("plan-beside")).toHaveTextContent("Plan 190 · You 200");
+
+    fireEvent.click(within(chips()).getByRole("button", { name: /^Set 4: 190 lbs × 3\./ }));
+    fireEvent.click(screen.getByRole("button", { name: "5 lbs lighter" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to the planned 190 lbs" }));
+    expect(within(chips()).getByRole("button", { name: /^Set 4: 190 lbs × 3\./ })).toBeInTheDocument();
+
+    await logSets(3);
+    expect((await loggedSets()).map((s) => s.weight)).toEqual([190, 190, 200]);
+    expect(screen.getByTestId("weight")).toHaveTextContent("190");
+  });
+
   it("drops from the rest screen in one tap, with no rest between drops, as often as wanted, then rests", async () => {
     await open();
     fireEvent.click(logButton());

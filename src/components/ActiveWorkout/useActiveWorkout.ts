@@ -49,8 +49,13 @@ import {
   nextSetView,
   screenPlan,
   setChipsFor,
+  spotKey,
+  spotWeightsOf,
   weightStepFor,
+  type SpotWeightsByKey,
 } from "./setPlan";
+
+const NO_SPOT_WEIGHTS: SpotWeightsByKey = {};
 
 /** The exercise a set was done with: the substitute when there was one. */
 const performedId = (set: Pick<SetLog, "exerciseId" | "substituteExerciseId">) =>
@@ -121,8 +126,10 @@ export function useActiveWorkout(
   const [endedAtIndex, setEndedAtIndex] = useState<number | null>(null);
   const [repsChoice, setRepsChoice] = useState<{ key: string; reps: number } | null>(null);
   const [rpeChoice, setRpeChoice] = useState<{ key: string; rpe: number } | null>(null);
-  // The next set's weight changed on the spot from the set chips, for that set only.
-  const [weightChoice, setWeightChoice] = useState<{ key: string; weight: number } | null>(null);
+  // Weights changed on the spot from the set chips, each for its own set (by `spotKey`).
+  const [spotChoice, setSpotChoice] = useState<{ sessionId: string; weights: SpotWeightsByKey } | null>(
+    null
+  );
   const [dropState, setDropState] = useState<DropState | null>(null);
   const [e1rmFlash, setE1rmFlash] = useState<number | null>(null);
   // Id of a set that has been written but is not yet visible on the live record.
@@ -170,19 +177,24 @@ export function useActiveWorkout(
   const storeReady = !!session && storeSessionId === session.id;
 
   const sets = useMemo(() => session?.sets ?? [], [session]);
+  const spotWeights = useMemo<SpotWeightsByKey>(
+    () => (session && spotChoice?.sessionId === session.id ? spotChoice.weights : NO_SPOT_WEIGHTS),
+    [session, spotChoice]
+  );
 
   // Drop sets continue a set and are not sets of their entry; a per-set entry keeps its
-  // working weight (each set's own is in `perSet`).
+  // working weight (each set's own is in `perSet`); a weight changed on the spot is for
+  // its own set alone.
   const plan = useMemo<WorkoutPlan>(() => {
     if (!basePlan) return [];
-    const rehydrated = screenPlan(basePlan, sets);
+    const rehydrated = screenPlan(basePlan, sets, spotWeights);
     if (!storeReady || !pendingDrop) return rehydrated;
     return rehydrated.map((entry, i) =>
       i === pendingDrop.entryIndex && entry.completedSets < entry.targetSets
         ? { ...entry, weight: pendingDrop.weight }
         : entry
     );
-  }, [basePlan, sets, pendingDrop, storeReady]);
+  }, [basePlan, sets, spotWeights, pendingDrop, storeReady]);
 
   const naturalIndex = resolveActiveIndex(plan, storeReady ? viewedEntryIndex : null);
   const activeIndex = endedAtIndex != null ? plan.length : naturalIndex;
@@ -190,8 +202,10 @@ export function useActiveWorkout(
   const baseEntry = basePlan?.[activeIndex];
   const isAMRAPSet = planEntry ? isNextSetAMRAP(planEntry) : false;
 
-  const setKey = planEntry ? `${activeIndex}:${planEntry.completedSets}` : "";
-  const weightOverride = planEntry && weightChoice?.key === setKey ? weightChoice.weight : null;
+  const setKey = planEntry ? spotKey(activeIndex, planEntry.completedSets) : "";
+  // The entry on screen's weights changed on the spot, by set index, and the next set's.
+  const entrySpotWeights = useMemo(() => spotWeightsOf(spotWeights, activeIndex), [spotWeights, activeIndex]);
+  const weightOverride = planEntry ? (entrySpotWeights[planEntry.completedSets] ?? null) : null;
   // The entry as its next set is done: that set's own weight and reps (per-set weights,
   // or a weight changed on the spot).
   const entry = useMemo(
@@ -208,8 +222,8 @@ export function useActiveWorkout(
     entry && equipment ? weightStepFor(performedId(entry), location, equipment) : 5;
   const minWeight = entry && equipment ? minWeightFor(performedId(entry), location, equipment) : 0;
   const setChips = useMemo(
-    () => (planEntry && !planEntry.isWarmUp ? setChipsFor(planEntry, sets, weightOverride) : []),
-    [planEntry, sets, weightOverride]
+    () => (planEntry && !planEntry.isWarmUp ? setChipsFor(planEntry, sets, entrySpotWeights) : []),
+    [planEntry, sets, entrySpotWeights]
   );
 
   const dropAccepted =
@@ -329,11 +343,32 @@ export function useActiveWorkout(
     trainingPhase,
   ]);
 
+  /**
+   * Changes the weight of one set still to come of the entry on screen, for that set
+   * alone; null puts it back to the plan. A done set is left alone.
+   */
+  const setSetWeight = useCallback(
+    (setIndex: number, weight: number | null) => {
+      if (!session || !planEntry || setIndex < planEntry.completedSets) return;
+      const key = spotKey(activeIndex, setIndex);
+      const planned = setChips[setIndex]?.plannedWeight;
+      setSpotChoice((was) => {
+        const weights: Record<string, number> = { ...(was?.sessionId === session.id ? was.weights : {}) };
+        // Stepping back onto the plan's weight is the plan again.
+        if (weight == null || Math.max(minWeight, weight) === planned) delete weights[key];
+        else weights[key] = Math.max(minWeight, weight);
+        return { sessionId: session.id, weights };
+      });
+    },
+    [session, planEntry, activeIndex, minWeight, setChips]
+  );
+
   /** Changes the next set's weight on the spot; null goes back to the planned weight. */
   const setNextWeight = useCallback(
-    (weight: number | null) =>
-      setWeightChoice(weight == null ? null : { key: setKey, weight: Math.max(minWeight, weight) }),
-    [setKey, minWeight]
+    (weight: number | null) => {
+      if (planEntry) setSetWeight(planEntry.completedSets, weight);
+    },
+    [planEntry, setSetWeight]
   );
 
   // --- Drop sets -------------------------------------------------------------------
@@ -697,6 +732,8 @@ export function useActiveWorkout(
     /** The next set's weight as planned. */
     plannedNextWeight: planEntry ? nextSetView(planEntry, null).weight : 0,
     setNextWeight,
+    /** Changes one set still to come of the entry on screen, by set index; null: back to plan. */
+    setSetWeight,
     /** What a weight on screen moves by (plate or dumbbell step), and its lightest value. */
     weightStep,
     minWeight,

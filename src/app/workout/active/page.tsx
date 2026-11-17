@@ -344,14 +344,13 @@ function ActiveWorkoutContent() {
         onWhy={weightWhy ? () => setWhyOpen(true) : undefined}
       />
       <SetChips
+        key={workout.activeIndex}
         name={shown.name}
         chips={workout.setChips}
         unit={perHand ? "lbs/hand" : "lbs"}
         step={workout.weightStep}
         minWeight={workout.minWeight}
-        override={workout.weightOverride}
-        plannedWeight={workout.plannedNextWeight}
-        onChange={workout.setNextWeight}
+        onChange={workout.setSetWeight}
       />
       {weightWhy && (
         <WhySheet

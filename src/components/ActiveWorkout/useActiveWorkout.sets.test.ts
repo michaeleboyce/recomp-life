@@ -156,12 +156,28 @@ describe("the next set's weight, changed on the spot", () => {
     expect(hook.result.current.weightOverride).toBeNull();
   });
 
-  it("carries on at the changed weight on a lift with one weight for every set, as a corrected weight does", async () => {
+  it("changes that set alone on a lift with one weight for every set: the next is back at the plan's", async () => {
     const hook = await mount(await start());
     act(() => hook.result.current.setNextWeight(185));
     await logSet(hook);
     expect(squatRows(hook)[0].weight).toBe(185);
-    expect(hook.result.current.entry!.weight).toBe(185);
+    expect(hook.result.current.entry!.weight).toBe(190);
+    expect(hook.result.current.setChips.map((c) => c.weight)).toEqual([185, 190, 190, 190, 190]);
+  });
+
+  it("still carries on at a weight corrected after logging", async () => {
+    const hook = await mount(await start());
+    act(() => hook.result.current.setNextWeight(185));
+    await logSet(hook);
+    await act(async () => {
+      await hook.result.current.correctSet({
+        kind: "editSet",
+        workoutId: hook.result.current.session!.id,
+        setId: squatRows(hook)[0].id,
+        patch: { weight: 180 },
+      });
+    });
+    await waitFor(() => expect(hook.result.current.entry!.weight).toBe(180));
   });
 
   it("goes back to the planned weight and never below the empty bar", async () => {
@@ -170,6 +186,70 @@ describe("the next set's weight, changed on the spot", () => {
     expect(hook.result.current.entry!.weight).toBe(45);
     act(() => hook.result.current.setNextWeight(null));
     expect(hook.result.current.entry!.weight).toBe(190);
+  });
+});
+
+describe("any set still to come, changed on its own (E8)", () => {
+  it("changes a later set alone, shows it on its chip, and logs it at that weight when it comes", async () => {
+    const hook = await mount(await start());
+    act(() => hook.result.current.setSetWeight(2, 200));
+    expect(hook.result.current.entry!.weight).toBe(190);
+    expect(hook.result.current.weightOverride).toBeNull();
+    expect(hook.result.current.setChips.map((c) => [c.weight, c.changed])).toEqual([
+      [190, false],
+      [190, false],
+      [200, true],
+      [190, false],
+      [190, false],
+    ]);
+
+    await logSet(hook);
+    await logSet(hook);
+    expect(hook.result.current.entry!.weight).toBe(200);
+    expect(hook.result.current.weightOverride).toBe(200);
+    await logSet(hook);
+    expect(hook.result.current.entry!.weight).toBe(190);
+    await logSet(hook);
+    await logSet(hook);
+    expect(squatRows(hook).map((s) => s.weight)).toEqual([190, 190, 200, 190, 190]);
+  });
+
+  it("changes several sets each on its own, and puts one back to plan", async () => {
+    const hook = await mount(await start({ planEdits: [RAMP_EDIT] }));
+    act(() => hook.result.current.setSetWeight(1, 175));
+    act(() => hook.result.current.setSetWeight(6, 200));
+    act(() => hook.result.current.setSetWeight(1, null));
+    expect(hook.result.current.setChips.map((c) => c.weight)).toEqual([150, 170, 190, 190, 190, 190, 200]);
+    for (let i = 0; i < 7; i++) await logSet(hook);
+    expect(squatRows(hook).map((s) => [s.weight, s.role ?? "work"])).toEqual([
+      [150, "ramp"],
+      [170, "ramp"],
+      [190, "work"],
+      [190, "work"],
+      [190, "work"],
+      [190, "work"],
+      [200, "work"],
+    ]);
+    expect(squatRows(hook).at(-1)?.isAMRAP).toBe(true);
+  });
+
+  it("never sets a weight below the lightest, and leaves done sets alone", async () => {
+    const hook = await mount(await start());
+    await logSet(hook);
+    act(() => hook.result.current.setSetWeight(0, 100));
+    act(() => hook.result.current.setSetWeight(3, 20));
+    expect(hook.result.current.setChips.map((c) => c.weight)).toEqual([190, 190, 190, 45, 190]);
+  });
+
+  it("keeps each entry's changes to that entry", async () => {
+    const hook = await mount(await start());
+    act(() => hook.result.current.setSetWeight(1, 200));
+    act(() => hook.result.current.jumpTo(1));
+    await waitFor(() => expect(hook.result.current.activeIndex).toBe(1));
+    expect(hook.result.current.setChips.some((c) => c.changed)).toBe(false);
+    act(() => hook.result.current.jumpTo(0));
+    await waitFor(() => expect(hook.result.current.activeIndex).toBe(0));
+    expect(hook.result.current.setChips[1]).toMatchObject({ weight: 200, changed: true });
   });
 });
 
