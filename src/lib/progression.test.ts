@@ -12,7 +12,6 @@ import type {
   LiftState,
   SetLog,
   EquipmentProfile,
-  TrainingPhase,
   WorkoutLocation,
 } from "@/types";
 
