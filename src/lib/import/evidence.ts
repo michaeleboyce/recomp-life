@@ -12,12 +12,13 @@
  * informs the trend but not next week's weight.
  *
  * What a set's exported name maps to is worked out when it is read: a choice remembered
- * since the import (`overrides`, the import screen's) wins over the mapping stored with
- * the set at import time, so remapping a name changes the evidence without importing
- * the file again.
+ * since the import (`overrides`, the import screen's), then the built-in name table as
+ * it is now, win over the mapping stored with the set at import time, so remapping a
+ * name or adding an exercise to the library changes the evidence without importing the
+ * file again (see `resolveImportedSet`).
  */
 import { EXERCISES } from "@/lib/exercises";
-import { applyOverrides } from "@/lib/import/mapping";
+import { applyOverrides, lookupName } from "@/lib/import/mapping";
 import type { MappingOverrides } from "@/lib/import/mapping/types";
 import { isMuscleId } from "@/lib/muscles";
 import { MUSCLE_WEIGHTS, volumeCredits, type StrengthSet, type StrengthSetRole } from "@/lib/strength";
@@ -72,8 +73,15 @@ interface ResolvedSet {
 }
 
 /**
- * The mapping of an imported set's name as of now: a remembered choice for the name
- * (`applyOverrides`) when there is one, else the mapping stored with the set.
+ * The mapping of an imported set's name as of now, in this order:
+ * 1. a remembered choice for the name (`applyOverrides`): the user's word always wins;
+ * 2. the built-in name table as it is now (`lookupName`): when the library grows (an
+ *    "Incline Dumbbell Curl" stored as plain curls, a "Hack Squat" stored as a muscle
+ *    guess), sets already imported count under the new exercise with no re-import;
+ * 3. the mapping stored with the set at import time;
+ * 4. the muscles stored with a name kept under its own name.
+ * The stored mapping only decides for names the table does not know; a user's choice
+ * on the import screen is remembered in `overrides`, so it is step 1, not step 3.
  */
 export function resolveImportedSet(
   set: Pick<ImportedSetRecord, "exerciseName" | "mappedExerciseId" | "muscles">,
@@ -84,6 +92,8 @@ export function resolveImportedSet(
   if (chosen?.kind === "custom") {
     return { exerciseId: null, muscles: chosen.muscles.primary.length > 0 ? chosen.muscles : null };
   }
+  const table = lookupName(set.exerciseName);
+  if (table && EXERCISES[table.exerciseId]) return { exerciseId: table.exerciseId, muscles: null };
   if (set.mappedExerciseId && EXERCISES[set.mappedExerciseId]) return { exerciseId: set.mappedExerciseId, muscles: null };
   const primary = (set.muscles ?? []).filter(isMuscleId);
   return { exerciseId: null, muscles: primary.length > 0 ? { primary, secondary: [] } : null };
