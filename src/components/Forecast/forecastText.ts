@@ -13,6 +13,7 @@ import {
   type TrackRecord,
 } from "@/lib/forecast";
 import { DAY_MS } from "@/lib/dates";
+import { isMainLift, LIFT_NAMES, MAIN_LIFTS } from "@/lib/liftNames";
 import { percent, plural } from "@/lib/text";
 import type { EvidenceStrength, Forecast, ForecastBasis, ForecastKind } from "@/types";
 
@@ -31,19 +32,12 @@ export const TARGET_IN_TEN = `${Math.round(CALIBRATION.targetCoverage * 10)} tim
 // ── Names ──────────────────────────────────────────────────────────────────
 
 /** Lifts with a page of their own (`/progress/lift/<id>`, built at export time). */
-export const LIFTS_WITH_PAGE: readonly string[] = ["squat", "bench", "deadlift", "ohp"];
-
-const LIFT_LABELS: Record<string, string> = {
-  squat: "Squat",
-  bench: "Bench press",
-  deadlift: "Deadlift",
-  ohp: "Overhead press",
-};
+export const LIFTS_WITH_PAGE: readonly string[] = MAIN_LIFTS;
 
 /** "Bench press"; another exercise's own name; the id when it is unknown. */
 export function liftLabel(exerciseId: string | undefined): string {
   if (!exerciseId) return "Lift";
-  if (LIFT_LABELS[exerciseId]) return LIFT_LABELS[exerciseId];
+  if (isMainLift(exerciseId)) return LIFT_NAMES[exerciseId].label;
   try {
     return getExercise(exerciseId).name;
   } catch {
