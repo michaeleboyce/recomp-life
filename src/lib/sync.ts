@@ -5,6 +5,7 @@
 import type Dexie from "dexie";
 import { db } from "@/db/local";
 import { applyRebuild } from "@/lib/data/derived";
+import { sanitizeSettings } from "@/lib/data/settingsShape";
 import { PROFILE_ID, SYNC_REGISTRY, type SyncTableDef } from "@/lib/sync/registry";
 import {
   MAX_PUSH_ROWS,
@@ -176,6 +177,8 @@ async function mergeTable(database: Dexie, def: SyncTableDef, rows: WireRow[]): 
       const row = toLocalRow(server);
       row.clientId = PROFILE_ID;
       row.id = local ? local.id : PROFILE_ID;
+      // Another app version may have written a shape this one would crash on.
+      row.settings = sanitizeSettings(row.settings);
       await table.put(row);
       counts[decision === "insert" ? "inserted" : "overwritten"] += 1;
       return;

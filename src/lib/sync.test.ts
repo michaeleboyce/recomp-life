@@ -380,6 +380,29 @@ describe("pullFromServer", () => {
       expect(all.map((p) => p.name)).toEqual(["Local"]);
     });
 
+    it("stores settings a reader can use: a damaged set plan is dropped, a missing field defaulted", async () => {
+      const settings: Partial<ReturnType<typeof makeProfile>["settings"]> = { ...makeProfile().settings };
+      delete settings.equipment;
+      const plan = {
+        exerciseId: "squat",
+        liftId: "squat",
+        tier: "T1",
+        sets: [{ weight: 185, reps: 3 }],
+        planSets: [],
+        createdAt: "2026-11-17T09:00:00.000Z",
+      };
+      stubPull({
+        userProfile: [
+          serverProfile({ updatedAt: 3, settings: { ...settings, nextSetPlans: { "squat|T1": plan, "bad|T1": { sets: 5 } } } }),
+        ],
+      });
+      await pullFromServer(database);
+      const [stored] = await profiles().toArray();
+      // createdAt stays the ISO string it was saved as, though dates are revived elsewhere.
+      expect(stored.settings.nextSetPlans).toEqual({ "squat|T1": plan });
+      expect(stored.settings.equipment).toEqual(makeProfile().settings.equipment);
+    });
+
     it("takes only the newest when the server sends several", async () => {
       stubPull({
         userProfile: [
