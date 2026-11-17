@@ -29,16 +29,39 @@ const HIGH_REP_EXERCISES = new Set([
   "calf_raises",
 ]);
 
-/** Exercises that use the low-rep range: 3x10-12 */
-const LOW_REP_EXERCISES = new Set(["ab_rollout", "back_extensions"]);
+/** Exercises that use the low-rep range: 3x10-12 (core work and compound rows). */
+const LOW_REP_EXERCISES = new Set([
+  "ab_rollout",
+  "back_extensions",
+  "machine_row",
+  "cable_row",
+  "db_bent_over_row",
+  "incline_db_row",
+]);
+
+/**
+ * Compound leg and barbell accessories that load heavier: 3x8-12. A machine squat or
+ * press taken to 15-20 reps is limited by breathing and the heart more than by the muscle.
+ */
+const COMPOUND_REP_EXERCISES = new Set([
+  "hack_squat",
+  "pendulum_squat",
+  "leg_press",
+  "db_lunge",
+  "barbell_rdl",
+  "barbell_incline_bench",
+]);
 
 /**
  * Returns the appropriate rep range for a given accessory exercise.
  *
  * - Face pulls, lateral raises, calf raises: 3x15-20
- * - Ab rollout, back extensions: 3x10-12
- * - Everything else (bicep curls, tricep work, leg curls, leg extensions,
- *   incline fly, hip thrust): 3x12-15
+ * - Ab rollout, back extensions and compound rows (machine, cable, bent-over, incline
+ *   dumbbell): 3x10-12
+ * - Compound leg and barbell work (hack, pendulum and leg press, dumbbell lunge, barbell
+ *   Romanian deadlift, barbell incline bench): 3x8-12
+ * - Everything else (curls, tricep work, leg curls and extensions, flies, kickbacks, hip
+ *   thrust): 3x12-15
  */
 export function getAccessoryRepRange(exerciseId: string): AccessoryRepRange {
   if (HIGH_REP_EXERCISES.has(exerciseId)) {
@@ -47,8 +70,11 @@ export function getAccessoryRepRange(exerciseId: string): AccessoryRepRange {
   if (LOW_REP_EXERCISES.has(exerciseId)) {
     return { min: 10, max: 12, sets: 3 };
   }
-  // Default: 3x12-15 for bicep curls, tricep work, leg curls/extensions,
-  // incline fly, hip thrust, and any unknown exercise
+  if (COMPOUND_REP_EXERCISES.has(exerciseId)) {
+    return { min: 8, max: 12, sets: 3 };
+  }
+  // Default: 3x12-15 for curls, tricep work, leg curls/extensions, flies, kickbacks,
+  // hip thrust, and any unknown exercise
   return { min: 12, max: 15, sets: 3 };
 }
 

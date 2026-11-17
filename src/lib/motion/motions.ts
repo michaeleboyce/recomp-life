@@ -1,7 +1,7 @@
 import type { Motion } from "./archetypes";
 import {
-  backExtension, benchDip, bentRow, cableRow, calfRaise, curl, facePull, hinge, hipThrust,
-  legMachine, legPress, overhead, pendulumSquat, pulldown, pushUp, raise, rollout, row, situp,
+  backExtension, benchDip, bentRow, cableRow, calfRaise, curl, facePull, hinge, hipThrust, kickback,
+  legMachine, legPress, machineFly, overhead, pendulumSquat, pulldown, pushUp, raise, rollout, row, situp,
   split, squat, supine, triceps,
 } from "./archetypes";
 import type { MotionInfo } from "./sample";
@@ -275,5 +275,47 @@ export const MOTIONS: Record<string, MotionSpec> = {
     info: { repSeconds: 2.8, view: "side", caption: "Lying with the knees bent, curl the shoulders off the floor by tightening the abs, then lower slowly." },
     eccentricFirst: false,
     motion: situp({ mode: "crunch" }),
+  },
+
+  // ─── Accessory library additions ───────────────────────────────────────────
+  hack_squat: {
+    info: { repSeconds: 4.2, view: "side", trace: "handL", caption: "Shoulders under the pads and back on the sled, sink until the thighs pass parallel, then drive up through the whole foot." },
+    eccentricFirst: true,
+    motion: pendulumSquat(),
+  },
+  glute_kickback_machine: {
+    info: { repSeconds: 3, view: "side", caption: "Chest on the pad, drive one leg back against the pad until the hip is fully extended, squeeze, return under control." },
+    eccentricFirst: false,
+    motion: kickback(),
+  },
+  barbell_incline_bench: {
+    info: { repSeconds: 3.6, view: "side", trace: "barCenter", caption: "On an incline bench, lower the bar to the upper chest with forearms vertical, then press back over the shoulders." },
+    eccentricFirst: true,
+    motion: supine({ surface: "incline", mode: "press", implement: "barbell" }),
+  },
+  barbell_rdl: {
+    info: { repSeconds: 4.2, view: "side", trace: "barCenter", caption: "Push the hips back with soft knees, sliding the bar down the thighs to below the knees, then drive the hips forward." },
+    eccentricFirst: true,
+    motion: hinge({ implement: "barbell", y: [0.83, 0.42], pitch: [3, 66], z: [0.09, 0.07], fwd: [-0.1, 0.03], gripX: 0.25, stanceX: 0.13 }),
+  },
+  machine_chest_fly: {
+    info: { repSeconds: 3.6, view: "front", trace: "handL", caption: "Seated with the back on the pad, bring the handles together in front of the chest in a wide arc, then open slowly." },
+    eccentricFirst: false,
+    motion: machineFly(),
+  },
+  machine_row: {
+    info: { repSeconds: 3.4, view: "side", trace: "handL", caption: "Seated, pull the handles toward the waist, squeezing the shoulder blades together, then reach forward again." },
+    eccentricFirst: false,
+    motion: cableRow(),
+  },
+  incline_db_curl: {
+    info: { repSeconds: 3.2, view: "side", trace: "handL", caption: "Lying back on an incline bench with the arms hanging, curl the dumbbells to the shoulders without moving the elbows, lower slowly." },
+    eccentricFirst: false,
+    motion: curl({ grip: "supinated", incline: true }),
+  },
+  incline_hammer_curl: {
+    info: { repSeconds: 3.2, view: "side", trace: "handL", caption: "Lying back on an incline bench, palms facing each other, curl the dumbbells up with the elbows still, lower slowly." },
+    eccentricFirst: false,
+    motion: curl({ grip: "hammer", incline: true }),
   },
 };

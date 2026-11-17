@@ -48,10 +48,11 @@ describe("getGroupedExercises", () => {
     ]);
   });
 
-  it("Accessories contains all 23 accessory exercises (alphabetical)", () => {
+  it("Accessories contains every accessory exercise (alphabetical)", () => {
     const groups = getGroupedExercises();
     const accessories = groups.find((g) => g.label === "Accessories")!;
-    expect(accessories.exercises).toHaveLength(23);
+    expect(accessories.exercises).toHaveLength(ACCESSORY_IDS.length);
+    expect(ACCESSORY_IDS.length).toBe(36);
     const names = accessories.exercises.map((e) => e.name);
     const sorted = [...names].sort((a, b) => a.localeCompare(b));
     expect(names).toEqual(sorted);

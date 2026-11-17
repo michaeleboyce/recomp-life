@@ -516,7 +516,8 @@ export const EXERCISES: Record<string, Exercise> = {
 
   // ─── Common in imported history ───────────────────────────────────────────────
   // Exercises other apps log often that had no equivalent above. They are not
-  // program lifts or substitutes and are not offered as accessories by default.
+  // program lifts or substitutes; the loaded ones are also selectable as accessories
+  // (see ACCESSORY_IDS).
 
   db_fly: {
     id: "db_fly",
@@ -665,6 +666,107 @@ export const EXERCISES: Record<string, Exercise> = {
     stabilizerMuscles: [],
     painSensitiveRegions: ["neck"],
   },
+
+  // ─── Accessory library additions ──────────────────────────────────────────────
+  // Machine, barbell and incline versions lifters commonly do as accessories.
+
+  hack_squat: {
+    id: "hack_squat",
+    name: "Hack Squat",
+    type: "machine",
+    muscleGroup: "legs",
+    requiresGym: true,
+    primaryMuscles: ["quads"],
+    secondaryMuscles: ["glutes", "adductors"],
+    stabilizerMuscles: ["calves"],
+    painSensitiveRegions: ["left_knee", "right_knee", "lower_back"],
+  },
+
+  glute_kickback_machine: {
+    id: "glute_kickback_machine",
+    name: "Glute Kickback Machine",
+    type: "machine",
+    muscleGroup: "legs",
+    requiresGym: true,
+    primaryMuscles: ["glutes"],
+    secondaryMuscles: ["hamstrings"],
+    stabilizerMuscles: ["abs", "lower_back"],
+    painSensitiveRegions: ["lower_back"],
+  },
+
+  barbell_incline_bench: {
+    id: "barbell_incline_bench",
+    name: "Barbell Incline Bench Press",
+    type: "barbell",
+    muscleGroup: "push",
+    requiresGym: true,
+    primaryMuscles: ["chest"],
+    secondaryMuscles: ["front_delts", "triceps"],
+    stabilizerMuscles: ["rotator_cuff"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder", "left_elbow", "right_elbow"],
+  },
+
+  barbell_rdl: {
+    id: "barbell_rdl",
+    name: "Barbell Romanian Deadlift",
+    type: "barbell",
+    muscleGroup: "pull",
+    requiresGym: true,
+    primaryMuscles: ["hamstrings", "glutes"],
+    secondaryMuscles: ["lower_back"],
+    stabilizerMuscles: ["forearms", "upper_traps", "lats", "abs"],
+    painSensitiveRegions: ["lower_back"],
+  },
+
+  machine_chest_fly: {
+    id: "machine_chest_fly",
+    name: "Machine Chest Fly",
+    type: "machine",
+    muscleGroup: "push",
+    requiresGym: true,
+    primaryMuscles: ["chest"],
+    secondaryMuscles: ["front_delts"],
+    stabilizerMuscles: ["biceps", "rotator_cuff"],
+    painSensitiveRegions: ["left_shoulder", "right_shoulder"],
+  },
+
+  machine_row: {
+    id: "machine_row",
+    name: "Machine Row",
+    type: "machine",
+    muscleGroup: "pull",
+    requiresGym: true,
+    primaryMuscles: ["mid_back", "lats"],
+    secondaryMuscles: ["rear_delts", "biceps"],
+    stabilizerMuscles: ["forearms"],
+    painSensitiveRegions: [],
+  },
+
+  incline_db_curl: {
+    id: "incline_db_curl",
+    name: "Incline DB Curl",
+    type: "dumbbell",
+    muscleGroup: "pull",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["biceps"],
+    secondaryMuscles: ["forearms"],
+    stabilizerMuscles: ["front_delts"],
+    painSensitiveRegions: ["left_elbow", "right_elbow"],
+  },
+
+  incline_hammer_curl: {
+    id: "incline_hammer_curl",
+    name: "Incline Hammer Curl",
+    type: "dumbbell",
+    muscleGroup: "pull",
+    requiresGym: false,
+    grip: "per_hand",
+    primaryMuscles: ["biceps", "forearms"],
+    secondaryMuscles: [],
+    stabilizerMuscles: ["front_delts"],
+    painSensitiveRegions: [],
+  },
 };
 
 /** Single source of truth for which exercises are accessories. */
@@ -675,6 +777,13 @@ export const ACCESSORY_IDS: string[] = [
   "hammer_curls", "front_raises", "reverse_fly", "arnold_press", "db_skull_crushers",
   "pendulum_squat", "glute_drive", "db_pullover",
   "seated_db_shoulder_press", "seated_lateral_raises", "incline_db_press",
+  // Accessory library additions.
+  "hack_squat", "glute_kickback_machine", "barbell_incline_bench", "barbell_rdl",
+  "machine_chest_fly", "machine_row", "incline_db_curl", "incline_hammer_curl",
+  // Loaded exercises first added for imported history, also common as accessories.
+  // The bodyweight ones (push_up, bench_dip, sit_up, crunch) are left out: they have no
+  // load for double progression to move.
+  "db_lunge", "leg_press", "db_fly", "db_bent_over_row", "cable_row",
 ];
 
 /**
@@ -706,6 +815,19 @@ export const DEFAULT_ACCESSORY_WEIGHTS: Record<string, number> = {
   seated_db_shoulder_press: 30,
   seated_lateral_raises: 12,
   incline_db_press: 35,
+  hack_squat: 90,
+  glute_kickback_machine: 40,
+  barbell_incline_bench: 95,
+  barbell_rdl: 95,
+  machine_chest_fly: 50,
+  machine_row: 70,
+  incline_db_curl: 20,
+  incline_hammer_curl: 20,
+  db_lunge: 20,
+  leg_press: 90,
+  db_fly: 20,
+  db_bent_over_row: 30,
+  cable_row: 70,
 };
 
 /**

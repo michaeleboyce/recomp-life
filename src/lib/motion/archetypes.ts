@@ -551,24 +551,93 @@ export function pulldown(): Motion {
 /** Unit vector in the sagittal plane, `a` degrees from straight down toward the front. */
 const swing = (a: number, x = 0): Vec3 => normalize([x, -cosD(a), sinD(a)]);
 
-export function curl(p: { grip: "supinated" | "hammer"; implement?: "dumbbells" | "barbell" }): Motion {
+export function curl(p: {
+  grip: "supinated" | "hammer";
+  implement?: "dumbbells" | "barbell";
+  /** Seated back on an incline bench, arms hanging behind the torso. */
+  incline?: boolean;
+}): Motion {
   const barbellCurl = p.implement === "barbell";
+  const recline = 35;
   return {
     planted: { L: "flat", R: "flat" },
     grips: barbellCurl ? { L: 0, R: 0 } : { L: 0, R: 1 },
     frame(s) {
-      const t = torso({ pelvis: [0, STAND_Y, 0] });
-      const legs = stanceLegs(t, 0.15, 10);
-      const upperA = lerpN(-2, 14, s);
+      const sit = p.incline ? seated(-recline, recline * 0.6) : null;
+      const t = sit ? sit.t : torso({ pelvis: [0, STAND_Y, 0] });
+      const legs = sit ? sit.legs : stanceLegs(t, 0.15, 10);
+      // On the incline the upper arm stays hanging straight down, behind the torso.
+      const upperA = p.incline ? lerpN(0, 4, s) : lerpN(-2, 14, s);
       const foreA = upperA + lerpN(8, 138, s);
       const arms = symFkArms(t, swing(upperA), swing(foreA, 0.06));
       if (barbellCurl) {
         return { pose: assemble(t, arms, legs), props: [barbell(mid(arms[0].hand, arms[1].hand), 1.3, 0.12)] };
       }
       const axis: Vec3 = p.grip === "hammer" ? [0, sinD(foreA), cosD(foreA)] : [1, 0, 0];
+      const props: Prop[] = [dumbbell(arms[0].hand, axis), dumbbell(arms[1].hand, axis)];
+      if (sit) {
+        const back = add(local(t.pelvis, t.lo, [0, 0.36, 0]), scale(t.lo.front, -RIG.backDepth));
+        props.push(bench(back, 0.95, 90 - recline), box([0, SEAT_TOP - 0.04, 0.05], [0.3, 0.08, 0.36]));
+      }
+      return { pose: assemble(t, arms, legs), props };
+    },
+  };
+}
+
+// ─── 8b. Machine chest fly ───────────────────────────────────────────────────
+
+/** Seated upright, arms at shoulder height sweep from wide to together in front. */
+export function machineFly(): Motion {
+  const r = ARM_REACH - 0.05;
+  return {
+    planted: { L: "flat", R: "flat" },
+    grips: {},
+    frame(s) {
+      const { t, legs } = seated();
+      const a = lerpN(78, -12, s);
+      const hand = add(t.shoulderL, [r * sinD(a), -0.05, r * cosD(a)]);
+      const arms = symArms(t, hand, [0.3, -1, -0.4]);
+      const backPad = add(local(t.spine, t.hi, [0, 0.12, 0]), scale(t.hi.front, -(RIG.backDepth + 0.05)));
       return {
         pose: assemble(t, arms, legs),
-        props: [dumbbell(arms[0].hand, axis), dumbbell(arms[1].hand, axis)],
+        props: [
+          box(arms[0].hand, [0.04, 0.14, 0.04]),
+          box(arms[1].hand, [0.04, 0.14, 0.04]),
+          box(backPad, [0.4, 0.5, 0.08]),
+          box([0, SEAT_TOP - 0.04, 0.05], [0.4, 0.08, 0.4]),
+        ],
+      };
+    },
+  };
+}
+
+// ─── 8c. Glute kickback machine ──────────────────────────────────────────────
+
+/** Leaning on a chest pad, the free leg drives back from under the hip to behind the body. */
+export function kickback(): Motion {
+  return {
+    planted: { L: "flat" },
+    grips: {},
+    frame(s) {
+      const pitch = 40;
+      const t = torso({ pelvis: [0, STAND_Y - 0.04, 0], pitch, neck: -pitch * 0.6 });
+      const stance = leg(t.hipL, flatFoot(0.1, ANKLE_Z, 4), [0, 0.15, 1]);
+      // Free leg: from under the hip with the knee bent to straight back and up.
+      const swingA = lerpN(-20, 40, s);
+      const b = basis(swingA);
+      const len = lerpN(LEG_REACH * 0.72, LEG_REACH - 0.01, s);
+      const ankle = add(t.hipR, scale(b.up, -len));
+      const toeDir = localDir(b, [0, -sinD(FLAT), cosD(FLAT)]);
+      const free = leg(t.hipR, freeFoot(ankle, toeDir), [0, 0, 1]);
+      const handle: Vec3 = [0.2, t.sc[1] - 0.25, t.sc[2] + 0.3];
+      const arms = symArms(t, handle, [0.5, -0.3, -1]);
+      const chestPad = add(t.chest, scale(t.hi.front, RIG.backDepth + 0.06));
+      return {
+        pose: assemble(t, arms, [stance, free]),
+        props: [
+          box(chestPad, [0.4, 0.3, 0.08]),
+          box(mid(arms[0].hand, arms[1].hand), [0.5, 0.04, 0.04]),
+        ],
       };
     },
   };
