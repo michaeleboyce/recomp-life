@@ -74,4 +74,12 @@ describe("muscleStrengthIndex", () => {
   it("is empty with no estimates", () => {
     expect(muscleStrengthIndex([])).toEqual({});
   });
+
+  it("leaves out a session at no weight, so the trend stays a number", () => {
+    // A first session at 0 lb would be a reference of 0, and every later point NaN.
+    const sets = [...bssSessions([0], 0), ...bssSessions([40, 45], 1)];
+    const quads = muscleStrengthIndex(sets).quads!;
+    expect(quads).toHaveLength(2);
+    expect(quads.every((p) => Number.isFinite(p.index))).toBe(true);
+  });
 });

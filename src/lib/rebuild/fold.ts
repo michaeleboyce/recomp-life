@@ -7,6 +7,7 @@ import { T1_STAGE_SCHEME, T2_STAGE_SCHEME } from "@/lib/workout/prescription";
 import {
   anchorVariant,
   isVariantTier,
+  plannedWeightAfterHandSet,
   seedVariantState,
   BACK_TO_PLAN_NOTE,
   variantKey,
@@ -221,8 +222,12 @@ function applyAdjustment(
     for (const fields of Object.values(LIFT_PLAN_FIELDS)) {
       const value = set[fields.weight];
       if (value === undefined) continue;
-      const planned = current[fields.planned] ?? current[fields.weight];
-      if (backToPlan || value === planned) {
+      const planned = plannedWeightAfterHandSet(
+        { weight: current[fields.weight], plannedWeight: current[fields.planned] },
+        value,
+        backToPlan
+      );
+      if (planned === undefined) {
         delete next[fields.planned];
         if (fields.byHand) delete next[fields.byHand];
       } else {

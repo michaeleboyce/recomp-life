@@ -32,8 +32,6 @@ export interface PooledEstimateOptions {
  *    added with weight STRENGTH_POOLING.transferWeight. With no session of the lift, all
  *    related sessions are pooled. A weight set by hand for a related exercise and not
  *    lifted since (`targetEstimates`) joins them at TARGET_EVIDENCE.weight of that.
- *
- * @evidence target-evidence
  * 3. Every weight halves for each STRENGTH_POOLING.evidenceHalfLifeDays a session is
  *    older than the newest one pooled. The value is the weighted mean, rounded to a pound.
  * 4. The standard deviation treats each session as scattering by
@@ -44,6 +42,7 @@ export interface PooledEstimateOptions {
  * Null when there is no evidence.
  *
  * @evidence strength-pooling
+ * @evidence target-evidence
  */
 export function pooledLiftEstimate(
   liftId: string,

@@ -19,6 +19,7 @@ import {
   totalLoad,
   variantKey,
   variantScheme,
+  plannedWeightAfterHandSet,
   withHandSetWeight,
   type EvaluateVariantInput,
   type VariantSeedInput,
@@ -225,6 +226,14 @@ describe("chooseHomeVariant with home history", () => {
     expect(choice).toMatchObject({ weight: 70, cappedFrom: 80 });
   });
 
+  it("a current variant whose exercise is no longer a home option for the lift is passed over", () => {
+    // A state left from an older catalogue (the exercise renamed or dropped from the chain).
+    const stale = variant({ id: "squat|retired_squat|T1", exerciseId: "retired_squat", weight: 80, current: true });
+    const choice = chooseHomeVariant({ liftId: "squat", tier: "T1", liftState: squat(), variantStates: [stale], equipment: EQUIPMENT })!;
+    expect(choice.state.exerciseId).not.toBe("retired_squat");
+    expect(homeOptionsFor("squat")).toContain(choice.state.exerciseId);
+  });
+
   it("an override among the conversion's alternatives wins over the current variant", () => {
     const current = variant({ weight: 80, current: true });
     const choice = chooseHomeVariant({ liftId: "squat", tier: "T1", liftState: squat(), variantStates: [current], equipment: EQUIPMENT, overrideId: "goblet_squat" })!;
@@ -375,6 +384,13 @@ describe("weights set by hand", () => {
     expect(back.setByHandAt).toBeUndefined();
     const explicit = withHandSetWeight(set, { ...set, weight: 65 }, at, true);
     expect(explicit.plannedWeight).toBeUndefined();
+  });
+
+  it("plannedWeightAfterHandSet keeps the first planned weight and ends on the plan's own", () => {
+    expect(plannedWeightAfterHandSet({ weight: 60 }, 70, false)).toBe(60);
+    expect(plannedWeightAfterHandSet({ weight: 70, plannedWeight: 60 }, 75, false)).toBe(60);
+    expect(plannedWeightAfterHandSet({ weight: 70, plannedWeight: 60 }, 60, false)).toBeUndefined();
+    expect(plannedWeightAfterHandSet({ weight: 70, plannedWeight: 60 }, 65, true)).toBeUndefined();
   });
 
   it("a logged session ends the override", () => {

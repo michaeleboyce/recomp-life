@@ -62,6 +62,15 @@ describe("barbellReentryWeight", () => {
     expect(barbellReentryWeight({ ...base, lastWeight: null, estimate: null })).toBeNull();
   });
 
+  it("ignores an estimate that is not a positive number", () => {
+    for (const estimate of [0, -5, Number.NaN]) {
+      const result = barbellReentryWeight({ ...base, stepsEarned: 1, estimate })!;
+      expect(result.weight).toBe(235);
+      expect(result.fromEstimate).toBeNull();
+    }
+    expect(barbellReentryWeight({ ...base, lastWeight: null, estimate: 0 })).toBeNull();
+  });
+
   it("uses the current stage's reps", () => {
     const fiveByThree = barbellReentryWeight({ ...base, lastWeight: null, estimate: 270 })!;
     const tenByOne = barbellReentryWeight({ ...base, lastWeight: null, estimate: 270, targetReps: 1 })!;
@@ -85,6 +94,14 @@ describe("homeReentryWeight", () => {
     expect(result.fromEstimate).toBe(65);
     expect(result.weight).toBe(60);
     expect(result.rule).toBe("steps");
+  });
+
+  it("ignores an estimate that is not a positive number", () => {
+    for (const estimate of [0, -5, Number.NaN]) {
+      const result = homeReentryWeight({ ...base, estimate, ratio: 0.5 })!;
+      expect(result.weight).toBe(60);
+      expect(result.fromEstimate).toBeNull();
+    }
   });
 
   it("takes the estimate's weight per hand when it is smaller", () => {

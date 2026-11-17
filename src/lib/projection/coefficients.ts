@@ -1,5 +1,5 @@
-// The numbers the e1RM projection model runs on. Owned by the `projection-research`
-// package: the KEYS are a contract (src/lib/projection reads them); the VALUES are drawn
+// The numbers the e1RM projection model runs on. The KEYS are what src/lib/projection
+// reads; the VALUES are drawn
 // from the research summarised in docs/research/2026-11-projection-model.md and graded in
 // the evidence registry (src/lib/evidence/rules/projection.ts).
 //

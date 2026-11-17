@@ -11,17 +11,21 @@ import { useCompletedWorkouts } from "./useWorkouts";
  * (`targetStrengthSets`, counted for less by the pooled estimate): what the plan seeds a
  * first home weight from (H3) and works re-entry out from (H6). The same array while
  * the workouts and home states are unchanged, so the estimates worked out from it are
- * kept. `undefined` while loading.
+ * kept; a change to the home states alone does not read every workout again.
+ * `undefined` while loading.
  *
  * @evidence target-evidence
  */
 export function useStrengthSets(): StrengthSet[] | undefined {
   const completedWorkouts = useCompletedWorkouts();
   const variantStates = useVariantStates();
+  const logged = useMemo(
+    () => (completedWorkouts === undefined ? undefined : strengthSetsOf(completedWorkouts)),
+    [completedWorkouts]
+  );
   return useMemo(() => {
-    if (completedWorkouts === undefined || variantStates === undefined) return undefined;
+    if (logged === undefined || variantStates === undefined) return undefined;
     const targets = targetStrengthSets(variantStates);
-    const logged = strengthSetsOf(completedWorkouts);
     return targets.length > 0 ? [...logged, ...targets] : logged;
-  }, [completedWorkouts, variantStates]);
+  }, [logged, variantStates]);
 }

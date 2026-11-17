@@ -184,3 +184,14 @@ describe("sessionEstimates", () => {
     expect(sessionEstimates(sets, "squat").map((e) => e.sessionId)).toEqual(["w2"]);
   });
 });
+
+describe("sets with no load", () => {
+  it("a set logged at no weight (or an unreadable one) gives no estimate", () => {
+    // A T1 AMRAP logged at 0 lb would otherwise say the lifter's max is 0 and drag the
+    // pooled estimate, and with it re-entry, down to the empty bar.
+    expect(isEstimateSet(set({ weight: 0 }))).toBe(false);
+    expect(isEstimateSet(set({ weight: Number.NaN }))).toBe(false);
+    expect(isEstimateSet(set({ weight: -10 }))).toBe(false);
+    expect(sessionEstimates([set({ weight: 0, sessionId: "w0" })], "squat")).toEqual([]);
+  });
+});
