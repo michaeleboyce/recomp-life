@@ -8,6 +8,7 @@ import { clearDb, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { updateSettings } from "@/lib/data/records";
 import { DaySelector } from "./DaySelector";
 import { EditWorkoutButton } from "./EditWorkoutButton";
+import { HomeAlternativesPanel } from "./HomeAlternatives";
 import { PlannedExerciseList } from "./PlannedExerciseList";
 import { useWorkoutSetup, type WorkoutSetup } from "./useWorkoutSetup";
 
@@ -178,6 +179,43 @@ describe("the edit sheet", () => {
     expect(entry.weight).toBe(shownWeight);
     expect(current.prescribed.find((p) => p.exerciseId === "bench")!.home?.exerciseId).toBe("db_floor_press");
     expect(within(sheet).queryByText("Logged only, progression paused")).toBeNull();
+  });
+
+  it("Ready's home panel changes a home version through the swap sheet, at the weight it planned", async () => {
+    await updateSettings({ defaultLocation: "home" });
+    const seen: { current: WorkoutSetup | null } = { current: null };
+    function Spy() {
+      const setup = useWorkoutSetup("A1");
+      useEffect(() => {
+        seen.current = setup;
+      });
+      if (setup.isLoading || !setup.templateId) return null;
+      return <HomeAlternativesPanel setup={setup} />;
+    }
+    render(<Spy />);
+    fireEvent.click(await screen.findByRole("button", { name: "Change Barbell Bench Press" }));
+    const sheet = await screen.findByRole("dialog", { name: "Edit workout" });
+    // The swap sheet opens straight on that lift.
+    const panel = await within(sheet).findByTestId("swap-panel");
+    await within(panel).findByRole("region", { name: "Recommended" });
+    const row = within(panel)
+      .getAllByTestId("swap-candidate")
+      .find((r) => within(r).queryByRole("button", { name: "Pick DB Floor Press" }))!;
+    const shownWeight = Number.parseFloat(within(row).getByTestId("swap-prescription").textContent!);
+    fireEvent.click(within(row).getByRole("button", { name: "Pick DB Floor Press" }));
+    // The progression line is in view before choosing.
+    expect(within(panel).getByTestId("swap-effect")).toHaveTextContent("Counts as Bench press");
+    fireEvent.click(within(panel).getByRole("button", { name: "Swap in DB Floor Press" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Edit workout" })).toBeNull());
+
+    // Chosen as a home substitute (no edit), and the panel shows the plan's weight.
+    const current = seen.current!;
+    expect(current.edits).toEqual([]);
+    const entry = current.plan.find((e) => !e.isWarmUp && e.exerciseId === "bench")!;
+    expect(entry.substituteExerciseId).toBe("db_floor_press");
+    expect(entry.weight).toBe(shownWeight);
+    const shown = screen.getAllByTestId("home-planned-weight").map((el) => el.textContent);
+    expect(shown).toContain(`@ ${entry.weight} lbs/hand`);
   });
 
   it("swaps one lift for two: the first takes its place, the second is added", async () => {

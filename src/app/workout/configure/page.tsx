@@ -17,7 +17,7 @@ import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
 import { DaySelector } from "@/components/PreWorkout/DaySelector";
 import { FavouriteActions } from "@/components/PreWorkout/FavouriteActions";
 import { EditWorkoutButton } from "@/components/PreWorkout/EditWorkoutButton";
-import { HomeAlternatives } from "@/components/PreWorkout/HomeAlternatives";
+import { HomeAlternativesPanel } from "@/components/PreWorkout/HomeAlternatives";
 import { LocationToggle } from "@/components/PreWorkout/LocationToggle";
 import { PainSummary } from "@/components/PreWorkout/PainSummary";
 import { PlannedExerciseList } from "@/components/PreWorkout/PlannedExerciseList";
@@ -242,10 +242,8 @@ function ConfigureWorkoutContent() {
 
         {hasSubstitutes && (
           <SetupExpander title="Alternatives for home">
-            <HomeAlternatives
-              adaptations={setup.homeAdaptations}
-              maxDumbbellWeight={setup.equipment.maxDumbbellWeight}
-              onChoose={setup.chooseSubstitute}
+            <HomeAlternativesPanel
+              setup={setup}
               evidence={<EvidenceLine ruleId="dumbbell-conversion" variant="icon" />}
             />
           </SetupExpander>
