@@ -21,21 +21,26 @@
 // - An accessory has no program progression; the exercise swapped in is planned from its
 //   own sets next time (`accessoryPrescription`).
 import { EXERCISES } from "@/lib/exercises";
-import type { Tier } from "@/types";
+import { homeOptionsFor } from "@/lib/workout/variant";
+import { liftShortName } from "@/lib/workoutNames";
+import type { Tier, WorkoutLocation } from "@/types";
 
 /**
  * "held": a program lift left exactly as it is, neither passed nor missed.
+ * "counts": at home before a workout, one of the lift's own home versions: it is done as
+ *   the lift (the home-substitute path, `chooseHomeVariant`), with its own weight that
+ *   moves up or resets by GZCLP, and the session counts as done.
  * "accessory": no program lift is involved.
  * "none": nothing is swapped (the same exercise).
  */
-export type SwapProgressionKind = "held" | "accessory" | "none";
+export type SwapProgressionKind = "held" | "counts" | "accessory" | "none";
 
 export interface SwapProgressionEffect {
   kind: SwapProgressionKind;
   /** The original lift's weight, stage, fail count and last-workout date stay as they are. */
   liftHeld: boolean;
-  /** The swapped-in exercise moves no program lift state. */
-  replacementCounts: false;
+  /** The swapped-in exercise is done as the lift: its own home state moves (kind "counts"). */
+  replacementCounts: boolean;
   /** For a T1: the session does not move the rotation, so the same day is due next time. */
   dayStaysDue: boolean;
   /** One or two plain sentences for the swap sheet. */
@@ -45,6 +50,40 @@ export interface SwapProgressionEffect {
 export interface SwapProgressionContext {
   /** Sets of the original already logged in this session (a swap during the workout). */
   setsLogged?: number;
+  /** Where the workout is: only at home can a home version count as the lift. */
+  location?: WorkoutLocation;
+  /**
+   * A swap during the workout: the session's home exercises were fixed at start, so a
+   * home version picked then is a swap like any other (logged only).
+   */
+  inWorkout?: boolean;
+}
+
+/**
+ * True when `exerciseId` is one of the program lift's own home versions (its dumbbell
+ * alternative or its fallback chain) and the lift is converted at home: picking it at
+ * home before a workout goes through the home-substitute path (`chooseHomeVariant`).
+ */
+export function isHomeVersionOf(liftId: string, exerciseId: string): boolean {
+  const lift = EXERCISES[liftId];
+  if (!lift?.requiresGym || !lift.dumbbellAlternative || !EXERCISES[exerciseId]) return false;
+  return homeOptionsFor(liftId).includes(exerciseId);
+}
+
+/** True when the swap is done as the lift (kind "counts"): see `isHomeVersionOf`. */
+export function swapCountsAsLift(
+  tier: Tier,
+  originalId: string,
+  replacementId: string,
+  context: SwapProgressionContext = {}
+): boolean {
+  return (
+    context.location === "home" &&
+    !context.inWorkout &&
+    !(context.setsLogged && context.setsLogged > 0) &&
+    PROGRAM_TIERS.includes(tier) &&
+    isHomeVersionOf(originalId, replacementId)
+  );
 }
 
 const PROGRAM_TIERS: readonly Tier[] = ["T1", "T2", "T3"];
@@ -85,6 +124,15 @@ export function swapProgressionEffect(
       replacementCounts: false,
       dayStaysDue: false,
       text: `Accessories are not part of the program's progression: next time ${replacement} is planned from its own sets.`,
+    };
+  }
+  if (swapCountsAsLift(tier, originalId, replacementId, context)) {
+    return {
+      kind: "counts",
+      liftHeld: false,
+      replacementCounts: true,
+      dayStaysDue: false,
+      text: `Counts as ${liftShortName(originalId)}: ${replacement} has its own weight and moves up on its own.`,
     };
   }
   const logged = context.setsLogged ?? 0;

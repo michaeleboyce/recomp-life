@@ -37,9 +37,18 @@ function runSwapped(options: {
   replacementId: string;
   location: WorkoutLocation;
   after?: number;
+  /** Picked as the lift's home version before the workout: the home-substitute path, no edit. */
+  asHomeVersion?: boolean;
 }) {
   const liftStates = seedLiftStates();
-  const home = options.location === "home" ? { variantStates: [], equipment: SETTINGS.equipment } : undefined;
+  const home =
+    options.location === "home"
+      ? {
+          variantStates: [],
+          equipment: SETTINGS.equipment,
+          ...(options.asHomeVersion ? { overrides: { [options.liftId]: options.replacementId } } : {}),
+        }
+      : undefined;
   let session: WorkoutSession = makeSession({
     templateId: "A1",
     location: options.location,
@@ -75,7 +84,9 @@ function runSwapped(options: {
   };
   const replacements = [{ exerciseId: options.replacementId, prescription: prescription(3, 10) }];
   let edits: PlanEdit[];
-  if (options.after == null) {
+  if (options.asHomeVersion) {
+    edits = [];
+  } else if (options.after == null) {
     edits = swapEdits(options.liftId, options.tier, replacements);
   } else {
     logAll((id, tier) => id === options.liftId && tier === options.tier, options.after);
@@ -96,17 +107,22 @@ const fields = (s: LiftState | undefined) =>
 const CASES: { liftId: string; tier: Tier; replacementId: string; location: WorkoutLocation; after?: number }[] = [
   { liftId: "squat", tier: "T1", replacementId: "leg_press", location: "gym" },
   { liftId: "squat", tier: "T1", replacementId: "leg_press", location: "gym", after: 2 },
-  { liftId: "squat", tier: "T1", replacementId: "goblet_squat", location: "home" },
+  { liftId: "squat", tier: "T1", replacementId: "goblet_squat", location: "home", after: 0 },
   { liftId: "bench", tier: "T2", replacementId: "db_bench", location: "gym" },
   { liftId: "bench", tier: "T2", replacementId: "db_bench", location: "gym", after: 1 },
-  { liftId: "bench", tier: "T2", replacementId: "db_floor_press", location: "home" },
+  // At home during the workout (here: after a set), a home version is a swap like any other.
+  { liftId: "bench", tier: "T2", replacementId: "db_floor_press", location: "home", after: 1 },
   { liftId: "lat_pulldown", tier: "T3", replacementId: "db_row", location: "gym" },
   { liftId: "lat_pulldown", tier: "T3", replacementId: "db_row", location: "gym", after: 2 },
 ];
 
 describe("swapProgressionEffect agrees with the progression code", () => {
   it.each(CASES)("$tier $liftId -> $replacementId at the $location, after $after sets", (c) => {
-    const effect = swapProgressionEffect(c.tier, c.liftId, c.replacementId, { setsLogged: c.after ?? 0 });
+    const effect = swapProgressionEffect(c.tier, c.liftId, c.replacementId, {
+      setsLogged: c.after ?? 0,
+      location: c.location,
+      inWorkout: c.after != null,
+    });
     const { liftStates, finished, rebuilt } = runSwapped(c);
 
     const before = fields(liftStates.find((s) => s.exerciseId === c.liftId));
@@ -157,6 +173,48 @@ describe("swapProgressionEffect words", () => {
   it("an accessory has no program progression; the same exercise changes nothing", () => {
     expect(swapProgressionEffect("accessory", "face_pulls", "reverse_fly")).toMatchObject({ kind: "accessory", liftHeld: false, dayStaysDue: false });
     expect(swapProgressionEffect("T1", "squat", "squat").kind).toBe("none");
+  });
+});
+
+const HOME_VERSIONS: { liftId: string; tier: Tier; replacementId: string }[] = [
+  { liftId: "bench", tier: "T2", replacementId: "db_floor_press" },
+  { liftId: "squat", tier: "T1", replacementId: "bulgarian_split_squat" },
+];
+
+describe("a home version picked at home before the workout counts as the lift", () => {
+  it.each(HOME_VERSIONS)("$tier $liftId -> $replacementId", (c) => {
+    const effect = swapProgressionEffect(c.tier, c.liftId, c.replacementId, { location: "home" });
+    expect(effect.kind).toBe("counts");
+    const { finished, rebuilt } = runSwapped({ ...c, location: "home", asHomeVersion: true });
+
+    // The session did the lift as that home version: no edit, its sets carry the substitute.
+    expect(finished.planEdits).toEqual([]);
+    const sets = finished.sets.filter((s) => s.exerciseId === c.liftId && s.tier === c.tier);
+    expect(sets.length).toBeGreaterThan(0);
+    expect(sets.every((s) => s.substituteExerciseId === c.replacementId)).toBe(true);
+
+    // replacementCounts: its own home state is judged and moves up after a pass.
+    expect(effect.replacementCounts).toBe(true);
+    const outcome = (rebuilt.variantOutcomes.get(finished.id) ?? []).find(
+      (o) => o.exerciseId === c.replacementId && o.liftId === c.liftId && o.tier === c.tier
+    );
+    expect(outcome?.kind).toBe("passed");
+    const state = rebuilt.variantStates.find((v) => v.exerciseId === c.replacementId && v.liftId === c.liftId && v.tier === c.tier)!;
+    expect(state.weight).toBeGreaterThan(sets[0].weight);
+
+    // dayStaysDue: the session moves the rotation as any done session does.
+    expect(effect.dayStaysDue).toBe(!sessionCountsForRotation(finished, "A1"));
+    expect(effect.dayStaysDue).toBe(false);
+    expect(effect.liftHeld).toBe(false);
+    expect(effect.text).toMatch(/^Counts as /);
+    expect(effect.text).toContain("has its own weight and moves up on its own");
+  });
+
+  it("not at the gym, not during the workout, not for a lift's unrelated exercise", () => {
+    expect(swapProgressionEffect("T2", "bench", "db_floor_press", { location: "gym" }).kind).toBe("held");
+    expect(swapProgressionEffect("T2", "bench", "db_floor_press", { location: "home", inWorkout: true }).kind).toBe("held");
+    expect(swapProgressionEffect("T2", "bench", "push_up", { location: "home" }).kind).toBe("held");
+    expect(swapProgressionEffect("accessory", "face_pulls", "reverse_fly", { location: "home" }).kind).toBe("accessory");
   });
 });
 

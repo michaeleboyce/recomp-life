@@ -72,7 +72,7 @@ export function EditWorkoutSheet({
   const swapContext = useSwapContext({
     location,
     exclude: inPlan,
-    ...(picking?.mode === "swap" ? { slot: picking.slot } : {}),
+    ...(picking?.mode === "swap" ? { slot: picking.slot, liftId: picking.exerciseId } : {}),
     now: setup.accessorySource.now,
   });
 
@@ -101,6 +101,15 @@ export function EditWorkoutSheet({
   };
   const swap = (picks: SwapCandidate[]) => {
     if (picking?.mode !== "swap") return;
+    const [first, ...rest] = picks;
+    if (first?.countsAs) {
+      // One of the lift's home versions at home: done as the lift through the home-
+      // substitute path (its own weight, progresses), not a swap. Any further pick is an
+      // ordinary added exercise.
+      setup.chooseSubstitute(picking.exerciseId, first.exerciseId);
+      if (rest.length > 0) setup.applyEdits(rest.map((r) => replacementAddEdit(r)));
+      return;
+    }
     setup.applyEdits(swapEdits(picking.exerciseId, picking.tier, picks));
   };
 

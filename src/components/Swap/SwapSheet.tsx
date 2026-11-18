@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import type { Tier } from "@/types";
 import {
   confirmLabel,
+  countsAsTag,
   everyTimeOption,
   historyText,
   pairView,
@@ -96,7 +97,11 @@ export function SwapPanel({
   const name = getExercise(shownId || exerciseId).name;
   const effectFor = picks[0]?.exerciseId ?? candidates[0]?.exerciseId;
   const effect = effectFor
-    ? swapProgressionEffect(tier, exerciseId, effectFor, setsLogged ? { setsLogged } : {})
+    ? swapProgressionEffect(tier, exerciseId, effectFor, {
+        ...(setsLogged ? { setsLogged } : {}),
+        location: context?.location ?? "gym",
+        inWorkout,
+      })
     : null;
   const location = context?.location ?? "gym";
   // An accessory is left out as it is done here (a home alternative's own id); a program
@@ -362,6 +367,14 @@ function CandidateRow({
           {!compact && (
             <span data-testid="swap-history" className="text-xs text-muted-foreground">
               {historyText(candidate.history, now)}
+            </span>
+          )}
+          {candidate.countsAs && (
+            <span
+              data-testid="swap-counts"
+              className="w-fit rounded-full bg-accent-primary-soft px-2 py-0.5 text-[11px] font-semibold text-foreground"
+            >
+              {countsAsTag(candidate.countsAs)}
             </span>
           )}
         </button>
