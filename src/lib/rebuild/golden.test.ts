@@ -10,7 +10,10 @@
 // re-entry (H6); see that commit's message. Regenerated on purpose on 2026-11-17 for F6
 // (a first home weight follows the exercise's own recent history): only seed fields
 // changed (two T2 seeds are now "history" with the session they came from, two seeds
-// gained `lastDone`); no weight, stage or lift state moved.
+// gained `lastDone`); no weight, stage or lift state moved. Regenerated on purpose on
+// 2026-11-18 for the T3 threshold sized to the step: only `t3Weight` (db_row,
+// lat_pulldown) and the T3 home exercise's `weight` and `passesSinceGym` changed, each
+// because a T3 last set between its new threshold and 24 now goes up.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";

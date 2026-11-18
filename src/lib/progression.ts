@@ -4,7 +4,7 @@
  * Pure functions implementing the GZCLP linear progression scheme:
  * - T1: 5x3 -> 6x2 -> 10x1 -> reset (failure cascade)
  * - T2: 3x10 -> 3x8 -> 3x6 -> reset (failure cascade)
- * - T3: the weight goes up when the last set reaches its rep target
+ * - T3: the weight goes up when the last set reaches the reps its next step asks for
  * - T2 Auto-regulation: RPE-based load drops per training phase
  *
  * All functions are pure — they take state in and return new state out. `evaluateT1`,
@@ -48,11 +48,28 @@ export const T2_AUTOREG_RPE_THRESHOLD: Record<TrainingPhase["mode"], number> = {
 /** Suggested T2 load drop: `max` after an RPE 10 set, `standard` otherwise. */
 export const T2_AUTOREG_DROP = { standard: 0.05, max: 0.1 } as const;
 
-/** Reps on the last T3 set at or above which the T3 weight goes up, in every phase. */
-export const T3_LAST_SET_INCREASE_REPS = 25;
+/**
+ * The fewest reps on the last T3 set that can move the weight up, however small the
+ * next step: the rep formula is rough at high reps, so a tiny step does not go below it.
+ */
+export const T3_INCREASE_REPS_MIN = 18;
+
+/**
+ * The most reps on the last T3 set the weight ever asks for: the stock GZCLP number.
+ * A big step, bodyweight work and a T3 at the heaviest dumbbell use it.
+ */
+export const T3_INCREASE_REPS_MAX = 25;
+
+/** Reps a set of the stock T3 scheme (3×15, the last set as many as you can). */
+export const T3_TARGET_REPS = 15;
 
 /** Pounds added to a T3 lift when it goes up. */
 export const T3_INCREMENT_LBS = 5;
+
+/** The divisor of the rep-to-strength formula, `weight × (1 + reps / 30)`. */
+export const REPS_FORMULA_DIVISOR = 30;
+/** Floating-point slack, so 24.000000000000004 needed reps reads as 24. */
+const REPS_EPSILON = 1e-9;
 
 /**
  * The evidence rule each kind of progression outcome points at: the program's own
@@ -466,16 +483,56 @@ export function evaluateT2Progression(...args: Parameters<typeof evaluateT2>): L
 // T3 Progression
 // ---------------------------------------------------------------------------
 
+/** What a T3 weight's next step asks of the last set. */
+export interface T3IncreaseInput {
+  /** The weight lifted, as lifted (a hand, where the exercise is per hand). 0 for bodyweight. */
+  weight: number;
+  /** The weight the progression gives next, in the same terms; null when there is none. */
+  nextWeight: number | null;
+  /** Reps a set of the scheme (15 for the stock 3×15+). */
+  targetReps: number;
+}
+
+/**
+ * Reps the last T3 set needs for the weight to go up: enough that, by the rep-to-
+ * strength formula the app uses everywhere (`weight × (1 + reps / 30)`), the lifter
+ * could still do the target reps at the next weight.
+ *
+ *   needed    = ceil(30 × ((next / weight) × (1 + target / 30) − 1))
+ *   threshold = needed, kept between T3_INCREASE_REPS_MIN and T3_INCREASE_REPS_MAX
+ *
+ * No weight (bodyweight work) or no next step (already at the heaviest dumbbell): the
+ * maximum. A small step (5 lb on a heavy machine) asks for fewer reps than a big one
+ * (5 lb on a light dumbbell). The only place the T3 rep count is worked out. Pure.
+ *
+ * @evidence t3-progression
+ */
+export function t3IncreaseThreshold({ weight, nextWeight, targetReps }: T3IncreaseInput): number {
+  if (!(weight > 0) || nextWeight == null || !(nextWeight > weight)) return T3_INCREASE_REPS_MAX;
+  const needed = Math.ceil(
+    REPS_FORMULA_DIVISOR * ((nextWeight / weight) * (1 + targetReps / REPS_FORMULA_DIVISOR) - 1) -
+      REPS_EPSILON
+  );
+  return Math.min(T3_INCREASE_REPS_MAX, Math.max(T3_INCREASE_REPS_MIN, needed));
+}
+
+/** The next weight of a T3 lift state: T3_INCREMENT_LBS more. */
+export function t3NextWeight(weight: number): number {
+  return weight + T3_INCREMENT_LBS;
+}
+
 export interface T3ProgressionResult {
   newWeight: number;
   increased: boolean;
+  /** Reps the last set needed (`t3IncreaseThreshold`). */
+  threshold: number;
 }
 
 /**
  * Evaluate T3 progression after a workout.
  *
- * The weight goes up by T3_INCREMENT_LBS when the last set reached
- * T3_LAST_SET_INCREASE_REPS reps, in every training phase. Total reps across the
+ * The weight goes up by T3_INCREMENT_LBS when the last set reached the threshold for
+ * that step (`t3IncreaseThreshold`), in every training phase. Total reps across the
  * sets do not count: two easy sets must not stand in for a hard last one.
  *
  * Applied by `computeCompletion` when a T3 exercise was fully completed. The
@@ -485,27 +542,35 @@ export interface T3ProgressionResult {
  */
 export function evaluateT3Progression(
   lastSetReps: number,
-  currentWeight: number
+  currentWeight: number,
+  targetReps: number = T3_TARGET_REPS
 ): T3ProgressionResult {
-  return lastSetReps >= T3_LAST_SET_INCREASE_REPS
-    ? { newWeight: currentWeight + T3_INCREMENT_LBS, increased: true }
-    : { newWeight: currentWeight, increased: false };
+  const nextWeight = t3NextWeight(currentWeight);
+  const threshold = t3IncreaseThreshold({ weight: currentWeight, nextWeight, targetReps });
+  return lastSetReps >= threshold
+    ? { newWeight: nextWeight, increased: true, threshold }
+    : { newWeight: currentWeight, increased: false, threshold };
 }
 
 /**
  * T3 after a workout in which every set of the lift was done: the new lift state and
  * the outcome that explains it. A set skipped or reduced for pain, a run or equipment
  * holds the weight like any other tier; otherwise `evaluateT3Progression` decides
- * from the last set logged. The weight never goes down.
+ * from the last set logged, against the threshold for this weight's next step and the
+ * scheme's `targetReps`. The weight never goes down.
  */
-export function evaluateT3(liftState: LiftState, setsCompleted: SetLog[]): ProgressionResult {
+export function evaluateT3(
+  liftState: LiftState,
+  setsCompleted: SetLog[],
+  targetReps: number = T3_TARGET_REPS
+): ProgressionResult {
   const hold = getHoldReason("T3", setsCompleted);
   if (hold) {
     return resultFor("T3", liftState, { ...liftState }, "held", hold);
   }
 
   const lastSetReps = setsCompleted[setsCompleted.length - 1]?.actualReps ?? 0;
-  const result = evaluateT3Progression(lastSetReps, liftState.t3Weight);
+  const result = evaluateT3Progression(lastSetReps, liftState.t3Weight, targetReps);
   return resultFor(
     "T3",
     liftState,

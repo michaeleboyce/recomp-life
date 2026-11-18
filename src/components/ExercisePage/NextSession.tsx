@@ -3,7 +3,7 @@
 import { useMemo, type ReactNode } from "react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { useLiftStates, useSettings } from "@/hooks";
-import { T3_INCREMENT_LBS, T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
+import { t3GoesUpSentence, t3IncreaseForEntry } from "@/lib/workout/t3Increase";
 import type { Tier, WorkoutLocation } from "@/types";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { AdjustLiftSheet, BackToPlanButton } from "@/components/LogEdit";
@@ -28,12 +28,12 @@ import {
 } from "./NextSessionParts";
 
 /** How a program lift's or T3's planned weight moves, with its rule. */
-function ProgressionLine({ tier, liftShort }: { tier: Tier; liftShort: string }) {
+function ProgressionLine({ tier, liftShort, t3Line }: { tier: Tier; liftShort: string; t3Line: string }) {
   if (tier === "T3") {
     return (
       <div className="flex items-start gap-2 border-t border-border pt-2">
         <p data-testid="weight-line" className="flex-1 text-[13px] text-muted-foreground">
-          The weight goes up {T3_INCREMENT_LBS} lb once the last set reaches {T3_LAST_SET_INCREASE_REPS} reps.
+          {t3Line}
         </p>
         <EvidenceLine ruleId="t3-progression" variant="icon" />
       </div>
@@ -159,7 +159,13 @@ export function PlannedNextSession({
           </PlanYouRow>
         )}
         {homeStandIn && <HomeStandInPlanYou liftId={liftId} exerciseId={exerciseId} tier={tier} weight={entry.weight} unit={unit} />}
-        {kind.kind !== "accessory" && kind.kind !== "reference" && <ProgressionLine tier={tier} liftShort={liftShort} />}
+        {kind.kind !== "accessory" && kind.kind !== "reference" && (
+          <ProgressionLine
+            tier={tier}
+            liftShort={liftShort}
+            t3Line={t3GoesUpSentence(t3IncreaseForEntry(entry, equipment), unit)}
+          />
+        )}
         <NextSetPlanEditor
           exerciseId={exerciseId}
           liftId={liftId}

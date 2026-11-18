@@ -664,6 +664,23 @@ describe("glass box: forecast, why and rest", () => {
   });
 });
 
+describe("a T3's last set: the number to reach, then what happens next time", () => {
+  it.each([
+    [19, "19 of 20 on the last set: stays at 50 lbs next time"],
+    [20, "20 of 20 on the last set: 55 lbs next time"],
+  ])("a 50 lb dumbbell row logged at %i reps", async (reps, said) => {
+    await db.liftStates.update("db_row", { t3Weight: 50 });
+    await open({ templateId: "B1" });
+    // Overhead press 5 sets, deadlift 3, then the first two dumbbell row sets.
+    await logSets(10);
+    expect(screen.getByText("Set 3 of 3")).toBeInTheDocument();
+    expect(screen.getByTestId("t3-move-up")).toHaveTextContent("20 to move up");
+    for (let i = 15; i < reps; i++) fireEvent.click(screen.getByRole("button", { name: "One more rep" }));
+    fireEvent.click(logButton());
+    expect(await screen.findByTestId("t3-next-time")).toHaveTextContent(said);
+  });
+});
+
 describe("adding an accessory mid-workout (A9)", () => {
   it("opens the Add list, appends the one picked at its prescription, and says so", async () => {
     nav.sessionId = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });

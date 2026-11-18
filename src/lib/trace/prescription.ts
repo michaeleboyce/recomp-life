@@ -10,7 +10,6 @@ import { describePlateLoad } from "@/lib/plates";
 import {
   RESET_FACTOR,
   T3_INCREMENT_LBS,
-  T3_LAST_SET_INCREASE_REPS,
   getIncrement,
   outcomeRuleId,
 } from "@/lib/progression";
@@ -18,6 +17,7 @@ import { formatRestDuration, getRestSeconds, hasCuttingRestBonus } from "@/lib/r
 import { generateWarmUpSets } from "@/lib/warmups";
 import { progressionLiftType } from "@/lib/workout/completeWorkout";
 import { getPrescription, T1_STAGE_SCHEME, T2_STAGE_SCHEME } from "@/lib/workout/prescription";
+import { t3IncreaseOfOutcome } from "@/lib/workout/t3Increase";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
   DecisionTrace,
@@ -175,12 +175,17 @@ function progressionDetail(last: LastSession, entry: PlanEntry, context: TraceCo
     case "notDone":
     case "loggedOnly":
       return "Only a lift finished as planned moves the weight.";
-    case "t3Up":
-      return outcome.reason === "heavier"
-        ? "Done heavier than planned, so the weight carries on from what you lifted."
-        : `The last set reached ${T3_LAST_SET_INCREASE_REPS} reps, which adds ${T3_INCREMENT_LBS} lb.`;
-    case "t3Same":
-      return `It goes up when the last set reaches ${T3_LAST_SET_INCREASE_REPS} reps.`;
+    case "t3Up": {
+      if (outcome.reason === "heavier") {
+        return "Done heavier than planned, so the weight carries on from what you lifted.";
+      }
+      const inc = t3IncreaseOfOutcome(outcome)!;
+      return `At ${num(inc.weight)} the last set needed ${inc.threshold} reps and reached them, which adds ${T3_INCREMENT_LBS} lb.`;
+    }
+    case "t3Same": {
+      const inc = t3IncreaseOfOutcome(outcome)!;
+      return `At ${num(inc.weight)} it goes up when the last set reaches ${inc.threshold} reps.`;
+    }
   }
 }
 

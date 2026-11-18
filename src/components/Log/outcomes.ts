@@ -7,10 +7,12 @@ import { displayLiftName, nameInSentence } from "@/components/Today/todayModel";
 import { getRule, isRuleId } from "@/lib/evidence";
 import { EXERCISES } from "@/lib/exercises";
 import { formatNumber } from "@/lib/metrics/helpers";
-import { T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
-import { describeOutcomes } from "@/lib/workout/outcomes";
+import { DEFAULT_USER_PROFILE } from "@/db/seed";
+import { describeOutcomes, describeT3 } from "@/lib/workout/outcomes";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
+import { t3IncreaseOfVariantOutcome } from "@/lib/workout/t3Increase";
 import type {
+  EquipmentProfile,
   ProgressionOutcome,
   ProgressionOutcomeKind,
   SetLog,
@@ -56,9 +58,14 @@ function schemeOf(point: VariantPoint): string | undefined {
  * The line for a home exercise's outcome, in its own weight as lifted, e.g. "passed: next
  * 75 lbs a hand 5x3". A pass at the heaviest dumbbell says what the cap policy did: more
  * reps, or the harder exercise and its weight. `sets` (the working sets) are only read
- * for a T3's last-set reps.
+ * for a T3's last-set reps; `equipment` (the dumbbells the session was finished with)
+ * gives a T3 its next step, and with it the reps its last set needed.
  */
-export function describeVariantOutcome(outcome: VariantOutcome, sets: SetLog[] = []): string {
+export function describeVariantOutcome(
+  outcome: VariantOutcome,
+  sets: SetLog[] = [],
+  equipment: EquipmentProfile = DEFAULT_USER_PROFILE.settings.equipment
+): string {
   const { tier, kind, reason, from, to, cap } = outcome;
   const next = asLifted(to);
   const scheme = schemeOf(to);
@@ -73,7 +80,7 @@ export function describeVariantOutcome(outcome: VariantOutcome, sets: SetLog[] =
   // A T3 whose last set earned a heavier weight it cannot have: the cap policy adds reps.
   if (cap?.policy === "reps" && kind === "t3Same") {
     return (
-      `last set reached ${T3_LAST_SET_INCREASE_REPS} at your heaviest dumbbell (${formatNumber(cap.maxDumbbellWeight, 1)}): ` +
+      `last set reached ${t3IncreaseOfVariantOutcome(outcome, { ...equipment, maxDumbbellWeight: cap.maxDumbbellWeight })?.threshold} at your heaviest dumbbell (${formatNumber(cap.maxDumbbellWeight, 1)}): ` +
       `stays at ${next}, sets of ${cap.repsTo} reps next (was ${cap.repsFrom})`
     );
   }
@@ -93,15 +100,8 @@ export function describeVariantOutcome(outcome: VariantOutcome, sets: SetLog[] =
     case "loggedOnly":
       return stillThere("only logged");
     case "t3Up":
-      return reason === "heavier"
-        ? `done heavier: next ${next}`
-        : `last set reached ${T3_LAST_SET_INCREASE_REPS}: next ${next}`;
-    case "t3Same": {
-      const lastSet = sets[sets.length - 1];
-      return lastSet
-        ? `stays at ${next} (last set ${lastSet.actualReps} of ${T3_LAST_SET_INCREASE_REPS} reps)`
-        : `stays at ${next}`;
-    }
+    case "t3Same":
+      return describeT3(t3IncreaseOfVariantOutcome(outcome, equipment), kind, reason, next, sets);
   }
 }
 
@@ -152,7 +152,9 @@ function variantRuleId(outcome: VariantOutcome): string {
 export function describeSessionOutcomes(
   session: Pick<WorkoutSession, "sets"> & Partial<Pick<WorkoutSession, "location">>,
   outcomes: readonly ProgressionOutcome[] | undefined,
-  variantOutcomes: readonly VariantOutcome[] | undefined
+  variantOutcomes: readonly VariantOutcome[] | undefined,
+  /** The dumbbells the session was finished with (`WorkoutSnapshots.equipment`). */
+  equipment?: EquipmentProfile
 ): SessionOutcomeRow[] {
   const sets = session.sets ?? [];
   const home = session.location === "home" ? (variantOutcomes ?? []) : [];
@@ -166,7 +168,7 @@ export function describeSessionOutcomes(
         tier: outcome.tier,
         kind: variant.kind,
         name: displayLiftName(variant.exerciseId),
-        text: describeVariantOutcome(variant, workingSetsFor(sets, outcome.exerciseId, outcome.tier)),
+        text: describeVariantOutcome(variant, workingSetsFor(sets, outcome.exerciseId, outcome.tier), equipment),
         from: variant.from.weight,
         to: variant.to.weight,
         ruleId: variantRuleId(variant),

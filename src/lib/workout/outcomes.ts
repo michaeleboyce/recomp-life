@@ -3,9 +3,9 @@
 // rebuild), so this file only writes the line: it never works out what happened.
 // Pure: no React, no database.
 import { formatNumber } from "@/lib/metrics/helpers";
-import { T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
 import type { ProgressionOutcome, ProgressionOutcomeKind, SetLog, WorkoutSession } from "@/types";
 import { workingSetsFor } from "./setSelectors";
+import { t3IncreaseOfOutcome, type T3Increase } from "./t3Increase";
 
 export type ProgramTier = ProgressionOutcome["tier"];
 
@@ -49,16 +49,34 @@ export function describeOutcome(outcome: ProgressionOutcome, sets: SetLog[] = []
     case "loggedOnly":
       return stillThere("only logged");
     case "t3Up":
-      return reason === "heavier"
-        ? `done heavier: next ${next}`
-        : `last set reached ${T3_LAST_SET_INCREASE_REPS}: next ${next}`;
-    case "t3Same": {
-      const lastSet = sets[sets.length - 1];
-      return lastSet
-        ? `stays at ${next} (last set ${lastSet.actualReps} of ${T3_LAST_SET_INCREASE_REPS} reps)`
-        : `stays at ${next}`;
-    }
+    case "t3Same":
+      return describeT3(t3IncreaseOfOutcome(outcome), kind, reason, next, sets);
   }
+}
+
+/**
+ * A T3's line against the threshold its session was judged by: "last set reached 20
+ * of 20: next 55 lbs", "stays at 50 lbs (last set 19 of 20 reps)". Shared with the
+ * home exercises' lines (`describeVariantOutcome`).
+ */
+export function describeT3(
+  inc: T3Increase | null,
+  kind: "t3Up" | "t3Same",
+  reason: ProgressionOutcome["reason"],
+  next: string,
+  sets: readonly Pick<SetLog, "actualReps">[]
+): string {
+  const lastSet = sets[sets.length - 1];
+  if (kind === "t3Up") {
+    if (reason === "heavier") return `done heavier: next ${next}`;
+    if (!inc) return `went up: next ${next}`;
+    return lastSet
+      ? `last set reached ${lastSet.actualReps} of ${inc.threshold}: next ${next}`
+      : `last set reached ${inc.threshold}: next ${next}`;
+  }
+  return lastSet && inc
+    ? `stays at ${next} (last set ${lastSet.actualReps} of ${inc.threshold} reps)`
+    : `stays at ${next}`;
 }
 
 /**
