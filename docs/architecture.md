@@ -40,7 +40,7 @@ What each owns, and what it must not do. "Pure" means no React, no database.
 Program and coaching (top-level files):
 
 - `progression.ts`: GZCLP stage and weight changes after a session. Pure; never writes lift states (the rebuild does).
-- `autoAdapt.ts`, `deload.ts`, `stallDetection.ts`, `rateOfLoss.ts`, `weightDecay.ts`, `recovery.ts`, `runRecovery.ts`, `painModifications.ts`, `painAutoClear.ts`, `volumeRatio.ts`, `volumeTracking.ts`, `muscleLoad.ts`, `amrap.ts`, `restTimes.ts`, `warmups.ts`, `e1rm.ts`, `plates.ts`, `dbConversion.ts`, `streaks.ts`, `inactivity.ts`: one coaching calculation each, named by the file. Pure; thresholds are exported constants that the evidence rules read.
+- `autoAdapt.ts`, `deload.ts`, `stallDetection.ts`, `rateOfLoss.ts`, `weightDecay.ts`, `recovery.ts`, `runRecovery.ts`, `painModifications.ts`, `painAutoClear.ts`, `volumeRatio.ts`, `volumeTracking.ts`, `muscleLoad.ts`, `amrap.ts`, `restTimes.ts`, `warmups.ts`, `e1rm.ts`, `plates.ts`, `dbConversion.ts`, `inactivity.ts`: one coaching calculation each, named by the file. Pure; thresholds are exported constants that the evidence rules read.
 - `exercises.ts`, `workoutTemplates.ts`, `accessories.ts`, `exerciseCategories.ts`, `exercisePreferences.ts`, `swapCandidates.ts`, `muscles.ts`, `activities.ts`: the exercise catalogue, the four GZCLP workouts and their metadata. Data and lookups only.
 - `liftNames.ts`, `workoutNames.ts`, `glossary.ts`, `tierStyle.ts`: names, words and tier classes shared by screens and lib code.
 - `text.ts` (plural, percent, joinList), `dates.ts` (time constants, calendar days, Monday of a week), `utils.ts` (`cn`): small shared helpers. Use these instead of local copies.

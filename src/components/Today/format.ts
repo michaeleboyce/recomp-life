@@ -12,11 +12,6 @@ export function shortLiftName(exerciseId: string): string {
   return name.replace(/^Barbell /, "");
 }
 
-/** Lower-case a lift name for use mid-sentence, leaving acronyms such as OHP alone. */
-export function inSentence(name: string): string {
-  return name === name.toUpperCase() ? name : name.toLowerCase();
-}
-
 /** "5×3+" for an AMRAP entry, "3×10" otherwise. */
 export function formatSetsReps(entry: WorkoutExerciseState): string {
   return `${entry.targetSets}×${entry.targetReps}${entry.isAMRAP ? "+" : ""}`;

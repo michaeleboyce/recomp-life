@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { localDayKey } from "@/lib/dates";
 import {
   countStoredImportedSessions,
   importBatchTotals,
@@ -159,8 +160,8 @@ export function useImportFlow(): ImportFlow {
     if (state.step !== "preview" || busy.current) return;
     busy.current = true;
     const { fileName, parsed: file } = state;
-    // The day in the id lets Recently deleted say when the import ran.
-    const batchId = `import-${new Date().toISOString().slice(0, 10)}-${uuidv4()}`;
+    // The local day in the id makes a batch recognisable in a backup or the database.
+    const batchId = `import-${localDayKey(new Date())}-${uuidv4()}`;
     try {
       const sessions = buildSessionRecords(file, batchId, overrides);
       const cardio = buildCardioRows(file, batchId);

@@ -125,18 +125,6 @@ const FREEZE_REASONS: Partial<Record<SetStatus, "pain" | "run" | "equipment">> =
   reduced_equipment: "equipment",
 };
 
-const FREEZE_STATUSES: ReadonlySet<SetStatus> = new Set(
-  Object.keys(FREEZE_REASONS) as SetStatus[]
-);
-
-/**
- * Returns true if *any* set in the workout carries a status that should
- * freeze progression (pain, run fatigue, equipment limitation).
- */
-export function hasFreezeStatus(sets: SetLog[]): boolean {
-  return sets.some((s) => FREEZE_STATUSES.has(s.status));
-}
-
 /**
  * Returns true if *any* set carries the autoregulated load-drop status.
  */
