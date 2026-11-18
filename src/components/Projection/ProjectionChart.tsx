@@ -7,6 +7,8 @@ import type { Projection } from "@/lib/projection";
 interface ProjectionChartProps {
   liftLabel: string;
   history: Point[];
+  /** `history` is the lift's smooth line (the lift page's), not its sessions. */
+  historyIsTrend?: boolean;
   current: Projection;
   /** Drawn only when the scenario differs from the baseline. */
   alternative?: Projection;
@@ -23,8 +25,18 @@ function overlay(id: string, label: string, projection: Projection, style: Trend
   return { id, label, points: projection.points, band: projection.points, style };
 }
 
-/** History, the current trend with its range, and the alternative (dashed) with its range. */
-export function ProjectionChart({ liftLabel, history, current, alternative, now }: ProjectionChartProps) {
+/**
+ * History (the lift's smooth line when given, as on the lift page), the current trend
+ * with its range, and the alternative (dashed) with its range.
+ */
+export function ProjectionChart({
+  liftLabel,
+  history,
+  historyIsTrend = false,
+  current,
+  alternative,
+  now,
+}: ProjectionChartProps) {
   const end = endOf(current);
   const weeks = current.points.length - 1;
   const currentLabel = `Current trend, range ${round(end.low)} to ${round(end.high)}`;
@@ -48,7 +60,8 @@ export function ProjectionChart({ liftLabel, history, current, alternative, now 
       overlays={overlays}
       nowMarker={now}
       formatValue={round}
-      seriesLabel="Estimated 1RM"
+      seriesLabel={historyIsTrend ? "Estimated 1RM trend, as on the lift page" : "Estimated 1RM"}
+      showPoints={historyIsTrend ? false : undefined}
       ariaLabel={ariaLabel}
     />
   );

@@ -8,8 +8,9 @@ import {
 import { computeMetric, inRange, summarize } from "@/lib/metrics";
 import { WEEK_MS } from "@/lib/dates";
 import type { MetricSource, Point, RangeKey, Series, SeriesSummary } from "@/lib/metrics/types";
+import { TREND_SMOOTHING, smoothedEstimate, sumLines, type StrengthTimeline } from "@/lib/strength";
 import type { LiftState } from "@/types";
-import { LIFT_NAMES, MAIN_LIFTS, type MainLiftId } from "./lifts";
+import { LIFT_NAMES, MAIN_LIFTS, isMainLift, type MainLiftId } from "./lifts";
 
 
 export interface TotalPoints {
@@ -46,6 +47,42 @@ export function totalE1RMPoints(byLift: Partial<Record<MainLiftId, Point[]>>): T
     return imported ? { t, v, imported } : { t, v };
   });
   return { points, lifts };
+}
+
+export interface TrendTotal {
+  label: string;
+  lifts: MainLiftId[];
+  /** The sum of the lifts' smooth lines (standard smoothing, every source), in the range. */
+  series: Series;
+  summary: SeriesSummary;
+  /** The sum of the planner's estimates, the numbers the lift pages show; null without lifts. */
+  value: number | null;
+}
+
+/**
+ * The Strength tab's total from the same smooth line each lift page draws: each lift's
+ * line on a shared day grid, summed from the day every included lift has one, and the
+ * planner's estimates summed for the number. Lifts with no sessions are left out.
+ */
+export function trendTotal(timelines: readonly StrengthTimeline[], range: RangeKey, now: number): TrendTotal {
+  const withData = timelines.filter(
+    (tl) => tl.subject.kind === "lift" && isMainLift(tl.subject.liftId) && tl.points.length > 0
+  );
+  const lifts = MAIN_LIFTS.filter((id) =>
+    withData.some((tl) => tl.subject.kind === "lift" && tl.subject.liftId === id)
+  );
+  const ordered = lifts.map((id) => withData.find((tl) => tl.subject.kind === "lift" && tl.subject.liftId === id)!);
+  const lines = ordered.map((tl) => smoothedEstimate(tl, { halfLifeDays: TREND_SMOOTHING.standard }).points);
+  const full: Series = { metric: "e1rm", params: {}, points: sumLines(lines), unit: "lbs", better: "up" };
+  const series = inRange(full, range, now);
+  const anchors = ordered.map((tl) => tl.anchor?.value);
+  return {
+    label: totalLabel(lifts),
+    lifts,
+    series,
+    summary: summarize(series),
+    value: anchors.length > 0 && anchors.every((v) => v !== undefined) ? anchors.reduce((s, v) => s + v!, 0) : null,
+  };
 }
 
 /** "Total of four lifts, est. 1RM", or the lifts included when fewer have estimates. */

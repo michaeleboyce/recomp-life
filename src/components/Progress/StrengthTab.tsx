@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Dumbbell } from "lucide-react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
-import { useImportedLiftIndex, useMetricSource, useStrengthEvidence, useVariantStates } from "@/hooks";
+import { useImportedLiftIndex, useLiftTimelines, useMetricSource, useStrengthEvidence, useVariantStates } from "@/hooks";
 import type { RangeKey } from "@/lib/metrics/types";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -13,7 +13,8 @@ import { LiftList } from "./LiftList";
 import { StrengthTotal } from "./StrengthTotal";
 import { GymDebtSection, RecoverySection } from "./StrengthSections";
 import { DEFAULT_MAX_DUMBBELL, gymDebtItems, recoveryRows } from "./sections";
-import { strengthOverview } from "./strength";
+import { MAIN_LIFTS } from "./lifts";
+import { strengthOverview, trendTotal } from "./strength";
 
 /** Progress > Strength: the four-lift total, one row per lift, recovery and gym debt. */
 export function StrengthTab() {
@@ -22,17 +23,20 @@ export function StrengthTab() {
   const variantStates = useVariantStates();
   // The evidence the gym plan reads, so "waiting for gym" gives the weight it will plan.
   const strengthSets = useStrengthEvidence();
+  const timelines = useLiftTimelines(MAIN_LIFTS);
   const [range, setRange] = useState<RangeKey>("3m");
   // Taken once per mount so the range window does not slide on every render.
   const [now] = useState(() => Date.now());
 
   const view = useMemo(() => {
-    if (!source || !imported || !variantStates || !strengthSets) return undefined;
+    if (!source || !imported || !variantStates || !strengthSets || !timelines) return undefined;
     const equipment = source.settings?.equipment ?? DEFAULT_USER_PROFILE.settings.equipment;
     const maxDumbbell = source.settings?.equipment?.maxDumbbellWeight ?? DEFAULT_MAX_DUMBBELL;
     return {
       // Imported sessions of each lift are history too (marked imported).
       overview: strengthOverview(source, range, now, imported),
+      // The total is the sum of the lifts' smooth lines, the line each lift page draws.
+      total: trendTotal(timelines, range, now),
       recovery: recoveryRows(
         source.liftStates,
         new Date(now),
@@ -47,7 +51,7 @@ export function StrengthTab() {
       }),
       maxDumbbell,
     };
-  }, [source, imported, variantStates, strengthSets, range, now]);
+  }, [source, imported, variantStates, strengthSets, timelines, range, now]);
 
   if (!view) {
     return (
@@ -62,7 +66,7 @@ export function StrengthTab() {
     <div className="flex flex-col gap-6">
       {view.overview.hasData ? (
         <>
-          <StrengthTotal total={view.overview.total} range={range} onRangeChange={setRange} />
+          <StrengthTotal total={view.total} range={range} onRangeChange={setRange} />
           <LiftList lifts={view.overview.lifts} />
         </>
       ) : (

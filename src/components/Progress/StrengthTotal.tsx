@@ -4,7 +4,7 @@ import { LazyTrendChart, RangeTabs } from "@/components/chart-kit";
 import { Delta } from "@/components/ui/delta";
 import { Term } from "@/components/ui/term";
 import type { RangeKey } from "@/lib/metrics/types";
-import type { StrengthOverview } from "./strength";
+import type { TrendTotal } from "./strength";
 import { rangeSuffix } from "./rangeText";
 
 const E1RM_WORDS = "est. 1RM";
@@ -22,17 +22,20 @@ function LabelWithTerm({ label }: { label: string }) {
   );
 }
 
-/** Headline: the summed est. 1RM, its change over the range, and an area chart of it. */
+/**
+ * Headline: the summed planner estimates (the numbers on the lift pages), the change of
+ * the summed trend lines over the range, and an area chart of those lines summed.
+ */
 export function StrengthTotal({
   total,
   range,
   onRangeChange,
 }: {
-  total: StrengthOverview["total"];
+  total: TrendTotal;
   range: RangeKey;
   onRangeChange: (range: RangeKey) => void;
 }) {
-  const { summary, series, label } = total;
+  const { summary, series, label, value } = total;
   return (
     <section className="flex flex-col gap-2" aria-label="Strength total">
       <div className="flex items-center justify-between gap-3">
@@ -46,7 +49,7 @@ export function StrengthTotal({
           data-testid="strength-total"
           className="font-display text-[64px] leading-none font-bold tabular-nums text-foreground"
         >
-          {summary.latest ? Math.round(summary.latest.v) : "–"}
+          {value !== null ? value : summary.latest ? Math.round(summary.latest.v) : "–"}
         </span>
         {summary.change !== null && (
           <Delta
@@ -61,7 +64,7 @@ export function StrengthTotal({
         series={series}
         variant="area"
         height={150}
-        seriesLabel="Est. 1RM total"
+        seriesLabel="Est. 1RM total, the lifts' trend lines summed"
         ariaLabel={`${label} over time`}
         emptyMessage="No estimates in this range"
       />
