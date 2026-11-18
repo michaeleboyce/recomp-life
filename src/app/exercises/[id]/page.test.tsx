@@ -11,6 +11,7 @@ import { strengthSetsOf } from "@/lib/workout/strength";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { Toaster, dismissToast } from "@/components/ui/toast";
 import type { PlannedSet } from "@/types";
+import { liftT3Increase } from "@/lib/workout/t3Increase";
 
 let search = "";
 vi.mock("next/navigation", () => ({
@@ -164,7 +165,12 @@ describe("an exercise's page", () => {
     const next = await screen.findByRole("region", { name: "Next session" });
     await waitFor(() => expect(within(next).getByTestId("next-weight")).toHaveTextContent(/^\d+$/));
     expect(within(next).getByTestId("next-session")).toHaveTextContent("T3");
-    expect(within(next).getByTestId("weight-line")).toHaveTextContent("last set reaches 25 reps");
+    // Its own number, from the function, and why.
+    const nextWeight = Number(within(next).getByTestId("next-weight").textContent);
+    const { threshold } = liftT3Increase(nextWeight);
+    expect(within(next).getByTestId("weight-line")).toHaveTextContent(
+      `Goes up at ${threshold} reps on the last set. At ${threshold} you would be good for 15 at ${nextWeight + 5} lbs.`
+    );
     expect(within(next).getByRole("button", { name: "Adjust weight" })).toBeInTheDocument();
     expect(within(next).getByTestId("set-plan-editor")).toBeInTheDocument();
 
@@ -172,7 +178,12 @@ describe("an exercise's page", () => {
     await waitFor(() => expect(within(sessions).getAllByTestId("session-row").length).toBeGreaterThan(0));
     const strength = screen.getByRole("region", { name: "Strength" });
     expect(within(strength).getAllByTestId("t3-last-set").length).toBeGreaterThan(0);
-    expect(within(strength).getAllByTestId("t3-last-set")[0]).toHaveTextContent(/\d+\/25/);
+    // Each session against the threshold of its own weight (18 to 25), never a flat 25.
+    for (const row of within(strength).getAllByTestId("t3-last-set")) {
+      const [, weightText, repsText] = [...row.querySelectorAll("span")].map((s) => s.textContent!);
+      const need = Number(repsText.split("/")[1]);
+      expect(need).toBe(liftT3Increase(parseFloat(weightText)).threshold);
+    }
     expect(within(screen.getByRole("region", { name: "Counts toward" })).getByTestId("muscles-trained")).toBeInTheDocument();
   });
 

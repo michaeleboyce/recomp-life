@@ -10,6 +10,7 @@ export * from "./planEdits";
 export * from "./credit";
 export * from "./duration";
 export * from "./variant";
+export * from "./t3Increase";
 export * from "./reentry";
 export * from "./strength";
 export * from "./startPlan";

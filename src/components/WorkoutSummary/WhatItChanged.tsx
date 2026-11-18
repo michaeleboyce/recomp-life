@@ -29,7 +29,7 @@ export function WhatItChanged({ workoutId }: { workoutId: string }) {
   // Each accessory: what double progression does with it next time (A10).
   const accessories = useAccessoryOutcomes(workout);
   if (!workout || !snapshots) return null;
-  const rows = describeSessionOutcomes(workout, snapshots.outcomes, snapshots.variantOutcomes);
+  const rows = describeSessionOutcomes(workout, snapshots.outcomes, snapshots.variantOutcomes, snapshots.equipment);
   if (rows.length === 0 && !accessories?.length) return null;
 
   return (

@@ -28,7 +28,7 @@ describe("describeOutcomes", () => {
     ).toEqual([
       "squat passed: next 195 lbs 5x3",
       "bench passed: next 140 lbs 3x10",
-      "lat_pulldown last set reached 25: next 95 lbs",
+      "lat_pulldown last set reached 18: next 95 lbs",
     ]);
   });
 
@@ -40,12 +40,12 @@ describe("describeOutcomes", () => {
           makeOutcome("bench", "T2", "partial", T2),
           makeOutcome("lat_pulldown", "T3", "t3Same", T3, T3, "lastSet"),
         ],
-        t3Sets(18)
+        t3Sets(17)
       )
     ).toEqual([
       "squat missed: moves to 6x2 at 190 lbs",
       "bench partly done: no change",
-      "lat_pulldown stays at 90 lbs (last set 18 of 25 reps)",
+      "lat_pulldown stays at 90 lbs (last set 17 of 18 reps)",
     ]);
   });
 
@@ -128,8 +128,20 @@ describe("describeOutcomes", () => {
 describe("describeOutcome", () => {
   it("leaves the rep count out when it is not given the sets", () => {
     expect(describeOutcome(makeOutcome("lat_pulldown", "T3", "t3Same", T3, T3, "lastSet"))).toBe("stays at 90 lbs");
-    expect(describeOutcome(makeOutcome("lat_pulldown", "T3", "t3Same", T3, T3, "lastSet"), t3Sets(24))).toBe(
-      "stays at 90 lbs (last set 24 of 25 reps)"
+    expect(describeOutcome(makeOutcome("lat_pulldown", "T3", "t3Same", T3, T3, "lastSet"), t3Sets(17))).toBe(
+      "stays at 90 lbs (last set 17 of 18 reps)"
+    );
+  });
+});
+
+describe("a T3's line uses the threshold its own weight asked for", () => {
+  it("a 50 lb T3: 20 of 20 goes up, 19 of 20 stays", () => {
+    const at50 = { weight: 50 };
+    expect(describeOutcome(makeOutcome("db_row", "T3", "t3Up", at50, { weight: 55 }, "lastSet"), t3Sets(20))).toBe(
+      "last set reached 20 of 20: next 55 lbs"
+    );
+    expect(describeOutcome(makeOutcome("db_row", "T3", "t3Same", at50, at50, "lastSet"), t3Sets(19))).toBe(
+      "stays at 50 lbs (last set 19 of 20 reps)"
     );
   });
 });
@@ -138,17 +150,17 @@ describe("describeOutcomes on a rebuilt log", () => {
   it("reads the rebuild's outcomes for a workout", () => {
     const sim = startSim();
     const first = runSession(sim, { templateId: "A1", t3: { lastReps: 26 } });
-    const second = runSession(sim, { templateId: "A1", t1: FAIL, t2: PARTIAL, t3: { lastReps: 18 } });
+    const second = runSession(sim, { templateId: "A1", t1: FAIL, t2: PARTIAL, t3: { lastReps: 17 } });
     const { outcomes } = rebuildDerived(rebuildInput(sim));
     expect(describeOutcomes(first, outcomes.get(first.id)).map((o) => o.text)).toEqual([
       "passed: next 200 lbs 5x3",
       "passed: next 105 lbs 3x10",
-      "last set reached 25: next 95 lbs",
+      "last set reached 26 of 18: next 95 lbs",
     ]);
     expect(describeOutcomes(second, outcomes.get(second.id)).map((o) => `${o.kind}|${o.text}`)).toEqual([
       "stageDown|missed: moves to 6x2 at 200 lbs",
       "partial|partly done: no change",
-      "t3Same|stays at 95 lbs (last set 18 of 25 reps)",
+      "t3Same|stays at 95 lbs (last set 17 of 18 reps)",
     ]);
   });
 });

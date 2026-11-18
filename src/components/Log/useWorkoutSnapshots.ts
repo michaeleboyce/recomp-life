@@ -2,8 +2,8 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { loadRebuildInput } from "@/lib/data/derived";
-import { rebuildDerived } from "@/lib/rebuild";
-import type { LiftState, ProgressionOutcome, VariantOutcome } from "@/types";
+import { rebuildDerived, settingsFor } from "@/lib/rebuild";
+import type { EquipmentProfile, LiftState, ProgressionOutcome, VariantOutcome } from "@/types";
 
 export interface WorkoutSnapshots {
   /** Lift states right after the workout; undefined when it is not a finished, live workout. */
@@ -23,6 +23,12 @@ export interface WorkoutSnapshots {
    * empty for a gym workout, undefined when `after` is.
    */
   variantOutcomes: VariantOutcome[] | undefined;
+  /**
+   * The equipment the rebuild judged the workout with (`settingsFor`): its dumbbell step
+   * and heaviest dumbbell give a home T3 the reps its last set needed. Undefined when
+   * the workout is not in the log.
+   */
+  equipment?: EquipmentProfile;
 }
 
 /**
@@ -33,12 +39,15 @@ export interface WorkoutSnapshots {
 export function useWorkoutSnapshots(workoutId: string | null | undefined): WorkoutSnapshots | undefined {
   return useLiveQuery(async () => {
     if (!workoutId) return { after: undefined, before: undefined, outcomes: undefined, variantOutcomes: undefined };
-    const rebuilt = rebuildDerived(await loadRebuildInput());
+    const input = await loadRebuildInput();
+    const rebuilt = rebuildDerived(input);
+    const workout = input.workouts.find((w) => w.id === workoutId);
     return {
       after: rebuilt.snapshots.get(workoutId),
       before: rebuilt.before.get(workoutId),
       outcomes: rebuilt.outcomes.get(workoutId),
       variantOutcomes: rebuilt.variantOutcomes.get(workoutId),
+      ...(workout ? { equipment: settingsFor(input.settings, workout).equipment } : {}),
     };
   }, [workoutId]);
 }
