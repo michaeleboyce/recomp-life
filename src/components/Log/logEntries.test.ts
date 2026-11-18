@@ -153,6 +153,24 @@ describe("workoutResultLine", () => {
   it("says when nothing was logged", () => {
     expect(workoutResultLine(makeWorkout({ sets: [] }))).toBe("no sets logged");
   });
+  it("says a lift was swapped, not that its targets were hit, when it was replaced part-way", () => {
+    // Squat stopped after two sets and goblet squat stood in for the rest.
+    const w = makeWorkout({
+      planEdits: [
+        { kind: "scheme", exerciseId: "squat", tier: "T1", sets: 2, reps: 3 },
+        { kind: "add", exerciseId: "goblet_squat", sets: 5, reps: 3, weight: 20, isAMRAP: true, replaces: { exerciseId: "squat", tier: "T1" } },
+      ],
+      sets: [makeSet({ id: "a", weight: 195 }), makeSet({ id: "b", weight: 195, setNumber: 2 })],
+    });
+    expect(workoutResultLine(w)).toBe("Squat 195 lbs · Squat swapped for Goblet squat");
+  });
+  it("says a lift was swapped before the workout, beside any missed reps", () => {
+    const w = makeWorkout({
+      planEdits: [{ kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "incline_db_press" }],
+      sets: [makeSet({ id: "a", actualReps: 1, status: "failed" })],
+    });
+    expect(workoutResultLine(w)).toBe("Squat 205 lbs · missed reps on Squat · Bench Press swapped for Incline DB press");
+  });
   it("at home names the exercise performed, with its weight as lifted", () => {
     const home = { isSubstituted: true, location: "home" as const, originalWeight: 245 };
     const w = makeWorkout({

@@ -188,8 +188,29 @@ function performedAs(sets: readonly SetLog[], exerciseId: string): { name: strin
 }
 
 /**
+ * The program lifts this session swapped for something else, before it started (a `swap`
+ * edit) or part-way (a replacement added with `replaces`), as "Squat swapped for Goblet
+ * squat". One line per lift, naming every exercise that replaced it.
+ */
+function swapLines(session: WorkoutSession, liftIds: readonly string[]): string[] {
+  const replaced = new Map<string, string[]>();
+  const note = (from: string, to: string) => {
+    if (!liftIds.includes(from) || !EXERCISES[to]) return;
+    const list = replaced.get(from) ?? [];
+    if (!list.includes(to)) replaced.set(from, [...list, to]);
+  };
+  for (const edit of session.planEdits ?? []) {
+    if (edit.kind === "swap") note(edit.exerciseId, edit.replacementId);
+    if (edit.kind === "add" && edit.replaces) note(edit.replaces.exerciseId, edit.exerciseId);
+  }
+  return [...replaced].map(([from, to]) => `${liftName(from)} swapped for ${to.map(displayLiftName).join(" and ")}`);
+}
+
+/**
  * One line for a workout row: its main lifts with the top working weight, then
  * whether every target was hit, e.g. "Squat 195 lbs, Bench Press 135 lbs · all targets hit".
+ * A lift swapped for another exercise says so in place of "all targets hit": the sets it
+ * did log may have hit their reps, but the lift was not done as planned.
  * A lift done as a home exercise is named as that exercise, at its weight as lifted:
  * "Bulgarian split squat 80 lbs a hand".
  */
@@ -215,10 +236,8 @@ export function workoutResultLine(session: WorkoutSession): string {
     anyDone = true;
     if (!hit) missed.push(performedAs(workingSetsFor(session.sets ?? [], ex.exerciseId, ex.tier), ex.exerciseId).name);
   }
-  const outcome = !anyDone
-    ? "no sets logged"
-    : missed.length === 0
-      ? "all targets hit"
-      : `missed reps on ${missed.join(", ")}`;
+  const swapped = swapLines(session, lifts.map((ex) => ex.exerciseId));
+  const notes = [...(missed.length > 0 ? [`missed reps on ${missed.join(", ")}`] : []), ...swapped];
+  const outcome = !anyDone ? "no sets logged" : notes.length === 0 ? "all targets hit" : notes.join(" · ");
   return parts.length > 0 ? `${parts.join(", ")} · ${outcome}` : outcome;
 }
