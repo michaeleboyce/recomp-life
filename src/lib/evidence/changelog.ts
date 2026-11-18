@@ -12,6 +12,13 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-18",
+    ruleId: "time-off",
+    change:
+      "The Ready screen's lighter weights after a break now count sessions imported from other apps, as Today's days-off note does: an imported session of a lift, or of one of its home versions, ends that lift's break (one within the break length means no suggestion; an older one shortens the break it is measured from). A lift never done in the app is still left to its starting weight.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
     ruleId: "session-length-budget",
     change:
       "The accessories were kept to the session length on paper while Today and the Ready screen showed the length corrected for your own pace, so the sheet could say \"3 of 3 fit in 60 min\" beside \"About 66 of 60 min\". The budget now measures the plan the way the screens do: on paper, with the day's per-set plans, times your pace once you have finished enough sessions. A lifter faster than the estimate gets room for more accessories, a slower one fewer; Today, the Ready screen and Coming up agree.",

@@ -16,3 +16,4 @@ export * from "./strength";
 export * from "./startPlan";
 export * from "./nextSetPlans";
 export * from "./accessoryPlan";
+export * from "./timeOff";

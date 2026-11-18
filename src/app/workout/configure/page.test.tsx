@@ -333,6 +333,19 @@ describe("configure page", () => {
     expect(screen.queryByText(/Hard yoga session/)).toBeNull();
   });
 
+  it("suggests no lighter weight after a break for a lift trained since in another app", async () => {
+    await db.liftStates.update("bench", { t2LastWorkoutDate: new Date(Date.now() - 40 * 24 * HOUR) });
+    await db.importedSessions.put(
+      importedSession([importedSet({ exerciseName: "Test Floor Press", mappedExerciseId: "db_floor_press", weightPerImplementLb: 40 })], {
+        startedAt: new Date(Date.now() - 4 * 24 * HOUR),
+      })
+    );
+    await open();
+    await waitFor(() => expect(screen.getAllByTestId("accessory-row").length).toBeGreaterThan(0));
+    expect(screen.queryByText(/Barbell Bench Press \(/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Accept \(\d+ lbs\)$/ })).toBeNull();
+  });
+
   it("changes the accessories in one sheet: remove, swap, add with search, none today, the mode (A8)", async () => {
     await open();
     const before = screen.getAllByTestId("accessory-row").map((row) => row.textContent);
