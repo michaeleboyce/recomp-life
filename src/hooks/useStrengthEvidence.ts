@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import type { StrengthSet } from "@/lib/strength";
-import { strengthEvidenceOf } from "@/lib/workout/strength";
-import { targetStrengthSets } from "@/lib/workout/variant";
+import { sharedStrengthEvidence, withTargetEvidence } from "@/lib/workout/sharedEvidence";
 import { useImportedSessions } from "./useImportedSessions";
 import { useMappingOverrides } from "./useMappingOverrides";
 import { useVariantStates } from "./useVariantStates";
@@ -19,8 +18,10 @@ import { useCompletedWorkouts } from "./useWorkouts";
  * nor a trend point.
  *
  * Imported names are mapped as of now (the remembered choices win). The same array
- * while nothing it reads changes, so the estimates worked out from it are kept; a change
- * to the home states alone does not read the workouts again. `undefined` while loading.
+ * while nothing it reads changes, in every hook that calls this (`sharedStrengthEvidence`:
+ * each hook's live query gives its own array of the same rows), so the estimates worked
+ * out from it are kept and shared; a change to the home states alone does not read the
+ * workouts again. `undefined` while loading.
  *
  * @evidence target-evidence
  */
@@ -33,12 +34,11 @@ export function useStrengthEvidence(): StrengthSet[] | undefined {
     () =>
       completedWorkouts === undefined || imported === undefined
         ? undefined
-        : strengthEvidenceOf(completedWorkouts, imported, overrides),
+        : sharedStrengthEvidence(completedWorkouts, imported, overrides),
     [completedWorkouts, imported, overrides]
   );
-  return useMemo(() => {
-    if (logged === undefined || variantStates === undefined) return undefined;
-    const targets = targetStrengthSets(variantStates);
-    return targets.length > 0 ? [...logged, ...targets] : logged;
-  }, [logged, variantStates]);
+  return useMemo(
+    () => (logged === undefined || variantStates === undefined ? undefined : withTargetEvidence(logged, variantStates)),
+    [logged, variantStates]
+  );
 }
