@@ -9,7 +9,13 @@ export type { WorkoutExerciseState };
  * Transient UI state for the active workout. Nothing here is the record of what
  * was done: logged sets live on the workout row (see `useWorkout`) and the plan is
  * rebuilt from it, so losing this store (reload, app eviction) loses no progress. The
- * start time is the session's (`startedAt`), not kept here.
+ * start time is the session's (`startedAt`), not kept here. Each field has one owner
+ * (the map at the top of `useActiveWorkout`):
+ * - view: `sessionId`, `viewedEntryIndex` (`useWorkoutView`);
+ * - the next set's draft: `pendingDrop`, `dismissedDropEntryIndex` (`useSetDraft`);
+ * - the rest timer: the `rest*` fields (`restCountdown.ts` starts and skips it,
+ *   `RestTimer` ticks and ends it).
+ * It is kept in memory only, so it outlives leaving the screen but not a reload.
  */
 interface WorkoutStore {
   /** The workout this state belongs to. */

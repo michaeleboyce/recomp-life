@@ -1,25 +1,43 @@
 "use client";
 
 /*
- * State map of the active workout (who owns what). "Reload" is a page reload: React
- * state and the store are gone. "Remount" is leaving the screen and coming back (Today,
- * then Resume): React state is gone, the store (a module singleton) stays.
+ * State map of the active workout: one owner for each piece. "Reload" is a page reload
+ * (React state and the store are gone; the database and sessionStorage stay). "Remount"
+ * is leaving the screen and coming back, Today then Resume (React state is gone; the
+ * workout store, a module singleton, stays). This hook composes the owners and keeps
+ * the screen's interface; of its own it holds only saving, finishing and error state.
  *
- * | State                        | Lives in                       | Written by                                                    | Read by                         | Reset by                                         | Reload | Remount |
- * |------------------------------|--------------------------------|---------------------------------------------------------------|---------------------------------|--------------------------------------------------|--------|---------|
- * | logged sets, plan edits      | useSessionRecord: session row  | appendSet, appendPlanEdit, commitLogChange                     | everything                      | never (soft delete on discard)                   | kept   | kept    |
- * | start time                   | useSessionRecord: startedAt    | startWorkout only                                             | header clock, finish            | never                                            | kept   | kept    |
- * | frozen plan (see below)      | useSessionRecord: React        | first load (planForSession), addExercise, applyChange         | everything                      | another session id                               | rebuilt from session | rebuilt |
- * | draft: spot weights          | useSetDraft: React + sessionStorage | setSetWeight / setNextWeight, applyChange (replaced entry)    | plan, chips, logSet             | per set: back to plan; per entry: replaced swap  | kept   | kept    |
- * | draft: reps, effort picked   | useSetDraft: React, by "entry:set" | setSelectedReps, setSelectedRepsInReserve                     | logSet                          | key changes (next set); deleting a set           | lost   | lost    |
- * | draft: pending T2 drop       | useSetDraft: store             | acceptDrop                                                    | plan, dropAccepted              | log on its entry, delete on it, swap of it, reset| lost   | kept    |
- * | draft: declined T2 drop      | useSetDraft: store             | keepWeight                                                    | dropSuggestion                  | another session id, reset                        | lost   | kept    |
- * | draft: drop sets in progress | useSetDraft: React (per session id) | startDropSet, setDropWeight/Reps, logDropSet, endDropSets     | dropSet                         | endDropSets                                      | lost   | lost    |
- * | rest countdown               | store (RestTimer ticks it)     | only through restCountdown.ts: logSet, endDropSets start it; jumpTo, swap, endEarly, startDropSet, delete of the latest set skip it; RestTimer ticks, adds, ends | RestTimer, LogDock | skipRest, reset | lost | kept |
- * | view: viewed entry           | useWorkoutView: store          | logSet (last set of an entry), jumpTo, swap, delete           | activeIndex                     | another session id, reset                        | lost (resumes at first unfinished) | kept |
- * | view: ended-early index      | useWorkoutView: React          | endEarly                                                      | activeIndex, finish             | never                                            | lost   | lost    |
- * | view: e1RM flash             | useWorkoutView: React + timeout| logSet                                                        | screen                          | 3 s, drop start, correction, swap, jump          | lost   | lost    |
- * | saving, errors, log tap guard| React / ref                    | logSet, logDropSet, correctSet, finish                        | screen                          | next attempt                                     | lost   | lost    |
+ * The saved session owns what happened (useSessionRecord)
+ * | State            | Lives in            | Written by                                   | Reset by       | Reload | Remount |
+ * |------------------|---------------------|----------------------------------------------|----------------|--------|---------|
+ * | logged sets      | session row (Dexie) | appendSet (logSet, logDropSet, correction), commitLogChange (delete, undo) | never | kept | kept |
+ * | plan edits       | session row (Dexie) | appendPlanEdit via saveAdd / saveChange       | never          | kept   | kept    |
+ * | start time       | session row         | startWorkout only (read, never copied)       | never          | kept   | kept    |
+ * | frozen plan      | React, per session  | first load (planForSession); saveAdd lays an add on it, saveChange sets the returned plan | another session | planned again from the session | same |
+ *
+ * The draft owns the next set (useSetDraft; pure parts in setDraft.ts)
+ * | reps, effort picked    | React, by "entry:set" | setSelectedReps / setSelectedRepsInReserve | another set; deleting a set | lost | lost |
+ * | weights on the spot    | React + sessionStorage | setSetWeight / setNextWeight | back to plan; a replaced entry's | kept | kept |
+ * | accepted T2 drop       | workout store | acceptDrop | a set logged, deleted or swapped on its entry; another session | lost | kept |
+ * | declined T2 drop       | workout store | keepWeight | another session | lost | kept |
+ * | next drop (drop sets)  | React, per session | useDropSets (start, weight, reps, log) | endDropSets | lost | lost |
+ *
+ * The timer owns the rest (store fields isRestTimerActive, restTimeRemaining,
+ * restTimerDuration, restTier): started and skipped only through restCountdown.ts
+ * (after a set, after drops; skipped by a jump, a swap to a replacement, ending early,
+ * starting drops, deleting the latest set), ticked and ended by RestTimer. Lost on a
+ * reload, kept on a remount.
+ *
+ * View state (useWorkoutView; sheets and dialogs are the page's own state)
+ * | viewed entry      | workout store | logSet (an entry's last set), jumpTo, swap, delete | another session | lost: resumes at the first unfinished entry | kept |
+ * | ended early at    | React         | endEarly                                           | never           | lost | lost |
+ * | e1RM flash        | React + timer | logSet                                             | 3 s; drops, correction, swap, jump | lost | lost |
+ *
+ * Not one lifetime for the draft: its parts keep the lifetimes they had (picks lost on
+ * a remount, spot weights kept over a reload, drops kept over a remount only), as
+ * changing any would change what the lifter sees. The frozen plan is the one copy of
+ * the session's plan edits, kept so that an edit shows at once and nothing is planned
+ * again from lift states that finishing moves.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
