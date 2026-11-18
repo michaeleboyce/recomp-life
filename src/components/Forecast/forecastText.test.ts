@@ -18,7 +18,8 @@ import {
   wrongest,
 } from "./forecastText";
 
-const NOW = new Date("2026-11-15T12:00:00Z");
+// A local stamp, so the dates in words are the same in every time zone.
+const NOW = new Date(2026, 10, 15, 12);
 const DAY = 24 * 60 * 60 * 1000;
 
 const scored = (status: ForecastStatus, overrides = {}): ScoredForecast => ({

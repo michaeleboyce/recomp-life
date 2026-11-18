@@ -67,8 +67,66 @@ describe("configure page", () => {
     // The session-length forecast for this plan with its range; with no history yet it is
     // the length on paper (every set and rest, warm-ups included), as Today shows it.
     await waitFor(() =>
-      expect(screen.getByTestId("ready-length")).toHaveTextContent(/^About \d+ min \(\d+ to \d+\), rests included$/)
+      expect(screen.getByTestId("ready-length")).toHaveTextContent(/^About \d+ of 60 min \(\d+ to \d+\), rests included$/)
     );
+  });
+
+  it("changes the session length for this workout from the length line, and saves it as the usual on request", async () => {
+    await open();
+    const accessoryCount = () => screen.queryAllByTestId("accessory-row").length;
+    fireEvent.click(screen.getByRole("button", { name: /Change the session length$/ }));
+    const chooser = await screen.findByRole("dialog", { name: "Session length" });
+    expect(within(chooser).getAllByRole("radio").map((r) => r.textContent)).toEqual([
+      "30 min",
+      "45 min",
+      "60 min",
+      "75 min",
+      "90 min",
+      "No limit",
+    ]);
+    expect(within(chooser).getByRole("radio", { name: "60 min" })).toHaveAttribute("aria-checked", "true");
+    expect(within(chooser).getByTestId("usual-length")).toBeInTheDocument();
+    expect(within(chooser).getByRole("button", { name: /^Why\? / })).toHaveAttribute("data-evidence", "session-length-budget");
+
+    // No limit: every pick is planned.
+    fireEvent.click(within(chooser).getByRole("radio", { name: "No limit" }));
+    await waitFor(() => expect(screen.getByTestId("ready-length")).toHaveTextContent(/^About \d+ min/));
+    const all = accessoryCount();
+
+    // 30 minutes: the accessories are planned again at once, the lifts stay.
+    fireEvent.click(screen.getByRole("button", { name: /Change the session length$/ }));
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Session length" })).getByRole("radio", { name: "30 min" }));
+    await waitFor(() => expect(screen.getByTestId("ready-length")).toHaveTextContent(/^About \d+ of 30 min/));
+    expect(accessoryCount()).toBeLessThan(all);
+    expect(rows()).toHaveLength(3);
+    expect((await db.userProfile.toCollection().first())!.settings.sessionMinutes).toBeUndefined();
+
+    // The sheet says why, and one can be added anyway.
+    fireEvent.click(screen.getByRole("button", { name: "Change accessories" }));
+    const sheet = await screen.findByRole("dialog", { name: /^Accessories/ });
+    expect(within(sheet).getByTestId("accessory-budget-line")).toHaveTextContent(/^The main lifts alone take about \d+ of 30 min: no accessories added$/);
+    const leftOut = within(sheet).getAllByTestId("accessory-left-out");
+    expect(leftOut).toHaveLength(all);
+    const addAnyway = within(leftOut[0]).getByRole("button", { name: /anyway$/ });
+    fireEvent.click(addAnyway);
+    await waitFor(() => expect(within(sheet).getAllByTestId("accessory-card")).toHaveLength(1));
+    expect(within(sheet).getAllByTestId("accessory-left-out")).toHaveLength(all - 1);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Done" }));
+
+    // Saved as the usual length.
+    fireEvent.click(screen.getByRole("button", { name: /Change the session length$/ }));
+    fireEvent.click(
+      within(await screen.findByRole("dialog", { name: "Session length" })).getByRole("button", { name: "Make 30 min my usual length" })
+    );
+    await waitFor(async () =>
+      expect((await db.userProfile.toCollection().first())!.settings.sessionMinutes).toBe(30)
+    );
+  });
+
+  it("takes the session length for this workout from ?minutes=, without saving it", async () => {
+    await open("minutes=45");
+    await waitFor(() => expect(screen.getByTestId("ready-length")).toHaveTextContent(/^About \d+ of 45 min/));
+    expect((await db.userProfile.toCollection().first())!.settings.sessionMinutes).toBeUndefined();
   });
 
   it("states the rest after each exercise from getRestSeconds, and explains the rest timer once", async () => {

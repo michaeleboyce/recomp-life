@@ -1,16 +1,13 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { getSyncKey } from "@/lib/syncKey";
-
-// Settings' sync card fires this after saving or clearing the passphrase.
-const CHANGED_EVENT = "recomp-sync-key-changed";
+import { getSyncKey, SYNC_KEY_CHANGED_EVENT } from "@/lib/syncKey";
 
 function subscribe(onChange: () => void) {
-  window.addEventListener(CHANGED_EVENT, onChange);
+  window.addEventListener(SYNC_KEY_CHANGED_EVENT, onChange);
   window.addEventListener("storage", onChange);
   return () => {
-    window.removeEventListener(CHANGED_EVENT, onChange);
+    window.removeEventListener(SYNC_KEY_CHANGED_EVENT, onChange);
     window.removeEventListener("storage", onChange);
   };
 }

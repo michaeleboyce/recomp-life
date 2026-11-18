@@ -10,12 +10,14 @@ import {
   weekOf,
   type ReviewSource,
 } from "@/lib/review";
-import type { UserSettings } from "@/types";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
+import type { ImportedSessionRecord, UserSettings } from "@/types";
 
 // Friday 13 Nov 2026: the last completed week is 2-8 Nov.
 const NOW = new Date(2026, 10, 13, 12);
 const demo = generateDemoData(NOW);
 let settings: UserSettings;
+let imported: ImportedSessionRecord[] = [];
 
 function source(): ReviewSource {
   return {
@@ -28,6 +30,7 @@ function source(): ReviewSource {
     liftStates: demo.liftStates,
     settings,
     activities: [],
+    imported,
   };
 }
 
@@ -67,6 +70,7 @@ beforeEach(() => {
   replace.mockClear();
   search = new URLSearchParams();
   settings = phase("cutting");
+  imported = [];
 });
 afterEach(cleanup);
 
@@ -95,6 +99,16 @@ describe("Weekly review page", () => {
     expect(screen.getByRole("img", { name: "Hard sets per muscle group this week" })).toBeInTheDocument();
     expect(document.querySelector('[data-term="e1rm"]')).not.toBeNull();
     expect(document.querySelector('[data-term="hard-set"]')).not.toBeNull();
+  });
+
+  it("counts a made-up imported session and says how many were imported", () => {
+    imported = [importedSession([importedSet(), importedSet()], { startedAt: new Date(2026, 10, 3, 7) })];
+    render(<WeeklyReviewPage />);
+    const sessions = screen.getByRole("link", { name: /^Sessions/ });
+    expect(sessions).toHaveTextContent("1 imported");
+    const squat = screen.getAllByRole("link").find((a) => a.getAttribute("href") === "/progress/lift/squat")!;
+    expect(squat).toHaveTextContent("1 imported");
+    expect(screen.getByRole("region", { name: "Volume" })).toHaveTextContent("Includes 1 imported session.");
   });
 
   it("switches weeks through the URL and shows that week's numbers", () => {

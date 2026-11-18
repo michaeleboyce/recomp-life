@@ -32,7 +32,8 @@ describe("saveNextSetPlan", () => {
     expect(after.synced).toBe(false);
     expect(after.updatedAt).toBeGreaterThan(5);
     // Nothing else in the settings moves.
-    expect({ ...after.settings, nextSetPlans: undefined }).toEqual({ ...profile.settings, nextSetPlans: undefined });
+    // (`fieldStamps` records when each setting changed, for the sync merge.)
+    expect({ ...after.settings, nextSetPlans: undefined, fieldStamps: undefined }).toEqual({ ...profile.settings, nextSetPlans: undefined });
 
     await saveNextSetPlan(null, "squat|T1");
     after = (await db.userProfile.get(profile.id))!;

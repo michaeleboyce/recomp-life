@@ -24,9 +24,9 @@ export class RecompDatabase extends Dexie {
   favoriteWorkouts!: Table<FavoriteWorkout>;
   /** Daily values imported from Apple Health; display only. */
   healthDaily!: Table<HealthDailyLog>;
-  /** Stored predictions. Write-once: see src/lib/data/forecasts.ts. */
   /** Sessions imported from other apps' exports. History only; add-only. */
   importedSessions!: Table<ImportedSessionRecord>;
+  /** Stored predictions. Write-once: see src/lib/data/forecasts.ts. */
   forecasts!: Table<Forecast>;
   /** Changes that cannot be worked out from the rest of the data. */
   coachEvents!: Table<CoachEvent>;

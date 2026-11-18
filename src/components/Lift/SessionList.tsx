@@ -22,7 +22,7 @@ import { displayLiftName, nameInSentence } from "@/components/Today/todayModel";
 import { isPerHand } from "./homeVersion";
 import { useImportedLiftSessions } from "./useImportedLiftSessions";
 
-const FIRST_PAGE = 10;
+const PAGE_SIZE = 20;
 
 const TIER_TERM: Partial<Record<Tier, TermId>> = {
   T1: "t1",
@@ -203,7 +203,7 @@ interface SessionListProps {
 }
 
 /**
- * Every session with this lift, newest first; the first ten, then "Show all". With
+ * Every session with this lift, newest first, 20 at a time ("Show 20 more"). With
  * `empty` the list still shows, titled, when there are no sessions; without it, it
  * shows nothing. `homeOnly` when every row is the same home version.
  *
@@ -224,7 +224,7 @@ function SessionListReadingImported({ importedFor, ...props }: SessionListProps 
 }
 
 function SessionListView({ sessions, title = "Sessions", empty, homeOnly = false, imported = NO_IMPORTED }: SessionListProps) {
-  const [showAll, setShowAll] = useState(false);
+  const [shown, setShown] = useState(PAGE_SIZE);
   const [hideImported, setHideImported] = useState(false);
   const [viewing, setViewing] = useState<ImportedSessionRecord | null>(null);
 
@@ -238,7 +238,8 @@ function SessionListView({ sessions, title = "Sessions", empty, homeOnly = false
   const importedCount = useMemo(() => new Set(imported.map((r) => r.session.id)).size, [imported]);
 
   if (sessions.length === 0 && importedCount === 0 && !empty) return null;
-  const visible = showAll ? rows : rows.slice(0, FIRST_PAGE);
+  const visible = rows.slice(0, shown);
+  const more = Math.min(PAGE_SIZE, rows.length - visible.length);
   const sessionsWord = importedCount === 1 ? "session" : "sessions";
   return (
     <section aria-label={title}>
@@ -285,13 +286,13 @@ function SessionListView({ sessions, title = "Sessions", empty, homeOnly = false
           )
         )}
       </ul>
-      {!showAll && rows.length > FIRST_PAGE && (
+      {more > 0 && (
         <Button
           variant="ghost"
           className="mt-2 w-full"
-          onClick={() => setShowAll(true)}
+          onClick={() => setShown((n) => n + PAGE_SIZE)}
         >
-          Show all {rows.length}
+          Show {more} more
         </Button>
       )}
       {viewing && (

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { cutTargetBand } from "@/components/Progress/body/bodyMath";
-import { WEEKLY_SESSION_TARGET } from "@/components/Today/GlanceTiles";
+import { WEEKLY_SESSION_TARGET } from "@/lib/workout/rotation";
 import { calculateGroupVolume } from "@/lib/volumeTracking";
 import { calculateWeeklyRateOfLoss } from "@/lib/rateOfLoss";
 import type { SetLog } from "@/types";
@@ -19,7 +19,7 @@ describe("buildWeeklyReview", () => {
   const review = buildWeeklyReview(fixture(), [], WEEK, AFTER, OPTS);
 
   it("counts sessions inside the week boundaries against the target and last week", () => {
-    expect(review.sessions).toEqual({ count: 3, target: WEEKLY_SESSION_TARGET, previous: 1 });
+    expect(review.sessions).toEqual({ count: 3, target: WEEKLY_SESSION_TARGET, previous: 1, imported: 0, previousImported: 0 });
     expect(review.isCurrentWeek).toBe(false);
     expect(review.isEmpty).toBe(false);
   });

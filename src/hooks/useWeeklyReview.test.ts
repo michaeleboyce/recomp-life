@@ -4,8 +4,9 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
 import { previousWeek, weekOf } from "@/lib/review";
-import { WEEKLY_SESSION_TARGET } from "@/components/Today/GlanceTiles";
+import { WEEKLY_SESSION_TARGET } from "@/lib/workout/rotation";
 import { useWeeklyReview } from "./index";
 
 beforeEach(clearDb);
@@ -21,6 +22,20 @@ describe("useWeeklyReview", () => {
     expect(review.weekStart).toEqual(lastWeek);
     expect(review.isEmpty).toBe(true);
     expect(weeks).toEqual([thisWeek]);
+  });
+
+  it("counts a made-up imported session in its week and lists that week", async () => {
+    const week = previousWeek(previousWeek(weekOf(new Date())));
+    const startedAt = new Date(week);
+    startedAt.setDate(startedAt.getDate() + 2);
+    startedAt.setHours(9);
+    await db.importedSessions.put(importedSession([importedSet()], { startedAt }));
+    const r = renderHook(() => useWeeklyReview(week));
+    await waitFor(() => expect(r.result.current?.review.sessions.count).toBe(1));
+    const { review, weeks } = r.result.current!;
+    expect(review.sessions.imported).toBe(1);
+    expect(review.isEmpty).toBe(false);
+    expect(weeks.map((w) => w.getTime())).toContain(week.getTime());
   });
 
   it("reviews demo data for the chosen week against Today's target", async () => {

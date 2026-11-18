@@ -3,6 +3,7 @@
 // the data layer applies inside its transaction.
 // Spec: docs/plans/2026-11-17-accessories-design.md.
 import type { AccessoryHandSetWeight, AccessoryMode, UserSettings } from "@/types";
+import { sanitizeSessionMinutes } from "./sessionBudget";
 
 export const ACCESSORY_MODES: readonly AccessoryMode[] = ["auto", "ask", "none"];
 
@@ -121,4 +122,8 @@ export function sanitizeAccessorySettings(settings: UserSettings): void {
   const weights = sanitizeAccessoryWeights(settings.accessoryWeights);
   if (weights) settings.accessoryWeights = weights;
   else delete settings.accessoryWeights;
+  // The session length: null (no limit) is kept; anything unreadable reads as the default.
+  const minutes = sanitizeSessionMinutes(settings.sessionMinutes);
+  if (minutes !== undefined) settings.sessionMinutes = minutes;
+  else delete settings.sessionMinutes;
 }

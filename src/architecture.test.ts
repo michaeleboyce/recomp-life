@@ -11,7 +11,10 @@ import {
 const ROOT = path.resolve(__dirname, "..");
 const SCANNED_DIRS = ["src/app", "src/components"];
 
+const LOGIC_DIRS = ["src/lib", "src/hooks", "src/db"];
+
 const DB_IMPORT = /from\s+["']@\/db\/local["']/;
+const COMPONENT_IMPORT = /from\s+["'](?:@\/components|(?:\.\.\/)+components)[\/"']/;
 const PALETTE_CLASS =
   /\b(?:text|bg|border|ring|fill|stroke|from|to|via|outline|shadow|divide|decoration|accent|caret)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/;
 
@@ -28,8 +31,8 @@ function sourceFiles(dir: string): string[] {
   return out;
 }
 
-function offenders(pattern: RegExp, exemptPrefixes: string[] = []): string[] {
-  return SCANNED_DIRS.flatMap(sourceFiles)
+function offenders(pattern: RegExp, exemptPrefixes: string[] = [], dirs: string[] = SCANNED_DIRS): string[] {
+  return dirs.flatMap(sourceFiles)
     .filter((file) => !exemptPrefixes.some((prefix) => file.startsWith(prefix)))
     .filter((file) => pattern.test(readFileSync(path.join(ROOT, file), "utf8")))
     .sort();
@@ -58,5 +61,9 @@ describe("architecture", () => {
       PALETTE_ALLOWLIST
     );
     expect(result).toEqual({ newOffenders: [], staleEntries: [] });
+  });
+
+  it("logic, hooks and the database layer do not import from components", () => {
+    expect(offenders(COMPONENT_IMPORT, [], LOGIC_DIRS)).toEqual([]);
   });
 });

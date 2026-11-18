@@ -1,16 +1,18 @@
 // The measured parts of the weekly review, each against its comparison. Pure.
 import { isNewPR } from "@/lib/e1rm";
 import { averageRepsInReserve } from "@/lib/effort";
+import { importedGroupSets, importedStrengthSets, importedTonnage } from "@/lib/import/evidence";
+import { importedE1rmPoints, importedLiftIndex, type ImportedLiftIndex } from "@/lib/import/history";
 import { computeMetric } from "@/lib/metrics";
 import { toMs, workoutMs } from "@/lib/metrics/helpers";
 import { SLEEP_LEVELS, STRESS_LEVELS } from "@/lib/metrics/readiness";
 import type { Point } from "@/lib/metrics/types";
 import { calculateGroupVolume } from "@/lib/volumeTracking";
 import { excludeWarmUps } from "@/lib/workout/setSelectors";
-import { LIFT_NAMES, MAIN_LIFTS } from "@/components/Progress/lifts";
-import { cutTargetBand, paceStatus } from "@/components/Progress/body/bodyMath";
-import type { RepsInReserve, WorkoutSession } from "@/types";
-import { inWeek, previousWeek, weekOf } from "./weeks";
+import { LIFT_NAMES, MAIN_LIFTS } from "@/lib/liftNames";
+import { cutTargetBand, paceStatus } from "@/lib/rateOfLoss";
+import type { ImportedSessionRecord, RepsInReserve, WorkoutSession } from "@/types";
+import { inWeek, nextWeek, previousWeek, weekOf } from "./weeks";
 import type {
   BodyweightReview,
   CardioReview,
@@ -33,6 +35,16 @@ export function workoutsInWeek(source: ReviewSource, weekStart: Date): WorkoutSe
   return source.workouts.filter((w) => inWeek(workoutMs(w), weekStart));
 }
 
+/** The live imported sessions started in the week starting `weekStart`. */
+export function importedInWeek(source: ReviewSource, weekStart: Date): ImportedSessionRecord[] {
+  return (source.imported ?? []).filter((s) => s.deletedAt == null && inWeek(toMs(s.startedAt), weekStart));
+}
+
+/** The imported sessions as lift history (estimates and set counts per exercise). */
+function importedIndex(source: ReviewSource): ImportedLiftIndex {
+  return importedLiftIndex(importedStrengthSets(source.imported ?? [], source.overrides));
+}
+
 /** The value of a one-point-per-week metric for the week starting `weekStart`, else 0. */
 export function weeklyValue(points: Point[], weekStart: Date): number {
   return points.find((p) => p.t === weekOf(weekStart).getTime())?.v ?? 0;
@@ -43,15 +55,24 @@ export function liftReviews(source: ReviewSource, weekStart: Date, weekEnd: Date
   let compareFrom = weekStart;
   for (let i = 0; i < E1RM_COMPARE_WEEKS; i++) compareFrom = previousWeek(compareFrom);
   const week = workoutsInWeek(source, weekStart);
+  const index = importedIndex(source);
 
   return MAIN_LIFTS.map((id): LiftReview => {
-    const e1rm = computeMetric("e1rm", source, { exerciseId: id }).points;
+    const history = index.get(id) ?? [];
+    const app = computeMetric("e1rm", source, { exerciseId: id }).points;
+    // The app's estimates and the imported sessions' (marked imported), oldest first; at
+    // the same instant the app's first.
+    const e1rm = [...app, ...importedE1rmPoints(history)].sort(
+      (a, b) => a.t - b.t || Number(a.imported === true) - Number(b.imported === true)
+    );
     const inThisWeek = e1rm.filter((p) => inWeek(p.t, weekStart));
     // Highest value; on a tie the earliest, which is when the best was first reached.
     const best = inThisWeek.reduce<Point | null>((b, p) => (!b || p.v > b.v ? p : b), null);
     const prior = e1rm.filter((p) => p.t >= compareFrom.getTime() && p.t < start).map((p) => p.v);
     const priorBest = prior.length > 0 ? Math.max(...prior) : null;
-    const earlier = best ? e1rm.filter((p) => p.t < best.t).map((p) => p.v) : [];
+    // A new best is the app's own, judged against the app's own (as everywhere else).
+    const earlier = best && !best.imported ? app.filter((p) => p.t < best.t).map((p) => p.v) : [];
+    const importedSessions = history.filter((h) => h.sets > 0 && inWeek(h.t, weekStart)).length;
 
     const weights = computeMetric("workingWeight", source, { exerciseId: id }).points;
     const atEnd = lastBefore(weights, weekEnd.getTime());
@@ -62,14 +83,17 @@ export function liftReviews(source: ReviewSource, weekStart: Date, weekEnd: Date
       label: LIFT_NAMES[id].label,
       bestE1RM: best?.v ?? null,
       bestWorkoutId: best?.refId ?? null,
+      bestImported: best?.imported === true,
       e1rmChange: best && priorBest !== null ? best.v - priorBest : null,
       priorBest,
       // A first-ever estimate is not a best: there is nothing to beat (as the new-PR insight).
       isPR: best !== null && earlier.length > 0 && isNewPR(best.v, earlier),
       workingWeight: atEnd?.v ?? null,
       workingWeightChange: atEnd && atStart ? atEnd.v - atStart.v : null,
-      sessions: week.filter((w) => excludeWarmUps(w.sets ?? []).some((s) => s.exerciseId === id))
-        .length,
+      sessions:
+        week.filter((w) => excludeWarmUps(w.sets ?? []).some((s) => s.exerciseId === id)).length +
+        importedSessions,
+      importedSessions,
     };
   });
 }
@@ -100,22 +124,35 @@ export function bodyweightReview(
   };
 }
 
-function groupSets(workouts: WorkoutSession[]): Map<string, number> {
-  const volume = calculateGroupVolume(workouts.flatMap((w) => w.sets ?? []));
+/** Direct sets per display group: the app's workouts of the week plus its imported sessions. */
+function groupSets(source: ReviewSource, weekStart: Date): Map<string, number> {
+  const volume = calculateGroupVolume(workoutsInWeek(source, weekStart).flatMap((w) => w.sets ?? []));
   const out = new Map<string, number>();
   for (const [group, v] of Object.entries(volume)) if (v && v.directSets > 0) out.set(group, v.directSets);
+  const imported = importedGroupSets(source.imported ?? [], weekStart, nextWeek(weekStart), source.overrides);
+  for (const [group, sets] of Object.entries(imported)) {
+    if (sets && sets > 0) out.set(group, (out.get(group) ?? 0) + sets);
+  }
   return out;
 }
 
+const tonnageOfImported = (source: ReviewSource, weekStart: Date) =>
+  importedTonnage(source.imported ?? [], weekStart, nextWeek(weekStart));
+
 export function volumeReview(source: ReviewSource, weekStart: Date): VolumeReview {
   const prev = previousWeek(weekStart);
-  const now = groupSets(workoutsInWeek(source, weekStart));
-  const before = groupSets(workoutsInWeek(source, prev));
+  const now = groupSets(source, weekStart);
+  const before = groupSets(source, prev);
   const groups: MuscleVolume[] = [...new Set([...now.keys(), ...before.keys()])]
     .map((group) => ({ group, sets: now.get(group) ?? 0, previous: before.get(group) ?? 0 }))
     .sort((a, b) => b.sets - a.sets || b.previous - a.previous || a.group.localeCompare(b.group));
   const tonnage = computeMetric("tonnage", source).points;
-  return { groups, tonnage: weeklyValue(tonnage, weekStart), previousTonnage: weeklyValue(tonnage, prev) };
+  return {
+    groups,
+    tonnage: weeklyValue(tonnage, weekStart) + tonnageOfImported(source, weekStart),
+    previousTonnage: weeklyValue(tonnage, prev) + tonnageOfImported(source, prev),
+    importedSessions: importedInWeek(source, weekStart).length,
+  };
 }
 
 function totals(

@@ -32,6 +32,8 @@ describe("updateSettings", () => {
       ...profile.settings,
       showWarmUps: false,
       defaultLocation: "home",
+      // Each changed setting stamped with the write, for the sync merge.
+      fieldStamps: { '["showWarmUps"]': after!.updatedAt, '["defaultLocation"]': after!.updatedAt },
     });
     expect(after!.synced).toBe(false);
     expect(after!.name).toBe(profile.name);

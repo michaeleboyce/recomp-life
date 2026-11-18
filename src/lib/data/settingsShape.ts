@@ -3,6 +3,7 @@
 // hand-edited file may hold a shape this version would crash on. Pure: no database.
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { sanitizeAccessorySettings } from "@/lib/accessories/settings";
+import { STAMPS_KEY, stampsOf } from "@/lib/sync/settingsMerge";
 import type { NextSetPlan, PlannedSet, UserSettings } from "@/types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -73,5 +74,7 @@ export function sanitizeSettings(value: unknown): UserSettings {
   else delete settings.nextSetPlans;
   // Accessory mode, pins and hand-set weights (A5): unreadable values are dropped.
   sanitizeAccessorySettings(settings);
+  // The merge stamps (src/lib/sync/settingsMerge.ts): only finite numbers are kept.
+  if (STAMPS_KEY in source) settings.fieldStamps = stampsOf(source);
   return settings;
 }

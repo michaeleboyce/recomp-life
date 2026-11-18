@@ -1,5 +1,6 @@
 // Pure helpers for the Log screen: one list of entries from every log table, the
 // filter, grouping by day and the month calendar. No React, no database.
+import { localDayKey } from "@/lib/dates";
 import { isImportedRow } from "@/components/ImportedHistory/importedView";
 import { liftName } from "@/components/LogEdit/format";
 import { displayLiftName } from "@/components/Today/todayModel";
@@ -88,12 +89,8 @@ export function filterEntries(entries: LogEntry[], filter: LogFilter, day: strin
   return entries.filter((e) => keep(e) && (day === null || dayKey(e.date) === day));
 }
 
-const pad = (n: number) => String(n).padStart(2, "0");
-
 /** "2026-11-10": the local calendar day of a date. */
-export function dayKey(date: Date): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
+export const dayKey = localDayKey;
 
 export interface DayGroup {
   key: string;

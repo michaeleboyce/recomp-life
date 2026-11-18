@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getMonday, calendarDaysBetween, formatDaysAgo, HOUR_MS, DAY_MS, WEEK_MS } from "./dates";
+import { getMonday, calendarDaysBetween, formatDaysAgo, localDayKey, HOUR_MS, DAY_MS, WEEK_MS } from "./dates";
 
 describe("time constants", () => {
   it("are milliseconds", () => {
@@ -70,5 +70,12 @@ describe("getMonday", () => {
     const before = input.getTime();
     getMonday(input);
     expect(input.getTime()).toBe(before);
+  });
+});
+
+describe("localDayKey", () => {
+  it("is the local calendar day, padded, late in the evening and early in the morning", () => {
+    expect(localDayKey(new Date(2026, 0, 5, 23, 59))).toBe("2026-01-05");
+    expect(localDayKey(new Date(2026, 10, 18, 0, 1))).toBe("2026-11-18");
   });
 });

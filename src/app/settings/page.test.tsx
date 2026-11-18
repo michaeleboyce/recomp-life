@@ -16,6 +16,26 @@ beforeEach(async () => {
 const settings = async () => (await db.userProfile.toCollection().first())!.settings;
 
 describe("settings page", () => {
+  it("has a session length row: 60 min until chosen, saved with the profile, and no limit", async () => {
+    render(<SettingsPage />);
+    const row = await screen.findByRole("group", { name: "Session length" });
+    expect(within(row).getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "30 min",
+      "45 min",
+      "60 min",
+      "75 min",
+      "90 min",
+      "No limit",
+    ]);
+    expect(screen.getByTestId("session-length-line")).toHaveTextContent(/about 60 min/);
+    fireEvent.click(within(row).getByRole("button", { name: "45 min" }));
+    await waitFor(async () => expect((await settings()).sessionMinutes).toBe(45));
+    await waitFor(() => expect(screen.getByTestId("session-length-line")).toHaveTextContent(/about 45 min/));
+    fireEvent.click(within(row).getByRole("button", { name: "No limit" }));
+    await waitFor(async () => expect((await settings()).sessionMinutes).toBeNull());
+    expect(document.querySelector('[data-evidence="session-length-budget"]')).not.toBeNull();
+  });
+
   it("has a training location control near the top that saves the default", async () => {
     render(<SettingsPage />);
     const control = await screen.findByTestId("training-location");

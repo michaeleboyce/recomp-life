@@ -8,6 +8,8 @@ import type Dexie from "dexie";
 import type { Table } from "dexie";
 import { db } from "@/db/local";
 import { sanitizeSettings } from "@/lib/data/settingsShape";
+import { nextStamp } from "@/lib/data/stamp";
+import { mergeSettings } from "@/lib/sync/settingsMerge";
 import { SYNC_META_TABLE, markRebuildNeeded, rebuildIfNeeded } from "@/lib/sync/rebuildMarker";
 import { PROFILE_ID, SYNC_REGISTRY, type SyncTableDef } from "@/lib/sync/registry";
 import {
@@ -30,6 +32,9 @@ export const SYNC_UNAUTHORIZED = "Sync passphrase missing or rejected";
 
 /** Tables whose change alters what the rebuild derives (the log and lift adjustments). */
 export const REBUILD_TABLES: ReadonlySet<string> = new Set(["workouts", "liftAdjustments"]);
+
+/** Tables a pull can leave unsynced (the merged settings), pushed again after it. */
+const SETTINGS_TABLES: readonly string[] = SYNC_REGISTRY.filter((def) => def.singleRow).map((def) => def.name);
 
 type Row = Record<string, unknown> & { id?: unknown; clientId?: unknown; synced?: unknown; updatedAt?: unknown };
 
@@ -125,12 +130,13 @@ export function pushBatches<T>(rows: readonly T[]): T[][] {
  * `updatedAt` is still the value that was sent. A 401 stops everything (throws
  * SYNC_UNAUTHORIZED); another failure is recorded for its table and ends that
  * table's push: batches already accepted stay synced, the rest stays dirty for the
- * next sync, and the other tables still run.
+ * next sync, and the other tables still run. With `only`, just those tables.
  */
-export async function pushUnsynced(database: Dexie = db): Promise<PushResult> {
+export async function pushUnsynced(database: Dexie = db, only?: readonly string[]): Promise<PushResult> {
   const result: PushResult = { pushed: 0, applied: 0, skipped: 0, marked: 0, errors: {}, refused: {} };
 
   for (const def of SYNC_REGISTRY) {
+    if (only && !only.includes(def.name)) continue;
     for (const batch of pushBatches(await dirtyRows(database, def))) {
       const accepted = await pushBatch(database, def, batch, result);
       if (!accepted) break;
@@ -226,13 +232,13 @@ async function mergeRows(table: Table<Row>, def: SyncTableDef, rows: WireRow[], 
     // Exactly one profile, id and clientId PROFILE_ID. The server keeps one row; if it
     // ever sends more, the newest wins.
     //
-    // The conflict rule for settings: the profile is one row, so last write wins for
-    // the WHOLE row, settings JSON included; fields are never merged. When two devices
-    // change settings between syncs, the change with the older `updatedAt` is dropped
-    // entirely, whichever fields it touched (a set plan saved on one device, the theme
-    // changed on the other: only the newer of the two survives). Within one device,
-    // every settings write is a read-modify-write in one transaction (`writeSettings`),
-    // so two tabs never lose each other's change.
+    // The conflict rule for the profile: its own fields (name, height, ...) are last
+    // write wins for the row, but its settings are merged field by field
+    // (`mergeSettings`): every settings write stamps the paths it changed, and each path
+    // takes the copy with the newer stamp. A set plan saved on one device and the theme
+    // changed on the other both survive. When the merge holds anything the server
+    // lacks, the row stays (or becomes) unsynced with a new stamp, so the push that
+    // follows the pull carries it back.
     const server = rows.reduce<WireRow | undefined>(
       (best, row) => (!best || stampOf(row) > stampOf(best) ? row : best),
       undefined
@@ -240,17 +246,35 @@ async function mergeRows(table: Table<Row>, def: SyncTableDef, rows: WireRow[], 
     if (!server) return;
     const local = await table.toCollection().first();
     const decision = decidePull(local, server);
-    if (decision === "keep") {
-      counts.kept += 1;
+    const incoming = toLocalRow(server);
+    // Another app version may have written a shape this one would crash on.
+    const serverSettings = sanitizeSettings(incoming.settings);
+    if (!local) {
+      await table.put({ ...incoming, clientId: PROFILE_ID, id: PROFILE_ID, settings: serverSettings });
+      counts.inserted += 1;
       return;
     }
-    const row = toLocalRow(server);
-    row.clientId = PROFILE_ID;
-    row.id = local ? local.id : PROFILE_ID;
-    // Another app version may have written a shape this one would crash on.
-    row.settings = sanitizeSettings(row.settings);
+    const merge = mergeSettings(sanitizeSettings(local.settings), serverSettings);
+    const newerStamp = nextStamp(Math.max(stampOf(local), stampOf(server)));
+
+    if (decision === "keep") {
+      if (!merge.localBehind) {
+        counts.kept += 1;
+        return;
+      }
+      // The local row is newer, but the server holds newer settings for some paths.
+      await table.put({ ...local, settings: merge.settings, updatedAt: newerStamp, synced: false });
+      counts.overwritten += 1;
+      return;
+    }
+
+    const row: Row = { ...incoming, clientId: PROFILE_ID, id: local.id, settings: merge.settings };
+    if (merge.serverBehind) {
+      row.updatedAt = newerStamp;
+      row.synced = false;
+    }
     await table.put(row);
-    counts[decision === "insert" ? "inserted" : "overwritten"] += 1;
+    counts.overwritten += 1;
     return;
   }
 
@@ -440,6 +464,18 @@ export async function fullSync(database: Dexie = db): Promise<SyncResult> {
     reportRebuild(pull.rebuildError);
   } catch (err) {
     errors.push(`Pull: ${message(err)}`);
+  }
+
+  // A settings merge that held what the server lacked left the profile unsynced: send
+  // it now rather than at the next sync.
+  if (pullSucceeded) {
+    try {
+      const again = await pushUnsynced(database, SETTINGS_TABLES);
+      pushed += again.pushed;
+      for (const [table, reason] of Object.entries(again.errors)) errors.push(`Push ${table}: ${reason}`);
+    } catch (err) {
+      errors.push(`Push: ${message(err)}`);
+    }
   }
 
   return { pushed, pulled, errors, pullSucceeded };

@@ -20,7 +20,7 @@
 import { EXERCISES } from "@/lib/exercises";
 import { applyOverrides, lookupName } from "@/lib/import/mapping";
 import type { MappingOverrides } from "@/lib/import/mapping/types";
-import { isMuscleId } from "@/lib/muscles";
+import { MUSCLE_GROUPS, isMuscleId, type DisplayGroup } from "@/lib/muscles";
 import { MUSCLE_WEIGHTS, volumeCredits, type StrengthSet, type StrengthSetRole } from "@/lib/strength";
 import type { ImportedSessionRecord, ImportedSetRecord, MuscleGroupVolume, MuscleId, RepsInReserve } from "@/types";
 
@@ -314,6 +314,45 @@ export function addImportedVolume(
     }
   }
   return out;
+}
+
+/**
+ * Direct sets per display group (Chest, Back, ...) from imported sessions started in
+ * [from, to), as `calculateGroupVolume` counts the app's: a set adds its credit once to
+ * each group one of its primary muscles belongs to. Groups with none are left out.
+ */
+export function importedGroupSets(
+  sessions: readonly ImportedSessionRecord[],
+  from: Date,
+  to: Date,
+  overrides?: MappingOverrides
+): Partial<Record<DisplayGroup, number>> {
+  const out: Partial<Record<DisplayGroup, number>> = {};
+  const groups = Object.entries(MUSCLE_GROUPS) as [DisplayGroup, MuscleId[]][];
+  for (const set of importedMuscleSets(sessionsIn(sessions, from, to), overrides)) {
+    if (set.credit <= 0) continue;
+    for (const [group, members] of groups) {
+      if (members.some((m) => set.primary.includes(m))) out[group] = (out[group] ?? 0) + set.credit;
+    }
+  }
+  return out;
+}
+
+/**
+ * Weight × reps over the sets of imported sessions started in [from, to) that are not
+ * warm-ups, the weight as lifted (`liftedWeight`), as the app's weekly tonnage counts
+ * its own sets. Deleted sessions are left out.
+ */
+export function importedTonnage(sessions: readonly ImportedSessionRecord[], from: Date, to: Date): number {
+  let sum = 0;
+  for (const session of sessionsIn(sessions, from, to)) {
+    if (!isLive(session)) continue;
+    for (const set of session.sets) {
+      if (set.role === "warmup") continue;
+      sum += liftedWeight(set) * (set.reps ?? 0);
+    }
+  }
+  return sum;
 }
 
 /** When each muscle was last worked by an imported set that counts (not a warm-up): the session's start. */

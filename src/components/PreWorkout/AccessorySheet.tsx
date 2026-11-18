@@ -12,7 +12,7 @@ import {
   type AccessoryRow,
   type AccessorySource,
 } from "@/lib/workout/accessoryPlan";
-import type { ChooseAccessoriesResult } from "@/lib/accessories/index";
+import type { ChooseAccessoriesResult, SessionBudget } from "@/lib/accessories/index";
 import type { AccessoryMode, TrainingPhase } from "@/types";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -23,6 +23,7 @@ import { accessoryScheme, accessoryWeightParts, accessoryWeightText, viewsOfRows
 import { displayLiftName } from "@/components/Today/todayModel";
 import {
   addLists,
+  budgetView,
   mainMuscleOf,
   muscleChip,
   rankedCandidates,
@@ -83,6 +84,8 @@ export interface AccessorySheetProps {
   addOnly?: boolean;
   /** During a workout: evidence lines without the link to the library. */
   inWorkout?: boolean;
+  /** The session length the picks were kept to, with the ones left out for time. */
+  budget?: SessionBudget | null;
 }
 
 /**
@@ -133,11 +136,14 @@ function PicksView({
   onWeight,
   onMode,
   onPin,
+  onAdd,
   onAddView,
   onDone,
   inWorkout,
+  budget,
 }: AccessorySheetProps & { onAddView: () => void; onDone: () => void }) {
   const ranked = useMemo(() => rankedCandidates(choice), [choice]);
+  const time = useMemo(() => budgetView(budget, inPlan), [budget, inPlan]);
   const views = useMemo(() => viewsOfRows(rows), [rows]);
   const minutes = rows.reduce((sum, row) => sum + accessoryMinutes(row.entry.targetSets, phase), 0);
   const cap = getPhaseAccessoryCap(phase);
@@ -149,6 +155,46 @@ function PicksView({
           ? "None in this workout."
           : `${rows.length} in this workout, about ${minutes} min with their rests.`}
       </SheetDescription>
+
+      {time && (
+        <section aria-label="Session length" data-testid="accessory-budget" className="mb-3 flex flex-col gap-1.5">
+          {time.line && (
+            <p data-testid="accessory-budget-line" className="text-sm font-semibold text-foreground">
+              {time.line}
+            </p>
+          )}
+          {time.leftOut.length > 0 && (
+            <ul aria-label="Left out for time" className="flex flex-col">
+              {time.leftOut.map((item) => (
+                <li
+                  key={item.exerciseId}
+                  data-testid="accessory-left-out"
+                  className="flex min-h-11 items-center justify-between gap-2 border-t border-border"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-[15px] font-semibold text-foreground">
+                      {displayLiftName(item.exerciseId)}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {item.reason} · adds about {item.minutes} min
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void onAdd(item.exerciseId)}
+                    aria-label={`Add ${item.name} anyway`}
+                    className={cn(ICON_BUTTON, "shrink-0 text-primary")}
+                  >
+                    <Plus className="size-4" aria-hidden="true" />
+                    Add anyway
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <EvidenceLine ruleId="session-length-budget" hideLibraryLink={inWorkout} />
+        </section>
+      )}
 
       <ul aria-label="Today's accessories" className="flex flex-col gap-2.5">
         {rows.map((row, i) => (

@@ -13,6 +13,8 @@ import {
   addMuscleValues,
   EFFORT_WORD_REPS_IN_RESERVE,
   effortRepsInReserve,
+  importedGroupSets,
+  importedTonnage,
   importedMuscleLastTrained,
   importedMuscleLoad,
   importedMuscleSets,
@@ -242,6 +244,49 @@ describe("imported muscle work", () => {
     // The app's own numbers are not changed in place.
     expect(own.chest.directSets).toBe(2);
     expect(addImportedVolume(own, [], monday, nextMonday)).toEqual(own);
+  });
+
+  it("gives direct sets per display group, once per set per group, as the app counts its own", () => {
+    const from = new Date(2024, 2, 4);
+    const to = new Date(2024, 2, 11);
+    const at = new Date(2024, 2, 5, 10);
+    const session = importedSession(
+      [
+        importedSet({ id: "b1", mappedExerciseId: "bench", exerciseName: "Bench" }),
+        importedSet({ id: "bw", mappedExerciseId: "bench", exerciseName: "Bench", role: "warmup" }),
+        importedSet({ id: "c1", mappedExerciseId: "bicep_curls", exerciseName: "Curl" }),
+        importedSet({ id: "cd", mappedExerciseId: "bicep_curls", exerciseName: "Curl", role: "drop" }),
+        importedSet({ id: "g", exerciseName: "Wobbly Thing", mappedExerciseId: null, muscles: ["lats", "mid_back"] }),
+      ],
+      { startedAt: at }
+    );
+    const groups = importedGroupSets([session], from, to);
+    expect(groups.Chest).toBe(1);
+    // Triceps are secondary on the bench: no direct set.
+    expect(groups.Triceps).toBeUndefined();
+    expect(groups.Biceps).toBe(1.5);
+    // Two back muscles in one set still make one set for Back.
+    expect(groups.Back).toBe(1);
+    const outside = new Date(to);
+    outside.setDate(outside.getDate() + 1);
+    expect(importedGroupSets([{ ...session, startedAt: outside }], from, to)).toEqual({});
+  });
+
+  it("sums weight x reps over the sets that are not warm-ups, as lifted, in the window", () => {
+    const from = new Date(2024, 2, 4);
+    const to = new Date(2024, 2, 11);
+    const session = importedSession(
+      [
+        importedSet({ weightPerImplementLb: 100, reps: 5 }),
+        importedSet({ weightPerImplementLb: 45, reps: 10, role: "warmup" }),
+        importedSet({ weightPerImplementLb: 80, reps: 8, role: "drop" }),
+        importedSet({ weightPerImplementLb: 50, reps: 10, weightCountsAsLoad: false }),
+        importedSet({ exerciseName: "Zorblax", mappedExerciseId: null, weightPerImplementLb: 10, reps: 10 }),
+      ],
+      { startedAt: new Date(2024, 2, 6, 9) }
+    );
+    expect(importedTonnage([session], from, to)).toBe(500 + 640 + 100);
+    expect(importedTonnage([{ ...session, deletedAt: 1 }], from, to)).toBe(0);
   });
 
   it("merges with the app's own muscle values and dates", () => {

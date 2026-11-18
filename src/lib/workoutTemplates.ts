@@ -1,4 +1,4 @@
-import type { WorkoutTemplate, WorkoutTemplateExercise } from "@/types";
+import type { WorkoutTemplate } from "@/types";
 
 /**
  * The four GZCLP workouts. Each starts with a heavy T1 lift, then a moderate

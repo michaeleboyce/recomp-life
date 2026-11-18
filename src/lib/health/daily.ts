@@ -1,12 +1,9 @@
 // Folds Apple Health values into one row per local day. Pure.
+import { localDayKey } from "@/lib/dates";
 import type { HealthDailyValues, HealthQuantitySample, NightSleep } from "./types";
 
 /** Local calendar day of a date, "YYYY-MM-DD". */
-export function localDateKey(date: Date): string {
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-}
+export const localDateKey = localDayKey;
 
 /** Row id (and clientId) of the daily row for a day. */
 export function dailyRowId(day: string): string {

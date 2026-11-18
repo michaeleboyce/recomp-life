@@ -13,6 +13,22 @@ import {
   WEEKLY_SET_TARGET,
 } from "@/lib/accessories/select";
 import { STRENGTH_POOLING } from "@/lib/strength";
+import { SWAP_PAIR_OVERLAP_PENALTY, SWAP_SET_LIMIT } from "@/lib/swap/combos";
+import {
+  SWAP_COMPOUND_MIN_MUSCLES,
+  SWAP_HISTORY_HALF_SESSIONS,
+  SWAP_HISTORY_WEIGHT,
+  SWAP_KNOWN_WEIGHT_POINTS,
+  SWAP_PAIN_MIN_SEVERITY,
+  SWAP_PAIN_PENALTY,
+  SWAP_PREFERRED_POINTS,
+  SWAP_PRIMARY_WEIGHT,
+  SWAP_RECOVERY_PENALTY,
+  SWAP_SAME_MOVEMENT_POINTS,
+  SWAP_SECONDARY_WEIGHT,
+  SWAP_TIER_FIT_POINTS,
+} from "@/lib/swap/recommend";
+import { DEFAULT_SESSION_MINUTES, SESSION_MINUTE_CHOICES } from "@/lib/accessories/sessionBudget";
 
 export const VOLUME_RULES = {
   "weekly-volume": {
@@ -69,6 +85,52 @@ export const VOLUME_RULES = {
       "src/lib/workout/accessoryPlan.ts#planAccessories",
     ],
     surfaces: ["src/components/PreWorkout/AccessorySheet.tsx", "src/components/Why/AccessoryWhySheet.tsx"],
+  },
+  "swap-recommendation": {
+    area: "volume",
+    status: "planned",
+    title: "How are swaps recommended?",
+    summary: "Ranked by muscles covered, movement, your choices and history, and pain",
+    appBehavior: `Rule in code: when an exercise is swapped, every exercise that shares one of its main muscles is offered, best first, with its score broken into parts. Up to ${SWAP_PRIMARY_WEIGHT} points for covering the original's main muscles (in proportion) and up to ${SWAP_SECONDARY_WEIGHT} for its helper muscles; ${SWAP_SAME_MOVEMENT_POINTS} for a version of the same movement (the dumbbell or barbell form, or a home exercise for the lift), else ${SWAP_TIER_FIT_POINTS} when it fits the tier (for a T1 or T2, a compound lift working at least ${SWAP_COMPOUND_MIN_MUSCLES} muscles); ${SWAP_PREFERRED_POINTS} for an exercise you marked preferred; up to ${SWAP_HISTORY_WEIGHT} for one you have done often and lately, app and imported history alike (each session counts half as much for every ${STRENGTH_POOLING.evidenceHalfLifeDays} days of age; half the points at ${SWAP_HISTORY_HALF_SESSIONS} such sessions); ${SWAP_KNOWN_WEIGHT_POINTS} when its weight comes from your own sets or the strength model rather than a default. ${SWAP_RECOVERY_PENALTY} come off when it adds a main muscle that is still recovering, and ${SWAP_PAIN_PENALTY} when it loads a joint with a pain entry of severity ${SWAP_PAIN_MIN_SEVERITY} or more. Blocked exercises are never offered, and at home nothing that needs a gym. Each comes with the weight, sets and reps it would be done at, from the existing weight rules (its own recent sets, the strength model, an accessory's progression, the starting ratio), and a program lift keeps its sets and reps. When no single exercise covers every main muscle, up to ${SWAP_SET_LIMIT} pairs that together do are offered, ${SWAP_PAIR_OVERLAP_PENALTY} points off a pair for each main muscle both cover. The Edit workout sheet already lists its swaps in this order; the parts, reasons, weights and pairs are not shown yet.`,
+    rationale:
+      "A replacement should train what the original trained, ideally in the same movement, so the session still does its job. Your own choices, what you already do and a weight you can trust come next; recovering muscles and painful joints are reasons to look elsewhere.",
+    caveat:
+      "The points are judgment, not research: no study ranks these reasons against each other, and muscles covered is read from the app's own list of main and helper muscles per exercise. The parts are shown with every suggestion so they can be checked, and the choice is always yours.",
+    strength: "heuristic",
+    sources: [],
+    reviewedOn: "2026-11",
+    implementedIn: [
+      "src/lib/swap/recommend.ts#recommendSwaps",
+      "src/lib/swap/combos.ts#recommendSwapSets",
+      "src/lib/swapCandidates.ts#swapCandidates",
+    ],
+    surfaces: [],
+    activationNotes:
+      "Switch to active when the Edit workout sheet and the active workout show the recommended swaps with their reasons and an EvidenceLine (swaps design W10 to W12).",
+  },
+  "session-length-budget": {
+    area: "volume",
+    status: "active",
+    title: "Why are some accessories left out to fit the session length?",
+    summary: "Accessories are kept to the length you plan for; the main lifts never are",
+    appBehavior: `You choose the session length to plan for: ${SESSION_MINUTE_CHOICES.join(", ")} minutes or no limit (${DEFAULT_SESSION_MINUTES} until you choose), in Settings or for one workout on the Ready screen. The app times the plan on paper: every set plus the rest after it, warm-ups included when they are on. The accessories it chose are then added best first, each only if the plan with it stays within the length; one that does not fit is left out, with "Left out to fit" and a way to add it anyway, and the next one is tried. The main lifts (T1, T2 and T3) are never dropped or shortened. Accessories you pinned to the day are always kept, even past the length. When the main lifts alone take longer than the length, no other accessory is added and the app says so. A workout already started keeps the accessories it started with.`,
+    rationale:
+      "A planning convenience: a session that fits the time you have is easier to finish, and leaving out the lowest-ranked extras first keeps the program's lifts, which drive progression, untouched.",
+    caveat:
+      "This is not a research finding. The length is the app's own estimate on paper, which no study has checked for this kind of session (the research notes found nothing on predicting a strength session's length from its sets and rests), and the forecast shown on Today and the Ready screen may differ once it is corrected for your own pace. The choices of length are conveniences, not targets.",
+    strength: "heuristic",
+    sources: [],
+    reviewedOn: "2026-11",
+    implementedIn: [
+      "src/lib/accessories/sessionBudget.ts#fitAccessoriesToBudget",
+      "src/lib/workout/accessoryPlan.ts#planAccessories",
+    ],
+    surfaces: [
+      "src/components/PreWorkout/AccessorySheet.tsx",
+      "src/components/PreWorkout/TimeEstimate.tsx",
+      "src/components/Today/AccessoryRows.tsx",
+      "src/app/settings/page.tsx",
+    ],
   },
   "volume-ratio": {
     area: "volume",

@@ -1,6 +1,5 @@
 import type { EvidenceRule } from "@/types";
 import type { SourceId } from "../sources";
-import { DROP_SET_LIGHTER_BY } from "@/components/ActiveWorkout/setPlan";
 import { E1RM_MAX_REPS } from "@/lib/e1rm";
 import { REPS_IN_RESERVE_OPTIONS, RIR_ESTIMATE, repsInReserveLabel } from "@/lib/effort";
 import { EXERCISES } from "@/lib/exercises";
@@ -16,6 +15,7 @@ import {
   type TransferPrior,
 } from "@/lib/strength/coefficients";
 import { TREND_SMOOTHING } from "@/lib/strength/timeline";
+import { DROP_SET_LIGHTER_BY } from "@/lib/workout/setSelectors";
 
 /** 0.4 -> "40%", 0.035 -> "3.5%". */
 const pct = (fraction: number) => `${Number((fraction * 100).toPrecision(3))}%`;
@@ -116,6 +116,7 @@ export const STRENGTH_RULES = {
       "src/lib/strength/estimate.ts#externalLoad",
       "src/lib/strength/estimate.ts#sessionEstimates",
       "src/lib/strength/pooled.ts#pooledLiftEstimate",
+      "src/components/Progress/strength.ts#liftEstimate",
       "src/lib/strength/muscleIndex.ts#muscleStrengthIndex",
       "src/lib/strength/reentry.ts#barbellReentryWeight",
       "src/lib/strength/reentry.ts#homeReentryWeight",
@@ -165,7 +166,7 @@ export const STRENGTH_RULES = {
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
       "src/lib/strength/timeline.ts#strengthTimeline",
     ],
-    surfaces: ["src/components/ExercisePage/HomeNextSession.tsx"],
+    surfaces: ["src/components/ExercisePage/HomeNextSession.tsx", "src/components/ExercisePage/NextSession.tsx"],
   },
   "drop-set-evidence": {
     area: "effort",

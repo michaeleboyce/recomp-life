@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fullSync, pushUnsynced, checkConnectivity, SYNC_UNAUTHORIZED } from "@/lib/sync";
-import { getSyncKey } from "@/lib/syncKey";
+import { getSyncKey, SYNC_KEY_CHANGED_EVENT } from "@/lib/syncKey";
 
 type SyncStatus = "idle" | "syncing" | "success" | "error" | "locked";
 
@@ -78,12 +78,12 @@ export function SyncProvider() {
 
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("online", handleOnline);
-    window.addEventListener("recomp-sync-key-changed", handleKeyChange);
+    window.addEventListener(SYNC_KEY_CHANGED_EVENT, handleKeyChange);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("online", handleOnline);
-      window.removeEventListener("recomp-sync-key-changed", handleKeyChange);
+      window.removeEventListener(SYNC_KEY_CHANGED_EVENT, handleKeyChange);
     };
   }, []);
 

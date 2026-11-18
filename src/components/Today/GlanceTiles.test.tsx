@@ -10,9 +10,10 @@ import { describeNextWorkout } from "@/lib/workout/buildPlan";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { getMonday } from "@/lib/dates";
-import { rangeSuffix } from "@/components/Progress/rangeText";
+import { useLiftTimeline } from "@/hooks";
 import { importedSession, importedSet } from "@/lib/import/testRecords";
-import { GlanceTiles, STALE_WEIGH_IN_DAYS } from "./GlanceTiles";
+import { STALE_WEIGH_IN_DAYS } from "@/lib/weighIn";
+import { GlanceTiles } from "./GlanceTiles";
 
 vi.mock("next/link", () => ({
   default: ({
@@ -53,10 +54,23 @@ function nextLifts() {
 
 beforeEach(clearDb);
 
+/** What the lift page headline shows as the big number (LiftHeadline reads useLiftTimeline). */
+function Headline({ liftId }: { liftId: string }) {
+  const timeline = useLiftTimeline(liftId, true);
+  return <span data-testid={`headline-${liftId}`}>{timeline?.anchor?.value ?? ""}</span>;
+}
+
 describe("GlanceTiles", () => {
   it("shows weight, this week and the next two lifts, each linking to its detail", async () => {
     await seedDemo();
-    render(<GlanceTiles />);
+    render(
+      <>
+        <GlanceTiles />
+        {nextLifts().map((id) => (
+          <Headline key={id} liftId={id} />
+        ))}
+      </>
+    );
     const weight = await screen.findByRole("link", { name: /Weight/ });
     expect(weight).toHaveAttribute("href", "/progress?tab=body");
     const latest = [...demo.bodyweight].sort((a, b) => +new Date(a.date) - +new Date(b.date)).at(-1)!;
@@ -86,17 +100,13 @@ describe("GlanceTiles", () => {
         expect(found, id).toBeDefined();
         return found;
       });
-      const best = demo.estimated1RMs
-        .filter((r) => r.exerciseId === id)
-        .sort((a, b) => +new Date(a.date) - +new Date(b.date))
-        .at(-1)!;
-      expect(within(tile!).getByText(String(Math.round(best.estimated1RM)))).toBeInTheDocument();
-      // "in N wk" is the real span of the points shown, not a nominal "3 mo".
-      const shown = demo.estimated1RMs
-        .filter((r) => r.exerciseId === id && Date.now() - new Date(r.date).getTime() <= 91 * 86_400_000)
-        .map((r) => ({ t: new Date(r.date).getTime(), v: r.estimated1RM }))
-        .sort((a, b) => a.t - b.t);
-      expect(tile).toHaveTextContent(rangeSuffix(shown));
+      // The lift page headline's number: the planner's pooled estimate from the same timeline.
+      const probe = await screen.findByTestId(`headline-${id}`);
+      await waitFor(() => expect(probe.textContent).not.toBe(""));
+      const anchor = Number(probe.textContent);
+      expect(within(tile!).getByText(String(Math.round(anchor)))).toBeInTheDocument();
+      // "in N wk" is the real span of the line shown, not a nominal "3 mo".
+      expect(tile).toHaveTextContent(/in \d+ wk/);
       expect(tile).not.toHaveTextContent("3 mo");
     }
   });

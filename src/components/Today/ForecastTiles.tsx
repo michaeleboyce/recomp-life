@@ -6,6 +6,7 @@ import type { TodayForecast } from "@/hooks";
 import { StatTile } from "@/components/ui/stat-tile";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import type { RuleId } from "@/lib/evidence";
+import type { SessionMinutes } from "@/lib/accessories/sessionBudget";
 import { EYEBROW, settleProps, useSettleOnce } from "./TodayHero";
 
 /** The tiles settle in after the hero's two parts. */
@@ -37,20 +38,25 @@ function fromToday(href: string): string {
 }
 
 /** The tiles that have something to say; a part with no value gives no tile. */
-export function forecastTiles(forecast: TodayForecast, newBestHref?: string): Tile[] {
+export function forecastTiles(
+  forecast: TodayForecast,
+  newBestHref?: string,
+  sessionTarget?: SessionMinutes
+): Tile[] {
   const tiles: Tile[] = [];
   const { session, newBest, readiness } = forecast;
   if (session) {
+    const range =
+      session.low !== undefined && session.high !== undefined ? `${session.low} to ${session.high}` : null;
+    // "58 min, of 60": the forecast against the session length planned for.
+    const target = sessionTarget == null ? null : `of ${sessionTarget}`;
     tiles.push({
       key: "session",
       ruleId: "forecast-session-length",
       href: "/progress/forecasts",
       label: "Session",
       value: `${session.minutes} min`,
-      sub:
-        session.low !== undefined && session.high !== undefined
-          ? `${session.low} to ${session.high}`
-          : "rough estimate",
+      sub: target ? (range ? `${target} · ${range}` : `${target} min`) : (range ?? "rough estimate"),
     });
   }
   if (newBest) {
@@ -98,15 +104,18 @@ const COLUMNS = ["", "grid-cols-1", "grid-cols-2", "grid-cols-3"];
 export function ForecastTiles({
   forecast,
   newBestHref,
+  sessionTarget,
 }: {
   forecast: TodayForecast | undefined;
   newBestHref?: string;
+  /** The session length the next workout is planned for; left out or null, none is shown. */
+  sessionTarget?: SessionMinutes;
 }) {
   // Called before the early returns: the tiles settle in when they first appear, even
   // if the forecast arrives after the screen.
   const settle = useSettleOnce("today-forecast-tiles");
   if (!forecast) return null;
-  const tiles = forecastTiles(forecast, newBestHref);
+  const tiles = forecastTiles(forecast, newBestHref, sessionTarget);
   if (tiles.length === 0) return null;
   const single = tiles.length === 1;
 

@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-45 active rules, 3 planned rules, 42 sources. Last reviewed against the research: November 2026.
+46 active rules, 4 planned rules, 42 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -54,6 +54,8 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `weekly-volume` | Training volume | Active | Moderate evidence | Pelland 2026, Roth 2022 |
 | `accessories-in-cut` | Training volume | Active | Limited evidence | Roth 2022, Murphy & Koehler 2022 |
 | `accessory-selection` | Training volume | Active | Coaching heuristic | none |
+| `swap-recommendation` | Training volume | Planned | Coaching heuristic | none |
+| `session-length-budget` | Training volume | Active | Coaching heuristic | none |
 | `volume-ratio` | Training volume | Planned | Coaching heuristic | none |
 | `rate-of-loss` | Fat loss | Active | Moderate evidence | Helms 2014 |
 | `fat-loss-stall` | Fat loss | Active | Limited evidence | Peos 2021 |
@@ -353,7 +355,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `strength-pooling`
 - **Status:** Active
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/workout/strength.ts` (`strengthEvidenceOf`), `src/lib/data/forecasts.ts` (`strengthSetsFrom`), `src/lib/import/history.ts` (`importedLiftIndex`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`), `src/lib/strength/timeline.ts` (`TREND_SMOOTHING`), `src/lib/strength/timeline.ts` (`strengthTimeline`), `src/lib/strength/timeline.ts` (`muscleTimeline`), `src/lib/strength/timeline.ts` (`smoothedEstimate`), `src/lib/strength/timeline.ts` (`weeklyShares`)
+- **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/components/Progress/strength.ts` (`liftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/workout/strength.ts` (`strengthEvidenceOf`), `src/lib/data/forecasts.ts` (`strengthSetsFrom`), `src/lib/import/history.ts` (`importedLiftIndex`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`), `src/lib/strength/timeline.ts` (`TREND_SMOOTHING`), `src/lib/strength/timeline.ts` (`strengthTimeline`), `src/lib/strength/timeline.ts` (`muscleTimeline`), `src/lib/strength/timeline.ts` (`smoothedEstimate`), `src/lib/strength/timeline.ts` (`weeklyShares`)
 - **Shown in:** `src/components/Progress/MusclesTab.tsx`, `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/ExercisePage/CountsToward.tsx`, `src/components/Lift/ImportedHistory.tsx`, `src/components/StrengthTrend/StrengthTrendPanel.tsx`
 - **Reviewed:** November 2026
 
@@ -373,7 +375,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/strength/coefficients.ts` (`TARGET_EVIDENCE`), `src/lib/strength/estimate.ts` (`targetEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/workout/variant.ts` (`targetStrengthSets`), `src/lib/workout/variant.ts` (`withHandSetWeight`), `src/components/Lift/homeVersion.ts` (`homePlanWeight`), `src/components/LogEdit/AdjustLiftSheet.tsx` (`BackToPlanButton`), `src/hooks/useStrengthEvidence.ts` (`useStrengthEvidence`), `src/lib/data/forecasts.ts` (`strengthSetsFrom`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`), `src/lib/strength/timeline.ts` (`strengthTimeline`)
-- **Shown in:** `src/components/ExercisePage/HomeNextSession.tsx`
+- **Shown in:** `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/ExercisePage/NextSession.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** A weight you set counts a little toward the lift's estimate until you lift it
@@ -502,7 +504,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** Hard sets take 1–3 days to recover from; stress can slow that
 
-**What the app does.** A lift shows Recovering for 48 hours after it was last trained, Ready from 48 hours, Primed from 72 to 120 hours, then Ready again. While cutting, 12 hours are added to each of these. After 21 days it shows Long break. The setup screen notes when a lift in today's workout was trained less than 48 hours ago.
+**What the app does.** A lift shows Recovering for 48 hours after it was last trained, Ready from 48 hours, Primed from 72 to 120 hours, then Ready again. While cutting, 12 hours are added to each of these. After 21 days it shows Long break. The setup screen notes when a lift in today's workout was trained less than 48 hours ago. On the Strength and Muscles tabs, sessions imported from other apps count as training.
 
 **Why.** After hard sets, performance takes roughly one to three days to come back, and longer when sets were taken to failure. In one study, lifters under high life stress recovered more slowly over four days.
 
@@ -518,13 +520,13 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `time-off`
 - **Status:** Active
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/weightDecay.ts` (`calculateWeightDecay`), `src/lib/recovery.ts` (`LONG_BREAK_DAYS`), `src/lib/inactivity.ts` (`checkInactivity`)
+- **Implemented in:** `src/lib/weightDecay.ts` (`calculateWeightDecay`), `src/lib/recovery.ts` (`LONG_BREAK_DAYS`), `src/lib/inactivity.ts` (`checkInactivity`), `src/lib/insights/rules/inactivity.ts` (`inactivityInsights`)
 - **Shown in:** `src/app/workout/configure/page.tsx`, `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Short breaks cost little strength; long ones come back fast
 
-**What the app does.** Breaks of up to 20 days change nothing. After that the setup screen suggests starting lighter: 5% after 21–41 days, 10% after 42–69 days, 15% after 70 days or more. The suggestion is scaled by 1.25 while cutting and 0.75 while bulking, and never exceeds 20%. You can always keep your old weight. Today mentions a break once it has been 5 days since your last workout, and from 21 days says that setup will suggest lighter weights.
+**What the app does.** Breaks of up to 20 days change nothing. After that the setup screen suggests starting lighter: 5% after 21–41 days, 10% after 42–69 days, 15% after 70 days or more. The suggestion is scaled by 1.25 while cutting and 0.75 while bulking, and never exceeds 20%. You can always keep your old weight. Today mentions a break once it has been 5 days since your last workout (a session imported from another app counts), and from 21 days says that setup will suggest lighter weights.
 
 **Why.** Strength is well preserved through breaks: one session a week maintains it for months, and after a full 10-week layoff trainees were back to their pre-break level in about 5 weeks. Losses do grow with the length of the break, so the suggestion scales with time away.
 
@@ -724,6 +726,45 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 **Why.** Each part follows something the app already counts: what you choose, what you actually do, the weekly set target and recovery. The pins and preferences come first because you have the final say.
 
 **Limits.** The points are judgment, not research: no study ranks these reasons against each other. The order of the parts is a design choice, shown with every pick so it can be checked and overridden.
+
+**Sources.** None: this is a coaching convention with no direct research.
+
+### How are swaps recommended?
+
+- **Rule id:** `swap-recommendation`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/swap/recommend.ts` (`recommendSwaps`), `src/lib/swap/combos.ts` (`recommendSwapSets`), `src/lib/swapCandidates.ts` (`swapCandidates`)
+- **Reviewed:** November 2026
+
+**In one line.** Ranked by muscles covered, movement, your choices and history, and pain
+
+**What the app does.** Rule in code: when an exercise is swapped, every exercise that shares one of its main muscles is offered, best first, with its score broken into parts. Up to 40 points for covering the original's main muscles (in proportion) and up to 10 for its helper muscles; 15 for a version of the same movement (the dumbbell or barbell form, or a home exercise for the lift), else 5 when it fits the tier (for a T1 or T2, a compound lift working at least 3 muscles); 25 for an exercise you marked preferred; up to 15 for one you have done often and lately, app and imported history alike (each session counts half as much for every 14 days of age; half the points at 2 such sessions); 10 when its weight comes from your own sets or the strength model rather than a default. 8 come off when it adds a main muscle that is still recovering, and 30 when it loads a joint with a pain entry of severity 2 or more. Blocked exercises are never offered, and at home nothing that needs a gym. Each comes with the weight, sets and reps it would be done at, from the existing weight rules (its own recent sets, the strength model, an accessory's progression, the starting ratio), and a program lift keeps its sets and reps. When no single exercise covers every main muscle, up to 3 pairs that together do are offered, 10 points off a pair for each main muscle both cover. The Edit workout sheet already lists its swaps in this order; the parts, reasons, weights and pairs are not shown yet.
+
+**Why.** A replacement should train what the original trained, ideally in the same movement, so the session still does its job. Your own choices, what you already do and a weight you can trust come next; recovering muscles and painful joints are reasons to look elsewhere.
+
+**Limits.** The points are judgment, not research: no study ranks these reasons against each other, and muscles covered is read from the app's own list of main and helper muscles per exercise. The parts are shown with every suggestion so they can be checked, and the choice is always yours.
+
+**Before this is switched on.** Switch to active when the Edit workout sheet and the active workout show the recommended swaps with their reasons and an EvidenceLine (swaps design W10 to W12).
+
+**Sources.** None: this is a coaching convention with no direct research.
+
+### Why are some accessories left out to fit the session length?
+
+- **Rule id:** `session-length-budget`
+- **Status:** Active
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/accessories/sessionBudget.ts` (`fitAccessoriesToBudget`), `src/lib/workout/accessoryPlan.ts` (`planAccessories`)
+- **Shown in:** `src/components/PreWorkout/AccessorySheet.tsx`, `src/components/PreWorkout/TimeEstimate.tsx`, `src/components/Today/AccessoryRows.tsx`, `src/app/settings/page.tsx`
+- **Reviewed:** November 2026
+
+**In one line.** Accessories are kept to the length you plan for; the main lifts never are
+
+**What the app does.** You choose the session length to plan for: 30, 45, 60, 75, 90 minutes or no limit (60 until you choose), in Settings or for one workout on the Ready screen. The app times the plan on paper: every set plus the rest after it, warm-ups included when they are on. The accessories it chose are then added best first, each only if the plan with it stays within the length; one that does not fit is left out, with "Left out to fit" and a way to add it anyway, and the next one is tried. The main lifts (T1, T2 and T3) are never dropped or shortened. Accessories you pinned to the day are always kept, even past the length. When the main lifts alone take longer than the length, no other accessory is added and the app says so. A workout already started keeps the accessories it started with.
+
+**Why.** A planning convenience: a session that fits the time you have is easier to finish, and leaving out the lowest-ranked extras first keeps the program's lifts, which drive progression, untouched.
+
+**Limits.** This is not a research finding. The length is the app's own estimate on paper, which no study has checked for this kind of session (the research notes found nothing on predicting a strength session's length from its sets and rests), and the forecast shown on Today and the Ready screen may differ once it is corrected for your own pace. The choices of length are conveniences, not targets.
 
 **Sources.** None: this is a coaching convention with no direct research.
 
@@ -1140,6 +1181,13 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **18 November 2026** — `swap-recommendation` (How are swaps recommended?): New rule: swaps are ranked by a score in parts (muscles covered, same movement or tier fit, preferred, done before, a known weight, recovery and pain), each with the weight, sets and reps it would be done at, and pairs are offered when no single exercise covers the original. The Edit workout sheet's swap list now follows this order (same movement first, preferred no longer always first). Sources: .
+- **18 November 2026** — `session-length-budget` (Why are some accessories left out to fit the session length?): New: a session length to plan for (60 minutes until you choose, or no limit), in Settings or for one workout on the Ready screen. The accessories chosen for a workout are kept to it, best first; the main lifts are never shortened and pinned accessories are always kept. The accessory sheet says how many fit and lists the ones left out, each with "Add anyway". Sources: .
+- **18 November 2026** — `time-off` (Why lighter weights after a break?): The days-off note on Today now counts sessions imported from other apps: training logged elsewhere is not time off. Sources: .
+- **18 November 2026** — `recovery-windows` (What do the recovery statuses mean?): The Strength tab's recovery rows now count sessions imported from other apps: a lift was last trained at its latest session of either kind. Sources: .
+- **18 November 2026** — `weekly-volume` (How is weekly volume counted, and why 10 sets?): The weekly review now counts sessions imported from other apps in its sessions, each lift's sessions, hard sets per muscle group and tonnage, and says how many were imported. New bests, effort and readiness stay the app's own. Sources: .
+- **18 November 2026** — `e1rm-estimate` (How is my 1RM estimated?): The "estimated 1RM down" note now also reads the estimates of sessions imported from other apps after the lift's last session in the app. Sources: .
+- **18 November 2026** — `strength-pooling` (How do gym and home sessions combine into one strength estimate?): One number per lift: the Strength tab's lift cards and Today's lift tiles now show the plan's estimate, the same number as the lift page headline, with the change of the same smooth line. They had shown the latest session's own estimate. Sources: .
 - **18 November 2026** — `effort-logging` (Why does the app ask how many reps I had left?): The effort rating is now one optional question, "How many more reps could you have done?", with three answers (0, 1-2 or 3+), in place of a 6 to 10 effort score. Self-ratings are off by about one rep on average, so finer answers would not be more accurate. Sources: Halperin 2022.
 - **18 November 2026** — `t2-autoregulation` (Why is the app suggesting a lighter weight?): The lighter-weight suggestion now reads the first T2 set's reps left. Nothing left suggests a 7.5% drop (never less than one 5 lb step) in every phase, down from 10%; while cutting, 1-2 left suggests one 5 lb step down, in place of a 5% drop, and now also appears at 2 reps left. While maintaining, "maybe one more rep" no longer brings a suggestion. The drops were made smaller as a deliberate choice, not because of new research; the sizes and the split by phase are graded as coaching heuristics. Sources: .
 - **18 November 2026** — `e1rm-estimate` (How is my 1RM estimated?): The reps added for effort before the formula are now 0, 1.5 or 3 for the answers 0, 1-2 and 3+, in place of 10 minus the effort score (up to 4). An estimate from a 3+ set is a lower bound. Sources: .

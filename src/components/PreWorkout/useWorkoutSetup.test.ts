@@ -127,8 +127,12 @@ describe("preview", () => {
     const hook = await mount("A1");
     const { plan, accessoryPlan, accessoryRows } = hook.result.current;
     expect(accessoryPlan?.mode).toBe("auto");
-    const picks = accessoryPlan!.choice.picks.map((p) => p.exerciseId);
+    // The picks that fit in the session length (60 minutes until one is chosen).
+    const budget = accessoryPlan!.budget!;
+    expect(budget.minutes).toBe(60);
+    const picks = budget.kept;
     expect(picks.length).toBeGreaterThan(0);
+    expect(accessoryPlan!.choice.picks.map((p) => p.exerciseId).filter((id) => picks.includes(id))).toEqual(picks);
     const working = plan.filter((e) => !e.isWarmUp);
     expect(working.slice(0, 3).map((e) => e.tier)).toEqual(["T1", "T2", "T3"]);
     expect(working.slice(3).map((e) => `${e.tier}:${e.exerciseId}`)).toEqual(picks.map((id) => `accessory:${id}`));
@@ -142,6 +146,39 @@ describe("preview", () => {
       expect(row.pick?.reasons.length).toBeGreaterThan(0);
     }
     expect(hook.result.current.selectedAccessories).toEqual(picks);
+  });
+
+  it("plans the accessories again at once for a length chosen for this workout, and saves it only when asked", async () => {
+    const hook = await mount("A1");
+    const accessories = () =>
+      hook.result.current.plan.filter((e) => !e.isWarmUp && e.tier === "accessory").map((e) => e.exerciseId);
+    expect(hook.result.current.sessionMinutes).toBe(60);
+    expect(hook.result.current.usualSessionMinutes).toBe(60);
+
+    act(() => hook.result.current.setSessionMinutes(null));
+    const all = hook.result.current.accessoryPlan!.choice.picks.map((p) => p.exerciseId);
+    expect(accessories()).toEqual(all);
+
+    act(() => hook.result.current.setSessionMinutes(30));
+    expect(hook.result.current.sessionMinutes).toBe(30);
+    expect(accessories()).toEqual(hook.result.current.accessoryPlan!.budget!.kept);
+    expect(accessories().length).toBeLessThan(all.length);
+    // For this workout only, until saved.
+    expect((await db.userProfile.toCollection().first())!.settings.sessionMinutes).toBeUndefined();
+    await act(() => hook.result.current.saveSessionMinutes(30));
+    await waitFor(async () =>
+      expect((await db.userProfile.toCollection().first())!.settings.sessionMinutes).toBe(30)
+    );
+    await waitFor(() => expect(hook.result.current.usualSessionMinutes).toBe(30));
+  });
+
+  it("takes a length for this workout from ?minutes=", async () => {
+    nav.params = "minutes=45";
+    expect((await mount("A1")).result.current.sessionMinutes).toBe(45);
+    nav.params = "minutes=none";
+    expect((await mount("A1")).result.current.sessionMinutes).toBeNull();
+    nav.params = "minutes=soon";
+    expect((await mount("A1")).result.current.sessionMinutes).toBe(60);
   });
 
   it("removes, swaps and adds accessories as edits on top of the choice", async () => {

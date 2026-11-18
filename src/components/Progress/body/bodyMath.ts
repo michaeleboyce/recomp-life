@@ -1,45 +1,9 @@
 // Pure helpers for the Body tab and the bodyweight detail page.
-import { calculateWeeklyRateOfLoss } from "@/lib/rateOfLoss";
 import type { BodyweightLog, TimeOfDay } from "@/types";
 
-/**
- * The green zone of `rateOfLoss.ts` (0.5 to 1.0 percent of bodyweight a week): the
- * target while cutting. Yellow and red above it are "fast", below it "slow".
- */
-export const CUT_TARGET_PERCENT = { low: 0.5, high: 1.0 } as const;
-
-export type PaceWord = "on pace" | "slow" | "fast" | "gaining";
-
-/**
- * The target band for the weekly rate of change chart, in lbs/week. The rate metric
- * is negative while losing, so the band sits below zero: `low` is the faster limit.
- * `average` is the current 7-day average bodyweight.
- */
-export function cutTargetBand(average: number): { low: number; high: number } {
-  return {
-    low: -(average * CUT_TARGET_PERCENT.high) / 100,
-    high: -(average * CUT_TARGET_PERCENT.low) / 100,
-  };
-}
-
-/** One word for how the latest weekly rate compares with the cutting target; null without enough weigh-ins. */
-export function paceStatus(entries: { date: Date; weight: number }[]): PaceWord | null {
-  const rate = calculateWeeklyRateOfLoss(entries);
-  if (!rate) return null;
-  switch (rate.zone) {
-    case "green":
-      return "on pace";
-    case "red":
-      return "fast";
-    case "stall":
-      return "slow";
-    case "gaining":
-      return "gaining";
-    default:
-      // Yellow sits on both sides of the green zone.
-      return rate.percentPerWeek < CUT_TARGET_PERCENT.low ? "slow" : "fast";
-  }
-}
+// The pace helpers live in `@/lib/rateOfLoss` so code in src/lib does not import from components.
+export { CUT_TARGET_PERCENT, cutTargetBand, paceStatus } from "@/lib/rateOfLoss";
+export type { PaceWord } from "@/lib/rateOfLoss";
 
 export interface WeighInRow {
   id: string;

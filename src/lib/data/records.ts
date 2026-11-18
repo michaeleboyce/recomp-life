@@ -24,6 +24,7 @@ import { attemptLedgerWrite, recordBodyweightForecast } from "./forecasts";
 import { softDelete } from "./logEdits";
 import { editStamps, newRowStamps } from "./stamp";
 import { resetPullState } from "@/lib/sync/pullState";
+import { stampSettingsChanges } from "@/lib/sync/settingsMerge";
 
 type NewRecord<T> = Omit<T, "id" | "clientId" | "synced" | "updatedAt" | "deletedAt">;
 
@@ -44,14 +45,20 @@ export async function requireProfile(): Promise<UserProfile> {
  * The one write of the profile's settings: replaces them with `settings`, stamps the
  * profile and marks it unsynced. Joins the caller's transaction, which must include
  * `db.userProfile` and must have read `profile` itself (`requireProfile`), so the
- * read-modify-write never overwrites another tab's change unseen.
+ * read-modify-write never overwrites another tab's change unseen. Each settings path
+ * that changed is stamped (`stampSettingsChanges`), so a sync merges settings field by
+ * field with the other devices' (src/lib/sync/settingsMerge.ts).
  */
 export async function writeSettings(
   profile: UserProfile,
   settings: UserSettings,
   now: number = Date.now()
 ): Promise<void> {
-  await db.userProfile.update(profile.id, { settings, ...editStamps(profile, now) });
+  const stamps = editStamps(profile, now);
+  await db.userProfile.update(profile.id, {
+    settings: stampSettingsChanges(profile.settings, settings, stamps.updatedAt),
+    ...stamps,
+  });
 }
 
 /** Reads the single profile and applies `change` to it, in one transaction. */

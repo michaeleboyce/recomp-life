@@ -12,6 +12,55 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-18",
+    ruleId: "swap-recommendation",
+    change:
+      "New rule: swaps are ranked by a score in parts (muscles covered, same movement or tier fit, preferred, done before, a known weight, recovery and pain), each with the weight, sets and reps it would be done at, and pairs are offered when no single exercise covers the original. The Edit workout sheet's swap list now follows this order (same movement first, preferred no longer always first).",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "session-length-budget",
+    change:
+      "New: a session length to plan for (60 minutes until you choose, or no limit), in Settings or for one workout on the Ready screen. The accessories chosen for a workout are kept to it, best first; the main lifts are never shortened and pinned accessories are always kept. The accessory sheet says how many fit and lists the ones left out, each with \"Add anyway\".",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "time-off",
+    change:
+      "The days-off note on Today now counts sessions imported from other apps: training logged elsewhere is not time off.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "recovery-windows",
+    change:
+      "The Strength tab's recovery rows now count sessions imported from other apps: a lift was last trained at its latest session of either kind.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "weekly-volume",
+    change:
+      "The weekly review now counts sessions imported from other apps in its sessions, each lift's sessions, hard sets per muscle group and tonnage, and says how many were imported. New bests, effort and readiness stay the app's own.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "e1rm-estimate",
+    change:
+      "The \"estimated 1RM down\" note now also reads the estimates of sessions imported from other apps after the lift's last session in the app.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "strength-pooling",
+    change:
+      "One number per lift: the Strength tab's lift cards and Today's lift tiles now show the plan's estimate, the same number as the lift page headline, with the change of the same smooth line. They had shown the latest session's own estimate.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
     ruleId: "effort-logging",
     change:
       "The effort rating is now one optional question, \"How many more reps could you have done?\", with three answers (0, 1-2 or 3+), in place of a 6 to 10 effort score. Self-ratings are off by about one rep on average, so finer answers would not be more accurate.",

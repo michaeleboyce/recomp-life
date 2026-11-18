@@ -70,4 +70,21 @@ describe("AccessoryRows", () => {
     render(<AccessoryRows views={THREE} />);
     expect(screen.getAllByTestId("accessory-row")).toHaveLength(3);
   });
+
+  it("says how many were left out for time, with its why, folded or not", () => {
+    const note = "1 left out to fit 60 min";
+    const { unmount } = render(<AccessoryRows views={THREE} collapsible timeNote={note} changeHref={CHANGE_ACCESSORIES_HREF} />);
+    expect(screen.getByTestId("accessory-time-note")).toHaveTextContent(note);
+    expect(document.querySelector('[data-evidence="session-length-budget"]')).not.toBeNull();
+    unmount();
+    render(<AccessoryRows views={THREE.slice(0, 1)} timeNote={note} />);
+    expect(screen.getByTestId("accessory-time-note")).toHaveTextContent(note);
+    expect(document.querySelector('[data-evidence="session-length-budget"]')).not.toBeNull();
+  });
+
+  it("shows no note without one", () => {
+    render(<AccessoryRows views={THREE} collapsible timeNote={null} />);
+    expect(screen.queryByTestId("accessory-time-note")).toBeNull();
+    expect(document.querySelector('[data-evidence="session-length-budget"]')).toBeNull();
+  });
 });
