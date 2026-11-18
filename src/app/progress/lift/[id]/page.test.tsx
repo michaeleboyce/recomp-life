@@ -115,7 +115,7 @@ describe("Lift page (the barbell lift's exercise page)", () => {
     await waitFor(() => expect(Number(chart.getAttribute("data-points"))).toBeGreaterThanOrEqual(1));
     expect(chart).toHaveAttribute("data-line", "smooth");
     expect(screen.getByTestId("today-marker")).toHaveTextContent(screen.getByTestId("e1rm-latest").textContent!);
-    expect(within(screen.getByRole("list", { name: "Sources" })).getAllByRole("button", { pressed: true }).length).toBeGreaterThanOrEqual(1);
+    expect(within(screen.getByRole("list", { name: "Sources" })).getAllByRole("checkbox", { checked: true }).length).toBeGreaterThanOrEqual(1);
   });
 
   it("a range change alters the summarised numbers", async () => {

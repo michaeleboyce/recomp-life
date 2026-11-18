@@ -47,7 +47,7 @@ export interface StrengthTrendChartProps {
   className?: string;
 }
 
-const MARGIN = { top: 16, right: 14, bottom: 22 };
+const MARGIN = { top: 24, right: 14, bottom: 22 };
 const Y_AXIS_MIN = 34;
 const TICK_CHAR_W = 6.2;
 const STRIP_GAP = 10;
@@ -374,8 +374,8 @@ export function StrengthTrendChart({
               <circle cx={x(anchor!.t)} cy={y(anchor!.v)} r={6} fill="var(--chart-point-ring)" stroke="var(--chart-inspect)" strokeWidth={2} />
               <circle cx={x(anchor!.t)} cy={y(anchor!.v)} r={2} fill="var(--chart-inspect)" />
               <text
-                x={x(anchor!.t) - 10}
-                y={Math.max(MARGIN.top + 2, y(anchor!.v) - 10)}
+                x={x(anchor!.t) + 4}
+                y={11}
                 textAnchor="end"
                 fontSize={11}
                 fontWeight={700}

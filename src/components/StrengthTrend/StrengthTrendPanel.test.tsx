@@ -69,12 +69,13 @@ describe("StrengthTrendPanel (M4)", () => {
     render(<Harness timeline={tl} />);
     expect(screen.getByTestId("trend-anchor")).toHaveTextContent(String(tl.anchor!.value));
     expect(screen.getByTestId("today-marker")).toHaveTextContent(`Plan ${tl.anchor!.value}`);
+    expect(screen.getByTestId("trend-change")).toHaveTextContent(/^[+−]?\d+ lb in \d+ wk$/);
     expect(chart()).toHaveAttribute("data-line", "smooth");
     expect(chart()).toHaveAttribute("data-points", "5");
     expect(chart()).toHaveAttribute("data-imported", "2");
-    expect(sources().getByRole("button", { name: /DB Bench Press ?· ÷ 0\.\d\d, from 2 pairs/ })).toBeInTheDocument();
-    expect(sources().getByRole("button", { name: /DB Floor Press ?· ÷ 0\.83, starting ratio/ })).toBeInTheDocument();
-    expect(sources().getByRole("button", { name: /Imported bench/ })).toHaveAttribute("aria-pressed", "true");
+    expect(sources().getByRole("checkbox", { name: /DB Bench Press ?÷ 0\.\d\d, from 2 pairs/ })).toBeInTheDocument();
+    expect(sources().getByRole("checkbox", { name: /DB Floor Press ?÷ 0\.83, starting ratio/ })).toBeInTheDocument();
+    expect(sources().getByRole("checkbox", { name: /Imported bench/ })).toBeChecked();
     // Shape and colour per source, never colour alone.
     const shapes = new Set([...document.querySelectorAll("[data-dot]")].map((d) => d.getAttribute("data-dot")));
     expect(shapes).toEqual(new Set(["own", "imported", "db_bench", "db_floor_press"]));
@@ -87,8 +88,8 @@ describe("StrengthTrendPanel (M4)", () => {
     const tl = strengthTimeline("bench", ALL, { now: NOW });
     render(<Harness timeline={tl} />);
     const related = Number(chart().getAttribute("data-related"));
-    fireEvent.click(sources().getByRole("button", { name: /DB Bench Press/ }));
-    expect(sources().getByRole("button", { name: /DB Bench Press/ })).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(sources().getByRole("checkbox", { name: /DB Bench Press/ }));
+    expect(sources().getByRole("checkbox", { name: /DB Bench Press/ })).not.toBeChecked();
     expect(Number(chart().getAttribute("data-related"))).toBe(related - 2);
     expect(screen.getByTestId("trend-reason")).toHaveTextContent(/the number above is the plan's/);
   });

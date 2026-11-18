@@ -39,9 +39,9 @@ describe("MuscleStrengthList chart (M10)", () => {
     const chart = within(dialog).getByRole("img", { name: "Quads strength trend over time" });
     expect(chart).toHaveAttribute("data-line", "smooth");
     const legend = within(within(dialog).getByRole("list", { name: "Sources" }));
-    expect(legend.getByRole("button", { name: /Barbell Squat ?· main muscle/ })).toBeInTheDocument();
-    expect(legend.getByRole("button", { name: /Bulgarian Split Squat/ })).toBeInTheDocument();
-    expect(legend.getByRole("button", { name: /Goblet Squat/ })).toBeInTheDocument();
+    expect(legend.getByRole("checkbox", { name: /Barbell Squat ?main muscle/ })).toBeInTheDocument();
+    expect(legend.getByRole("checkbox", { name: /Bulgarian Split Squat/ })).toBeInTheDocument();
+    expect(legend.getByRole("checkbox", { name: /Goblet Squat/ })).toBeInTheDocument();
     expect(within(dialog).getByText(/It stays an index/)).toBeInTheDocument();
     // The imported goblet squat is drawn hollow.
     expect(dialog.querySelector('[data-dot="goblet_squat"][data-kind="imported"]')).not.toBeNull();

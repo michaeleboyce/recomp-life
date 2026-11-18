@@ -216,13 +216,17 @@ export function StrengthTrendPanel({
           </span>
           <span className="font-mono text-sm text-muted-foreground">{unit === "lbs" ? "lbs" : "index"}</span>
           {change !== null && (
-            <Delta
-              data-testid={changeTestId}
-              value={unit === "lbs" ? Math.round(change) : Math.round(change * 10) / 10}
-              better="up"
-              suffix={`${rangeSuffix([{ t: view.from, v: 0 }, { t: view.to, v: 0 }])} on the line`}
-              className="text-sm"
-            />
+            <span className="inline-flex items-baseline gap-1 text-sm">
+              <span className="text-muted-foreground">Trend</span>
+              <Delta
+                data-testid={changeTestId}
+                value={unit === "lbs" ? Math.round(change) : Math.round(change * 10) / 10}
+                better="up"
+                unit={unit === "lbs" ? "lb" : undefined}
+                suffix={rangeSuffix([{ t: view.from, v: 0 }, { t: view.to, v: 0 }])}
+                className="text-sm"
+              />
+            </span>
           )}
         </div>
       </div>
@@ -271,12 +275,7 @@ export function StrengthTrendPanel({
       <p className="-mt-1.5 text-[11px] text-muted-foreground">
         Strip: share of the line each week by source. Drag or pinch the chart, or move the ends below, to zoom.
       </p>
-      {reason && (
-        <p data-testid="trend-reason" className="text-[13px] text-foreground">
-          {reason}
-        </p>
-      )}
-      {note && <p className="text-xs text-muted-foreground">{note}</p>}
+      <WindowRange value={view} limits={limits} onChange={(s) => onSpanChange(s)} />
       <p className="sr-only" aria-live="polite" data-testid="trend-summary">
         {summary}
       </p>
@@ -305,9 +304,7 @@ export function StrengthTrendPanel({
         </div>
       )}
 
-      <WindowRange value={view} limits={limits} onChange={(s) => onSpanChange(s)} />
-
-      <ul className="flex flex-col gap-1" aria-label="Sources">
+      <ul className="flex flex-col" aria-label="Sources">
         <li className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
           <svg width={ICON_SWATCH} height={ICON_SWATCH} aria-hidden="true" className="shrink-0">
             <path d="M1 7h12" stroke="var(--chart-line)" strokeWidth={3} strokeLinecap="round" />
@@ -332,33 +329,44 @@ export function StrengthTrendPanel({
           const style = styles.get(s.id)!;
           return (
             <li key={s.id}>
-              <button
-                type="button"
-                aria-pressed={on}
-                onClick={() => toggle(s.id)}
+              <label
                 className={cn(
-                  "flex min-h-11 w-full items-center gap-2 rounded-lg px-1 text-left text-xs transition-colors hover:bg-card-raised focus-visible:outline-2 focus-visible:outline-ring",
-                  !on && "opacity-50"
+                  "flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-1 transition-colors hover:bg-card-raised has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring",
+                  !on && "opacity-60"
                 )}
               >
+                <input
+                  type="checkbox"
+                  checked={on}
+                  onChange={() => toggle(s.id)}
+                  className="size-4 shrink-0 cursor-pointer accent-chart-line focus-visible:outline-none"
+                />
                 <Swatch style={style} />
-                <span className="min-w-0 flex-1">
-                  <span className={cn("font-semibold text-foreground", !on && "line-through")}>{names.get(s.id)}</span>
-                  <span className="text-muted-foreground"> · {sourceDetail(s)}</span>
+                <span className="flex min-w-0 flex-1 flex-col leading-tight">
+                  <span className={cn("truncate text-xs font-semibold text-foreground", !on && "line-through")}>
+                    {names.get(s.id)}
+                  </span>
+                  <span className="truncate text-[11px] text-muted-foreground">{sourceDetail(s)}</span>
                 </span>
-                <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{on ? "On" : "Off"}</span>
-              </button>
+              </label>
             </li>
           );
         })}
       </ul>
 
       {(hasImportedDot || hasTarget) && (
-        <p className="px-1 text-xs text-muted-foreground">
+        <p className="px-1 text-[11px] text-muted-foreground">
           {hasImportedDot && "A hollow mark is a session imported from another app. "}
           {hasTarget && "A dashed outline is a weight you set by hand and have not lifted yet."}
         </p>
       )}
+
+      {reason && (
+        <p data-testid="trend-reason" className="px-1 text-[11px] text-muted-foreground">
+          {reason}
+        </p>
+      )}
+      {note && <p className="px-1 text-[11px] text-muted-foreground">{note}</p>}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div role="radiogroup" aria-label="Smoothing" className="flex items-center gap-0.5">

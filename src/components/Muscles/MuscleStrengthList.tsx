@@ -49,7 +49,7 @@ function MuscleTrend({ muscle, index }: { muscle: MuscleId; index: MuscleStrengt
       onRangeChange={setRange}
       span={span}
       onSpanChange={setSpan}
-      title="Strength trend, an index"
+      title="Strength trend, an index, from every exercise that works it"
       headingLevel={3}
       size="md"
       ariaLabel={`${formatMuscle(muscle)} strength trend over time`}
@@ -156,7 +156,7 @@ export function MuscleStrengthList({ index }: { index: MuscleStrengthIndex }) {
             <>
               <SheetHeader className="px-0 pb-2">
                 <SheetTitle className="font-display text-xl font-bold text-foreground">{formatMuscle(open)}</SheetTitle>
-                <SheetDescription className="text-xs text-muted-foreground">
+                <SheetDescription className="sr-only">
                   Strength trend from every exercise that works it
                 </SheetDescription>
               </SheetHeader>
