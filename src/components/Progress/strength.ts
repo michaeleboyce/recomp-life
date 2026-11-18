@@ -5,9 +5,9 @@ import {
   withImportedPoints,
   type ImportedLiftIndex,
 } from "@/lib/import/history";
-import { lineValueAt } from "@/components/chart-kit/trendGeometry";
+import { lineValueAt, type LinePoint, type Span } from "@/components/chart-kit/trendGeometry";
 import { computeMetric, inRange, summarize } from "@/lib/metrics";
-import { windowBounds } from "@/lib/metrics/window";
+import { windowBounds, type ChartWindow } from "@/lib/metrics/window";
 import { WEEK_MS } from "@/lib/dates";
 import type { MetricSource, Point, RangeKey, Series, SeriesSummary } from "@/lib/metrics/types";
 import { TREND_SMOOTHING, smoothedEstimate, sumLines, type StrengthTimeline } from "@/lib/strength";
@@ -113,21 +113,49 @@ export function liftEstimate(timeline: StrengthTimeline, window: RangeKey): Lift
   if (!anchor) return null;
   const now = timeline.now;
   const line = smoothedEstimate(timeline, { halfLifeDays: TREND_SMOOTHING.standard }).points;
-  // As the chart: the window, no earlier than the first dot (or a week back), up to now.
-  const firstT = timeline.points.length > 0 ? timeline.points[0].t : now;
-  const bounds = windowBounds(window, now);
-  const from = Math.max(bounds.from, Math.min(firstT, now - WEEK_MS));
-  const to = Math.min(bounds.to, now);
-  const start = lineValueAt(line, Math.max(from, line[0]?.t ?? from));
-  const end = lineValueAt(line, to);
+  // As the chart: the same window and the same change of the line over it.
+  const view = trendView(timeline, window);
   const own = timeline.points.filter((p) => (p.sourceId === "own" || p.sourceId === "imported") && p.t <= now);
   const newest = own.at(-1);
   return {
     value: anchor.value,
-    change: start && end && end.t > start.t ? end.v - start.v : null,
-    line: line.filter((p) => p.t >= from && p.t <= to).map((p) => ({ t: p.t, v: p.v })),
+    change: lineChange(line, view).change,
+    line: line.filter((p) => p.t >= view.from && p.t <= view.to).map((p) => ({ t: p.t, v: p.v })),
     latest: newest ? { t: newest.t, imported: newest.imported } : null,
   };
+}
+
+/** What a strength chart can show: from its first dot (or a week back, if later) up to now. */
+export function trendLimits(timeline: StrengthTimeline): Span {
+  const now = timeline.now;
+  const firstT = timeline.points.length > 0 ? timeline.points[0].t : now;
+  return { from: Math.min(firstT, now - WEEK_MS), to: now };
+}
+
+/**
+ * The span a strength chart shows for `window` (a preset, or a zoomed span), cut to
+ * `trendLimits`. The lift page's chart, Progress and Today read their window here.
+ */
+export function trendView(timeline: StrengthTimeline, window: RangeKey | ChartWindow): Span {
+  const limits = trendLimits(timeline);
+  const bounds = windowBounds(window, timeline.now);
+  return { from: Math.max(bounds.from, limits.from), to: Math.min(bounds.to, limits.to) };
+}
+
+export interface LineChange {
+  /** The line at the view's start, or at its own first point when that is later. */
+  first: LinePoint | null;
+  /** The line at the view's end. */
+  last: LinePoint | null;
+  /** last minus first; null without both, or when they are the same instant. */
+  change: number | null;
+}
+
+/** The smooth line's change over the view, as every strength chart and card shows it. */
+export function lineChange(line: readonly LinePoint[], view: Span): LineChange {
+  const first = lineValueAt(line, Math.max(view.from, line[0]?.t ?? view.from));
+  const last = lineValueAt(line, view.to);
+  return { first, last, change: first && last && last.t > first.t ? last.v - first.v : null };
 }
 
 /** "Total of four lifts, est. 1RM", or the lifts included when fewer have estimates. */

@@ -9,9 +9,9 @@ import { exerciseSourceStyles, liftSourceStyles, type SourceStyle } from "@/comp
 import { lineValueAt, shapePath } from "@/components/chart-kit/trendGeometry";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { rangeSuffix } from "@/components/Progress/rangeText";
+import { lineChange, trendLimits, trendView } from "@/components/Progress/strength";
 import { Delta } from "@/components/ui/delta";
-import { DAY_MS } from "@/lib/dates";
-import { ALL_RANGE_KEYS, isZoomed, windowBounds, type WindowSpan } from "@/lib/metrics/window";
+import { ALL_RANGE_KEYS, isZoomed, type WindowSpan } from "@/lib/metrics/window";
 import type { RangeKey } from "@/lib/metrics/types";
 import {
   SMOOTHING_KEYS,
@@ -138,21 +138,16 @@ export function StrengthTrendPanel({
     return timeline.points.filter((p) => on.has(p.sourceId) && p.t <= timeline.now);
   }, [timeline, enabled]);
 
-  const firstT = timeline.points.length > 0 ? timeline.points[0].t : timeline.now;
-  const limits = useMemo(() => ({ from: Math.min(firstT, timeline.now - 7 * DAY_MS), to: timeline.now }), [firstT, timeline.now]);
-  const bounds = windowBounds({ range, span }, timeline.now);
-  const view = useMemo(
-    () => ({ from: Math.max(bounds.from, limits.from), to: Math.min(bounds.to, limits.to) }),
-    [bounds.from, bounds.to, limits]
-  );
+  // The window and the line's change over it, by the functions Progress and Today use.
+  const limits = useMemo(() => trendLimits(timeline), [timeline]);
+  const { from: viewFrom, to: viewTo } = trendView(timeline, { range, span });
+  const view = useMemo(() => ({ from: viewFrom, to: viewTo }), [viewFrom, viewTo]);
   const zoomed = isZoomed({ range, span });
 
   const windowDots = dots.filter((d) => d.t >= view.from && d.t <= view.to);
   const hasImportedDot = timeline.points.some((p) => p.imported && p.sourceId !== "imported");
   const hasTarget = timeline.points.some((p) => p.provisional);
-  const startValue = lineValueAt(line.points, Math.max(view.from, line.points[0]?.t ?? view.from));
-  const endValue = lineValueAt(line.points, view.to);
-  const change = startValue && endValue && endValue.t > startValue.t ? endValue.v - startValue.v : null;
+  const { first: startValue, last: endValue, change } = lineChange(line.points, view);
   const unit = timeline.unit;
   const fmt = (v: number) => formatTrendValue(v, unit);
   const anchor = timeline.anchor;

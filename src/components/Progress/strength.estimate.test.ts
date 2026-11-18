@@ -3,7 +3,7 @@ import { lineValueAt } from "@/components/chart-kit/trendGeometry";
 import { windowBounds } from "@/lib/metrics/window";
 import { TREND_SMOOTHING, smoothedEstimate, strengthTimeline, type StrengthSet } from "@/lib/strength";
 import { set } from "@/lib/strength/testHelpers";
-import { liftEstimate, strengthOverview } from "./strength";
+import { lineChange, liftEstimate, strengthOverview, trendLimits, trendView } from "./strength";
 
 const NOW = new Date(2026, 10, 18, 12);
 
@@ -81,5 +81,37 @@ describe("liftEstimate (H4)", () => {
 
   it("is null for a lift with no sessions", () => {
     expect(liftEstimate(strengthTimeline("bench", [], { now: NOW.getTime() }), "3m")).toBeNull();
+  });
+});
+
+describe("trendView and lineChange (one window and change for the chart and the cards)", () => {
+  const timeline = strengthTimeline("bench", sets, { now: NOW.getTime() });
+  const now = NOW.getTime();
+
+  it("limits run from the first dot (or a week back) to now", () => {
+    expect(trendLimits(timeline)).toEqual({ from: daysAgo(60).getTime(), to: now });
+    const one = strengthTimeline("bench", session("x", 2, 100, 5), { now });
+    expect(trendLimits(one)).toEqual({ from: now - 7 * 24 * 3600 * 1000, to: now });
+  });
+
+  it("the view is the preset, or the zoomed span, cut to the limits", () => {
+    expect(trendView(timeline, "4w")).toEqual({ from: windowBounds("4w", now).from, to: now });
+    expect(trendView(timeline, "all")).toEqual(trendLimits(timeline));
+    const span = { from: daysAgo(30).getTime(), to: daysAgo(10).getTime() };
+    expect(trendView(timeline, { range: "3m", span })).toEqual(span);
+    expect(trendView(timeline, { range: "3m", span: { from: daysAgo(400).getTime(), to: now + 1e9 } })).toEqual(
+      trendLimits(timeline)
+    );
+  });
+
+  it("the change is the line's end minus its start in the view, null with no span of line", () => {
+    const line = smoothedEstimate(timeline, { halfLifeDays: TREND_SMOOTHING.standard }).points;
+    const view = trendView(timeline, "3m");
+    const c = lineChange(line, view);
+    expect(c.first!.v).toBeCloseTo(lineValueAt(line, Math.max(view.from, line[0].t))!.v, 6);
+    expect(c.last!.v).toBeCloseTo(lineValueAt(line, now)!.v, 6);
+    expect(c.change).toBeCloseTo(c.last!.v - c.first!.v, 6);
+    expect(liftEstimate(timeline, "3m")!.change).toBe(c.change);
+    expect(lineChange([], view)).toEqual({ first: null, last: null, change: null });
   });
 });
