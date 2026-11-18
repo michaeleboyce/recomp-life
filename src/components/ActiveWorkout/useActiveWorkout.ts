@@ -7,9 +7,9 @@
  *
  * | State                        | Lives in                       | Written by                                                    | Read by                         | Reset by                                         | Reload | Remount |
  * |------------------------------|--------------------------------|---------------------------------------------------------------|---------------------------------|--------------------------------------------------|--------|---------|
- * | logged sets, plan edits      | session row (Dexie)            | appendSet, appendPlanEdit, commitLogChange                     | everything                      | never (soft delete on discard)                   | kept   | kept    |
- * | start time                   | session row (startedAt)        | startWorkout only                                             | header clock, finish            | never                                            | kept   | kept    |
- * | frozen plan                  | React (per session id)         | first load (planForSession), addExercise, applyChange         | everything                      | another session id                               | rebuilt from session | rebuilt |
+ * | logged sets, plan edits      | useSessionRecord: session row  | appendSet, appendPlanEdit, commitLogChange                     | everything                      | never (soft delete on discard)                   | kept   | kept    |
+ * | start time                   | useSessionRecord: startedAt    | startWorkout only                                             | header clock, finish            | never                                            | kept   | kept    |
+ * | frozen plan (see below)      | useSessionRecord: React        | first load (planForSession), addExercise, applyChange         | everything                      | another session id                               | rebuilt from session | rebuilt |
  * | draft: spot weights          | useSetDraft: React + sessionStorage | setSetWeight / setNextWeight, applyChange (replaced entry)    | plan, chips, logSet             | per set: back to plan; per entry: replaced swap  | kept   | kept    |
  * | draft: reps, effort picked   | useSetDraft: React, by "entry:set" | setSelectedReps, setSelectedRepsInReserve                     | logSet                          | key changes (next set); deleting a set           | lost   | lost    |
  * | draft: pending T2 drop       | useSetDraft: store             | acceptDrop                                                    | plan, dropAccepted              | log on its entry, delete on it, swap of it, reset| lost   | kept    |
@@ -35,12 +35,10 @@ import {
 import { liftName } from "@/components/LogEdit/format";
 import { toast } from "@/components/ui/toast";
 import { commitLogChange } from "@/lib/data/logEdits";
-import { appendPlanEdit, appendSet, discardWorkout, finishWorkout } from "@/lib/data/workouts";
+import { appendSet, discardWorkout, finishWorkout } from "@/lib/data/workouts";
 import { calculateE1RM, isE1RMEligibleSet } from "@/lib/e1rm";
-import { EXERCISES } from "@/lib/exercises";
 import type { LogChange } from "@/lib/rebuild";
 import {
-  applyPlanEdits,
   createSetLog,
   isNextSetAMRAP,
   type WorkoutPlan,
@@ -48,7 +46,7 @@ import {
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { midWorkoutRemove, midWorkoutSwap, type MidWorkoutChange, type SwapReplacement } from "@/lib/swap";
-import type { PlanEdit, RepsInReserve, SetLog, Tier, TrainingPhase } from "@/types";
+import type { RepsInReserve, SetLog, Tier, TrainingPhase } from "@/types";
 import {
   correctedSet,
   dropSuggestionFor,
@@ -56,7 +54,6 @@ import {
   isDropAccepted,
   isLatestSetOfEntry,
 } from "./activeWorkoutLogic";
-import { planForSession } from "@/lib/workout/planForSession";
 import { getPrOpportunity } from "./prOpportunity";
 import {
   exerciseForLog,
@@ -71,6 +68,8 @@ import {
 import { clampWeight } from "@/components/SetPlan/setPlanModel";
 import { withPendingDrop } from "./setDraft";
 import { useSetDraft } from "./useSetDraft";
+import { useSessionRecord } from "./useSessionRecord";
+import { addEditFor, type AddedPrescription } from "./planChanges";
 import { useDropSets } from "./useDropSets";
 import { useTapGuard } from "./useTapGuard";
 import { screenIndexes, useWorkoutView } from "./useWorkoutView";
@@ -132,40 +131,15 @@ export function useActiveWorkout(
   const template = session ? WORKOUT_TEMPLATES[session.templateId] : undefined;
   const trainingPhase = settings?.trainingPhase ?? DEFAULT_PHASE;
 
-  // The plan as prescribed when the workout started (its stored prescription, home
-  // exercises' included; the current lift and home-exercise states only for a session
-  // that has none). Frozen per session so that saving the workout (which moves the
-  // states) cannot reshuffle it, so it waits for every state it reads.
-  const [frozen, setFrozen] = useState<{ sessionId: string; plan: WorkoutPlan } | null>(null);
-  if (
-    session &&
-    settings &&
-    liftStates &&
-    variantStates &&
-    strengthSets &&
-    template &&
-    frozen?.sessionId !== session.id
-  ) {
-    setFrozen({
-      sessionId: session.id,
-      plan: planForSession({
-        session,
-        template,
-        liftStates,
-        equipment: settings.equipment,
-        variantStates,
-        strengthSets,
-      }),
-    });
-  }
-  const basePlan = session && frozen?.sessionId === session.id ? frozen.plan : null;
+  // The saved session: its sets, start time and plan edits, and the plan frozen from it.
+  const { basePlan, sets, workoutStartTime, saveAdd, saveChange } = useSessionRecord(session, {
+    settings,
+    liftStates,
+    variantStates,
+    strengthSets,
+    template,
+  });
 
-  // The saved session owns the start time: it is written once, when the workout starts
-  // (`startWorkout`), and never changed. One Date per value, so the clock is not restarted.
-  const startedAtMs = session ? new Date(session.startedAt).getTime() : null;
-  const workoutStartTime = useMemo(() => (startedAtMs == null ? null : new Date(startedAtMs)), [startedAtMs]);
-
-  const sets = useMemo(() => session?.sets ?? [], [session]);
   // The next set's draft: reps and effort picked, weights changed on the spot, T2 drops.
   const {
     repsFor,
@@ -518,31 +492,13 @@ export function useActiveWorkout(
    * not a whole number of sets and reps with a weight of at least 0.
    */
   const addExercise = useCallback(
-    async (
-      exerciseId: string,
-      prescription: { sets: number; reps: number; weight: number; isAMRAP: boolean }
-    ): Promise<void> => {
-      if (!session || !basePlan || frozen?.sessionId !== session.id) throw new Error("The workout is still loading.");
+    async (exerciseId: string, prescription: AddedPrescription): Promise<void> => {
+      if (!session || !basePlan) throw new Error("The workout is still loading.");
       if (session.completedAt != null) throw new Error("This workout is already saved.");
-      const exercise = EXERCISES[exerciseId];
-      if (!exercise) throw new Error("That exercise is not in the library.");
-      const { sets: count, reps, weight, isAMRAP } = prescription;
-      if (!Number.isInteger(count) || count < 1 || !Number.isInteger(reps) || reps < 1) {
-        throw new Error("Sets and reps must be whole numbers of at least 1.");
-      }
-      if (!Number.isFinite(weight) || weight < 0) throw new Error("The weight must be 0 or more.");
-      const inPlan = basePlan.some(
-        (e) => !e.isWarmUp && (e.exerciseId === exerciseId || e.substituteExerciseId === exerciseId)
-      );
-      if (inPlan) throw new Error(`${exercise.name} is already in this workout.`);
-      const edit: PlanEdit = { kind: "add", exerciseId, sets: count, reps, weight, isAMRAP };
-      await appendPlanEdit(session.id, edit);
       // The frozen plan is planned once per session: the new entry goes on its end.
-      setFrozen((was) =>
-        was && was.sessionId === session.id ? { sessionId: was.sessionId, plan: applyPlanEdits(was.plan, [edit]) } : was
-      );
+      await saveAdd(session.id, addEditFor(basePlan, exerciseId, prescription));
     },
-    [session, basePlan, frozen]
+    [session, basePlan, saveAdd]
   );
 
   /**
@@ -554,22 +510,21 @@ export function useActiveWorkout(
   const applyChange = useCallback(
     async (change: MidWorkoutChange, index: number) => {
       if (!session) return;
-      for (const edit of change.edits) await appendPlanEdit(session.id, edit);
-      setFrozen((was) => (was && was.sessionId === session.id ? { sessionId: was.sessionId, plan: change.plan } : was));
+      await saveChange(session.id, change);
       if (change.mode === "replaced") clearEntrySpotWeights(index);
       clearPendingDropOn(index);
     },
-    [session, clearEntrySpotWeights, clearPendingDropOn]
+    [session, saveChange, clearEntrySpotWeights, clearPendingDropOn]
   );
 
   const changeFor = useCallback(
     (exerciseId: string, tier: Tier) => {
-      if (!session || !basePlan || frozen?.sessionId !== session.id) throw new Error("The workout is still loading.");
+      if (!session || !basePlan) throw new Error("The workout is still loading.");
       if (session.completedAt != null) throw new Error("This workout is already saved.");
       const index = basePlan.findIndex((e) => !e.isWarmUp && e.exerciseId === exerciseId && e.tier === tier);
       return { plan: basePlan, sets, exerciseId, tier, index };
     },
-    [session, basePlan, frozen, sets]
+    [session, basePlan, sets]
   );
 
   /**
