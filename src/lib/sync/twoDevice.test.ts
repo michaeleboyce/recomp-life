@@ -11,6 +11,7 @@ import { fixtureStartAdjustments } from "@/lib/workout/testFixtures";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftAdjustment, NextSetPlan, UserSettings, WorkoutSession } from "@/types";
 import { stampSettingsChanges } from "./settingsMerge";
+import { watchDataFields } from "./workoutMerge";
 import { PROFILE_ID } from "./registry";
 import { FakeSyncServer, TEST_PASSPHRASE, makeDeviceDb } from "./testFakes";
 
@@ -132,6 +133,63 @@ describe("two devices, one server", () => {
     }
     expect(server.rows("runs")).toHaveLength(1);
     expect(server.rows("runs")[0]).toMatchObject({ notes: "B's edit", updatedAt: 250 });
+  });
+
+  it.each([
+    ["A first", ["A", "B"]],
+    ["B first", ["B", "A"]],
+  ])("a set corrected on A and watch data attached on B both survive (%s)", async (_label, order) => {
+    const sets = [makeSet({ id: "s1", actualReps: 3 })];
+    await A.table("workouts").add(makeWorkout({ id: "w1", clientId: "c-w1", sets, updatedAt: 100 }));
+    await sync(A);
+    await sync(B);
+
+    // A corrects the set; B, still holding the older copy, attaches watch data later.
+    await edit(A, "workouts", "w1", { sets: [{ ...sets[0], actualReps: 7 }] }, 200);
+    const onB = await byClientId(B, "workouts", "c-w1");
+    const watch = { externalId: "hk-1", sourceName: "Watch", avgHeartRate: 120, maxHeartRate: 150, activeEnergyKcal: 300, durationSeconds: 3600 };
+    await B.table("workouts").update(onB.id, watchDataFields(onB, watch, 250));
+
+    const devices = order.map((label) => (label === "A" ? A : B));
+    for (const database of [devices[0], devices[1], devices[0], devices[1]]) {
+      expect((await sync(database)).errors).toEqual([]);
+    }
+
+    for (const database of [A, B]) {
+      const row = await byClientId(database, "workouts", "c-w1");
+      expect(row.sets[0].actualReps, nameOf(database)).toBe(7);
+      expect(row.health, nameOf(database)).toMatchObject({ externalId: "hk-1", avgHeartRate: 120 });
+      expect(row.synced, nameOf(database)).toBe(true);
+    }
+    expect(server.rows("workouts")[0]).toMatchObject({ health: { externalId: "hk-1" } });
+    expect((server.rows("workouts")[0].sets as Array<{ actualReps: number }>)[0].actualReps).toBe(7);
+  });
+
+  it("watch data attached after the newest edit is an ordinary newer write", async () => {
+    await A.table("workouts").add(makeWorkout({ id: "w1", clientId: "c-w1", updatedAt: 100 }));
+    await sync(A);
+    await sync(B);
+    const onB = await byClientId(B, "workouts", "c-w1");
+    await B.table("workouts").update(onB.id, watchDataFields(onB, { externalId: "hk-1" }, 250));
+    await sync(B);
+    const result = await pull(A);
+    expect(result.overwritten).toBe(1);
+    expect(await byClientId(A, "workouts", "c-w1")).toMatchObject({ updatedAt: 250, synced: true, health: { externalId: "hk-1" } });
+  });
+
+  it("edits with the same stamp on both devices end up the same everywhere", async () => {
+    await A.table("runs").add(runRow("r1", "original", 100));
+    await sync(A);
+    await sync(B);
+
+    await edit(A, "runs", "r1", { notes: "A's edit" }, 200);
+    await edit(B, "runs", "r1", { notes: "B's edit" }, 200);
+    for (const database of [A, B, A, B]) await sync(database);
+
+    const onA = await byClientId(A, "runs", "c-r1");
+    const onB = await byClientId(B, "runs", "c-r1");
+    expect(onA.notes).toBe(onB.notes);
+    expect(server.rows("runs")[0].notes).toBe(onA.notes);
   });
 
   it("an edit made on A while its push is in flight stays dirty and goes out next push", async () => {

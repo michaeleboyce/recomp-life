@@ -179,7 +179,8 @@ describe("runHealthImport: lifting sessions", () => {
     );
     const result = await run({ workouts: [strength] });
     expect(result).toMatchObject({ sessions: 1, activities: 0, runs: 0 });
-    expect((await db.workouts.get("s1"))?.health).toEqual({
+    const stored = await db.workouts.get("s1");
+    expect(stored?.health).toMatchObject({
       externalId: "ST",
       sourceName: "Apple Watch",
       avgHeartRate: 118,
@@ -187,6 +188,9 @@ describe("runHealthImport: lifting sessions", () => {
       activeEnergyKcal: 320,
       durationSeconds: 3600,
     });
+    // Stamped apart from the log: the row's new stamp, and the stamp the log had before.
+    expect(stored?.health?.stamp?.row).toBe(stored?.updatedAt);
+    expect(stored?.health?.stamp?.content).toBeLessThan(stored!.updatedAt!);
     expect((await db.workouts.get("s1"))?.synced).toBe(false);
     expect((await run({ workouts: [strength] })).sessions).toBe(0);
   });
