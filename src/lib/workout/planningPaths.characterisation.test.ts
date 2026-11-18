@@ -39,17 +39,26 @@ import type {
 } from "@/types";
 
 const NOW = new Date(2026, 10, 14, 12, 0, 0);
-const DAY = 86_400_000;
 const SNAPSHOT = path.resolve(__dirname, "__fixtures__/planning-paths.characterisation.json");
 
 const demo = generateDemoData(NOW);
 const workouts = [...demo.workouts].sort(
   (a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime()
 );
-const firstStart = new Date(workouts[0].startedAt).getTime();
-const daysBefore = (days: number) => new Date(firstStart - days * DAY);
-const between = (i: number) =>
-  new Date((new Date(workouts[i].completedAt!).getTime() + new Date(workouts[i + 1].startedAt).getTime()) / 2);
+// Times are moved on the wall clock (setDate, setHours), never by adding milliseconds:
+// the demo log spans a daylight-saving change in some zones, and a millisecond offset
+// across it lands on a different local time there than elsewhere.
+const daysBefore = (days: number) => {
+  const d = new Date(workouts[0].startedAt);
+  d.setDate(d.getDate() - days);
+  return d;
+};
+/** After workout `i` is finished and before the next one starts: two hours later that day. */
+const between = (i: number) => {
+  const d = new Date(workouts[i].completedAt!);
+  d.setHours(d.getHours() + 2);
+  return d;
+};
 
 /** One made-up imported session: three working sets of one exercise. */
 function imp(id: string, exerciseId: string, at: Date, weight: number, reps: number): ImportedSessionRecord {
@@ -147,16 +156,24 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const localStamp = (date: Date) =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 
-/** Plain JSON: dates as local stamps, maps as objects, undefined fields dropped. */
-function plain(value: unknown): unknown {
+/**
+ * Fields that hold a time as epoch milliseconds. The demo log is built from a local
+ * `NOW`, so their numbers differ by time zone; recorded as local stamps, like dates,
+ * the file reads the same everywhere (GitHub's checks run in UTC).
+ */
+const TIME_KEYS = new Set(["at", "lastDone", "setAt"]);
+
+/** Plain JSON: dates and times as local stamps, maps as objects, undefined fields dropped. */
+function plain(value: unknown, key?: string): unknown {
   if (value instanceof Date) return localStamp(value);
+  if (typeof value === "number" && key !== undefined && TIME_KEYS.has(key)) return localStamp(new Date(value));
   if (value instanceof Map) return Object.fromEntries([...value].map(([k, v]) => [k, plain(v)]));
-  if (Array.isArray(value)) return value.map(plain);
+  if (Array.isArray(value)) return value.map((v) => plain(v));
   if (value && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value)
         .filter(([, v]) => v !== undefined)
-        .map(([k, v]) => [k, plain(v)])
+        .map(([k, v]) => [k, plain(v, k)])
     );
   }
   return value;

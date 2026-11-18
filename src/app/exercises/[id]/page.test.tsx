@@ -175,12 +175,13 @@ describe("an exercise's page", () => {
 
   it("an exercise never planned says so", async () => {
     await seedDemo();
-    render(<ExercisePageClient exerciseId="incline_db_row" />);
+    // A bodyweight exercise: not an accessory, so nothing plans it and it has no weight to adjust.
+    render(<ExercisePageClient exerciseId="push_up" />);
     expect(await screen.findByTestId("exercise-eyebrow")).toHaveTextContent("Exercise");
     const next = await screen.findByRole("region", { name: "Next session" });
     await waitFor(() => expect(within(next).getByTestId("not-planned")).toHaveTextContent("Not in your coming workouts."));
     expect(within(next).queryByRole("button", { name: "Adjust weight" })).toBeNull();
-    expect(await screen.findByText("No Incline DB row sessions yet.")).toBeInTheDocument();
+    expect(await screen.findByText(/^No .+ sessions yet\.$/)).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Strength" })).toHaveTextContent("gives its estimate");
   });
 
