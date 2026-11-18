@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Activity, ChevronRight, Dumbbell, HeartPulse, Scale, Star } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { useBodyweightLog, useFavoriteWorkouts, useNextWorkout, useRuns } from "@/hooks";
+import { useBodyweightLog, useDueTemplateId, useFavoriteWorkouts, useRuns } from "@/hooks";
 import { cn } from "@/lib/utils";
 import { workoutDisplayName } from "@/lib/workoutNames";
 import { withFrom, type FromKey } from "./backTarget";
@@ -24,12 +24,12 @@ function SecondaryMono({ children }: { children?: string }) {
 }
 
 export function QuickAddSheet({ open, onOpenChange, from }: QuickAddSheetProps) {
-  const next = useNextWorkout();
+  const dueTemplateId = useDueTemplateId();
   const bodyweight = useBodyweightLog();
   const runs = useRuns();
   const favorites = useFavoriteWorkouts();
 
-  const nextSubtitle = next ? workoutDisplayName(next.templateId, true) : undefined;
+  const nextSubtitle = dueTemplateId ? workoutDisplayName(dueTemplateId, true) : undefined;
 
   const lastWeight = bodyweight && bodyweight.length > 0 ? bodyweight[bodyweight.length - 1].weight : null;
   const lastRunMiles = runs?.[0]?.distanceMiles ?? null;

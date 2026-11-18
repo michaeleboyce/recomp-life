@@ -1,10 +1,9 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 
 const hooks = vi.hoisted(() => ({
-  useNextWorkout: vi.fn(),
+  useDueTemplateId: vi.fn(),
   useBodyweightLog: vi.fn(),
   useRuns: vi.fn(),
   useFavoriteWorkouts: vi.fn(),
@@ -13,19 +12,17 @@ vi.mock("@/hooks", () => hooks);
 
 import { QuickAddSheet } from "./QuickAddSheet";
 
-const a1 = WORKOUT_TEMPLATES.A1;
-
 function setHooks(
   overrides: { next?: unknown; weights?: unknown; runs?: unknown; favorites?: unknown } = {}
 ) {
   const data = {
     favorites: [{ id: "a" }, { id: "b" }],
-    next: { templateId: "A1", template: a1, plan: [] },
+    next: "A1",
     weights: [{ weight: 230 }, { weight: 226 }],
     runs: [{ distanceMiles: 3.1 }, { distanceMiles: 5 }],
     ...overrides,
   };
-  hooks.useNextWorkout.mockReturnValue(data.next);
+  hooks.useDueTemplateId.mockReturnValue(data.next);
   hooks.useBodyweightLog.mockReturnValue(data.weights);
   hooks.useRuns.mockReturnValue(data.runs);
   hooks.useFavoriteWorkouts.mockReturnValue(data.favorites);
