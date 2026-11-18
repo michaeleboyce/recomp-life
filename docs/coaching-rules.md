@@ -353,7 +353,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `strength-pooling`
 - **Status:** Active
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/workout/strength.ts` (`strengthEvidenceOf`), `src/lib/data/forecasts.ts` (`strengthSetsFrom`), `src/lib/import/history.ts` (`importedLiftIndex`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`), `src/lib/strength/timeline.ts` (`TREND_SMOOTHING`), `src/lib/strength/timeline.ts` (`strengthTimeline`), `src/lib/strength/timeline.ts` (`muscleTimeline`), `src/lib/strength/timeline.ts` (`smoothedEstimate`), `src/lib/strength/timeline.ts` (`weeklyShares`)
+- **Implemented in:** `src/lib/strength/coefficients.ts` (`STRENGTH_POOLING`), `src/lib/strength/coefficients.ts` (`MUSCLE_INDEX`), `src/lib/strength/estimate.ts` (`externalLoad`), `src/lib/strength/estimate.ts` (`sessionEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/components/Progress/strength.ts` (`liftEstimate`), `src/lib/strength/muscleIndex.ts` (`muscleStrengthIndex`), `src/lib/strength/reentry.ts` (`barbellReentryWeight`), `src/lib/strength/reentry.ts` (`homeReentryWeight`), `src/lib/workout/reentry.ts` (`resolveReentry`), `src/lib/workout/startPlan.ts` (`planWorkoutStart`), `src/lib/workout/strength.ts` (`strengthEvidenceOf`), `src/lib/data/forecasts.ts` (`strengthSetsFrom`), `src/lib/import/history.ts` (`importedLiftIndex`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`), `src/lib/strength/timeline.ts` (`TREND_SMOOTHING`), `src/lib/strength/timeline.ts` (`strengthTimeline`), `src/lib/strength/timeline.ts` (`muscleTimeline`), `src/lib/strength/timeline.ts` (`smoothedEstimate`), `src/lib/strength/timeline.ts` (`weeklyShares`)
 - **Shown in:** `src/components/Progress/MusclesTab.tsx`, `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/ExercisePage/CountsToward.tsx`, `src/components/Lift/ImportedHistory.tsx`, `src/components/StrengthTrend/StrengthTrendPanel.tsx`
 - **Reviewed:** November 2026
 
@@ -518,7 +518,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `time-off`
 - **Status:** Active
 - **Evidence:** Limited evidence
-- **Implemented in:** `src/lib/weightDecay.ts` (`calculateWeightDecay`), `src/lib/recovery.ts` (`LONG_BREAK_DAYS`), `src/lib/inactivity.ts` (`checkInactivity`)
+- **Implemented in:** `src/lib/weightDecay.ts` (`calculateWeightDecay`), `src/lib/recovery.ts` (`LONG_BREAK_DAYS`), `src/lib/inactivity.ts` (`checkInactivity`), `src/lib/insights/rules/inactivity.ts` (`inactivityInsights`)
 - **Shown in:** `src/app/workout/configure/page.tsx`, `src/components/Today/AttentionList.tsx`
 - **Reviewed:** November 2026
 

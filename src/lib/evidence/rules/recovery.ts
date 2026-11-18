@@ -72,6 +72,7 @@ export const RECOVERY_RULES = {
       "src/lib/weightDecay.ts#calculateWeightDecay",
       "src/lib/recovery.ts#LONG_BREAK_DAYS",
       "src/lib/inactivity.ts#checkInactivity",
+      "src/lib/insights/rules/inactivity.ts#inactivityInsights",
     ],
     surfaces: ["src/app/workout/configure/page.tsx", "src/components/Today/AttentionList.tsx"],
   },
