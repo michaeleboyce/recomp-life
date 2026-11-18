@@ -162,7 +162,7 @@ export const STRENGTH_RULES = {
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
       "src/lib/strength/timeline.ts#strengthTimeline",
     ],
-    surfaces: ["src/components/ExercisePage/HomeNextSession.tsx"],
+    surfaces: ["src/components/ExercisePage/HomeNextSession.tsx", "src/components/ExercisePage/NextSession.tsx"],
   },
   "drop-set-evidence": {
     area: "effort",

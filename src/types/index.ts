@@ -60,6 +60,11 @@ export interface UserSettings {
    * workout are kept to it (`fitAccessoriesToBudget`).
    */
   sessionMinutes?: number | null;
+  /**
+   * When each setting last changed (epoch ms), by path, written by `writeSettings`, so
+   * sync merges settings field by field (src/lib/sync/settingsMerge.ts). Not a setting.
+   */
+  fieldStamps?: Record<string, number>;
 }
 
 export type AccessoryMode = "auto" | "ask" | "none";

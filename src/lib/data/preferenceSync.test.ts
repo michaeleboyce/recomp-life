@@ -93,6 +93,8 @@ describe("setExercisePreference", () => {
       ...before,
       exercisePreferences: { ...before.exercisePreferences, incline_db_press: "preferred" },
       exercisePreferencesByLocation: before.exercisePreferencesByLocation ?? {},
+      // When the preference changed, for the sync merge.
+      fieldStamps: { [JSON.stringify(["exercisePreferences", "incline_db_press"])]: expect.any(Number) },
     });
   });
 });

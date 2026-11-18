@@ -252,6 +252,48 @@ describe("an exercise's page", () => {
     expect(changes).toHaveTextContent("Manual change at home");
   });
 
+  it("dumbbell row standing in for lat pulldown at home: Adjust sets the stand-in's weight, not its own T3", async () => {
+    await initializeDatabase();
+    await seedFixtureStartingWeights();
+    const profile = (await db.userProfile.toCollection().first())!;
+    await db.userProfile.update(profile.id, { settings: { ...profile.settings, defaultLocation: "home" } });
+    const rowBefore = (await db.liftStates.get("db_row"))!.t3Weight;
+    const pulldownBefore = (await db.liftStates.get("lat_pulldown"))!.t3Weight;
+    const standIn = describeNextWorkout({
+      completedWorkouts: [],
+      templates: WORKOUT_TEMPLATES,
+      liftStates: await db.liftStates.toArray(),
+      plan: { location: "home", equipment, includeWarmUps: false, selectedAccessories: [], variantStates: [], strengthSets: [] },
+      reentry: true,
+    }).plan.find((e) => !e.isWarmUp && e.exerciseId === "lat_pulldown")!;
+    expect(standIn.substituteExerciseId).toBe("db_row");
+
+    render(
+      <>
+        <ExercisePageClient exerciseId="db_row" />
+        <Toaster />
+      </>
+    );
+    const next = await screen.findByRole("region", { name: /^Next session/ });
+    const weight = await within(next).findByTestId("next-weight");
+    await waitFor(() => expect(weight).toHaveTextContent(String(standIn.weight)));
+    fireEvent.click(within(next).getByRole("button", { name: "Adjust weight" }));
+    const dialog = await screen.findByRole("dialog");
+    // Lat pulldown is only ever a T3: no tier or stage to pick.
+    expect(within(dialog).queryByRole("radiogroup", { name: "Tier" })).toBeNull();
+    expect(within(dialog).queryByRole("radiogroup", { name: "Stage" })).toBeNull();
+    await waitFor(() => expect(within(dialog).getByRole("spinbutton", { name: /^Weight/ })).toHaveValue(standIn.weight));
+    const step = equipment.dumbbellIncrementLbs;
+    fireEvent.click(within(dialog).getByRole("button", { name: `Increase weight by ${step}` }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save change" }));
+
+    await waitFor(() => expect(within(next).getByTestId("next-weight")).toHaveTextContent(String(standIn.weight + step)));
+    expect((await db.liftStates.get("db_row"))!.t3Weight).toBe(rowBefore);
+    expect((await db.liftStates.get("lat_pulldown"))!.t3Weight).toBe(pulldownBefore);
+    await waitFor(() => expect(within(next).getByTestId("plan-weight")).toHaveTextContent(String(standIn.weight)));
+    expect(within(next).getByRole("button", { name: `Use ${standIn.weight}` })).toBeInTheDocument();
+  });
+
   it("keeps per-set weights for the next session in the settings, and back to plan removes them", async () => {
     await initializeDatabase();
     await seedFixtureStartingWeights();
