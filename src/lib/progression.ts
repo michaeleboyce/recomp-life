@@ -5,7 +5,7 @@
  * - T1: 5x3 -> 6x2 -> 10x1 -> reset (failure cascade)
  * - T2: 3x10 -> 3x8 -> 3x6 -> reset (failure cascade)
  * - T3: the weight goes up when the last set reaches its rep target
- * - T2 Auto-regulation: RPE-based load drops per training phase
+ * - T2 Auto-regulation: load drops from the reps left on the first set, per training phase
  *
  * All functions are pure — they take state in and return new state out. `evaluateT1`,
  * `evaluateT2` and `evaluateT3` also return the outcome: what the rule did and why.
@@ -18,6 +18,7 @@ import type {
   ProgressionOutcome,
   ProgressionOutcomeKind,
   ProgressionOutcomeReason,
+  RepsInReserve,
   SetLog,
   SetStatus,
   EquipmentProfile,
@@ -27,6 +28,7 @@ import type {
   T2Stage,
   T2AutoRegResult,
 } from "@/types";
+import { repsInReserveLabel } from "@/lib/effort";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -36,17 +38,26 @@ import type {
 export const RESET_FACTOR = 0.85;
 
 /**
- * RPE of the first T2 set at or above which a lighter load is suggested for
- * the remaining sets, by training phase. The per-phase split is a heuristic.
+ * What the first T2 set's reps-in-reserve answer suggests for the remaining sets, by
+ * training phase: "max" is the larger drop, "step" the smallest one, null no
+ * suggestion. The per-phase split is a heuristic.
  */
-export const T2_AUTOREG_RPE_THRESHOLD: Record<TrainingPhase["mode"], number> = {
-  cutting: 9.0,
-  maintaining: 9.5,
-  bulking: 10.0,
+export const T2_AUTOREG_SUGGESTION: Record<
+  TrainingPhase["mode"],
+  Record<RepsInReserve, "max" | "step" | null>
+> = {
+  cutting: { "0": "max", "1-2": "step", "3+": null },
+  maintaining: { "0": "max", "1-2": null, "3+": null },
+  bulking: { "0": "max", "1-2": null, "3+": null },
 };
 
-/** Suggested T2 load drop: `max` after an RPE 10 set, `standard` otherwise. */
-export const T2_AUTOREG_DROP = { standard: 0.05, max: 0.1 } as const;
+/**
+ * Suggested T2 load drop. `max` is the fraction taken off after a set with nothing
+ * left; `stepLbs` is the smallest drop, used on its own for the "step" suggestion and
+ * as the least a `max` drop takes off (loads round to 5 lb, so a small percentage of
+ * a light weight would otherwise round back to no change).
+ */
+export const T2_AUTOREG_DROP = { max: 0.075, stepLbs: 5 } as const;
 
 /** Reps on the last T3 set at or above which the T3 weight goes up, in every phase. */
 export const T3_LAST_SET_INCREASE_REPS = 25;
@@ -520,13 +531,12 @@ export function evaluateT3(liftState: LiftState, setsCompleted: SetLog[]): Progr
 // ---------------------------------------------------------------------------
 
 /**
- * Evaluate whether to suggest a load drop for T2 sets 2-3 based on
- * the RPE of set 1.
+ * Evaluate whether to suggest a load drop for T2 sets 2-3 from the reps the lifter
+ * had left on set 1.
  *
- * Thresholds by phase are in T2_AUTOREG_RPE_THRESHOLD.
- *
- * If RPE >= 10: suggest the max drop (10%)
- * If RPE >= threshold (but < 10): suggest the standard drop (5%)
+ * What each answer suggests in each phase is in T2_AUTOREG_SUGGESTION; the sizes of
+ * the two drops are in T2_AUTOREG_DROP. A suggestion always lowers the weight and
+ * never takes it to zero.
  *
  * Accepting the drop freezes T2 progression for the session; it is neither
  * a pass nor a failure.
@@ -534,32 +544,35 @@ export function evaluateT3(liftState: LiftState, setsCompleted: SetLog[]): Progr
  * @evidence t2-autoregulation
  */
 export function evaluateT2AutoRegulation(
-  set1RPE: number | null,
+  set1RepsInReserve: RepsInReserve | null,
   phase: TrainingPhase,
   prescribedWeight: number
 ): T2AutoRegResult {
-  if (set1RPE === null) {
+  if (set1RepsInReserve === null) {
     return { action: "continue" };
   }
 
-  const threshold = T2_AUTOREG_RPE_THRESHOLD[phase.mode];
-
-  if (set1RPE >= threshold) {
-    const dropPercent =
-      set1RPE >= 10 ? T2_AUTOREG_DROP.max : T2_AUTOREG_DROP.standard;
-    const reducedWeight = roundToNearest5(
-      prescribedWeight * (1 - dropPercent)
-    );
-    return {
-      action: "suggest_drop",
-      reducedWeight,
-      message: `Set 1 felt very hard (RPE ${set1RPE}). Suggest dropping to ${reducedWeight} lbs for Sets 2-3.`,
-      progressionEffect: "freeze",
-      evidenceId: "t2-autoregulation",
-    };
+  const suggestion = T2_AUTOREG_SUGGESTION[phase.mode][set1RepsInReserve];
+  if (suggestion === null) {
+    return { action: "continue" };
   }
 
-  return { action: "continue" };
+  const oneStepDown = prescribedWeight - T2_AUTOREG_DROP.stepLbs;
+  const reducedWeight =
+    suggestion === "max"
+      ? Math.min(oneStepDown, roundToNearest5(prescribedWeight * (1 - T2_AUTOREG_DROP.max)))
+      : oneStepDown;
+  if (reducedWeight <= 0) {
+    return { action: "continue" };
+  }
+
+  return {
+    action: "suggest_drop",
+    reducedWeight,
+    message: `Set 1 left you ${repsInReserveLabel(set1RepsInReserve)}. Suggest dropping to ${reducedWeight} lbs for Sets 2-3.`,
+    progressionEffect: "freeze",
+    evidenceId: "t2-autoregulation",
+  };
 }
 
 // ---------------------------------------------------------------------------
