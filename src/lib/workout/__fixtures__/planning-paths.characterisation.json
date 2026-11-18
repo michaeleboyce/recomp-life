@@ -2141,15 +2141,15 @@
    "today": [
     "warmup bench>db_bench | 25(145) 1x10",
     "warmup bench>db_bench | 40(145) 1x5",
-    "T1 bench>db_bench | 60(145) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":145,\"ratio\":0.83,\"lastDone\":1789941390000}",
-    "T2 squat>bulgarian_split_squat | 45(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":1789940940000,\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
+    "T1 bench>db_bench | 60(145) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":145,\"ratio\":0.83,\"lastDone\":\"2026-09-20T17:56\"}",
+    "T2 squat>bulgarian_split_squat | 45(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":\"2026-09-20T17:49\",\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
     "T3 lat_pulldown>db_row | 35(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand"
    ],
    "forecast": [
     "warmup bench>db_bench | 25(145) 1x10",
     "warmup bench>db_bench | 40(145) 1x5",
-    "T1 bench>db_bench | 60(145) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":145,\"ratio\":0.83,\"lastDone\":1789941390000}",
-    "T2 squat>bulgarian_split_squat | 45(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":1789940940000,\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
+    "T1 bench>db_bench | 60(145) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":145,\"ratio\":0.83,\"lastDone\":\"2026-09-20T17:56\"}",
+    "T2 squat>bulgarian_split_squat | 45(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":\"2026-09-20T17:49\",\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
     "T3 lat_pulldown>db_row | 35(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand"
    ],
    "upcoming": [
@@ -2162,8 +2162,8 @@
     "plan": [
      "warmup bench>db_bench | 25(145) 1x10",
      "warmup bench>db_bench | 40(145) 1x5",
-     "T1 bench>db_bench | 60(145) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":145,\"ratio\":0.83,\"lastDone\":1789941390000}",
-     "T2 squat>bulgarian_split_squat | 45(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":1789940940000,\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
+     "T1 bench>db_bench | 60(145) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":145,\"ratio\":0.83,\"lastDone\":\"2026-09-20T17:56\"}",
+     "T2 squat>bulgarian_split_squat | 45(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":\"2026-09-20T17:49\",\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
      "T3 lat_pulldown>db_row | 35(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand"
     ],
     "prescribed": [
@@ -2220,8 +2220,8 @@
    "resumed": [
     "warmup bench>db_bench | 25(145) 1x10",
     "warmup bench>db_bench | 40(145) 1x5",
-    "T1 bench>db_bench | 60(145) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":145,\"ratio\":0.83,\"lastDone\":1789941390000}",
-    "T2 squat>bulgarian_split_squat | 45(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":1789940940000,\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
+    "T1 bench>db_bench | 60(145) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":145,\"ratio\":0.83,\"lastDone\":\"2026-09-20T17:56\"}",
+    "T2 squat>bulgarian_split_squat | 45(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":\"2026-09-20T17:49\",\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
     "T3 lat_pulldown>db_row | 35(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand"
    ]
   },
@@ -2231,15 +2231,15 @@
    "today": [
     "warmup deadlift>db_rdl | 25(220) 1x10",
     "warmup deadlift>db_rdl | 45(220) 1x5",
-    "T1 deadlift>db_rdl | 65(220) 5x3+ | variant=deadlift|db_rdl|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":220,\"ratio\":0.6,\"lastDone\":1790114190000}",
-    "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":1790113740000,\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
+    "T1 deadlift>db_rdl | 65(220) 5x3+ | variant=deadlift|db_rdl|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":220,\"ratio\":0.6,\"lastDone\":\"2026-09-22T17:56\"}",
+    "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
     "T3 db_row | 35 3x15+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 25(220) 1x10",
     "warmup deadlift>db_rdl | 45(220) 1x5",
-    "T1 deadlift>db_rdl | 65(220) 5x3+ | variant=deadlift|db_rdl|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":220,\"ratio\":0.6,\"lastDone\":1790114190000}",
-    "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":1790113740000,\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
+    "T1 deadlift>db_rdl | 65(220) 5x3+ | variant=deadlift|db_rdl|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":220,\"ratio\":0.6,\"lastDone\":\"2026-09-22T17:56\"}",
+    "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
     "T3 db_row | 35 3x15+"
    ],
    "upcoming": [
@@ -2252,8 +2252,8 @@
     "plan": [
      "warmup deadlift>db_rdl | 25(220) 1x10",
      "warmup deadlift>db_rdl | 45(220) 1x5",
-     "T1 deadlift>db_rdl | 65(220) 5x3+ | variant=deadlift|db_rdl|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":220,\"ratio\":0.6,\"lastDone\":1790114190000}",
-     "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":1790113740000,\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
+     "T1 deadlift>db_rdl | 65(220) 5x3+ | variant=deadlift|db_rdl|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":220,\"ratio\":0.6,\"lastDone\":\"2026-09-22T17:56\"}",
+     "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
      "T3 db_row | 35 3x15+"
     ],
     "prescribed": [
@@ -2303,8 +2303,8 @@
    "resumed": [
     "warmup deadlift>db_rdl | 25(220) 1x10",
     "warmup deadlift>db_rdl | 45(220) 1x5",
-    "T1 deadlift>db_rdl | 65(220) 5x3+ | variant=deadlift|db_rdl|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":220,\"ratio\":0.6,\"lastDone\":1790114190000}",
-    "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":1790113740000,\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
+    "T1 deadlift>db_rdl | 65(220) 5x3+ | variant=deadlift|db_rdl|T1 perHand | seed={\"source\":\"ratio\",\"barbellWeight\":220,\"ratio\":0.6,\"lastDone\":\"2026-09-22T17:56\"}",
+    "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
     "T3 db_row | 35 3x15+"
    ]
   },
@@ -4718,7 +4718,7 @@
     "warmup squat | 100 1x5",
     "warmup squat | 140 1x3",
     "warmup squat | 170 1x1",
-    "T1 squat | 185 4x3+ | sets=135x5:ramp,185x3,185x3,185x3 | reentry={\"rule\":\"steps\",\"weight\":200,\"fromSteps\":200,\"fromEstimate\":220,\"stepsEarned\":1,\"targetReps\":3,\"location\":\"gym\",\"lastWeight\":190,\"estimate\":247}",
+    "T1 squat | 185 4x3+ | sets=135x5:ramp,185x3,185x3,185x3 | reentry={\"rule\":\"steps\",\"weight\":200,\"fromSteps\":200,\"fromEstimate\":220,\"stepsEarned\":1,\"targetReps\":3,\"location\":\"gym\",\"lastWeight\":190,\"estimate\":246}",
     "T2 bench | 105 3x10 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":135,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":184}",
     "T3 lat_pulldown | 90 3x15+"
    ],
@@ -4727,7 +4727,7 @@
     "warmup squat | 100 1x5",
     "warmup squat | 140 1x3",
     "warmup squat | 170 1x1",
-    "T1 squat | 185 4x3+ | sets=135x5:ramp,185x3,185x3,185x3 | reentry={\"rule\":\"steps\",\"weight\":200,\"fromSteps\":200,\"fromEstimate\":220,\"stepsEarned\":1,\"targetReps\":3,\"location\":\"gym\",\"lastWeight\":190,\"estimate\":247}",
+    "T1 squat | 185 4x3+ | sets=135x5:ramp,185x3,185x3,185x3 | reentry={\"rule\":\"steps\",\"weight\":200,\"fromSteps\":200,\"fromEstimate\":220,\"stepsEarned\":1,\"targetReps\":3,\"location\":\"gym\",\"lastWeight\":190,\"estimate\":246}",
     "T2 bench | 105 3x10 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":135,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":184}",
     "T3 lat_pulldown | 90 3x15+"
    ],
@@ -4743,7 +4743,7 @@
      "warmup squat | 100 1x5",
      "warmup squat | 140 1x3",
      "warmup squat | 170 1x1",
-     "T1 squat | 95 4x3+ | reentry={\"rule\":\"steps\",\"weight\":200,\"fromSteps\":200,\"fromEstimate\":220,\"stepsEarned\":1,\"targetReps\":3,\"location\":\"gym\",\"lastWeight\":190,\"estimate\":247}",
+     "T1 squat | 95 4x3+ | reentry={\"rule\":\"steps\",\"weight\":200,\"fromSteps\":200,\"fromEstimate\":220,\"stepsEarned\":1,\"targetReps\":3,\"location\":\"gym\",\"lastWeight\":190,\"estimate\":246}",
      "T2 bench | 105 4x8 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":135,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":184}",
      "T3 face_pulls | 30 3x15+",
      "accessory bicep_curls | 25 3x12"
@@ -4809,7 +4809,7 @@
       "targetReps": 3,
       "location": "gym",
       "lastWeight": 190,
-      "estimate": 247
+      "estimate": 246
      },
      "bench|T2": {
       "rule": "steps",
@@ -6656,15 +6656,15 @@
    "today": [
     "warmup squat>bulgarian_split_squat | 20(190) 1x10",
     "warmup squat>bulgarian_split_squat | 35(190) 1x5",
-    "T1 squat>bulgarian_split_squat | 50(190) 5x3+ | variant=squat|bulgarian_split_squat|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":190,\"ownEstimate\":114,\"targetReps\":3,\"history\":{\"at\":1789421401000,\"weight\":45,\"reps\":8,\"perHand\":true,\"sessionId\":\"imp-bss-6\",\"imported\":true}}",
-    "T2 bench>db_bench | 45(82) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":100,\"ownEstimate\":147,\"targetReps\":10,\"history\":{\"at\":1789335001000,\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true}}",
+    "T1 squat>bulgarian_split_squat | 50(190) 5x3+ | variant=squat|bulgarian_split_squat|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":190,\"ownEstimate\":114,\"targetReps\":3,\"history\":{\"at\":\"2026-09-14T17:30\",\"weight\":45,\"reps\":8,\"perHand\":true,\"sessionId\":\"imp-bss-6\",\"imported\":true}}",
+    "T2 bench>db_bench | 45(82) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":100,\"ownEstimate\":147,\"targetReps\":10,\"history\":{\"at\":\"2026-09-13T17:30\",\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true}}",
     "T3 lat_pulldown>db_row | 35(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand | seed={\"source\":\"conversion\",\"barbellWeight\":90}"
    ],
    "forecast": [
     "warmup squat>bulgarian_split_squat | 20(190) 1x10",
     "warmup squat>bulgarian_split_squat | 35(190) 1x5",
-    "T1 squat>bulgarian_split_squat | 50(190) 5x3+ | variant=squat|bulgarian_split_squat|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":190,\"ownEstimate\":114,\"targetReps\":3,\"history\":{\"at\":1789421401000,\"weight\":45,\"reps\":8,\"perHand\":true,\"sessionId\":\"imp-bss-6\",\"imported\":true}}",
-    "T2 bench>db_bench | 45(82) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":100,\"ownEstimate\":147,\"targetReps\":10,\"history\":{\"at\":1789335001000,\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true}}",
+    "T1 squat>bulgarian_split_squat | 50(190) 5x3+ | variant=squat|bulgarian_split_squat|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":190,\"ownEstimate\":114,\"targetReps\":3,\"history\":{\"at\":\"2026-09-14T17:30\",\"weight\":45,\"reps\":8,\"perHand\":true,\"sessionId\":\"imp-bss-6\",\"imported\":true}}",
+    "T2 bench>db_bench | 45(82) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":100,\"ownEstimate\":147,\"targetReps\":10,\"history\":{\"at\":\"2026-09-13T17:30\",\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true}}",
     "T3 lat_pulldown>db_row | 35(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand | seed={\"source\":\"conversion\",\"barbellWeight\":90}"
    ],
    "upcoming": [
@@ -6677,8 +6677,8 @@
     "plan": [
      "warmup squat>bulgarian_split_squat | 20(190) 1x10",
      "warmup squat>bulgarian_split_squat | 35(190) 1x5",
-     "T1 squat>bulgarian_split_squat | 95(361) 5x3+ | variant=squat|bulgarian_split_squat|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":190,\"ownEstimate\":114,\"targetReps\":3,\"history\":{\"at\":1789421401000,\"weight\":45,\"reps\":8,\"perHand\":true,\"sessionId\":\"imp-bss-6\",\"imported\":true}}",
-     "T2 bench>db_bench | 45(82) 4x8 | variant=bench|db_bench|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":100,\"ownEstimate\":147,\"targetReps\":10,\"history\":{\"at\":1789335001000,\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true}}",
+     "T1 squat>bulgarian_split_squat | 95(361) 5x3+ | variant=squat|bulgarian_split_squat|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":190,\"ownEstimate\":114,\"targetReps\":3,\"history\":{\"at\":\"2026-09-14T17:30\",\"weight\":45,\"reps\":8,\"perHand\":true,\"sessionId\":\"imp-bss-6\",\"imported\":true}}",
+     "T2 bench>db_bench | 45(82) 4x8 | variant=bench|db_bench|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":100,\"ownEstimate\":147,\"targetReps\":10,\"history\":{\"at\":\"2026-09-13T17:30\",\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true}}",
      "T3 face_pulls | 30 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
@@ -6756,8 +6756,8 @@
    "resumed": [
     "warmup squat>bulgarian_split_squat | 20(190) 1x10",
     "warmup squat>bulgarian_split_squat | 35(190) 1x5",
-    "T1 squat>bulgarian_split_squat | 95(361) 5x3+ | variant=squat|bulgarian_split_squat|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":190,\"ownEstimate\":114,\"targetReps\":3,\"history\":{\"at\":1789421401000,\"weight\":45,\"reps\":8,\"perHand\":true,\"sessionId\":\"imp-bss-6\",\"imported\":true}}",
-    "T2 bench>db_bench | 45(82) 4x8 | variant=bench|db_bench|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":100,\"ownEstimate\":147,\"targetReps\":10,\"history\":{\"at\":1789335001000,\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true}}",
+    "T1 squat>bulgarian_split_squat | 95(361) 5x3+ | variant=squat|bulgarian_split_squat|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":190,\"ownEstimate\":114,\"targetReps\":3,\"history\":{\"at\":\"2026-09-14T17:30\",\"weight\":45,\"reps\":8,\"perHand\":true,\"sessionId\":\"imp-bss-6\",\"imported\":true}}",
+    "T2 bench>db_bench | 45(82) 4x8 | variant=bench|db_bench|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":100,\"ownEstimate\":147,\"targetReps\":10,\"history\":{\"at\":\"2026-09-13T17:30\",\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true}}",
     "T3 face_pulls | 30 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
@@ -6768,15 +6768,15 @@
    "today": [
     "warmup ohp>db_shoulder_press | 20(85) 1x10",
     "warmup ohp>db_shoulder_press | 30(85) 1x5",
-    "T1 ohp>db_shoulder_press | 30(57) 2x4+ | sets=30x4,30x4 | variant=ohp|db_shoulder_press|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":85,\"ownEstimate\":107,\"targetReps\":3,\"history\":{\"at\":1789162201000,\"weight\":40,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbsp-6\",\"imported\":true}}",
-    "T2 deadlift>db_rdl | 60(155) 3x10 | variant=deadlift|db_rdl|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":155,\"ownEstimate\":160,\"targetReps\":10,\"history\":{\"at\":1789248601000,\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true}}",
+    "T1 ohp>db_shoulder_press | 30(57) 2x4+ | sets=30x4,30x4 | variant=ohp|db_shoulder_press|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":85,\"ownEstimate\":107,\"targetReps\":3,\"history\":{\"at\":\"2026-09-11T17:30\",\"weight\":40,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbsp-6\",\"imported\":true}}",
+    "T2 deadlift>db_rdl | 60(155) 3x10 | variant=deadlift|db_rdl|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":155,\"ownEstimate\":160,\"targetReps\":10,\"history\":{\"at\":\"2026-09-12T17:30\",\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true}}",
     "T3 db_row | 35 3x15+"
    ],
    "forecast": [
     "warmup ohp>db_shoulder_press | 20(85) 1x10",
     "warmup ohp>db_shoulder_press | 30(85) 1x5",
-    "T1 ohp>db_shoulder_press | 30(57) 2x4+ | sets=30x4,30x4 | variant=ohp|db_shoulder_press|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":85,\"ownEstimate\":107,\"targetReps\":3,\"history\":{\"at\":1789162201000,\"weight\":40,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbsp-6\",\"imported\":true}}",
-    "T2 deadlift>db_rdl | 60(155) 3x10 | variant=deadlift|db_rdl|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":155,\"ownEstimate\":160,\"targetReps\":10,\"history\":{\"at\":1789248601000,\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true}}",
+    "T1 ohp>db_shoulder_press | 30(57) 2x4+ | sets=30x4,30x4 | variant=ohp|db_shoulder_press|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":85,\"ownEstimate\":107,\"targetReps\":3,\"history\":{\"at\":\"2026-09-11T17:30\",\"weight\":40,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbsp-6\",\"imported\":true}}",
+    "T2 deadlift>db_rdl | 60(155) 3x10 | variant=deadlift|db_rdl|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":155,\"ownEstimate\":160,\"targetReps\":10,\"history\":{\"at\":\"2026-09-12T17:30\",\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true}}",
     "T3 db_row | 35 3x15+"
    ],
    "upcoming": [
@@ -6789,8 +6789,8 @@
     "plan": [
      "warmup ohp>db_shoulder_press | 20(85) 1x10",
      "warmup ohp>db_shoulder_press | 30(85) 1x5",
-     "T1 ohp>db_shoulder_press | 95(181) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":85,\"ownEstimate\":107,\"targetReps\":3,\"history\":{\"at\":1789162201000,\"weight\":40,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbsp-6\",\"imported\":true}}",
-     "T2 deadlift>db_rdl | 60(155) 4x8 | variant=deadlift|db_rdl|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":155,\"ownEstimate\":160,\"targetReps\":10,\"history\":{\"at\":1789248601000,\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true}}",
+     "T1 ohp>db_shoulder_press | 95(181) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":85,\"ownEstimate\":107,\"targetReps\":3,\"history\":{\"at\":\"2026-09-11T17:30\",\"weight\":40,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbsp-6\",\"imported\":true}}",
+     "T2 deadlift>db_rdl | 60(155) 4x8 | variant=deadlift|db_rdl|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":155,\"ownEstimate\":160,\"targetReps\":10,\"history\":{\"at\":\"2026-09-12T17:30\",\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true}}",
      "T3 face_pulls | 30 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
@@ -6857,8 +6857,8 @@
    "resumed": [
     "warmup ohp>db_shoulder_press | 20(85) 1x10",
     "warmup ohp>db_shoulder_press | 30(85) 1x5",
-    "T1 ohp>db_shoulder_press | 95(181) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":85,\"ownEstimate\":107,\"targetReps\":3,\"history\":{\"at\":1789162201000,\"weight\":40,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbsp-6\",\"imported\":true}}",
-    "T2 deadlift>db_rdl | 60(155) 4x8 | variant=deadlift|db_rdl|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":155,\"ownEstimate\":160,\"targetReps\":10,\"history\":{\"at\":1789248601000,\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true}}",
+    "T1 ohp>db_shoulder_press | 95(181) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":85,\"ownEstimate\":107,\"targetReps\":3,\"history\":{\"at\":\"2026-09-11T17:30\",\"weight\":40,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbsp-6\",\"imported\":true}}",
+    "T2 deadlift>db_rdl | 60(155) 4x8 | variant=deadlift|db_rdl|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":155,\"ownEstimate\":160,\"targetReps\":10,\"history\":{\"at\":\"2026-09-12T17:30\",\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true}}",
     "T3 face_pulls | 30 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
@@ -6869,15 +6869,15 @@
    "today": [
     "warmup bench>db_bench | 25(145) 1x10",
     "warmup bench>db_bench | 40(145) 1x5",
-    "T1 bench>db_bench | 60(145) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":145,\"ownEstimate\":147,\"targetReps\":3,\"history\":{\"at\":1789335001000,\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true},\"heaviestLifted\":55,\"limitedByHeaviest\":true}",
-    "T2 squat>bulgarian_split_squat | 45(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":1789940940000,\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
+    "T1 bench>db_bench | 60(145) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":145,\"ownEstimate\":147,\"targetReps\":3,\"history\":{\"at\":\"2026-09-13T17:30\",\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true},\"heaviestLifted\":55,\"limitedByHeaviest\":true}",
+    "T2 squat>bulgarian_split_squat | 45(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":\"2026-09-20T17:49\",\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
     "T3 lat_pulldown>db_row | 35(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand"
    ],
    "forecast": [
     "warmup bench>db_bench | 25(145) 1x10",
     "warmup bench>db_bench | 40(145) 1x5",
-    "T1 bench>db_bench | 60(145) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":145,\"ownEstimate\":147,\"targetReps\":3,\"history\":{\"at\":1789335001000,\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true},\"heaviestLifted\":55,\"limitedByHeaviest\":true}",
-    "T2 squat>bulgarian_split_squat | 45(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":1789940940000,\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
+    "T1 bench>db_bench | 60(145) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":145,\"ownEstimate\":147,\"targetReps\":3,\"history\":{\"at\":\"2026-09-13T17:30\",\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true},\"heaviestLifted\":55,\"limitedByHeaviest\":true}",
+    "T2 squat>bulgarian_split_squat | 45(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":\"2026-09-20T17:49\",\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
     "T3 lat_pulldown>db_row | 35(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand"
    ],
    "upcoming": [
@@ -6890,8 +6890,8 @@
     "plan": [
      "warmup bench>db_bench | 25(145) 1x10",
      "warmup bench>db_bench | 40(145) 1x5",
-     "T1 bench>db_bench | 95(230) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":145,\"ownEstimate\":147,\"targetReps\":3,\"history\":{\"at\":1789335001000,\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true},\"heaviestLifted\":55,\"limitedByHeaviest\":true}",
-     "T2 squat>bulgarian_split_squat | 45(135) 4x8 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":1789940940000,\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
+     "T1 bench>db_bench | 95(230) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":145,\"ownEstimate\":147,\"targetReps\":3,\"history\":{\"at\":\"2026-09-13T17:30\",\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true},\"heaviestLifted\":55,\"limitedByHeaviest\":true}",
+     "T2 squat>bulgarian_split_squat | 45(135) 4x8 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":\"2026-09-20T17:49\",\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
      "T3 face_pulls | 30 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
@@ -6949,8 +6949,8 @@
    "resumed": [
     "warmup bench>db_bench | 25(145) 1x10",
     "warmup bench>db_bench | 40(145) 1x5",
-    "T1 bench>db_bench | 95(230) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":145,\"ownEstimate\":147,\"targetReps\":3,\"history\":{\"at\":1789335001000,\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true},\"heaviestLifted\":55,\"limitedByHeaviest\":true}",
-    "T2 squat>bulgarian_split_squat | 45(135) 4x8 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":1789940940000,\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
+    "T1 bench>db_bench | 95(230) 5x3+ | variant=bench|db_bench|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":145,\"ownEstimate\":147,\"targetReps\":3,\"history\":{\"at\":\"2026-09-13T17:30\",\"weight\":55,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbbench-6\",\"imported\":true},\"heaviestLifted\":55,\"limitedByHeaviest\":true}",
+    "T2 squat>bulgarian_split_squat | 45(135) 4x8 | variant=squat|bulgarian_split_squat|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":135,\"ownEstimate\":133,\"targetReps\":10,\"history\":{\"at\":\"2026-09-20T17:49\",\"weight\":50,\"reps\":9,\"perHand\":true,\"sessionId\":\"demo-workout-01\",\"rpe\":9}}",
     "T3 face_pulls | 30 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
@@ -6961,15 +6961,15 @@
    "today": [
     "warmup deadlift>db_rdl | 25(220) 1x10",
     "warmup deadlift>db_rdl | 45(220) 1x5",
-    "T1 deadlift>db_rdl | 65(220) 5x3+ | variant=deadlift|db_rdl|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":220,\"ownEstimate\":160,\"targetReps\":3,\"history\":{\"at\":1789248601000,\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true},\"heaviestLifted\":60,\"limitedByHeaviest\":true}",
-    "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":1790113740000,\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
+    "T1 deadlift>db_rdl | 65(220) 5x3+ | variant=deadlift|db_rdl|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":220,\"ownEstimate\":160,\"targetReps\":3,\"history\":{\"at\":\"2026-09-12T17:30\",\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true},\"heaviestLifted\":60,\"limitedByHeaviest\":true}",
+    "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
     "T3 db_row | 35 3x15+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 25(220) 1x10",
     "warmup deadlift>db_rdl | 45(220) 1x5",
-    "T1 deadlift>db_rdl | 65(220) 5x3+ | variant=deadlift|db_rdl|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":220,\"ownEstimate\":160,\"targetReps\":3,\"history\":{\"at\":1789248601000,\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true},\"heaviestLifted\":60,\"limitedByHeaviest\":true}",
-    "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":1790113740000,\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
+    "T1 deadlift>db_rdl | 65(220) 5x3+ | variant=deadlift|db_rdl|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":220,\"ownEstimate\":160,\"targetReps\":3,\"history\":{\"at\":\"2026-09-12T17:30\",\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true},\"heaviestLifted\":60,\"limitedByHeaviest\":true}",
+    "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
     "T3 db_row | 35 3x15+"
    ],
    "upcoming": [
@@ -6983,7 +6983,7 @@
      "warmup deadlift>single_leg_db_rdl | 15(220) 1x10",
      "warmup deadlift>single_leg_db_rdl | 30(220) 1x5",
      "T1 deadlift>single_leg_db_rdl | 95(523) 5x3+ | variant=deadlift|single_leg_db_rdl|T1 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":220,\"ratio\":0.35,\"estimate\":268,\"targetReps\":3}",
-     "T2 ohp>db_shoulder_press | 35(60) 4x8 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":1790113740000,\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
+     "T2 ohp>db_shoulder_press | 35(60) 4x8 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
      "T3 face_pulls | 30 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
@@ -7035,7 +7035,7 @@
     "warmup deadlift>single_leg_db_rdl | 15(220) 1x10",
     "warmup deadlift>single_leg_db_rdl | 30(220) 1x5",
     "T1 deadlift>single_leg_db_rdl | 95(523) 5x3+ | variant=deadlift|single_leg_db_rdl|T1 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":220,\"ratio\":0.35,\"estimate\":268,\"targetReps\":3}",
-    "T2 ohp>db_shoulder_press | 35(60) 4x8 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":1790113740000,\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
+    "T2 ohp>db_shoulder_press | 35(60) 4x8 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":101,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"rpe\":9}}",
     "T3 face_pulls | 30 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
@@ -8578,14 +8578,14 @@
    "today": [
     "warmup bench>db_bench | 25(165) 1x10",
     "warmup bench>db_bench | 40(165) 1x5",
-    "T1 bench>db_bench | 60(165) 5x3+ | variant=bench|db_bench|T1 perHand | reentry={\"rule\":\"hand\",\"weight\":60,\"fromSteps\":null,\"fromEstimate\":null,\"stepsEarned\":0,\"targetReps\":3,\"location\":\"home\",\"lastWeight\":60,\"estimate\":null,\"exerciseId\":\"db_bench\",\"setByHandAt\":\"2026-10-31T18:18\"}",
+    "T1 bench>db_bench | 60(165) 5x3+ | variant=bench|db_bench|T1 perHand | reentry={\"rule\":\"hand\",\"weight\":60,\"fromSteps\":null,\"fromEstimate\":null,\"stepsEarned\":0,\"targetReps\":3,\"location\":\"home\",\"lastWeight\":60,\"estimate\":null,\"exerciseId\":\"db_bench\",\"setByHandAt\":\"2026-10-30T20:06\"}",
     "T2 squat>bulgarian_split_squat | 50(165) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":60,\"fromEstimate\":50,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":284,\"ratio\":0.47207317282365974,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 35(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand"
    ],
    "forecast": [
     "warmup bench>db_bench | 25(165) 1x10",
     "warmup bench>db_bench | 40(165) 1x5",
-    "T1 bench>db_bench | 60(165) 5x3+ | variant=bench|db_bench|T1 perHand | reentry={\"rule\":\"hand\",\"weight\":60,\"fromSteps\":null,\"fromEstimate\":null,\"stepsEarned\":0,\"targetReps\":3,\"location\":\"home\",\"lastWeight\":60,\"estimate\":null,\"exerciseId\":\"db_bench\",\"setByHandAt\":\"2026-10-31T18:18\"}",
+    "T1 bench>db_bench | 60(165) 5x3+ | variant=bench|db_bench|T1 perHand | reentry={\"rule\":\"hand\",\"weight\":60,\"fromSteps\":null,\"fromEstimate\":null,\"stepsEarned\":0,\"targetReps\":3,\"location\":\"home\",\"lastWeight\":60,\"estimate\":null,\"exerciseId\":\"db_bench\",\"setByHandAt\":\"2026-10-30T20:06\"}",
     "T2 squat>bulgarian_split_squat | 50(165) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":60,\"fromEstimate\":50,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":284,\"ratio\":0.47207317282365974,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 35(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand"
    ],
@@ -8599,7 +8599,7 @@
     "plan": [
      "warmup bench>db_bench | 25(165) 1x10",
      "warmup bench>db_bench | 40(165) 1x5",
-     "T1 bench>db_bench | 95(261) 5x3+ | variant=bench|db_bench|T1 perHand | reentry={\"rule\":\"hand\",\"weight\":60,\"fromSteps\":null,\"fromEstimate\":null,\"stepsEarned\":0,\"targetReps\":3,\"location\":\"home\",\"lastWeight\":60,\"estimate\":null,\"exerciseId\":\"db_bench\",\"setByHandAt\":\"2026-10-31T18:18\"}",
+     "T1 bench>db_bench | 95(261) 5x3+ | variant=bench|db_bench|T1 perHand | reentry={\"rule\":\"hand\",\"weight\":60,\"fromSteps\":null,\"fromEstimate\":null,\"stepsEarned\":0,\"targetReps\":3,\"location\":\"home\",\"lastWeight\":60,\"estimate\":null,\"exerciseId\":\"db_bench\",\"setByHandAt\":\"2026-10-30T20:06\"}",
      "T2 squat>bulgarian_split_squat | 50(165) 4x8 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":60,\"fromEstimate\":50,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":284,\"ratio\":0.47207317282365974,\"exerciseId\":\"bulgarian_split_squat\"}",
      "T3 face_pulls | 30 3x15+",
      "accessory bicep_curls | 25 3x12"
@@ -8665,7 +8665,7 @@
       "lastWeight": 60,
       "estimate": null,
       "exerciseId": "db_bench",
-      "setByHandAt": "2026-10-31T18:18"
+      "setByHandAt": "2026-10-30T20:06"
      },
      "squat|T2": {
       "rule": "estimate",
