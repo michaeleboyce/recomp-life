@@ -116,7 +116,9 @@ export function planWorkoutStart(input: StartPlanInput): WorkoutStartPlan {
   const prescribed = prescriptionOf(lifts);
 
   // 3. The accessories, chosen once from the lifts as resolved (never from the user's
-  //    edits to them, so an edit does not reshuffle them), appended after the lifts.
+  //    edits to them, so an edit does not reshuffle them), appended after the lifts and
+  //    kept to the session length measured on the program's own plan.
+  const program = planFromLifts(lifts, input.accessories ? { ...input, selectedAccessories: [] } : input);
   const accessories = input.accessories
     ? planAccessories({
         templateId: template.id,
@@ -124,12 +126,12 @@ export function planWorkoutStart(input: StartPlanInput): WorkoutStartPlan {
         location,
         source: input.accessories,
         selected: input.selectedAccessories,
+        programPlan: program,
       })
     : null;
   const accessoryEdits = accessories?.edits ?? [];
 
   // 4. Apply the edits: set plans are matched on the entries as the program plans them.
-  const program = planFromLifts(lifts, accessories ? { ...input, selectedAccessories: [] } : input);
   const base = accessoryEdits.length ? applyPlanEdits(program, accessoryEdits) : program;
   const { plan, nextSetPlanEdits } = withPlanEdits(base, input.nextSetPlans, input.edits);
   return { ...resolved, lifts, plan, prescribed, nextSetPlanEdits, accessories, accessoryEdits };

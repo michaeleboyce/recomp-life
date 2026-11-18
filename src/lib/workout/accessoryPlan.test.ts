@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { StrengthSet } from "@/lib/strength";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import type { LiftState, PlanEdit, UserSettings } from "@/types";
+import type { LiftState, PlanEdit, UserSettings, WorkoutSession } from "@/types";
+import { planForSession } from "./planForSession";
 import {
   accessoryAddEdit,
   accessoryDay,
@@ -242,5 +243,123 @@ describe("planWorkoutStart with accessories (A6)", () => {
     expect(face.entry).toMatchObject({ targetSets: 2, targetReps: 20, weight: 20 });
     expect(face.chosen).toBe(added.accessories!.planned.some((p) => p.exerciseId === "face_pulls"));
     expect(rows.every((r) => r.prescription.exerciseId === r.exerciseId)).toBe(true);
+  });
+});
+
+describe("the session length (session-length-budget)", () => {
+  const liftStates: LiftState[] = [];
+  const withMinutes = (sessionMinutes: number | null | undefined, over: Partial<UserSettings> = {}) =>
+    source({ settings: { ...SETTINGS, ...over, ...(sessionMinutes === undefined ? {} : { sessionMinutes }) } });
+  const start = (accessories: AccessorySource, includeWarmUps = true) =>
+    planWorkoutStart({
+      template: WORKOUT_TEMPLATES.A1,
+      liftStates,
+      location: "gym",
+      equipment: SETTINGS.equipment,
+      includeWarmUps,
+      selectedAccessories: [],
+      accessories,
+    });
+  const accessoryIds = (plan: { tier: string; exerciseId: string; isWarmUp: boolean }[]) =>
+    plan.filter((e) => !e.isWarmUp && e.tier === "accessory").map((e) => e.exerciseId);
+
+  it("keeps the picks, in order, that fit in the length; the rest are left out with a reason", () => {
+    const open = start(withMinutes(null));
+    const picks = open.accessories!.choice.picks.map((p) => p.exerciseId);
+    expect(accessoryIds(open.plan)).toEqual(picks);
+    expect(open.accessories!.budget!.leftOut).toEqual([]);
+
+    // A length with room for the first two picks only.
+    const perSet = estimateSetSeconds("accessory", SETTINGS.trainingPhase);
+    const [first, second] = open.accessories!.planned.map((p) => p.prescription.sets);
+    const programSeconds = open.accessories!.budget!.programMinutes * 60;
+    const room = Math.floor((programSeconds + perSet * (first + second)) / 60);
+    const trimmed = start(withMinutes(room));
+    const budget = trimmed.accessories!.budget!;
+    expect(budget.minutes).toBe(room);
+    expect(accessoryIds(trimmed.plan)).toEqual(budget.kept);
+    expect(budget.kept.length).toBeGreaterThan(0);
+    expect(budget.kept.length).toBeLessThan(picks.length);
+    expect(budget.kept[0]).toBe("bicep_curls");
+    expect([...budget.kept, ...budget.leftOut.map((l) => l.exerciseId)].sort()).toEqual([...picks].sort());
+    expect(budget.leftOut.every((l) => l.reason === `Left out to fit ${room} min`)).toBe(true);
+    expect(budget.plannedMinutes).toBeLessThanOrEqual(room);
+    // The edits saved on the session are the kept ones only.
+    expect(trimmed.accessoryEdits.map((e) => (e.kind === "add" ? e.exerciseId : ""))).toEqual(budget.kept);
+  });
+
+  it("never touches the program's lifts", () => {
+    const program = (plan: ReturnType<typeof start>["plan"]) => plan.filter((e) => e.tier !== "accessory");
+    expect(program(start(withMinutes(30)).plan)).toEqual(program(start(withMinutes(null)).plan));
+  });
+
+  it("keeps a pin even when the lifts alone are over the length, and nothing else", () => {
+    const tight = start(withMinutes(15));
+    const budget = tight.accessories!.budget!;
+    expect(budget.programOverBudget).toBe(true);
+    expect(budget.kept).toEqual(["bicep_curls"]);
+    expect(accessoryIds(tight.plan)).toEqual(["bicep_curls"]);
+  });
+
+  it("reads a missing length as 60 minutes", () => {
+    expect(start(withMinutes(undefined)).accessories!.budget!.minutes).toBe(60);
+  });
+
+  it("measures warm-ups as configured", () => {
+    const on = start(withMinutes(60), true).accessories!.budget!;
+    const off = start(withMinutes(60), false).accessories!.budget!;
+    expect(on.programMinutes).toBeGreaterThan(off.programMinutes);
+  });
+
+  it("in ask and none mode chooses nothing but still measures the lifts against the length", () => {
+    for (const accessories of ["ask", "none"] as const) {
+      const budget = start(withMinutes(45, { accessories })).accessories!.budget!;
+      expect(budget.offered).toBe(0);
+      expect(budget.kept).toEqual([]);
+      expect(budget.minutes).toBe(45);
+      expect(budget.programMinutes).toBeGreaterThan(0);
+    }
+  });
+
+  it("keeps accessories named outright (a favourite's), whatever the length", () => {
+    const plan = planAccessories({
+      templateId: "A1",
+      mainLifts: A1_MAIN,
+      location: "gym",
+      source: withMinutes(15),
+      selected: ["face_pulls", "leg_curls"],
+      programPlan: start(withMinutes(null)).plan.filter((e) => e.tier !== "accessory"),
+    });
+    expect(plan.planned.map((p) => p.exerciseId)).toEqual(["face_pulls", "leg_curls"]);
+  });
+
+  it("leaves a saved session as it was: resume reads its saved add edits, not the length", () => {
+    const saved = start(withMinutes(null));
+    const session: WorkoutSession = {
+      id: "saved",
+      clientId: "saved",
+      templateId: "A1",
+      location: "gym",
+      startedAt: NOW,
+      completedAt: null,
+      totalDurationSeconds: 0,
+      includeWarmUps: true,
+      selectedAccessories: [],
+      sets: [],
+      preWorkoutPainEntries: [],
+      modifications: [],
+      prescribed: saved.prescribed,
+      planEdits: [...saved.accessoryEdits],
+      synced: false,
+    };
+    const resumed = planForSession({ session, template: WORKOUT_TEMPLATES.A1, liftStates, equipment: SETTINGS.equipment });
+    expect(accessoryIds(resumed)).toEqual(saved.accessories!.planned.map((p) => p.exerciseId));
+    expect(accessoryIds(resumed).length).toBeGreaterThan(start(withMinutes(15)).accessories!.budget!.kept.length);
+  });
+
+  it("is not applied without the program's plan (a caller that only wants the ranked list)", () => {
+    const plan = planA1({ settings: { ...SETTINGS, sessionMinutes: 15 } });
+    expect(plan.budget).toBeNull();
+    expect(plan.planned.map((p) => p.exerciseId)).toEqual(plan.choice.picks.map((p) => p.exerciseId));
   });
 });

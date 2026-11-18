@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { Stripes } from "@/components/ui/stripes";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import EquipmentProfileEditor from "@/components/Equipment/EquipmentProfileEditor";
 import ExercisePreferencesEditor from "@/components/Settings/ExercisePreferencesEditor";
 import AnatomySettings from "@/components/Settings/AnatomySettings";
@@ -23,6 +25,13 @@ import { TrainingLocationRow } from "@/components/More/TrainingLocationRow";
 import { useProfile } from "@/hooks";
 import { exportBackup, importBackup, parseBackup } from "@/lib/data/backup";
 import { updateProfile as saveProfile, updateSettings as saveSettings } from "@/lib/data/records";
+import {
+  SESSION_MINUTE_CHOICES,
+  sessionMinutesFromParam,
+  sessionMinutesLabel,
+  sessionMinutesOf,
+  sessionMinutesParam,
+} from "@/lib/accessories/sessionBudget";
 import { DataIntegrityCard } from "@/components/LogEdit";
 import packageJson from "../../../package.json";
 
@@ -37,6 +46,12 @@ const PHASE_MESSAGES: Record<string, string> = {
   "maintaining": "Switching to Maintenance. Recovery thresholds relaxed, you can add more accessories.",
   "bulking": "Bulking mode. More volume permitted, deload triggers less sensitive.",
 };
+
+/** The session lengths offered, as the segmented control's values ("45", "none"). */
+const SESSION_LENGTH_OPTIONS = [...SESSION_MINUTE_CHOICES, null].map((minutes) => ({
+  value: sessionMinutesParam(minutes),
+  label: sessionMinutesLabel(minutes),
+}));
 
 export default function SettingsPage() {
   const [dbReady, setDbReady] = useState(false);
@@ -295,6 +310,32 @@ export default function SettingsPage() {
                 />
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Session length: what the accessories chosen for a workout are kept to. */}
+        <Card>
+          <CardContent className="space-y-3">
+            <h2 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Session length
+            </h2>
+            <div role="group" aria-label="Session length">
+              <SegmentedControl
+                value={sessionMinutesParam(sessionMinutesOf(settings))}
+                onChange={(value) => {
+                  const minutes = sessionMinutesFromParam(value);
+                  if (minutes !== undefined) void updateSettings({ sessionMinutes: minutes });
+                }}
+                options={SESSION_LENGTH_OPTIONS}
+                size="compact"
+              />
+            </div>
+            <p data-testid="session-length-line" className="text-sm text-muted-foreground">
+              {sessionMinutesOf(settings) === null
+                ? "Every accessory chosen for you is planned, however long the workout gets."
+                : `Accessories chosen for you are kept to about ${sessionMinutesOf(settings)} min. The main lifts are never cut. Change it for one workout on the Ready screen.`}
+            </p>
+            <EvidenceLine ruleId="session-length-budget" />
           </CardContent>
         </Card>
 

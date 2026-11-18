@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { projectUpcomingWorkouts, type UpcomingWorkout } from "@/lib/workout/upcoming";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
@@ -22,6 +22,8 @@ export function useUpcomingWorkouts(
   const variantStates = useVariantStates();
   const strengthSets = useStrengthEvidence();
   const loadedSettings = useSettings();
+  // The day the accessories are chosen for, as the Ready screen opened now would.
+  const [openedAt] = useState(() => new Date());
 
   return useMemo(() => {
     if (
@@ -51,6 +53,9 @@ export function useUpcomingWorkouts(
       reentry: true,
       // Each per-set plan shows on the first coming workout that does it (E6).
       nextSetPlans: settings.nextSetPlans,
+      // Each workout with the accessories that fit in the session length, so the
+      // lengths shown are the ones the Ready screen plans.
+      accessoriesNow: openedAt,
     });
-  }, [completedWorkouts, liftStates, variantStates, strengthSets, loadedSettings, location, count]);
+  }, [completedWorkouts, liftStates, variantStates, strengthSets, loadedSettings, location, count, openedAt]);
 }

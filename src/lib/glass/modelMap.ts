@@ -42,6 +42,7 @@ export const MODELS: readonly ModelDef[] = [
       "t3-progression",
       "accessory-progression",
       "accessory-selection",
+      "session-length-budget",
       "off-program-credit",
       "dumbbell-conversion",
       "home-progression",

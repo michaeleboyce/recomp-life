@@ -21,7 +21,8 @@ import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { recordAdjustment } from "@/lib/data/adjustments";
 import { recordCoachEvent, type CoachEventInput } from "@/lib/data/coachEvents";
 import { startWorkout } from "@/lib/data/workouts";
-import { clearAccessoryWeight, setAccessorySettings, setAccessoryWeight } from "@/lib/data/records";
+import { clearAccessoryWeight, setAccessorySettings, setAccessoryWeight, updateSettings } from "@/lib/data/records";
+import { sessionMinutesFromParam, sessionMinutesOf, type SessionMinutes } from "@/lib/accessories/sessionBudget";
 import { EXERCISES } from "@/lib/exercises";
 import { resolvePreferences } from "@/lib/exercisePreferences";
 import {
@@ -335,12 +336,26 @@ export function useWorkoutSetup(
     [saveLocation, savedLocation]
   );
 
+  // The session length to plan for: the setting, or one chosen for this workout here
+  // or by `?minutes=` (45, or "none" for no limit). Saving it as the usual is separate.
+  const urlMinutes = useSearchParams()?.get("minutes");
+  const [minutesChoice, setSessionMinutes] = useState<SessionMinutes | undefined>(() =>
+    sessionMinutesFromParam(urlMinutes)
+  );
+  const usualSessionMinutes = sessionMinutesOf(settings);
+  const sessionMinutes = minutesChoice !== undefined ? minutesChoice : usualSessionMinutes;
+  const saveSessionMinutes = useCallback(
+    (minutes: SessionMinutes) => updateSettings({ sessionMinutes: minutes }),
+    []
+  );
+
   // What the accessories are chosen and prescribed from: the same inputs as Today's
-  // (`resolveNextWorkout`), on this screen's day, so the same day gives the same picks.
+  // (`resolveNextWorkout`), on this screen's day, so the same day gives the same picks,
+  // kept to this workout's session length.
   const [openedAt] = useState(() => new Date());
   const accessorySource = useMemo<AccessorySource>(
-    () => ({ settings, strengthSets: strengthSets ?? [], now: openedAt }),
-    [settings, strengthSets, openedAt]
+    () => ({ settings: { ...settings, sessionMinutes }, strengthSets: strengthSets ?? [], now: openedAt }),
+    [settings, sessionMinutes, strengthSets, openedAt]
   );
 
   /**
@@ -861,6 +876,14 @@ export function useWorkoutSetup(
     setAccessoryWeight: setAccessoryWeightTo,
     setAccessoryMode,
     pinAccessory,
+    /** The session length this workout is planned for (null: no limit). */
+    sessionMinutes,
+    /** The length in Settings, the one a new workout starts with. */
+    usualSessionMinutes,
+    /** A length for this workout only: the accessories are planned again at once. */
+    setSessionMinutes,
+    /** Saves a length as the usual one (Settings). */
+    saveSessionMinutes,
     homeAdaptations,
     chooseSubstitute,
     runAdvisory,

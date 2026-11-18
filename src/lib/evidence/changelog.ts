@@ -18,6 +18,13 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     sources: [],
   },
   {
+    date: "2026-11-18",
+    ruleId: "session-length-budget",
+    change:
+      "New: a session length to plan for (60 minutes until you choose, or no limit), in Settings or for one workout on the Ready screen. The accessories chosen for a workout are kept to it, best first; the main lifts are never shortened and pinned accessories are always kept. The accessory sheet says how many fit and lists the ones left out, each with \"Add anyway\".",
+    sources: [],
+  },
+  {
     date: "2026-11-17",
     ruleId: "accessory-selection",
     change:

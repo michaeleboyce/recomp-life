@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-45 active rules, 4 planned rules, 42 sources. Last reviewed against the research: November 2026.
+46 active rules, 4 planned rules, 42 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -55,6 +55,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `accessories-in-cut` | Training volume | Active | Limited evidence | Roth 2022, Murphy & Koehler 2022 |
 | `accessory-selection` | Training volume | Active | Coaching heuristic | none |
 | `swap-recommendation` | Training volume | Planned | Coaching heuristic | none |
+| `session-length-budget` | Training volume | Active | Coaching heuristic | none |
 | `volume-ratio` | Training volume | Planned | Coaching heuristic | none |
 | `rate-of-loss` | Fat loss | Active | Moderate evidence | Helms 2014 |
 | `fat-loss-stall` | Fat loss | Active | Limited evidence | Peos 2021 |
@@ -748,6 +749,25 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **Sources.** None: this is a coaching convention with no direct research.
 
+### Why are some accessories left out to fit the session length?
+
+- **Rule id:** `session-length-budget`
+- **Status:** Active
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/accessories/sessionBudget.ts` (`fitAccessoriesToBudget`), `src/lib/workout/accessoryPlan.ts` (`planAccessories`)
+- **Shown in:** `src/components/PreWorkout/AccessorySheet.tsx`, `src/components/PreWorkout/TimeEstimate.tsx`, `src/components/Today/AccessoryRows.tsx`, `src/app/settings/page.tsx`
+- **Reviewed:** November 2026
+
+**In one line.** Accessories are kept to the length you plan for; the main lifts never are
+
+**What the app does.** You choose the session length to plan for: 30, 45, 60, 75, 90 minutes or no limit (60 until you choose), in Settings or for one workout on the Ready screen. The app times the plan on paper: every set plus the rest after it, warm-ups included when they are on. The accessories it chose are then added best first, each only if the plan with it stays within the length; one that does not fit is left out, with "Left out to fit" and a way to add it anyway, and the next one is tried. The main lifts (T1, T2 and T3) are never dropped or shortened. Accessories you pinned to the day are always kept, even past the length. When the main lifts alone take longer than the length, no other accessory is added and the app says so. A workout already started keeps the accessories it started with.
+
+**Why.** A planning convenience: a session that fits the time you have is easier to finish, and leaving out the lowest-ranked extras first keeps the program's lifts, which drive progression, untouched.
+
+**Limits.** This is not a research finding. The length is the app's own estimate on paper, which no study has checked for this kind of session (the research notes found nothing on predicting a strength session's length from its sets and rests), and the forecast shown on Today and the Ready screen may differ once it is corrected for your own pace. The choices of length are conveniences, not targets.
+
+**Sources.** None: this is a coaching convention with no direct research.
+
 ### How much accessory work is too much?
 
 - **Rule id:** `volume-ratio`
@@ -1162,6 +1182,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 Changes made to the app because of research, newest first.
 
 - **18 November 2026** — `swap-recommendation` (How are swaps recommended?): New rule: swaps are ranked by a score in parts (muscles covered, same movement or tier fit, preferred, done before, a known weight, recovery and pain), each with the weight, sets and reps it would be done at, and pairs are offered when no single exercise covers the original. The Edit workout sheet's swap list now follows this order (same movement first, preferred no longer always first). Sources: .
+- **18 November 2026** — `session-length-budget` (Why are some accessories left out to fit the session length?): New: a session length to plan for (60 minutes until you choose, or no limit), in Settings or for one workout on the Ready screen. The accessories chosen for a workout are kept to it, best first; the main lifts are never shortened and pinned accessories are always kept. The accessory sheet says how many fit and lists the ones left out, each with "Add anyway". Sources: .
 - **17 November 2026** — `accessory-selection` (How are a workout's accessories chosen?): Switched on: every workout now comes with accessories chosen by this rule (the setting can be changed to "ask me" or "none"). Today and the Ready screen list them under the main lifts with a reason each; the why sheet shows every part of the score; the accessory sheet changes, swaps, adds or pins them. Sources: .
 - **17 November 2026** — `accessory-progression` (When would accessory weights go up?): Switched on: each accessory is planned at the weight double progression gives (or one set by hand, or a first weight from your history), the workout shows its rep range, and after its last set, the summary and the Log say what it does next time and why. Sources: .
 - **17 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): A workout keeps the home weight it started with: when the heaviest dumbbell or the dumbbell step is changed after it started, resuming it shows the weight it recorded with a note, the weight can still be changed for the set, and finishing it judges the sets against that weight instead of the new limit. Sources: .

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WhyButton } from "@/components/Why";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import {
   accessoryScheme,
   accessoryWeightParts,
@@ -111,6 +112,7 @@ export function AccessoryRows({
   changeHref,
   onChange,
   className,
+  timeNote,
 }: {
   views: AccessoryRowView[];
   collapsible?: boolean;
@@ -121,15 +123,26 @@ export function AccessoryRows({
   changeHref?: string;
   onChange?: () => void;
   className?: string;
+  /** "1 left out to fit 60 min" (`leftOutNote`): shown beside the heading, with its why. */
+  timeNote?: string | null;
 }) {
   const folds = collapsible && views.length > openUpTo;
+  const note = timeNote ? (
+    <span data-testid="accessory-time-note" className="flex min-w-0 items-center gap-0.5 text-xs text-muted-foreground">
+      <span className="min-w-0 truncate">{timeNote}</span>
+      <EvidenceLine ruleId="session-length-budget" variant="icon" />
+    </span>
+  ) : null;
   const [open, setOpen] = useState(false);
   const expanded = !folds || open;
 
   if (views.length === 0) {
     return (
       <div className={cn("flex min-h-11 items-center justify-between gap-2 border-t border-border", className)}>
-        <span className="text-[13px] text-muted-foreground">No accessories today</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="shrink-0 text-[13px] text-muted-foreground">No accessories today</span>
+          {note}
+        </span>
         <ChangeControl href={changeHref} onChange={onChange} />
       </div>
     );
@@ -149,8 +162,15 @@ export function AccessoryRows({
             className="flex min-h-[52px] min-w-0 items-center gap-1.5 py-1.5 text-left outline-none focus-visible:rounded-sm focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             <span data-testid="accessory-summary" className="min-w-0">
-              <span className="block text-[15px] font-semibold text-foreground">
-                {plural(views.length, "accessory", "accessories")}
+              <span className="flex min-w-0 items-baseline gap-1.5">
+                <span className="shrink-0 text-[15px] font-semibold text-foreground">
+                  {plural(views.length, "accessory", "accessories")}
+                </span>
+                {timeNote && (
+                  <span data-testid="accessory-time-note" className="min-w-0 truncate text-xs text-muted-foreground">
+                    {timeNote}
+                  </span>
+                )}
               </span>
               <span className="block truncate text-xs text-muted-foreground">
                 {views.map((v) => nameInSentence(v.exerciseId)).join(", ")}
@@ -161,12 +181,18 @@ export function AccessoryRows({
               className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
             />
           </button>
-          <ChangeControl href={changeHref} onChange={onChange} />
+          <span className="flex items-center gap-1">
+            {timeNote && <EvidenceLine ruleId="session-length-budget" variant="icon" />}
+            <ChangeControl href={changeHref} onChange={onChange} />
+          </span>
         </div>
       ) : (
         <div className="flex items-center justify-between gap-2 border-t border-border">
-          <span className="text-xs font-semibold tracking-[0.14em] text-tier-accessory uppercase">
-            {views.length === 1 ? "Accessory" : "Accessories"}
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-xs font-semibold tracking-[0.14em] text-tier-accessory uppercase">
+              {views.length === 1 ? "Accessory" : "Accessories"}
+            </span>
+            {note}
           </span>
           <ChangeControl href={changeHref} onChange={onChange} />
         </div>

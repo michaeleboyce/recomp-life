@@ -55,6 +55,12 @@ export interface UserSettings {
    */
   accessoryWeights?: Record<string, AccessoryHandSetWeight>;
   /**
+   * The session length to plan for, in minutes (30, 45, 60, 75 or 90 in Settings); null
+   * is no limit, absent reads as DEFAULT_SESSION_MINUTES. Accessories chosen for a
+   * workout are kept to it (`fitAccessoriesToBudget`).
+   */
+  sessionMinutes?: number | null;
+  /**
    * When each setting last changed (epoch ms), by path, written by `writeSettings`, so
    * sync merges settings field by field (src/lib/sync/settingsMerge.ts). Not a setting.
    */

@@ -34,6 +34,14 @@ describe("forecastTiles", () => {
     ]);
   });
 
+  it("puts the session length planned for beside the forecast", () => {
+    expect(forecastTiles(full, undefined, 60)[0]).toMatchObject({ value: "46 min", sub: "of 60 · 41 to 52" });
+    const noRange = { ...full, session: { minutes: 46 } };
+    expect(forecastTiles(noRange, undefined, 45)[0].sub).toBe("of 45 min");
+    // No limit: as before.
+    expect(forecastTiles(full, undefined, null)[0].sub).toBe("41 to 52");
+  });
+
   it("says the reps are about, not exact, when they depend on the effort you log", () => {
     // The estimate credits a logged effort, so the count assumes the usual one.
     const tiles = forecastTiles({
