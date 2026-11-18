@@ -11,8 +11,8 @@ describe("weekly review lift row words", () => {
   it("says how many sessions, how many at home and how many imported", () => {
     expect(liftSessionsText(row(0, 0, 0))).toBe("0 sessions");
     expect(liftSessionsText(row(3, 0, 0))).toBe("3 sessions");
-    expect(liftSessionsText(row(2, 1, 0))).toBe("2 sessions, 1 at home");
-    expect(liftSessionsText(row(3, 1, 1))).toBe("3 sessions, 1 at home, 1 imported");
+    expect(liftSessionsText(row(2, 1, 0))).toBe("2 sessions, 1 as a home version");
+    expect(liftSessionsText(row(3, 1, 1))).toBe("3 sessions, 1 as a home version, 1 imported");
     expect(liftSessionsText(row(1, 0, 1))).toBe("1 session, 1 imported");
   });
 

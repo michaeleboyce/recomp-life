@@ -125,7 +125,7 @@ describe("Weekly review page", () => {
     )!;
     render(<WeeklyReviewPage />);
     const benchRow = screen.getAllByRole("link").find((a) => a.getAttribute("href") === "/progress/lift/bench")!;
-    expect(benchRow).toHaveTextContent(`${plain.sessions + 1} sessions, 1 at home, 1 imported`);
+    expect(benchRow).toHaveTextContent(`${plain.sessions + 1} sessions, 1 as a home version, 1 imported`);
     expect(within(benchRow).getByTestId("best-from-bench")).toHaveTextContent("Best from DB Bench Press");
     expect(within(benchRow).queryByText(/best$/)).toBeNull();
   });

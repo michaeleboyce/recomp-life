@@ -16,10 +16,10 @@ export function cardioLine(miles: number, minutes: number): string {
   return miles > 0 ? `${formatNumber(miles, 1)} mi · ${time}` : time;
 }
 
-/** "3 sessions", "2 sessions, 1 at home", "3 sessions, 1 at home, 1 imported". */
+/** "3 sessions", "2 sessions, 1 as a home version", "3 sessions, 1 as a home version, 1 imported". */
 export function liftSessionsText(lift: Pick<LiftReview, "sessions" | "homeSessions" | "importedSessions">): string {
   const parts = [plural(lift.sessions, "session")];
-  if (lift.homeSessions > 0) parts.push(`${lift.homeSessions} at home`);
+  if (lift.homeSessions > 0) parts.push(`${lift.homeSessions} as a home version`);
   if (lift.importedSessions > 0) parts.push(`${lift.importedSessions} imported`);
   return parts.join(", ");
 }
