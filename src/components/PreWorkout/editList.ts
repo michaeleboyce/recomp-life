@@ -14,7 +14,12 @@ export { plannedSetsOf };
  */
 
 type Scheme = { sets: number; reps: number };
-type NewAccessory = Scheme & { weight: number; isAMRAP: boolean };
+type NewAccessory = Scheme & {
+  weight: number;
+  isAMRAP: boolean;
+  /** A stand-in for a program lift swapped out (`PlanEdit` add's `replaces`), kept as is. */
+  replaces?: { exerciseId: string; tier: Tier };
+};
 
 const keyOf = (exerciseId: string, tier: Tier) => `${exerciseId}|${tier}`;
 
@@ -104,6 +109,7 @@ export function addEdit(edits: PlanEdit[], exerciseId: string, accessory: NewAcc
       reps: clampCount(accessory.reps),
       weight: Math.max(0, accessory.weight),
       isAMRAP: accessory.isAMRAP,
+      ...(accessory.replaces ? { replaces: accessory.replaces } : {}),
     },
   ];
 }
@@ -144,6 +150,7 @@ export function swapEdit(
         reps: old.reps,
         weight: DEFAULT_ACCESSORY_WEIGHTS[replacementId] ?? 0,
         isAMRAP: old.isAMRAP,
+        ...(old.replaces ? { replaces: old.replaces } : {}),
       });
     }
   }

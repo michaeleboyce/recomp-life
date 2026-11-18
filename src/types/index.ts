@@ -496,7 +496,20 @@ export interface WorkoutSession extends Stamped {
 export type PlanEdit =
   | { kind: "swap"; exerciseId: string; tier: Tier; replacementId: string }
   | { kind: "remove"; exerciseId: string; tier: Tier }
-  | { kind: "add"; exerciseId: string; sets: number; reps: number; weight: number; isAMRAP: boolean }
+  | {
+      kind: "add";
+      exerciseId: string;
+      sets: number;
+      reps: number;
+      weight: number;
+      isAMRAP: boolean;
+      /**
+       * Added to stand in for a program lift swapped out (a one-for-many swap, or a swap
+       * after sets were logged): logged only, never judged as an accessory. Absent on an
+       * ordinary added exercise. Stored in the session's JSON like every edit.
+       */
+      replaces?: { exerciseId: string; tier: Tier };
+    }
   | { kind: "scheme"; exerciseId: string; tier: Tier; sets: number; reps: number }
   | { kind: "weight"; exerciseId: string; tier: Tier; weight: number }
   /** Each set's own weight and rep target, in order; replaces the entry's sets. */

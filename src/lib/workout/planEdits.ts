@@ -88,6 +88,7 @@ export function applyPlanEdits(plan: WorkoutPlan, edits: PlanEdit[] | undefined)
           isAMRAP: edit.isAMRAP,
           isWarmUp: false,
           completedSets: 0,
+          ...(edit.replaces ? { replaces: { ...edit.replaces } } : {}),
         });
         break;
       }

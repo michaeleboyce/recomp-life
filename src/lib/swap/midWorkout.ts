@@ -89,7 +89,8 @@ function indexesOf(plan: WorkoutPlan, ids: readonly string[], tier: Tier, inPlac
  * - Otherwise (sets logged, or warm-ups the swap would remove): the logged sets stay, the
  *   rest of the entry is dropped by a `scheme` edit to the sets logged (0 when only its
  *   warm-ups were reached; the screen then skips those warm-ups, `isWarmUpOfDropped`),
- *   and every replacement is appended as an `add`.
+ *   and every replacement is appended as an `add`, marked as standing in for a T1, T2 or
+ *   T3 (`replaces`) so it is logged only, never judged as an accessory.
  *
  * What it does to progression: an entry ended early this way no longer matches its
  * prescription, so it is logged only (`classifyEntry`), just as a lift swapped before the
@@ -98,6 +99,8 @@ function indexesOf(plan: WorkoutPlan, ids: readonly string[], tier: Tier, inPlac
  * Throws an Error with a message to show when the entry is not in the plan or is
  * finished, when there is no replacement, or when a replacement is unknown, given twice
  * or already in the workout.
+ *
+ * @evidence swap-recommendation
  */
 export function midWorkoutSwap(
   input: MidWorkoutInput & { replacements: readonly SwapReplacement[] }
@@ -124,7 +127,7 @@ export function midWorkoutSwap(
 
   const edits: PlanEdit[] = [
     { kind: "scheme", exerciseId, tier, sets: logged, reps: entry.targetReps },
-    ...replacements.map(replacementAddEdit),
+    ...replacements.map((r) => replacementAddEdit(r, { exerciseId, tier })),
   ];
   const next = applyPlanEdits(plan, edits);
   return { edits, plan: next, mode: "ended", loggedSets: logged, replacementIndexes: indexesOf(next, ids, tier, false) };

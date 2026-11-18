@@ -10,7 +10,10 @@ import { initializeDatabase } from "@/db/init";
 import { groupSets } from "@/components/LogEdit/groupSets";
 import { clearDb, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { startWorkout } from "@/lib/data/workouts";
-import { isDroppedEntry, type SwapReplacement } from "@/lib/swap";
+import { accessoryPrescription } from "@/lib/accessories/index";
+import { isDroppedEntry, standInText, type SwapReplacement } from "@/lib/swap";
+import { accessoryNextTime, accessoryOutcomesOf } from "@/lib/workout/accessoryPlan";
+import { strengthSetsOf } from "@/lib/workout/strength";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { useActiveWorkout } from "./useActiveWorkout";
 
@@ -123,6 +126,31 @@ describe("swapping during the workout", () => {
     const squatAfter = (await db.liftStates.get("squat"))!;
     expect(squatAfter.t1Weight).toBe(squatBefore.t1Weight);
     expect(squatAfter.t1Stage).toBe(squatBefore.t1Stage);
+
+    // The stand-ins are not judged as accessories: the summary and the Log say what
+    // they stood in for, never "Short of 15 on a set".
+    const evidence = strengthSetsOf(await db.workouts.toArray());
+    const settings = (await db.userProfile.toArray())[0].settings;
+    const outcomes = accessoryOutcomesOf(done, evidence, settings);
+    const goblet = outcomes.find((o) => o.exerciseId === "goblet_squat")!;
+    expect(goblet.next).toBeNull();
+    expect(goblet.text).not.toMatch(/Short of/);
+    expect(goblet.text).toBe(standInText("goblet_squat", { exerciseId: "squat", tier: "T1" }));
+    expect(goblet.text).toMatch(/^Stood in for Barbell Squat\. Barbell Squat stays at its T1 weight/);
+    // Its sets are real sets (strength model, volume) but no accessory session.
+    const gobletSets = evidence.filter((s) => s.exerciseId === "goblet_squat");
+    expect(gobletSets.length).toBe(5);
+    expect(gobletSets.every((s) => s.standsInFor?.exerciseId === "squat")).toBe(true);
+    const later = accessoryPrescription({
+      exerciseId: "goblet_squat",
+      sets: evidence,
+      equipment: settings.equipment,
+      now: new Date(Date.now() + 86_400_000),
+    });
+    expect(later.last).toBeUndefined();
+    expect(later.verdict).toBeUndefined();
+    // Nor is it offered as next time's accessory line during the workout.
+    expect(accessoryNextTime("goblet_squat", done, evidence, settings, new Date())).toBeNull();
   });
 
   it("a T1 with warm-ups swapped before its first working set skips those warm-ups", async () => {

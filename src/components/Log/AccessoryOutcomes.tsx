@@ -26,14 +26,17 @@ export function useAccessoryOutcomes(workout: WorkoutSession | null | undefined)
 
 /** One accessory's line: what it does next time and why. */
 export function AccessoryOutcomeRow({ outcome, compact = false }: { outcome: AccessoryOutcome; compact?: boolean }) {
-  const { verdict } = outcome.next;
+  const verdict = outcome.next?.verdict;
   const Icon = verdict === "up" ? ArrowUpRight : verdict === "down" ? ArrowDownRight : Minus;
   const name = displayLiftName(outcome.exerciseId);
   if (compact) {
     return (
       <li data-outcome="accessory" className="border-t border-border py-2">
         <b className="text-[14px] font-semibold">
-          {name} <span className="font-mono text-xs font-normal text-muted-foreground">Accessory</span>
+          {name}{" "}
+          <span className="font-mono text-xs font-normal text-muted-foreground">
+            {outcome.standsInFor ? "Logged only" : "Accessory"}
+          </span>
         </b>
         <p className="text-xs text-muted-foreground">{outcome.text}</p>
       </li>

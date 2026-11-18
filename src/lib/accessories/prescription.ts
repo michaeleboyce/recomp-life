@@ -179,7 +179,8 @@ export interface AccessoryPrescriptionInput {
 function accessorySessions(sets: readonly StrengthSet[], exerciseId: string, now: number): StrengthSet[][] {
   const bySession = new Map<string, StrengthSet[]>();
   for (const set of sets) {
-    if (set.exerciseId !== exerciseId || set.tier !== "accessory" || !isAppSet(set) || !isNormal(set)) continue;
+    // A stand-in for a program lift swapped out is logged only: not an accessory session.
+    if (set.exerciseId !== exerciseId || set.tier !== "accessory" || set.standsInFor || !isAppSet(set) || !isNormal(set)) continue;
     const time = t(set.date);
     if (!Number.isFinite(time) || time > now) continue;
     const list = bySession.get(set.sessionId);

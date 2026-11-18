@@ -88,7 +88,16 @@ describe("swapEdits", () => {
     expect(edits).toEqual([
       { kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "db_bench" },
       { kind: "weight", exerciseId: "db_bench", tier: "T2", weight: 55 },
-      { kind: "add", exerciseId: "tricep_pushdowns", sets: 3, reps: 15, weight: 40, isAMRAP: true },
+      {
+        kind: "add",
+        exerciseId: "tricep_pushdowns",
+        sets: 3,
+        reps: 15,
+        weight: 40,
+        isAMRAP: true,
+        // It stands in for the T2 bench: logged only, never judged as an accessory.
+        replaces: { exerciseId: "bench", tier: "T2" },
+      },
     ]);
     expect(edits.filter((e) => e.kind === "swap")).toHaveLength(1);
     expect(edits.filter((e) => e.kind === "add")).toHaveLength(1);
@@ -111,6 +120,16 @@ describe("swapEdits", () => {
       ["db_bench", "T2", 3, 10, 55],
       ["tricep_pushdowns", "accessory", 3, 15, 40],
     ]);
+    expect(next[2].replaces).toEqual({ exerciseId: "bench", tier: "T2" });
+  });
+
+  it("does not mark the extra replacements of an accessory", () => {
+    const edits = swapEdits("face_pulls", "accessory", [
+      { exerciseId: "reverse_fly", prescription: prescription(12, 3, 20) },
+      { exerciseId: "lateral_raises", prescription: prescription(10, 3, 15) },
+    ]);
+    const add = edits.find((e) => e.kind === "add")!;
+    expect("replaces" in add).toBe(false);
   });
 
   it("an accessory entry takes the replacement's own scheme; no weight edit when the default is right", () => {
