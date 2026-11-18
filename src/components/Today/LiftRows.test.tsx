@@ -67,6 +67,19 @@ describe("LiftRows", () => {
     await clearDb();
   });
 
+  it("marks a per-hand weight for the program's own dumbbell lift, not only for a home version", () => {
+    render(
+      <LiftRows
+        rows={buildLiftRows(
+          [entry({ exerciseId: "db_row", tier: "T3", targetSets: 3, targetReps: 15, weight: 35 }), entry({})],
+          []
+        )}
+      />
+    );
+    // Dumbbell row is done one dumbbell a hand; the barbell squat is not.
+    expect(screen.getAllByText("/hand")).toHaveLength(1);
+  });
+
   it("opens the home version a substituted row shows, not the barbell lift", () => {
     const home = entry({ substituteExerciseId: "goblet_squat", weight: 60, originalWeight: 190 });
     render(<LiftRows rows={buildLiftRows([home], [])} />);
