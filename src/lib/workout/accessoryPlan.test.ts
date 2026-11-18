@@ -7,6 +7,8 @@ import {
   accessoryAddEdit,
   accessoryDay,
   accessoryMinutes,
+  accessoryNextTime,
+  nextTimeText,
   accessoryRowsOf,
   accessoryWeekSets,
   planAccessories,
@@ -144,6 +146,44 @@ describe("accessoryAddEdit and accessoryMinutes", () => {
 
   it("counts each set with the rest after it", () => {
     expect(accessoryMinutes(3)).toBe(Math.round((3 * estimateSetSeconds("accessory")) / 60));
+  });
+});
+
+describe("accessoryNextTime and nextTimeText (A9, A10)", () => {
+  const session = (reps: number[], weight = 30) => ({
+    id: "today",
+    sets: reps.map((r, i) => ({
+      id: `t${i}`,
+      clientId: `t${i}`,
+      exerciseId: "bicep_curls",
+      tier: "accessory" as const,
+      setNumber: i + 1,
+      targetReps: 15,
+      actualReps: r,
+      weight,
+      isAMRAP: true,
+      rpe: null,
+      location: "gym" as const,
+      completedAt: at(0, 19),
+      status: "completed" as const,
+      isSubstituted: false,
+    })),
+  });
+
+  it("all sets at the top: up one step next time", () => {
+    const next = accessoryNextTime("bicep_curls", session([15, 15, 15]) as never, HISTORY, SETTINGS, at(0, 20))!;
+    expect(next).toMatchObject({ weight: 35, verdict: "up" });
+    expect(nextTimeText(next)).toBe("All sets at 15: up to 35 next time");
+  });
+
+  it("a set short: the same weight again", () => {
+    const next = accessoryNextTime("bicep_curls", session([15, 14, 12]) as never, HISTORY, SETTINGS, at(0, 20))!;
+    expect(next).toMatchObject({ weight: 30, verdict: "same" });
+    expect(nextTimeText(next)).toBe("Short of 15 on a set: 30 again next time");
+  });
+
+  it("nothing done of it: nothing to say", () => {
+    expect(accessoryNextTime("leg_curls", session([15]) as never, HISTORY, SETTINGS, NOW)).toBeNull();
   });
 });
 

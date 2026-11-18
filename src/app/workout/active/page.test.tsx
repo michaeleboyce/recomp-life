@@ -663,3 +663,26 @@ describe("glass box: forecast, why and rest", () => {
     }
   });
 });
+
+describe("adding an accessory mid-workout (A9)", () => {
+  it("opens the Add list, appends the one picked at its prescription, and says so", async () => {
+    nav.sessionId = await startWorkout({ templateId: "A1", location: "gym", includeWarmUps: false, selectedAccessories: [] });
+    render(
+      <>
+        <ActiveWorkoutPage />
+        <Toaster />
+      </>
+    );
+    await screen.findByRole("button", { name: /^LOG/ });
+    fireEvent.click(screen.getByRole("button", { name: "Add accessory" }));
+    const sheet = await screen.findByRole("dialog", { name: "Add an accessory" });
+    expect(within(sheet).getByRole("region", { name: "For today" })).toBeInTheDocument();
+    fireEvent.change(within(sheet).getByRole("searchbox"), { target: { value: "face" } });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Add Face pulls" }));
+    expect(await screen.findByText("Face Pulls added at the end")).toBeInTheDocument();
+    const workout = (await db.workouts.get(nav.sessionId))!;
+    expect(workout.planEdits).toEqual([
+      { kind: "add", exerciseId: "face_pulls", sets: 3, reps: 20, weight: expect.any(Number), isAMRAP: true },
+    ]);
+  });
+});

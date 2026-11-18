@@ -17,7 +17,9 @@ import {
 } from "@/lib/accessories/index";
 import { recoveryFromLastTrained, type MuscleValues } from "@/lib/muscleLoad";
 import type { StrengthSet } from "@/lib/strength";
-import type { AccessoryMode, MuscleId, PlanEdit, TrainingPhase, UserSettings, WorkoutLocation } from "@/types";
+import type { AccessoryMode, MuscleId, PlanEdit, TrainingPhase, UserSettings, WorkoutLocation, WorkoutSession } from "@/types";
+import { ACCESSORY_STUCK_SESSIONS } from "@/lib/accessories";
+import { strengthSetOf } from "./strength";
 import { estimateSetSeconds } from "./duration";
 import type { WorkoutExerciseState, WorkoutPlan } from "./types";
 
@@ -229,6 +231,53 @@ export function accessoryRowsOf(
         chosen: planned != null,
       };
     });
+}
+
+/**
+ * What an accessory does next time after a session of it (A9, A10): its prescription
+ * read with the session's sets counted (`accessoryPrescription`), so double
+ * progression's verdict and next weight are the ones the next plan will give. `sets`
+ * is the evidence before the session (`strengthSetsOf` / `strengthEvidenceOf`); the
+ * session's own sets are added here. Null when the session has no working set of it.
+ *
+ * @evidence accessory-progression
+ */
+export function accessoryNextTime(
+  exerciseId: string,
+  session: Pick<WorkoutSession, "id" | "sets">,
+  sets: readonly StrengthSet[],
+  settings: Pick<AccessorySettings, "equipment" | "accessoryWeights">,
+  now: Date
+): AccessoryPrescription | null {
+  const own = (session.sets ?? [])
+    .filter((set) => set.tier === "accessory" && set.status !== "skipped_pain")
+    .map((set) => strengthSetOf(set, session.id))
+    .filter((set) => set.exerciseId === exerciseId && set.role !== "warmup" && set.role !== "drop");
+  if (own.length === 0) return null;
+  const before = sets.filter((set) => set.exerciseId === exerciseId && set.sessionId !== session.id);
+  const latest = Math.max(now.getTime(), ...own.map((set) => new Date(set.date).getTime()));
+  return accessoryPrescription({
+    exerciseId,
+    sets: [...before, ...own],
+    equipment: settings.equipment,
+    handSetWeight: settings.accessoryWeights?.[exerciseId] ?? null,
+    now: new Date(latest),
+  });
+}
+
+/**
+ * "All sets at 15: up to 30 next time", "Short of 15 on a set: 25 again next time",
+ * "Short of 15 for 3 sessions: down to 22.5 next time": what an accessory does next
+ * time and why, in one line.
+ */
+export function nextTimeText(p: AccessoryPrescription): string {
+  const top = p.reps.max;
+  const unit = (w: number | null) => (w == null ? "" : `${Math.round(w * 100) / 100}`);
+  if (p.basis === "hand") return `Set by you: ${unit(p.weight)} next time${p.planWeight != null ? ` (the plan says ${unit(p.planWeight)})` : ""}`;
+  if (p.verdict === "up") return `All sets at ${top}: up to ${unit(p.weight)} next time`;
+  if (p.verdict === "down") return `Short of ${top} for ${ACCESSORY_STUCK_SESSIONS} sessions: down to ${unit(p.weight)} next time`;
+  if (p.weight === 0 || p.weight == null) return `Next time: work toward ${top} reps on every set`;
+  return `Short of ${top} on a set: ${unit(p.weight)} again next time`;
 }
 
 /** Minutes an accessory adds to the session: its sets, each with the rest after it. */
