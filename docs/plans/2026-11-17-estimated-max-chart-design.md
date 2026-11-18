@@ -1,8 +1,12 @@
 # The estimated-max chart: a clear trend, what feeds it, any window
 
-Status: proposed on 2026-11-17 from Michael's request ("shouldn't estimated max also have a
-smooth trend line that is clear to see and show how and when it includes other exercises?
-you should also be able to adjust the time period window"). Being built as package C1.
+Status: built and deployed on 2026-11-17 (M1 to M10), from Michael's request ("shouldn't
+estimated max also have a smooth trend line that is clear to see and show how and when it
+includes other exercises? you should also be able to adjust the time period window" and "I
+thought there are estimated max for all of the muscles"). Pure functions in
+`src/lib/strength/timeline.ts`; the chart is used by the lift headline, the projection
+history, the Strength tab total, each muscle's sheet and the home exercise pages. Checked on
+the live data. Follow-ups are in `docs/plans/2026-11-17-open-items.md`.
 
 ## Today
 

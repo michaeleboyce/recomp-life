@@ -5,6 +5,33 @@ Status: audit of 2026-11-17. Every plan document, the rules marked `planned`, `C
 Items being built that day (accessory screens, the estimated-max chart) and items fixed that
 day (F6, the Strength tab rows) are left out. Nothing here is scheduled until Michael picks it.
 
+## Found on the live data on 2026-11-17, after the accessory screens and the chart deployed
+
+Fixed the same day:
+
+- Progress → Muscles showed "No muscle data yet" until a workout or pain entry was logged in
+  the app, although the tab reads imported sessions. With imported history and no app workout
+  the tab and the muscle charts could not be reached. Imported sessions now count
+  (`src/components/Progress/ProgressHub.tsx`).
+- Two tests failed on GitHub only (it runs in UTC): the planning characterisation recorded
+  times as epoch milliseconds and moved made-up dates by milliseconds across a daylight-saving
+  change. Rule for tests: record times as local stamps, move dates with `setDate`/`setHours`,
+  and run the whole suite once with `TZ=UTC` before pushing.
+
+Still to do (small):
+
+- Progress → Strength shows each lift's latest own session estimate; the lift page headline
+  shows the planner's pooled estimate. Use one number on both.
+- The chart's zoom slider spans the whole history, so on a short window its two handles sit on
+  top of each other; give the slider a minimum handle gap or scale it to the selected preset.
+- The muscle sheet repeats its subtitle; the smooth line's latest value and the index can
+  differ by a lot for a muscle with many exercises, and the note explaining why is easy to miss.
+- An accessory offered at home in place of a gym one gives the replacement as its reason ("At
+  home instead of face pulls"); give the reason the pick itself earned.
+- Default accessories add about 20 minutes to a session; consider a time budget in the
+  selection (pick fewer when the session forecast passes a length the user sets).
+- `MusclesTab` keeps its own weekly target of 10 sets instead of `WEEKLY_SET_TARGET`.
+
 ## Promised and missing
 
 | Item | Where it was promised | In the code today | Size |

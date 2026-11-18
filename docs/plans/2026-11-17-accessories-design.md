@@ -1,10 +1,12 @@
 # Accessories: chosen for you, by default
 
-Status: proposed on 2026-11-17 from Michael's request ("a better interface for accessory
-exercises and I want you to default to that", plus a list of exercises he really does). The
-pure-logic packages (X1, X2) start now; the screens (X3, X4) start when the planning refactor
-(`docs/plans/2026-11-17-imported-history-and-planning-paths.md`, R1 and R2) is on `main`,
-because they change the same files. Any decision below can be changed.
+Status: built and deployed on 2026-11-17 (A1 to A11), from Michael's request ("a better
+interface for accessory exercises and I want you to default to that", plus a list of exercises
+he really does). The picks are chosen once, in `planAccessories`
+(`src/lib/workout/accessoryPlan.ts`), inside `planWorkoutStart`, and saved as `add` plan
+edits, so Today, the forecast, the Ready screen, the recorded plan and resume agree. A weight
+set by hand is kept in `settings.accessoryWeights` with the plan's weight beside it. Checked
+on the live data. Follow-ups are in `docs/plans/2026-11-17-open-items.md`.
 
 This repository is public. The owner's training history is read on the device at run time;
 nothing here or in the code lists what he has done.
