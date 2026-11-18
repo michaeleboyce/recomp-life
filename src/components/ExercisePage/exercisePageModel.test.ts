@@ -58,7 +58,9 @@ describe("classifyExercise", () => {
     expect(classifyExercise("db_row")).toEqual({ kind: "t3" });
     expect(classifyExercise("lat_pulldown")).toEqual({ kind: "t3" });
     expect(classifyExercise("face_pulls")).toEqual({ kind: "accessory" });
-    expect(classifyExercise("incline_db_row")).toEqual({ kind: "reference" });
+    expect(classifyExercise("incline_db_row")).toEqual({ kind: "accessory" });
+    // Bodyweight: no load for double progression to move, so not an accessory.
+    expect(classifyExercise("push_up")).toEqual({ kind: "reference" });
   });
 });
 
