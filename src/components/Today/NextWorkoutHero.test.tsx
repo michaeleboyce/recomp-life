@@ -169,6 +169,28 @@ describe("NextWorkoutHero", () => {
     expect(start).toHaveAttribute("href", "/workout/configure");
   });
 
+  it("lists the chosen accessories under T3, folded into one row above START, with Change (A7)", async () => {
+    await seedDemo();
+    render(<NextWorkoutHero />);
+    const block = await screen.findByTestId("accessories");
+    const lifts = screen.getAllByTestId("hero-exercise");
+    expect(lifts.at(-1)!.compareDocumentPosition(block) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const start = screen.getByRole("link", { name: "Start workout" });
+    expect(block.compareDocumentPosition(start) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(block).getByRole("link", { name: "Change accessories" })).toHaveAttribute(
+      "href",
+      "/workout/configure?accessories=open"
+    );
+    const summary = within(block).queryByTestId("accessory-summary");
+    if (summary) {
+      expect(summary).toHaveTextContent(/^\d+ accessories · /);
+      fireEvent.click(within(block).getByRole("button", { expanded: false }));
+    }
+    const rows = within(block).getAllByTestId("accessory-row");
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) expect(within(row).getByTestId("accessory-scheme")).toHaveTextContent(/^\d+ × \d+/);
+  });
+
   it("offers Resume, not a second Start, while a workout is open", async () => {
     await seedDemo();
     const open = { ...demo.workouts[0], id: "open-1", clientId: "open-1", startedAt: new Date(Date.now() - 20 * 60_000), completedAt: null, deletedAt: undefined };
