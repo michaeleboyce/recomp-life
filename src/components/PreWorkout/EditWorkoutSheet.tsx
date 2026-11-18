@@ -13,6 +13,7 @@ import { applyPreferences } from "@/lib/exercisePreferences";
 import { EXERCISES, getExercise } from "@/lib/exercises";
 import { prescribeSwap, replacementAddEdit, swapEdits, type SwapCandidate, type SwapSlot } from "@/lib/swap";
 import { cn } from "@/lib/utils";
+import type { WorkoutExerciseState } from "@/lib/workout/types";
 import type { PlannedSet, PrescribedEntry, Tier } from "@/types";
 import { EditEntryRow } from "./EditEntryRow";
 import { ExercisePicker } from "./ExercisePicker";
@@ -20,6 +21,24 @@ import { ImpactLine } from "./ImpactLine";
 import type { WorkoutSetup } from "./useWorkoutSetup";
 
 type Picking = { mode: "swap"; exerciseId: string; shownId: string; tier: Tier; slot: SwapSlot } | { mode: "add" } | null;
+
+/** The swap sheet's picking state for a plan entry: that lift, its slot as planned. */
+function swapPickingFor(entry: WorkoutExerciseState): Picking {
+  return {
+    mode: "swap",
+    exerciseId: entry.exerciseId,
+    shownId: entry.substituteExerciseId || entry.exerciseId,
+    tier: entry.tier,
+    slot: {
+      tier: entry.tier,
+      sets: entry.targetSets,
+      reps: entry.targetReps,
+      isAMRAP: entry.isAMRAP,
+      weight: entry.weight,
+      ...(entry.originalWeight != null ? { originalWeight: entry.originalWeight } : {}),
+    },
+  };
+}
 
 /**
  * The program's own sets for an entry, for "Plan · You" in the per-set editor: what was
@@ -48,17 +67,22 @@ export function prescribedSetsFor(
 /**
  * Edit the day's workout before starting: swap, remove, add, change sets, reps and
  * weight. Every program lift shows whether it still counts toward progression.
+ *
+ * With `swapLift` (Ready's home panel, "Change") it opens straight on that lift's swap
+ * sheet, and leaving the swap sheet closes it.
  */
 export function EditWorkoutSheet({
   setup,
   open,
   onOpenChange,
+  swapLift = null,
 }: {
   setup: WorkoutSetup;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  swapLift?: { exerciseId: string; tier: Tier } | null;
 }) {
-  const [picking, setPicking] = useState<Picking>(null);
+  const [chosen, setPicking] = useState<Picking>(null);
   const { plan, impact, edits, location, exercisePreferences, equipment } = setup;
 
   const rows = useMemo(() => plan.filter((entry) => !entry.isWarmUp), [plan]);
@@ -67,6 +91,10 @@ export function EditWorkoutSheet({
     [rows]
   );
   const notDone = impact.filter((item) => item.status === "not-done");
+  const forcedEntry = swapLift
+    ? rows.find((entry) => entry.exerciseId === swapLift.exerciseId && entry.tier === swapLift.tier)
+    : undefined;
+  const picking = useMemo(() => (forcedEntry ? swapPickingFor(forcedEntry) : chosen), [forcedEntry, chosen]);
 
   // What the swap sheet ranks from, for the entry being swapped (W10).
   const swapContext = useSwapContext({
@@ -90,6 +118,8 @@ export function EditWorkoutSheet({
     if (!next) setPicking(null);
     onOpenChange(next);
   };
+  // Opened on one lift: leaving its swap sheet closes the whole sheet.
+  const leaveSwap = () => (forcedEntry ? handleOpenChange(false) : setPicking(null));
 
   // An added exercise comes at its own prescription, as an accessory would (the swap logic's).
   const addPrescription = (exerciseId: string) =>
@@ -134,8 +164,8 @@ export function EditWorkoutSheet({
             tier={picking.tier}
             context={swapContext}
             onConfirm={swap}
-            onBack={() => setPicking(null)}
-            onDone={() => setPicking(null)}
+            onBack={leaveSwap}
+            onDone={leaveSwap}
           />
         ) : picking?.mode === "add" ? (
           <ExercisePicker
@@ -162,22 +192,7 @@ export function EditWorkoutSheet({
                       item.exerciseId === entry.exerciseId &&
                       item.tier === entry.tier
                   )}
-                  onSwap={() =>
-                    setPicking({
-                      mode: "swap",
-                      exerciseId: entry.exerciseId,
-                      shownId: entry.substituteExerciseId || entry.exerciseId,
-                      tier: entry.tier,
-                      slot: {
-                        tier: entry.tier,
-                        sets: entry.targetSets,
-                        reps: entry.targetReps,
-                        isAMRAP: entry.isAMRAP,
-                        weight: entry.weight,
-                        ...(entry.originalWeight != null ? { originalWeight: entry.originalWeight } : {}),
-                      },
-                    })
-                  }
+                  onSwap={() => setPicking(swapPickingFor(entry))}
                   onRemove={() => setup.removeExercise(entry.exerciseId, entry.tier)}
                   onScheme={(sets, reps) => setup.setScheme(entry.exerciseId, entry.tier, sets, reps)}
                   onWeight={(weight) => setup.setWeight(entry.exerciseId, entry.tier, weight)}

@@ -14,6 +14,7 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { TermIcon } from "@/components/ui/term";
 import { paceStatus, type PaceWord } from "@/components/Progress/body/bodyMath";
 import { rangeSuffix } from "@/components/Progress/rangeText";
+import { estimateNote } from "@/components/Progress/strength";
 import { useLiftEstimate } from "@/components/Progress/useLiftEstimate";
 import { formatLbs, shortLiftName } from "./format";
 
@@ -31,12 +32,8 @@ function Hint({ children }: { children: React.ReactNode }) {
   return <span className="text-xs text-muted-foreground">{children}</span>;
 }
 
-/** "Nov 3", or "Nov 3, 2025" when it is not this year. */
-function formatTileDay(t: number): string {
-  const date = new Date(t);
-  const thisYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(thisYear ? {} : { year: "numeric" }) });
-}
+/** The window of a lift tile's line and change. */
+const LIFT_WINDOW = "3m";
 
 function toneFor(change: number | null | undefined, better: DeltaBetter): SparklineTone {
   if (!change || better === "none") return "neutral";
@@ -143,10 +140,13 @@ function WeekTile() {
 function LiftTile({ exerciseId }: { exerciseId: string }) {
   // The lift page headline's number (the pooled estimate, imported sessions included),
   // with the change of the same smooth line over 3 months.
-  const estimate = useLiftEstimate(exerciseId, "3m");
+  const estimate = useLiftEstimate(exerciseId, LIFT_WINDOW);
+  const [now] = useState(() => Date.now());
   if (estimate === undefined) return <TileSkeleton />;
 
-  const latest = estimate?.latest ?? null;
+  // The newest evidence in the Strength card's words (`estimateNote`): "Imported, Nov 3 ·
+  // Bulgarian Split Squat". Null for the lift's own app session in the window.
+  const note = estimate ? estimateNote(exerciseId, estimate, LIFT_WINDOW, now) : null;
   const change = estimate?.change ?? null;
   const line = estimate?.line ?? [];
 
@@ -163,8 +163,8 @@ function LiftTile({ exerciseId }: { exerciseId: string }) {
         delta={
           !estimate ? (
             <Hint>Finish a workout to estimate it</Hint>
-          ) : latest?.imported ? (
-            <Hint>Imported, {formatTileDay(latest.t)}</Hint>
+          ) : note ? (
+            <Hint>{note}</Hint>
           ) : change !== null ? (
             // The real span of the line shown, not the nominal 3 months.
             <Delta value={Math.round(change)} unit="lb" suffix={rangeSuffix(line)} better="up" />

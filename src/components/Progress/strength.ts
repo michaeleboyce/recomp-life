@@ -149,16 +149,30 @@ function cardDay(t: number, now: number): string {
  * older than the range. Null for the app's own session of the lift inside the range.
  */
 export function latestNote(lift: LiftOverview, range: RangeKey, now: number): string | null {
-  const estimate = lift.estimate;
+  if (lift.estimate) return estimateNote(lift.id, lift.estimate, range, now);
   const fallback = lift.summary.latest ?? lift.latestBeforeRange;
-  const newest = estimate
-    ? estimate.newest
-    : fallback
-      ? { t: fallback.t, imported: fallback.imported === true, exerciseId: lift.id }
-      : null;
+  if (!fallback) return null;
+  return newestNote(lift.id, { t: fallback.t, imported: fallback.imported === true, exerciseId: lift.id }, !lift.summary.latest, now);
+}
+
+/**
+ * `latestNote` for a lift's number on its own (`liftEstimate`, Today's lift tiles): the
+ * same words from the newest session behind the estimate, so a tile and its Strength
+ * card cannot differ. The date alone when that session is older than `range`.
+ */
+export function estimateNote(liftId: string, estimate: LiftEstimate, range: RangeKey, now: number): string | null {
+  const newest = estimate.newest;
   if (!newest) return null;
-  const home = newest.exerciseId !== lift.id ? (EXERCISES[newest.exerciseId]?.name ?? newest.exerciseId) : null;
-  const older = estimate ? newest.t < windowBounds(range, now).from : !lift.summary.latest;
+  return newestNote(liftId, newest, newest.t < windowBounds(range, now).from, now);
+}
+
+function newestNote(
+  liftId: string,
+  newest: { t: number; imported: boolean; exerciseId: string },
+  older: boolean,
+  now: number
+): string | null {
+  const home = newest.exerciseId !== liftId ? (EXERCISES[newest.exerciseId]?.name ?? newest.exerciseId) : null;
   if (!newest.imported && !home && !older) return null;
   const day = cardDay(newest.t, now);
   return `${newest.imported ? `Imported, ${day}` : day}${home ? ` · ${home}` : ""}`;

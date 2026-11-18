@@ -176,6 +176,32 @@ describe("GlanceTiles", () => {
     expect(tile).not.toHaveTextContent("Finish a workout");
   });
 
+  it("notes the lift's newest evidence as the Strength card does, a newer home version named", async () => {
+    await initializeDatabase();
+    const day = (daysAgo: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() - daysAgo);
+      d.setHours(12, 0, 0, 0);
+      return d;
+    };
+    // Made-up history: the squat itself 20 days ago, the split squat 4 days ago.
+    await db.importedSessions.bulkPut([
+      importedSession([importedSet({ weightPerImplementLb: 200, reps: 5 })], { startedAt: day(20) }),
+      importedSession(
+        [importedSet({ exerciseName: "Test Split Squat", mappedExerciseId: "bulgarian_split_squat", weightPerImplementLb: 40, implementCount: 2, reps: 8 })],
+        { startedAt: day(4) }
+      ),
+    ]);
+    render(<GlanceTiles />);
+    const tile = await waitFor(() => {
+      const found = screen.getAllByRole("link").find((a) => a.getAttribute("href") === "/progress/lift/squat");
+      expect(found).toBeDefined();
+      return found!;
+    });
+    const shortDay = day(4).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(day(4).getFullYear() === new Date().getFullYear() ? {} : { year: "numeric" }) });
+    await waitFor(() => expect(tile).toHaveTextContent(`Imported, ${shortDay} · Bulgarian Split Squat`));
+  });
+
   it("shows dashes and hints instead of zeros for a new user", async () => {
     await initializeDatabase();
     render(<GlanceTiles />);

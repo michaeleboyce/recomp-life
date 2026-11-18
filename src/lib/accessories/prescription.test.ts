@@ -112,6 +112,38 @@ describe("accessoryPrescription: double progression", () => {
     expect(p.note).toContain("for 3 sessions");
   });
 
+  it("a last session older than the own-history window adds nothing: same weight, says when", () => {
+    // Every set at the top fourteen months (420 days) before the date planned for.
+    const old = session("leg_curls", "w1", 420, 70, [15, 15, 15]);
+    const p = accessoryPrescription({ exerciseId: "leg_curls", sets: old, equipment: EQUIPMENT, now: NOW });
+    expect(p).toMatchObject({ weight: 70, basis: "progression", verdict: "same" });
+    expect(p.note).toBe("Last done 14 months ago: same weight to start");
+    // Just inside the window, the same session still moves it up.
+    const inside = session("leg_curls", "w1", OWN_HISTORY_FIRST_WEIGHT.recentDays - 1, 70, [15, 15, 15]);
+    expect(accessoryPrescription({ exerciseId: "leg_curls", sets: inside, equipment: EQUIPMENT, now: NOW }).weight).toBe(75);
+    // Just outside, weeks.
+    const outside = session("leg_curls", "w1", OWN_HISTORY_FIRST_WEIGHT.recentDays + 1, 70, [15, 15, 15]);
+    expect(accessoryPrescription({ exerciseId: "leg_curls", sets: outside, equipment: EQUIPMENT, now: NOW }).note).toBe(
+      "Last done 8 weeks ago: same weight to start"
+    );
+  });
+
+  it("stuck sessions long ago start the count again: no drop from them", () => {
+    const sets = [
+      ...session("leg_curls", "w1", 409, 70, [13, 12, 12]),
+      ...session("leg_curls", "w2", 406, 70, [14, 12, 12]),
+      ...session("leg_curls", "w3", 403, 70, [14, 13, 12]),
+    ];
+    const p = accessoryPrescription({ exerciseId: "leg_curls", sets, equipment: EQUIPMENT, now: NOW });
+    expect(p).toMatchObject({ weight: 70, verdict: "same" });
+    // One stuck session after the break is the first of a new count, not the fourth.
+    const after = [...sets, ...session("leg_curls", "w4", 3, 70, [13, 12, 12])];
+    expect(accessoryPrescription({ exerciseId: "leg_curls", sets: after, equipment: EQUIPMENT, now: NOW })).toMatchObject({
+      weight: 70,
+      verdict: "same",
+    });
+  });
+
   it("reads only the app's sessions as an accessory, not imported ones or warm-ups", () => {
     const sets = [
       ...session("leg_curls", "w1", 10, 70, [15, 15, 15]),
