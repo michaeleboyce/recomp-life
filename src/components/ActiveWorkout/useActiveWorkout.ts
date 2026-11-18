@@ -8,7 +8,7 @@
  * | State                        | Lives in                       | Written by                                                    | Read by                         | Reset by                                         | Reload | Remount |
  * |------------------------------|--------------------------------|---------------------------------------------------------------|---------------------------------|--------------------------------------------------|--------|---------|
  * | logged sets, plan edits      | session row (Dexie)            | appendSet, appendPlanEdit, commitLogChange                     | everything                      | never (soft delete on discard)                   | kept   | kept    |
- * | start time                   | store copy of session.startedAt| beginSession (effect, first sight of the id)                  | header clock, finish            | beginSession for another id, reset               | re-copied | kept |
+ * | start time                   | session row (startedAt)        | startWorkout only                                             | header clock, finish            | never                                            | kept   | kept    |
  * | frozen plan                  | React (per session id)         | first load (planForSession), addExercise, applyChange         | everything                      | another session id                               | rebuilt from session | rebuilt |
  * | weights changed on the spot  | React + sessionStorage         | setSetWeight / setNextWeight, applyChange (replaced entry)    | plan, chips, logSet             | per set: back to plan; per entry: replaced swap  | kept   | kept    |
  * | reps picked, effort picked   | React, keyed "entry:set"       | setSelectedReps, setSelectedRepsInReserve                     | logSet                          | key changes (next set); deleting a set           | lost   | lost    |
@@ -146,7 +146,6 @@ export function useActiveWorkout(
   const viewedEntryIndex = useWorkoutStore((s) => s.viewedEntryIndex);
   const pendingDrop = useWorkoutStore((s) => s.pendingDrop);
   const dismissedDropEntryIndex = useWorkoutStore((s) => s.dismissedDropEntryIndex);
-  const workoutStartTime = useWorkoutStore((s) => s.workoutStartTime);
   const storeSessionId = useWorkoutStore((s) => s.sessionId);
 
   // Index of the entry that was on screen when the user chose to end early.
@@ -201,10 +200,15 @@ export function useActiveWorkout(
 
   useEffect(() => {
     if (session) {
-      useWorkoutStore.getState().beginSession(session.id, new Date(session.startedAt));
+      useWorkoutStore.getState().beginSession(session.id);
     }
   }, [session]);
   const storeReady = !!session && storeSessionId === session.id;
+
+  // The saved session owns the start time: it is written once, when the workout starts
+  // (`startWorkout`), and never changed. One Date per value, so the clock is not restarted.
+  const startedAtMs = session ? new Date(session.startedAt).getTime() : null;
+  const workoutStartTime = useMemo(() => (startedAtMs == null ? null : new Date(startedAtMs)), [startedAtMs]);
 
   const sets = useMemo(() => session?.sets ?? [], [session]);
   // Kept per workout in sessionStorage, so a reload keeps the weights changed on the spot.
@@ -800,7 +804,7 @@ export function useActiveWorkout(
     setIsCompleting(true);
     try {
       const completedAt = new Date();
-      const startedAt = workoutStartTime ?? new Date(session.startedAt);
+      const startedAt = new Date(session.startedAt);
       await finishWorkout(session.id, {
         completedAt,
         totalDurationSeconds: Math.floor((completedAt.getTime() - startedAt.getTime()) / 1000),
@@ -822,7 +826,6 @@ export function useActiveWorkout(
     plan,
     endedAtIndex,
     naturalIndex,
-    workoutStartTime,
   ]);
 
   /** Discards the workout: a soft delete, so its sets and e1RM rows drop out everywhere. */
