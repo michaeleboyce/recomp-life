@@ -10,7 +10,7 @@ import { recommendSwaps, swapEdits, swapProgressionEffect, type SwapCandidate, t
 import { SwapSheet } from "./SwapSheet";
 import { partsTotal } from "./swapSheetModel";
 
-const setExercisePreference = vi.fn(async (..._args: unknown[]) => {});
+const setExercisePreference = vi.fn<(...args: unknown[]) => Promise<void>>(async () => {});
 vi.mock("@/lib/data/records", () => ({ setExercisePreference: (...args: unknown[]) => setExercisePreference(...args) }));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
@@ -35,7 +35,7 @@ beforeEach(() => setExercisePreference.mockClear());
 afterEach(cleanup);
 
 function open(props: Partial<Parameters<typeof SwapSheet>[0]> = {}) {
-  const onConfirm = vi.fn(async (_picks: SwapCandidate[]) => {});
+  const onConfirm = vi.fn<(picks: SwapCandidate[]) => Promise<void>>(async () => {});
   const onOpenChange = vi.fn();
   render(
     <SwapSheet open onOpenChange={onOpenChange} exerciseId="bench" tier="T2" context={CONTEXT} onConfirm={onConfirm} {...props} />

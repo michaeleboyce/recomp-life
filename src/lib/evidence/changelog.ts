@@ -14,6 +14,13 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     date: "2026-11-18",
     ruleId: "swap-recommendation",
     change:
+      "Switched on: the swap sheet shows the recommended swaps before and during a workout, each with its weight, sets and reps, reason, history and score parts, pairs that cover an exercise together, and what the swap does to the program lift. A swap is for that workout only unless \"Every time\" is switched on, which marks the replacement preferred at that location (and, for an accessory, leaves the original out there). At home without a bench, exercises that need one are no longer offered.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "swap-recommendation",
+    change:
       "New rule: swaps are ranked by a score in parts (muscles covered, same movement or tier fit, preferred, done before, a known weight, recovery and pain), each with the weight, sets and reps it would be done at, and pairs are offered when no single exercise covers the original. The Edit workout sheet's swap list now follows this order (same movement first, preferred no longer always first).",
     sources: [],
   },

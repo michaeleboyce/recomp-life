@@ -29,6 +29,10 @@ import { useActiveWorkout } from "@/components/ActiveWorkout/useActiveWorkout";
 import { useWorkoutAccessories } from "@/components/ActiveWorkout/useWorkoutAccessories";
 import { AccessoryNextTime, AddAccessoryButton } from "@/components/ActiveWorkout/AccessoryNextTime";
 import { AccessorySheet } from "@/components/PreWorkout/AccessorySheet";
+import { SwapSheet } from "@/components/Swap/SwapSheet";
+import { useSwapContext } from "@/components/Swap/useSwapContext";
+import type { SwapCandidate, SwapSlot } from "@/lib/swap";
+import type { WorkoutExerciseState } from "@/lib/workout/types";
 import {
   useElapsedSeconds,
   useLeaveGuard,
@@ -104,6 +108,58 @@ function ActiveWorkoutContent() {
       toast({ message: `Could not add it: ${errorText(err)}` });
     }
   };
+  // Swapping or removing an exercise mid-workout (W11): the entry as it was when the
+  // sheet opened, and that moment (what the candidates are ranked at).
+  const [swapping, setSwapping] = useState<{ entry: WorkoutExerciseState; at: Date } | null>(null);
+  const swapEntry = swapping?.entry;
+  const swapSlot = useMemo<SwapSlot | undefined>(
+    () =>
+      swapEntry
+        ? {
+            tier: swapEntry.tier,
+            sets: swapEntry.targetSets,
+            reps: swapEntry.targetReps,
+            isAMRAP: swapEntry.isAMRAP,
+            weight: swapEntry.weight,
+            ...(swapEntry.originalWeight != null ? { originalWeight: swapEntry.originalWeight } : {}),
+          }
+        : undefined,
+    [swapEntry]
+  );
+  const [openedAt] = useState(() => new Date());
+  const swapContext = useSwapContext({
+    location: session?.location ?? "gym",
+    exclude: accessories.inPlan,
+    ...(swapSlot ? { slot: swapSlot } : {}),
+    now: swapping?.at ?? openedAt,
+  });
+  /** The working entry a block or row stands for (a warm-up's is the lift after it). */
+  const workingIndex = (index: number) => {
+    const at = plan[index];
+    if (!at?.isWarmUp) return index;
+    return plan.findIndex((e, i) => i > index && !e.isWarmUp && e.exerciseId === at.exerciseId);
+  };
+  const openSwap = (index: number) => {
+    const working = workingIndex(index);
+    if (working >= 0) setSwapping({ entry: plan[working], at: new Date() });
+  };
+  const confirmSwap = async (picks: SwapCandidate[]) => {
+    if (!swapEntry) return;
+    await workout.swapExercise(swapEntry.exerciseId, swapEntry.tier, picks);
+    toast({ message: `${getExercise(picks[0].exerciseId).name} swapped in` });
+  };
+  const removeAt = async (index: number) => {
+    const at = plan[index];
+    if (!at) return;
+    try {
+      await workout.removeExercise(at.exerciseId, at.tier);
+      toast({ message: `${getExercise(at.substituteExerciseId || at.exerciseId).name} removed from this workout` });
+    } catch (err) {
+      console.error("Failed to remove an exercise:", err);
+      toast({ message: `Could not remove it: ${errorText(err)}` });
+    }
+  };
+
   // The accessory whose sets were all just done: what it does next time (A9).
   const lastAccessorySet = sets.at(-1)?.tier === "accessory" ? sets.at(-1) : undefined;
   const lastAccessoryId = lastAccessorySet ? lastAccessorySet.substituteExerciseId || lastAccessorySet.exerciseId : null;
@@ -253,7 +309,22 @@ function ActiveWorkoutContent() {
         onCorrectSet={workout.correctSet}
         correctionError={workout.correctionError}
         onCorrectionStart={workout.clearCorrectionError}
+        onSwapExercise={isOver ? undefined : openSwap}
+        onRemoveExercise={isOver ? undefined : (index) => void removeAt(index)}
       />
+      {swapEntry && (
+        <SwapSheet
+          open={swapping != null}
+          onOpenChange={(next) => !next && setSwapping(null)}
+          exerciseId={swapEntry.exerciseId}
+          shownId={swapEntry.substituteExerciseId || swapEntry.exerciseId}
+          tier={swapEntry.tier}
+          context={swapContext}
+          inWorkout
+          setsLogged={swapEntry.completedSets}
+          onConfirm={confirmSwap}
+        />
+      )}
       <DiscardWorkoutDialog
         open={showDiscardDialog}
         onOpenChange={setShowDiscardDialog}
@@ -396,6 +467,7 @@ function ActiveWorkoutContent() {
             ? accessories.repRange(entry.substituteExerciseId || entry.exerciseId, entry.targetReps)
             : undefined
         }
+        onSwap={() => openSwap(activeIndex)}
       />
 
       <WeightDisplay
