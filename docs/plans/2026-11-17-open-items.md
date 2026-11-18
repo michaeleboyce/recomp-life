@@ -118,6 +118,32 @@ Still to do:
   the panel as information and make its buttons open the swap sheet on that lift.
 - Standing swaps of a program lift at the gym: see the proposal above; waiting for Michael.
 
+## After the polish step deployed, 2026-11-18
+
+Done and live: the zoom slider scaled to the window; the muscle sheet's single subtitle and its
+index-against-line sentence; weekly review lift rows counting home versions; dates and sources
+on the Strength cards; one session length for the budget and the screens; the break note
+counting imported sessions; the own-history window counted from the planning date; "Confirm
+your starting weights" under Needs attention; T3 wording ("26 reps on the last set, needed
+18"); a home replacement accessory's own reason; cards and the full view built by one path;
+preview deployments building without a database address.
+
+Still to do:
+
+- The Coming up full view still says "First time" for an unconfirmed program lift after the
+  first position (Press day's dumbbell row); Today's new reasons are not passed to it.
+- `src/lib/rebuild/fold.ts` and `src/components/Lift/homeVersion.ts` still count the
+  own-history window from the newest set.
+- Today's lift tiles say "Imported, Jul 31" from the lift itself; Progress names the newer home
+  version ("Imported, Nov 3 · Bulgarian Split Squat"). Use `latestNote` on both.
+- Double progression over an accessory's app sessions has no age limit.
+- `suggestStartingWeights` now runs on Today; its cost on a long history is not measured.
+- A planned weight moved when RPE became reps in reserve (imported sets with "1-2 reps left"
+  earn 1.5 reps of credit): dumbbell bench 45 to 50 a hand on the live data. Explained in the
+  why sheet; recorded here so the change is not a surprise later.
+- Not yet seen on the live data, covered by tests only: a swap during a workout, the accessory
+  sheet's "Add anyway", the per-workout length chooser on Ready, the last-set T3 hint.
+
 ## Promised and missing
 
 | Item | Where it was promised | In the code today | Size |
