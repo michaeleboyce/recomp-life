@@ -67,6 +67,33 @@ describe("SessionList", () => {
   });
 });
 
+describe("SessionList paging", () => {
+  // Made up: 45 sessions a day apart, newest first.
+  const many = (n: number): LiftSession[] =>
+    Array.from({ length: n }, (_, i) => {
+      const d = new Date(2026, 10, 6, 17, 30);
+      d.setDate(d.getDate() - i);
+      return { ...session, key: `w${i}-T1`, workoutId: `w${i}`, t: d.getTime() };
+    });
+
+  it("shows 20 sessions, then 20 more per tap, then the rest", () => {
+    render(<SessionList sessions={many(45)} />);
+    expect(screen.getAllByTestId("session-row")).toHaveLength(20);
+    expect(screen.queryByRole("button", { name: /Show all/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show 20 more" }));
+    expect(screen.getAllByTestId("session-row")).toHaveLength(40);
+    fireEvent.click(screen.getByRole("button", { name: "Show 5 more" }));
+    expect(screen.getAllByTestId("session-row")).toHaveLength(45);
+    expect(screen.queryByRole("button", { name: /more/ })).toBeNull();
+  });
+
+  it("has no button when every session fits on the first page", () => {
+    render(<SessionList sessions={many(20)} />);
+    expect(screen.getAllByTestId("session-row")).toHaveLength(20);
+    expect(screen.queryByRole("button", { name: /more/ })).toBeNull();
+  });
+});
+
 // Made-up imported sessions only: the repository is public.
 describe("SessionList with imported sessions", () => {
   beforeEach(() => {
