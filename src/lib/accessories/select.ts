@@ -95,8 +95,18 @@ export interface AccessoryCandidate {
   exerciseId: string;
   score: number;
   parts: AccessoryScoreParts;
-  /** Short plain sentences for the row, most important first. */
+  /**
+   * Short plain sentences for the row, most important first: the reasons the pick
+   * earned by its score parts, then (at home) the gym exercise it stands in for.
+   */
   reasons: string[];
+  /** At home, the gym-only exercise this stands in for; null (or absent) otherwise. */
+  insteadOf?: string | null;
+}
+
+/** "At home instead of Machine Chest Fly": the note for a home alternative. */
+export function insteadOfNote(gymExerciseId: string): string {
+  return `At home instead of ${EXERCISES[gymExerciseId]?.name ?? gymExerciseId}`;
 }
 
 export interface ChooseAccessoriesInput {
@@ -312,7 +322,6 @@ export function chooseAccessories(input: ChooseAccessoriesInput): ChooseAccessor
     const reasons: string[] = [];
     const pinned = base.pinIndex !== null ? ACCESSORY_PIN_SCORE : 0;
     if (pinned) reasons.push("Always on this day");
-    if (base.insteadOf) reasons.push(`At home instead of ${EXERCISES[base.insteadOf].name}`);
     const preferred = base.preferred ? ACCESSORY_PREFERRED_WEIGHT : 0;
     if (preferred) reasons.push("You marked this preferred");
 
@@ -346,6 +355,8 @@ export function chooseAccessories(input: ChooseAccessoriesInput): ChooseAccessor
     const recovery = tired ? -ACCESSORY_RECOVERY_PENALTY : 0;
     if (tired) reasons.push(`${muscleName(tired)} ${isAre(tired)} still recovering`);
     if (reasons.length === 0) reasons.push(`Works the ${listOf(primaries.map((m) => muscleName(m).toLowerCase()))}`);
+    // The replacement is a note after the reasons the pick earned, never its reason.
+    if (base.insteadOf) reasons.push(insteadOfNote(base.insteadOf));
 
     return { base, parts: { pinned, preferred, habit, shortfall, dayFit, recovery }, reasons, primaries };
   });
@@ -368,7 +379,13 @@ export function chooseAccessories(input: ChooseAccessoriesInput): ChooseAccessor
     const reasons = spread.muscle
       ? [...s.reasons, `Another pick already works the ${muscleName(spread.muscle).toLowerCase()}`]
       : s.reasons;
-    return { exerciseId: s.base.exerciseId, score: round(total(parts)), parts: roundParts(parts), reasons };
+    return {
+      exerciseId: s.base.exerciseId,
+      score: round(total(parts)),
+      parts: roundParts(parts),
+      reasons,
+      insteadOf: s.base.insteadOf,
+    };
   };
   const better = (a: AccessoryCandidate, sa: Scored, b: AccessoryCandidate, sb: Scored) =>
     b.score - a.score || sa.base.order - sb.base.order;

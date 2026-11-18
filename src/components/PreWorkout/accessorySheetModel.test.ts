@@ -7,6 +7,7 @@ import {
   addLists,
   mainMuscleOf,
   muscleChip,
+  pickReasonLines,
   searchCandidates,
   swapAlternatives,
 } from "./accessorySheetModel";
@@ -58,5 +59,21 @@ describe("accessory sheet lists", () => {
     );
     expect(searchCandidates(RANKED, [], "   ")).toEqual([]);
     expect(searchCandidates(RANKED, ["face_pulls"], "face")).toEqual([]);
+  });
+
+  it("a pick's row: the reason it earned, then a quieter note for the gym exercise it replaces at home", () => {
+    const fly: AccessoryCandidate = {
+      ...c("db_fly", 10),
+      reasons: ["Always on this day", "You usually do this on bench days", "At home instead of Machine Chest Fly"],
+      insteadOf: "machine_chest_fly",
+    };
+    expect(pickReasonLines(fly, { pinShown: true })).toEqual({
+      reason: "You usually do this on bench days",
+      note: "At home instead of Machine Chest Fly",
+    });
+    expect(pickReasonLines(fly, { pinShown: false }).reason).toBe("Always on this day");
+    expect(pickReasonLines(c("bicep_curls"), { pinShown: true })).toEqual({ reason: "Reason for bicep_curls", note: null });
+    const onlyHome: AccessoryCandidate = { ...c("db_fly"), reasons: ["At home instead of Machine Chest Fly"], insteadOf: "machine_chest_fly" };
+    expect(pickReasonLines(onlyHome, { pinShown: true })).toEqual({ reason: null, note: "At home instead of Machine Chest Fly" });
   });
 });
