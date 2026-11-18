@@ -1,7 +1,8 @@
 // The metrics layer: every trend the app shows is a Series produced by a registered
 // metric from plain records. Pure: no React, no database, no clock.
 import { bodyweight, bodyweight7d, lossRate } from "./body";
-import { DAY_MS, count, mean, monthStartMs, weekStartMs } from "./helpers";
+import { count, mean, monthStartMs, weekStartMs } from "./helpers";
+import { inWindow, type ChartWindow } from "./window";
 import {
   activeEnergy,
   bodyFat,
@@ -28,6 +29,7 @@ import type {
 } from "./types";
 
 export * from "./types";
+export * from "./window";
 export { SLEEP_LEVELS, STRESS_LEVELS } from "./readiness";
 
 /** Every metric the app knows, keyed by id. Adding a trend means adding an entry here. */
@@ -74,13 +76,12 @@ export function computeMetric(
   return getMetric(id).compute(source, params);
 }
 
-const RANGE_DAYS: Record<Exclude<RangeKey, "all">, number> = { "4w": 28, "3m": 91, "1y": 365 };
-
-/** The points of `series` inside the range ending at `now`; "all" returns it unchanged. */
-export function inRange(series: Series, range: RangeKey, now: number): Series {
-  if (range === "all") return series;
-  const from = now - RANGE_DAYS[range] * DAY_MS;
-  return { ...series, points: series.points.filter((p) => p.t >= from && p.t <= now) };
+/**
+ * The points of `series` inside the range ending at `now` (or a zoomed window); "all"
+ * returns it unchanged.
+ */
+export function inRange(series: Series, range: RangeKey | ChartWindow, now: number): Series {
+  return inWindow(series, range, now);
 }
 
 /** First and latest point, the change between them, and the extremes (ties: earliest). */

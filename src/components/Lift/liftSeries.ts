@@ -1,5 +1,5 @@
 // Series maths for the lift detail page. Pure: no React, no database.
-import { bucket, computeMetric, inRange, summarize } from "@/lib/metrics";
+import { bucket, computeMetric, inRange, summarize, windowBounds, type ChartWindow } from "@/lib/metrics";
 import type {
   MetricId,
   MetricSource,
@@ -29,11 +29,8 @@ import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, SetLog, WorkoutTemplateExercise } from "@/types";
 import type { TrendOverlay } from "@/components/chart-kit";
 
-const DAY_MS = 86_400_000;
 /** How far ahead the projection teaser looks, then the fallback when that is too far. */
 const TEASER_WEEKS = [8, 4] as const;
-/** The same windows `inRange` uses. */
-const RANGE_DAYS: Record<Exclude<RangeKey, "all">, number> = { "4w": 28, "3m": 91, "1y": 365 };
 
 const LIFT_METRICS = ["e1rm", "workingWeight", "amrapReps", "avgRpe", "liftVolume"] as const;
 type LiftMetricId = (typeof LIFT_METRICS)[number] & MetricId;
@@ -87,7 +84,7 @@ const IMPORTED_POINTS: Partial<Record<LiftMetricId, (history: readonly ImportedL
 export function liftMetrics(
   source: MetricSource,
   exerciseId: string,
-  range: RangeKey,
+  range: RangeKey | ChartWindow,
   now: number,
   imported?: readonly ImportedLiftSession[]
 ): LiftMetrics {
@@ -106,14 +103,15 @@ export function liftMetrics(
 }
 
 /** Weekly sums of `ranged`, with zeros for the empty weeks of the range (see LiftMetrics). */
-export function zeroFilledWeeks(full: Series, ranged: Series, range: RangeKey, now: number): Series {
+export function zeroFilledWeeks(full: Series, ranged: Series, range: RangeKey | ChartWindow, now: number): Series {
   const weekly = bucket(ranged, "week", "sum");
   if (full.points.length === 0) return weekly;
   const firstEver = Math.min(...full.points.map((p) => p.t));
-  const rangeStart = range === "all" ? firstEver : now - RANGE_DAYS[range] * DAY_MS;
+  const bounds = windowBounds(range, now);
+  const rangeStart = Number.isFinite(bounds.from) ? bounds.from : firstEver;
   const byWeek = new Map(weekly.points.map((p) => [p.t, p]));
   const points: Point[] = [];
-  const last = weekStartMs(now);
+  const last = weekStartMs(Math.min(now, bounds.to));
   for (let week = weekStartMs(Math.max(rangeStart, firstEver)); week <= last; week = nextWeekMs(week)) {
     points.push(byWeek.get(week) ?? { t: week, v: 0 });
   }

@@ -4,19 +4,23 @@ import { useRef, type KeyboardEvent } from "react";
 import type { RangeKey } from "@/lib/metrics/types";
 import { cn } from "@/lib/utils";
 
+/** The default chips; the estimated-max chart offers every preset (`ALL_RANGE_KEYS`). */
 export const RANGE_KEYS: readonly RangeKey[] = ["4w", "3m", "1y", "all"];
 
 export const RANGE_LABELS: Record<RangeKey, string> = {
   "4w": "4w",
   "3m": "3m",
+  "6m": "6m",
   "1y": "1y",
+  "2y": "2y",
   all: "All",
 };
 
 export interface RangeTabsProps {
-  value: RangeKey;
+  /** Null when none is in force (a zoomed span). */
+  value: RangeKey | null;
   onChange: (range: RangeKey) => void;
-  /** Defaults to all four ranges. */
+  /** Defaults to RANGE_KEYS. */
   options?: readonly RangeKey[];
   /** Accessible name of the group. */
   ariaLabel?: string;
@@ -32,7 +36,8 @@ export function RangeTabs({
   className,
 }: RangeTabsProps) {
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
-  const current = Math.max(0, options.indexOf(value));
+  const index = value === null ? -1 : options.indexOf(value);
+  const current = Math.max(0, index);
 
   function select(index: number) {
     const next = (index + options.length) % options.length;
@@ -59,7 +64,8 @@ export function RangeTabs({
   return (
     <div role="radiogroup" aria-label={ariaLabel} className={cn("flex gap-0.5", className)}>
       {options.map((key, i) => {
-        const checked = i === current;
+        const checked = i === index;
+        const focusable = index === -1 ? i === 0 : checked;
         return (
           <button
             key={key}
@@ -69,7 +75,7 @@ export function RangeTabs({
             type="button"
             role="radio"
             aria-checked={checked}
-            tabIndex={checked ? 0 : -1}
+            tabIndex={focusable ? 0 : -1}
             onClick={() => onChange(key)}
             onKeyDown={onKeyDown}
             className={cn(
