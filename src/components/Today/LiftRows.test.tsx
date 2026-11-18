@@ -22,6 +22,15 @@ const entry = (over: Partial<WorkoutExerciseState>): WorkoutExerciseState => ({
 });
 
 describe("LiftRows", () => {
+  it("names its list for screen readers: Today's lifts by default, or the label given", () => {
+    render(<LiftRows rows={buildLiftRows([entry({})], [])} />);
+    expect(screen.getByRole("list", { name: "Today's lifts" })).toBeInTheDocument();
+    cleanup();
+    render(<LiftRows rows={buildLiftRows([entry({})], [])} label="Squat day's lifts" />);
+    expect(screen.getByRole("list", { name: "Squat day's lifts" })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Today's lifts" })).toBeNull();
+  });
+
   it("opens the lift page from Today", () => {
     render(<LiftRows rows={buildLiftRows([entry({})], [])} />);
     expect(screen.getByRole("link", { name: "Squat" })).toHaveAttribute(

@@ -39,6 +39,9 @@ describe("one coming workout in full", () => {
     expect(screen.getByRole("link", { name: "Start" })).toHaveAttribute("href", "/workout/configure?location=gym");
     expect(screen.queryByTestId("start-note")).toBeNull();
     expect(screen.queryByTestId("accessories-likely")).toBeNull();
+    // Not Today's list: screen readers hear which day these lifts are for.
+    expect(screen.getByRole("list", { name: "Squat day's lifts" })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Today's lifts" })).toBeNull();
     // The muscle figure.
     expect(document.querySelector('[aria-label^="Muscles worked by"]')).not.toBeNull();
 

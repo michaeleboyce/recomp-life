@@ -97,13 +97,14 @@ function useCapEquipment(): EquipmentProfile | null {
  * so the page shows that version; the first tier label and the first "+" open their
  * glossary entries instead. The "why" beside the reason line opens the why sheet,
  * which this list hosts; `?why=<exerciseId>:<tier>` on the page opens it too.
+ * `label` names the list for screen readers ("Today's lifts" unless another day's).
  */
-export function LiftRows({ rows }: { rows: TodayLiftRow[] }) {
+export function LiftRows({ rows, label = "Today's lifts" }: { rows: TodayLiftRow[]; label?: string }) {
   const firstPlus = rows.find((row) => row.entry.isAMRAP);
   const equipment = useCapEquipment();
   return (
     <>
-    <ul aria-label="Today's lifts" className="flex flex-col px-5 pt-2">
+    <ul aria-label={label} className="flex flex-col px-5 pt-2">
       {rows.map((row, index) => {
         const { entry } = row;
         const reason = equipment ? atDumbbellCap(entry, row.reason, equipment) : row.reason;
