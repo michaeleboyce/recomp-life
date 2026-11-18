@@ -3,15 +3,21 @@
 import { ChevronLeft } from "lucide-react";
 import { getExercise } from "@/lib/exercises";
 
-/** A list of exercises to choose from, used to pick a swap or an addition. */
+/**
+ * A list of exercises to choose from (the edit sheet's "Add exercise"), each with what
+ * it would be done at when `prescriptionOf` gives it, in the swap sheet's row design.
+ */
 export function ExercisePicker({
   title,
   exerciseIds,
+  prescriptionOf,
   onPick,
   onBack,
 }: {
   title: string;
   exerciseIds: string[];
+  /** "45 lbs × 3 × 12" for an exercise; absent, only names are shown. */
+  prescriptionOf?: (exerciseId: string) => string;
   onPick: (exerciseId: string) => void;
   onBack: () => void;
 }) {
@@ -29,17 +35,23 @@ export function ExercisePicker({
       {exerciseIds.length === 0 ? (
         <p className="py-3 text-sm text-muted-foreground">Nothing else fits here.</p>
       ) : (
-        <ul aria-label="Choices" className="divide-y divide-border">
+        <ul aria-label="Choices" className="flex flex-col gap-1.5 py-1">
           {exerciseIds.map((id) => {
             const exercise = getExercise(id);
             return (
               <li key={id}>
                 <button
                   type="button"
+                  aria-label={exercise.name}
                   onClick={() => onPick(id)}
-                  className="flex min-h-11 w-full items-center py-2 text-left text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  className="flex min-h-11 w-full items-baseline justify-between gap-2 rounded-xl bg-secondary px-3 py-2 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 >
-                  {exercise.name}
+                  <span className="min-w-0 truncate text-[14px] font-semibold">{exercise.name}</span>
+                  {prescriptionOf && (
+                    <span data-testid="pick-prescription" className="shrink-0 font-mono text-xs font-semibold tabular-nums">
+                      {prescriptionOf(id)}
+                    </span>
+                  )}
                 </button>
               </li>
             );

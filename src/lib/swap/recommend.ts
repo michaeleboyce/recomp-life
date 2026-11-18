@@ -2,7 +2,7 @@
 // by a score broken into named parts, each with the weight, sets and reps it would be
 // done at. Pure and deterministic: the same input gives the same output; the clock is
 // `now`. Spec: docs/plans/2026-11-18-future-workouts-and-swaps-design.md.
-import { accessoryPrescription, accessoryLoadStep, ownHistoryFirstWeight } from "@/lib/accessories/index";
+import { NEEDS_BENCH, accessoryPrescription, accessoryLoadStep, ownHistoryFirstWeight } from "@/lib/accessories/index";
 import { DAY_MS, calendarDaysBetween } from "@/lib/dates";
 import { getPreference, resolvePreferences } from "@/lib/exercisePreferences";
 import { ACCESSORY_IDS, DEFAULT_ACCESSORY_WEIGHTS, EXERCISES } from "@/lib/exercises";
@@ -526,7 +526,8 @@ function reasonOf(parts: readonly SwapScorePart[]): string {
  *
  * Offered: every exercise in the catalogue that shares at least one main muscle with the
  * original, except the original, those in `exclude`, those blocked (overall or at this
- * location) and, at home, those that need a gym. Ranked by score, ties by name, then id.
+ * location) and, at home, those that need a gym and, when the equipment has no bench,
+ * those that need one (`NEEDS_BENCH`, as accessory selection leaves them out). Ranked by score, ties by name, then id.
  * Unknown `exerciseId`: none.
  *
  * @evidence swap-recommendation
@@ -538,11 +539,13 @@ export function recommendSwaps(exerciseId: string, context: SwapContext): SwapCa
   const exclude = new Set([exerciseId, ...(context.exclude ?? [])]);
   const sets = usableSets(context);
   const now = context.now.getTime();
+  const noBench = context.location === "home" && context.equipment?.hasBench === false;
 
   const candidates: SwapCandidate[] = [];
   for (const candidate of Object.values(EXERCISES)) {
     if (exclude.has(candidate.id)) continue;
     if (context.location === "home" && candidate.requiresGym) continue;
+    if (noBench && NEEDS_BENCH.has(candidate.id)) continue;
     if (getPreference(preferences, candidate.id) === "blocked") continue;
     const coverage = coverageOf(original, candidate);
     if (coverage.primary.length === 0) continue;

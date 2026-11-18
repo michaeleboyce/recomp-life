@@ -63,8 +63,8 @@ const SHORTFALL_IGNORED: ReadonlySet<MuscleId> = new Set([
   "adductors",
 ]);
 
-/** Exercises that need a bench (left out at home when the equipment has none). */
-const NEEDS_BENCH: ReadonlySet<string> = new Set([
+/** Exercises that need a bench (left out at home when the equipment has none; swaps too). */
+export const NEEDS_BENCH: ReadonlySet<string> = new Set([
   "incline_db_fly",
   "db_fly",
   "incline_db_press",

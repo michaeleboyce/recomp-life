@@ -172,6 +172,30 @@ export function swapEdit(
 }
 
 /**
+ * Lays several edits on the list in order, each through its own function above (so a
+ * swap of a swapped entry re-points the one swap, and a follow-up replaces an earlier
+ * one): how a swap's edits (`swapEdits` in `@/lib/swap`) are applied before a workout.
+ */
+export function withEdits(edits: PlanEdit[], next: readonly PlanEdit[]): PlanEdit[] {
+  return next.reduce<PlanEdit[]>((list, edit) => {
+    switch (edit.kind) {
+      case "swap":
+        return swapEdit(list, edit.exerciseId, edit.tier, edit.replacementId);
+      case "scheme":
+        return schemeEdit(list, edit.exerciseId, edit.tier, edit.sets, edit.reps);
+      case "weight":
+        return weightEdit(list, edit.exerciseId, edit.tier, edit.weight);
+      case "add":
+        return addEdit(list, edit.exerciseId, edit);
+      case "remove":
+        return removeEdit(list, edit.exerciseId, edit.tier);
+      case "setWeights":
+        return setWeightsEdit(list, edit.exerciseId, edit.tier, edit.sets);
+    }
+  }, edits);
+}
+
+/**
  * Gives each set of an entry its own weight and rep target (a `setWeights` edit),
  * replacing an earlier one for the entry; a working set is stored without a role.
  * `null` (or no sets) takes the per-set edit away, so the entry is back to the sets,
