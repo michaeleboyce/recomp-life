@@ -181,14 +181,29 @@ interface Habit {
   recentSessions: number;
 }
 
-/** Habit per exercise from the history, and whether there is any accessory history at all. */
-function habits(
-  history: readonly StrengthSet[],
-  dayLift: string | null,
-  now: number,
-  candidates: ReadonlySet<string>
-): { byExercise: Map<string, Habit>; any: boolean } {
-  const sessions = new Map<string, { exercises: Set<string>; lifts: Set<string>; at: number }>();
+interface HabitSession {
+  exercises: Set<string>;
+  lifts: Set<string>;
+  at: number;
+}
+
+const sessionsCache = new WeakMap<readonly StrengthSet[], Map<number, HabitSession[]>>();
+
+/**
+ * The history's sessions up to `now` (warm-ups and weights set by hand left out), by
+ * session id: what each did and which program lifts it had. Worked out once per list of
+ * sets and moment (the hooks' Dexie results; every coming workout of a day reads the
+ * same), and shared: callers must not change it.
+ */
+function habitSessions(history: readonly StrengthSet[], now: number): HabitSession[] {
+  let byNow = sessionsCache.get(history);
+  if (!byNow) {
+    byNow = new Map();
+    sessionsCache.set(history, byNow);
+  }
+  const cached = byNow.get(now);
+  if (cached) return cached;
+  const sessions = new Map<string, HabitSession>();
   for (const set of history) {
     if (set.role === "warmup" || set.provisional) continue;
     const at = time(set.date);
@@ -199,11 +214,22 @@ function habits(
     session.at = Math.max(session.at, at);
     sessions.set(set.sessionId, session);
   }
+  const ordered = [...sessions.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, s]) => s);
+  byNow.set(now, ordered);
+  return ordered;
+}
+
+/** Habit per exercise from the history, and whether there is any accessory history at all. */
+function habits(
+  history: readonly StrengthSet[],
+  dayLift: string | null,
+  now: number,
+  candidates: ReadonlySet<string>
+): { byExercise: Map<string, Habit>; any: boolean } {
   const byExercise = new Map<string, Habit>();
   const halfLife = STRENGTH_POOLING.evidenceHalfLifeDays * DAY_MS;
   let any = false;
-  const ordered = [...sessions.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  for (const [, session] of ordered) {
+  for (const session of habitSessions(history, now)) {
     const w = Math.pow(0.5, (now - session.at) / halfLife);
     const onDay = dayLift !== null && session.lifts.has(dayLift);
     for (const id of session.exercises) {

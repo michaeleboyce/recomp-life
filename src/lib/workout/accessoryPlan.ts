@@ -94,10 +94,40 @@ const timeOf = (date: Date | string) => new Date(date).getTime();
 const counted = (set: StrengthSet) => set.role !== "warmup" && !set.provisional && Number.isFinite(timeOf(set.date));
 
 /**
+ * `compute()` worked out once per list of sets and key. The lists are the hooks' Dexie
+ * results (and the projection's one list for every coming workout), so a long history is
+ * scanned once per day planned for rather than once per workout planned. Results are
+ * shared: callers must not change them.
+ */
+function oncePerSets<T>(
+  cache: WeakMap<readonly StrengthSet[], Map<string, T>>,
+  sets: readonly StrengthSet[],
+  key: string,
+  compute: () => T
+): T {
+  let byKey = cache.get(sets);
+  if (!byKey) {
+    byKey = new Map();
+    cache.set(sets, byKey);
+  }
+  if (!byKey.has(key)) byKey.set(key, compute());
+  return byKey.get(key)!;
+}
+
+const weekSetsCache = new WeakMap<readonly StrengthSet[], Map<string, MuscleValues>>();
+const lastTrainedCache = new WeakMap<readonly StrengthSet[], Map<string, Partial<Record<MuscleId, Date>>>>();
+const ownSetsCache = new WeakMap<readonly StrengthSet[], Map<string, StrengthSet[]>>();
+
+/**
  * This week's sets per muscle up to `now` (Monday to Sunday), counted as the Muscles tab
  * counts them: primary 1, secondary 0.5, imported sets included, warm-ups left out.
+ * Worked out once per list of sets and moment.
  */
 export function accessoryWeekSets(sets: readonly StrengthSet[], now: Date): MuscleValues {
+  return oncePerSets(weekSetsCache, sets, String(now.getTime()), () => weekSetsOf(sets, now));
+}
+
+function weekSetsOf(sets: readonly StrengthSet[], now: Date): MuscleValues {
   const from = getMonday(now).getTime();
   const to = now.getTime();
   const load: MuscleValues = {};
@@ -113,8 +143,12 @@ export function accessoryWeekSets(sets: readonly StrengthSet[], now: Date): Musc
   return load;
 }
 
-/** When each muscle was last worked (primary or secondary) before `now`, app and imported. */
+/** When each muscle was last worked (primary or secondary) before `now`, app and imported; once per list and moment. */
 function lastTrained(sets: readonly StrengthSet[], now: Date): Partial<Record<MuscleId, Date>> {
+  return oncePerSets(lastTrainedCache, sets, String(now.getTime()), () => lastTrainedOf(sets, now));
+}
+
+function lastTrainedOf(sets: readonly StrengthSet[], now: Date): Partial<Record<MuscleId, Date>> {
   const last: Partial<Record<MuscleId, Date>> = {};
   for (const set of sets) {
     if (!counted(set)) continue;
@@ -131,7 +165,9 @@ function lastTrained(sets: readonly StrengthSet[], now: Date): Partial<Record<Mu
 
 /** The prescription for one accessory on the day of `source.now` (`accessoryPrescription`). */
 export function prescribeAccessory(exerciseId: string, source: AccessorySource): AccessoryPrescription {
-  const own = source.strengthSets.filter((set) => set.exerciseId === exerciseId);
+  const own = oncePerSets(ownSetsCache, source.strengthSets, exerciseId, () =>
+    source.strengthSets.filter((set) => set.exerciseId === exerciseId)
+  );
   return accessoryPrescription({
     exerciseId,
     sets: own,
