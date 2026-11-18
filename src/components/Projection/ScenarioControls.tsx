@@ -9,10 +9,10 @@ import { formatMuscle } from "@/lib/muscles";
 import { PROJECTION_COEFFICIENTS } from "@/lib/projection/coefficients";
 import {
   formatAmount,
-  liftShortName,
   type ProjectionBaseline,
   type ProjectionScenario,
 } from "@/lib/projection";
+import { projectionLiftName } from "@/lib/liftNames";
 import type { TrainingPhase } from "@/types";
 import { TermIcon } from "@/components/ui/term";
 import { ScenarioSlider } from "./ScenarioSlider";
@@ -43,7 +43,7 @@ interface ScenarioControlsProps {
 
 /** "Try an alternative": one control per scenario field, each against "now". */
 export function ScenarioControls({ baseline, scenario, onChange, onReset }: ScenarioControlsProps) {
-  const lift = liftShortName(baseline.exerciseId);
+  const lift = projectionLiftName(baseline.exerciseId);
   const primary = (EXERCISES[baseline.exerciseId]?.primaryMuscles ?? []).map((m) =>
     formatMuscle(m).toLowerCase()
   );

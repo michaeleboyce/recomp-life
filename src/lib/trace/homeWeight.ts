@@ -5,7 +5,7 @@
 // (`pooledLiftEstimate`, `learnTransferRatios`, the re-entry helpers) and the plan entry's
 // fields; no number is worked out again here.
 import { DUMBBELL_LOAD_FACTOR, ceilToStep } from "@/lib/dbConversion";
-import { EXERCISES } from "@/lib/exercises";
+import { catalogueName } from "@/lib/liftNames";
 import { pooledLiftEstimate, sessionEstimates, targetEstimates } from "@/lib/strength";
 import type { PooledEstimate, ReentryRule, StrengthSet, TransferRatio } from "@/lib/strength";
 import {
@@ -66,7 +66,7 @@ export interface HomeTraceInputs {
 
 type HomeContext = Pick<TraceContext, "location" | "equipment" | "home">;
 
-const nameOf = (exerciseId: string) => EXERCISES[exerciseId]?.name ?? exerciseId;
+const nameOf = catalogueName;
 /** "Barbell Squat" -> "squat": how the program lift is named in a sentence. */
 const liftWord = (liftId: string) => nameOf(liftId).replace(/^barbell /i, "").toLowerCase();
 

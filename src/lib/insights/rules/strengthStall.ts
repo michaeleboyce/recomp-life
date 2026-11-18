@@ -5,7 +5,8 @@ import { RESET_FACTOR, roundToNearest5 } from "@/lib/progression";
 import type { LiftState } from "@/types";
 import type { Insight, InsightContext } from "../types";
 import { formatLbs, joinList, plural } from "@/lib/text";
-import { isValidDate, liftName, toDate } from "../shared";
+import { catalogueName } from "@/lib/liftNames";
+import { isValidDate, toDate } from "../shared";
 
 /**
  * The lift's recent estimated 1RMs: the lift state's (the app's T1 sessions), then the
@@ -26,7 +27,7 @@ export function recentE1RMsWithImported(lift: LiftState, index: ImportedLiftInde
 
 function stallFor(lift: LiftState, index: ImportedLiftIndex | null, now: Date): Insight | null {
   const id = `strength-stall:${lift.exerciseId}`;
-  const name = liftName(lift.exerciseId);
+  const name = catalogueName(lift.exerciseId);
 
   // The last T1 stage, reached through failures: the next failure resets the lift.
   if (lift.t1Stage === "10x1" && lift.t1FailCount > 0) {

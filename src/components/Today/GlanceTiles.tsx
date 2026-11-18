@@ -16,7 +16,7 @@ import { paceStatus, type PaceWord } from "@/lib/rateOfLoss";
 import { rangeSuffix } from "@/components/Progress/rangeText";
 import { useLiftEstimate } from "@/components/Progress/useLiftEstimate";
 import { formatLbs } from "@/lib/text";
-import { shortLiftName } from "./format";
+import { shortLiftName } from "@/lib/liftNames";
 
 const DASH = "—";
 

@@ -117,6 +117,37 @@ recorded in `changelog.ts`. The `/research` page and `docs/coaching-rules.md`
 contract tests check that every rule's ids, links and locations exist. Procedure:
 `docs/research/ADDING_RESEARCH.md`.
 
+## Naming
+
+Every function that turns an exercise id or a template id into words is in
+`src/lib/liftNames.ts` (lifts and exercises) or `src/lib/workoutNames.ts` (workouts and
+days). The forms differ on purpose and screens keep the one they were written with: do
+not swap one for another without deciding the wording first. Each function's doc
+comment says the same as this table.
+
+| Function | Module | Example output | Where used |
+| --- | --- | --- | --- |
+| `catalogueName` | liftNames | "Barbell Squat", "Lat Pulldown" | insight cards, strength-trend sources, swap and trace text, import mapping |
+| `shortLiftName` (re-exported as `liftName` by `components/LogEdit/format`) | liftNames | "Squat", "Bench Press", "OHP" | log edit sheets, Log outcome lines and set lists, Today's glance tiles, favourites |
+| `liftShortName` | liftNames | "Squat", "Bench press", "Overhead press"; others as `shortLiftName` | `LIFT_NAMES.label`, workout names, swap reasons |
+| `LIFT_NAMES[id].label` / `.short` | liftNames | "Bench press" / "bench" | Progress screens, exercise page, strength trend |
+| `displayLiftName` (re-exported by `components/Today/todayModel`) | liftNames | "Bench press", "Overhead press", "DB bench press", "Romanian deadlift" | Today's rows and hero, Ready, Upcoming, Log accessory outcomes, exercise and lift pages |
+| `nameInSentence` (re-exported by todayModel) | liftNames | "goblet squat", "DB bench press" | home-substitute lines, Today's accessory list, exercise page notes |
+| `feedLiftLabel` / `feedLiftShort` | liftNames | "Lat pulldown" / "bench", "lat pulldown" | the adjustment feed (`lib/adjustments`) |
+| `forecastLiftLabel` / `forecastLiftShort` (re-exported as `liftLabel` / `liftShort` by `lib/forecast/text`) | liftNames | "Bench press", "Lat Pulldown" / "bench press" | forecast screens and track record |
+| `projectionLiftName` | liftNames | "squat", "bench press", "OHP" | projection screen sentence and empty state |
+| `workoutDisplayName(id)` / `(id, true)` | workoutNames | "Squat day" / "A1 · Squat day" | quick-add sheet, Ready, summary, Log workout page, insights |
+| `templateTitle` | workoutNames | "A1 · Squat day" | page titles of Ready and the active workout, More, favourites, Upcoming cards |
+| `dayName(t1Id, fallback)` (re-exported by todayModel) | workoutNames | "Squat day", "Press day" | Today's hero and different-day sheet, Ready, Upcoming |
+| `inlineTitle` | workoutNames | "B1 Press day" | Coming up line on Today |
+| `feedDayName` | workoutNames | "Squat day", "Overhead press day" | adjustment feed workout entries |
+
+Left where they are: `outcomeLiftName` (`components/Log/outcomes.ts`, composes
+`shortLiftName` and `nameInSentence`: "Squat (goblet squat at home)"), `liftWord` in
+`lib/trace/homeWeight.ts` ("bench press", "ohp": lower-cased catalogue name, used only
+there), `exerciseName` in `components/nav/screenNames.ts` (null for an unknown id, for
+the back button), and the `nameOf` helpers that take a candidate object.
+
 ## Conventions in the code
 
 - Tests sit beside the file they test (`foo.ts` and `foo.test.ts`); larger subjects split by topic (`project.range.test.ts`). Shared fakes and builders live in a `testHelpers.ts`, `testUtils.ts` or `testFakes.ts` in the same folder. Vitest with jsdom; Dexie tests use `fake-indexeddb`.

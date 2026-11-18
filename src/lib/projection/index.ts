@@ -38,7 +38,6 @@ export {
   describeRelatedTrend,
   FLAT_SLOPE_LBS,
   formatAmount,
-  liftShortName,
   summarizeScenario,
 } from "./summary";
 export { relatedExerciseIds } from "./related";

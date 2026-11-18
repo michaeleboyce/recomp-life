@@ -16,17 +16,15 @@ import type {
   Tier,
   WorkoutSession,
 } from "@/types";
-import { joinList } from "@/lib/text";
+import { feedLiftLabel, feedLiftShort } from "@/lib/liftNames";
+import { capitalise, joinList } from "@/lib/text";
+import { feedDayName } from "@/lib/workoutNames";
 import {
-  capitalise,
   compareIds,
   countOf,
   countWord,
-  dayName,
   isLive,
   lbs,
-  liftLabel,
-  liftShort,
   realRuleId,
   scheme,
   tierTag,
@@ -82,7 +80,7 @@ function loggedOnlyReason(session: WorkoutSession, outcome: LiftOutcome): string
  */
 function ownEntry(session: WorkoutSession, outcome: LiftOutcome): EntryText | null {
   const { tier, kind, reason, from, to } = outcome;
-  const name = liftLabel(outcome.exerciseId);
+  const name = feedLiftLabel(outcome.exerciseId);
   const tagged = `${name}${tierTag(tier)}`;
   const sets = workingSetsFor(session.sets ?? [], outcome.exerciseId, tier);
   const weights = { from: lbs(from.weight), to: lbs(to.weight) };
@@ -165,13 +163,13 @@ function ownEntry(session: WorkoutSession, outcome: LiftOutcome): EntryText | nu
 
 /** "Squat passed: next 200 lbs 5×3": the lift's name and the workout page's own line for it. */
 function liftLine(outcome: LiftOutcome): string {
-  return `${liftLabel(outcome.exerciseId)} ${withSchemeSigns(outcome.text)}`;
+  return `${feedLiftLabel(outcome.exerciseId)} ${withSchemeSigns(outcome.text)}`;
 }
 
 /** "all three lifts passed", or the lifts that passed when not every lift was done in full. */
 function dayHeadline(outcomes: LiftOutcome[], passed: LiftOutcome[]): string {
   const all = outcomes.length >= 2 && outcomes.every((outcome) => DONE_IN_FULL.has(outcome.kind));
-  if (!all) return `${joinList(passed.map((outcome) => liftShort(outcome.exerciseId)))} passed`;
+  if (!all) return `${joinList(passed.map((outcome) => feedLiftShort(outcome.exerciseId)))} passed`;
   if (outcomes.length === 2) return "both lifts passed";
   return `all ${countWord(outcomes.length)} lifts passed`;
 }
@@ -211,7 +209,7 @@ export function progressionEntries(
           id: `progression:${workout.id}`,
           at,
           source: "progression",
-          title: `${dayName(workout.templateId)}: ${dayHeadline(outcomes, passed)}`,
+          title: `${feedDayName(workout.templateId)}: ${dayHeadline(outcomes, passed)}`,
           detail: onTheLine.map((outcome) => `${liftLine(outcome)}.`).join(" "),
           ruleId: OUTCOME_RULE_IDS.program,
           href,

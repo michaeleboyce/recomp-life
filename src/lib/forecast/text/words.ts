@@ -1,10 +1,9 @@
 // Shared words for stored forecasts: lift names, kinds and categories, dates and
 // numbers, and the readers of a row's stored inputs. Pure: no React, no database.
 import { getRule, type RuleId } from "@/lib/evidence";
-import { getExercise } from "@/lib/exercises";
 import { CALIBRATION, FORECAST_KINDS } from "@/lib/forecast";
 import { DAY_MS } from "@/lib/dates";
-import { isMainLift, LIFT_NAMES, MAIN_LIFTS } from "@/lib/liftNames";
+import { MAIN_LIFTS } from "@/lib/liftNames";
 import { percent } from "@/lib/text";
 import type { EvidenceStrength, Forecast, ForecastKind } from "@/types";
 
@@ -25,21 +24,8 @@ export const TARGET_IN_TEN = `${Math.round(CALIBRATION.targetCoverage * 10)} tim
 /** Lifts with a page of their own (`/progress/lift/<id>`, built at export time). */
 export const LIFTS_WITH_PAGE: readonly string[] = MAIN_LIFTS;
 
-/** "Bench press"; another exercise's own name; the id when it is unknown. */
-export function liftLabel(exerciseId: string | undefined): string {
-  if (!exerciseId) return "Lift";
-  if (isMainLift(exerciseId)) return LIFT_NAMES[exerciseId].label;
-  try {
-    return getExercise(exerciseId).name;
-  } catch {
-    return exerciseId;
-  }
-}
-
-/** The lift's name inside a sentence: "bench press". */
-export function liftShort(exerciseId: string | undefined): string {
-  return liftLabel(exerciseId).toLowerCase();
-}
+// "Bench press" / "bench press": the forecast screens' lift names, from lib/liftNames.
+export { forecastLiftLabel as liftLabel, forecastLiftShort as liftShort } from "@/lib/liftNames";
 
 // ── Kinds and filters ──────────────────────────────────────────────────────
 

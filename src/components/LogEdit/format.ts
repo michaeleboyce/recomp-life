@@ -1,14 +1,10 @@
 // Display helpers shared by the log edit components.
-import { EXERCISES } from "@/lib/exercises";
 import { formatNumber } from "@/lib/metrics/helpers";
 import type { TierPrescription } from "@/lib/rebuild";
 import type { SetStatus } from "@/types";
 
-/** "Squat", "Bench Press": the exercise name without the "Barbell" prefix. */
-export function liftName(exerciseId: string): string {
-  const name = EXERCISES[exerciseId]?.name ?? exerciseId;
-  return name.replace(/^Barbell /, "");
-}
+/** "Squat", "Bench Press": `shortLiftName`, re-exported under the name the log screens use. */
+export { shortLiftName as liftName } from "@/lib/liftNames";
 
 /** 205 -> "205", 202.5 -> "202.5": one decimal only when needed. */
 export function formatLbs(value: number): string {

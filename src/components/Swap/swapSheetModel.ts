@@ -6,7 +6,7 @@ import { EXERCISES } from "@/lib/exercises";
 import { MUSCLE_LABELS } from "@/lib/muscles";
 import { agoText, type SwapCandidate, type SwapHistory, type SwapPrescription, type SwapSet } from "@/lib/swap";
 import { joinList, plural } from "@/lib/text";
-import { liftShortName } from "@/lib/workoutNames";
+import { catalogueName, liftShortName } from "@/lib/liftNames";
 import type { ExercisePreference, MuscleId, Tier, WorkoutLocation } from "@/types";
 
 /** How many of the best candidates are shown as "Recommended"; the rest go under "All exercises". */
@@ -14,7 +14,7 @@ export const SWAP_RECOMMENDED_COUNT = 3;
 
 const PROGRAM_TIERS: readonly Tier[] = ["T1", "T2", "T3"];
 
-const nameOf = (id: string) => EXERCISES[id]?.name ?? id;
+const nameOf = catalogueName;
 const lbs = (n: number) => String(Math.round(n * 100) / 100);
 
 /**

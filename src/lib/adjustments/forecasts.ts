@@ -4,15 +4,14 @@
 // consecutive stored rows; nothing here is stored. Pure.
 import type { RuleId } from "@/lib/evidence";
 import { CALIBRATION, FORECAST_KINDS, earliestPerSlot, sdScaleChanges } from "@/lib/forecast";
+import { feedLiftLabel } from "@/lib/liftNames";
 import { formatNumber } from "@/lib/metrics/helpers";
+import { capitalise, lowerFirst } from "@/lib/text";
 import type { AdjustmentEntry, Forecast, ForecastKind } from "@/types";
 import {
   FEED_HREFS,
-  capitalise,
   countOf,
   inTen,
-  liftLabel,
-  lowerFirst,
   toDate,
 } from "./text";
 import { SOURCE_RANK, type RankedEntry } from "./types";
@@ -26,7 +25,7 @@ const HORIZON_WORDING: Partial<
 > = {
   e1rm4w: {
     subject: (forecast) =>
-      forecast.exerciseId ? `${liftLabel(forecast.exerciseId)} forecast` : "Estimated max forecast",
+      forecast.exerciseId ? `${feedLiftLabel(forecast.exerciseId)} forecast` : "Estimated max forecast",
     results: "result",
     digits: 0,
   },

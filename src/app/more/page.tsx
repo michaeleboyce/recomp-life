@@ -20,7 +20,7 @@ import { Stripes } from "@/components/ui/stripes";
 import { MoreGroup, MoreRow } from "@/components/More/MoreGroup";
 import { TrainingLocationRow } from "@/components/More/TrainingLocationRow";
 import { useHasSyncKey } from "@/components/More/useHasSyncKey";
-import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
+import { templateTitle } from "@/lib/workoutNames";
 import { useDueTemplateId, useFavoriteWorkouts, useSettings } from "@/hooks";
 import { plural } from "@/lib/text";
 import packageJson from "../../../package.json";

@@ -28,6 +28,7 @@
 import type { NewAdjustment } from "@/lib/data/adjustments";
 import { DAY_MS } from "@/lib/dates";
 import { EXERCISES } from "@/lib/exercises";
+import { catalogueName } from "@/lib/liftNames";
 import { T3_INCREMENT_LBS } from "@/lib/progression";
 import { plural } from "@/lib/text";
 import {
@@ -120,7 +121,7 @@ function restsOn(estimate: PooledEstimate, ids: ReadonlySet<string> | undefined)
   return (estimate.own != null && ids.has(estimate.own.sessionId)) || estimate.related.some((r) => ids.has(r.sessionId));
 }
 
-const nameOf = (id: string) => EXERCISES[id]?.name ?? id;
+const nameOf = catalogueName;
 
 function formatDay(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });

@@ -2,45 +2,15 @@
 // photo framing and the one-line reason under each lift. No React, no database.
 import type { EquipmentProfile, Tier, VariantSeed, WorkoutSession } from "@/types";
 import { EXERCISES } from "@/lib/exercises";
-import { isMainLift } from "@/lib/liftNames";
+import { displayLiftName, isMainLift, nameInSentence } from "@/lib/liftNames";
 import { DUMBBELL_LOAD_FACTOR } from "@/lib/dbConversion";
 import { capNextStep, type CapNext } from "@/lib/trace/homeWeight";
 import { formatLbs } from "@/lib/text";
-import { shortLiftName } from "./format";
 
-/** Plain names for lifts whose stored name is an abbreviation. */
-const PLAIN_NAME: Record<string, string> = {
-  ohp: "Overhead press",
-};
-
-/** Words that keep their capital in sentence case. */
-const PROPER = new Set(["Romanian", "Bulgarian", "Arnold"]);
-
-/** The word before "day" in a workout's name, when it is not the lift's first word. */
-const DAY_WORD: Record<string, string> = {
-  ohp: "Press",
-};
-
-/**
- * "Barbell Bench Press" -> "Bench press", "Barbell OHP" -> "Overhead press",
- * "DB Bench Press" -> "DB bench press": sentence case, abbreviations kept.
- */
-export function displayLiftName(exerciseId: string): string {
-  const name = PLAIN_NAME[exerciseId] ?? shortLiftName(exerciseId);
-  return name
-    .split(" ")
-    .map((word, i) =>
-      i === 0 || word === word.toUpperCase() || PROPER.has(word) ? word : word.toLowerCase()
-    )
-    .join(" ");
-}
-
-/** "Squat day", "Bench day", "Press day": named after the workout's T1 lift. */
-export function dayName(t1ExerciseId: string | undefined, fallback: string): string {
-  if (!t1ExerciseId) return fallback;
-  const word = DAY_WORD[t1ExerciseId] ?? displayLiftName(t1ExerciseId).split(" ")[0];
-  return `${word} day`;
-}
+// The names live in lib/liftNames and lib/workoutNames; re-exported here for the many
+// screens that import them from Today.
+export { displayLiftName, nameInSentence } from "@/lib/liftNames";
+export { dayName } from "@/lib/workoutNames";
 
 /** "Friday · Nov 13". */
 export function formatEyebrowDate(date: Date): string {
@@ -111,14 +81,6 @@ export function liftPageHref(
   options: { as?: string; from?: "today" } = {}
 ): string {
   return exercisePageHref(options.as || exerciseId, options.from ? { from: options.from } : {});
-}
-
-/** A display name for use mid-sentence: "Goblet squat" -> "goblet squat", "DB bench press" stays. */
-export function nameInSentence(exerciseId: string): string {
-  const name = displayLiftName(exerciseId);
-  const [first, ...rest] = name.split(" ");
-  const keep = first === first.toUpperCase() || PROPER.has(first);
-  return [keep ? first : first.toLowerCase(), ...rest].join(" ");
 }
 
 /**

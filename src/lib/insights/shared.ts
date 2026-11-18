@@ -1,6 +1,5 @@
 // Small helpers shared by the insight rules. Pure. Words and numbers come from
 // `lib/text`, day lengths from `lib/dates`.
-import { EXERCISES } from "@/lib/exercises";
 
 /** Records synced from another device may carry ISO strings; always normalise. */
 export function toDate(value: Date | string | number): Date {
@@ -9,11 +8,6 @@ export function toDate(value: Date | string | number): Date {
 
 export function isValidDate(d: Date): boolean {
   return Number.isFinite(d.getTime());
-}
-
-/** Display name of an exercise, falling back to its id. */
-export function liftName(exerciseId: string): string {
-  return EXERCISES[exerciseId]?.name ?? exerciseId;
 }
 
 /** Bodyweight entries as the rate/stall functions take them: valid, not in the future, oldest first. */

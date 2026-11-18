@@ -1,18 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { liftShortName, workoutDisplayName } from "./workoutNames";
-
-describe("liftShortName", () => {
-  it.each([
-    ["squat", "Squat"],
-    ["bench", "Bench press"],
-    ["deadlift", "Deadlift"],
-    ["ohp", "Overhead press"],
-  ])("%s -> %s", (id, name) => expect(liftShortName(id)).toBe(name));
-
-  it("passes unknown ids through", () => {
-    expect(liftShortName("mystery")).toBe("mystery");
-  });
-});
+import { workoutDisplayName } from "./workoutNames";
 
 describe("workoutDisplayName", () => {
   it.each([

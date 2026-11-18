@@ -20,12 +20,12 @@ import {
   countWord,
   isLive,
   lbs,
-  liftLabel,
   sameWeight,
   tierTag,
   toDate,
   toMs,
 } from "./text";
+import { feedLiftLabel } from "@/lib/liftNames";
 import { SOURCE_RANK, type AdjustmentFeedInput, type RankedEntry } from "./types";
 
 type Log = Pick<AdjustmentFeedInput, "workouts" | "rebuild" | "forecasts">;
@@ -182,7 +182,7 @@ function overrideText(
   workout: WorkoutSession,
   lift: PlannedLift
 ): Pick<AdjustmentEntry, "title" | "detail"> | null {
-  const name = `${liftLabel(lift.exerciseId)}${tierTag(lift.tier)}`;
+  const name = `${feedLiftLabel(lift.exerciseId)}${tierTag(lift.tier)}`;
   const sets = decidingSets(workout, lift);
 
   if (sets.some((set) => !sameWeight(creditedWeight(set), lift.weight))) {

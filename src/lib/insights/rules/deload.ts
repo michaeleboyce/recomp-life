@@ -2,7 +2,7 @@ import { checkSystemicFatigue } from "@/lib/deload";
 import type { LiftState } from "@/types";
 import type { Insight, InsightContext } from "../types";
 import { joinList } from "@/lib/text";
-import { liftName } from "../shared";
+import { catalogueName } from "@/lib/liftNames";
 
 const OPTIONAL = "If you feel run down, an easier week is optional";
 
@@ -44,7 +44,7 @@ export function deloadInsights(ctx: InsightContext): { insights: Insight[]; cove
           kind: "deload",
           severity: "warning",
           title: `Fatigue signs on ${flagged.length} lifts`,
-          body: `Estimated 1RM has dropped ${sessions} sessions in a row on ${joinList(flagged.map(liftName))}. ${OPTIONAL}.`,
+          body: `Estimated 1RM has dropped ${sessions} sessions in a row on ${joinList(flagged.map(catalogueName))}. ${OPTIONAL}.`,
           evidenceId: "fatigue-detection",
         },
       ],
@@ -58,7 +58,7 @@ export function deloadInsights(ctx: InsightContext): { insights: Insight[]; cove
       id: `deload:${signal.lift}`,
       kind: "deload",
       severity: "warning",
-      title: `Fatigue sign on ${liftName(signal.lift)}`,
+      title: `Fatigue sign on ${catalogueName(signal.lift)}`,
       body: `Estimated 1RM has dropped ${signal.consecutiveSessions} sessions in a row: ${values.join(", ")} lbs. ${OPTIONAL}; one better session clears this.`,
       evidenceId: "fatigue-detection",
     };

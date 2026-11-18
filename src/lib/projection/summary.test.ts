@@ -3,7 +3,6 @@ import type { Projection, ProjectionBaseline } from "./index";
 import {
   describeRelatedTrend,
   FLAT_SLOPE_LBS,
-  liftShortName,
   summarizeScenario,
 } from "./summary";
 
@@ -41,15 +40,6 @@ function proj(end: number, weeks = 12, status: Projection["status"] = "ok"): Pro
     lastResultWeeksAgo: 0,
   };
 }
-
-describe("liftShortName", () => {
-  it("drops the equipment prefix and keeps acronyms", () => {
-    expect(liftShortName("squat")).toBe("squat");
-    expect(liftShortName("bench")).toBe("bench press");
-    expect(liftShortName("ohp")).toBe("OHP");
-    expect(liftShortName("not_a_lift")).toBe("not_a_lift");
-  });
-});
 
 describe("describeRelatedTrend", () => {
   it("says rising, flat or falling with the weekly change", () => {

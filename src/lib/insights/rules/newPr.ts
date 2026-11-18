@@ -3,7 +3,8 @@ import type { Estimated1RM } from "@/types";
 import type { Insight, InsightContext } from "../types";
 import { DAY_MS } from "@/lib/dates";
 import { formatLbs } from "@/lib/text";
-import { isValidDate, liftName, toDate } from "../shared";
+import { catalogueName } from "@/lib/liftNames";
+import { isValidDate, toDate } from "../shared";
 
 const RECENT_DAYS = 7;
 
@@ -36,7 +37,7 @@ export function newPrInsights(ctx: InsightContext): Insight[] {
       id: `new-pr:${exerciseId}`,
       kind: "new-pr",
       severity: "positive",
-      title: `New best on ${liftName(exerciseId)}`,
+      title: `New best on ${catalogueName(exerciseId)}`,
       body: `Estimated 1RM ${formatLbs(latest.value)} lbs, up ${formatLbs(latest.value - prevBest)} lbs on your previous best of ${formatLbs(prevBest)} lbs.`,
       evidenceId: "e1rm-estimate",
     });
