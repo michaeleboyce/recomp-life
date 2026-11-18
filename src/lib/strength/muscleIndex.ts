@@ -26,11 +26,20 @@ export interface MuscleIndexContributor {
   relative: number;
 }
 
+/** One session behind a point: the exercise's session and where it put that exercise. */
+export interface MuscleIndexSession {
+  estimate: SessionEstimate;
+  /** The session against the exercise's reference, on the index scale (unrounded). */
+  relative: number;
+}
+
 export interface MuscleIndexPoint {
   date: Date;
   /** MUSCLE_INDEX.base at the muscle's first estimate; one decimal. */
   index: number;
   contributors: MuscleIndexContributor[];
+  /** The sessions at this instant, each exercise's own, for the chart's dots. */
+  sessions: MuscleIndexSession[];
 }
 
 export type MuscleStrengthIndex = Partial<Record<MuscleId, MuscleIndexPoint[]>>;
@@ -94,6 +103,7 @@ function indexForMuscle(
   let current: number = MUSCLE_INDEX.base;
 
   for (const t of [...byTime.keys()].sort((a, b) => a - b)) {
+    const sessions: MuscleIndexSession[] = [];
     for (const e of byTime.get(t)!.sort((a, b) => (a.exerciseId < b.exerciseId ? -1 : 1))) {
       const known = state.get(e.exerciseId);
       if (known) {
@@ -107,6 +117,7 @@ function indexForMuscle(
           lastTime: t,
         });
       }
+      sessions.push({ estimate: e, relative: (MUSCLE_INDEX.base * e.strength) / state.get(e.exerciseId)!.reference });
     }
 
     const cutoff = t - MUSCLE_INDEX.staleAfterDays * DAY_MS;
@@ -125,6 +136,7 @@ function indexForMuscle(
       date: new Date(t),
       index: round1(current),
       contributors: contributors.map((c) => ({ ...c, relative: round1(c.relative) })),
+      sessions,
     });
   }
   return points;

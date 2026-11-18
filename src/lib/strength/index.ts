@@ -34,6 +34,7 @@ export {
   muscleStrengthIndex,
   type MuscleIndexContributor,
   type MuscleIndexPoint,
+  type MuscleIndexSession,
   type MuscleStrengthIndex,
 } from "./muscleIndex";
 export {
@@ -47,3 +48,27 @@ export {
   type ReentryResult,
   type ReentryRule,
 } from "./reentry";
+export {
+  TREND_SMOOTHING,
+  SMOOTHING_KEYS,
+  strengthTimeline,
+  muscleTimeline,
+  smoothedEstimate,
+  pointWeightAt,
+  sharesAt,
+  weeklyShares,
+  gridTimes,
+  sumLines,
+  type SmoothingKey,
+  type TimelineSourceKind,
+  type TimelineSource,
+  type TimelinePoint,
+  type TimelineSubject,
+  type StrengthTimeline,
+  type TimelineOptions,
+  type SmoothOptions,
+  type TrendPoint,
+  type TrendReason,
+  type SmoothedLine,
+  type WeekShare,
+} from "./timeline";
