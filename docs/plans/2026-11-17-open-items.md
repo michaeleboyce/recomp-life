@@ -144,6 +144,35 @@ Still to do:
 - Not yet seen on the live data, covered by tests only: a swap during a workout, the accessory
   sheet's "Add anyway", the per-workout length chooser on Ready, the last-set T3 hint.
 
+## After the follow-up fixes and the code-health step, 2026-11-18
+
+Done and live: the honest starting-weight reason at every Coming up position; one newest-
+evidence note on Today's tiles and the Progress cards; the Ready screen's home-version panel as
+information with a "Change" button that opens the swap sheet; an age limit on accessory double
+progression; accessory selection cached per list of sets (the next three workouts on a history
+of 850 imported sessions: 43 ms to about 20 ms cold, 36 ms to 1.5 ms warm). Code health: the
+forecast text in `src/lib/forecast/text/`, naming in `lib/liftNames.ts` and
+`lib/workoutNames.ts`, shared text and date helpers, one test-builder scheme, dead code removed,
+`docs/architecture.md` rewritten to match.
+
+Decisions for Michael:
+
+- One wording for a lift on one screen: Today's tile says "Bench Press est. 1RM" and its rows
+  "Bench press"; the Log says "Bench Press" and "OHP" for program lifts and "Lat pulldown" for
+  accessories; the adjustment log says "Overhead press day" where other screens say "Press
+  day". Proposed: sentence case everywhere, "Press day", and "Overhead press" spelt out.
+- About 25 exports only tests use or nothing is wired to (listed in `docs/architecture.md`,
+  "Cleanup still to do"), among them the recovery ramp-up helpers: wire up or delete.
+
+Still to do:
+
+- R3 / K5: one owner for each piece of active-workout state.
+- `useStrengthEvidence()` is called by about 14 hooks and each builds its own array, so the
+  per-array caches are never shared on one screen. A provider mounted once in
+  `src/app/layout.tsx`, or a cache in `strengthEvidenceOf` keyed on its input arrays.
+- Helpers left apart because their output differs (`formatLbs` in `LogEdit`, three "N days
+  ago" forms, percent with decimals); `homeVersion.ts` keeps a local `plural`.
+
 ## Promised and missing
 
 | Item | Where it was promised | In the code today | Size |
