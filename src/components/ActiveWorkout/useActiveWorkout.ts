@@ -15,7 +15,7 @@
  * | pending T2 drop              | store                          | acceptDrop                                                    | plan, dropAccepted              | log on its entry, delete on it, swap of it, reset| lost   | kept    |
  * | declined T2 drop             | store                          | keepWeight                                                    | dropSuggestion                  | another session id, reset                        | lost   | kept    |
  * | drop sets in progress        | React (per session id)         | startDropSet, setDropWeight/Reps, logDropSet, endDropSets     | dropSet                         | endDropSets                                      | lost   | lost    |
- * | rest countdown               | store (RestTimer ticks it)     | logSet, endDropSets start; RestTimer, jumpTo, swap, endEarly, startDropSet, delete of the latest set skip | RestTimer, LogDock | skipRest, reset              | lost   | kept    |
+ * | rest countdown               | store (RestTimer ticks it)     | only through restCountdown.ts: logSet, endDropSets start it; jumpTo, swap, endEarly, startDropSet, delete of the latest set skip it; RestTimer ticks, adds, ends | RestTimer, LogDock | skipRest, reset | lost | kept |
  * | viewed entry                 | store                          | logSet (last set of an entry), jumpTo, swap, delete           | activeIndex                     | another session id, reset                        | lost (resumes at first unfinished) | kept |
  * | ended-early index            | React                          | endEarly                                                      | activeIndex, finish             | never                                            | lost   | lost    |
  * | e1RM flash                   | React + timeout                | logSet                                                        | screen                          | 3 s, drop start, correction, swap, jump          | lost   | lost    |
@@ -39,12 +39,10 @@ import { appendPlanEdit, appendSet, discardWorkout, finishWorkout } from "@/lib/
 import { calculateE1RM, isE1RMEligibleSet } from "@/lib/e1rm";
 import { EXERCISES } from "@/lib/exercises";
 import type { LogChange } from "@/lib/rebuild";
-import { getRestSeconds } from "@/lib/restTimes";
 import {
   applyPlanEdits,
   createSetLog,
   isNextSetAMRAP,
-  nextStep,
   type WorkoutExerciseState,
   type WorkoutPlan,
 } from "@/lib/workout";
@@ -56,11 +54,9 @@ import {
   clampReps,
   correctedSet,
   dropSuggestionFor,
-  entryAfter,
   entryIndexForSet,
   isDropAccepted,
   isLatestSetOfEntry,
-  nextIncompleteIndex,
   resolveActiveIndex,
 } from "./activeWorkoutLogic";
 import { planForSession } from "@/lib/workout/planForSession";
@@ -81,6 +77,7 @@ import {
 } from "./setPlan";
 import { clampWeight } from "@/components/SetPlan/setPlanModel";
 import { loadSpotWeights, saveSpotWeights } from "./spotWeightStorage";
+import { afterSetLogged, restsAfterDrops, restTimer } from "./restCountdown";
 
 const NO_SPOT_WEIGHTS: SpotWeightsByKey = {};
 
@@ -353,21 +350,10 @@ export function useActiveWorkout(
     const store = useWorkoutStore.getState();
     if (store.pendingDrop?.entryIndex === activeIndex) store.clearPendingDrop();
 
-    const step = nextStep(plan, activeIndex);
-    if (step === "rest") {
-      store.startRestTimer(getRestSeconds(entry.tier, trainingPhase), entry.tier);
-    } else {
-      // Last set of the entry: on to whatever is next. A working lift's last set is
-      // still followed by its rest (the rest screen then shows how the set compared
-      // with its forecast); a warm-up goes straight on.
-      const after = plan.map((e, i) =>
-        i === activeIndex ? { ...e, completedSets: e.completedSets + 1 } : e
-      );
-      store.viewEntry(entryAfter(after, activeIndex));
-      if (step === "next-exercise" && !entry.isWarmUp && nextIncompleteIndex(after) !== -1) {
-        store.startRestTimer(getRestSeconds(entry.tier, trainingPhase), entry.tier);
-      }
-    }
+    // Another set of the entry after its rest, or on to whatever is next.
+    const after = afterSetLogged(plan, activeIndex);
+    if (after.view !== undefined) store.viewEntry(after.view);
+    if (after.rest) restTimer.start(entry.tier, trainingPhase);
   }, [
     tapGuardMs,
     session,
@@ -468,7 +454,7 @@ export function useActiveWorkout(
     if (!session || !dropFrom || dropPreview == null) return;
     if (Date.now() - lastLogAt.current < tapGuardMs) return;
     lastLogAt.current = Date.now();
-    useWorkoutStore.getState().skipRest();
+    restTimer.skip();
     setE1rmFlash(null);
     const rootId =
       dropFrom.role === "drop"
@@ -540,9 +526,7 @@ export function useActiveWorkout(
     lastLogAt.current = Date.now();
     const root = sets.find((set) => set.id === activeDrop.rootId);
     setDropState(null);
-    if (root && root.tier !== "warmup" && endedAtIndex == null && nextIncompleteIndex(plan) !== -1) {
-      useWorkoutStore.getState().startRestTimer(getRestSeconds(root.tier, trainingPhase), root.tier);
-    }
+    if (root && restsAfterDrops(root.tier, endedAtIndex != null, plan)) restTimer.start(root.tier, trainingPhase);
   }, [activeDrop, sets, endedAtIndex, plan, trainingPhase]);
 
   const setSelectedReps = useCallback(
@@ -646,7 +630,7 @@ export function useActiveWorkout(
       setRepsInReserveChoice(null);
       const store = useWorkoutStore.getState();
       // The rest that followed the deleted set is over: it is the next set to do.
-      if (wasMostRecent) store.skipRest();
+      if (wasMostRecent) restTimer.skip();
       const index = entryIndexForSet(plan, original);
       if (index !== -1) {
         if (store.pendingDrop?.entryIndex === index) store.clearPendingDrop();
@@ -768,9 +752,8 @@ export function useActiveWorkout(
       await applyChange(change, index);
       const to = change.replacementIndexes[0];
       if (to != null && to >= 0) {
-        const store = useWorkoutStore.getState();
-        store.skipRest();
-        store.viewEntry(to);
+        restTimer.skip();
+        useWorkoutStore.getState().viewEntry(to);
         setE1rmFlash(null);
       }
     },
@@ -787,14 +770,13 @@ export function useActiveWorkout(
   );
 
   const jumpTo = useCallback((index: number) => {
-    const store = useWorkoutStore.getState();
-    store.skipRest();
-    store.viewEntry(index);
+    restTimer.skip();
+    useWorkoutStore.getState().viewEntry(index);
     setE1rmFlash(null);
   }, []);
 
   const endEarly = useCallback(() => {
-    useWorkoutStore.getState().skipRest();
+    restTimer.skip();
     setEndedAtIndex(naturalIndex);
   }, [naturalIndex]);
 
