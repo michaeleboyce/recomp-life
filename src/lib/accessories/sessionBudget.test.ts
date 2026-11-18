@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { estimateSetSeconds, estimateWorkoutSeconds } from "@/lib/workout/duration";
 import type { TrainingPhase } from "@/types";
+import { sanitizeSettings } from "@/lib/data/settingsShape";
+import { mergeSettings, stampSettingsChanges, stampsOf } from "@/lib/sync/settingsMerge";
 import {
   DEFAULT_SESSION_MINUTES,
   SESSION_MINUTE_CHOICES,
@@ -59,6 +61,28 @@ describe("session length setting", () => {
     expect(sessionMinutesParam(null)).toBe("none");
     expect(sessionMinutesLabel(30)).toBe("30 min");
     expect(sessionMinutesLabel(null)).toBe("No limit");
+  });
+});
+
+describe("the setting across devices", () => {
+  const base = sanitizeSettings({});
+  const KEY = JSON.stringify(["sessionMinutes"]);
+  it("is stamped when set, including no limit, and the newer change wins the merge", () => {
+    const set45 = stampSettingsChanges(base, { ...base, sessionMinutes: 45 }, 1000);
+    expect(stampsOf(set45)[KEY]).toBe(1000);
+    const noLimit = stampSettingsChanges(base, { ...base, sessionMinutes: null }, 2000);
+    expect(stampsOf(noLimit)[KEY]).toBe(2000);
+    // Device A chose 45, device B later chose no limit: no limit wins on both.
+    expect(sessionMinutesOf(mergeSettings(set45, noLimit, 3000).settings)).toBeNull();
+    expect(sessionMinutesOf(mergeSettings(noLimit, set45, 3000).settings)).toBeNull();
+    // A copy that never set it reads as the default.
+    expect(sessionMinutesOf(mergeSettings(base, base, 3000).settings)).toBe(DEFAULT_SESSION_MINUTES);
+  });
+
+  it("survives sanitizing: null kept, unreadable dropped", () => {
+    expect(sanitizeSettings({ sessionMinutes: null }).sessionMinutes).toBeNull();
+    expect(sanitizeSettings({ sessionMinutes: 75 }).sessionMinutes).toBe(75);
+    expect("sessionMinutes" in sanitizeSettings({ sessionMinutes: "long" })).toBe(false);
   });
 });
 
