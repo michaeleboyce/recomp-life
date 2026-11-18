@@ -11,6 +11,7 @@ import { windowBounds, type ChartWindow } from "@/lib/metrics/window";
 import { WEEK_MS } from "@/lib/dates";
 import type { MetricSource, Point, RangeKey, Series, SeriesSummary } from "@/lib/metrics/types";
 import { TREND_SMOOTHING, smoothedEstimate, sumLines, type StrengthTimeline } from "@/lib/strength";
+import { EXERCISES } from "@/lib/exercises";
 import type { LiftState } from "@/types";
 import { LIFT_NAMES, MAIN_LIFTS, isMainLift, type MainLiftId } from "./lifts";
 
@@ -99,6 +100,12 @@ export interface LiftEstimate {
   line: Point[];
   /** The newest session of the lift itself (app or imported) up to now. */
   latest: { t: number; imported: boolean } | null;
+  /**
+   * The newest session behind the estimate up to now, from any source: the lift itself
+   * or one of its home versions (`exerciseId` says which). Optional for callers that
+   * build an estimate by hand.
+   */
+  newest?: { t: number; imported: boolean; exerciseId: string } | null;
 }
 
 /**
@@ -115,14 +122,46 @@ export function liftEstimate(timeline: StrengthTimeline, window: RangeKey): Lift
   const line = smoothedEstimate(timeline, { halfLifeDays: TREND_SMOOTHING.standard }).points;
   // As the chart: the same window and the same change of the line over it.
   const view = trendView(timeline, window);
-  const own = timeline.points.filter((p) => (p.sourceId === "own" || p.sourceId === "imported") && p.t <= now);
-  const newest = own.at(-1);
+  const done = timeline.points.filter((p) => !p.provisional && p.t <= now);
+  const own = done.filter((p) => p.sourceId === "own" || p.sourceId === "imported");
+  const latest = own.at(-1);
+  const newest = done.at(-1);
   return {
     value: anchor.value,
     change: lineChange(line, view).change,
     line: line.filter((p) => p.t >= view.from && p.t <= view.to).map((p) => ({ t: p.t, v: p.v })),
-    latest: newest ? { t: newest.t, imported: newest.imported } : null,
+    latest: latest ? { t: latest.t, imported: latest.imported } : null,
+    newest: newest ? { t: newest.t, imported: newest.imported, exerciseId: newest.exerciseId } : null,
   };
+}
+
+/** "Aug 2", or "Aug 2, 2024" when it is not the year of `now`. */
+function cardDay(t: number, now: number): string {
+  const date = new Date(t);
+  const sameYear = date.getFullYear() === new Date(now).getFullYear();
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) });
+}
+
+/**
+ * The note beside a lift card's number about the session behind it: "Imported, Nov 10",
+ * "Imported, Nov 10 · DB Bench Press" when a home version is the newest, "Nov 10 · DB
+ * Bench Press" for one logged in the app, or the date alone when the newest session is
+ * older than the range. Null for the app's own session of the lift inside the range.
+ */
+export function latestNote(lift: LiftOverview, range: RangeKey, now: number): string | null {
+  const estimate = lift.estimate;
+  const fallback = lift.summary.latest ?? lift.latestBeforeRange;
+  const newest = estimate
+    ? estimate.newest
+    : fallback
+      ? { t: fallback.t, imported: fallback.imported === true, exerciseId: lift.id }
+      : null;
+  if (!newest) return null;
+  const home = newest.exerciseId !== lift.id ? (EXERCISES[newest.exerciseId]?.name ?? newest.exerciseId) : null;
+  const older = estimate ? newest.t < windowBounds(range, now).from : !lift.summary.latest;
+  if (!newest.imported && !home && !older) return null;
+  const day = cardDay(newest.t, now);
+  return `${newest.imported ? `Imported, ${day}` : day}${home ? ` · ${home}` : ""}`;
 }
 
 /** What a strength chart can show: from its first dot (or a week back, if later) up to now. */
@@ -205,6 +244,8 @@ export interface LiftOverview {
    * the card shows when given. Absent or null without a timeline or an estimate.
    */
   estimate?: LiftEstimate | null;
+  /** The card's note on the session behind its number (`latestNote`); null for none. */
+  note?: string | null;
 }
 
 /** The newest point of a series, or null. */
@@ -240,7 +281,7 @@ export function strengthOverview(
       importedE1rmPoints(imported?.get(id) ?? [])
     );
     const series = inRange(full, range, now);
-    return {
+    const lift: LiftOverview = {
       id,
       label: LIFT_NAMES[id].label,
       liftState: source.liftStates.find((s) => s.exerciseId === id),
@@ -251,6 +292,7 @@ export function strengthOverview(
       latestBeforeRange: series.points.length > 0 ? null : newestPoint(full.points),
       ...(timeline ? { estimate: liftEstimate(timeline, range) } : {}),
     };
+    return { ...lift, note: latestNote(lift, range, now) };
   });
 
   const totals = totalE1RMPoints(

@@ -3,7 +3,7 @@ import { lineValueAt } from "@/components/chart-kit/trendGeometry";
 import { windowBounds } from "@/lib/metrics/window";
 import { TREND_SMOOTHING, smoothedEstimate, strengthTimeline, type StrengthSet } from "@/lib/strength";
 import { set } from "@/lib/strength/testHelpers";
-import { lineChange, liftEstimate, strengthOverview, trendLimits, trendView } from "./strength";
+import { latestNote, lineChange, liftEstimate, strengthOverview, trendLimits, trendView } from "./strength";
 
 const NOW = new Date(2026, 10, 18, 12);
 
@@ -83,6 +83,66 @@ describe("liftEstimate (H4)", () => {
     expect(liftEstimate(strengthTimeline("bench", [], { now: NOW.getTime() }), "3m")).toBeNull();
   });
 });
+
+describe("the newest evidence of the estimate and the card's note (Q4)", () => {
+  const now = NOW.getTime();
+  const dbBench = (id: string, days: number, imported = false): StrengthSet[] => [
+    set({
+      id: `${id}:1`,
+      sessionId: id,
+      exerciseId: "db_bench",
+      weight: 60,
+      perHand: true,
+      reps: 8,
+      date: daysAgo(days),
+      ...(imported ? { imported: true } : {}),
+    }),
+  ];
+
+  it("is the newest session of any source, a home version included", () => {
+    const tl = strengthTimeline("bench", [...sets.slice(0, 2), ...dbBench("h", 8, true)], { now });
+    const estimate = liftEstimate(tl, "3m")!;
+    expect(estimate.latest).toEqual({ t: daysAgo(40).getTime(), imported: true });
+    expect(estimate.newest).toEqual({ t: daysAgo(8).getTime(), imported: true, exerciseId: "db_bench" });
+    expect(liftEstimate(timeline(), "3m")!.newest).toEqual({ t: daysAgo(5).getTime(), imported: false, exerciseId: "bench" });
+  });
+
+  function timeline() {
+    return strengthTimeline("bench", sets, { now });
+  }
+  const overview = (tl: ReturnType<typeof timeline>) => {
+    const source = { workouts: [], e1rms: [], bodyweight: [], runs: [], readiness: [], pain: [], liftStates: [], settings: null };
+    return strengthOverview(source, "3m", now, undefined, [tl]).lifts.find((l) => l.id === "bench")!;
+  };
+
+  it("says nothing for the app's own session in the range", () => {
+    expect(latestNote(overview(timeline()), "3m", now)).toBeNull();
+  });
+
+  it("gives the date with Imported, and names a home version when it is the newest", () => {
+    const imported = strengthTimeline("bench", sets.slice(0, 2), { now });
+    expect(latestNote(overview(imported), "3m", now)).toBe(`Imported, ${shortDay(daysAgo(40))}`);
+    const home = strengthTimeline("bench", [...sets.slice(0, 2), ...dbBench("h", 8, true)], { now });
+    expect(latestNote(overview(home), "3m", now)).toBe(`Imported, ${shortDay(daysAgo(8))} · DB Bench Press`);
+    const appHome = strengthTimeline("bench", [...sets, ...dbBench("h", 2)], { now });
+    expect(latestNote(overview(appHome), "3m", now)).toBe(`${shortDay(daysAgo(2))} · DB Bench Press`);
+  });
+
+  it("gives the date, with the year when it is not this year, when the newest is older than the range", () => {
+    const old = new Date(2024, 7, 2, 18);
+    const source = { workouts: [], e1rms: [], bodyweight: [], runs: [], readiness: [], pain: [], liftStates: [], settings: null };
+    const lift = { ...strengthOverview(source, "3m", now).lifts[1], latestBeforeRange: { t: old.getTime(), v: 175 } };
+    expect(latestNote(lift, "3m", now)).toBe("Aug 2, 2024");
+    expect(latestNote({ ...lift, latestBeforeRange: { t: old.getTime(), v: 175, imported: true } }, "3m", now)).toBe(
+      "Imported, Aug 2, 2024"
+    );
+  });
+});
+
+/** "Nov 10" (this year in these tests). */
+function shortDay(d: Date): string {
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 describe("trendView and lineChange (one window and change for the chart and the cards)", () => {
   const timeline = strengthTimeline("bench", sets, { now: NOW.getTime() });
