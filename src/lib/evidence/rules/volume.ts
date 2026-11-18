@@ -130,6 +130,7 @@ export const VOLUME_RULES = {
       "src/components/PreWorkout/TimeEstimate.tsx",
       "src/components/Today/AccessoryRows.tsx",
       "src/app/settings/page.tsx",
+      "src/components/Upcoming/UpcomingWorkoutView.tsx",
     ],
   },
   "volume-ratio": {

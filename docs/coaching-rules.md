@@ -105,7 +105,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Program rule
 - **Implemented in:** `src/lib/progression.ts` (`evaluateT1Progression`)
-- **Shown in:** `src/app/progress/upcoming/page.tsx`, `src/components/ExercisePage/NextSession.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/Today/AttentionList.tsx`
+- **Shown in:** `src/app/progress/upcoming/page.tsx`, `src/components/ExercisePage/NextSession.tsx`, `src/components/Log/WhatItDid.tsx`, `src/components/Today/AttentionList.tsx`, `src/components/Upcoming/UpcomingWorkoutView.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Complete every set and the weight goes up; miss and the scheme changes
@@ -752,7 +752,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/accessories/sessionBudget.ts` (`fitAccessoriesToBudget`), `src/lib/workout/accessoryPlan.ts` (`planAccessories`)
-- **Shown in:** `src/components/PreWorkout/AccessorySheet.tsx`, `src/components/PreWorkout/TimeEstimate.tsx`, `src/components/Today/AccessoryRows.tsx`, `src/app/settings/page.tsx`
+- **Shown in:** `src/components/PreWorkout/AccessorySheet.tsx`, `src/components/PreWorkout/TimeEstimate.tsx`, `src/components/Today/AccessoryRows.tsx`, `src/app/settings/page.tsx`, `src/components/Upcoming/UpcomingWorkoutView.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Accessories are kept to the length you plan for; the main lifts never are
