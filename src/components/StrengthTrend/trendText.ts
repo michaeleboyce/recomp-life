@@ -113,6 +113,21 @@ export function reasonText(reason: TrendReason | null, timeline: StrengthTimelin
   );
 }
 
+/**
+ * For a muscle, the short sentence beside its two numbers: what the index is, where the
+ * line is today and why they differ. Null for a lift (its reason line says why) or
+ * without both numbers. `lineToday` is the line as drawn, with the smoothing and sources
+ * picked.
+ */
+export function indexLineText(timeline: StrengthTimeline, lineToday: number | null): string | null {
+  if (timeline.unit !== "index" || !timeline.anchor || lineToday === null) return null;
+  const index = formatTrendValue(timeline.anchor.value, "index");
+  const line = formatTrendValue(lineToday, "index");
+  const what = `${index} is the index, from each exercise's latest session (one not done for ${MUSCLE_INDEX.staleAfterDays} days drops out)`;
+  if (line === index) return `${what}; the line agrees today.`;
+  return `${what}. The line is at ${line} today: it averages every session, older ones counting less.`;
+}
+
 /** "70 each × 8, 1-2 left" for the dot's best set. */
 export function setText(point: TimelinePoint): string {
   const s = point.bestSet;

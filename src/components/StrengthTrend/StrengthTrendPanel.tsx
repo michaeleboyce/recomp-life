@@ -28,6 +28,7 @@ import { readTrendPrefs, writeTrendPrefs } from "./trendPrefs";
 import {
   SMOOTHING_LABELS,
   formatTrendValue,
+  indexLineText,
   pointDetail,
   reasonText,
   smoothingText,
@@ -151,7 +152,10 @@ export function StrengthTrendPanel({
   const unit = timeline.unit;
   const fmt = (v: number) => formatTrendValue(v, unit);
   const anchor = timeline.anchor;
-  const reason = reasonText(line.reason, timeline);
+  // A muscle says beside its numbers what the index and the line are; that replaces the
+  // longer reason further down. A lift keeps the reason there.
+  const indexNote = indexLineText(timeline, line.today?.v ?? null);
+  const reason = indexNote ? null : reasonText(line.reason, timeline);
 
   const selected = selectedId ? (timeline.points.find((p) => p.id === selectedId) ?? null) : null;
   const shareToday = useMemo(
@@ -224,6 +228,11 @@ export function StrengthTrendPanel({
             </span>
           )}
         </div>
+        {indexNote && (
+          <p data-testid="index-vs-line" className="mt-1 text-[12px] text-muted-foreground">
+            {indexNote}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-2">

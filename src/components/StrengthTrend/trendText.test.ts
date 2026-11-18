@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { strengthTimeline, type TimelineSource } from "@/lib/strength";
+import { MUSCLE_INDEX, strengthTimeline, type TimelineSource } from "@/lib/strength";
 import { day, t1Session } from "@/lib/strength/testHelpers";
-import { formatTrendValue, reasonText, setText, smoothingText, sourceDetail } from "./trendText";
+import { formatTrendValue, indexLineText, reasonText, setText, smoothingText, sourceDetail } from "./trendText";
 
 const timeline = strengthTimeline("bench", t1Session({ sessionId: "w", exerciseId: "bench", weight: 185, amrapReps: 5, day: 0 }), {
   now: day(3).getTime(),
@@ -23,6 +23,23 @@ describe("trend text", () => {
     expect(reasonText({ kind: "older-sessions", ownBefore: 3, relatedBefore: 1, line: 182, anchor: 186 }, timeline)).toBe(
       "The line reads 182 lbs today: it still averages 3 older bench sessions and 1 earlier related session, each halving every 14 days. The plan starts from your latest bench session and adds only the related sessions after it."
     );
+  });
+
+  it("says beside a muscle's two numbers what each is and why they differ, from the real values", () => {
+    const muscle = {
+      ...timeline,
+      subject: { kind: "muscle", muscle: "quads" },
+      unit: "index",
+      anchor: { value: 112.4, sd: null, t: 0 },
+    } as unknown as typeof timeline;
+    const index = `112.4 is the index, from each exercise's latest session (one not done for ${MUSCLE_INDEX.staleAfterDays} days drops out)`;
+    expect(indexLineText(muscle, 104.06)).toBe(
+      `${index}. The line is at 104.1 today: it averages every session, older ones counting less.`
+    );
+    expect(indexLineText(muscle, 112.41)).toBe(`${index}; the line agrees today.`);
+    expect(indexLineText(muscle, null)).toBeNull();
+    // A lift keeps its own reason line.
+    expect(indexLineText(timeline, 180)).toBeNull();
   });
 
   it("shows a best set's reps left, and nothing when none was answered", () => {

@@ -47,4 +47,19 @@ describe("MuscleStrengthList chart (M10)", () => {
     expect(dialog.querySelector('[data-dot="goblet_squat"][data-kind="imported"]')).not.toBeNull();
     expect(within(dialog).getByTestId("contributors-quads")).toHaveTextContent("main");
   });
+
+  it("shows its subtitle once, and says beside the numbers what the index and the line are", () => {
+    const index = muscleStrengthIndex(SETS);
+    render(<MuscleStrengthList index={index} />);
+    fireEvent.click(screen.getByRole("button", { name: /Quads/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getAllByText(/from every exercise that works it/)).toHaveLength(1);
+    const latest = within(dialog).getByTestId("muscle-trend-latest").textContent!;
+    const note = within(dialog).getByTestId("index-vs-line");
+    expect(note).toHaveTextContent(new RegExp(`^${latest.replace(".", "\\.")} is the index`));
+    // The note sits with the numbers, in the same block as the big number.
+    expect(note.parentElement).toContainElement(within(dialog).getByTestId("muscle-trend-latest"));
+    // It replaces the longer reason further down rather than repeating it.
+    expect(within(dialog).queryByTestId("trend-reason")).toBeNull();
+  });
 });
