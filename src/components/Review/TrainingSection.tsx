@@ -1,6 +1,7 @@
 "use client";
 
 import { Award } from "lucide-react";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { E1RM_COMPARE_WEEKS, type WeeklyReview } from "@/lib/review";
 import { Delta } from "@/components/ui/delta";
 import { ExerciseImage } from "@/components/ui/exercise-image";
@@ -8,7 +9,7 @@ import { ListRow } from "@/components/ui/list-row";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Term } from "@/components/ui/term";
 import { plural } from "@/lib/text";
-import { DASH, lbs } from "./format";
+import { DASH, bestFromText, lbs, liftSessionsText } from "./format";
 
 function BestChip() {
   return (
@@ -19,10 +20,25 @@ function BestChip() {
   );
 }
 
-/** "3 sessions", or "3 sessions, 1 imported". */
-function sessionsText(lift: WeeklyReview["lifts"][number]): string {
-  const imported = lift.importedSessions > 0 ? `, ${lift.importedSessions} imported` : "";
-  return `${plural(lift.sessions, "session")}${imported}`;
+/** The row's subtitle: working weight and sessions, and a second line when a home version gave the best. */
+function liftSubtitle(lift: WeeklyReview["lifts"][number]) {
+  const sessions = liftSessionsText(lift);
+  const first =
+    lift.workingWeight === null
+      ? sessions
+      : `${lbs(lift.workingWeight)} lbs working${
+          lift.workingWeightChange ? ` (${lift.workingWeightChange > 0 ? "+" : "−"}${lbs(Math.abs(lift.workingWeightChange))})` : ""
+        } · ${sessions}`;
+  const from = bestFromText(lift);
+  if (!from) return first;
+  return (
+    <>
+      <span className="block truncate">{first}</span>
+      <span className="block truncate" data-testid={`best-from-${lift.id}`}>
+        {from}
+      </span>
+    </>
+  );
 }
 
 /** Sessions against the target, effort, and one row per main lift. */
@@ -68,13 +84,7 @@ export function TrainingSection({ review }: { review: WeeklyReview }) {
           href={`/progress/lift/${lift.id}`}
           leading={<ExerciseImage exerciseId={lift.id} variant="thumb" className="size-10 rounded-full" />}
           title={lift.label}
-          subtitle={
-            lift.workingWeight === null
-              ? sessionsText(lift)
-              : `${lbs(lift.workingWeight)} lbs working${
-                  lift.workingWeightChange ? ` (${lift.workingWeightChange > 0 ? "+" : "−"}${lbs(Math.abs(lift.workingWeightChange))})` : ""
-                } · ${sessionsText(lift)}`
-          }
+          subtitle={liftSubtitle(lift)}
           value={lift.bestE1RM === null ? DASH : lbs(lift.bestE1RM)}
           valueSub={
             lift.e1rmChange === null ? (
@@ -86,6 +96,10 @@ export function TrainingSection({ review }: { review: WeeklyReview }) {
           trailing={lift.isPR ? <BestChip /> : undefined}
         />
       ))}
+      {/* Home versions counted: how their sessions convert into the lift's pounds. */}
+      {review.lifts.some((l) => l.homeSessions > 0 || l.bestFrom) && (
+        <EvidenceLine ruleId="strength-pooling" className="pt-2" />
+      )}
     </section>
   );
 }

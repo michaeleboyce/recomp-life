@@ -6,6 +6,7 @@ import type { RangeKey } from "@/lib/metrics/types";
 import type { WindowSpan } from "@/lib/metrics/window";
 import { strengthTimeline, type StrengthSet, type StrengthTimeline } from "@/lib/strength";
 import { day, set, t1Session } from "@/lib/strength/testHelpers";
+import { liftEstimate } from "@/components/Progress/strength";
 import { StrengthTrendPanel } from "./StrengthTrendPanel";
 import { TREND_PREFS_KEY } from "./trendPrefs";
 
@@ -92,6 +93,18 @@ describe("StrengthTrendPanel (M4)", () => {
     expect(sources().getByRole("checkbox", { name: /DB Bench Press/ })).not.toBeChecked();
     expect(Number(chart().getAttribute("data-related"))).toBe(related - 2);
     expect(screen.getByTestId("trend-reason")).toHaveTextContent(/the number above is the plan's/);
+  });
+
+  it("shows the same number and change as Progress and Today (liftEstimate) for each preset", () => {
+    const tl = strengthTimeline("bench", ALL, { now: NOW });
+    for (const range of ["4w", "3m", "all"] as const) {
+      render(<Harness timeline={tl} initialRange={range} />);
+      const estimate = liftEstimate(tl, range)!;
+      expect(screen.getByTestId("trend-anchor")).toHaveTextContent(String(Math.round(estimate.value)));
+      const shown = screen.getByTestId("trend-change").textContent!.match(/^([+−]?)(\d+)/)!;
+      expect((shown[1] === "−" ? -1 : 1) * Number(shown[2])).toBe(Math.round(estimate.change!));
+      cleanup();
+    }
   });
 
   it("explains a difference between the line and the plan's number", () => {

@@ -17,22 +17,12 @@ const LIFT_ACCENT: Record<string, string> = {
   ohp: "bg-chart-4",
 };
 
-/** "Aug 2", or "Aug 2, 2025" when it is not this year. */
-function pointDay(t: number): string {
-  const date = new Date(t);
-  const sameYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) });
-}
-
 function LiftCard({ lift }: { lift: LiftOverview }) {
   const { liftState, summary, stall, estimate } = lift;
   // The pooled estimate the lift page shows, with its line's change and the line itself.
   // Without one, the range's latest estimate, else the latest before it.
   const latest = summary.latest ?? lift.latestBeforeRange;
   const value = estimate ? estimate.value : latest?.v;
-  const imported = estimate ? estimate.latest?.imported === true : latest?.imported === true;
-  // No session in the range: when the newest one was.
-  const olderThanRange = !summary.latest ? (estimate?.latest?.t ?? lift.latestBeforeRange?.t ?? null) : null;
   const sparkPoints = estimate ? estimate.line : lift.series.points;
   const delta = estimate ? (
     estimate.change !== null ? (
@@ -79,19 +69,14 @@ function LiftCard({ lift }: { lift: LiftOverview }) {
           <span className="font-display text-[44px] leading-none font-bold tabular-nums text-foreground">
             {value !== undefined ? Math.round(value) : "–"}
           </span>
-          {imported && (
-            <span data-testid="lift-latest-imported" className="text-xs font-semibold text-muted-foreground">
-              Imported
-            </span>
-          )}
-          {/* Older than the range: the estimate the total counts, with when it was. */}
-          {olderThanRange !== null && (
-            <span data-testid="lift-latest-date" className="text-xs text-muted-foreground">
-              {pointDay(olderThanRange)}
-            </span>
-          )}
           {delta}
         </span>
+        {/* The session behind the number when it is imported, a home version or older than the range. */}
+        {lift.note && (
+          <span data-testid="lift-latest-note" className="text-xs text-muted-foreground">
+            {lift.note}
+          </span>
+        )}
         {sparkPoints.length > 0 && (
           <Sparkline
             points={sparkPoints}

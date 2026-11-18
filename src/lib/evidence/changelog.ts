@@ -54,6 +54,13 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
   },
   {
     date: "2026-11-18",
+    ruleId: "strength-pooling",
+    change:
+      "The weekly review's lift rows now count the lift's home versions: an app session done as a substitute or stand-in and an imported session of the home exercise count as sessions of the lift (\"2 sessions, 1 at home\"), and their estimates, converted through the same ratios as the lift chart, can be the week's best (\"Best from DB Bench Press\"). A week with only a dumbbell bench had shown the bench with no sessions and no estimate. A new best is still judged on the app's own barbell estimates.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
     ruleId: "swap-recommendation",
     change:
       "At home before a workout, a program lift's own home versions are marked \"Counts as\" in the swap sheet, rank first among equal scores, and are done as the lift (its home exercise, with its own weight and progression) instead of a swap that left the lift held. During a workout or at the gym nothing changes.",

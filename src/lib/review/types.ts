@@ -48,6 +48,11 @@ export interface LiftReview {
   bestWorkoutId: string | null;
   /** The best came from an imported session (so it is never a new best). */
   bestImported: boolean;
+  /**
+   * The home version the best came from (an exercise id), converted into the lift's
+   * pounds as the lift chart converts it; null when it is the lift's own. Never a new best.
+   */
+  bestFrom: string | null;
   /** bestE1RM minus the best of the four weeks before; null when either is missing. */
   e1rmChange: number | null;
   /** The best of the four weeks before, for the label. */
@@ -58,8 +63,14 @@ export interface LiftReview {
   workingWeight: number | null;
   /** workingWeight minus the working weight as of the start of the week. */
   workingWeightChange: number | null;
-  /** Workouts and imported sessions this week with a non-warm-up set of the lift (any tier). */
+  /**
+   * Workouts and imported sessions this week with a non-warm-up set (any tier) of the
+   * lift or one of its home versions (a substitute at home, a stand-in, an imported
+   * dumbbell bench).
+   */
   sessions: number;
+  /** How many of `sessions` had the lift only as a home version. */
+  homeSessions: number;
   /** How many of `sessions` were imported. */
   importedSessions: number;
 }
