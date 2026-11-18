@@ -21,15 +21,15 @@ import {
   importedStrengthSets,
   latestPerMuscle,
 } from "./evidence";
-import { importDay, importedSession, importedSet } from "./testRecords";
+import { importDay, makeImportedSession, makeImportedSet } from "./testRecords";
 
 // Made-up sessions only.
 
 describe("importedStrengthSets", () => {
   it("turns mapped sets into strength sets as lifted, per dumbbell for a two-dumbbell exercise", () => {
-    const session = importedSession([
-      importedSet({ id: "a", exerciseName: "Dumbbell Bench Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50.00003, implementCount: 2, reps: 8 }),
-      importedSet({ id: "b", exerciseName: "Barbell Squat", mappedExerciseId: "squat", weightPerImplementLb: 185, reps: 5 }),
+    const session = makeImportedSession([
+      makeImportedSet({ id: "a", exerciseName: "Dumbbell Bench Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50.00003, implementCount: 2, reps: 8 }),
+      makeImportedSet({ id: "b", exerciseName: "Barbell Squat", mappedExerciseId: "squat", weightPerImplementLb: 185, reps: 5 }),
     ]);
     const [db, squat] = importedStrengthSets([session]);
     expect(db).toMatchObject({ id: "a", exerciseId: "db_bench", weight: 50, perHand: true, reps: 8, tier: "T1", isAMRAP: true, role: "working" });
@@ -39,19 +39,19 @@ describe("importedStrengthSets", () => {
   });
 
   it("never turns a muscle-guessed or unknown name into evidence about a lift", () => {
-    const session = importedSession([
-      importedSet({ exerciseName: "Wobbly Bench Thing", mappedExerciseId: null, muscles: ["chest"] }),
-      importedSet({ exerciseName: "Zorblax", mappedExerciseId: null }),
+    const session = makeImportedSession([
+      makeImportedSet({ exerciseName: "Wobbly Bench Thing", mappedExerciseId: null, muscles: ["chest"] }),
+      makeImportedSet({ exerciseName: "Zorblax", mappedExerciseId: null }),
     ]);
     expect(importedStrengthSets([session])).toEqual([]);
   });
 
   it("keeps warm-ups as warm-ups, links a drop to the set before it, and reads effort words", () => {
-    const session = importedSession([
-      importedSet({ id: "w", role: "warmup", weightPerImplementLb: 95 }),
-      importedSet({ id: "x", role: "work", weightPerImplementLb: 185, effort: "Hard" }),
-      importedSet({ id: "d1", role: "drop", weightPerImplementLb: 135, reps: 8 }),
-      importedSet({ id: "d2", role: "drop", weightPerImplementLb: 95, reps: 10 }),
+    const session = makeImportedSession([
+      makeImportedSet({ id: "w", role: "warmup", weightPerImplementLb: 95 }),
+      makeImportedSet({ id: "x", role: "work", weightPerImplementLb: 185, effort: "Hard" }),
+      makeImportedSet({ id: "d1", role: "drop", weightPerImplementLb: 135, reps: 8 }),
+      makeImportedSet({ id: "d2", role: "drop", weightPerImplementLb: 95, reps: 10 }),
     ]);
     const sets = importedStrengthSets([session]);
     expect(sets.map((s) => s.role)).toEqual(["warmup", "working", "drop", "drop"]);
@@ -66,10 +66,10 @@ describe("importedStrengthSets", () => {
   });
 
   it("gives no estimate for a set with no load (bodyweight, assistance or a timed hold)", () => {
-    const session = importedSession([
-      importedSet({ id: "bw", weightPerImplementLb: 0, reps: 10 }),
-      importedSet({ id: "assist", weightPerImplementLb: 40, weightCountsAsLoad: false, reps: 8 }),
-      importedSet({ id: "hold", weightPerImplementLb: 20, reps: null, durationSec: 30 }),
+    const session = makeImportedSession([
+      makeImportedSet({ id: "bw", weightPerImplementLb: 0, reps: 10 }),
+      makeImportedSet({ id: "assist", weightPerImplementLb: 40, weightCountsAsLoad: false, reps: 8 }),
+      makeImportedSet({ id: "hold", weightPerImplementLb: 20, reps: null, durationSec: 30 }),
     ]);
     const sets = importedStrengthSets([session]);
     expect(sets.every((s) => !s.isAMRAP)).toBe(true);
@@ -77,7 +77,7 @@ describe("importedStrengthSets", () => {
   });
 
   it("leaves out soft-deleted sessions (an undone import)", () => {
-    expect(importedStrengthSets([importedSession([importedSet()], { deletedAt: 5 })])).toEqual([]);
+    expect(importedStrengthSets([makeImportedSession([makeImportedSet()], { deletedAt: 5 })])).toEqual([]);
   });
 });
 
@@ -103,8 +103,8 @@ describe("effortRepsInReserve", () => {
 
   it("credits the reps each answer counts for before the formula; no word reads as all-out", () => {
     const estimateWith = (effort: string | null) => {
-      const session = importedSession([
-        importedSet({ id: "x", exerciseName: "Barbell Squat", mappedExerciseId: "squat", weightPerImplementLb: 185, reps: 5, effort }),
+      const session = makeImportedSession([
+        makeImportedSet({ id: "x", exerciseName: "Barbell Squat", mappedExerciseId: "squat", weightPerImplementLb: 185, reps: 5, effort }),
       ]);
       return sessionEstimates(importedStrengthSets([session]), "squat")[0].estimatedMax;
     };
@@ -121,13 +121,13 @@ describe("effortRepsInReserve", () => {
 
 describe("imported history in the strength model (I9)", () => {
   const bench = (day: number, weight: number, reps = 5) =>
-    importedSession(
-      [importedSet({ exerciseName: "Barbell Bench Press", mappedExerciseId: "bench", weightPerImplementLb: weight, reps })],
+    makeImportedSession(
+      [makeImportedSet({ exerciseName: "Barbell Bench Press", mappedExerciseId: "bench", weightPerImplementLb: weight, reps })],
       { startedAt: importDay(day) }
     );
   const dbBench = (day: number, perHand: number, reps = 8) =>
-    importedSession(
-      [importedSet({ exerciseName: "Dumbbell Bench Press", mappedExerciseId: "db_bench", weightPerImplementLb: perHand, reps, implementCount: 2 })],
+    makeImportedSession(
+      [makeImportedSet({ exerciseName: "Dumbbell Bench Press", mappedExerciseId: "db_bench", weightPerImplementLb: perHand, reps, implementCount: 2 })],
       { startedAt: importDay(day) }
     );
 
@@ -191,18 +191,18 @@ describe("imported muscle work", () => {
   const nextMonday = new Date("2024-03-11T00:00:00Z");
 
   it("counts guessed names for muscle volume, by their guessed muscles", () => {
-    const session = importedSession([
-      importedSet({ exerciseName: "Wobbly Bench Thing", mappedExerciseId: null, muscles: ["chest"] }),
-      importedSet({ exerciseName: "Zorblax", mappedExerciseId: null }),
+    const session = makeImportedSession([
+      makeImportedSet({ exerciseName: "Wobbly Bench Thing", mappedExerciseId: null, muscles: ["chest"] }),
+      makeImportedSet({ exerciseName: "Zorblax", mappedExerciseId: null }),
     ]);
     expect(importedMuscleLoad([session], monday, nextMonday)).toEqual({ chest: 1 });
   });
 
   it("counts mapped sets by the library's muscles, warm-ups for nothing and drops at half a set", () => {
-    const session = importedSession([
-      importedSet({ id: "w", role: "warmup", mappedExerciseId: "bicep_curls", exerciseName: "Curl" }),
-      importedSet({ id: "x", role: "work", mappedExerciseId: "bicep_curls", exerciseName: "Curl" }),
-      importedSet({ id: "d", role: "drop", mappedExerciseId: "bicep_curls", exerciseName: "Curl" }),
+    const session = makeImportedSession([
+      makeImportedSet({ id: "w", role: "warmup", mappedExerciseId: "bicep_curls", exerciseName: "Curl" }),
+      makeImportedSet({ id: "x", role: "work", mappedExerciseId: "bicep_curls", exerciseName: "Curl" }),
+      makeImportedSet({ id: "d", role: "drop", mappedExerciseId: "bicep_curls", exerciseName: "Curl" }),
     ]);
     const credits = Object.fromEntries(importedMuscleSets([session]).map((s) => [s.id, s.credit]));
     expect(credits).toEqual({ w: 0, x: 1, d: 0.5 });
@@ -210,16 +210,16 @@ describe("imported muscle work", () => {
   });
 
   it("counts only sessions in the week asked for", () => {
-    const outside = importedSession([importedSet({ mappedExerciseId: "bicep_curls" })], {
+    const outside = makeImportedSession([makeImportedSet({ mappedExerciseId: "bicep_curls" })], {
       startedAt: new Date("2024-02-20T10:00:00Z"),
     });
     expect(importedMuscleLoad([outside], monday, nextMonday)).toEqual({});
   });
 
   it("gives each muscle the start of the last imported session that worked it", () => {
-    const early = importedSession([importedSet({ mappedExerciseId: "bicep_curls" })], { startedAt: new Date("2024-03-01T10:00:00Z") });
-    const late = importedSession([importedSet({ mappedExerciseId: "bicep_curls" })], { startedAt: new Date("2024-03-05T10:00:00Z") });
-    const warmOnly = importedSession([importedSet({ mappedExerciseId: "calf_raises", role: "warmup" })]);
+    const early = makeImportedSession([makeImportedSet({ mappedExerciseId: "bicep_curls" })], { startedAt: new Date("2024-03-01T10:00:00Z") });
+    const late = makeImportedSession([makeImportedSet({ mappedExerciseId: "bicep_curls" })], { startedAt: new Date("2024-03-05T10:00:00Z") });
+    const warmOnly = makeImportedSession([makeImportedSet({ mappedExerciseId: "calf_raises", role: "warmup" })]);
     const last = importedMuscleLastTrained([early, late, warmOnly]);
     expect(last.biceps?.toISOString()).toBe("2024-03-05T10:00:00.000Z");
     expect(last.calves).toBeUndefined();
@@ -227,15 +227,15 @@ describe("imported muscle work", () => {
 
   it("adds imported sets to the app's direct and indirect sets per muscle, in the week only", () => {
     const own = { chest: { directSets: 2, indirectSets: 0, totalFractional: 2 } };
-    const week = importedSession(
+    const week = makeImportedSession(
       [
-        importedSet({ id: "b1", mappedExerciseId: "bench", exerciseName: "Bench" }),
-        importedSet({ id: "b2", mappedExerciseId: "bench", exerciseName: "Bench" }),
-        importedSet({ id: "bw", mappedExerciseId: "bench", exerciseName: "Bench", role: "warmup" }),
+        makeImportedSet({ id: "b1", mappedExerciseId: "bench", exerciseName: "Bench" }),
+        makeImportedSet({ id: "b2", mappedExerciseId: "bench", exerciseName: "Bench" }),
+        makeImportedSet({ id: "bw", mappedExerciseId: "bench", exerciseName: "Bench", role: "warmup" }),
       ],
       { startedAt: new Date("2024-03-05T10:00:00Z") }
     );
-    const before = importedSession([importedSet({ mappedExerciseId: "bench" })], {
+    const before = makeImportedSession([makeImportedSet({ mappedExerciseId: "bench" })], {
       startedAt: new Date("2024-02-20T10:00:00Z"),
     });
     const sum = addImportedVolume(own, [week, before], monday, nextMonday);
@@ -250,13 +250,13 @@ describe("imported muscle work", () => {
     const from = new Date(2024, 2, 4);
     const to = new Date(2024, 2, 11);
     const at = new Date(2024, 2, 5, 10);
-    const session = importedSession(
+    const session = makeImportedSession(
       [
-        importedSet({ id: "b1", mappedExerciseId: "bench", exerciseName: "Bench" }),
-        importedSet({ id: "bw", mappedExerciseId: "bench", exerciseName: "Bench", role: "warmup" }),
-        importedSet({ id: "c1", mappedExerciseId: "bicep_curls", exerciseName: "Curl" }),
-        importedSet({ id: "cd", mappedExerciseId: "bicep_curls", exerciseName: "Curl", role: "drop" }),
-        importedSet({ id: "g", exerciseName: "Wobbly Thing", mappedExerciseId: null, muscles: ["lats", "mid_back"] }),
+        makeImportedSet({ id: "b1", mappedExerciseId: "bench", exerciseName: "Bench" }),
+        makeImportedSet({ id: "bw", mappedExerciseId: "bench", exerciseName: "Bench", role: "warmup" }),
+        makeImportedSet({ id: "c1", mappedExerciseId: "bicep_curls", exerciseName: "Curl" }),
+        makeImportedSet({ id: "cd", mappedExerciseId: "bicep_curls", exerciseName: "Curl", role: "drop" }),
+        makeImportedSet({ id: "g", exerciseName: "Wobbly Thing", mappedExerciseId: null, muscles: ["lats", "mid_back"] }),
       ],
       { startedAt: at }
     );
@@ -275,13 +275,13 @@ describe("imported muscle work", () => {
   it("sums weight x reps over the sets that are not warm-ups, as lifted, in the window", () => {
     const from = new Date(2024, 2, 4);
     const to = new Date(2024, 2, 11);
-    const session = importedSession(
+    const session = makeImportedSession(
       [
-        importedSet({ weightPerImplementLb: 100, reps: 5 }),
-        importedSet({ weightPerImplementLb: 45, reps: 10, role: "warmup" }),
-        importedSet({ weightPerImplementLb: 80, reps: 8, role: "drop" }),
-        importedSet({ weightPerImplementLb: 50, reps: 10, weightCountsAsLoad: false }),
-        importedSet({ exerciseName: "Zorblax", mappedExerciseId: null, weightPerImplementLb: 10, reps: 10 }),
+        makeImportedSet({ weightPerImplementLb: 100, reps: 5 }),
+        makeImportedSet({ weightPerImplementLb: 45, reps: 10, role: "warmup" }),
+        makeImportedSet({ weightPerImplementLb: 80, reps: 8, role: "drop" }),
+        makeImportedSet({ weightPerImplementLb: 50, reps: 10, weightCountsAsLoad: false }),
+        makeImportedSet({ exerciseName: "Zorblax", mappedExerciseId: null, weightPerImplementLb: 10, reps: 10 }),
       ],
       { startedAt: new Date(2024, 2, 6, 9) }
     );
@@ -299,9 +299,9 @@ describe("imported muscle work", () => {
 
 describe("a name remapped after the import", () => {
   const session = () =>
-    importedSession([
-      importedSet({ exerciseName: "Made-up Press", mappedExerciseId: null, muscles: ["chest"], weightPerImplementLb: 40 }),
-      importedSet({ exerciseName: "Test Squat", mappedExerciseId: "squat" }),
+    makeImportedSession([
+      makeImportedSet({ exerciseName: "Made-up Press", mappedExerciseId: null, muscles: ["chest"], weightPerImplementLb: 40 }),
+      makeImportedSet({ exerciseName: "Test Squat", mappedExerciseId: "squat" }),
     ]);
 
   it("changes the strength evidence without a re-import", () => {

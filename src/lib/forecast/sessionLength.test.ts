@@ -5,7 +5,7 @@ import { makeEntry, makeSets } from "@/lib/workout/testFixtures";
 import type { WorkoutSession } from "@/types";
 import { CALIBRATION, SESSION_LENGTH_MODEL } from "./coefficients";
 import { forecastSessionLength, sessionPaceCorrection, sessionPaceRatios } from "./sessionLength";
-import { DAY, t1Session } from "./testHelpers";
+import { DAY, makeT1Session } from "./testHelpers";
 
 const NOW = new Date("2026-11-14T17:00:00Z");
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * DAY);
@@ -19,7 +19,7 @@ const planned = estimateWorkoutSeconds(plan, { mode: "maintaining" });
 
 /** A finished session whose real length is `pace` x its length on paper. */
 function paced(id: string, days: number, pace: number, overrides: Partial<WorkoutSession> = {}) {
-  const session = t1Session({ id, at: daysAgo(days), weight: 200, lastReps: 5, phase: "maintaining" });
+  const session = makeT1Session({ id, at: daysAgo(days), weight: 200, lastReps: 5, phase: "maintaining" });
   session.sets = [...session.sets, ...makeSets("bench", "T2", 3, 10)];
   const onPaper = estimateLoggedSeconds(session.sets, { mode: "maintaining" });
   return { ...session, totalDurationSeconds: Math.round(onPaper * pace), ...overrides };

@@ -11,7 +11,7 @@ import {
   runSession,
   startSim,
 } from "@/lib/rebuild/testHelpers";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { buildWorkoutPlan } from "@/lib/workout/buildPlan";
 import { strengthEvidenceOf } from "@/lib/workout/strength";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
@@ -432,9 +432,9 @@ describe("explainPrescription: at home", () => {
     const sim = simOf({});
     const at = new Date(2026, 1, 20, 12);
     const imported = [
-      importedSession(
+      makeImportedSession(
         [0, 1, 2].map(() =>
-          importedSet({ exerciseName: "Dumbbell Bench Press", mappedExerciseId: "db_bench", weightPerImplementLb: 45, reps: 10 })
+          makeImportedSet({ exerciseName: "Dumbbell Bench Press", mappedExerciseId: "db_bench", weightPerImplementLb: 45, reps: 10 })
         ),
         { startedAt: at }
       ),

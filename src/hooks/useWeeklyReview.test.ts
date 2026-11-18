@@ -4,7 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { previousWeek, weekOf } from "@/lib/review";
 import { WEEKLY_SESSION_TARGET } from "@/lib/workout/rotation";
 import { useWeeklyReview } from "./index";
@@ -29,7 +29,7 @@ describe("useWeeklyReview", () => {
     const startedAt = new Date(week);
     startedAt.setDate(startedAt.getDate() + 2);
     startedAt.setHours(9);
-    await db.importedSessions.put(importedSession([importedSet()], { startedAt }));
+    await db.importedSessions.put(makeImportedSession([makeImportedSet()], { startedAt }));
     const r = renderHook(() => useWeeklyReview(week));
     await waitFor(() => expect(r.result.current?.review.sessions.count).toBe(1));
     const { review, weeks } = r.result.current!;

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { TREND_SMOOTHING, smoothedEstimate, strengthTimeline } from "@/lib/strength";
-import { day, t1Session } from "@/lib/strength/testHelpers";
+import { day, makeT1Session } from "@/lib/strength/testHelpers";
 import { trendTotal } from "./strength";
 
 const sets = [
-  ...[0, 3, 6].flatMap((d, i) => t1Session({ sessionId: `s${i}`, exerciseId: "squat", weight: 200 + 5 * i, amrapReps: 5, day: d })),
-  ...[1, 4, 7].flatMap((d, i) => t1Session({ sessionId: `b${i}`, exerciseId: "bench", weight: 150 + 5 * i, amrapReps: 5, day: d })),
+  ...[0, 3, 6].flatMap((d, i) => makeT1Session({ sessionId: `s${i}`, exerciseId: "squat", weight: 200 + 5 * i, amrapReps: 5, day: d })),
+  ...[1, 4, 7].flatMap((d, i) => makeT1Session({ sessionId: `b${i}`, exerciseId: "bench", weight: 150 + 5 * i, amrapReps: 5, day: d })),
 ];
 
 describe("trendTotal (M7)", () => {

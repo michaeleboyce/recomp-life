@@ -10,8 +10,8 @@ import { startWorkout } from "@/lib/data/workouts";
 import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
 import { overridesFromSession } from "@/lib/workout";
 import type { ActivityLog, RunLog } from "@/types";
-import { testFavorite } from "@/components/Favorites/testFavorites";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeFavorite } from "@/components/Favorites/testFavorites";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import ConfigureWorkoutPage from "./page";
 
 const toasts = vi.hoisted(() => ({ toast: vi.fn() }));
@@ -336,7 +336,7 @@ describe("configure page", () => {
   it("suggests no lighter weight after a break for a lift trained since in another app", async () => {
     await db.liftStates.update("bench", { t2LastWorkoutDate: new Date(Date.now() - 40 * 24 * HOUR) });
     await db.importedSessions.put(
-      importedSession([importedSet({ exerciseName: "Test Floor Press", mappedExerciseId: "db_floor_press", weightPerImplementLb: 40 })], {
+      makeImportedSession([makeImportedSet({ exerciseName: "Test Floor Press", mappedExerciseId: "db_floor_press", weightPerImplementLb: 40 })], {
         startedAt: new Date(Date.now() - 4 * 24 * HOUR),
       })
     );
@@ -395,8 +395,8 @@ describe("configure page", () => {
     // Curls pinned to the day, with made-up imported sessions to give them a plan weight.
     await updateSettings({ accessoryPins: { A1: ["bicep_curls"] } });
     await db.importedSessions.put(
-      importedSession(
-        [0, 1, 2].map(() => importedSet({ exerciseName: "Bicep Curl", mappedExerciseId: "bicep_curls", weightPerImplementLb: 30, reps: 12 })),
+      makeImportedSession(
+        [0, 1, 2].map(() => makeImportedSet({ exerciseName: "Bicep Curl", mappedExerciseId: "bicep_curls", weightPerImplementLb: 30, reps: 12 })),
         { startedAt: new Date(Date.now() - 5 * 24 * HOUR) }
       )
     );
@@ -418,7 +418,7 @@ describe("configure page", () => {
 
 describe("configure page: favourites", () => {
   async function addFavorite(weight: number) {
-    const favorite = testFavorite("fav-1", "Heavy bench");
+    const favorite = makeFavorite("fav-1", "Heavy bench");
     await db.favoriteWorkouts.add({
       ...favorite,
       snapshot: favorite.snapshot.map((e) => (e.tier === "T2" ? { ...e, weight } : e)),

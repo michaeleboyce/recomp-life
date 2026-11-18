@@ -5,7 +5,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb } from "@/lib/data/testUtils";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { MusclesTab } from "./MusclesTab";
 
 vi.mock("@/components/Anatomy/Anatomy3D", () => ({ Anatomy3D: () => null }));
@@ -30,8 +30,8 @@ describe("MusclesTab weekly target", () => {
   it("fills a muscle's bar against WEEKLY_SET_TARGET", async () => {
     // Made up: three working sets of bench press an hour ago.
     await db.importedSessions.put(
-      importedSession(
-        [1, 2, 3].map(() => importedSet({ mappedExerciseId: "bench", exerciseName: "Made-up Bench" })),
+      makeImportedSession(
+        [1, 2, 3].map(() => makeImportedSet({ mappedExerciseId: "bench", exerciseName: "Made-up Bench" })),
         { startedAt: new Date(Date.now() - HOUR) }
       )
     );

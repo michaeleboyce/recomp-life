@@ -6,7 +6,7 @@ import { db } from "@/db/local";
 import { clearDb } from "@/lib/data/testUtils";
 import { writeForecasts } from "@/lib/data/forecasts";
 import { replayForecasts } from "@/lib/forecast";
-import { demoReplayInput, forecastRow, t1Session } from "@/lib/forecast/testHelpers";
+import { demoReplayInput, makeForecast, makeT1Session } from "@/lib/forecast/testHelpers";
 import { initializeDatabase } from "@/db/init";
 import type { Forecast } from "@/types";
 import { ForecastsEntry } from "./ForecastsEntry";
@@ -30,7 +30,7 @@ afterEach(cleanup);
 /** A horizon forecast still waiting for its date. */
 function openAhead(overrides: Partial<Forecast> = {}): Forecast {
   const now = Date.now();
-  return forecastRow({
+  return makeForecast({
     id: "h1",
     clientId: "h1",
     slot: "e1rm4w|deadlift|2026-W46",
@@ -101,7 +101,7 @@ describe("Forecasts", () => {
     } as never);
     await db.forecasts.bulkAdd([
       openAhead(),
-      forecastRow({ id: "fc:w-live:amrapReps:squat:T1", workoutId: "w-live", madeAt: new Date(now - 600000) }),
+      makeForecast({ id: "fc:w-live:amrapReps:squat:T1", workoutId: "w-live", madeAt: new Date(now - 600000) }),
     ]);
     render(<ForecastsScreen />);
     const today = await screen.findByRole("region", { name: "Today's workout" });
@@ -163,7 +163,7 @@ describe("Forecasts: the second set", () => {
   it("explains when the last workout's muscles are ready again, and says it is not scored", async () => {
     await initializeDatabase();
     const at = new Date(now - 10 * 60 * 60 * 1000);
-    await db.workouts.add(t1Session({ id: "w-done", at, weight: 200, lastReps: 5 }));
+    await db.workouts.add(makeT1Session({ id: "w-done", at, weight: 200, lastReps: 5 }));
     render(<ForecastsScreen />);
     const section = await screen.findByRole("region", { name: "Muscles ready again" });
     expect(within(section).getByText("Quads")).toBeInTheDocument();

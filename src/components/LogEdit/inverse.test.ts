@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { LogChange } from "@/lib/rebuild";
 import { inverseChange } from "./inverse";
 import { buildAddSet, buildSetEdit, parseSetValues } from "./setChanges";
-import { input, set, workout } from "./testFixtures";
+import { makeRebuildInput, makeSet, makeWorkout } from "./testFixtures";
 
-const s1 = set({ id: "s1", actualReps: 3, weight: 205 });
-const log = input([workout({ id: "w1", sets: [s1], location: "gym" })]);
+const s1 = makeSet({ id: "s1", actualReps: 3, weight: 205 });
+const log = makeRebuildInput([makeWorkout({ id: "w1", sets: [s1], location: "gym" })]);
 
 describe("inverseChange", () => {
   it("restores the edited set fields, clearing an answer the set did not have", () => {
@@ -21,8 +21,8 @@ describe("inverseChange", () => {
   });
 
   it("restores the barbell weight a home set stood for with its weight", () => {
-    const home = set({ id: "h1", isSubstituted: true, substituteExerciseId: "bulgarian_split_squat", weight: 80, originalWeight: 245 });
-    const homeLog = input([workout({ id: "w1", sets: [home], location: "home" })]);
+    const home = makeSet({ id: "h1", isSubstituted: true, substituteExerciseId: "bulgarian_split_squat", weight: 80, originalWeight: 245 });
+    const homeLog = makeRebuildInput([makeWorkout({ id: "w1", sets: [home], location: "home" })]);
     const change = buildSetEdit("w1", home, { actualReps: 3, weight: 70, repsInReserve: null })!;
     expect(inverseChange(homeLog, change)).toEqual({
       kind: "editSet",
@@ -38,7 +38,7 @@ describe("inverseChange", () => {
       workoutId: "w1",
       set: s1,
     });
-    const added = set({ id: "s2" });
+    const added = makeSet({ id: "s2" });
     expect(inverseChange(log, { kind: "addSet", workoutId: "w1", set: added })).toEqual({
       kind: "deleteSet",
       workoutId: "w1",
@@ -70,7 +70,7 @@ describe("inverseChange", () => {
       kind: "adjustLift",
       adjustment: { id: "a1", clientId: "a1", exerciseId: "squat", at, source: "manual", set: { t1Weight: 250 }, synced: false },
     };
-    const inverse = inverseChange(input([]), change, () => "a2");
+    const inverse = inverseChange(makeRebuildInput([]), change, () => "a2");
     expect(inverse).toMatchObject({
       kind: "adjustLift",
       adjustment: { id: "a2", exerciseId: "squat", source: "manual", set: { t1Weight: 0 } },

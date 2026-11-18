@@ -7,7 +7,7 @@ import { fitTrend } from "@/lib/projection/trend";
 import type { BodyweightLog } from "@/types";
 import { BODYWEIGHT_MODEL, CALIBRATION, E1RM_HORIZON_MODEL } from "./coefficients";
 import { e1rmResults, forecastBodyweight, forecastE1RM, weighIns } from "./horizon";
-import { DAY, WEEK, sourceAt, t1Session, weighIn } from "./testHelpers";
+import { DAY, WEEK, sourceAt, makeT1Session, makeWeighIn } from "./testHelpers";
 
 const NOW = new Date("2026-11-14T17:00:00Z");
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * DAY);
@@ -16,7 +16,7 @@ const daysAgo = (days: number) => new Date(NOW.getTime() - days * DAY);
 function dailyWeighIns(days: number, perWeek: number, noise: (day: number) => number = () => 0) {
   const logs: BodyweightLog[] = [];
   for (let day = days - 1; day >= 0; day--) {
-    logs.push(weighIn(`bw-${day}`, daysAgo(day), 230 + (perWeek * day) / 7 + noise(day)));
+    logs.push(makeWeighIn(`bw-${day}`, daysAgo(day), 230 + (perWeek * day) / 7 + noise(day)));
   }
   return logs;
 }
@@ -73,9 +73,9 @@ describe("forecastBodyweight", () => {
     const logs = dailyWeighIns(28, 1);
     const base = forecastBodyweight(sourceAt(NOW, { bodyweight: logs }))!;
     const extra: BodyweightLog[] = [
-      weighIn("old", daysAgo(60), 300),
-      weighIn("future", new Date(NOW.getTime() + 2 * DAY), 150),
-      { ...weighIn("deleted", daysAgo(3), 400), deletedAt: 9 },
+      makeWeighIn("old", daysAgo(60), 300),
+      makeWeighIn("future", new Date(NOW.getTime() + 2 * DAY), 150),
+      { ...makeWeighIn("deleted", daysAgo(3), 400), deletedAt: 9 },
     ];
     expect(forecastBodyweight(sourceAt(NOW, { bodyweight: [...extra, ...logs] }))).toEqual(base);
   });
@@ -93,7 +93,7 @@ describe("forecastBodyweight", () => {
 /** Squat sessions a week apart, the weight rising 5 lb each time: [weeks ago, reps]. */
 function squatHistory(rows: Array<[number, number]>) {
   return rows.map(([weeksAgo, reps], i) =>
-    t1Session({
+    makeT1Session({
       id: `sq${i}`,
       at: new Date(NOW.getTime() - weeksAgo * WEEK),
       weight: 200 + i * 5,
@@ -109,7 +109,7 @@ describe("e1rmResults", () => {
         [2, 5],
         [1, 4],
       ]).reverse(),
-      t1Session({ id: "b1", exerciseId: "bench", at: daysAgo(3), weight: 150, lastReps: 6 }),
+      makeT1Session({ id: "b1", exerciseId: "bench", at: daysAgo(3), weight: 150, lastReps: 6 }),
     ];
     const results = e1rmResults(workouts);
     expect(results.get("squat")!.map((p) => p.v)).toEqual([
@@ -127,14 +127,14 @@ describe("e1rmResults", () => {
 
   it("skips deleted workouts, home substitutes and sets too long to estimate from", () => {
     const deleted = { ...squatHistory([[3, 5]])[0], id: "gone", deletedAt: 4 };
-    const substitute = t1Session({
+    const substitute = makeT1Session({
       id: "home",
       at: daysAgo(4),
       weight: 80,
       lastReps: 6,
       substituteExerciseId: "goblet_squat",
     });
-    const long = t1Session({ id: "long", at: daysAgo(2), weight: 100, lastReps: 15 });
+    const long = makeT1Session({ id: "long", at: daysAgo(2), weight: 100, lastReps: 15 });
     expect(e1rmResults([deleted, substitute, long]).size).toBe(0);
   });
 });
@@ -188,14 +188,14 @@ describe("forecastE1RM", () => {
 
   it("reads only workouts finished by now", () => {
     const base = forecastE1RM(sourceAt(NOW, { workouts }), "squat");
-    const later = t1Session({
+    const later = makeT1Session({
       id: "later",
       at: new Date(NOW.getTime() + DAY),
       weight: 300,
       lastReps: 8,
     });
     const open = {
-      ...t1Session({ id: "open", at: daysAgo(1), weight: 300, lastReps: 8 }),
+      ...makeT1Session({ id: "open", at: daysAgo(1), weight: 300, lastReps: 8 }),
       completedAt: null,
     };
     expect(forecastE1RM(sourceAt(NOW, { workouts: [...workouts, later, open] }), "squat")).toEqual(

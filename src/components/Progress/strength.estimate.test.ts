@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { lineValueAt } from "@/components/chart-kit/trendGeometry";
 import { windowBounds } from "@/lib/metrics/window";
 import { TREND_SMOOTHING, smoothedEstimate, strengthTimeline, type StrengthSet } from "@/lib/strength";
-import { set } from "@/lib/strength/testHelpers";
+import { makeStrengthSet } from "@/lib/strength/testHelpers";
 import { latestNote, lineChange, liftEstimate, strengthOverview, trendLimits, trendView } from "./strength";
 
 const NOW = new Date(2026, 10, 18, 12);
@@ -17,7 +17,7 @@ function daysAgo(days: number): Date {
 /** One made-up bench session: an AMRAP top set at `weight` for `reps`. */
 function session(id: string, days: number, weight: number, reps: number, imported = false): StrengthSet[] {
   return [
-    set({
+    makeStrengthSet({
       id: `${id}:1`,
       sessionId: id,
       exerciseId: "bench",
@@ -87,7 +87,7 @@ describe("liftEstimate (H4)", () => {
 describe("the newest evidence of the estimate and the card's note (Q4)", () => {
   const now = NOW.getTime();
   const dbBench = (id: string, days: number, imported = false): StrengthSet[] => [
-    set({
+    makeStrengthSet({
       id: `${id}:1`,
       sessionId: id,
       exerciseId: "db_bench",

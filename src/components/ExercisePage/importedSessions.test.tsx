@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb, makeProfile, makeSet, makeWorkout } from "@/lib/data/testUtils";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { saveMappingOverrides } from "@/lib/import/remembered";
 
 vi.mock("next/navigation", () => ({
@@ -23,13 +23,13 @@ vi.mock("@/components/ExerciseDemo/ExerciseViewer", () => ({ ExerciseViewer: () 
 import { ExercisePage } from "./ExercisePage";
 
 const pushDay = () =>
-  importedSession(
+  makeImportedSession(
     [
-      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 30, reps: 12, role: "warmup" }),
-      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, setOrder: 2 }),
-      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 40, reps: 8, setOrder: 3, role: "drop" }),
-      importedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 135, reps: 5 }),
-      importedSet({ exerciseName: "Made-up Pulldown", mappedExerciseId: null, weightPerImplementLb: 100, reps: 12 }),
+      makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 30, reps: 12, role: "warmup" }),
+      makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, setOrder: 2 }),
+      makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 40, reps: 8, setOrder: 3, role: "drop" }),
+      makeImportedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 135, reps: 5 }),
+      makeImportedSet({ exerciseName: "Made-up Pulldown", mappedExerciseId: null, weightPerImplementLb: 100, reps: 12 }),
     ],
     { id: "imp-push", sourceApp: "gravl", title: "Push Day", startedAt: new Date("2026-11-08T17:00:00") }
   );

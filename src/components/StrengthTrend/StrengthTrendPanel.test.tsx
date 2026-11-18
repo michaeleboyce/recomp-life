@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { RangeKey } from "@/lib/metrics/types";
 import type { WindowSpan } from "@/lib/metrics/window";
 import { strengthTimeline, type StrengthSet, type StrengthTimeline } from "@/lib/strength";
-import { day, set, t1Session } from "@/lib/strength/testHelpers";
+import { day, makeStrengthSet, makeT1Session } from "@/lib/strength/testHelpers";
 import { liftEstimate } from "@/components/Progress/strength";
 import { StrengthTrendPanel } from "./StrengthTrendPanel";
 import { TREND_PREFS_KEY } from "./trendPrefs";
@@ -15,12 +15,12 @@ beforeEach(() => window.localStorage.clear());
 
 const NOW = day(60).getTime();
 const imported = (sets: StrengthSet[]) => sets.map((s) => ({ ...s, imported: true as const }));
-const bench = (id: string, d: number, w: number) => t1Session({ sessionId: id, exerciseId: "bench", weight: w, amrapReps: 5, day: d });
+const bench = (id: string, d: number, w: number) => makeT1Session({ sessionId: id, exerciseId: "bench", weight: w, amrapReps: 5, day: d });
 const dbBench = (id: string, d: number, w: number) =>
-  t1Session({ sessionId: id, exerciseId: "db_bench", weight: w, perHand: true, amrapReps: 8, day: d });
+  makeT1Session({ sessionId: id, exerciseId: "db_bench", weight: w, perHand: true, amrapReps: 8, day: d });
 const floor = (id: string, d: number, w: number) =>
-  t1Session({ sessionId: id, exerciseId: "db_floor_press", weight: w, perHand: true, amrapReps: 8, day: d });
-const target = set({
+  makeT1Session({ sessionId: id, exerciseId: "db_floor_press", weight: w, perHand: true, amrapReps: 8, day: d });
+const target = makeStrengthSet({
   id: "target-1",
   sessionId: "target:db_floor_press",
   exerciseId: "db_floor_press",

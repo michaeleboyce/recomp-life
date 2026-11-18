@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb } from "@/lib/data/testUtils";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { MusclesTab } from "./MusclesTab";
 
 vi.mock("@/components/Anatomy/Anatomy3D", () => ({ Anatomy3D: () => null }));
@@ -27,10 +27,10 @@ describe("MusclesTab with imported history", () => {
   it("counts a made-up imported session in this week's volume and in recovery", async () => {
     // Made up: three working sets and a warm-up of bench press an hour ago, from another app.
     await db.importedSessions.put(
-      importedSession(
+      makeImportedSession(
         [
-          importedSet({ mappedExerciseId: "bench", exerciseName: "Made-up Bench", role: "warmup" }),
-          ...[1, 2, 3].map(() => importedSet({ mappedExerciseId: "bench", exerciseName: "Made-up Bench" })),
+          makeImportedSet({ mappedExerciseId: "bench", exerciseName: "Made-up Bench", role: "warmup" }),
+          ...[1, 2, 3].map(() => makeImportedSet({ mappedExerciseId: "bench", exerciseName: "Made-up Bench" })),
         ],
         { startedAt: new Date(Date.now() - HOUR) }
       )
@@ -48,7 +48,7 @@ describe("MusclesTab with imported history", () => {
 
   it("leaves a deleted import out", async () => {
     await db.importedSessions.put(
-      importedSession([importedSet({ mappedExerciseId: "bench", exerciseName: "Made-up Bench" })], {
+      makeImportedSession([makeImportedSet({ mappedExerciseId: "bench", exerciseName: "Made-up Bench" })], {
         startedAt: new Date(Date.now() - HOUR),
         deletedAt: Date.now(),
       })

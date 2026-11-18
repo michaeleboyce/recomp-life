@@ -9,7 +9,7 @@ import { db } from "@/db/local";
 import { initializeDatabase } from "@/db/init";
 import { clearDb, makeProfile, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import type { ImportedSessionRecord } from "@/types";
 
 let id = "bench";
@@ -38,11 +38,11 @@ const demo = generateDemoData(new Date());
 /** Barbell bench sessions imported from another app, a week apart, ending `endDaysAgo` ago. */
 function benchHistory(weights: number[], endDaysAgo: number): ImportedSessionRecord[] {
   return weights.map((weight, i) =>
-    importedSession(
+    makeImportedSession(
       [
-        importedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench", weightPerImplementLb: 95, reps: 8, role: "warmup" }),
-        importedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench", weightPerImplementLb: weight, reps: 5 }),
-        importedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench", weightPerImplementLb: weight, reps: 5 }),
+        makeImportedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench", weightPerImplementLb: 95, reps: 8, role: "warmup" }),
+        makeImportedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench", weightPerImplementLb: weight, reps: 5 }),
+        makeImportedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench", weightPerImplementLb: weight, reps: 5 }),
       ],
       { startedAt: new Date(Date.now() - (endDaysAgo + (weights.length - 1 - i) * 7) * DAY) }
     )

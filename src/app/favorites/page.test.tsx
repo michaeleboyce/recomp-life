@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
-import { testFavorite } from "@/components/Favorites/testFavorites";
+import { makeFavorite } from "@/components/Favorites/testFavorites";
 import { clearDb } from "@/lib/data/testUtils";
 import FavoritesPage from "./page";
 
@@ -34,7 +34,7 @@ describe("favourites page", () => {
   });
 
   it("lists saved workouts and starts one in either mode", async () => {
-    await db.favoriteWorkouts.add(testFavorite("fav-1", "Quick A1"));
+    await db.favoriteWorkouts.add(makeFavorite("fav-1", "Quick A1"));
     render(<FavoritesPage />);
     expect(await screen.findByRole("heading", { name: "Quick A1" })).toBeInTheDocument();
 
@@ -45,7 +45,7 @@ describe("favourites page", () => {
   });
 
   it("renames a favourite", async () => {
-    await db.favoriteWorkouts.add(testFavorite("fav-1", "Quick A1"));
+    await db.favoriteWorkouts.add(makeFavorite("fav-1", "Quick A1"));
     render(<FavoritesPage />);
     await screen.findByRole("heading", { name: "Quick A1" });
     fireEvent.click(screen.getByRole("button", { name: /rename/i }));
@@ -56,7 +56,7 @@ describe("favourites page", () => {
   });
 
   it("deletes with an Undo that brings it back", async () => {
-    await db.favoriteWorkouts.add(testFavorite("fav-1", "Quick A1"));
+    await db.favoriteWorkouts.add(makeFavorite("fav-1", "Quick A1"));
     render(<FavoritesPage />);
     await screen.findByRole("heading", { name: "Quick A1" });
     fireEvent.click(screen.getByRole("button", { name: /delete/i }));
@@ -73,7 +73,7 @@ describe("favourites page", () => {
   });
 
   it("says so when a rename or a delete cannot be saved, instead of failing silently", async () => {
-    await db.favoriteWorkouts.add(testFavorite("fav-1", "Quick A1"));
+    await db.favoriteWorkouts.add(makeFavorite("fav-1", "Quick A1"));
     render(<FavoritesPage />);
     await screen.findByRole("heading", { name: "Quick A1" });
     const update = vi.spyOn(db.favoriteWorkouts, "update").mockRejectedValue(new Error("disk full"));
@@ -97,7 +97,7 @@ describe("favourites page", () => {
   });
 
   it("says so when Undo cannot bring a deleted favourite back", async () => {
-    await db.favoriteWorkouts.add(testFavorite("fav-1", "Quick A1"));
+    await db.favoriteWorkouts.add(makeFavorite("fav-1", "Quick A1"));
     render(<FavoritesPage />);
     await screen.findByRole("heading", { name: "Quick A1" });
     fireEvent.click(screen.getByRole("button", { name: /delete/i }));

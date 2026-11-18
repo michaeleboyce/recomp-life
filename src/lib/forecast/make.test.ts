@@ -19,7 +19,7 @@ import { forecastMilestone, forecastStall } from "./outlook";
 import { FORECAST_KINDS } from "./registry";
 import { forecastReps, lastT1Sets } from "./reps";
 import { forecastSessionLength } from "./sessionLength";
-import { DAY, WEEK, sourceAt, t1Session, weighIn } from "./testHelpers";
+import { DAY, WEEK, sourceAt, makeT1Session, makeWeighIn } from "./testHelpers";
 
 const NOW = new Date("2026-11-14T17:00:00Z");
 const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
@@ -34,7 +34,7 @@ const plan: WorkoutPlan = [
 
 /** Five squat sessions a week apart, 200 to 220 lb. */
 const squats = [5, 4, 3, 2, 1].map((weeksAgo, i) =>
-  t1Session({
+  makeT1Session({
     id: `sq${i}`,
     at: new Date(NOW.getTime() - weeksAgo * WEEK),
     weight: 200 + i * 5,
@@ -254,7 +254,7 @@ describe("makeSessionForecasts", () => {
     const homePlan: WorkoutPlan = [
       makeEntry({ weight: 80, substituteExerciseId: "goblet_squat", originalWeight: 225 }),
     ];
-    const home = t1Session({
+    const home = makeT1Session({
       id: "home1",
       at: new Date(NOW.getTime() - 10 * DAY),
       weight: 80,
@@ -388,13 +388,13 @@ describe("makeSessionForecasts", () => {
   it("is the same for the same inputs, and blind to anything not finished before now", () => {
     expect(makeSessionForecasts(session, plan, source)).toEqual(rows);
     const noise = [
-      t1Session({ id: "later", at: new Date(NOW.getTime() + DAY), weight: 300, lastReps: 9 }),
+      makeT1Session({ id: "later", at: new Date(NOW.getTime() + DAY), weight: 300, lastReps: 9 }),
       {
-        ...t1Session({ id: "open", at: new Date(NOW.getTime() - DAY), weight: 300, lastReps: 9 }),
+        ...makeT1Session({ id: "open", at: new Date(NOW.getTime() - DAY), weight: 300, lastReps: 9 }),
         completedAt: null,
       },
       {
-        ...t1Session({ id: "gone", at: new Date(NOW.getTime() - 2 * DAY), weight: 300, lastReps: 9 }),
+        ...makeT1Session({ id: "gone", at: new Date(NOW.getTime() - 2 * DAY), weight: 300, lastReps: 9 }),
         deletedAt: 3,
       },
     ];
@@ -406,7 +406,7 @@ describe("makeSessionForecasts", () => {
 
 describe("makeHorizonForecasts", () => {
   const bodyweight = Array.from({ length: 28 }, (_, day) =>
-    weighIn(`bw${day}`, new Date(NOW.getTime() - day * DAY), 230 + day / 7)
+    makeWeighIn(`bw${day}`, new Date(NOW.getTime() - day * DAY), 230 + day / 7)
   );
   const full = sourceAt(NOW, { workouts: squats, bodyweight, bestE1RMs: { squat: 255 } });
   const ids = () => {

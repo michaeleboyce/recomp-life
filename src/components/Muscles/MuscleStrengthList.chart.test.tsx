@@ -3,20 +3,20 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { muscleStrengthIndex, type StrengthSet } from "@/lib/strength";
-import { t1Session } from "@/lib/strength/testHelpers";
+import { makeT1Session } from "@/lib/strength/testHelpers";
 
 const imported = (sets: StrengthSet[]) => sets.map((s) => ({ ...s, imported: true as const }));
 const SETS: StrengthSet[] = [
   // A barbell lift,
   ...[0, 4, 8, 12].flatMap((d, i) =>
-    t1Session({ sessionId: `g${i}`, exerciseId: "squat", weight: 200 + 5 * i, amrapReps: 5, day: d })
+    makeT1Session({ sessionId: `g${i}`, exerciseId: "squat", weight: 200 + 5 * i, amrapReps: 5, day: d })
   ),
   // a home exercise that joins later,
   ...[14, 18].flatMap((d, i) =>
-    t1Session({ sessionId: `h${i}`, exerciseId: "bulgarian_split_squat", weight: 40 + 5 * i, perHand: true, amrapReps: 8, day: d })
+    makeT1Session({ sessionId: `h${i}`, exerciseId: "bulgarian_split_squat", weight: 40 + 5 * i, perHand: true, amrapReps: 8, day: d })
   ),
   // and an imported exercise.
-  ...imported(t1Session({ sessionId: "imp", exerciseId: "goblet_squat", weight: 70, amrapReps: 8, day: 2 })),
+  ...imported(makeT1Session({ sessionId: "imp", exerciseId: "goblet_squat", weight: 70, amrapReps: 8, day: 2 })),
 ];
 
 vi.mock("@/hooks/useStrengthEvidence", () => ({ useStrengthEvidence: () => SETS }));

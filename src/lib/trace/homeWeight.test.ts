@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { isRuleId } from "@/lib/evidence";
-import { day, t1Session } from "@/lib/strength/testHelpers";
+import { day, makeT1Session } from "@/lib/strength/testHelpers";
 import { seedVariantState, variantKey } from "@/lib/workout/variant";
 import type { VariantState } from "@/types";
 import { applySteps } from "./replay";
@@ -39,8 +39,8 @@ function entry(v: VariantState, over: Partial<PlanEntry> = {}): PlanEntry {
 }
 
 const sets = [
-  ...t1Session({ sessionId: "g1", exerciseId: "squat", weight: 205, amrapReps: 5, day: 0 }),
-  ...t1Session({ sessionId: "h1", exerciseId: "bulgarian_split_squat", weight: 75, amrapReps: 8, day: 3, perHand: true }),
+  ...makeT1Session({ sessionId: "g1", exerciseId: "squat", weight: 205, amrapReps: 5, day: 0 }),
+  ...makeT1Session({ sessionId: "h1", exerciseId: "bulgarian_split_squat", weight: 75, amrapReps: 8, day: 3, perHand: true }),
 ];
 
 function context(over: Partial<TraceContext> = {}): TraceContext {

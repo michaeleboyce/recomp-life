@@ -9,7 +9,7 @@ import {
   sessionEstimates,
   setEstimate,
 } from "./estimate";
-import { day, set, t1Session } from "./testHelpers";
+import { day, makeStrengthSet, makeT1Session } from "./testHelpers";
 
 describe("loadingOf and externalLoad", () => {
   it("reads two dumbbells, one dumbbell or other from the exercise catalogue", () => {
@@ -41,28 +41,28 @@ describe("loadingOf and externalLoad", () => {
 
 describe("isEstimateSet", () => {
   it("uses the app's rule: T1 AMRAP sets of 2 to 10 reps", () => {
-    expect(isEstimateSet(set({ reps: 5 }))).toBe(true);
-    expect(isEstimateSet(set({ reps: 1 }))).toBe(false);
-    expect(isEstimateSet(set({ reps: 11 }))).toBe(false);
-    expect(isEstimateSet(set({ isAMRAP: false }))).toBe(false);
-    expect(isEstimateSet(set({ tier: "T2" }))).toBe(false);
-    expect(isEstimateSet(set({ tier: "T3", reps: 8 }))).toBe(false);
+    expect(isEstimateSet(makeStrengthSet({ reps: 5 }))).toBe(true);
+    expect(isEstimateSet(makeStrengthSet({ reps: 1 }))).toBe(false);
+    expect(isEstimateSet(makeStrengthSet({ reps: 11 }))).toBe(false);
+    expect(isEstimateSet(makeStrengthSet({ isAMRAP: false }))).toBe(false);
+    expect(isEstimateSet(makeStrengthSet({ tier: "T2" }))).toBe(false);
+    expect(isEstimateSet(makeStrengthSet({ tier: "T3", reps: 8 }))).toBe(false);
   });
 
   it("counts ramp and back-off sets like working sets", () => {
-    expect(isEstimateSet(set({ role: "ramp" }))).toBe(true);
-    expect(isEstimateSet(set({ role: "backoff" }))).toBe(true);
+    expect(isEstimateSet(makeStrengthSet({ role: "ramp" }))).toBe(true);
+    expect(isEstimateSet(makeStrengthSet({ role: "backoff" }))).toBe(true);
   });
 
   it("never counts a drop or a warm-up", () => {
-    expect(isEstimateSet(set({ role: "drop" }))).toBe(false);
-    expect(isEstimateSet(set({ role: "warmup" }))).toBe(false);
+    expect(isEstimateSet(makeStrengthSet({ role: "drop" }))).toBe(false);
+    expect(isEstimateSet(makeStrengthSet({ role: "warmup" }))).toBe(false);
   });
 });
 
 describe("setEstimate", () => {
   it("is calculateE1RM on the total load, with the reps-left answer", () => {
-    const s = set({ exerciseId: "db_bench", weight: 50, perHand: true, reps: 8, repsInReserve: "1-2" });
+    const s = makeStrengthSet({ exerciseId: "db_bench", weight: 50, perHand: true, reps: 8, repsInReserve: "1-2" });
     expect(setEstimate(s)).toBe(calculateE1RM(100, 8, "1-2"));
     expect(setEstimate(s)!).toBeGreaterThan(calculateE1RM(100, 8)!);
   });
@@ -71,8 +71,8 @@ describe("setEstimate", () => {
 describe("sessionEstimates", () => {
   it("gives one estimate per session, oldest first, from the AMRAP set", () => {
     const sets = [
-      ...t1Session({ sessionId: "b", exerciseId: "squat", weight: 210, amrapReps: 6, day: 3 }),
-      ...t1Session({ sessionId: "a", exerciseId: "squat", weight: 200, amrapReps: 8, day: 0 }),
+      ...makeT1Session({ sessionId: "b", exerciseId: "squat", weight: 210, amrapReps: 6, day: 3 }),
+      ...makeT1Session({ sessionId: "a", exerciseId: "squat", weight: 200, amrapReps: 8, day: 0 }),
     ];
     const estimates = sessionEstimates(sets, "squat");
     expect(estimates.map((e) => e.sessionId)).toEqual(["a", "b"]);
@@ -83,15 +83,15 @@ describe("sessionEstimates", () => {
   });
 
   it("ignores other exercises", () => {
-    const sets = t1Session({ sessionId: "a", exerciseId: "bench", weight: 150, amrapReps: 5, day: 0 });
+    const sets = makeT1Session({ sessionId: "a", exerciseId: "bench", weight: 150, amrapReps: 5, day: 0 });
     expect(sessionEstimates(sets, "squat")).toEqual([]);
   });
 
   it("uses the best of several eligible sets in a session, at each set's own weight", () => {
     const sets = [
-      set({ id: "r1", sessionId: "a", role: "ramp", weight: 185, reps: 5, date: day(0, 1) }),
-      set({ id: "r2", sessionId: "a", role: "ramp", weight: 205, reps: 5, date: day(0, 2) }),
-      set({ id: "b1", sessionId: "a", role: "backoff", weight: 175, reps: 9, date: day(0, 3) }),
+      makeStrengthSet({ id: "r1", sessionId: "a", role: "ramp", weight: 185, reps: 5, date: day(0, 1) }),
+      makeStrengthSet({ id: "r2", sessionId: "a", role: "ramp", weight: 205, reps: 5, date: day(0, 2) }),
+      makeStrengthSet({ id: "b1", sessionId: "a", role: "backoff", weight: 175, reps: 9, date: day(0, 3) }),
     ];
     const [estimate] = sessionEstimates(sets, "squat");
     expect(estimate.estimatedMax).toBe(calculateE1RM(205, 5));
@@ -99,7 +99,7 @@ describe("sessionEstimates", () => {
   });
 
   it("counts per-hand dumbbells as the total", () => {
-    const sets = t1Session({
+    const sets = makeT1Session({
       sessionId: "h",
       exerciseId: "bulgarian_split_squat",
       weight: 50,
@@ -111,8 +111,8 @@ describe("sessionEstimates", () => {
   });
 
   describe("drops", () => {
-    const top = set({ id: "top", sessionId: "a", weight: 200, reps: 6, date: day(0, 0) });
-    const drop1 = set({
+    const top = makeStrengthSet({ id: "top", sessionId: "a", weight: 200, reps: 6, date: day(0, 0) });
+    const drop1 = makeStrengthSet({
       id: "d1",
       sessionId: "a",
       role: "drop",
@@ -122,7 +122,7 @@ describe("sessionEstimates", () => {
       isAMRAP: true,
       date: day(0, 1),
     });
-    const drop2 = set({
+    const drop2 = makeStrengthSet({
       id: "d2",
       sessionId: "a",
       role: "drop",
@@ -181,7 +181,7 @@ describe("sessionEstimates", () => {
   });
 
   it("skips sets with an unreadable date", () => {
-    const sets = [set({ date: "not a date" }), set({ sessionId: "w2", date: day(1) })];
+    const sets = [makeStrengthSet({ date: "not a date" }), makeStrengthSet({ sessionId: "w2", date: day(1) })];
     expect(sessionEstimates(sets, "squat").map((e) => e.sessionId)).toEqual(["w2"]);
   });
 });
@@ -190,9 +190,9 @@ describe("sets with no load", () => {
   it("a set logged at no weight (or an unreadable one) gives no estimate", () => {
     // A T1 AMRAP logged at 0 lb would otherwise say the lifter's max is 0 and drag the
     // pooled estimate, and with it re-entry, down to the empty bar.
-    expect(isEstimateSet(set({ weight: 0 }))).toBe(false);
-    expect(isEstimateSet(set({ weight: Number.NaN }))).toBe(false);
-    expect(isEstimateSet(set({ weight: -10 }))).toBe(false);
-    expect(sessionEstimates([set({ weight: 0, sessionId: "w0" })], "squat")).toEqual([]);
+    expect(isEstimateSet(makeStrengthSet({ weight: 0 }))).toBe(false);
+    expect(isEstimateSet(makeStrengthSet({ weight: Number.NaN }))).toBe(false);
+    expect(isEstimateSet(makeStrengthSet({ weight: -10 }))).toBe(false);
+    expect(sessionEstimates([makeStrengthSet({ weight: 0, sessionId: "w0" })], "squat")).toEqual([]);
   });
 });

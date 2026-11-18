@@ -17,7 +17,7 @@ import {
   walkProgram,
 } from "./outlook";
 import { chanceOfAtLeast, estimateRepsLevel, lastT1Sets, repsIndex, repsOutlook } from "./reps";
-import { SETTINGS, sourceAt, t1Session, WEEK } from "./testHelpers";
+import { SETTINGS, sourceAt, makeT1Session, WEEK } from "./testHelpers";
 
 const NOW = new Date("2026-11-14T17:00:00Z");
 const EQUIPMENT = SETTINGS.equipment;
@@ -33,7 +33,7 @@ const stateAt = (weight: number, stage: T1Stage = "5x3", extra: Partial<LiftStat
 function squatHistory(lastReps: number[], start = 200, gapDays = 9) {
   const count = lastReps.length;
   return lastReps.map((reps, i) =>
-    t1Session({
+    makeT1Session({
       id: `sq${i}`,
       at: new Date(NOW.getTime() - (count - i) * gapDays * DAY_MS),
       weight: start + i * 10,
@@ -299,7 +299,7 @@ describe("the date of the next round number", () => {
   it("gives no date when the walk may not get there within the horizon", () => {
     // A lifter who has not got stronger in weeks, far below the bar: the walk resets.
     const flat = Array.from({ length: 5 }, (_, i) =>
-      t1Session({ id: `f${i}`, at: new Date(NOW.getTime() - (5 - i) * 9 * DAY_MS), weight: 200, lastReps: 5 })
+      makeT1Session({ id: `f${i}`, at: new Date(NOW.getTime() - (5 - i) * 9 * DAY_MS), weight: 200, lastReps: 5 })
     );
     const stuck = sourceAt(NOW, { workouts: flat, liftStates: [stateAt(300)] });
     expect(liftOutlook(stuck, "squat")).not.toBeNull();

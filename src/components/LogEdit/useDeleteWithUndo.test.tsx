@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { LogTable } from "@/lib/data/logEdits";
-import { input, NEXT_CHANGES, UNAFFECTED, workout } from "./testFixtures";
+import { makeRebuildInput, NEXT_CHANGES, UNAFFECTED, makeWorkout } from "./testFixtures";
 
 const { previewLogChange, loadRebuildInput, commitLogChange, softDelete, restore, toast } = vi.hoisted(() => ({
   previewLogChange: vi.fn(),
@@ -43,7 +43,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   softDelete.mockResolvedValue(undefined);
   restore.mockResolvedValue(undefined);
-  loadRebuildInput.mockResolvedValue(input([workout({ id: "w1" })]));
+  loadRebuildInput.mockResolvedValue(makeRebuildInput([makeWorkout({ id: "w1" })]));
 });
 afterEach(cleanup);
 

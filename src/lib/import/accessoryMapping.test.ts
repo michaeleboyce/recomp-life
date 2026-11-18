@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { mapExercise } from "./mapping";
 import { importedMuscleSets, importedStrengthSets, resolveImportedSet } from "./evidence";
-import { importedSession, importedSet } from "./testRecords";
+import { makeImportedSession, makeImportedSet } from "./testRecords";
 
 // Made-up names and sets only.
 
@@ -56,21 +56,21 @@ describe("export names of the accessory library additions (A2)", () => {
 
 describe("sets imported before the additions count under them, with no re-import (A2)", () => {
   it("moves a set stored under a broader exercise to the specific one", () => {
-    const set = importedSet({ exerciseName: "Incline Dumbbell Curl", mappedExerciseId: "bicep_curls" });
+    const set = makeImportedSet({ exerciseName: "Incline Dumbbell Curl", mappedExerciseId: "bicep_curls" });
     expect(resolveImportedSet(set).exerciseId).toBe("incline_db_curl");
-    const hammer = importedSet({ exerciseName: "Incline Hammer Curl", mappedExerciseId: "hammer_curls" });
+    const hammer = makeImportedSet({ exerciseName: "Incline Hammer Curl", mappedExerciseId: "hammer_curls" });
     expect(resolveImportedSet(hammer).exerciseId).toBe("incline_hammer_curl");
   });
 
   it("moves a name stored as a muscle guess to its new exercise", () => {
-    const set = importedSet({ exerciseName: "Hack Squat", mappedExerciseId: null, muscles: ["quads"] });
+    const set = makeImportedSet({ exerciseName: "Hack Squat", mappedExerciseId: null, muscles: ["quads"] });
     expect(resolveImportedSet(set)).toEqual({ exerciseId: "hack_squat", muscles: null });
   });
 
   it("counts the stale sets as strength evidence and muscle work under the new id", () => {
-    const session = importedSession([
-      importedSet({ id: "s1", exerciseName: "Romanian Deadlift", mappedExerciseId: null, muscles: ["hamstrings"], weightPerImplementLb: 135, reps: 10 }),
-      importedSet({ id: "s2", exerciseName: "Machine Fly", mappedExerciseId: null, muscles: ["chest"], weightPerImplementLb: 80, reps: 12 }),
+    const session = makeImportedSession([
+      makeImportedSet({ id: "s1", exerciseName: "Romanian Deadlift", mappedExerciseId: null, muscles: ["hamstrings"], weightPerImplementLb: 135, reps: 10 }),
+      makeImportedSet({ id: "s2", exerciseName: "Machine Fly", mappedExerciseId: null, muscles: ["chest"], weightPerImplementLb: 80, reps: 12 }),
     ]);
     const sets = importedStrengthSets([session]);
     expect(sets.map((s) => s.exerciseId)).toEqual(["barbell_rdl", "machine_chest_fly"]);
@@ -80,7 +80,7 @@ describe("sets imported before the additions count under them, with no re-import
   });
 
   it("lets a mapping the user chose win over the table", () => {
-    const set = importedSet({ exerciseName: "Incline Dumbbell Curl", mappedExerciseId: "bicep_curls" });
+    const set = makeImportedSet({ exerciseName: "Incline Dumbbell Curl", mappedExerciseId: "bicep_curls" });
     expect(
       resolveImportedSet(set, { "Incline Dumbbell Curl": { kind: "exercise", exerciseId: "bicep_curls" } }).exerciseId
     ).toBe("bicep_curls");
@@ -90,7 +90,7 @@ describe("sets imported before the additions count under them, with no re-import
   });
 
   it("keeps the stored mapping for a name the table does not know", () => {
-    const set = importedSet({ exerciseName: "My Odd Squat", mappedExerciseId: "goblet_squat" });
+    const set = makeImportedSet({ exerciseName: "My Odd Squat", mappedExerciseId: "goblet_squat" });
     expect(resolveImportedSet(set).exerciseId).toBe("goblet_squat");
   });
 });

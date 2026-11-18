@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { CUTTING_RECOVERY_BONUS_HOURS, RECOVERY_HOURS } from "@/lib/recovery";
 import { makeSet } from "@/lib/workout/testFixtures";
 import { muscleReadyTimes } from "./muscleReady";
-import { settingsIn, t1Session } from "./testHelpers";
+import { settingsIn, makeT1Session } from "./testHelpers";
 
 const HOUR = 60 * 60 * 1000;
 const AT = new Date("2026-11-12T17:00:00Z");
@@ -12,7 +12,7 @@ const maintaining = settingsIn("maintaining").trainingPhase;
 const cutting = settingsIn("cutting").trainingPhase;
 
 describe("when the muscles of the last workout are ready again", () => {
-  const squatDay = t1Session({ id: "w1", at: AT, weight: 200, lastReps: 5 });
+  const squatDay = makeT1Session({ id: "w1", at: AT, weight: 200, lastReps: 5 });
 
   it("reads the recovery windows from when each was last trained", () => {
     const explanation = muscleReadyTimes([squatDay], maintaining, NOW)!;

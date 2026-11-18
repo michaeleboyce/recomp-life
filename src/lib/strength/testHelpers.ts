@@ -13,7 +13,7 @@ export function day(n: number, minute = 0): Date {
 let counter = 0;
 
 /** A set with sensible defaults: a T1 working AMRAP set of 5 reps at 100 lb. */
-export function set(overrides: Partial<StrengthSet> = {}): StrengthSet {
+export function makeStrengthSet(overrides: Partial<StrengthSet> = {}): StrengthSet {
   counter += 1;
   return {
     id: `s${counter}`,
@@ -35,7 +35,7 @@ export function set(overrides: Partial<StrengthSet> = {}): StrengthSet {
  * A T1 session as GZCLP logs it: `sets - 1` non-AMRAP sets of `target` reps, then
  * the AMRAP set with `amrapReps`.
  */
-export function t1Session(opts: {
+export function makeT1Session(opts: {
   sessionId: string;
   exerciseId: string;
   weight: number;
@@ -52,7 +52,7 @@ export function t1Session(opts: {
   for (let i = 0; i < count; i++) {
     const last = i === count - 1;
     out.push(
-      set({
+      makeStrengthSet({
         id: `${opts.sessionId}:${opts.exerciseId}:${i}`,
         sessionId: opts.sessionId,
         exerciseId: opts.exerciseId,

@@ -4,7 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { MIN_TREND_POINTS } from "@/lib/projection/trend";
 import type { ProjectionScenario } from "@/lib/projection";
 import { useProjection } from "./index";
@@ -89,7 +89,7 @@ describe("useProjection", () => {
     const DAY = 86_400_000;
     await db.importedSessions.bulkPut(
       [185, 190, 195, 200, 205].map((weight, i) =>
-        importedSession([importedSet({ weightPerImplementLb: weight, reps: 5 })], {
+        makeImportedSession([makeImportedSet({ weightPerImplementLb: weight, reps: 5 })], {
           startedAt: new Date(NOW.getTime() - (5 - i) * 7 * DAY),
         })
       )

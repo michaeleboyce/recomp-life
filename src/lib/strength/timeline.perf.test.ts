@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { muscleStrengthIndex } from "./muscleIndex";
-import { day, t1Session } from "./testHelpers";
+import { day, makeT1Session } from "./testHelpers";
 import { TREND_SMOOTHING, muscleTimeline, smoothedEstimate, strengthTimeline, weeklyShares } from "./timeline";
 import type { StrengthSet } from "./types";
 
@@ -21,7 +21,7 @@ function manySets(): StrengthSet[] {
   for (let d = 0; sets.length < 12_000; d += 1) {
     const [exerciseId, base, perHand] = plan[d % plan.length];
     sets.push(
-      ...t1Session({
+      ...makeT1Session({
         sessionId: `s${n++}`,
         exerciseId,
         weight: base + Math.floor(d / 30) * 2.5,

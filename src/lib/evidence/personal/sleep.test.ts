@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SLEEP_FULL_HOURS } from "@/lib/health/sleep";
 import { PERSONAL_MIN_GROUP_SIZE } from "./constants";
 import { checkInFor, sleepEvidence } from "./sleep";
-import { DAY, checkIn, constructedHistory, emptyLog, t1Workout } from "./testHelpers";
+import { DAY, makeCheckIn, constructedHistory, emptyLog, makeT1Workout } from "./testHelpers";
 
 const NOW = new Date("2026-11-15T12:00:00Z");
 
@@ -10,10 +10,10 @@ describe("checkInFor", () => {
   it("finds the live check-in of a workout, the latest when there are several", () => {
     const at = new Date("2026-11-10T17:00:00Z");
     const logs = [
-      { ...checkIn("a", "w1", at, "7+"), updatedAt: 1 },
-      { ...checkIn("b", "w1", at, "<5"), updatedAt: 2 },
-      { ...checkIn("c", "w1", at, "5-7"), updatedAt: 3, deletedAt: 4 },
-      checkIn("d", "w2", at, "7+"),
+      { ...makeCheckIn("a", "w1", at, "7+"), updatedAt: 1 },
+      { ...makeCheckIn("b", "w1", at, "<5"), updatedAt: 2 },
+      { ...makeCheckIn("c", "w1", at, "5-7"), updatedAt: 3, deletedAt: 4 },
+      makeCheckIn("d", "w2", at, "7+"),
     ];
     expect(checkInFor(logs).get("w1")?.id).toBe("b");
     expect(checkInFor(logs).get("w2")?.id).toBe("d");
@@ -43,10 +43,10 @@ describe("sleepEvidence", () => {
     const answers = ["<5", "5-7", "7+", "<5", "5-7", "7+"] as const;
     answers.forEach((answer, i) => {
       const at = new Date(NOW.getTime() - (20 - 2 * i) * DAY);
-      const { workout, forecast } = t1Workout({ id: `w${i}`, at, weight: 200, lastReps: 5, expected: 5 });
+      const { workout, forecast } = makeT1Workout({ id: `w${i}`, at, weight: 200, lastReps: 5, expected: 5 });
       log.workouts.push(workout);
       log.forecasts.push(forecast!);
-      log.readinessLogs.push(checkIn(`c${i}`, `w${i}`, at, answer));
+      log.readinessLogs.push(makeCheckIn(`c${i}`, `w${i}`, at, answer));
     });
     const out = sleepEvidence(log, NOW);
     expect(out.exposed.count).toBe(4);

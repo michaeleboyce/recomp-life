@@ -3,7 +3,7 @@
 // a moved or split function must give these words character for character.
 import { describe, expect, it, vi } from "vitest";
 import { replayForecasts, trackRecord, type ScoredForecast } from "@/lib/forecast";
-import { demoReplayInput, forecastRow, simulateLifter } from "@/lib/forecast/testHelpers";
+import { demoReplayInput, makeForecast, simulateLifter } from "@/lib/forecast/testHelpers";
 import type { Forecast, ForecastStatus } from "@/types";
 import {
   BASIS_LABELS,
@@ -77,8 +77,8 @@ const ahead = (days: number) => new Date(NOW.getTime() + days * DAY);
 
 /** Hand-made rows: every kind, every basis, the input keys each branch reads. */
 const HAND_MADE: Forecast[] = [
-  forecastRow({ id: "reps-prior", basis: "prior", inputs: { sampleSize: 0 } }),
-  forecastRow({
+  makeForecast({ id: "reps-prior", basis: "prior", inputs: { sampleSize: 0 } }),
+  makeForecast({
     id: "reps-trend",
     basis: "trend",
     prediction: { point: 5.4, low: 4, high: 7, pmf: [0, 0, 0, 0.1, 0.2, 0.3, 0.25, 0.15], unit: "reps" },
@@ -97,15 +97,15 @@ const HAND_MADE: Forecast[] = [
       mystery: 7,
     },
   }),
-  forecastRow({ id: "reps-one", exerciseId: "bench", prediction: { point: 1, unit: "reps" } }),
-  forecastRow({ id: "reps-persist", basis: "persistence", inputs: { sampleSize: 1, readinessShift: 0.04 } }),
-  forecastRow({
+  makeForecast({ id: "reps-one", exerciseId: "bench", prediction: { point: 1, unit: "reps" } }),
+  makeForecast({ id: "reps-persist", basis: "persistence", inputs: { sampleSize: 1, readinessShift: 0.04 } }),
+  makeForecast({
     id: "reps-regime",
     basis: "regime-change",
     inputs: { sampleSize: 3, regimeChange: "reset", regimeMultiplier: 1.5 },
   }),
-  forecastRow({ id: "reps-regime-unknown", basis: "regime-change", inputs: { regimeChange: "odd" } }),
-  forecastRow({
+  makeForecast({ id: "reps-regime-unknown", basis: "regime-change", inputs: { regimeChange: "odd" } }),
+  makeForecast({
     id: "pass",
     kind: "liftPass",
     exerciseId: "deadlift",
@@ -113,7 +113,7 @@ const HAND_MADE: Forecast[] = [
     prediction: { point: 0.82, probability: 0.82, unit: "chance" },
     inputs: { sampleSize: 4 },
   }),
-  forecastRow({
+  makeForecast({
     id: "best",
     kind: "newBest",
     exerciseId: "ohp",
@@ -121,7 +121,7 @@ const HAND_MADE: Forecast[] = [
     prediction: { point: 0.41, probability: 0.41, unit: "chance" },
     inputs: { sampleSize: 4, bestE1RM: 139.6, repsNeeded: 7 },
   }),
-  forecastRow({
+  makeForecast({
     id: "length-prior",
     kind: "sessionLength",
     exerciseId: undefined,
@@ -130,7 +130,7 @@ const HAND_MADE: Forecast[] = [
     prediction: { point: 3120, low: 2700, high: 3900, unit: "s" },
     inputs: { plannedSeconds: 3000, sampleSize: 0 },
   }),
-  forecastRow({
+  makeForecast({
     id: "length-trend",
     kind: "sessionLength",
     exerciseId: undefined,
@@ -138,7 +138,7 @@ const HAND_MADE: Forecast[] = [
     prediction: { point: 3600, low: 3300, high: 4000, unit: "s" },
     inputs: { plannedSeconds: 3300, sampleSize: 8, correction: 1.087 },
   }),
-  forecastRow({
+  makeForecast({
     id: "e1rm-trend",
     kind: "e1rm4w",
     workoutId: undefined,
@@ -147,7 +147,7 @@ const HAND_MADE: Forecast[] = [
     prediction: { point: 271.26, low: 260, high: 283, unit: "lb" },
     inputs: { sampleSize: 9, ratePerWeek: 1.24, level: 266.1, phase: "bulking" },
   }),
-  forecastRow({
+  makeForecast({
     id: "e1rm-regime",
     kind: "e1rm4w",
     exerciseId: "bench",
@@ -158,7 +158,7 @@ const HAND_MADE: Forecast[] = [
     prediction: { point: 180, low: 160, high: 200, unit: "lb" },
     inputs: { sampleSize: 3, lastResultWeeksAgo: 6.4, ratePerWeek: 0.01 },
   }),
-  forecastRow({
+  makeForecast({
     id: "e1rm-old",
     kind: "e1rm4w",
     exerciseId: "leg_press",
@@ -169,7 +169,7 @@ const HAND_MADE: Forecast[] = [
     prediction: { point: 400, low: 380, high: 420, unit: "lb" },
     inputs: {},
   }),
-  forecastRow({
+  makeForecast({
     id: "bw",
     kind: "bodyweight4w",
     exerciseId: undefined,
@@ -179,7 +179,7 @@ const HAND_MADE: Forecast[] = [
     prediction: { point: 198.04, low: 196, high: 200, unit: "lb" },
     inputs: { sampleSize: 12, ratePerWeek: -0.9, level: 201.3, phase: "maintaining" },
   }),
-  forecastRow({
+  makeForecast({
     id: "bw-flat",
     kind: "bodyweight4w",
     exerciseId: undefined,
@@ -189,7 +189,7 @@ const HAND_MADE: Forecast[] = [
     prediction: { point: 198, unit: "lb" },
     inputs: { sampleSize: 2, ratePerWeek: 0.02 },
   }),
-  forecastRow({
+  makeForecast({
     id: "stall-ahead",
     kind: "stallRisk",
     workoutId: undefined,
@@ -209,7 +209,7 @@ const HAND_MADE: Forecast[] = [
       cuttingShift: 0.01,
     },
   }),
-  forecastRow({
+  makeForecast({
     id: "stall-past",
     kind: "stallRisk",
     exerciseId: "bench",
@@ -220,7 +220,7 @@ const HAND_MADE: Forecast[] = [
     prediction: { point: 0.6, probability: 0.6, unit: "chance" },
     inputs: { sampleSize: 2 },
   }),
-  forecastRow({
+  makeForecast({
     id: "milestone",
     kind: "milestone",
     workoutId: undefined,
@@ -229,7 +229,7 @@ const HAND_MADE: Forecast[] = [
     prediction: { point: 20800, low: 20790, high: 20820, unit: "day" },
     inputs: { sampleSize: 6, gapDays: 3, target: 300, reachChance: 0.7, rangeChance: 0.65, weight: 275 },
   }),
-  forecastRow({
+  makeForecast({
     id: "milestone-unknown",
     kind: "milestone",
     exerciseId: undefined,
@@ -243,7 +243,7 @@ const HAND_MADE: Forecast[] = [
 ];
 
 const scored = (status: ForecastStatus, overrides: Partial<Forecast> = {}): ScoredForecast => ({
-  forecast: forecastRow(overrides),
+  forecast: makeForecast(overrides),
   status,
 });
 

@@ -2,19 +2,19 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { saveMappingOverrides } from "@/lib/import/remembered";
 import { ImportedSessionSheet } from "./ImportedSessionSheet";
 
 const start = new Date("2025-04-02T17:00:00");
 
-const session = importedSession(
+const session = makeImportedSession(
   [
-    importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 30, reps: 12, role: "warmup" }),
-    importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, setOrder: 2, effort: "Hard" }),
-    importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 40, reps: 8, setOrder: 3, role: "drop" }),
-    importedSet({ exerciseName: "Made-up Cable Row", mappedExerciseId: "lat_pulldown", weightPerImplementLb: 120, reps: 12 }),
-    importedSet({ exerciseName: "Zorbing Twist", mappedExerciseId: null, weightPerImplementLb: null, reps: 15 }),
+    makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 30, reps: 12, role: "warmup" }),
+    makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, setOrder: 2, effort: "Hard" }),
+    makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 40, reps: 8, setOrder: 3, role: "drop" }),
+    makeImportedSet({ exerciseName: "Made-up Cable Row", mappedExerciseId: "lat_pulldown", weightPerImplementLb: 120, reps: 12 }),
+    makeImportedSet({ exerciseName: "Zorbing Twist", mappedExerciseId: null, weightPerImplementLb: null, reps: 15 }),
   ],
   { startedAt: start, endedAt: new Date(start.getTime() + 45 * 60_000), sourceApp: "gravl", title: "Push Day" }
 );
@@ -67,10 +67,10 @@ describe("ImportedSessionSheet", () => {
   });
 
   it("says so for a session with no names the library knows", () => {
-    const unmapped = importedSession(
+    const unmapped = makeImportedSession(
       [
-        importedSet({ exerciseName: "Zorbing Curl", mappedExerciseId: null, muscles: ["biceps"], weightPerImplementLb: 20 }),
-        importedSet({ exerciseName: "Zorbing Twist", mappedExerciseId: null, weightPerImplementLb: null }),
+        makeImportedSet({ exerciseName: "Zorbing Curl", mappedExerciseId: null, muscles: ["biceps"], weightPerImplementLb: 20 }),
+        makeImportedSet({ exerciseName: "Zorbing Twist", mappedExerciseId: null, weightPerImplementLb: null }),
       ],
       { startedAt: start, sourceApp: "fitbod" }
     );

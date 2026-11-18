@@ -27,7 +27,7 @@ import { nextWorkoutFrom, readLedgerRecords, sessionStartInputs } from "@/lib/da
 import { clearDb, runSession, seedFixtureStartingWeights } from "@/lib/data/testUtils";
 import { discardWorkout, startWorkout } from "@/lib/data/workouts";
 import { MAPPINGS_KEY, saveMappingOverrides } from "@/lib/import/remembered";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { describeNextWorkout } from "@/lib/workout/buildPlan";
 import { strengthSetsOf } from "@/lib/workout/strength";
 import type { WorkoutPlan } from "@/lib/workout/types";
@@ -43,9 +43,9 @@ const PROGRAM_TIERS = new Set(["T1", "T2", "T3"]);
 /** One imported session of one exercise: three sets at `weight` (per dumbbell where it is per hand). */
 function imp(name: string, exerciseId: string | null, daysAgo: number, weight: number, reps: number): ImportedSessionRecord {
   const sets = [0, 1, 2].map((i) =>
-    importedSet({ exerciseName: name, mappedExerciseId: exerciseId, weightPerImplementLb: weight, reps: i === 2 ? reps - 1 : reps })
+    makeImportedSet({ exerciseName: name, mappedExerciseId: exerciseId, weightPerImplementLb: weight, reps: i === 2 ? reps - 1 : reps })
   );
-  return importedSession(sets, { startedAt: new Date(NOW.getTime() - daysAgo * DAY) });
+  return makeImportedSession(sets, { startedAt: new Date(NOW.getTime() - daysAgo * DAY) });
 }
 
 /** Barbell sessions two to three months back, dumbbell sessions in the last month. */

@@ -14,18 +14,18 @@ import {
   importedWorkingWeightPoints,
   withImportedPoints,
 } from "./history";
-import { importDay, importedSession, importedSet } from "./testRecords";
+import { importDay, makeImportedSession, makeImportedSet } from "./testRecords";
 
 // Made-up sessions only.
 
-const squat = (day: number, weight: number, reps = 5, extra: Parameters<typeof importedSet>[0] = {}) =>
-  importedSession(
+const squat = (day: number, weight: number, reps = 5, extra: Parameters<typeof makeImportedSet>[0] = {}) =>
+  makeImportedSession(
     [
-      importedSet({ role: "warmup", weightPerImplementLb: 95, reps: 8 }),
-      importedSet({ weightPerImplementLb: weight, reps }),
-      importedSet({ weightPerImplementLb: weight, reps: reps - 1 }),
-      importedSet({ role: "drop", weightPerImplementLb: weight - 40, reps: 6 }),
-      importedSet({ exerciseName: "Dumbbell Bench Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, ...extra }),
+      makeImportedSet({ role: "warmup", weightPerImplementLb: 95, reps: 8 }),
+      makeImportedSet({ weightPerImplementLb: weight, reps }),
+      makeImportedSet({ weightPerImplementLb: weight, reps: reps - 1 }),
+      makeImportedSet({ role: "drop", weightPerImplementLb: weight - 40, reps: 6 }),
+      makeImportedSet({ exerciseName: "Dumbbell Bench Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, ...extra }),
     ],
     { startedAt: importDay(day) }
   );
@@ -125,7 +125,7 @@ describe("importedSessionsBetween", () => {
     const sessions = [
       squat(0, 185),
       squat(2, 185),
-      importedSession([importedSet()], { startedAt: importDay(3), deletedAt: 9 }),
+      makeImportedSession([makeImportedSet()], { startedAt: importDay(3), deletedAt: 9 }),
       squat(9, 185),
     ];
     expect(importedSessionsBetween(sessions, importDay(0), importDay(7))).toBe(2);

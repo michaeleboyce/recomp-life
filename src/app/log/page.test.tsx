@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb, makeE1RM, makeSet, makeWorkout } from "@/lib/data/testUtils";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { LOG_PAGE_SIZE } from "@/components/Log/logEntries";
 import type { BodyweightLog, RunLog } from "@/types";
 import LogPage from "./page";
@@ -184,12 +184,12 @@ describe("/log", () => {
 // Made-up imported history only: the repository is public.
 describe("/log with imported history", () => {
   const pushDay = () =>
-    importedSession(
+    makeImportedSession(
       [
-        importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 30, role: "warmup" }),
-        importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, setOrder: 2, effort: "Hard" }),
-        importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 40, reps: 8, setOrder: 3, role: "drop" }),
-        importedSet({ exerciseName: "Made-up Cable Row", mappedExerciseId: "lat_pulldown", weightPerImplementLb: 120, reps: 12 }),
+        makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 30, role: "warmup" }),
+        makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, setOrder: 2, effort: "Hard" }),
+        makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 40, reps: 8, setOrder: 3, role: "drop" }),
+        makeImportedSet({ exerciseName: "Made-up Cable Row", mappedExerciseId: "lat_pulldown", weightPerImplementLb: 120, reps: 12 }),
       ],
       {
         id: "imp-push",
@@ -200,10 +200,10 @@ describe("/log with imported history", () => {
       }
     );
   const untitled = () =>
-    importedSession(
+    makeImportedSession(
       [
-        importedSet({ exerciseName: "Zorbing Curl", mappedExerciseId: null, muscles: ["biceps"] }),
-        importedSet({ exerciseName: "Zorbing Curl", mappedExerciseId: null, muscles: ["biceps"], setOrder: 2 }),
+        makeImportedSet({ exerciseName: "Zorbing Curl", mappedExerciseId: null, muscles: ["biceps"] }),
+        makeImportedSet({ exerciseName: "Zorbing Curl", mappedExerciseId: null, muscles: ["biceps"], setOrder: 2 }),
       ],
       { id: "imp-untitled", sourceApp: "fitbod", startedAt: new Date("2026-11-07T08:00:00"), endedAt: null }
     );
@@ -285,11 +285,11 @@ describe("/log with imported history", () => {
     const DAY = 86_400_000;
     const latest = new Date("2026-11-11T17:00:00").getTime();
     const many = Array.from({ length: 900 }, (_, i) =>
-      importedSession(
+      makeImportedSession(
         [
-          importedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 185 }),
-          importedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 185, setOrder: 2 }),
-          importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50 }),
+          makeImportedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 185 }),
+          makeImportedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 185, setOrder: 2 }),
+          makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50 }),
         ],
         { id: `imp-${String(i).padStart(4, "0")}`, startedAt: new Date(latest - i * DAY) }
       )

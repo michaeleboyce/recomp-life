@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { SessionList } from "./SessionList";
 import { importedLiftSessions, importedPoolFor, type LiftSession } from "./sessions";
 
@@ -106,8 +106,8 @@ describe("SessionList with imported sessions", () => {
   });
 
   it("gives the year of a session from another year", () => {
-    const old = importedSession(
-      [importedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 115, reps: 8 })],
+    const old = makeImportedSession(
+      [makeImportedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 115, reps: 8 })],
       { id: "imp-2023", startedAt: new Date("2023-03-04T17:00:00") }
     );
     render(<SessionList sessions={[]} imported={importedLiftSessions([old], ["bench"])} />);
@@ -115,16 +115,16 @@ describe("SessionList with imported sessions", () => {
     expect(screen.getByRole("button", { name: "Open imported session from Mar 4, 2023" })).toBeInTheDocument();
   });
 
-  const dbDay = importedSession(
+  const dbDay = makeImportedSession(
     [
-      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 30, reps: 12, role: "warmup" }),
-      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, setOrder: 2 }),
-      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 40, reps: 8, setOrder: 3, role: "drop" }),
+      makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 30, reps: 12, role: "warmup" }),
+      makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, setOrder: 2 }),
+      makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 40, reps: 8, setOrder: 3, role: "drop" }),
     ],
     { id: "imp-new", sourceApp: "gravl", title: "Push Day", startedAt: new Date("2026-11-08T17:00:00") }
   );
-  const barbellDay = importedSession(
-    [importedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 135, reps: 5 })],
+  const barbellDay = makeImportedSession(
+    [makeImportedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 135, reps: 5 })],
     { id: "imp-old", sourceApp: "fitbod", startedAt: new Date("2026-11-01T17:00:00") }
   );
   const imported = importedLiftSessions([barbellDay, dbDay], importedPoolFor("bench"));

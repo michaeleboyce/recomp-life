@@ -5,7 +5,7 @@ import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { MetricSource } from "@/lib/metrics/types";
 import { importedStrengthSets } from "@/lib/import/evidence";
 import { importedLiftIndex } from "@/lib/import/history";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { stallOf, strengthOverview, totalE1RMPoints, totalLabel } from "./strength";
 
 const DAY = 86_400_000;
@@ -113,8 +113,8 @@ describe("strengthOverview", () => {
 
   describe("with imported history (made-up sessions)", () => {
     const benchAt = (daysAgo: number, weight: number) =>
-      importedSession(
-        [importedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench", weightPerImplementLb: weight, reps: 5 })],
+      makeImportedSession(
+        [makeImportedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench", weightPerImplementLb: weight, reps: 5 })],
         { startedAt: new Date(now.getTime() - daysAgo * DAY) }
       );
     const index = importedLiftIndex(importedStrengthSets([benchAt(30, 150), benchAt(20, 150), benchAt(10, 150)]));

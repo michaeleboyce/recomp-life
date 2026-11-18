@@ -2,13 +2,13 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { muscleStrengthIndex } from "@/lib/strength";
-import { t1Session } from "@/lib/strength/testHelpers";
+import { makeT1Session } from "@/lib/strength/testHelpers";
 import { MuscleStrengthList } from "./MuscleStrengthList";
 
 afterEach(cleanup);
 
 const bss = [40, 45, 50].flatMap((w, i) =>
-  t1Session({ sessionId: `h${i}`, exerciseId: "bulgarian_split_squat", weight: w, perHand: true, amrapReps: 8, day: 3 * i })
+  makeT1Session({ sessionId: `h${i}`, exerciseId: "bulgarian_split_squat", weight: w, perHand: true, amrapReps: 8, day: 3 * i })
 );
 
 describe("MuscleStrengthList", () => {

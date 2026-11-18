@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { makeLiftState } from "@/lib/data/testUtils";
 import { importedStrengthSets } from "@/lib/import/evidence";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { LONG_BREAK_DAYS } from "@/lib/recovery";
 import type { StrengthSet } from "@/lib/strength";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
@@ -31,7 +31,7 @@ const STATES: LiftState[] = [
 function imported(...sessions: Array<[exerciseId: string, ago: number]>): StrengthSet[] {
   return importedStrengthSets(
     sessions.map(([exerciseId, ago]) =>
-      importedSession([importedSet({ exerciseName: `Test ${exerciseId}`, mappedExerciseId: exerciseId })], {
+      makeImportedSession([makeImportedSet({ exerciseName: `Test ${exerciseId}`, mappedExerciseId: exerciseId })], {
         startedAt: daysAgo(ago),
       })
     )

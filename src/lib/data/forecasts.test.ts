@@ -6,7 +6,7 @@ import { db } from "@/db/local";
 import type { Forecast } from "@/types";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { horizonSlot } from "@/lib/forecast";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import {
   forecastTables,
   listForecasts,
@@ -154,9 +154,9 @@ describe("recordLiftForecasts", () => {
 
 describe("readLedgerRecords and strengthSetsFrom", () => {
   it("plan from the app's sets and the imported sessions', names read through the remembered choices (made-up)", async () => {
-    const mystery = importedSession([importedSet({ exerciseName: "Mystery Press", mappedExerciseId: null, weightPerImplementLb: 50 })]);
-    const squat = importedSession([importedSet()]);
-    const undone = importedSession([importedSet()], { deletedAt: 3 });
+    const mystery = makeImportedSession([makeImportedSet({ exerciseName: "Mystery Press", mappedExerciseId: null, weightPerImplementLb: 50 })]);
+    const squat = makeImportedSession([makeImportedSet()]);
+    const undone = makeImportedSession([makeImportedSet()], { deletedAt: 3 });
     await db.importedSessions.bulkPut([mystery, squat, undone]);
 
     const plain = await readLedgerRecords(new Date(), {});

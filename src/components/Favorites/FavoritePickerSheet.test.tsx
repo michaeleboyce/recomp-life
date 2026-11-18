@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { FavoritePickerSheet } from "./FavoritePickerSheet";
-import { testFavorite } from "./testFavorites";
+import { makeFavorite } from "./testFavorites";
 
 afterEach(cleanup);
 
@@ -21,7 +21,7 @@ describe("FavoritePickerSheet", () => {
       <FavoritePickerSheet
         open
         onOpenChange={vi.fn()}
-        favorites={[testFavorite("a", "Heavy legs")]}
+        favorites={[makeFavorite("a", "Heavy legs")]}
         now={NOW}
         onStart={vi.fn()}
       />
@@ -34,8 +34,8 @@ describe("FavoritePickerSheet", () => {
 
   it("starts the chosen favourite in the chosen mode", () => {
     const onStart = vi.fn();
-    const a = testFavorite("a", "First", { lastUsedAt: new Date(2026, 10, 11) });
-    const b = testFavorite("b", "Second", { createdAt: new Date(2026, 9, 1) });
+    const a = makeFavorite("a", "First", { lastUsedAt: new Date(2026, 10, 11) });
+    const b = makeFavorite("b", "Second", { createdAt: new Date(2026, 9, 1) });
     render(<FavoritePickerSheet open onOpenChange={vi.fn()} favorites={[b, a]} now={NOW} onStart={onStart} />);
     const todays = screen.getAllByRole("button", { name: "Today's weights" });
     fireEvent.click(todays[1]);

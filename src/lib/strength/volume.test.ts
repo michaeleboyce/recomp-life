@@ -1,19 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { DROP_SETS } from "./coefficients";
 import { muscleVolume, volumeCredits } from "./volume";
-import { set } from "./testHelpers";
+import { makeStrengthSet } from "./testHelpers";
 
-const working = (id: string, exerciseId = "squat") => set({ id, exerciseId, sessionId: "w", isAMRAP: false });
+const working = (id: string, exerciseId = "squat") => makeStrengthSet({ id, exerciseId, sessionId: "w", isAMRAP: false });
 const drop = (id: string, dropOf: string | undefined, exerciseId = "squat") =>
-  set({ id, exerciseId, sessionId: "w", role: "drop", dropOf, isAMRAP: true });
+  makeStrengthSet({ id, exerciseId, sessionId: "w", role: "drop", dropOf, isAMRAP: true });
 
 describe("volumeCredits", () => {
   it("counts working, ramp and back-off sets as one set and warm-ups as none", () => {
     const credits = volumeCredits([
       working("a"),
-      set({ id: "r", role: "ramp" }),
-      set({ id: "b", role: "backoff" }),
-      set({ id: "w", role: "warmup" }),
+      makeStrengthSet({ id: "r", role: "ramp" }),
+      makeStrengthSet({ id: "b", role: "backoff" }),
+      makeStrengthSet({ id: "w", role: "warmup" }),
     ]);
     expect(credits.get("a")).toBe(1);
     expect(credits.get("r")).toBe(1);

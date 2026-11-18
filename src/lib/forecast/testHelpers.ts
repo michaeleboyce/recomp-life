@@ -47,7 +47,7 @@ export interface T1SessionSpec {
 }
 
 /** A finished workout holding one T1 lift: its working sets, the last one as-many-as-you-can. */
-export function t1Session(spec: T1SessionSpec): WorkoutSession {
+export function makeT1Session(spec: T1SessionSpec): WorkoutSession {
   const exerciseId = spec.exerciseId ?? "squat";
   const stage = spec.stage ?? "5x3";
   const scheme = T1_STAGE_SCHEME[stage];
@@ -105,12 +105,12 @@ export function sourceAt(now: Date, parts: Partial<ForecastSource> = {}): Foreca
   };
 }
 
-export function weighIn(id: string, date: Date, weight: number): BodyweightLog {
+export function makeWeighIn(id: string, date: Date, weight: number): BodyweightLog {
   return { id, clientId: id, date, weight, timeOfDay: "morning", synced: false };
 }
 
 /** A forecast row with plain defaults, for resolver and scoring tests. */
-export function forecastRow(overrides: Partial<Forecast> = {}): Forecast {
+export function makeForecast(overrides: Partial<Forecast> = {}): Forecast {
   return {
     id: "fc:w1:amrapReps:squat:T1",
     clientId: "fc:w1:amrapReps:squat:T1",
@@ -155,13 +155,13 @@ export function longHistory(count: number): {
     const at = new Date(LONG_HISTORY_START + i * 2 * DAY);
     const weight = 150 + (i % 40) * 5;
     const id = `w${i}`;
-    workouts.push(t1Session({ id, exerciseId, at, weight, lastReps: 3 + (i % 5) }));
-    bodyweight.push(weighIn(`bw${i}a`, at, 200 - i / 100));
-    bodyweight.push(weighIn(`bw${i}b`, new Date(at.getTime() + DAY), 200 - i / 100));
+    workouts.push(makeT1Session({ id, exerciseId, at, weight, lastReps: 3 + (i % 5) }));
+    bodyweight.push(makeWeighIn(`bw${i}a`, at, 200 - i / 100));
+    bodyweight.push(makeWeighIn(`bw${i}b`, new Date(at.getTime() + DAY), 200 - i / 100));
 
     const session = (kind: Forecast["kind"], rest: Partial<Forecast>) => {
       const rowId = `fc:${id}:${kind}`;
-      return forecastRow({
+      return makeForecast({
         id: rowId,
         clientId: rowId,
         slot: rowId,
@@ -175,7 +175,7 @@ export function longHistory(count: number): {
     };
     const horizon = (kind: Forecast["kind"], rest: Partial<Forecast>) => {
       const rowId = `h:${kind}:${i}`;
-      return forecastRow({
+      return makeForecast({
         id: rowId,
         clientId: rowId,
         slot: `${kind}|${rest.exerciseId ?? "bodyweight"}|${i}`,

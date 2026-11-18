@@ -34,7 +34,7 @@ export interface T1Spec {
  * apart, then the last set. A stored reps forecast is returned with it when `expected`
  * is given.
  */
-export function t1Workout(spec: T1Spec): { workout: WorkoutSession; forecast: Forecast | null } {
+export function makeT1Workout(spec: T1Spec): { workout: WorkoutSession; forecast: Forecast | null } {
   const exerciseId = spec.exerciseId ?? "squat";
   const start = spec.at.getTime();
   const sets = Array.from({ length: 5 }, (_, i) => {
@@ -84,7 +84,7 @@ export function t1Workout(spec: T1Spec): { workout: WorkoutSession; forecast: Fo
   return { workout, forecast };
 }
 
-export function run(id: string, date: Date, effort: RunLog["perceivedEffort"]): RunLog {
+export function makeRun(id: string, date: Date, effort: RunLog["perceivedEffort"]): RunLog {
   return {
     id,
     clientId: id,
@@ -99,7 +99,7 @@ export function run(id: string, date: Date, effort: RunLog["perceivedEffort"]): 
   };
 }
 
-export function activity(
+export function makeActivity(
   id: string,
   date: Date,
   effort: ActivityLog["perceivedEffort"],
@@ -119,7 +119,7 @@ export function activity(
   };
 }
 
-export function checkIn(id: string, sessionId: string, date: Date, sleepHours: SleepHours): ReadinessLog {
+export function makeCheckIn(id: string, sessionId: string, date: Date, sleepHours: SleepHours): ReadinessLog {
   return {
     id,
     clientId: id,
@@ -148,7 +148,7 @@ export function constructedHistory(now: Date): PersonalLog {
       const shortSleep = i % 4 === 1;
       const expected = 6;
       const lastReps = expected - (hardRun ? 2 : 0) - (shortSleep ? 2 : 0);
-      const { workout, forecast } = t1Workout({
+      const { workout, forecast } = makeT1Workout({
         id,
         exerciseId,
         at,
@@ -165,8 +165,8 @@ export function constructedHistory(now: Date): PersonalLog {
       }
       log.workouts.push(workout);
       if (forecast) log.forecasts.push(forecast);
-      if (hardRun) log.runs.push(run(`run-${i}`, new Date(at.getTime() - 10 * HOUR), 4));
-      log.readinessLogs.push(checkIn(`ready-${id}`, id, at, shortSleep ? "5-7" : "7+"));
+      if (hardRun) log.runs.push(makeRun(`run-${i}`, new Date(at.getTime() - 10 * HOUR), 4));
+      log.readinessLogs.push(makeCheckIn(`ready-${id}`, id, at, shortSleep ? "5-7" : "7+"));
     }
   }
   return log;
