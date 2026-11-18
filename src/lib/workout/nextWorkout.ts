@@ -88,6 +88,9 @@ export function resolveNextWorkout(input: NextWorkoutInput): ResolvedNextWorkout
     ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
     ...(settings.nextSetPlans ? { nextSetPlans: settings.nextSetPlans } : {}),
     reentry: input.reentry ?? "day",
+    // The date planned for (own-history windows): the one given, else the accessories'
+    // day; a projection of the program alone with no date keeps the evidence's clock.
+    ...(input.now ? { now: input.now } : {}),
     ...(input.accessories === false
       ? {}
       : {

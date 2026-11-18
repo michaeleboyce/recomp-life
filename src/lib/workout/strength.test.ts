@@ -132,6 +132,25 @@ describe("ownHistoryOf: a home exercise's own recent sets", () => {
     expect(ownHistoryOf([barbell, s("edge", days)], "bulgarian_split_squat").estimate?.value).toBe(65);
   });
 
+  it("with the date planned for, counts the window back from it: old sets alone say only when it was last done", () => {
+    // Fourteen months ago, and nothing newer of any exercise: the newest set's clock
+    // would read them as recent.
+    const longAgo = 14 * 30;
+    const sets = [s("a", longAgo), s("b", longAgo + 2, { weight: 30 })];
+    expect(ownHistoryOf(sets, "bulgarian_split_squat").estimate).not.toBeNull();
+    expect(ownHistoryOf(sets, "bulgarian_split_squat", new Date(newest))).toEqual({
+      estimate: null,
+      heaviest: null,
+      lastDone: newest - longAgo * DAY,
+    });
+    // Inside the window from the date planned for: counted as before.
+    const recent = [s("c", 10)];
+    expect(ownHistoryOf(recent, "bulgarian_split_squat", new Date(newest)).estimate?.value).toBe(65);
+    // A set after the date planned for is not history yet.
+    const later = [s("d", -3)];
+    expect(ownHistoryOf(later, "bulgarian_split_squat", new Date(newest))).toEqual({ estimate: null, heaviest: null, lastDone: null });
+  });
+
   it("leaves out weights set by hand, warm-ups, drops and sets with no load", () => {
     const sets = [
       barbell,

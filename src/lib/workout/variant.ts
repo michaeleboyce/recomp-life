@@ -133,6 +133,11 @@ export interface VariantSeedInput {
   equipment: EquipmentProfile;
   /** Every set as strength evidence, app and imported (`strengthEvidenceOf`); left out, no estimate is used. */
   strengthSets?: readonly StrengthSet[];
+  /**
+   * The date being planned for: the exercise's own history counts back from it
+   * (`ownHistoryOf`). Left out, from the newest set in `strengthSets`.
+   */
+  now?: Date;
 }
 
 /** The exercise's own session a first weight was worked from (source "history"). */
@@ -197,7 +202,7 @@ function weightForReps(estimatedMax: number, exerciseId: string, reps: number, s
  * T3 alike, in this order:
  *
  * 1. Its own history: when `strengthSets` (app and imported) give the exercise an
- *    estimate from its sets in the last OWN_HISTORY_WINDOW_WEEKS (`ownHistoryOf`: its
+ *    estimate from its sets in the OWN_HISTORY_WINDOW_WEEKS before `now` (`ownHistoryOf`: its
  *    latest session's, effort credited), the heaviest weight at which that estimate says
  *    the stage's reps are possible, as lifted, rounded down to the dumbbell step
  *    (source "history"), and never more than one dumbbell step above the heaviest
@@ -212,7 +217,8 @@ function weightForReps(estimatedMax: number, exerciseId: string, reps: number, s
  *    barbell weight (source "conversion").
  *
  * Every one is capped at the heaviest dumbbell (`cappedFrom`). A seed not from the
- * exercise's own history says when it was last done, if ever (`lastDone`).
+ * exercise's own history says when it was last done, if ever (`lastDone`): history
+ * older than the window falls through to rule 2 and says so.
  * Weights set by hand and not lifted are not the exercise's history; a weight set by
  * hand wins over any seed, since it gives the variant a state of its own.
  *
@@ -222,7 +228,7 @@ function weightForReps(estimatedMax: number, exerciseId: string, reps: number, s
 export function seedVariantWeight(input: VariantSeedInput): VariantSeedWeight {
   const { liftId, exerciseId, barbellWeight, targetReps, equipment, strengthSets } = input;
   const step = equipment.dumbbellIncrementLbs;
-  const own = strengthSets ? ownHistoryOf(strengthSets, exerciseId) : null;
+  const own = strengthSets ? ownHistoryOf(strengthSets, exerciseId, input.now) : null;
   const bound = own?.heaviest != null ? roundDownToDumbbell(own.heaviest + step, step) : null;
   const finish = (wanted: number, seed: Omit<VariantSeedWeight, "weight" | "cappedFrom">): VariantSeedWeight => {
     // Rule 1's limit. The pooled estimate through a ratio (rules 2 and 3) is not held to
@@ -306,6 +312,8 @@ export function seedVariantState(input: {
   equipment: EquipmentProfile;
   /** Every logged set as strength evidence; left out, the seed uses no estimate. */
   strengthSets?: readonly StrengthSet[];
+  /** The date being planned for (`seedVariantWeight`); left out, the newest set's. */
+  now?: Date;
 }): VariantState {
   const { liftId, exerciseId, tier, liftState, equipment, strengthSets } = input;
   const barbellWeight = liftWeightAt(liftState, tier);
@@ -320,6 +328,7 @@ export function seedVariantState(input: {
     targetReps,
     equipment,
     ...(strengthSets ? { strengthSets } : {}),
+    ...(input.now ? { now: input.now } : {}),
   });
   const session = seed.source === "history" ? seed.session : undefined;
   return {
@@ -375,6 +384,8 @@ export interface HomeVariantInput {
   overrideId?: string;
   /** Every logged set as strength evidence, for seeding a variant never used (H3). */
   strengthSets?: readonly StrengthSet[];
+  /** The date being planned for: a seed's own history counts back from it. */
+  now?: Date;
 }
 
 export interface HomeVariantChoice {
@@ -443,6 +454,7 @@ export function chooseHomeVariant(input: HomeVariantInput): HomeVariantChoice | 
       liftState,
       equipment,
       ...(strengthSets ? { strengthSets } : {}),
+      ...(input.now ? { now: input.now } : {}),
     });
   const max = equipment.maxDumbbellWeight;
   const weight = Math.min(state.weight, max);
@@ -857,6 +869,7 @@ function harderVariantFor(capped: VariantState, input: EvaluateVariantInput): Va
       liftState,
       equipment,
       ...(strengthSets ? { strengthSets } : {}),
+      now: input.now,
     }),
     stage: capped.stage,
     failCount: capped.failCount,

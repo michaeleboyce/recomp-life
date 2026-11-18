@@ -99,6 +99,8 @@ export interface ProjectUpcomingInput {
    * Plan each workout's accessories as the start would (`planAccessories` from
    * `settings` and `strengthSets`, chosen for this calendar day and kept to the session
    * length `settings.sessionMinutes`) and add them to `plan`. Left out, no accessories.
+   * It is also the date planned for: a first home weight's own history counts back from
+   * it (`seedVariantWeight`); left out, from the newest set.
    */
   accessoriesNow?: Date;
 }
@@ -260,6 +262,7 @@ const planOptionsOf = (input: ProjectionInput) => ({
   includeWarmUps: input.includeWarmUps,
   selectedAccessories: [] as string[],
   ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
+  ...(input.accessoriesNow ? { now: input.accessoriesNow } : {}),
 });
 
 /**
@@ -288,6 +291,7 @@ function walkProjection(
         location,
         reentry: "everyLift",
         accessories: false,
+        ...(input.accessoriesNow ? { now: input.accessoriesNow } : {}),
       })
     : describeNextWorkout({
         completedWorkouts,

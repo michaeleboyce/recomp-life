@@ -114,3 +114,45 @@ describe("resolveLifts", () => {
     expect(squat.weight).toBeLessThanOrEqual(home.settings.equipment.maxDumbbellWeight);
   });
 });
+
+describe("a first home weight is seeded for the date planned for", () => {
+  it("history older than the own-history window does not seed it; the seed says when it was last done", () => {
+    const c = planningCases().find((x) => x.location === "home" && x.index === 0)!;
+    const now = new Date(2026, 10, 18, 12, 0, 0);
+    const longAgo = new Date(now);
+    longAgo.setMonth(longAgo.getMonth() - 14);
+    // Made-up goblet squats, fourteen months before, and nothing newer.
+    const sets = [8, 8, 7].map((reps, i) => ({
+      id: `g${i}`,
+      sessionId: "old",
+      exerciseId: "goblet_squat",
+      weight: 70,
+      perHand: false,
+      reps,
+      repsInReserve: null,
+      role: "working" as const,
+      tier: "T1" as const,
+      isAMRAP: i === 2,
+      date: new Date(longAgo.getTime() + i * 60_000),
+    }));
+    const base = {
+      template: WORKOUT_TEMPLATES.A1,
+      liftStates: c.records.liftStates,
+      location: "home" as const,
+      equipment: c.settings.equipment,
+      strengthSets: sets,
+      overrides: { squat: "goblet_squat" },
+    };
+    const squatSeed = (lifts: ReturnType<typeof resolveLifts>) =>
+      lifts.find((l) => l.liftId === "squat" && l.tier === "T1")?.home?.seed;
+    // The evidence's own clock (no date) reads them as recent...
+    expect(squatSeed(resolveLifts(base))?.source).toBe("history");
+    // ...the date planned for does not: the next source, and when it was last done.
+    const planned = squatSeed(resolveLifts({ ...base, now }));
+    expect(planned?.source).not.toBe("history");
+    expect(planned?.lastDone).toBe(sets[2].date.getTime());
+    // The start, given the day, plans the same.
+    const start = planWorkoutStart({ ...base, includeWarmUps: false, selectedAccessories: [], now });
+    expect(squatSeed(start.lifts)).toEqual(planned);
+  });
+});

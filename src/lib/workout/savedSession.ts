@@ -17,7 +17,7 @@ import { resolveLifts, type LiftResolution } from "./liftResolution";
 import { anchorVariant, isVariantTier, seedVariantState, variantKey } from "./variant";
 
 export interface SavedSessionInput {
-  session: Pick<WorkoutSession, "prescribed" | "location" | "modifications">;
+  session: Pick<WorkoutSession, "prescribed" | "location" | "modifications"> & Partial<Pick<WorkoutSession, "startedAt">>;
   /** The session's template; unknown, no lift is resolved (the states are still anchored). */
   template: WorkoutTemplate | undefined;
   /** The lift states going in (the stored ones on resume, the running ones in the rebuild). */
@@ -60,7 +60,7 @@ export interface SavedSessionResolution {
  * states should already be anchored.
  */
 function anchorHomePrescriptions(
-  input: Omit<SavedSessionInput, "session"> & { session: Pick<WorkoutSession, "prescribed"> }
+  input: Omit<SavedSessionInput, "session"> & { session: Pick<WorkoutSession, "prescribed"> & Partial<Pick<WorkoutSession, "startedAt">> }
 ): { anchored: Map<string, VariantState>; seeds: Map<string, VariantSeed> } {
   const { session, template, equipment, strengthSets } = input;
   const byId = new Map(input.liftStates.map((state) => [state.exerciseId, state]));
@@ -83,6 +83,8 @@ function anchorHomePrescriptions(
         liftState: byId.get(entry.exerciseId),
         equipment,
         ...(strengthSets ? { strengthSets } : {}),
+        // Planned for the day the session started.
+        ...(session.startedAt ? { now: new Date(session.startedAt) } : {}),
       });
     if (!stored) seeds.set(id, going.seed);
     const slot = template?.exercises.find((ex) => ex.exerciseId === entry.exerciseId && ex.tier === tier);
@@ -144,6 +146,7 @@ export function resolveSavedSession(input: SavedSessionInput): SavedSessionResol
         variantStates,
         overrides: overridesFromSession(session),
         ...(strengthSets ? { strengthSets } : {}),
+        ...(session.startedAt ? { now: new Date(session.startedAt) } : {}),
       })
     : [];
   const lifts = prescribed

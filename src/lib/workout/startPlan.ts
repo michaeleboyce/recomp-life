@@ -83,6 +83,8 @@ export interface StartPlanInput extends BuildPlanInput {
 export function planWorkoutStart(input: StartPlanInput): WorkoutStartPlan {
   const { template, location, equipment, overrides, strengthSets } = input;
   const scope = input.reentry ?? "day";
+  // The date planned for: the input's, else the accessories' day.
+  const now = input.now ?? input.accessories?.now;
 
   // 1. Resolve the lifts.
   const resolved: ReentryResolution =
@@ -100,6 +102,7 @@ export function planWorkoutStart(input: StartPlanInput): WorkoutStartPlan {
           ...(scope === "day" ? { template } : {}),
           ...(strengthSets ? { strengthSets } : {}),
           ...(overrides ? { overrides } : {}),
+          ...(now ? { now } : {}),
         });
   const lifts = resolveLifts({
     template,
@@ -110,6 +113,7 @@ export function planWorkoutStart(input: StartPlanInput): WorkoutStartPlan {
     reentries: resolved.reentries,
     ...(strengthSets ? { strengthSets } : {}),
     ...(overrides ? { overrides } : {}),
+    ...(now ? { now } : {}),
   });
 
   // 2. Record the prescription.

@@ -12,6 +12,20 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-18",
+    ruleId: "home-progression",
+    change:
+      "A home exercise's first weight read its own sets from the weeks before the newest set in the history, so with nothing newer, sets from years ago could set today's weight. The window now counts back from the workout being planned (Today, the Ready screen, Coming up, the swap sheet, resume and finishing): older sets only say when it was last done, and the weight comes from the next source (the lift's estimate through the learned or starting ratio).",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "accessory-progression",
+    change:
+      "An accessory's first weight from its own history now reads the days before the workout being planned, not before its newest set: history older than that no longer sets the weight; the row says when it was last done and leaves the weight to you.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
     ruleId: "time-off",
     change:
       "The Ready screen's lighter weights after a break now count sessions imported from other apps, as Today's days-off note does: an imported session of a lift, or of one of its home versions, ends that lift's break (one within the break length means no suggestion; an older one shortens the break it is measured from). A lift never done in the app is still left to its starting weight.",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { StrengthSet } from "@/lib/strength";
+import { OWN_HISTORY_WINDOW_WEEKS } from "@/lib/workout/strength";
 import {
   OWN_HISTORY_FIRST_WEIGHT,
   accessoryLoadStep,
@@ -37,6 +38,27 @@ function set(exerciseId: string, sessionId: string, ago: number, weight: number,
 /** An app session of an accessory: one set per reps value at `weight`. */
 const session = (exerciseId: string, id: string, ago: number, weight: number, reps: number[]) =>
   reps.map((r) => set(exerciseId, id, ago, weight, r));
+
+describe("the own-history window counts back from the date planned for", () => {
+  it("is the same window as a home exercise's first weight", () => {
+    expect(OWN_HISTORY_FIRST_WEIGHT.recentDays).toBe(OWN_HISTORY_WINDOW_WEEKS * 7);
+  });
+
+  it("history older than the window gives no first weight, and says when it was last done", () => {
+    // Imported (history, not app accessory sessions), fourteen months before.
+    const old = [12, 12, 11].map((r) => set("hack_squat", "old", 420, 140, r, { imported: true }));
+    expect(ownHistoryFirstWeight(old, "hack_squat", { min: 8, max: 12 }, 5, NOW)).toBeNull();
+    // The newest set's clock would read the same sets as recent.
+    expect(ownHistoryFirstWeight(old, "hack_squat", { min: 8, max: 12 }, 5)).not.toBeNull();
+    const p = accessoryPrescription({ exerciseId: "hack_squat", sets: old, equipment: EQUIPMENT, handSetWeight: null, now: NOW });
+    expect(p.weight).toBeNull();
+    expect(p.basis).toBe("none");
+    expect(p.note).toMatch(/^Last done .+: too long ago to set its weight, enter one$/);
+    // Recent history from the date planned for still counts.
+    const recent = [12, 12, 12].map((r) => set("hack_squat", "new", 10, 140, r, { imported: true }));
+    expect(accessoryPrescription({ exerciseId: "hack_squat", sets: [...old, ...recent], equipment: EQUIPMENT, handSetWeight: null, now: NOW }).basis).toBe("history");
+  });
+});
 
 describe("accessoryPrescription: double progression", () => {
   it("gives sets and reps from the exercise's range", () => {

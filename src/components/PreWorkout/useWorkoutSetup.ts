@@ -387,6 +387,7 @@ export function useWorkoutSetup(
             includeWarmUps: warmUps,
             selectedAccessories: namedAccessories,
             accessories: accessorySource,
+            now: openedAt,
             overrides,
             edits: pinned,
             variantStates,
@@ -394,7 +395,7 @@ export function useWorkoutSetup(
             ...(nextSetPlans ? { nextSetPlans } : {}),
           })
         : null,
-    [template, liftStates, location, equipment, warmUps, namedAccessories, accessorySource, overrides, pinned, variantStates, strengthSets, nextSetPlans]
+    [template, liftStates, location, equipment, warmUps, namedAccessories, accessorySource, openedAt, overrides, pinned, variantStates, strengthSets, nextSetPlans]
   );
   const plan = useMemo(() => startPlan?.plan ?? [], [startPlan]);
   const prescribed = startPlan?.prescribed ?? NO_PRESCRIBED;

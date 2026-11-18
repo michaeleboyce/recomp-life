@@ -356,6 +356,7 @@ export function prescribeSwap(exerciseId: string, originalId: string, context: S
       equipment,
       overrideId: exerciseId,
       strengthSets: sets,
+      now: context.now,
     });
     if (choice && choice.state.exerciseId === exerciseId) {
       const own = variantScheme(choice.state, slot.tier === "T3" ? { sets: slot.sets, reps: slot.reps } : undefined);
@@ -380,6 +381,8 @@ export function prescribeSwap(exerciseId: string, originalId: string, context: S
       // The heaviest dumbbell is the home rack's; the gym has heavier ones.
       equipment: context.location === "gym" ? { ...equipment, maxDumbbellWeight: Number.POSITIVE_INFINITY } : equipment,
       strengthSets: sets,
+      // The own-history window counts back from the day the swap is planned for.
+      now: context.now,
     });
     return { ...scheme, weight: seed.weight, basis: seed.source, note: SEED_NOTES[seed.source] };
   }

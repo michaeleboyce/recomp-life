@@ -32,6 +32,8 @@ export interface ReentryInput {
   strengthSets?: readonly StrengthSet[];
   /** Home substitutes picked on Configure (template exerciseId -> substitute id). */
   overrides?: Record<string, string>;
+  /** The date being planned for (`chooseHomeVariant`'s seeds). */
+  now?: Date;
   /**
    * The session's template: only its lifts, at its tiers, are resolved. Left out, every
    * program lift is (a projection of several workouts ahead).
@@ -212,6 +214,7 @@ export function resolveReentry(input: ReentryInput): ReentryResolution {
       variantStates: [...variantById.values()],
       equipment,
       overrideId: input.overrides?.[liftId],
+      ...(input.now ? { now: input.now } : {}),
     });
     if (!choice || choice.seeded) continue;
     const variant = choice.state;

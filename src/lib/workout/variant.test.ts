@@ -77,6 +77,39 @@ function evaluate(state: VariantState, sets: SetLog[], extra: Partial<EvaluateVa
   });
 }
 
+describe("seedVariantWeight: own history counts from the date planned for", () => {
+  it("falls through to the lift's estimate when the exercise was last done long before it", () => {
+    const DAY = 86_400_000;
+    const now = new Date(2026, 10, 18, 12, 0, 0);
+    const old = (id: string, days: number, over: Partial<StrengthSet> = {}): StrengthSet => ({
+      id,
+      sessionId: `s${days}`,
+      exerciseId: "goblet_squat",
+      weight: 70,
+      perHand: false,
+      reps: 8,
+      repsInReserve: null,
+      role: "working",
+      tier: "T1",
+      isAMRAP: true,
+      date: new Date(now.getTime() - days * DAY),
+      ...over,
+    });
+    const sets = [old("g1", 420), old("g2", 425), old("bar", 3, { exerciseId: "squat", weight: 200, reps: 5 })];
+    const base = { liftId: "squat", exerciseId: "goblet_squat", tier: "T1" as const, barbellWeight: 200, targetReps: 3, equipment: EQUIPMENT, strengthSets: sets };
+    // Without the date the newest set (the squat, 3 days ago) is the clock: the goblet sets are old either way.
+    const planned = seedVariantWeight({ ...base, now });
+    expect(planned.source).not.toBe("history");
+    expect(planned.lastDone).toBe(now.getTime() - 420 * DAY);
+    // Only goblet sets, all old: the newest set's clock would read them as recent.
+    const onlyOld = { ...base, strengthSets: sets.filter((s) => s.exerciseId === "goblet_squat") };
+    expect(seedVariantWeight(onlyOld).source).toBe("history");
+    const fromDate = seedVariantWeight({ ...onlyOld, now });
+    expect(fromDate.source).not.toBe("history");
+    expect(fromDate.lastDone).toBe(now.getTime() - 420 * DAY);
+  });
+});
+
 describe("variant ids, loads and schemes", () => {
   it("names a variant by lift, exercise performed and tier", () => {
     expect(variantKey("squat", "bulgarian_split_squat", "T1")).toBe("squat|bulgarian_split_squat|T1");
