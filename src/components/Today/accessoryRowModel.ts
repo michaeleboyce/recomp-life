@@ -27,9 +27,19 @@ export interface AccessoryRowView {
   explained: boolean;
 }
 
-/** "3 × 12–15": sets and the rep range ("3 × 15" when the range is one number). */
+/** "3×12–15": sets and the rep range ("3×15" when the range is one number), as the lifts' "5×3+". */
 export function accessoryScheme(sets: number, reps: { min: number; max: number }): string {
-  return `${sets} × ${reps.min === reps.max ? reps.max : `${reps.min}–${reps.max}`}`;
+  return `${sets}×${reps.min === reps.max ? reps.max : `${reps.min}–${reps.max}`}`;
+}
+
+/** The weight as a row's big number shows it ("30", "—" when there is none yet) and its unit ("/hand"). */
+export function accessoryWeightParts(view: Pick<AccessoryRowView, "weight" | "perHand" | "bodyweight">): {
+  value: string;
+  unit: string;
+} {
+  if (view.bodyweight && !view.weight) return { value: "BW", unit: "" };
+  if (view.weight == null) return { value: "—", unit: "" };
+  return { value: formatLbs(view.weight), unit: view.perHand ? "/hand" : "" };
 }
 
 /** "30 lb", "20 lb/hand", "Bodyweight", "Enter weight". */

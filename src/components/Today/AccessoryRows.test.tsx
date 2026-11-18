@@ -35,7 +35,7 @@ describe("AccessoryRows", () => {
   it("folds several into one summary row that expands, with Change beside it", () => {
     render(<AccessoryRows views={THREE} collapsible why changeHref={CHANGE_ACCESSORIES_HREF} />);
     expect(screen.getByTestId("accessory-summary")).toHaveTextContent(
-      "3 accessories · bicep curls, standing lateral raises, hack squat"
+      "3 accessoriesbicep curls, standing lateral raises, hack squat"
     );
     expect(screen.queryAllByTestId("accessory-row")).toHaveLength(0);
     expect(screen.getByRole("link", { name: "Change accessories" })).toHaveAttribute("href", CHANGE_ACCESSORIES_HREF);
@@ -44,12 +44,12 @@ describe("AccessoryRows", () => {
     const rows = screen.getAllByTestId("accessory-row");
     expect(rows).toHaveLength(3);
     expect(rows[0]).toHaveTextContent("Bicep curls");
-    expect(rows[0]).toHaveTextContent("30 lb");
-    expect(within(rows[0]).getByTestId("accessory-scheme")).toHaveTextContent("3 × 12–15");
+    expect(within(rows[0]).getByLabelText("30 lb")).toHaveTextContent("30");
+    expect(within(rows[0]).getByTestId("accessory-scheme")).toHaveTextContent("3×12–15");
     expect(within(rows[0]).getByTestId("accessory-reason")).toHaveTextContent("You usually do this on squat days");
     expect(within(rows[0]).getByRole("button", { name: "Why this weight for Bicep curls" })).toBeInTheDocument();
-    expect(rows[1]).toHaveTextContent("15 lb/hand");
-    expect(rows[2]).toHaveTextContent("Enter weight");
+    expect(within(rows[1]).getByLabelText("15 lb/hand")).toHaveTextContent("15/hand");
+    expect(within(rows[2]).getByLabelText("Enter weight")).toHaveTextContent("—");
   });
 
   it("shows one as a row, and offers to add when there are none", () => {

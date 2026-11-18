@@ -49,7 +49,7 @@ export const VOLUME_RULES = {
     sources: ["roth2022", "murphyKoehler2022"],
     reviewedOn: "2026-11",
     implementedIn: ["src/lib/accessories.ts#getPhaseAccessoryCap"],
-    surfaces: ["src/components/PreWorkout/AccessoryPicker.tsx"],
+    surfaces: ["src/components/PreWorkout/AccessorySheet.tsx"],
   },
   "accessory-selection": {
     area: "volume",

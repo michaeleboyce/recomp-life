@@ -79,8 +79,8 @@ describe("accessory rows", () => {
   });
 
   it("words the weight, the scheme and the summary", () => {
-    expect(accessoryScheme(3, { min: 12, max: 15 })).toBe("3 × 12–15");
-    expect(accessoryScheme(3, { min: 15, max: 15 })).toBe("3 × 15");
+    expect(accessoryScheme(3, { min: 12, max: 15 })).toBe("3×12–15");
+    expect(accessoryScheme(3, { min: 15, max: 15 })).toBe("3×15");
     expect(accessoryWeightText({ weight: 20, perHand: true, bodyweight: false })).toBe("20 lb/hand");
     expect(accessoryWeightText({ weight: null, perHand: false, bodyweight: false })).toBe("Enter weight");
     expect(accessoryWeightText({ weight: null, perHand: false, bodyweight: true })).toBe("Bodyweight");

@@ -693,7 +693,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Limited evidence
 - **Implemented in:** `src/lib/accessories.ts` (`getPhaseAccessoryCap`)
-- **Shown in:** `src/components/PreWorkout/AccessoryPicker.tsx`
+- **Shown in:** `src/components/PreWorkout/AccessorySheet.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Keeping volume up while dieting may help hold on to muscle

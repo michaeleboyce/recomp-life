@@ -10,6 +10,8 @@ import { isNextSetAMRAP } from "@/lib/workout/logSet";
 import { isWorkingSet } from "@/lib/workout/setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
 import type { PlannedSet, Tier, TrainingPhase } from "@/types";
+import { AccessoryRows } from "@/components/Today/AccessoryRows";
+import type { AccessoryRowView } from "@/components/Today/accessoryRowModel";
 import { ImpactLine } from "./ImpactLine";
 import type { ImpactItem } from "./impact";
 
@@ -20,6 +22,13 @@ interface PlannedExerciseListProps {
   trainingPhase?: TrainingPhase;
   /** Per program lift, when the workout has been edited: what the edit does to progression. */
   impact?: ImpactItem[];
+  /**
+   * The accessories as Today shows them (A8), each with its reason: given, they are
+   * listed under the lifts in their own rows with "Change" (`onChangeAccessories`)
+   * instead of as plain entries.
+   */
+  accessories?: AccessoryRowView[];
+  onChangeAccessories?: () => void;
 }
 
 interface Row {
@@ -87,7 +96,13 @@ function setsView(entry: WorkoutExerciseState): { scheme: string; lines: string[
  * The workout exactly as it will be performed: tier, exercise, weight, sets x reps,
  * and the rest the timer will run after each of its sets.
  */
-export function PlannedExerciseList({ plan, trainingPhase, impact = [] }: PlannedExerciseListProps) {
+export function PlannedExerciseList({
+  plan,
+  trainingPhase,
+  impact = [],
+  accessories,
+  onChangeAccessories,
+}: PlannedExerciseListProps) {
   const notDone = impact.filter((item) => item.status === "not-done");
   const hasWarmUps = plan.some((entry) => entry.isWarmUp);
   // The first badge of each tier opens its glossary entry; later ones stay plain.
@@ -96,7 +111,7 @@ export function PlannedExerciseList({ plan, trainingPhase, impact = [] }: Planne
     <div className="flex flex-col gap-1.5">
       <TierKey warmUp={hasWarmUps} rest />
       <ul className="divide-y divide-border" aria-label="Exercises">
-        {toRows(plan).map(({ entry, warmUps }, index) => {
+        {toRows(accessories ? plan.filter((entry) => entry.tier !== "accessory") : plan).map(({ entry, warmUps }, index) => {
           const info = getExercise(entry.substituteExerciseId || entry.exerciseId);
           const original = entry.substituteExerciseId ? getExercise(entry.exerciseId) : null;
           const rest = formatRestDuration(getRestSeconds(entry.tier, trainingPhase));
@@ -161,6 +176,7 @@ export function PlannedExerciseList({ plan, trainingPhase, impact = [] }: Planne
           );
         })}
       </ul>
+      {accessories && <AccessoryRows views={accessories} onChange={onChangeAccessories} />}
       {notDone.length > 0 && (
         <ul aria-label="Not done today" className="flex flex-col gap-1.5 border-t border-border pt-2.5">
           {notDone.map((item) => (

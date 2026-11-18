@@ -5,7 +5,14 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WhyButton } from "@/components/Why";
-import { accessoryScheme, accessorySummary, accessoryWeightText, type AccessoryRowView } from "./accessoryRowModel";
+import {
+  accessoryScheme,
+  accessoryWeightParts,
+  accessoryWeightText,
+  type AccessoryRowView,
+} from "./accessoryRowModel";
+import { nameInSentence } from "./todayModel";
+import { plural } from "@/lib/text";
 import { exercisePageHref } from "./todayModel";
 
 /** Where Today's "Change" goes: the Ready screen, with the accessory sheet open. */
@@ -33,6 +40,7 @@ function ChangeControl({ href, onChange }: { href?: string; onChange?: () => voi
 
 /** One accessory: name, the reason it was picked and its why, weight and sets × reps. */
 function AccessoryRowItem({ view, why }: { view: AccessoryRowView; why: boolean }) {
+  const weight = accessoryWeightParts(view);
   return (
     <li
       data-testid="accessory-row"
@@ -65,14 +73,22 @@ function AccessoryRowItem({ view, why }: { view: AccessoryRowView; why: boolean 
         )}
       </span>
       <span className="text-right">
-        <b
-          className={cn(
-            "block font-display leading-none font-extrabold tabular-nums",
-            view.weight == null ? "text-[13px] text-muted-foreground" : "text-[20px] text-foreground"
+        <span className="flex items-baseline justify-end gap-0.5" aria-label={accessoryWeightText(view)}>
+          <b
+            aria-hidden="true"
+            className={cn(
+              "font-display text-[22px] leading-none font-extrabold tabular-nums",
+              view.weight == null ? "text-muted-foreground" : "text-foreground"
+            )}
+          >
+            {weight.value}
+          </b>
+          {weight.unit && (
+            <span aria-hidden="true" className="text-[12px] text-muted-foreground">
+              {weight.unit}
+            </span>
           )}
-        >
-          {accessoryWeightText(view)}
-        </b>
+        </span>
         <span data-testid="accessory-scheme" className="block font-mono text-[12px] font-medium text-muted-foreground">
           {accessoryScheme(view.sets, view.reps)}
         </span>
@@ -130,10 +146,15 @@ export function AccessoryRows({
             type="button"
             aria-expanded={open}
             onClick={() => setOpen((was) => !was)}
-            className="flex min-h-11 min-w-0 items-center gap-1.5 text-left outline-none focus-visible:rounded-sm focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="flex min-h-[52px] min-w-0 items-center gap-1.5 py-1.5 text-left outline-none focus-visible:rounded-sm focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            <span data-testid="accessory-summary" className="min-w-0 truncate text-[14px] font-semibold text-foreground">
-              {accessorySummary(views).replace(/^\+ /, "")}
+            <span data-testid="accessory-summary" className="min-w-0">
+              <span className="block text-[15px] font-semibold text-foreground">
+                {plural(views.length, "accessory", "accessories")}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {views.map((v) => nameInSentence(v.exerciseId)).join(", ")}
+              </span>
             </span>
             <ChevronDown
               aria-hidden="true"

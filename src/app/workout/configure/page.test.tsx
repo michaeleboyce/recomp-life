@@ -11,6 +11,7 @@ import { formatRestDuration, getRestSeconds } from "@/lib/restTimes";
 import { overridesFromSession } from "@/lib/workout";
 import type { ActivityLog, RunLog } from "@/types";
 import { testFavorite } from "@/components/Favorites/testFavorites";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
 import ConfigureWorkoutPage from "./page";
 
 const toasts = vi.hoisted(() => ({ toast: vi.fn() }));
@@ -57,11 +58,16 @@ describe("configure page", () => {
     expect(screen.getByRole("button", { name: "Gym" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Warm-up sets" })).toBeChecked();
-    // Every set plus its rest, warm-ups included: the same figure Today shows.
+    // The accessories chosen for the day, in their own rows under the lifts (A8).
+    const accessories = screen.getAllByTestId("accessory-row");
+    expect(accessories.length).toBeGreaterThan(0);
+    for (const row of accessories) expect(within(row).getByTestId("accessory-scheme")).toHaveTextContent(/^3×\d+–\d+$/);
+    expect(screen.getByRole("button", { name: "Change accessories" })).toBeInTheDocument();
+    // Every set plus its rest, warm-ups and accessories included: the same figure Today shows.
     // The session-length forecast for this plan with its range; with no history yet it is
     // the length on paper (every set and rest, warm-ups included), as Today shows it.
     await waitFor(() =>
-      expect(screen.getByTestId("ready-length")).toHaveTextContent(/^About 45 min \(\d+ to \d+\), rests included$/)
+      expect(screen.getByTestId("ready-length")).toHaveTextContent(/^About \d+ min \(\d+ to \d+\), rests included$/)
     );
   });
 
@@ -112,7 +118,6 @@ describe("configure page", () => {
       "How are you feeling?",
       "Any pain or soreness?",
       "Technique review (Squat)",
-      "Add accessories",
     ]) {
       const details = screen.getByText(title).closest("details")!;
       expect(details).not.toHaveAttribute("open");
@@ -121,7 +126,6 @@ describe("configure page", () => {
     expect(screen.queryByText("Alternatives for home")).toBeNull();
     // Their evidence lines are still there.
     expect(document.querySelector('[data-evidence="readiness"]')).not.toBeNull();
-    expect(document.querySelector('[data-evidence="accessories-in-cut"]')).not.toBeNull();
   });
 
   it("switching off warm-ups and going home changes the list to what will be performed", async () => {
@@ -271,14 +275,73 @@ describe("configure page", () => {
     expect(screen.queryByText(/Hard yoga session/)).toBeNull();
   });
 
-  it("limits accessories by phase and adds the chosen ones to the list and the estimate", async () => {
+  it("changes the accessories in one sheet: remove, swap, add with search, none today, the mode (A8)", async () => {
     await open();
-    const picker = screen.getByText("Add accessories").closest("details")!;
-    const boxes = within(picker).getAllByRole("checkbox");
-    fireEvent.click(boxes[0]);
-    expect(rows()).toHaveLength(4);
-    await waitFor(() => expect(screen.getByTestId("ready-length")).toHaveTextContent(/^About \d+ min/));
-    expect(screen.getByTestId("ready-length")).not.toHaveTextContent(/^About 45 min/);
+    const before = screen.getAllByTestId("accessory-row").map((row) => row.textContent);
+    fireEvent.click(screen.getByRole("button", { name: "Change accessories" }));
+    const sheet = await screen.findByRole("dialog", { name: /^Accessories · Squat day$/ });
+    const cards = within(sheet).getAllByTestId("accessory-card");
+    expect(cards).toHaveLength(before.length);
+    for (const card of cards) expect(within(card).getByTestId("accessory-minutes")).toHaveTextContent(/^\+\d+ min$/);
+
+    // Remove the first.
+    const first = within(cards[0]).getByRole("button", { name: /^Remove / });
+    const removed = first.getAttribute("aria-label")!.replace(/^Remove /, "");
+    fireEvent.click(first);
+    await waitFor(() => expect(within(sheet).getAllByTestId("accessory-card")).toHaveLength(before.length - 1));
+    expect(screen.getAllByTestId("accessory-row").map((r) => r.textContent).join()).not.toContain(removed);
+
+    // Swap the next for an alternative for the same muscle.
+    const card = within(sheet).getAllByTestId("accessory-card")[0];
+    fireEvent.click(within(card).getByRole("button", { name: "Swap" }));
+    const swapTo = within(card).getAllByRole("button", { name: /^Swap / })[0];
+    const swappedIn = swapTo.getAttribute("aria-label")!.replace(/^Swap /, "");
+    fireEvent.click(swapTo);
+    await waitFor(() => expect(within(sheet).getAllByTestId("accessory-card")[0]).toHaveTextContent(swappedIn));
+
+    // Add from search.
+    fireEvent.click(within(sheet).getByRole("button", { name: "Add" }));
+    expect(within(sheet).getByRole("region", { name: "For today" })).toBeInTheDocument();
+    expect(within(sheet).getByRole("region", { name: "By muscle" })).toBeInTheDocument();
+    fireEvent.change(within(sheet).getByRole("searchbox"), { target: { value: "face" } });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Add Face pulls" }));
+    await waitFor(() => expect(within(sheet).getAllByTestId("accessory-card").at(-1)).toHaveTextContent("Face pulls"));
+
+    // None today, in one tap.
+    fireEvent.click(within(sheet).getByRole("button", { name: "No accessories today" }));
+    await waitFor(() => expect(within(sheet).queryAllByTestId("accessory-card")).toHaveLength(0));
+    expect(screen.getByText("No accessories today", { selector: "span" })).toBeInTheDocument();
+
+    // The mode, saved with the profile.
+    expect(within(sheet).getByTestId("accessory-mode-line")).toHaveTextContent(/chosen for you/);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Ask me" }));
+    await waitFor(async () =>
+      expect((await db.userProfile.toCollection().first())!.settings.accessories).toBe("ask")
+    );
+  });
+
+  it("sets an accessory's weight in place, with the plan's beside it until it is put back", async () => {
+    // Curls pinned to the day, with made-up imported sessions to give them a plan weight.
+    await updateSettings({ accessoryPins: { A1: ["bicep_curls"] } });
+    await db.importedSessions.put(
+      importedSession(
+        [0, 1, 2].map(() => importedSet({ exerciseName: "Bicep Curl", mappedExerciseId: "bicep_curls", weightPerImplementLb: 30, reps: 12 })),
+        { startedAt: new Date(Date.now() - 5 * 24 * HOUR) }
+      )
+    );
+    // Today's "Change" lands here with the sheet open.
+    nav.params = "accessories=open";
+    render(<ConfigureWorkoutPage />);
+    const sheet = await screen.findByRole("dialog", { name: /^Accessories/ });
+    const card = (await within(sheet).findAllByTestId("accessory-card")).find((c) => /Bicep curls/i.test(c.textContent ?? ""))!;
+    expect(within(card).getByRole("textbox", { name: "Bicep curls weight in pounds" })).toHaveValue("30");
+    const heavier = within(card).getByRole("button", { name: / lb heavier$/ });
+    fireEvent.click(heavier);
+    fireEvent.click(heavier);
+    const planYou = await within(sheet).findByTestId("plan-you");
+    expect(planYou).toHaveTextContent(/^Plan \d+ · You \d+/);
+    fireEvent.click(within(planYou).getByRole("button", { name: /^Use plan's weight/ }));
+    await waitFor(() => expect(within(sheet).queryByTestId("plan-you")).toBeNull());
   });
 });
 
@@ -342,7 +405,10 @@ describe("configure page: favourites", () => {
     await waitFor(async () => expect(await db.favoriteWorkouts.count()).toBe(1));
     const saved = (await db.favoriteWorkouts.toArray())[0];
     expect(saved).toMatchObject({ name: "My squat day", templateId: "A1", location: "gym" });
-    expect(saved.snapshot.map((e) => e.tier)).toEqual(["T1", "T2", "T3"]);
+    // The accessories chosen for the day are kept with it.
+    expect(saved.snapshot.map((e) => e.tier).slice(0, 3)).toEqual(["T1", "T2", "T3"]);
+    expect(saved.selectedAccessories.length).toBeGreaterThan(0);
+    expect(saved.snapshot.filter((e) => e.tier === "accessory").map((e) => e.exerciseId)).toEqual(saved.selectedAccessories);
     await waitFor(() => expect(toasts.toast).toHaveBeenCalledWith({ message: "Saved to favourites" }));
   });
 

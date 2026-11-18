@@ -183,12 +183,12 @@ describe("NextWorkoutHero", () => {
     );
     const summary = within(block).queryByTestId("accessory-summary");
     if (summary) {
-      expect(summary).toHaveTextContent(/^\d+ accessories · /);
+      expect(summary).toHaveTextContent(/^\d+ accessories\S/);
       fireEvent.click(within(block).getByRole("button", { expanded: false }));
     }
     const rows = within(block).getAllByTestId("accessory-row");
     expect(rows.length).toBeGreaterThan(0);
-    for (const row of rows) expect(within(row).getByTestId("accessory-scheme")).toHaveTextContent(/^\d+ × \d+/);
+    for (const row of rows) expect(within(row).getByTestId("accessory-scheme")).toHaveTextContent(/^\d+×\d+/);
   });
 
   it("offers Resume, not a second Start, while a workout is open", async () => {

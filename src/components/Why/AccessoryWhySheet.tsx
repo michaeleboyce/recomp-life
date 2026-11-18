@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import type { WorkoutLocation } from "@/types";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Stripes } from "@/components/ui/stripes";
-import { accessoryRowViews, accessoryScheme, accessoryWeightText } from "@/components/Today/accessoryRowModel";
+import { accessoryRowViews, accessoryScheme, accessoryWeightParts, accessoryWeightText } from "@/components/Today/accessoryRowModel";
 import { basisTitle, lastTimeText, rankText, scorePartLines, signed } from "./accessoryWhy";
 import { setWhyInUrl } from "./whyParam";
 
@@ -32,6 +32,7 @@ export function AccessoryWhySheet({ exerciseId, location }: { exerciseId: string
   const last = lastTimeText(prescription);
   const rank = pick ? rankText(pick, ranked) : null;
   const top = prescription.reps.max;
+  const weight = accessoryWeightParts(view);
 
   return (
     <Sheet open onOpenChange={(open) => !open && close()}>
@@ -46,14 +47,14 @@ export function AccessoryWhySheet({ exerciseId, location }: { exerciseId: string
       >
         <SheetHeader className="relative gap-2 px-5 pb-2">
           <SheetTitle className="pr-12 text-xs font-semibold tracking-[0.16em] text-tier-accessory uppercase">
-            Accessory · {view.name} · why this one
+            Accessory · {view.name}
           </SheetTitle>
-          <div className="flex items-baseline gap-2">
-            <span data-slot="why-result" className="font-display text-5xl leading-[0.9] font-extrabold tabular-nums">
-              {accessoryWeightText(view)}
+          <div className="flex items-baseline gap-2" aria-label={`${accessoryWeightText(view)}, ${accessoryScheme(view.sets, view.reps)}`}>
+            <span data-slot="why-result" className="font-display text-6xl leading-[0.9] font-extrabold tabular-nums">
+              {weight.value}
             </span>
             <span className="font-display text-base font-bold whitespace-nowrap text-muted-foreground uppercase">
-              {accessoryScheme(view.sets, view.reps)}
+              {[weight.value === "—" ? "no weight yet" : `lb${weight.unit}`, accessoryScheme(view.sets, view.reps)].join(" · ")}
             </span>
           </div>
           <SheetDescription className="text-[13px] text-muted-foreground">
