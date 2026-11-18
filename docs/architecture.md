@@ -20,7 +20,7 @@ raw Tailwind palette classes), with the exceptions in `src/architecture.allowlis
 | Data layer | `src/lib/data/*.ts` | The only code that writes Dexie. Every synced write goes through `stamp.ts` (sets `updatedAt`, marks the row unsynced). |
 | Sync client | `src/lib/sync.ts`, `src/lib/sync/*` | Talks to `/api/sync` and merges into Dexie. |
 | Hooks | `src/hooks/*.ts`, exported from `src/hooks/index.ts` | Live reads (`useLiveQuery`), returning `undefined` while loading. Soft-deleted rows are filtered with `liveRows`. Hooks gather and memoise; the sums are in `src/lib`. |
-| Stores | `src/stores/workoutStore.ts` (Zustand) | Transient UI state of the active workout only. Losing it loses no progress: logged sets are on the workout row. |
+| Stores | `src/stores/workoutStore.ts` (Zustand) | Transient UI state of the active workout only: the viewed entry, the accepted and declined T2 drops, the rest timer. Losing it loses no progress: logged sets, plan edits and the start time are on the workout row. Who owns each piece is mapped at the top of `components/ActiveWorkout/useActiveWorkout.ts`. |
 | Components | `src/components/<Feature>/` | Render what hooks and pure functions return; write through `src/lib/data`. |
 | Routes | `src/app/**/page.tsx` | Thin pages composing components, almost all client components (`"use client"`). A page with an id in its path is a server file that lists its ids (`generateStaticParams`, needed by the static export) and renders a client component; old addresses redirect. |
 | API | `src/app/api/sync/{push,pull,status}/route.ts` | Server only. Validation and SQL building in `src/lib/syncGuard.ts`; response helpers in `src/app/api/sync/respond.ts`. |

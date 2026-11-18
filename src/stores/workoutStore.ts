@@ -8,12 +8,18 @@ export type { WorkoutExerciseState };
 /**
  * Transient UI state for the active workout. Nothing here is the record of what
  * was done: logged sets live on the workout row (see `useWorkout`) and the plan is
- * rebuilt from it, so losing this store (reload, app eviction) loses no progress.
+ * rebuilt from it, so losing this store (reload, app eviction) loses no progress. The
+ * start time is the session's (`startedAt`), not kept here. Each field has one owner
+ * (the map at the top of `useActiveWorkout`):
+ * - view: `sessionId`, `viewedEntryIndex` (`useWorkoutView`);
+ * - the next set's draft: `pendingDrop`, `dismissedDropEntryIndex` (`useSetDraft`);
+ * - the rest timer: the `rest*` fields (`restCountdown.ts` starts and skips it,
+ *   `RestTimer` ticks and ends it).
+ * It is kept in memory only, so it outlives leaving the screen but not a reload.
  */
 interface WorkoutStore {
   /** The workout this state belongs to. */
   sessionId: string | null;
-  workoutStartTime: Date | null;
   /** Plan entry the user jumped to from the overview; null follows the plan order. */
   viewedEntryIndex: number | null;
   /** A T2 load drop the user accepted that no logged set reflects yet. */
@@ -28,7 +34,7 @@ interface WorkoutStore {
   restTier: Tier | null;
 
   /** Starts tracking a workout; a different id clears everything else first. */
-  beginSession: (sessionId: string, startedAt: Date) => void;
+  beginSession: (sessionId: string) => void;
   viewEntry: (index: number | null) => void;
   acceptDrop: (entryIndex: number, weight: number) => void;
   clearPendingDrop: () => void;
@@ -41,7 +47,6 @@ interface WorkoutStore {
 
 const initialState = {
   sessionId: null as string | null,
-  workoutStartTime: null as Date | null,
   viewedEntryIndex: null as number | null,
   pendingDrop: null as { entryIndex: number; weight: number } | null,
   dismissedDropEntryIndex: null as number | null,
@@ -61,9 +66,9 @@ const restCleared = {
 export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
   ...initialState,
 
-  beginSession: (sessionId, startedAt) => {
+  beginSession: (sessionId) => {
     if (get().sessionId === sessionId) return;
-    set({ ...initialState, sessionId, workoutStartTime: startedAt });
+    set({ ...initialState, sessionId });
   },
 
   viewEntry: (index) => set({ viewedEntryIndex: index }),

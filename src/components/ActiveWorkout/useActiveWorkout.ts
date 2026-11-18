@@ -1,5 +1,45 @@
 "use client";
 
+/*
+ * State map of the active workout: one owner for each piece. "Reload" is a page reload
+ * (React state and the store are gone; the database and sessionStorage stay). "Remount"
+ * is leaving the screen and coming back, Today then Resume (React state is gone; the
+ * workout store, a module singleton, stays). This hook composes the owners and keeps
+ * the screen's interface; of its own it holds only saving, finishing and error state.
+ *
+ * The saved session owns what happened (useSessionRecord)
+ * | State            | Lives in            | Written by                                   | Reset by       | Reload | Remount |
+ * |------------------|---------------------|----------------------------------------------|----------------|--------|---------|
+ * | logged sets      | session row (Dexie) | appendSet (logSet, logDropSet, correction), commitLogChange (delete, undo) | never | kept | kept |
+ * | plan edits       | session row (Dexie) | appendPlanEdit via saveAdd / saveChange       | never          | kept   | kept    |
+ * | start time       | session row         | startWorkout only (read, never copied)       | never          | kept   | kept    |
+ * | frozen plan      | React, per session  | first load (planForSession); saveAdd lays an add on it, saveChange sets the returned plan | another session | planned again from the session | same |
+ *
+ * The draft owns the next set (useSetDraft; pure parts in setDraft.ts)
+ * | reps, effort picked    | React, by "entry:set" | setSelectedReps / setSelectedRepsInReserve | another set; deleting a set | lost | lost |
+ * | weights on the spot    | React + sessionStorage | setSetWeight / setNextWeight | back to plan; a replaced entry's | kept | kept |
+ * | accepted T2 drop       | workout store | acceptDrop | a set logged, deleted or swapped on its entry; another session | lost | kept |
+ * | declined T2 drop       | workout store | keepWeight | another session | lost | kept |
+ * | next drop (drop sets)  | React, per session | useDropSets (start, weight, reps, log) | endDropSets | lost | lost |
+ *
+ * The timer owns the rest (store fields isRestTimerActive, restTimeRemaining,
+ * restTimerDuration, restTier): started and skipped only through restCountdown.ts
+ * (after a set, after drops; skipped by a jump, a swap to a replacement, ending early,
+ * starting drops, deleting the latest set), ticked and ended by RestTimer. Lost on a
+ * reload, kept on a remount.
+ *
+ * View state (useWorkoutView; sheets and dialogs are the page's own state)
+ * | viewed entry      | workout store | logSet (an entry's last set), jumpTo, swap, delete | another session | lost: resumes at the first unfinished entry | kept |
+ * | ended early at    | React         | endEarly                                           | never           | lost | lost |
+ * | e1RM flash        | React + timer | logSet                                             | 3 s; drops, correction, swap, jump | lost | lost |
+ *
+ * Not one lifetime for the draft: its parts keep the lifetimes they had (picks lost on
+ * a remount, spot weights kept over a reload, drops kept over a remount only), as
+ * changing any would change what the lifter sees. The frozen plan is the one copy of
+ * the session's plan edits, kept so that an edit shows at once and nothing is planned
+ * again from lift states that finishing moves.
+ */
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -13,40 +53,27 @@ import {
 import { liftName } from "@/components/LogEdit/format";
 import { toast } from "@/components/ui/toast";
 import { commitLogChange } from "@/lib/data/logEdits";
-import { appendPlanEdit, appendSet, discardWorkout, finishWorkout } from "@/lib/data/workouts";
+import { appendSet, discardWorkout, finishWorkout } from "@/lib/data/workouts";
 import { calculateE1RM, isE1RMEligibleSet } from "@/lib/e1rm";
-import { EXERCISES } from "@/lib/exercises";
 import type { LogChange } from "@/lib/rebuild";
-import { getRestSeconds } from "@/lib/restTimes";
 import {
-  applyPlanEdits,
   createSetLog,
   isNextSetAMRAP,
-  nextStep,
-  type WorkoutExerciseState,
   type WorkoutPlan,
 } from "@/lib/workout";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { midWorkoutRemove, midWorkoutSwap, type MidWorkoutChange, type SwapReplacement } from "@/lib/swap";
-import type { PlanEdit, RepsInReserve, SetLog, Tier, TrainingPhase } from "@/types";
+import type { RepsInReserve, SetLog, Tier, TrainingPhase } from "@/types";
 import {
-  clampReps,
   correctedSet,
   dropSuggestionFor,
-  entryAfter,
   entryIndexForSet,
   isDropAccepted,
   isLatestSetOfEntry,
-  nextIncompleteIndex,
-  resolveActiveIndex,
 } from "./activeWorkoutLogic";
-import { planForSession } from "@/lib/workout/planForSession";
 import { getPrOpportunity } from "./prOpportunity";
 import {
-  attachDrops,
-  buildDropSet,
-  dropSetWeight,
   exerciseForLog,
   minWeightFor,
   nextSetView,
@@ -55,33 +82,22 @@ import {
   spotKey,
   spotWeightsOf,
   weightStepFor,
-  type SpotWeightsByKey,
 } from "./setPlan";
 import { clampWeight } from "@/components/SetPlan/setPlanModel";
-import { loadSpotWeights, saveSpotWeights } from "./spotWeightStorage";
-
-const NO_SPOT_WEIGHTS: SpotWeightsByKey = {};
+import { withPendingDrop } from "./setDraft";
+import { useSetDraft } from "./useSetDraft";
+import { useSessionRecord } from "./useSessionRecord";
+import { addEditFor, type AddedPrescription } from "./planChanges";
+import { useDropSets } from "./useDropSets";
+import { useTapGuard } from "./useTapGuard";
+import { screenIndexes, useWorkoutView } from "./useWorkoutView";
+import { afterSetLogged, restTimer } from "./restCountdown";
 
 /** The exercise a set was done with: the substitute when there was one. */
 const performedId = (set: Pick<SetLog, "exerciseId" | "substituteExerciseId">) =>
   set.substituteExerciseId || set.exerciseId;
 
-/**
- * Drop sets in progress (UI state; every drop logged is on the workout row): the set
- * the drops continue, the set the next drop continues, and its weight and reps.
- */
-interface DropState {
-  sessionId: string;
-  rootId: string;
-  parentId: string;
-  weight: number;
-  reps: number;
-  /** The reps the drop was set up with (the set before's), for the rep chips. */
-  suggestedReps: number;
-}
-
 const DEFAULT_PHASE: TrainingPhase = { mode: "maintaining" };
-const E1RM_FLASH_MS = 3000;
 
 export type ActiveWorkoutStatus =
   /** Records are still being read. */
@@ -114,32 +130,16 @@ export function useActiveWorkout(
   options: { tapGuardMs?: number } = {}
 ) {
   const tapGuardMs = options.tapGuardMs ?? logTapGuard.ms;
-  const lastLogAt = useRef(0);
+  const guard = useTapGuard(tapGuardMs);
   const session = useWorkout(sessionId);
   const settings = useSettings();
   const liftStates = useLiftStates();
   const variantStates = useVariantStates();
   const strengthSets = useStrengthEvidence();
 
-  const viewedEntryIndex = useWorkoutStore((s) => s.viewedEntryIndex);
-  const pendingDrop = useWorkoutStore((s) => s.pendingDrop);
-  const dismissedDropEntryIndex = useWorkoutStore((s) => s.dismissedDropEntryIndex);
-  const workoutStartTime = useWorkoutStore((s) => s.workoutStartTime);
-  const storeSessionId = useWorkoutStore((s) => s.sessionId);
-
-  // Index of the entry that was on screen when the user chose to end early.
-  const [endedAtIndex, setEndedAtIndex] = useState<number | null>(null);
-  const [repsChoice, setRepsChoice] = useState<{ key: string; reps: number } | null>(null);
-  const [repsInReserveChoice, setRepsInReserveChoice] = useState<{
-    key: string;
-    repsInReserve: RepsInReserve;
-  } | null>(null);
-  // Weights changed on the spot from the set chips, each for its own set (by `spotKey`).
-  const [spotChoice, setSpotChoice] = useState<{ sessionId: string; weights: SpotWeightsByKey } | null>(
-    null
-  );
-  const [dropState, setDropState] = useState<DropState | null>(null);
-  const [e1rmFlash, setE1rmFlash] = useState<number | null>(null);
+  // View state: the entry shown, ended early, the e1RM flash.
+  const { storeReady, viewedEntryIndex, viewEntry, endedAtIndex, endAt, e1rmFlash, flashE1rm, clearFlash } =
+    useWorkoutView(session);
   // Id of a set that has been written but is not yet visible on the live record.
   const [awaitingSetId, setAwaitingSetId] = useState<string | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -149,67 +149,47 @@ export function useActiveWorkout(
   const template = session ? WORKOUT_TEMPLATES[session.templateId] : undefined;
   const trainingPhase = settings?.trainingPhase ?? DEFAULT_PHASE;
 
-  // The plan as prescribed when the workout started (its stored prescription, home
-  // exercises' included; the current lift and home-exercise states only for a session
-  // that has none). Frozen per session so that saving the workout (which moves the
-  // states) cannot reshuffle it, so it waits for every state it reads.
-  const [frozen, setFrozen] = useState<{ sessionId: string; plan: WorkoutPlan } | null>(null);
-  if (
-    session &&
-    settings &&
-    liftStates &&
-    variantStates &&
-    strengthSets &&
-    template &&
-    frozen?.sessionId !== session.id
-  ) {
-    setFrozen({
-      sessionId: session.id,
-      plan: planForSession({
-        session,
-        template,
-        liftStates,
-        equipment: settings.equipment,
-        variantStates,
-        strengthSets,
-      }),
-    });
-  }
-  const basePlan = session && frozen?.sessionId === session.id ? frozen.plan : null;
+  // The saved session: its sets, start time and plan edits, and the plan frozen from it.
+  const { basePlan, sets, workoutStartTime, saveAdd, saveChange } = useSessionRecord(session, {
+    settings,
+    liftStates,
+    variantStates,
+    strengthSets,
+    template,
+  });
 
-  useEffect(() => {
-    if (session) {
-      useWorkoutStore.getState().beginSession(session.id, new Date(session.startedAt));
-    }
-  }, [session]);
-  const storeReady = !!session && storeSessionId === session.id;
-
-  const sets = useMemo(() => session?.sets ?? [], [session]);
-  // Kept per workout in sessionStorage, so a reload keeps the weights changed on the spot.
-  if (session && spotChoice?.sessionId !== session.id) {
-    setSpotChoice({ sessionId: session.id, weights: loadSpotWeights(session.id) });
-  }
-  const spotWeights = useMemo<SpotWeightsByKey>(
-    () => (session && spotChoice?.sessionId === session.id ? spotChoice.weights : NO_SPOT_WEIGHTS),
-    [session, spotChoice]
-  );
+  // The next set's draft: reps and effort picked, weights changed on the spot, T2 drops.
+  const {
+    repsFor,
+    repsInReserveFor,
+    pickReps,
+    pickRepsInReserve,
+    clearPicks,
+    spotWeights,
+    setSpotWeight,
+    clearEntrySpotWeights,
+    pendingDrop,
+    dismissedDropEntryIndex,
+    acceptDrop: acceptDropOn,
+    dismissDrop,
+    clearPendingDropOn,
+    drop,
+    startDrop,
+    continueDrop,
+    setDropWeightAtLeast,
+    setDropReps: setDraftDropReps,
+    endDrop,
+  } = useSetDraft(session?.id ?? null);
 
   // Drop sets continue a set and are not sets of their entry; a per-set entry keeps its
   // working weight (each set's own is in `perSet`); a weight changed on the spot is for
   // its own set alone.
   const plan = useMemo<WorkoutPlan>(() => {
     if (!basePlan) return [];
-    const rehydrated = screenPlan(basePlan, sets, spotWeights);
-    if (!storeReady || !pendingDrop) return rehydrated;
-    return rehydrated.map((entry, i) =>
-      i === pendingDrop.entryIndex && entry.completedSets < entry.targetSets
-        ? { ...entry, weight: pendingDrop.weight }
-        : entry
-    );
+    return withPendingDrop(screenPlan(basePlan, sets, spotWeights), storeReady ? pendingDrop : null);
   }, [basePlan, sets, spotWeights, pendingDrop, storeReady]);
 
-  const naturalIndex = resolveActiveIndex(plan, storeReady ? viewedEntryIndex : null);
-  const activeIndex = endedAtIndex != null ? plan.length : naturalIndex;
+  const { naturalIndex, activeIndex } = screenIndexes(plan, viewedEntryIndex, endedAtIndex);
   const planEntry = plan[activeIndex];
   const baseEntry = basePlan?.[activeIndex];
   const isAMRAPSet = planEntry ? isNextSetAMRAP(planEntry) : false;
@@ -224,10 +204,9 @@ export function useActiveWorkout(
     () => (planEntry ? nextSetView(planEntry, weightOverride) : undefined),
     [planEntry, weightOverride]
   );
-  const selectedReps =
-    entry && repsChoice?.key === setKey ? repsChoice.reps : (entry?.targetReps ?? 0);
-  const selectedRepsInReserve =
-    repsInReserveChoice?.key === setKey ? repsInReserveChoice.repsInReserve : null;
+  const pickedReps = repsFor(setKey);
+  const selectedReps = entry && pickedReps !== undefined ? pickedReps : (entry?.targetReps ?? 0);
+  const selectedRepsInReserve = repsInReserveFor(setKey);
 
   const equipment = settings?.equipment;
   const location = session?.location ?? "gym";
@@ -276,8 +255,8 @@ export function useActiveWorkout(
 
   const logSet = useCallback(async () => {
     if (!session || !entry || !planEntry || !baseEntry || isSaving) return;
-    if (Date.now() - lastLogAt.current < tapGuardMs) return;
-    lastLogAt.current = Date.now();
+    if (guard.tooSoon()) return;
+    guard.mark();
     setError(null);
 
     // The set's own weight, reps and role come from the plan entry (per-set weights),
@@ -314,36 +293,21 @@ export function useActiveWorkout(
       console.error("Failed to save set:", err);
       setAwaitingSetId(null);
       // A failed save must not block the retry.
-      lastLogAt.current = 0;
+      guard.release();
       setError("That set could not be saved. Try again.");
       return;
     }
 
-    if (e1rm) {
-      setE1rmFlash(e1rm);
-      setTimeout(() => setE1rmFlash(null), E1RM_FLASH_MS);
-    }
+    if (e1rm) flashE1rm(e1rm);
 
-    const store = useWorkoutStore.getState();
-    if (store.pendingDrop?.entryIndex === activeIndex) store.clearPendingDrop();
+    clearPendingDropOn(activeIndex);
 
-    const step = nextStep(plan, activeIndex);
-    if (step === "rest") {
-      store.startRestTimer(getRestSeconds(entry.tier, trainingPhase), entry.tier);
-    } else {
-      // Last set of the entry: on to whatever is next. A working lift's last set is
-      // still followed by its rest (the rest screen then shows how the set compared
-      // with its forecast); a warm-up goes straight on.
-      const after = plan.map((e, i) =>
-        i === activeIndex ? { ...e, completedSets: e.completedSets + 1 } : e
-      );
-      store.viewEntry(entryAfter(after, activeIndex));
-      if (step === "next-exercise" && !entry.isWarmUp && nextIncompleteIndex(after) !== -1) {
-        store.startRestTimer(getRestSeconds(entry.tier, trainingPhase), entry.tier);
-      }
-    }
+    // Another set of the entry after its rest, or on to whatever is next.
+    const after = afterSetLogged(plan, activeIndex);
+    if (after.view !== undefined) viewEntry(after.view);
+    if (after.rest) restTimer.start(entry.tier, trainingPhase);
   }, [
-    tapGuardMs,
+    guard,
     session,
     entry,
     planEntry,
@@ -356,6 +320,9 @@ export function useActiveWorkout(
     activeIndex,
     plan,
     trainingPhase,
+    clearPendingDropOn,
+    flashE1rm,
+    viewEntry,
   ]);
 
   /**
@@ -368,16 +335,10 @@ export function useActiveWorkout(
       const key = spotKey(activeIndex, setIndex);
       const planned = setChips[setIndex]?.planWeight;
       const value = weight != null && Number.isFinite(weight) ? clampWeight(weight, minWeight, maxWeight) : null;
-      setSpotChoice((was) => {
-        const weights: Record<string, number> = { ...(was?.sessionId === session.id ? was.weights : {}) };
-        // Stepping back onto the plan's weight is the plan again.
-        if (value == null || value === planned) delete weights[key];
-        else weights[key] = value;
-        saveSpotWeights(session.id, weights);
-        return { sessionId: session.id, weights };
-      });
+      // Stepping back onto the plan's weight is the plan again.
+      setSpotWeight(key, value, planned);
     },
-    [session, planEntry, activeIndex, minWeight, maxWeight, setChips]
+    [session, planEntry, activeIndex, minWeight, maxWeight, setChips, setSpotWeight]
   );
 
   /** Changes the next set's weight on the spot; null goes back to the planned weight. */
@@ -389,155 +350,40 @@ export function useActiveWorkout(
   );
 
   // --- Drop sets -------------------------------------------------------------------
-
-  // The set a drop would continue: the latest set logged, when it is not a warm-up.
-  const latestSet = sets.at(-1);
-  const dropFrom = latestSet && latestSet.tier !== "warmup" ? latestSet : null;
-  const dropStart =
-    dropFrom && equipment
-      ? dropSetWeight(dropFrom.weight, performedId(dropFrom), dropFrom.location, equipment)
-      : null;
-  /** The weight a drop after the latest set starts at; null when no lighter drop is possible. */
-  const dropPreview =
-    dropFrom && dropStart != null && dropStart < dropFrom.weight ? dropStart : null;
-
-  const activeDrop = dropState && session && dropState.sessionId === session.id ? dropState : null;
-  const dropSet = useMemo(() => {
-    if (!activeDrop || !equipment) return null;
-    const chain = attachDrops(sets).find((row) => row.set.id === activeDrop.rootId);
-    if (!chain) return null;
-    const root = chain.set;
-    const planned = plan[entryIndexForSet(plan, root)];
-    const exercise: WorkoutExerciseState = {
-      exerciseId: root.exerciseId,
-      ...(root.substituteExerciseId ? { substituteExerciseId: root.substituteExerciseId } : {}),
-      tier: root.tier,
-      targetSets: 1,
-      targetReps: activeDrop.reps,
-      weight: activeDrop.weight,
-      ...(planned?.originalWeight != null ? { originalWeight: planned.originalWeight } : {}),
-      isAMRAP: false,
-      isWarmUp: false,
-      completedSets: 0,
-    };
-    return {
-      /** The set the drops continue, and the drops logged after it so far. */
-      root,
-      drops: chain.drops,
-      weight: activeDrop.weight,
-      reps: activeDrop.reps,
-      suggestedReps: activeDrop.suggestedReps,
-      /** The drop as an entry, for the weight display. */
-      exercise,
-      step: weightStepFor(performedId(root), root.location, equipment),
-      minWeight: minWeightFor(performedId(root), root.location, equipment),
-    };
-  }, [activeDrop, equipment, sets, plan]);
-
-  /**
-   * Goes on from the latest set at a lighter weight (`dropPreview`): the rest stops and
-   * the drop is set up, to be adjusted and logged.
-   */
-  const startDropSet = useCallback(() => {
-    if (!session || !dropFrom || dropPreview == null) return;
-    if (Date.now() - lastLogAt.current < tapGuardMs) return;
-    lastLogAt.current = Date.now();
-    useWorkoutStore.getState().skipRest();
-    setE1rmFlash(null);
-    const rootId =
-      dropFrom.role === "drop"
-        ? (attachDrops(sets).find((row) => row.drops.some((d) => d.id === dropFrom.id))?.set.id ??
-          dropFrom.id)
-        : dropFrom.id;
-    const reps = dropFrom.actualReps > 0 ? dropFrom.actualReps : dropFrom.targetReps;
-    setDropState({
-      sessionId: session.id,
-      rootId,
-      parentId: dropFrom.id,
-      weight: dropPreview,
-      reps,
-      suggestedReps: reps,
-    });
-  }, [session, dropFrom, dropPreview, tapGuardMs, sets]);
-
-  const setDropWeight = useCallback(
-    (weight: number) =>
-      setDropState((drop) =>
-        drop ? { ...drop, weight: Math.max(dropSet?.minWeight ?? 0, weight) } : drop
-      ),
-    [dropSet?.minWeight]
-  );
-  const setDropReps = useCallback(
-    (reps: number) => setDropState((drop) => (drop ? { ...drop, reps: clampReps(reps) } : drop)),
-    []
-  );
-
-  /**
-   * Logs the drop: a row with role "drop" continuing the set before it. No rest starts;
-   * the next drop is set up from this one, about as much lighter again.
-   */
-  const logDropSet = useCallback(async () => {
-    if (!session || !activeDrop || !equipment || isSaving) return;
-    if (Date.now() - lastLogAt.current < tapGuardMs) return;
-    const parent = sets.find((set) => set.id === activeDrop.parentId);
-    if (!parent) return;
-    lastLogAt.current = Date.now();
-    setError(null);
-
-    const drop = buildDropSet({
-      parent,
-      weight: activeDrop.weight,
-      actualReps: activeDrop.reps,
-      repsInReserve: null,
-      now: new Date(),
-      id: uuidv4(),
-      clientId: uuidv4(),
-    });
-    setAwaitingSetId(drop.id);
-    try {
-      await appendSet(session.id, drop);
-    } catch (err) {
-      console.error("Failed to save drop set:", err);
-      setAwaitingSetId(null);
-      lastLogAt.current = 0;
-      setError("That drop could not be saved. Try again.");
-      return;
-    }
-    const next = dropSetWeight(drop.weight, performedId(drop), drop.location, equipment);
-    const reps = drop.actualReps > 0 ? drop.actualReps : activeDrop.reps;
-    setDropState({ ...activeDrop, parentId: drop.id, weight: next, reps, suggestedReps: reps });
-  }, [session, activeDrop, equipment, isSaving, tapGuardMs, sets]);
-
-  /** No more drops: the rest that follows the set starts, when anything is left to do. */
-  const endDropSets = useCallback(() => {
-    if (!activeDrop) return;
-    lastLogAt.current = Date.now();
-    const root = sets.find((set) => set.id === activeDrop.rootId);
-    setDropState(null);
-    if (root && root.tier !== "warmup" && endedAtIndex == null && nextIncompleteIndex(plan) !== -1) {
-      useWorkoutStore.getState().startRestTimer(getRestSeconds(root.tier, trainingPhase), root.tier);
-    }
-  }, [activeDrop, sets, endedAtIndex, plan, trainingPhase]);
+  const { dropPreview, dropSet, startDropSet, setDropWeight, setDropReps, logDropSet, endDropSets } = useDropSets({
+    session,
+    sets,
+    plan,
+    equipment,
+    isSaving,
+    endedEarly: endedAtIndex != null,
+    trainingPhase,
+    guard,
+    draft: { drop, startDrop, continueDrop, setDropWeightAtLeast, setDropReps: setDraftDropReps, endDrop },
+    setAwaitingSetId,
+    setError,
+    clearFlash,
+  });
 
   const setSelectedReps = useCallback(
-    (reps: number) => setRepsChoice({ key: setKey, reps: clampReps(reps) }),
-    [setKey]
+    (reps: number) => pickReps(setKey, reps),
+    [setKey, pickReps]
   );
   const setSelectedRepsInReserve = useCallback(
     (repsInReserve: RepsInReserve | null) =>
-      setRepsInReserveChoice(repsInReserve == null ? null : { key: setKey, repsInReserve }),
-    [setKey]
+      pickRepsInReserve(setKey, repsInReserve),
+    [setKey, pickRepsInReserve]
   );
 
   const acceptDrop = useCallback(() => {
     if (dropSuggestion) {
-      useWorkoutStore.getState().acceptDrop(activeIndex, dropSuggestion.reducedWeight);
+      acceptDropOn(activeIndex, dropSuggestion.reducedWeight);
     }
-  }, [dropSuggestion, activeIndex]);
+  }, [dropSuggestion, activeIndex, acceptDropOn]);
 
   const keepWeight = useCallback(() => {
-    useWorkoutStore.getState().dismissDrop(activeIndex);
-  }, [activeIndex]);
+    dismissDrop(activeIndex);
+  }, [activeIndex, dismissDrop]);
 
   // What an Undo tapped later has to check against: the sets and plan as they are then.
   const latest = useRef<{ sets: typeof sets; plan: WorkoutPlan }>({ sets, plan });
@@ -574,7 +420,7 @@ export function useActiveWorkout(
           setCorrectionError("That change could not be saved. Try again.");
           return false;
         }
-        setE1rmFlash(null);
+        clearFlash();
         toast({
           message: `${label} corrected`,
           action: {
@@ -616,17 +462,15 @@ export function useActiveWorkout(
       // The log button waits for the set it just wrote to show up; that set is gone.
       setAwaitingSetId((id) => (id === original.id ? null : id));
       // Start the set over from its target, not from what was picked for the deleted one.
-      setRepsChoice(null);
-      setRepsInReserveChoice(null);
-      const store = useWorkoutStore.getState();
+      clearPicks();
       // The rest that followed the deleted set is over: it is the next set to do.
-      if (wasMostRecent) store.skipRest();
+      if (wasMostRecent) restTimer.skip();
       const index = entryIndexForSet(plan, original);
       if (index !== -1) {
-        if (store.pendingDrop?.entryIndex === index) store.clearPendingDrop();
-        store.viewEntry(index);
+        clearPendingDropOn(index);
+        viewEntry(index);
       }
-      setE1rmFlash(null);
+      clearFlash();
       toast({
         message: `${label} deleted`,
         action: {
@@ -652,7 +496,7 @@ export function useActiveWorkout(
       });
       return true;
     },
-    [session, sets, plan]
+    [session, sets, plan, clearPicks, clearPendingDropOn, viewEntry, clearFlash]
   );
 
   const clearCorrectionError = useCallback(() => setCorrectionError(null), []);
@@ -666,31 +510,13 @@ export function useActiveWorkout(
    * not a whole number of sets and reps with a weight of at least 0.
    */
   const addExercise = useCallback(
-    async (
-      exerciseId: string,
-      prescription: { sets: number; reps: number; weight: number; isAMRAP: boolean }
-    ): Promise<void> => {
-      if (!session || !basePlan || frozen?.sessionId !== session.id) throw new Error("The workout is still loading.");
+    async (exerciseId: string, prescription: AddedPrescription): Promise<void> => {
+      if (!session || !basePlan) throw new Error("The workout is still loading.");
       if (session.completedAt != null) throw new Error("This workout is already saved.");
-      const exercise = EXERCISES[exerciseId];
-      if (!exercise) throw new Error("That exercise is not in the library.");
-      const { sets: count, reps, weight, isAMRAP } = prescription;
-      if (!Number.isInteger(count) || count < 1 || !Number.isInteger(reps) || reps < 1) {
-        throw new Error("Sets and reps must be whole numbers of at least 1.");
-      }
-      if (!Number.isFinite(weight) || weight < 0) throw new Error("The weight must be 0 or more.");
-      const inPlan = basePlan.some(
-        (e) => !e.isWarmUp && (e.exerciseId === exerciseId || e.substituteExerciseId === exerciseId)
-      );
-      if (inPlan) throw new Error(`${exercise.name} is already in this workout.`);
-      const edit: PlanEdit = { kind: "add", exerciseId, sets: count, reps, weight, isAMRAP };
-      await appendPlanEdit(session.id, edit);
       // The frozen plan is planned once per session: the new entry goes on its end.
-      setFrozen((was) =>
-        was && was.sessionId === session.id ? { sessionId: was.sessionId, plan: applyPlanEdits(was.plan, [edit]) } : was
-      );
+      await saveAdd(session.id, addEditFor(basePlan, exerciseId, prescription));
     },
-    [session, basePlan, frozen]
+    [session, basePlan, saveAdd]
   );
 
   /**
@@ -702,30 +528,21 @@ export function useActiveWorkout(
   const applyChange = useCallback(
     async (change: MidWorkoutChange, index: number) => {
       if (!session) return;
-      for (const edit of change.edits) await appendPlanEdit(session.id, edit);
-      setFrozen((was) => (was && was.sessionId === session.id ? { sessionId: was.sessionId, plan: change.plan } : was));
-      if (change.mode === "replaced") {
-        setSpotChoice((was) => {
-          if (!was || was.sessionId !== session.id) return was;
-          const weights = Object.fromEntries(Object.entries(was.weights).filter(([key]) => !key.startsWith(`${index}:`)));
-          saveSpotWeights(session.id, weights);
-          return { sessionId: session.id, weights };
-        });
-      }
-      const store = useWorkoutStore.getState();
-      if (store.pendingDrop?.entryIndex === index) store.clearPendingDrop();
+      await saveChange(session.id, change);
+      if (change.mode === "replaced") clearEntrySpotWeights(index);
+      clearPendingDropOn(index);
     },
-    [session]
+    [session, saveChange, clearEntrySpotWeights, clearPendingDropOn]
   );
 
   const changeFor = useCallback(
     (exerciseId: string, tier: Tier) => {
-      if (!session || !basePlan || frozen?.sessionId !== session.id) throw new Error("The workout is still loading.");
+      if (!session || !basePlan) throw new Error("The workout is still loading.");
       if (session.completedAt != null) throw new Error("This workout is already saved.");
       const index = basePlan.findIndex((e) => !e.isWarmUp && e.exerciseId === exerciseId && e.tier === tier);
       return { plan: basePlan, sets, exerciseId, tier, index };
     },
-    [session, basePlan, frozen, sets]
+    [session, basePlan, sets]
   );
 
   /**
@@ -742,13 +559,12 @@ export function useActiveWorkout(
       await applyChange(change, index);
       const to = change.replacementIndexes[0];
       if (to != null && to >= 0) {
-        const store = useWorkoutStore.getState();
-        store.skipRest();
-        store.viewEntry(to);
-        setE1rmFlash(null);
+        restTimer.skip();
+        viewEntry(to);
+        clearFlash();
       }
     },
-    [changeFor, applyChange]
+    [changeFor, applyChange, viewEntry, clearFlash]
   );
 
   /** Removes an exercise with no set logged (`midWorkoutRemove`): hidden, its warm-ups skipped. */
@@ -761,16 +577,15 @@ export function useActiveWorkout(
   );
 
   const jumpTo = useCallback((index: number) => {
-    const store = useWorkoutStore.getState();
-    store.skipRest();
-    store.viewEntry(index);
-    setE1rmFlash(null);
-  }, []);
+    restTimer.skip();
+    viewEntry(index);
+    clearFlash();
+  }, [viewEntry, clearFlash]);
 
   const endEarly = useCallback(() => {
-    useWorkoutStore.getState().skipRest();
-    setEndedAtIndex(naturalIndex);
-  }, [naturalIndex]);
+    restTimer.skip();
+    endAt(naturalIndex);
+  }, [naturalIndex, endAt]);
 
   /** Applies progression and marks the workout finished. Resolves true on success. */
   const finish = useCallback(async (): Promise<boolean> => {
@@ -778,7 +593,7 @@ export function useActiveWorkout(
     setIsCompleting(true);
     try {
       const completedAt = new Date();
-      const startedAt = workoutStartTime ?? new Date(session.startedAt);
+      const startedAt = new Date(session.startedAt);
       await finishWorkout(session.id, {
         completedAt,
         totalDurationSeconds: Math.floor((completedAt.getTime() - startedAt.getTime()) / 1000),
@@ -800,7 +615,6 @@ export function useActiveWorkout(
     plan,
     endedAtIndex,
     naturalIndex,
-    workoutStartTime,
   ]);
 
   /** Discards the workout: a soft delete, so its sets and e1RM rows drop out everywhere. */
