@@ -154,6 +154,30 @@ export function spanBetween(a: number, b: number, limits: Span, minDays = 7): Sp
   return zoomSpan({ from, to: Math.max(to, from + 1) }, 1, (from + to) / 2, limits, minDays);
 }
 
+/** How many times the window's width the zoom slider's track spans (history allowing). */
+export const SLIDER_CONTEXT = 4;
+
+/**
+ * The span the zoom slider's track covers for the window `view`: `context` times its
+ * width, centred on it where there is room, inside `limits` (the whole history when
+ * that is shorter). The window then fills at least 1/`context` of the track, so its two
+ * handles stay apart at every preset; dragging an end to the track's edge and letting go
+ * widens the track again.
+ */
+export function sliderTrack(view: Span, limits: Span, context = SLIDER_CONTEXT): Span {
+  const total = limits.to - limits.from;
+  const width = Math.max(0, view.to - view.from);
+  const track = width * context;
+  if (track >= total) return { from: limits.from, to: limits.to };
+  let to = Math.min(limits.to, view.to + (track - width) / 2);
+  let from = to - track;
+  if (from < limits.from) {
+    from = limits.from;
+    to = from + track;
+  }
+  return { from, to };
+}
+
 const MONTH = new Intl.DateTimeFormat("en-US", { month: "short" });
 /** "Mar ’25": the apostrophe keeps the year from reading as a day. */
 const monthYear = (d: Date) => `${MONTH.format(d)} \u2019${String(d.getFullYear() % 100).padStart(2, "0")}`;

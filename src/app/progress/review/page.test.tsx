@@ -111,6 +111,25 @@ describe("Weekly review page", () => {
     expect(screen.getByRole("region", { name: "Volume" })).toHaveTextContent("Includes 1 imported session.");
   });
 
+  it("counts a made-up imported dumbbell bench in the bench row, at home, and names it when it gives the best", () => {
+    const db = importedSet({
+      exerciseName: "Made-up DB Bench",
+      mappedExerciseId: "db_bench",
+      weightPerImplementLb: 120,
+      implementCount: 2,
+      reps: 8,
+    });
+    imported = [importedSession([db], { startedAt: new Date(2026, 10, 7, 9) })];
+    const plain = buildWeeklyReview({ ...source(), imported: [] }, [], new Date(2026, 10, 2), NOW).lifts.find(
+      (l) => l.id === "bench"
+    )!;
+    render(<WeeklyReviewPage />);
+    const benchRow = screen.getAllByRole("link").find((a) => a.getAttribute("href") === "/progress/lift/bench")!;
+    expect(benchRow).toHaveTextContent(`${plain.sessions + 1} sessions, 1 at home, 1 imported`);
+    expect(within(benchRow).getByTestId("best-from-bench")).toHaveTextContent("Best from DB Bench Press");
+    expect(within(benchRow).queryByText(/best$/)).toBeNull();
+  });
+
   it("switches weeks through the URL and shows that week's numbers", () => {
     const { unmount } = render(<WeeklyReviewPage />);
     const tonnage = () => within(screen.getByText("Tonnage").closest("a")!).getByText(/^[0-9,]+ lbs$/).textContent;

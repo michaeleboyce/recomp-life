@@ -9,6 +9,8 @@ import {
   monotonePath,
   nearestWithin,
   shapePath,
+  SLIDER_CONTEXT,
+  sliderTrack,
   spanBetween,
   thinLine,
   timeAxisTicks,
@@ -104,5 +106,45 @@ describe("source styles", () => {
   it("gives the first twelve exercises of a muscle distinct colour and shape pairs", () => {
     const styles = exerciseSourceStyles(Array.from({ length: 12 }, (_, i) => ({ id: `e${i}` })));
     expect(new Set([...styles.values()].map((s) => `${s.color}|${s.shape}`)).size).toBe(12);
+  });
+});
+
+describe("sliderTrack (the zoom slider's span)", () => {
+  const now = new Date(2026, 10, 18, 12).getTime();
+  const limits = { from: now - 1100 * DAY_MS, to: now };
+  const preset = (days: number) => ({ from: now - days * DAY_MS, to: now });
+
+  it("is the window plus context, so the window fills a fixed share of it", () => {
+    for (const days of [7, 28, 91, 182]) {
+      const track = sliderTrack(preset(days), limits);
+      expect(track.to).toBe(now);
+      expect(track.to - track.from).toBe(days * SLIDER_CONTEXT * DAY_MS);
+    }
+  });
+
+  it("is the whole history when the window plus context would pass it", () => {
+    expect(sliderTrack(preset(365), limits)).toEqual(limits);
+    expect(sliderTrack(limits, limits)).toEqual(limits);
+  });
+
+  it("keeps a zoomed span inside it, centred where there is room, and never past the history", () => {
+    const span = { from: now - 600 * DAY_MS, to: now - 580 * DAY_MS };
+    const track = sliderTrack(span, limits);
+    expect(track.to - track.from).toBe(20 * SLIDER_CONTEXT * DAY_MS);
+    expect(span.from - track.from).toBe(track.to - span.to);
+    const early = { from: limits.from + DAY_MS, to: limits.from + 15 * DAY_MS };
+    const t2 = sliderTrack(early, limits);
+    expect(t2.from).toBe(limits.from);
+    expect(t2.to - t2.from).toBe(14 * SLIDER_CONTEXT * DAY_MS);
+    expect(t2.to).toBeGreaterThanOrEqual(early.to);
+  });
+
+  it("leaves the two handles at least 44 px apart on a 342 px track at every preset", () => {
+    for (const days of [28, 91, 182, 365, 730, 1100]) {
+      const view = preset(days);
+      const track = sliderTrack(view, limits);
+      const gap = ((view.to - view.from) / (track.to - track.from)) * 342;
+      expect(gap).toBeGreaterThanOrEqual(44);
+    }
   });
 });
