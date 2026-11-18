@@ -10,6 +10,7 @@ import { db } from "@/db/local";
 import { sanitizeSettings } from "@/lib/data/settingsShape";
 import { nextStamp } from "@/lib/data/stamp";
 import { mergeSettings } from "@/lib/sync/settingsMerge";
+import { mergeWorkoutPull, sameContent } from "@/lib/sync/workoutMerge";
 import { SYNC_META_TABLE, markRebuildNeeded, rebuildIfNeeded } from "@/lib/sync/rebuildMarker";
 import { PROFILE_ID, SYNC_REGISTRY, type SyncTableDef } from "@/lib/sync/registry";
 import {
@@ -35,6 +36,9 @@ export const REBUILD_TABLES: ReadonlySet<string> = new Set(["workouts", "liftAdj
 
 /** Tables a pull can leave unsynced (the merged settings), pushed again after it. */
 const SETTINGS_TABLES: readonly string[] = SYNC_REGISTRY.filter((def) => def.singleRow).map((def) => def.name);
+
+/** Tables a pull may leave a merged, unsynced row in: pushed again right after the pull. */
+const MERGED_TABLES: readonly string[] = [...SETTINGS_TABLES, "workouts"];
 
 type Row = Record<string, unknown> & { id?: unknown; clientId?: unknown; synced?: unknown; updatedAt?: unknown };
 
@@ -282,15 +286,41 @@ async function mergeRows(table: Table<Row>, def: SyncTableDef, rows: WireRow[], 
     const clientId = server.clientId;
     if (typeof clientId !== "string" || !clientId) continue;
     const local = await table.where("clientId").equals(clientId).first();
-    const decision = decidePull(local, server);
+    const incoming = toLocalRow(server);
+    if (!local) {
+      await table.put(incoming);
+      counts.inserted += 1;
+      continue;
+    }
+    let decision = decidePull(local, server);
+    if (def.name === "workouts") {
+      // A workout's log and its watch data are merged apart (`mergeWorkoutPull`), so a
+      // correction on one device and watch data attached on another both survive.
+      const merged = mergeWorkoutPull(local, incoming, nextStamp(Math.max(stampOf(local), stampOf(server))));
+      if (merged.decision === "merge") {
+        await table.put(merged.row);
+        counts.overwritten += 1;
+        continue;
+      }
+      decision = merged.decision;
+    }
+    // Two devices stamped different edits with the same `updatedAt`: the server took the
+    // one pushed last. A copy already pushed takes the server's, so every device ends up
+    // with the same row; a copy not pushed yet goes out first.
+    if (
+      decision === "keep" &&
+      local.synced === true &&
+      stampOf(server) === stampOf(local) &&
+      !sameContent(local, incoming)
+    ) {
+      decision = "overwrite";
+    }
     if (decision === "keep") {
       counts.kept += 1;
       continue;
     }
-    const row = toLocalRow(server);
-    if (local) row.id = local.id;
-    await table.put(row);
-    counts[decision === "insert" ? "inserted" : "overwritten"] += 1;
+    await table.put({ ...incoming, id: local.id });
+    counts.overwritten += 1;
   }
 }
 
@@ -470,7 +500,7 @@ export async function fullSync(database: Dexie = db): Promise<SyncResult> {
   // it now rather than at the next sync.
   if (pullSucceeded) {
     try {
-      const again = await pushUnsynced(database, SETTINGS_TABLES);
+      const again = await pushUnsynced(database, MERGED_TABLES);
       pushed += again.pushed;
       for (const [table, reason] of Object.entries(again.errors)) errors.push(`Push ${table}: ${reason}`);
     } catch (err) {

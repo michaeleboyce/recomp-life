@@ -128,6 +128,12 @@ export interface WorkoutHealth {
   maxHeartRate: number | null;
   activeEnergyKcal: number | null;
   durationSeconds: number;
+  /**
+   * Sync bookkeeping, set when the watch data is attached: the row stamp that write
+   * gave the workout (`row`) and the stamp the rest of the workout had before it
+   * (`content`). See src/lib/sync/workoutMerge.ts.
+   */
+  stamp?: { row: number; content: number };
 }
 
 export interface UserProfile extends Stamped {
