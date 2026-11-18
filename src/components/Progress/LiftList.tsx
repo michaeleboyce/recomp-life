@@ -25,10 +25,20 @@ function pointDay(t: number): string {
 }
 
 function LiftCard({ lift }: { lift: LiftOverview }) {
-  const { liftState, summary, series, stall } = lift;
-  // The range's latest estimate, else the latest before it (the one the total counts).
-  const shown = summary.latest ?? lift.latestBeforeRange;
-  const delta = stall ? (
+  const { liftState, summary, stall, estimate } = lift;
+  // The pooled estimate the lift page shows, with its line's change and the line itself.
+  // Without one, the range's latest estimate, else the latest before it.
+  const latest = summary.latest ?? lift.latestBeforeRange;
+  const value = estimate ? estimate.value : latest?.v;
+  const imported = estimate ? estimate.latest?.imported === true : latest?.imported === true;
+  // No session in the range: when the newest one was.
+  const olderThanRange = !summary.latest ? (estimate?.latest?.t ?? lift.latestBeforeRange?.t ?? null) : null;
+  const sparkPoints = estimate ? estimate.line : lift.series.points;
+  const delta = estimate ? (
+    estimate.change !== null ? (
+      <Delta value={Math.round(estimate.change)} better="up" className={stall ? "text-warning" : undefined} />
+    ) : undefined
+  ) : stall ? (
     <Delta
       value={Math.round(stall.change)}
       suffix={`in ${stall.weeks} wk`}
@@ -67,24 +77,24 @@ function LiftCard({ lift }: { lift: LiftOverview }) {
         </span>
         <span className="flex items-baseline gap-2">
           <span className="font-display text-[44px] leading-none font-bold tabular-nums text-foreground">
-            {shown ? Math.round(shown.v) : "–"}
+            {value !== undefined ? Math.round(value) : "–"}
           </span>
-          {shown?.imported && (
+          {imported && (
             <span data-testid="lift-latest-imported" className="text-xs font-semibold text-muted-foreground">
               Imported
             </span>
           )}
           {/* Older than the range: the estimate the total counts, with when it was. */}
-          {!summary.latest && lift.latestBeforeRange && (
+          {olderThanRange !== null && (
             <span data-testid="lift-latest-date" className="text-xs text-muted-foreground">
-              {pointDay(lift.latestBeforeRange.t)}
+              {pointDay(olderThanRange)}
             </span>
           )}
           {delta}
         </span>
-        {series.points.length > 0 && (
+        {sparkPoints.length > 0 && (
           <Sparkline
-            points={series.points}
+            points={sparkPoints}
             width={96}
             height={24}
             tone={stall ? "warn" : "good"}

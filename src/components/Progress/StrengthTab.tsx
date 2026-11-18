@@ -33,8 +33,9 @@ export function StrengthTab() {
     const equipment = source.settings?.equipment ?? DEFAULT_USER_PROFILE.settings.equipment;
     const maxDumbbell = source.settings?.equipment?.maxDumbbellWeight ?? DEFAULT_MAX_DUMBBELL;
     return {
-      // Imported sessions of each lift are history too (marked imported).
-      overview: strengthOverview(source, range, now, imported),
+      // Imported sessions of each lift are history too (marked imported). Each card shows
+      // the pooled estimate from the lift's timeline, the lift page headline's number.
+      overview: strengthOverview(source, range, now, imported, timelines),
       // The total is the sum of the lifts' smooth lines, the line each lift page draws.
       total: trendTotal(timelines, range, now),
       recovery: recoveryRows(
