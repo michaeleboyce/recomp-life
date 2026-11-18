@@ -1,5 +1,27 @@
 "use client";
 
+/*
+ * State map of the active workout (who owns what). "Reload" is a page reload: React
+ * state and the store are gone. "Remount" is leaving the screen and coming back (Today,
+ * then Resume): React state is gone, the store (a module singleton) stays.
+ *
+ * | State                        | Lives in                       | Written by                                                    | Read by                         | Reset by                                         | Reload | Remount |
+ * |------------------------------|--------------------------------|---------------------------------------------------------------|---------------------------------|--------------------------------------------------|--------|---------|
+ * | logged sets, plan edits      | session row (Dexie)            | appendSet, appendPlanEdit, commitLogChange                     | everything                      | never (soft delete on discard)                   | kept   | kept    |
+ * | start time                   | store copy of session.startedAt| beginSession (effect, first sight of the id)                  | header clock, finish            | beginSession for another id, reset               | re-copied | kept |
+ * | frozen plan                  | React (per session id)         | first load (planForSession), addExercise, applyChange         | everything                      | another session id                               | rebuilt from session | rebuilt |
+ * | weights changed on the spot  | React + sessionStorage         | setSetWeight / setNextWeight, applyChange (replaced entry)    | plan, chips, logSet             | per set: back to plan; per entry: replaced swap  | kept   | kept    |
+ * | reps picked, effort picked   | React, keyed "entry:set"       | setSelectedReps, setSelectedRepsInReserve                     | logSet                          | key changes (next set); deleting a set           | lost   | lost    |
+ * | pending T2 drop              | store                          | acceptDrop                                                    | plan, dropAccepted              | log on its entry, delete on it, swap of it, reset| lost   | kept    |
+ * | declined T2 drop             | store                          | keepWeight                                                    | dropSuggestion                  | another session id, reset                        | lost   | kept    |
+ * | drop sets in progress        | React (per session id)         | startDropSet, setDropWeight/Reps, logDropSet, endDropSets     | dropSet                         | endDropSets                                      | lost   | lost    |
+ * | rest countdown               | store (RestTimer ticks it)     | logSet, endDropSets start; RestTimer, jumpTo, swap, endEarly, startDropSet, delete of the latest set skip | RestTimer, LogDock | skipRest, reset              | lost   | kept    |
+ * | viewed entry                 | store                          | logSet (last set of an entry), jumpTo, swap, delete           | activeIndex                     | another session id, reset                        | lost (resumes at first unfinished) | kept |
+ * | ended-early index            | React                          | endEarly                                                      | activeIndex, finish             | never                                            | lost   | lost    |
+ * | e1RM flash                   | React + timeout                | logSet                                                        | screen                          | 3 s, drop start, correction, swap, jump          | lost   | lost    |
+ * | saving, errors, log tap guard| React / ref                    | logSet, logDropSet, correctSet, finish                        | screen                          | next attempt                                     | lost   | lost    |
+ */
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
