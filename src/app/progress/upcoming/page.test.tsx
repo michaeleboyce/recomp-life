@@ -39,12 +39,20 @@ describe("upcoming workouts page", () => {
     expect(within(cards()[0]).getByText(/^Next · A1 · \d+ min$/)).toBeInTheDocument();
     expect(within(cards()[1]).getByText(/^Then · B1 · \d+ min$/)).toBeInTheDocument();
     expect(within(cards()[2]).getByText(/^Then · A2 · \d+ min$/)).toBeInTheDocument();
-    // The whole first card starts the workout; later ones are previews only.
+    // Every card opens its workout in full; the first also has START.
     expect(within(cards()[0]).getByRole("link", { name: "Start Squat day" })).toHaveAttribute(
       "href",
       "/workout/configure?location=gym"
     );
-    expect(within(cards()[1]).queryByRole("link")).toBeNull();
+    expect(within(cards()[0]).getByRole("link", { name: "Squat day" })).toHaveAttribute(
+      "href",
+      "/progress/upcoming/workout?n=0&location=gym"
+    );
+    expect(within(cards()[2]).getByRole("link", { name: "Bench day" })).toHaveAttribute(
+      "href",
+      "/progress/upcoming/workout?n=2&location=gym"
+    );
+    expect(within(cards()[1]).queryByRole("link", { name: /^Start/ })).toBeNull();
     expect(rowsOf(cards()[0])).toEqual([
       "T1Squat1905×3+",
       "T2Bench press1003×10",
@@ -115,6 +123,30 @@ describe("upcoming workouts page", () => {
     nav.params = "from=today";
     render(<UpcomingWorkoutsPage />);
     expect(await screen.findByRole("link", { name: "Back to Today" })).toHaveAttribute("href", "/");
+  });
+
+  it("keeps the location shown in the address, so back from a card returns to it", async () => {
+    window.history.replaceState(null, "", "/progress/upcoming?from=today");
+    nav.params = "from=today";
+    render(<UpcomingWorkoutsPage />);
+    await waitFor(() => expect(cards()).toHaveLength(5));
+    fireEvent.click(screen.getByRole("button", { name: "Home" }));
+    expect(window.location.search).toBe("?location=home&from=today");
+    await waitFor(() =>
+      expect(within(cards()[1]).getByRole("link", { name: "Press day" })).toHaveAttribute(
+        "href",
+        "/progress/upcoming/workout?n=1&location=home&from=today"
+      )
+    );
+  });
+
+  it("opens at the location in the address", async () => {
+    nav.params = "location=home";
+    render(<UpcomingWorkoutsPage />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Home" })).toHaveAttribute("aria-pressed", "true")
+    );
+    expect(screen.getByTestId("location-preview")).toHaveTextContent("Previewing Home.");
   });
 
   it("opens on the saved default location", async () => {

@@ -30,6 +30,7 @@ describe("activeTab", () => {
     ["/progress/lift/squat", "progress"],
     ["/muscles", "progress"],
     ["/progress/upcoming", "more"],
+    ["/progress/upcoming/workout", "more"],
     ["/log", "log"],
     ["/log/workout", "log"],
     ["/more", "more"],
@@ -49,6 +50,7 @@ describe("activeTab", () => {
 describe("activeTab with from", () => {
   it("lights Today for Coming up opened from Today", () => {
     expect(activeTab("/progress/upcoming", "today")).toBe("today");
+    expect(activeTab("/progress/upcoming/workout", "today")).toBe("today");
   });
   it("ignores other and unknown values", () => {
     expect(activeTab("/progress/upcoming", "bogus")).toBe("more");

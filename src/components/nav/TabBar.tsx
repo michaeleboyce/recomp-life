@@ -28,8 +28,8 @@ const PREFIXES: Record<Exclude<TabId, "today">, string[]> = {
     "/research",
     "/1rm-calculator",
     "/plate-calculator",
-    // Listed under More > Training; Today's "Coming up" line opens it with
-    // `?from=today`, which lights Today instead (see activeTab).
+    // Listed under More > Training, with each coming workout under it; opened
+    // from Today (`?from=today`) they light Today instead (see activeTab).
     "/progress/upcoming",
   ],
 };
@@ -44,8 +44,8 @@ function matchesPrefix(pathname: string, prefix: string): boolean {
  */
 export function activeTab(pathname: string, from?: string | null): TabId | null {
   if (pathname === "/") return "today";
-  // Coming up opened from Today stays in Today's tab.
-  if (pathname === "/progress/upcoming" && from === "today") return "today";
+  // Coming up and a coming workout opened from Today stay in Today's tab.
+  if (matchesPrefix(pathname, "/progress/upcoming") && from === "today") return "today";
   let best: { id: TabId; length: number } | null = null;
   for (const id of Object.keys(PREFIXES) as Array<keyof typeof PREFIXES>) {
     for (const prefix of PREFIXES[id]) {

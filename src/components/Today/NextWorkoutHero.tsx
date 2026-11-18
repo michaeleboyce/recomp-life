@@ -27,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AccessoryRows, CHANGE_ACCESSORIES_HREF } from "./AccessoryRows";
 import { accessoryRowViews } from "./accessoryRowModel";
 import { ComingUpLine } from "./ComingUpLine";
+import { DifferentDayButton } from "./DifferentDaySheet";
 import { ForecastTiles } from "./ForecastTiles";
 import { LiftRows, buildLiftRows } from "./LiftRows";
 import { TodayHero } from "./TodayHero";
@@ -115,6 +116,7 @@ export function NextWorkoutHero() {
         )}
         {/* Below START on purpose: neither can push the button out of view. */}
         <PainNote plan={working} />
+        {!open && <DifferentDayButton location={location} />}
         <ComingUpLine location={location} />
       </div>
     </div>

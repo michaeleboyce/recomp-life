@@ -13,6 +13,7 @@ const NAMES: Record<string, string> = {
   "/progress/forecasts/record": "Track record",
   "/progress/review": "Weekly review",
   "/progress/upcoming": "Coming up",
+  "/progress/upcoming/workout": "Coming workout",
   "/more": "More",
   "/more/adjustments": "Adjustment log",
   "/more/deleted": "Recently deleted",
