@@ -85,6 +85,7 @@ export const PROGRESSION_RULES = {
       "src/components/ExercisePage/NextSession.tsx",
       "src/components/Log/WhatItDid.tsx",
       "src/components/Today/AttentionList.tsx",
+      "src/components/Upcoming/UpcomingWorkoutView.tsx",
     ],
   },
   "t3-progression": {

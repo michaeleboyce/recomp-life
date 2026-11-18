@@ -1,4 +1,3 @@
-import { T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
 import type { StrengthSet } from "@/lib/strength";
 import { applySteps } from "@/lib/trace/replay";
 import { change, num, stageWords, step } from "@/lib/trace/text";
@@ -524,7 +523,8 @@ const moved = (c: ProjectedChange) =>
 /** What the program rule did, in plain words, for a projected session done at its targets. */
 function outcomeWords(c: ProjectedChange): string {
   if (c.kind === "t3Same") {
-    return `The weight holds: it goes up only when the last set reaches ${T3_LAST_SET_INCREASE_REPS} reps, and the projection counts only the target reps.`;
+    // No number here: the reps needed depend on the size of the next step (t3IncreaseThreshold).
+    return "The weight holds: it goes up only when the last set reaches the reps the next step asks for, and the projection counts only the target reps.";
   }
   const delta = c.to.weight - c.from.weight;
   const stage = c.to.stage && c.to.stage !== c.from.stage ? ` and moves to ${stageWords(c.to.stage)}` : "";
