@@ -333,20 +333,34 @@ describe("pullFromServer", () => {
   it("keeps the local row when it is newer or equally new", async () => {
     await runs().bulkAdd([
       { id: "r1", clientId: "c-r1", notes: "local newer", updatedAt: 9, synced: false },
-      { id: "r2", clientId: "c-r2", notes: "local equal", updatedAt: 7, synced: true },
+      { id: "r2", clientId: "c-r2", notes: "local equal, not pushed yet", updatedAt: 7, synced: false },
+      { id: "r3", clientId: "c-r3", notes: "same on both", updatedAt: 7, synced: true },
     ]);
     stubPull({
       runs: [
         { id: "r1", clientId: "c-r1", notes: "server", updatedAt: 8 },
         { id: "r2", clientId: "c-r2", notes: "server", updatedAt: 7 },
+        { id: "other-device-id", clientId: "c-r3", notes: "same on both", updatedAt: 7 },
       ],
     });
 
     const result = await pullFromServer(database);
 
-    expect(result).toMatchObject({ pulled: 0, kept: 2 });
+    expect(result).toMatchObject({ pulled: 0, kept: 3 });
     expect(await runs().get("r1")).toMatchObject({ notes: "local newer", synced: false });
-    expect((await runs().get("r2")).notes).toBe("local equal");
+    expect((await runs().get("r2")).notes).toBe("local equal, not pushed yet");
+    expect((await runs().get("r3")).notes).toBe("same on both");
+  });
+
+  it("takes the server's copy when a pushed row has the same stamp but other content", async () => {
+    // Two devices stamped different edits alike; the server kept the one pushed last.
+    await runs().add({ id: "r1", clientId: "c-r1", notes: "this device's", updatedAt: 7, synced: true });
+    stubPull({ runs: [{ id: "x", clientId: "c-r1", notes: "the other device's", updatedAt: 7 }] });
+
+    const result = await pullFromServer(database);
+
+    expect(result).toMatchObject({ pulled: 1, overwritten: 1 });
+    expect(await runs().get("r1")).toMatchObject({ notes: "the other device's", updatedAt: 7, synced: true });
   });
 
   it("brings a tombstone in, so the row drops out of a live-rows filter", async () => {

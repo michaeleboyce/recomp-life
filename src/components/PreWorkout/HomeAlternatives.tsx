@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { AlertTriangle, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EXERCISES } from "@/lib/exercises";
 import { cn } from "@/lib/utils";
 import type { AdaptationStatus, ConfidenceLevel } from "@/types";
 import type { HomeAdaptation } from "./useWorkoutSetup";
@@ -74,6 +75,12 @@ export function HomeAlternatives({
               : "exceeds"
             : adaptation.adaptationStatus;
         const confidence = CONFIDENCE[adaptation.confidenceLevel];
+        // Another home version picked in Edit workout's swap sheet (not one of the
+        // conversion's alternatives): the plan does the lift as that one.
+        const picked =
+          !chosen && chosenExerciseId && chosenExerciseId !== adaptation.adaptedExercise.id
+            ? EXERCISES[chosenExerciseId]
+            : undefined;
 
         return (
           <div key={`${id}-${templateExercise.tier}`} className="space-y-1.5">
@@ -83,7 +90,12 @@ export function HomeAlternatives({
               {weight > 0 && <span className="font-mono tabular-nums"> @ {weight} lbs</span>}
             </p>
 
-            {status === "no_substitute" || exercise.id === id ? (
+            {picked ? (
+              <p className="text-sm">
+                {picked.name}{" "}
+                <span className="text-muted-foreground">· picked in Edit workout, at its own weight</span>
+              </p>
+            ) : status === "no_substitute" || exercise.id === id ? (
               <p className="text-sm text-muted-foreground">
                 {status === "no_substitute"
                   ? "No home substitute available"

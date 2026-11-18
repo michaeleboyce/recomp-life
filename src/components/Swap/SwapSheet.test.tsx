@@ -5,6 +5,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
+import { seedLiftStates } from "@/lib/workout/testFixtures";
 import { getExercise } from "@/lib/exercises";
 import { recommendSwaps, swapEdits, swapProgressionEffect, type SwapCandidate, type SwapContext } from "@/lib/swap";
 import { SwapSheet } from "./SwapSheet";
@@ -155,6 +156,29 @@ describe("the swap sheet", () => {
     expect(pair.textContent).toMatch(/Covers/);
     fireEvent.click(pair);
     expect(within(sheet).getByRole("button", { name: "Swap in 2 exercises" })).toBeEnabled();
+  });
+
+  it("at home before a workout, tags the lift's home versions and says they count; not during one", () => {
+    const home: SwapContext = {
+      ...CONTEXT,
+      location: "home",
+      exclude: ["db_bench"],
+      liftState: seedLiftStates().find((s) => s.exerciseId === "bench")!,
+      variantStates: [],
+    };
+    const first = open({ context: home });
+    const row = within(first.sheet)
+      .getAllByTestId("swap-candidate")
+      .find((r) => within(r).queryByRole("button", { name: "Pick DB Floor Press" }))!;
+    expect(within(row).getByTestId("swap-counts")).toHaveTextContent("Counts as bench press");
+    fireEvent.click(within(row).getByRole("button", { name: "Pick DB Floor Press" }));
+    expect(within(first.sheet).getByTestId("swap-effect")).toHaveTextContent(/^Counts as Bench press/);
+    cleanup();
+
+    const during = open({ context: { ...home, inWorkout: true }, inWorkout: true });
+    expect(within(during.sheet).queryByTestId("swap-counts")).toBeNull();
+    fireEvent.click(within(during.sheet).getByRole("button", { name: "Pick DB Floor Press" }));
+    expect(within(during.sheet).getByTestId("swap-effect")).toHaveTextContent(/stays at its T2 weight and stage/);
   });
 
   it("keeps the sheet open with the message when the swap is refused", async () => {

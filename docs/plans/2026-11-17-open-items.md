@@ -100,6 +100,24 @@ Checked on the live data: every Coming up card opens its workout in full, later 
   the user had jumped to. During the rest screen the block's Swap is under the rest overlay.
 - There is no way to load demo data from the UI, so browser checks seed a database by hand.
 
+## After the swap screens deployed, 2026-11-18
+
+Checked on the live data: Edit workout → Swap shows three recommendations with weight, reason
+and history, "Pick more than one", the progression line and the every-time switch (off).
+
+Fixed the same day: at home before a workout, picking one of a lift's own home versions in the
+swap sheet goes through the home-substitute path, so it counts as the lift with its own weight
+and progression (it was "logged only", with the day left due). A home-version override saved in
+a favourite is now honoured even when the usual dumbbell form fits.
+
+Still to do:
+
+- During a workout a swap is always logged only: the session's home exercise is fixed at start
+  in `prescribed` and `modifications`, and the start-time forecasts and stored reasons name it.
+- `HomeAlternatives` on the Ready screen and the swap sheet both choose a home version. Keep
+  the panel as information and make its buttons open the swap sheet on that lift.
+- Standing swaps of a program lift at the gym: see the proposal above; waiting for Michael.
+
 ## Promised and missing
 
 | Item | Where it was promised | In the code today | Size |

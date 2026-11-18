@@ -5,6 +5,9 @@ import { EXERCISES } from "@/lib/exercises";
 import { importedStrengthSets } from "@/lib/import/evidence";
 import { importedSession, importedSet } from "@/lib/import/testRecords";
 import type { StrengthSet } from "@/lib/strength";
+import { seedLiftStates } from "@/lib/workout/testFixtures";
+import { chooseHomeVariant, seedVariantState } from "@/lib/workout/variant";
+import type { VariantState } from "@/types";
 import {
   SWAP_HISTORY_WEIGHT,
   SWAP_KNOWN_WEIGHT_POINTS,
@@ -51,7 +54,17 @@ function set(exerciseId: string, date: Date, overrides: Partial<StrengthSet> = {
   };
 }
 
-const T2_BENCH = { tier: "T2" as const, sets: 3, reps: 10, isAMRAP: true, weight: 135 };
+/** A stored home state of bench at T2 (made up), current, at a weight. */
+function variantState(input: { exerciseId: string; weight: number }): VariantState {
+  const liftState = seedLiftStates().find((s) => s.exerciseId === "bench")!;
+  return {
+    ...seedVariantState({ liftId: "bench", exerciseId: input.exerciseId, tier: "T2", liftState, equipment: EQUIPMENT }),
+    weight: input.weight,
+    current: true,
+  };
+}
+
+const T2_BENCH ={ tier: "T2" as const, sets: 3, reps: 10, isAMRAP: true, weight: 135 };
 
 function ctx(overrides: Partial<SwapContext> = {}): SwapContext {
   return { location: "gym", equipment: EQUIPMENT, slot: T2_BENCH, now: NOW, ...overrides };
@@ -263,6 +276,34 @@ describe("recommendSwaps: prescription", () => {
     expect(gym.basis).toBe("ratio");
     expect(gym.weight).toBeGreaterThan(EQUIPMENT.maxDumbbellWeight);
     expect(home.weight).toBe(EQUIPMENT.maxDumbbellWeight);
+  });
+
+  it("at home before a workout, marks the lift's home versions as counting and plans them as the home-substitute path does", () => {
+    const liftState = { ...seedLiftStates().find((s) => s.exerciseId === "bench")!, t2Weight: 95 };
+    const floor = variantState({ exerciseId: "db_floor_press", weight: 35 });
+    const slot = { tier: "T2" as const, sets: 3, reps: 10, isAMRAP: true, weight: 40, originalWeight: 95 };
+    const context = ctx({ location: "home", slot, liftState, variantStates: [floor], exclude: ["db_bench"] });
+    const list = recommendSwaps("bench", context);
+    const c = find(list, "db_floor_press");
+    expect(c.countsAs).toBe("bench");
+    const planned = chooseHomeVariant({
+      liftId: "bench",
+      tier: "T2",
+      liftState,
+      variantStates: [floor],
+      equipment: EQUIPMENT,
+      overrideId: "db_floor_press",
+    })!;
+    expect(c.prescription).toMatchObject({ weight: planned.weight, basis: "variant" });
+    expect(c.prescription.weight).toBe(35);
+    // Not a home version: no mark. Among equal scores the counting one comes first.
+    expect(find(list, "push_up").countsAs).toBeUndefined();
+    for (let i = 1; i < list.length; i++) {
+      if (list[i].score === list[i - 1].score) expect(!!list[i].countsAs && !list[i - 1].countsAs).toBe(false);
+    }
+    // Not during the workout, nor at the gym.
+    expect(find(recommendSwaps("bench", { ...context, inWorkout: true }), "db_floor_press").countsAs).toBeUndefined();
+    expect(find(recommendSwaps("bench", { ...context, location: "gym" }), "db_floor_press").countsAs).toBeUndefined();
   });
 
   it("an accessory slot takes the candidate's accessory prescription", () => {

@@ -336,6 +336,14 @@ function sortedVariants(variants: Map<string, VariantState>): VariantState[] {
  * used for the first time is anchored only in the returned map, and is stored only if
  * the session performed it, as the live app stores it. The lifts are what the session
  * did: the exercise, weight and scheme it recorded.
+ *
+ * `restore` puts back, for every lift the session was prescribed but logged no set of
+ * (taken out of the plan, or simply not done), the lift's running state and the running
+ * states of its home exercises at that tier: the session did nothing to that lift. The
+ * prescription says how to read the session; it is not a result. Without this, a
+ * correction to an earlier session would be undone by a later one that never did the
+ * lift, because that one stored the old prescription. A re-entry weight the session
+ * never lifted is likewise still owed, and is worked out again next time.
  */
 function readSavedSession(
   states: Map<string, LiftState>,
@@ -343,7 +351,7 @@ function readSavedSession(
   session: WorkoutSession,
   settings: UserSettings,
   strengthSets: readonly StrengthSet[]
-): { forSession: Map<string, VariantState>; lifts: LiftResolution[] } {
+): { forSession: Map<string, VariantState>; lifts: LiftResolution[]; restore: () => void } {
   const saved = resolveSavedSession({
     session,
     template: WORKOUT_TEMPLATES[session.templateId],
@@ -353,15 +361,29 @@ function readSavedSession(
     strengthSets,
   });
   const anchoredLifts = new Map(saved.liftStates.map((state) => [state.exerciseId, state]));
+  const lifted = new Set(
+    (session.sets ?? []).filter((set) => set.tier !== "warmup").map((set) => set.exerciseId)
+  );
+  const undo: Array<() => void> = [];
   for (const entry of session.prescribed ?? []) {
-    if (states.has(entry.exerciseId)) states.set(entry.exerciseId, anchoredLifts.get(entry.exerciseId)!);
+    const running = states.get(entry.exerciseId);
+    if (!lifted.has(entry.exerciseId)) {
+      const homeStates = [...variants.values()].filter(
+        (v) => v.liftId === entry.exerciseId && v.tier === entry.tier
+      );
+      undo.push(() => {
+        if (running) states.set(entry.exerciseId, running);
+        for (const v of homeStates) variants.set(v.id, v);
+      });
+    }
+    if (running) states.set(entry.exerciseId, anchoredLifts.get(entry.exerciseId)!);
   }
   const forSession = new Map(variants);
   for (const [id, anchored] of saved.anchored) {
     if (variants.has(id)) variants.set(id, anchored);
     forSession.set(id, anchored);
   }
-  return { forSession, lifts: saved.lifts };
+  return { forSession, lifts: saved.lifts, restore: () => undo.forEach((put) => put()) };
 }
 
 /** Fresh, normalised copies sorted by exerciseId, safe to hand out. */
@@ -489,6 +511,8 @@ export function rebuildDerived(input: RebuildInput): RebuildResult {
       sessionOutcomes = completion.outcomes;
       sessionVariantOutcomes = completion.variantOutcomes;
     }
+    // What the session was prescribed but never lifted goes back to where it stood.
+    saved.restore();
 
     // A weight set by hand at a tier the session logged is the plan's from now on (E7).
     for (const [id, state] of states) {

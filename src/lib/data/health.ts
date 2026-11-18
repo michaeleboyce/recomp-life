@@ -17,6 +17,7 @@ import type {
   HealthWorkout,
 } from "@/lib/health/types";
 import { kgToLbs } from "@/lib/health/units";
+import { watchDataFields } from "@/lib/sync/workoutMerge";
 import type { HealthDailyLog, TimeOfDay } from "@/types";
 import { editStamps, newRowStamps } from "./stamp";
 
@@ -185,7 +186,9 @@ async function linkSessions(
       if (session.deletedAt != null || !session.completedAt) continue;
       const health = linkSessionWorkout(session, strength);
       if (!health || session.health?.externalId === health.externalId) continue;
-      await db.workouts.update(session.id, { health, ...editStamps(session, now) });
+      // Stamped apart from the log, so attaching it cannot overwrite a correction made
+      // on another device meanwhile (src/lib/sync/workoutMerge.ts).
+      await db.workouts.update(session.id, watchDataFields(session, health, editStamps(session, now).updatedAt));
       linked++;
     }
   });

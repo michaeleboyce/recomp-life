@@ -6,6 +6,7 @@ import { EXERCISES } from "@/lib/exercises";
 import { MUSCLE_LABELS } from "@/lib/muscles";
 import { agoText, type SwapCandidate, type SwapHistory, type SwapPrescription, type SwapSet } from "@/lib/swap";
 import { joinList, plural } from "@/lib/text";
+import { liftShortName } from "@/lib/workoutNames";
 import type { ExercisePreference, MuscleId, Tier, WorkoutLocation } from "@/types";
 
 /** How many of the best candidates are shown as "Recommended"; the rest go under "All exercises". */
@@ -34,6 +35,11 @@ export function historyText(history: SwapHistory | undefined, now: Date): string
   if (!history) return "Not done before";
   const base = `Done ${plural(history.timesDone, "time")}, last ${agoText(history.lastDone, now)}`;
   return history.imported ? `${base}, imported` : base;
+}
+
+/** The row's tag for a candidate done as the lift (`SwapCandidate.countsAs`): "Counts as bench press". */
+export function countsAsTag(liftId: string): string {
+  return `Counts as ${liftShortName(liftId).toLowerCase()}`;
 }
 
 /** The candidates split as the sheet lists them: the best few, then every other one. */
