@@ -2,7 +2,13 @@
 // Add lists (For today, Your usual, By muscle, search). Read from today's scored list
 // (`chooseAccessories` through the planning path), so every choice offered is one the
 // app could have picked and comes with its reasons. Pure; no React.
-import type { AccessoryCandidate, ChooseAccessoriesResult } from "@/lib/accessories/index";
+import {
+  budgetLine,
+  type AccessoryCandidate,
+  type ChooseAccessoriesResult,
+  type LeftOutForTime,
+  type SessionBudget,
+} from "@/lib/accessories/index";
 import { EXERCISES } from "@/lib/exercises";
 import { MUSCLE_LABELS } from "@/lib/muscles";
 import type { MuscleId } from "@/types";
@@ -78,6 +84,27 @@ export function addLists(ranked: readonly AccessoryCandidate[], inPlan: readonly
 }
 
 const nameOf = (c: AccessoryCandidate) => EXERCISES[c.exerciseId]?.name ?? c.exerciseId;
+
+/** What the sheet says about the session length: the line, and the ones left out for time. */
+export interface BudgetView {
+  /** "2 of 3 accessories fit in 60 min"; null when there is nothing to say. */
+  line: string | null;
+  /** Left out for time and not since added, in order, each with its name and reason. */
+  leftOut: (LeftOutForTime & { name: string })[];
+}
+
+/**
+ * The session length as the sheet shows it (`budgetLine`, the budget's left-out list),
+ * without those the user has added since. Null with no budget.
+ */
+export function budgetView(budget: SessionBudget | null | undefined, inPlan: readonly string[]): BudgetView | null {
+  if (!budget) return null;
+  const line = budgetLine(budget);
+  const leftOut = budget.leftOut
+    .filter((l) => !inPlan.includes(l.exerciseId))
+    .map((l) => ({ ...l, name: EXERCISES[l.exerciseId]?.name ?? l.exerciseId }));
+  return line || leftOut.length > 0 ? { line, leftOut } : null;
+}
 
 /** The ones whose name or muscles match every word of `query`, best first. */
 export function searchCandidates(

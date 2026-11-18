@@ -11,7 +11,10 @@ import {
   accessoryPinsFor,
   accessoryPrescription,
   chooseAccessories,
+  fitAccessoriesToBudget,
+  sessionMinutesOf,
   type AccessoryCandidate,
+  type SessionBudget,
   type AccessoryPrescription,
   type ChooseAccessoriesResult,
 } from "@/lib/accessories/index";
@@ -33,6 +36,7 @@ export type AccessorySettings = Pick<
   | "accessories"
   | "accessoryPins"
   | "accessoryWeights"
+  | "sessionMinutes"
 >;
 
 /** Everything the accessories of a workout are worked out from, besides the day's lifts. */
@@ -60,6 +64,12 @@ export interface AccessoryPlan {
   planned: PlannedAccessory[];
   /** `planned` as `add` edits, saved on the session ahead of every other edit. */
   edits: PlanEdit[];
+  /**
+   * The session length planned for and what fitted in it (`fitAccessoriesToBudget`):
+   * the picks left out for time, with their reasons. Null when no `programPlan` was
+   * given (the length was not applied).
+   */
+  budget: SessionBudget | null;
 }
 
 /**
@@ -152,6 +162,12 @@ export interface PlanAccessoriesInput {
    * app's choice, whatever the mode. Empty or absent: the mode decides.
    */
   selected?: readonly string[];
+  /**
+   * The program's plan before accessories (warm-ups as configured): with it, the app's
+   * picks are kept to the session length (`settings.sessionMinutes`). Left out, the
+   * length is not applied.
+   */
+  programPlan?: ReadonlyArray<Pick<WorkoutExerciseState, "tier" | "targetSets">>;
 }
 
 /**
@@ -160,8 +176,14 @@ export interface PlanAccessoriesInput {
  * "none" nothing, and accessories named outright always those. The choice is made at
  * `accessoryDay(now).choose`, so the same day gives the same picks.
  *
+ * With a `programPlan`, the app's picks are kept to the session length
+ * (`fitAccessoriesToBudget`): taken in order while the plan stays within it, pins
+ * always kept. Accessories named outright are the user's own and always kept. In "ask"
+ * and "none" mode nothing is chosen, and the budget only measures the lifts.
+ *
  * @evidence accessory-selection
  * @evidence accessory-progression
+ * @evidence session-length-budget
  */
 export function planAccessories(input: PlanAccessoriesInput): AccessoryPlan {
   const { source, location } = input;
@@ -186,14 +208,27 @@ export function planAccessories(input: PlanAccessoriesInput): AccessoryPlan {
 
   const selected = (input.selected ?? []).filter((id, i, all) => EXERCISES[id] && all.indexOf(id) === i);
   const candidates = [...choice.picks, ...choice.others];
-  const ids =
-    selected.length > 0 ? selected : mode === "auto" ? choice.picks.map((pick) => pick.exerciseId) : [];
-  const planned = ids.map((exerciseId) => ({
+  const named = selected.length > 0;
+  const ids = named ? selected : mode === "auto" ? choice.picks.map((pick) => pick.exerciseId) : [];
+  const offered = ids.map((exerciseId) => ({
     exerciseId,
     prescription: prescribeAccessory(exerciseId, source),
     pick: candidates.find((c) => c.exerciseId === exerciseId) ?? null,
   }));
-  return { mode, choice, planned, edits: planned.map((p) => accessoryAddEdit(p.prescription)) };
+  const budget = input.programPlan
+    ? fitAccessoriesToBudget({
+        minutes: sessionMinutesOf(settings),
+        programPlan: input.programPlan,
+        phase,
+        candidates: offered.map((p) => ({
+          exerciseId: p.exerciseId,
+          sets: p.prescription.sets,
+          pinned: named || (p.pick?.parts.pinned ?? 0) > 0,
+        })),
+      })
+    : null;
+  const planned = budget ? offered.filter((p) => budget.kept.includes(p.exerciseId)) : offered;
+  return { mode, choice, planned, edits: planned.map((p) => accessoryAddEdit(p.prescription)), budget };
 }
 
 /** One accessory of a plan as the screens show it: the entry, its prescription and why. */

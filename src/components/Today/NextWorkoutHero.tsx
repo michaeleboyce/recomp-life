@@ -15,6 +15,7 @@ import {
 } from "@/hooks";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { EXERCISES } from "@/lib/exercises";
+import { leftOutNote } from "@/lib/accessories/sessionBudget";
 import { getExpiredPainEntries } from "@/lib/painAutoClear";
 import { formatRegion } from "@/lib/painModifications";
 import { planForSession } from "@/lib/workout/planForSession";
@@ -71,6 +72,8 @@ export function NextWorkoutHero() {
     return <NextWorkoutHeroSkeleton />;
   }
 
+  // The session length the next workout's accessories were kept to (not an open one's).
+  const budget = showOpen ? null : (next.accessories?.budget ?? null);
   const template = showOpen ? openTemplate! : next.template;
   const templateId = showOpen ? open!.templateId : next.templateId;
   const t1 = working.find((entry) => entry.tier === "T1");
@@ -89,6 +92,7 @@ export function NextWorkoutHero() {
       <ForecastTiles
         forecast={showOpen ? openForecast : nextForecast}
         newBestHref={t1 && !t1.substituteExerciseId ? `/progress/lift/${t1.exerciseId}` : undefined}
+        sessionTarget={budget?.minutes}
       />
       <LiftRows rows={rows} />
       {(accessories.length > 0 || !showOpen) && (
@@ -97,6 +101,7 @@ export function NextWorkoutHero() {
           collapsible
           why={!showOpen}
           changeHref={showOpen ? undefined : CHANGE_ACCESSORIES_HREF}
+          timeNote={leftOutNote(budget)}
           className="px-5"
         />
       )}

@@ -12,11 +12,13 @@ import type {
   WorkoutSession,
   WorkoutTemplate,
 } from "@/types";
+import { planAccessories, type AccessoryPlan } from "./accessoryPlan";
 import { buildWorkoutPlan, describeNextWorkout } from "./buildPlan";
 import { computeCompletion } from "./completeWorkout";
 import { createSetLog } from "./logSet";
 import { performedSetPlanKey } from "./nextSetPlans";
 import { resolveNextWorkout } from "./nextWorkout";
+import { applyPlanEdits } from "./planEdits";
 import type { WorkoutPlan } from "./types";
 
 export interface UpcomingEntry {
@@ -38,10 +40,15 @@ export interface UpcomingEntry {
 export interface UpcomingWorkout {
   templateId: string;
   template: WorkoutTemplate;
-  /** The full plan, warm-ups included when asked for. */
+  /**
+   * The full plan, warm-ups included when asked for, and with `accessoriesNow` the
+   * accessories that fit in the session length, so its length is the one Ready plans.
+   */
   plan: WorkoutPlan;
   /** Working entries only: no warm-ups, no accessories. */
   entries: UpcomingEntry[];
+  /** With `accessoriesNow`: the accessories planned and the session length they were kept to; else null. */
+  accessories: AccessoryPlan | null;
   /** False for the next workout (today's real plan); true for every later one. */
   projected: boolean;
 }
@@ -73,6 +80,12 @@ export interface ProjectUpcomingInput {
    * coming workout with that exercise performed at that tier, and is used up there.
    */
   nextSetPlans?: Readonly<Record<string, NextSetPlan>>;
+  /**
+   * Plan each workout's accessories as the start would (`planAccessories` from
+   * `settings` and `strengthSets`, chosen for this calendar day and kept to the session
+   * length `settings.sessionMinutes`) and add them to `plan`. Left out, no accessories.
+   */
+  accessoriesNow?: Date;
 }
 
 /** `plans` without those `plan` uses (its working entries' exercise performed and tier). */
@@ -233,12 +246,31 @@ export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWo
       });
   let setPlans = withoutPlansUsedBy(input.nextSetPlans, first.plan);
 
+  // One workout's accessories, chosen from its lifts as planned, as the start chooses
+  // them. Only the plan shown gets them: the projection carries the program's plan on.
+  const withAccessories = (
+    templateId: string,
+    plan: WorkoutPlan
+  ): { plan: WorkoutPlan; accessories: AccessoryPlan | null } => {
+    if (!input.accessoriesNow) return { plan, accessories: null };
+    const accessories = planAccessories({
+      templateId,
+      mainLifts: plan
+        .filter((e) => !e.isWarmUp && e.tier !== "accessory")
+        .map((e) => ({ exerciseId: e.substituteExerciseId || e.exerciseId, sets: e.targetSets })),
+      location,
+      source: { settings, strengthSets: input.strengthSets ?? [], now: input.accessoriesNow },
+      programPlan: plan,
+    });
+    return { plan: accessories.edits.length ? applyPlanEdits(plan, accessories.edits) : plan, accessories };
+  };
+
   const advanced = new Set<string>();
   const result: UpcomingWorkout[] = [
     {
       templateId: first.templateId,
       template: first.template,
-      plan: first.plan,
+      ...withAccessories(first.templateId, first.plan),
       entries: toEntries(first.plan, advanced),
       projected: false,
     },
@@ -273,7 +305,13 @@ export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWo
       ...(setPlans ? { nextSetPlans: setPlans } : {}),
     });
     setPlans = withoutPlansUsedBy(setPlans, plan);
-    result.push({ templateId, template, plan, entries: toEntries(plan, advanced), projected: true });
+    result.push({
+      templateId,
+      template,
+      ...withAccessories(templateId, plan),
+      entries: toEntries(plan, advanced),
+      projected: true,
+    });
     previous = { templateId, template, plan };
   }
   return result;

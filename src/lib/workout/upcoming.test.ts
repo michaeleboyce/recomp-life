@@ -4,6 +4,7 @@ import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { buildWorkoutPlan, describeNextWorkout } from "./buildPlan";
 import { computeCompletion } from "./completeWorkout";
 import { EQUIPMENT, SETTINGS, makeSession, makeSets, seedLiftStates } from "./testFixtures";
+import { resolveNextWorkout } from "./nextWorkout";
 import { projectUpcomingWorkouts, simulateCompletedWorkout } from "./upcoming";
 import { seedVariantState } from "./variant";
 import type { VariantState } from "@/types";
@@ -60,6 +61,36 @@ describe("projectUpcomingWorkouts", () => {
     expect(squatDays[1].plan.find((e) => e.tier === "T1" && !e.isWarmUp)!.reentry).toBeUndefined();
     // Without it, as before.
     expect(t1(projectUpcomingWorkouts(input({ variantStates: [split] }))[0]).weight).toBe(190);
+  });
+
+  it("with accessoriesNow, plans each workout's accessories kept to the session length, the first as Today does", () => {
+    const at = new Date(2026, 10, 12, 9, 0);
+    const settings = { ...SETTINGS, sessionMinutes: 60 };
+    const upcoming = projectUpcomingWorkouts(input({ settings, reentry: true, accessoriesNow: at }));
+    const today = resolveNextWorkout({
+      completedWorkouts: [],
+      liftStates: seedLiftStates(),
+      variantStates: [],
+      settings: { ...settings, equipment: EQUIPMENT, showWarmUps: true },
+      location: "gym",
+      reentry: "everyLift",
+      now: at,
+    });
+    expect(upcoming[0].plan).toEqual(today.plan);
+    expect(upcoming[0].accessories!.planned).toEqual(today.accessories!.planned);
+    for (const workout of upcoming) {
+      const budget = workout.accessories!.budget!;
+      expect(budget.minutes).toBe(60);
+      expect(budget.plannedMinutes <= 60 || budget.programOverBudget).toBe(true);
+      const ids = workout.plan.filter((e) => e.tier === "accessory").map((e) => e.exerciseId);
+      expect(ids).toEqual(budget.kept);
+      // The rows stay the program's.
+      expect(workout.entries.every((e) => e.tier !== "accessory")).toBe(true);
+    }
+    // The projection is the same with or without them.
+    const plain = projectUpcomingWorkouts(input({ settings, reentry: true }));
+    expect(upcoming.map((w) => w.entries)).toEqual(plain.map((w) => w.entries));
+    expect(plain.every((w) => w.accessories === null)).toBe(true);
   });
 
   it("follows the rotation and wraps", () => {

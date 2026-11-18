@@ -54,6 +54,12 @@ export interface UserSettings {
    * progression over the log takes over again.
    */
   accessoryWeights?: Record<string, AccessoryHandSetWeight>;
+  /**
+   * The session length to plan for, in minutes (30, 45, 60, 75 or 90 in Settings); null
+   * is no limit, absent reads as DEFAULT_SESSION_MINUTES. Accessories chosen for a
+   * workout are kept to it (`fitAccessoriesToBudget`).
+   */
+  sessionMinutes?: number | null;
 }
 
 export type AccessoryMode = "auto" | "ask" | "none";

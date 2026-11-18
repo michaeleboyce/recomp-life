@@ -187,6 +187,7 @@ function ConfigureWorkoutContent() {
         onWeight={setup.setAccessoryWeight}
         onMode={setup.setAccessoryMode}
         onPin={setup.pinAccessory}
+        budget={setup.accessoryPlan?.budget}
       />
       <EditWorkoutButton setup={setup} />
 
@@ -199,7 +200,13 @@ function ConfigureWorkoutContent() {
         <WarmUpToggle enabled={setup.warmUps} onChange={setup.setWarmUps} />
       </div>
 
-      <TimeEstimate length={length} />
+      <TimeEstimate
+        length={length}
+        target={setup.sessionMinutes}
+        usual={setup.usualSessionMinutes}
+        onTarget={setup.setSessionMinutes}
+        onSaveUsual={setup.saveSessionMinutes}
+      />
 
       {/* Everything optional. */}
       <div className="border-t border-border">
