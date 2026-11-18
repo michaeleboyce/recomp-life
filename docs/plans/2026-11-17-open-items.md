@@ -31,6 +31,34 @@ Still to do (small):
 - Default accessories add about 20 minutes to a session; consider a time budget in the
   selection (pick fewer when the session forecast passes a length the user sets).
 
+## Found on 2026-11-18, after the imported-history fixes and session length deployed
+
+Checked on the live data: Today shows "55 min of 60" with one accessory left out to fit;
+bench reads 162 on Today, Progress → Strength and the lift page; the lift page pages its
+sessions 20 at a time; the weekly review counts imported sessions; Settings has the session
+length row.
+
+Fixed the same day:
+
+- The Strength tab's recovery rows counted an imported barbell session but not an imported
+  home version of the lift (bench showed 46 days when a dumbbell bench was 8 days old), because
+  home versions were looked up from exercises the app had already planned at home.
+
+Still to do (small), queued with the polish items:
+
+- The session-length budget trims accessories by the length on paper; Today and Ready show the
+  forecast corrected for the lifter's own pace. After a few finished sessions the sheet can say
+  "3 of 3 fit in 60 min" while the line says "About 66 of 60 min". Use one length for both.
+- The weekly review's lift rows count only barbell sessions of a lift: a week with a dumbbell
+  bench shows "Bench press, 0 sessions, no estimate". Count home versions, with their estimates
+  converted the way the lift chart does (`src/lib/strength/timeline.ts`).
+- Today's days-off note counts imported sessions; the Ready screen's "lighter weights after a
+  break" still reads app workouts only.
+- Progress → Strength: the bench row says "Imported" without the date the other rows show.
+- `useLiftE1RM` is no longer used by any screen.
+- Today now chooses accessories for the next three workouts as well (for the Coming up line);
+  the cost on a long history has not been measured.
+
 ## Promised and missing
 
 | Item | Where it was promised | In the code today | Size |
