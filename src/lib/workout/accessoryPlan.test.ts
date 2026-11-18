@@ -8,6 +8,7 @@ import {
   accessoryDay,
   accessoryMinutes,
   accessoryNextTime,
+  accessoryOutcomesOf,
   nextTimeText,
   accessoryRowsOf,
   accessoryWeekSets,
@@ -180,6 +181,17 @@ describe("accessoryNextTime and nextTimeText (A9, A10)", () => {
     const next = accessoryNextTime("bicep_curls", session([15, 14, 12]) as never, HISTORY, SETTINGS, at(0, 20))!;
     expect(next).toMatchObject({ weight: 30, verdict: "same" });
     expect(nextTimeText(next)).toBe("Short of 15 on a set: 30 again next time");
+  });
+
+  it("a finished workout says it per accessory, as of that workout", () => {
+    const done = { ...session([15, 15, 15]), completedAt: at(0, 20), startedAt: at(0, 18) };
+    // A later session and a weight set by hand after it do not change what it said.
+    const later = [0, 1, 2].map(() => set("bicep_curls", "later", at(-2), { weight: 35, reps: 15 }));
+    const settings = { ...SETTINGS, accessoryWeights: { bicep_curls: { weight: 50, setAt: at(-1).getTime() } } };
+    const outcomes = accessoryOutcomesOf(done as never, [...HISTORY, ...later], settings);
+    expect(outcomes).toEqual([
+      expect.objectContaining({ exerciseId: "bicep_curls", text: "All sets at 15: up to 35 next time" }),
+    ]);
   });
 
   it("nothing done of it: nothing to say", () => {

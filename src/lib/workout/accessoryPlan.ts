@@ -280,6 +280,42 @@ export function nextTimeText(p: AccessoryPrescription): string {
   return `Short of ${top} on a set: ${unit(p.weight)} again next time`;
 }
 
+/** One accessory of a finished workout and what it does next time (A10). */
+export interface AccessoryOutcome {
+  exerciseId: string;
+  next: AccessoryPrescription;
+  /** "All sets at 15: up to 30 next time". */
+  text: string;
+}
+
+/**
+ * What each accessory of a finished workout does next time, as of that workout: its
+ * sets read with everything logged before it (later sessions and weights set by hand
+ * after it are left out), in the order they were done.
+ *
+ * @evidence accessory-progression
+ */
+export function accessoryOutcomesOf(
+  workout: Pick<WorkoutSession, "id" | "sets" | "completedAt" | "startedAt">,
+  sets: readonly StrengthSet[],
+  settings: Pick<AccessorySettings, "equipment" | "accessoryWeights">
+): AccessoryOutcome[] {
+  const end = new Date(workout.completedAt ?? workout.startedAt).getTime();
+  const before = sets.filter((set) => new Date(set.date).getTime() <= end);
+  const weights = Object.fromEntries(
+    Object.entries(settings.accessoryWeights ?? {}).filter(([, entry]) => entry.setAt <= end)
+  );
+  const ids: string[] = [];
+  for (const set of workout.sets ?? []) {
+    const id = set.substituteExerciseId || set.exerciseId;
+    if (set.tier === "accessory" && !ids.includes(id)) ids.push(id);
+  }
+  return ids.flatMap((exerciseId) => {
+    const next = accessoryNextTime(exerciseId, workout, before, { equipment: settings.equipment, accessoryWeights: weights }, new Date(end));
+    return next ? [{ exerciseId, next, text: nextTimeText(next) }] : [];
+  });
+}
+
 /** Minutes an accessory adds to the session: its sets, each with the rest after it. */
 export function accessoryMinutes(sets: number, phase?: TrainingPhase): number {
   return Math.max(1, Math.round((Math.max(0, sets) * estimateSetSeconds("accessory", phase)) / 60));

@@ -10,6 +10,7 @@ import { isRuleId, type RuleId } from "@/lib/evidence";
 import { cn } from "@/lib/utils";
 import { describeSessionOutcomes, type OutcomeKind, type SessionOutcomeRow } from "./outcomes";
 import { useWorkoutSnapshots } from "./useWorkoutSnapshots";
+import { AccessoryOutcomeRow, useAccessoryOutcomes } from "./AccessoryOutcomes";
 
 export { outcomeLiftName } from "./outcomes";
 
@@ -68,9 +69,11 @@ function OutcomeRow({ row, hideLibraryLink }: { row: SessionOutcomeRow; hideLibr
 export function WhatItDid({ workoutId, hideLibraryLink = false }: { workoutId: string; hideLibraryLink?: boolean }) {
   const workout = useWorkout(workoutId);
   const snapshots = useWorkoutSnapshots(workoutId);
+  // Each accessory: what double progression does with it next time (A10).
+  const accessories = useAccessoryOutcomes(workout);
   if (!workout || !snapshots) return null;
   const rows = describeSessionOutcomes(workout, snapshots.outcomes, snapshots.variantOutcomes);
-  if (rows.length === 0) return null;
+  if (rows.length === 0 && !accessories?.length) return null;
 
   return (
     <section aria-label="What it did" className="flex flex-col gap-1">
@@ -79,6 +82,7 @@ export function WhatItDid({ workoutId, hideLibraryLink = false }: { workoutId: s
         {rows.map((row) => (
           <OutcomeRow key={row.key} row={row} hideLibraryLink={hideLibraryLink} />
         ))}
+        {accessories?.map((outcome) => <AccessoryOutcomeRow key={outcome.exerciseId} outcome={outcome} />)}
       </ul>
     </section>
   );

@@ -5,7 +5,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { initializeDatabase } from "@/db/init";
 import { db } from "@/db/local";
 import { displayLiftName } from "@/components/Today/todayModel";
-import { clearDb, runSession } from "@/lib/data/testUtils";
+import { clearDb, makeSet, runSession } from "@/lib/data/testUtils";
 
 // The 3D figure needs WebGL; the card's list is what this page adds.
 vi.mock("@/components/Anatomy/Anatomy3D", () => ({ Anatomy3D: () => null }));
@@ -75,6 +75,36 @@ describe("/workout/summary", () => {
     );
     expect(row).toHaveTextContent("+5");
     expect(did).not.toHaveTextContent(`next ${barbellBefore}`);
+  });
+
+  it("says what each accessory does next time and why (A10)", async () => {
+    const workout = (await db.workouts.get(workoutId))!;
+    const done = new Date(workout.completedAt!).getTime() - 60_000;
+    const curls = [15, 15, 15].map((reps, i) =>
+      makeSet({
+        exerciseId: "bicep_curls",
+        tier: "accessory",
+        setNumber: i + 1,
+        targetReps: 15,
+        actualReps: reps,
+        weight: 25,
+        isAMRAP: true,
+        completedAt: new Date(done - (3 - i) * 60_000),
+      })
+    );
+    const raises = [15, 13, 12].map((reps, i) =>
+      makeSet({ exerciseId: "lateral_raises", tier: "accessory", setNumber: i + 1, targetReps: 20, actualReps: reps, weight: 15, isAMRAP: true, completedAt: new Date(done) })
+    );
+    await db.workouts.update(workoutId, { sets: [...workout.sets, ...curls, ...raises] });
+
+    query = new URLSearchParams({ sessionId: workoutId });
+    render(<WorkoutSummaryPage />);
+    const did = await screen.findByRole("region", { name: "What it did" });
+    const rows = await within(did).findAllByText(/next time$/);
+    expect(rows.map((r) => r.textContent)).toEqual([
+      "All sets at 15: up to 30 next time",
+      "Short of 20 on a set: 15 again next time",
+    ]);
   });
 
   it("sets every forecast made at start against what happened", async () => {
