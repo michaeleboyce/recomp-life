@@ -3,20 +3,13 @@
 import { useMemo } from "react";
 import { useLiftAdjustments, useStrengthEvidence } from "@/hooks";
 import { useStartingWeights } from "@/hooks/useStartingWeights";
-import type { StartingWeightSuggestion } from "@/lib/import/startingWeights";
 import {
   importedExerciseIds,
   startingWeightsAttention,
   unconfirmedStartingWeights,
   type StartingWeightsAttention,
+  type StartingWeightsToConfirm,
 } from "./startingWeightsModel";
-
-export interface StartingWeightsToConfirm {
-  /** Suggestions from the imported history the lifter has not confirmed (`unconfirmedStartingWeights`). */
-  unconfirmed: StartingWeightSuggestion[];
-  /** The exercises the imported history contains. */
-  imported: ReadonlySet<string>;
-}
 
 /** The starting weights still to confirm, and what the imported history holds; `undefined` while loading. */
 export function useStartingWeightsToConfirm(): StartingWeightsToConfirm | undefined {

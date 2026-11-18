@@ -8,6 +8,14 @@ import type { StrengthSet } from "@/lib/strength";
 import type { LiftAdjustment, Tier } from "@/types";
 import type { LiftReason, ReasonEntry } from "./todayModel";
 
+/** The starting weights still to confirm, and what the imported history holds. */
+export interface StartingWeightsToConfirm {
+  /** Suggestions from the imported history the lifter has not confirmed (`unconfirmedStartingWeights`). */
+  unconfirmed: StartingWeightSuggestion[];
+  /** The exercises the imported history contains. */
+  imported: ReadonlySet<string>;
+}
+
 /** Where the suggestions are confirmed. */
 export const IMPORT_HISTORY_HREF = "/settings/import";
 
@@ -96,4 +104,19 @@ export function startingWeightReason(
   if (waiting) return { kind: "unconfirmed", suggested: waiting.suggested, perHand: waiting.perHand };
   if (imported.has(performed)) return { kind: "notYetInApp" };
   return reason;
+}
+
+/**
+ * Lift rows with `startingWeightReason` applied to each: the one place Today's rows and
+ * every position of the Coming up full view get their honest first-time reason. Rows
+ * are returned as they are while `toConfirm` is still loading.
+ */
+export function withStartingWeightReasons<
+  Row extends { entry: Pick<ReasonEntry, "exerciseId" | "substituteExerciseId" | "tier">; reason: LiftReason },
+>(rows: Row[], toConfirm: StartingWeightsToConfirm | undefined): Row[] {
+  if (!toConfirm) return rows;
+  return rows.map((row) => {
+    const reason = startingWeightReason(row.entry, row.reason, toConfirm.unconfirmed, toConfirm.imported);
+    return reason === row.reason ? row : { ...row, reason };
+  });
 }

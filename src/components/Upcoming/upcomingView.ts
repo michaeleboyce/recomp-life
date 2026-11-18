@@ -14,6 +14,7 @@ import type { WorkoutPlan } from "@/lib/workout/types";
 import type { PlannedSet, Tier, WorkoutLocation, WorkoutSession } from "@/types";
 import { buildLiftRows, type TodayLiftRow } from "@/components/Today/LiftRows";
 import { formatLbs } from "@/components/Today/format";
+import { withStartingWeightReasons, type StartingWeightsToConfirm } from "@/components/Today/startingWeightsModel";
 import { displayLiftName, liftReason, type LiftReason } from "@/components/Today/todayModel";
 
 /** `?n=`: a whole number from 0 to the furthest position planned; null for anything else. */
@@ -62,9 +63,19 @@ export function assumptionLine(lift: UpcomingLift, position: number): string | n
 /**
  * The lift rows. The next workout's are exactly Today's (`buildLiftRows`, reasons from
  * the finished workouts). A later one's lift that depends on an earlier day says how it
- * moved from that day's weight; one that does not, how it compares with last time.
+ * moved from that day's weight; one that does not, how it compares with last time. At
+ * every position a lift not done in the app yet gets Today's honest reason
+ * (`withStartingWeightReasons`) from `toConfirm`.
  */
 export function upcomingLiftRows(
+  detail: UpcomingWorkoutDetail,
+  finishedNewestFirst: Pick<WorkoutSession, "completedAt" | "sets" | "prescribed">[],
+  toConfirm?: StartingWeightsToConfirm
+): TodayLiftRow[] {
+  return withStartingWeightReasons(liftRowsBeforeImport(detail, finishedNewestFirst), toConfirm);
+}
+
+function liftRowsBeforeImport(
   detail: UpcomingWorkoutDetail,
   finishedNewestFirst: Pick<WorkoutSession, "completedAt" | "sets" | "prescribed">[]
 ): TodayLiftRow[] {

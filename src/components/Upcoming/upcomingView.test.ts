@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { describeUpcomingWorkout, type DescribeUpcomingInput } from "@/lib/workout/upcoming";
 import { EQUIPMENT, SETTINGS, seedLiftStates } from "@/lib/workout/testFixtures";
+import type { StartingWeightSuggestion } from "@/lib/import/startingWeights";
 import { buildLiftRows } from "@/components/Today/LiftRows";
+import { withStartingWeightReasons } from "@/components/Today/startingWeightsModel";
 import {
   assumptionLine,
   lengthLine,
@@ -86,6 +88,46 @@ describe("upcomingLiftRows", () => {
     expect(squat.reason).toEqual({ kind: "up", change: 10, from: 190 });
     const [bench] = upcomingLiftRows(detail(2), []);
     expect(bench.reason).toEqual({ kind: "first" });
+  });
+
+  // Made-up suggestion: the history suggests 65 a hand for the dumbbell row (T3).
+  const toConfirm = (liftId: string) => ({
+    unconfirmed: [
+      {
+        id: `${liftId}|T3|gym`,
+        liftId,
+        tier: "T3" as const,
+        location: "gym" as const,
+        exerciseId: liftId,
+        exerciseName: "Made-up lift",
+        perHand: true,
+        current: 35,
+        suggested: 65,
+      } as StartingWeightSuggestion,
+    ],
+    imported: new Set([liftId, "ohp"]),
+  });
+
+  it("gives an unconfirmed lift Today's honest reason at the next position", () => {
+    const next = detail(0);
+    const rows = upcomingLiftRows(next, [], toConfirm("lat_pulldown"));
+    expect(rows.find((r) => r.entry.exerciseId === "lat_pulldown")!.reason).toEqual({
+      kind: "unconfirmed",
+      suggested: 65,
+      perHand: true,
+    });
+    expect(rows).toEqual(withStartingWeightReasons(buildLiftRows(next.lifts.map((l) => l.entry), []), toConfirm("lat_pulldown")));
+  });
+
+  it("gives the same reason at a later position, and never First time for an imported lift", () => {
+    const rows = upcomingLiftRows(detail(3), [], toConfirm("db_row"));
+    expect(rows.find((r) => r.entry.exerciseId === "db_row")!.reason).toEqual({
+      kind: "unconfirmed",
+      suggested: 65,
+      perHand: true,
+    });
+    expect(rows.find((r) => r.entry.exerciseId === "ohp")!.reason).toEqual({ kind: "notYetInApp" });
+    expect(rows.find((r) => r.entry.exerciseId === "deadlift")!.reason).toEqual({ kind: "first" });
   });
 });
 

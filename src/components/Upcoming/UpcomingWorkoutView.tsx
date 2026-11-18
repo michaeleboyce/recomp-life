@@ -22,6 +22,7 @@ import { accessoryRowViews } from "@/components/Today/accessoryRowModel";
 import { LiftRows } from "@/components/Today/LiftRows";
 import { EYEBROW } from "@/components/Today/TodayHero";
 import { dayName, displayLiftName } from "@/components/Today/todayModel";
+import { useStartingWeightsToConfirm } from "@/components/Today/useStartingWeightsToConfirm";
 import { LiveWhySheet, ProjectionSheet, ProjectionWhyButton } from "./ProjectionSheet";
 import { upcomingMinutes } from "./sessionMinutes";
 import {
@@ -141,6 +142,8 @@ function DetailBody({
   from: "today" | null;
 }) {
   const [open, setOpen] = useState<UpcomingLift | null>(null);
+  // The same honest reason Today gives a lift not done in the app yet, at every position.
+  const toConfirm = useStartingWeightsToConfirm();
   const { template, templateId, position, location } = detail;
   const name = dayName(template.exercises.find((e) => e.tier === "T1")?.exerciseId, template.name);
   const figureIds = detail.lifts.map((l) => l.entry.substituteExerciseId ?? l.entry.exerciseId);
@@ -149,13 +152,13 @@ function DetailBody({
   const action = startAction(detail);
 
   const rows = useMemo(() => {
-    const base = upcomingLiftRows(detail, finished);
+    const base = upcomingLiftRows(detail, finished, toConfirm);
     if (liveWhy) return base;
     return base.map((row, i) => ({
       ...row,
       why: <ProjectionWhyButton liftName={row.name} onOpen={() => setOpen(detail.lifts[i])} />,
     }));
-  }, [detail, finished, liveWhy]);
+  }, [detail, finished, liveWhy, toConfirm]);
   const accessories = useMemo(() => accessoryRowViews(detail.plan, detail.accessories), [detail]);
   const blocks = useMemo(() => setBlocks(detail.plan), [detail]);
   const liftFor = (block: SetBlock) =>

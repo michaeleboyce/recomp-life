@@ -32,7 +32,7 @@ import { ForecastTiles } from "./ForecastTiles";
 import { LiftRows, buildLiftRows } from "./LiftRows";
 import { TodayHero } from "./TodayHero";
 import { dayName } from "./todayModel";
-import { startingWeightReason } from "./startingWeightsModel";
+import { withStartingWeightReasons } from "./startingWeightsModel";
 import { useStartingWeightsToConfirm } from "./useStartingWeightsToConfirm";
 
 /**
@@ -68,12 +68,7 @@ export function NextWorkoutHero() {
   // the imported history's starting weight waits for confirmation (the weight is not changed).
   const toConfirm = useStartingWeightsToConfirm();
   const rows = useMemo(
-    () =>
-      buildLiftRows(program, finished ?? []).map((row) =>
-        toConfirm
-          ? { ...row, reason: startingWeightReason(row.entry, row.reason, toConfirm.unconfirmed, toConfirm.imported) }
-          : row
-      ),
+    () => withStartingWeightReasons(buildLiftRows(program, finished ?? []), toConfirm),
     [program, finished, toConfirm]
   );
   const accessories = useMemo(
