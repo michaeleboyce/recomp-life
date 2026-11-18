@@ -431,6 +431,13 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
   },
   {
     date: "2026-11-17",
+    ruleId: "strength-pooling",
+    change:
+      "The estimated-max chart now draws one smooth line (the estimate as of each session, with the pooling weights and a one-standard-deviation band) over every session that feeds it, by source: the lift, imported sessions and related exercises through their ratios. The big number is the plan's own estimate, with a line saying why it differs from the smooth line. Smoothing (light, standard, heavy) and switching sources off change the line only, never a planned weight. Each muscle's strength trend opens the same chart, and the Strength tab's total adds the lifts' lines.",
+    sources: [],
+  },
+  {
+    date: "2026-11-17",
     ruleId: "accessory-progression",
     change:
       "The step for dumbbell accessories is now the dumbbell increment instead of 5 lb, a weight set by hand wins until the exercise is next logged, and a first weight can come from the exercise's own history (capped at the heaviest weight lifted plus one step). Still not shown.",

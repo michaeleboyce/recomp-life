@@ -1,10 +1,19 @@
 "use client";
 
 // Strength trend per muscle (H7): from `muscleStrengthIndex`, an index that starts at
-// 100 for each muscle, not a weight. Tapping a muscle shows which exercises feed it.
+// 100 for each muscle, not a weight. Tapping a muscle opens its full chart (M10): the
+// smooth line of the index, a dot per contributing session by exercise, the legend with
+// each exercise's weight, the strip of which exercises carry it, and the window and
+// smoothing controls the lift pages have.
 import { useState } from "react";
+import { TrendChartSkeleton } from "@/components/chart-kit";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { StrengthTrendPanel } from "@/components/StrengthTrend/StrengthTrendPanel";
+import { useMuscleTimeline } from "@/hooks";
 import type { MuscleId } from "@/types";
 import { EXERCISES } from "@/lib/exercises";
+import type { RangeKey } from "@/lib/metrics/types";
+import type { WindowSpan } from "@/lib/metrics/window";
 import { MUSCLE_GROUPS, MUSCLE_GROUP_ORDER, formatMuscle } from "@/lib/muscles";
 import { MUSCLE_WEIGHTS, type MuscleStrengthIndex } from "@/lib/strength";
 import { cn } from "@/lib/utils";
@@ -27,6 +36,52 @@ function Sparkline({ values }: { values: number[] }) {
   );
 }
 
+/** The full strength trend chart of one muscle, from the same index the row shows. */
+function MuscleTrend({ muscle, index }: { muscle: MuscleId; index: MuscleStrengthIndex }) {
+  const timeline = useMuscleTimeline(muscle, index);
+  const [range, setRange] = useState<RangeKey>("3m");
+  const [span, setSpan] = useState<WindowSpan | null>(null);
+  if (!timeline) return <TrendChartSkeleton height={200} />;
+  return (
+    <StrengthTrendPanel
+      timeline={timeline}
+      range={range}
+      onRangeChange={setRange}
+      span={span}
+      onSpanChange={setSpan}
+      title="Strength trend, an index, from every exercise that works it"
+      headingLevel={3}
+      size="md"
+      ariaLabel={`${formatMuscle(muscle)} strength trend over time`}
+      anchorLabel="Index"
+      anchorTestId="muscle-trend-latest"
+      note="It stays an index (100 at the muscle's first reading): a muscle has no one-rep max, so each exercise is compared with its own earlier sessions and the changes are averaged."
+    />
+  );
+}
+
+function Contributors({ muscle, index }: { muscle: MuscleId; index: MuscleStrengthIndex }) {
+  const points = index[muscle] ?? [];
+  const last = points[points.length - 1];
+  if (!last) return null;
+  const contributors = [...last.contributors].sort((a, b) => b.weight - a.weight || b.relative - a.relative);
+  return (
+    <div data-testid={`contributors-${muscle}`}>
+      <p className="mb-1 text-xs text-muted-foreground">Exercises behind the latest reading</p>
+      <ul className="space-y-0.5">
+        {contributors.map((c) => (
+          <li key={c.exerciseId} className="flex items-baseline justify-between gap-2 text-sm">
+            <span>{EXERCISES[c.exerciseId]?.name ?? c.exerciseId}</span>
+            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+              {c.weight === MUSCLE_WEIGHTS.primary ? "main" : "helper"} · {c.relative.toFixed(1)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function MuscleStrengthList({ index }: { index: MuscleStrengthIndex }) {
   const [open, setOpen] = useState<MuscleId | null>(null);
   const groups = MUSCLE_GROUP_ORDER.map((group) => ({
@@ -40,7 +95,7 @@ export function MuscleStrengthList({ index }: { index: MuscleStrengthIndex }) {
         Each muscle&apos;s strength trend pools every exercise that works it, barbell and home.
         A main muscle counts fully and a helping muscle half. Each exercise is compared with its
         own earlier sessions, then the changes are averaged. It is an index that starts at 100,
-        not a weight in pounds.
+        not a weight in pounds. Tap a muscle for its chart.
       </p>
       {groups.length === 0 ? (
         <p className="rounded-lg bg-muted/40 px-3 py-4 text-sm text-muted-foreground">
@@ -57,22 +112,24 @@ export function MuscleStrengthList({ index }: { index: MuscleStrengthIndex }) {
                   const points = index[muscle]!;
                   const last = points[points.length - 1];
                   const change = Math.round((last.index - points[0].index) * 10) / 10;
-                  const isOpen = open === muscle;
-                  const contributors = [...last.contributors].sort(
-                    (a, b) => b.weight - a.weight || b.relative - a.relative
-                  );
                   return (
                     <li key={muscle} className="rounded-lg bg-muted/40">
                       <button
                         type="button"
-                        aria-expanded={isOpen}
-                        onClick={() => setOpen(isOpen ? null : muscle)}
-                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted/70"
+                        aria-haspopup="dialog"
+                        aria-expanded={open === muscle}
+                        onClick={() => setOpen(muscle)}
+                        className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted/70"
                       >
-                        <span className="w-24 shrink-0 text-sm">{formatMuscle(muscle)}</span>
+                        <span className="flex w-24 shrink-0 flex-col">
+                          <span className="text-sm">{formatMuscle(muscle)}</span>
+                          <span className="text-[11px] text-muted-foreground">strength trend</span>
+                        </span>
                         <Sparkline values={points.map((p) => p.index)} />
                         <span className="ml-auto text-right font-mono text-xs tabular-nums">
-                          <span className="text-foreground">{last.index.toFixed(1)}</span>
+                          <span data-testid={`muscle-index-${muscle}`} className="text-foreground">
+                            {last.index.toFixed(1)}
+                          </span>
                           <span
                             className={cn(
                               "ml-2",
@@ -84,21 +141,6 @@ export function MuscleStrengthList({ index }: { index: MuscleStrengthIndex }) {
                           </span>
                         </span>
                       </button>
-                      {isOpen && (
-                        <div className="px-3 pb-3" data-testid={`contributors-${muscle}`}>
-                          <p className="mb-1 text-xs text-muted-foreground">Exercises behind the latest reading</p>
-                          <ul className="space-y-0.5">
-                            {contributors.map((c) => (
-                              <li key={c.exerciseId} className="flex items-baseline justify-between gap-2 text-sm">
-                                <span>{EXERCISES[c.exerciseId]?.name ?? c.exerciseId}</span>
-                                <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                                  {c.weight === MUSCLE_WEIGHTS.primary ? "main" : "helper"} · {c.relative.toFixed(1)}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
                     </li>
                   );
                 })}
@@ -107,6 +149,25 @@ export function MuscleStrengthList({ index }: { index: MuscleStrengthIndex }) {
           ))}
         </div>
       )}
+
+      <Sheet open={open !== null} onOpenChange={(o) => !o && setOpen(null)}>
+        <SheetContent side="bottom" className="max-h-[92dvh] gap-0 overflow-y-auto rounded-t-3xl px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {open && (
+            <>
+              <SheetHeader className="px-0 pb-2">
+                <SheetTitle className="font-display text-xl font-bold text-foreground">{formatMuscle(open)}</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Strength trend from every exercise that works it
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex flex-col gap-5">
+                <MuscleTrend muscle={open} index={index} />
+                <Contributors muscle={open} index={index} />
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

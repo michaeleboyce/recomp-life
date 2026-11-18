@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { LineChart } from "lucide-react";
 import { TrendChartSkeleton } from "@/components/chart-kit";
@@ -9,7 +9,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-shell";
 import { Stripes } from "@/components/ui/stripes";
 import { Term } from "@/components/ui/term";
-import { useProjection } from "@/hooks";
+import { useLiftTimeline, useProjection } from "@/hooks";
+import type { Point } from "@/lib/metrics/types";
+import { TREND_SMOOTHING, smoothedEstimate } from "@/lib/strength";
 import { liftShortName, type Projection, type ProjectionScenario } from "@/lib/projection";
 import { HorizonChips } from "./HorizonChips";
 import { HowItWorks } from "./HowItWorks";
@@ -45,6 +47,15 @@ export function ProjectionView({ exerciseId }: { exerciseId: string }) {
   const [scenario, setScenario] = useState<ProjectionScenario>({});
   const requested = chosen ?? LONGEST;
   const result = useProjection(exerciseId, scenario, requested);
+  // The history is drawn as the lift's smooth line, the same line as on the lift page
+  // (standard smoothing, every source); the projection itself is unchanged.
+  const timeline = useLiftTimeline(exerciseId);
+  const firstShown = result?.history[0]?.t;
+  const smoothHistory = useMemo<Point[] | null>(() => {
+    if (!timeline || firstShown === undefined) return null;
+    const line = smoothedEstimate(timeline, { halfLifeDays: TREND_SMOOTHING.standard }).knots;
+    return line.filter((p) => p.t >= firstShown).map((p) => ({ t: p.t, v: p.v }));
+  }, [timeline, firstShown]);
 
   // How far ahead the history supports looking; it does not depend on the horizon.
   const fitted = result && result.current.status !== "insufficient-data";
@@ -137,7 +148,8 @@ export function ProjectionView({ exerciseId }: { exerciseId: string }) {
       )}
       <ProjectionChart
         liftLabel={title}
-        history={history}
+        history={smoothHistory && smoothHistory.length > 0 ? smoothHistory : history}
+        historyIsTrend={smoothHistory !== null && smoothHistory.length > 0}
         current={current}
         alternative={changed ? result.scenario : undefined}
         now={now}

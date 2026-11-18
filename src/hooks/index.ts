@@ -23,6 +23,7 @@ export {
 export { useVariantStates } from "./useVariantStates";
 export { useStrengthEvidence } from "./useStrengthEvidence";
 export { useMuscleStrength } from "./useMuscleStrength";
+export { useLiftTimeline, useLiftTimelines, useMuscleTimeline, liftTimelineFor, withoutImported } from "./useStrengthTimeline";
 export { useForecasts } from "./useForecasts";
 export { useCoachEvents } from "./useCoachEvents";
 export { useAdjustmentFeed, type AdjustmentFeed } from "./useAdjustmentFeed";

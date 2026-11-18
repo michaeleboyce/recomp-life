@@ -27,11 +27,11 @@ export interface NiceScale {
 }
 
 /**
- * A padded value domain with three or four clean ticks. The domain hugs the data
+ * A padded value domain with three or four clean ticks (or the counts given). The domain hugs the data
  * (10% padding) and never includes zero unless the data is near it, so a weight
  * series does not start at 0.
  */
-export function niceScale(values: number[]): NiceScale {
+export function niceScale(values: number[], tickCounts: readonly number[] = [4, 3]): NiceScale {
   const finite = values.filter(Number.isFinite);
   if (finite.length === 0) return { domain: [0, 1], ticks: [0, 0.5, 1] };
 
@@ -51,7 +51,7 @@ export function niceScale(values: number[]): NiceScale {
   if (min >= 0 && lo < 0) lo = 0;
 
   let best: { lo: number; step: number; count: number } | null = null;
-  for (const count of [4, 3]) {
+  for (const count of tickCounts) {
     for (const step of niceStepsFrom((hi - lo) / (count - 1))) {
       const niceLo = Math.floor(lo / step + 1e-9) * step;
       if (niceLo + (count - 1) * step >= hi - 1e-9) {

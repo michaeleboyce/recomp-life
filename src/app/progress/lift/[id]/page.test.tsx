@@ -107,12 +107,15 @@ describe("Lift page (the barbell lift's exercise page)", () => {
     }
   });
 
-  it("draws the trend overlay with enough points", async () => {
+  it("draws the smooth trend line over the lift's sessions, with the plan's estimate marked", async () => {
     await seedDemo();
     render(<LiftPage />);
     const chart = await screen.findByRole("img", { name: /estimated 1RM over time/ });
-    expect(Number(chart.getAttribute("data-points"))).toBeGreaterThanOrEqual(4);
-    expect(chart).toHaveAttribute("data-overlays", "Trend");
+    fireEvent.click(screen.getByRole("radio", { name: "All" }));
+    await waitFor(() => expect(Number(chart.getAttribute("data-points"))).toBeGreaterThanOrEqual(1));
+    expect(chart).toHaveAttribute("data-line", "smooth");
+    expect(screen.getByTestId("today-marker")).toHaveTextContent(screen.getByTestId("e1rm-latest").textContent!);
+    expect(within(screen.getByRole("list", { name: "Sources" })).getAllByRole("checkbox", { checked: true }).length).toBeGreaterThanOrEqual(1);
   });
 
   it("a range change alters the summarised numbers", async () => {

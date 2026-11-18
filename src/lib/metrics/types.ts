@@ -119,7 +119,8 @@ export interface MetricDef {
   format(value: number): string;
 }
 
-export type RangeKey = "4w" | "3m" | "1y" | "all";
+/** A preset window ending today. See `window.ts` for the days and a zoomed span. */
+export type RangeKey = "4w" | "3m" | "6m" | "1y" | "2y" | "all";
 
 export interface SeriesSummary {
   first: Point | null;

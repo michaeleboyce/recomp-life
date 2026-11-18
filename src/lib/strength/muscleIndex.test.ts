@@ -31,6 +31,13 @@ describe("muscleStrengthIndex", () => {
     expect(index.chest).toBeUndefined();
   });
 
+  it("lists each point's sessions with where each put its exercise (additive detail for the chart)", () => {
+    const quads = muscleStrengthIndex(bssSessions([40, 45, 50])).quads!;
+    expect(quads.map((p) => p.sessions.map((s) => s.estimate.sessionId))).toEqual([["h0"], ["h1"], ["h2"]]);
+    // With one exercise the session's relative is the index itself.
+    for (const p of quads) expect(Math.round(p.sessions[0].relative * 10) / 10).toBe(p.index);
+  });
+
   it("brings a new exercise in at the muscle's current level, so it adds only its changes", () => {
     const squat = [0, 3, 6].flatMap((d, i) =>
       t1Session({ sessionId: `g${i}`, exerciseId: "squat", weight: 200 + 10 * i, amrapReps: 5, day: d })

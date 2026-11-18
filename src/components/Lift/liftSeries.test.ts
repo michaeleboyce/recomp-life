@@ -10,7 +10,6 @@ import {
   liftStats,
   liftTeaser,
   nextT1Opportunity,
-  trendOverlay,
   zeroFilledWeeks,
 } from "./liftSeries";
 import { computeMetric } from "@/lib/metrics";
@@ -132,20 +131,6 @@ describe("liftMetrics with imported sessions (made-up)", () => {
     const stats = liftStats(liftMetrics(empty, "squat", "all", now.getTime(), history));
     expect(stats.working.value).toBe(225);
     expect(stats.lastSetReps).toBeNull();
-  });
-});
-
-describe("trendOverlay", () => {
-  it("needs four points", () => {
-    expect(trendOverlay(line(3))).toBeNull();
-  });
-
-  it("draws a dashed line from the first to the last point", () => {
-    const o = trendOverlay(line(5))!;
-    expect(o).toMatchObject({ id: "trend", label: "Trend", style: "dashed" });
-    expect(o.points.map((p) => p.t)).toEqual([0, 4 * WEEK]);
-    expect(o.points[0].v).toBeCloseTo(200);
-    expect(o.points[1].v).toBeCloseTo(208);
   });
 });
 
