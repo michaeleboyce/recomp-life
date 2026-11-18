@@ -3,8 +3,7 @@
 // same functions write the real ledger, so this is how the models are checked on past
 // data. Pure.
 import { anchorToPrescription, rebuildDerived } from "@/lib/rebuild";
-import { buildWorkoutPlan, overridesFromSession } from "@/lib/workout/buildPlan";
-import { anchorHomePrescriptions } from "@/lib/workout/planForSession";
+import { planForSession } from "@/lib/workout/planForSession";
 import type { WorkoutPlan } from "@/lib/workout/types";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
@@ -160,23 +159,16 @@ export function replayForecasts(input: ReplayInput, options: ReplayOptions = {})
 
     const template = WORKOUT_TEMPLATES[workout.templateId];
     if (template) {
-      // At home each lift is planned as its home exercise from the variant states, with
-      // the session's stored home prescription laid on top, as the rebuild plans it.
-      const plan: WorkoutPlan = buildWorkoutPlan({
+      // The plan the live forecast was made for (`planForSession`): the stored
+      // prescription, at home each lift as its home exercise, and the session's own plan
+      // edits. Without the edits a workout with a lift taken out would be scored as if
+      // it had been planned in full.
+      const plan: WorkoutPlan = planForSession({
+        session: workout,
         template,
         liftStates,
-        location: workout.location,
         equipment: settings.equipment,
-        includeWarmUps: workout.includeWarmUps,
-        selectedAccessories: workout.selectedAccessories ?? [],
-        overrides: overridesFromSession(workout),
-        variantStates: anchorHomePrescriptions({
-          variantStates,
-          session: workout,
-          template,
-          liftStates,
-          equipment: settings.equipment,
-        }).variantStates,
+        variantStates,
       });
       forecasts.push(...makeSessionForecasts(workout, plan, source));
     }

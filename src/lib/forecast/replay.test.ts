@@ -88,6 +88,22 @@ describe("replay of the demo history", () => {
     expect(replay.scored.some((item) => item.status.state === "void")).toBe(false);
   });
 
+  it("forecasts the workout as it was planned: a lift taken out before starting has no forecast", () => {
+    const target = byStart(demo.workouts).find((w) => w.templateId === "A1" && w.prescribed)!;
+    const removed: WorkoutSession = {
+      ...target,
+      planEdits: [{ kind: "remove", exerciseId: "squat", tier: "T1" }],
+      sets: target.sets.filter((set) => set.exerciseId !== "squat"),
+    };
+    const edited = replayForecasts({ ...demo, workouts: demo.workouts.map((w) => (w.id === target.id ? removed : w)) });
+    const of = (result: typeof replay, kind: Forecast["kind"]) =>
+      result.forecasts.filter((f) => f.workoutId === target.id && f.kind === kind);
+    expect(of(replay, "amrapReps").some((f) => f.exerciseId === "squat")).toBe(true);
+    expect(of(edited, "amrapReps").some((f) => f.exerciseId === "squat")).toBe(false);
+    // The session is forecast shorter without its squats.
+    expect(of(edited, "sessionLength")[0].prediction.point).toBeLessThan(of(replay, "sessionLength")[0].prediction.point);
+  });
+
   it("makes each forecast from the workouts finished before it", () => {
     const ordered = byStart(demo.workouts);
     for (const { forecast } of replay.scored) {

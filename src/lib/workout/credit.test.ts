@@ -32,6 +32,22 @@ describe("constants", () => {
 });
 
 describe("classifyEntry from the plan (preview)", () => {
+  it("judges a per-set plan the same wherever its short set sits", () => {
+    const withReps = (reps: number[]) =>
+      squat({ perSet: reps.map((r) => ({ weight: 190, reps: r })), targetSets: reps.length, targetReps: reps[0] });
+    // One working set planned below the prescribed reps is another scheme, whichever set it is.
+    expect(classifyEntry(withReps([2, 3, 3, 3, 3]), PRESCRIBED)).toBe("logged-only");
+    expect(classifyEntry(withReps([3, 2, 3, 3, 3]), PRESCRIBED)).toBe("logged-only");
+    expect(classifyEntry(withReps([3, 3, 3, 3, 2]), PRESCRIBED)).toBe("logged-only");
+    expect(classifyEntry(withReps([3, 3, 3, 3, 3]), PRESCRIBED)).toBe("program");
+    // A ramp set with fewer reps is not a working set and changes nothing.
+    const ramped = squat({
+      perSet: [{ weight: 135, reps: 2, role: "ramp" }, ...[3, 3, 3, 3, 3].map((reps) => ({ weight: 190, reps }))],
+      targetSets: 6,
+    });
+    expect(classifyEntry(ramped, PRESCRIBED)).toBe("program");
+  });
+
   it("is program for a prescribed lift at its scheme and weight", () => {
     expect(classifyEntry(squat(), PRESCRIBED)).toBe("program");
     expect(classifyEntry(bench(), PRESCRIBED)).toBe("program");
