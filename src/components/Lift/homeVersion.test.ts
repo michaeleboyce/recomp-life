@@ -157,6 +157,27 @@ describe("homeNextSession", () => {
     expect(next.seed).toEqual(picked.seed);
   });
 
+  it("counts a first weight's own-history window back from the planning date, not the newest set", () => {
+    // Made-up split squats twelve weeks before the day planned for, and nothing newer.
+    const then = new Date(2026, 7, 1);
+    then.setHours(9);
+    const old = makeSets("bulgarian_split_squat", "T1", 3, 8, { weight: 40, completedAt: then, isAMRAP: true }).map((s) =>
+      strengthSetOf(s, "old-session")
+    );
+    const now = new Date(2026, 10, 1);
+    now.setHours(9);
+    const base = { ...context({ liftStates: [lift({ t1Weight: 190 })] }), next: { templateId: "A1" } };
+    const ctx = { ...base, strengthSets: old };
+    // Without a date the window counts from the newest set, so those sets seed it.
+    expect(homeNextSession("squat", "bulgarian_split_squat", ctx).seed?.source).toBe("history");
+    // From the planning date they are too old to set its weight.
+    expect(homeNextSession("squat", "bulgarian_split_squat", { ...ctx, now }).seed?.source).not.toBe("history");
+    // An exercise the plan does not pick is seeded by the same clock.
+    const lunge = makeSets("db_lunge", "T1", 3, 8, { weight: 30, completedAt: then, isAMRAP: true }).map((s) => strengthSetOf(s, "old-lunge"));
+    expect(homeNextSession("squat", "db_lunge", { ...base, strengthSets: lunge }).seed?.source).toBe("history");
+    expect(homeNextSession("squat", "db_lunge", { ...base, strengthSets: lunge, now }).seed?.source).not.toBe("history");
+  });
+
   it("takes the re-entry weight back at home after barbell sessions", () => {
     // The barbell squat was done after the last split squat session, and passed twice.
     const ctx = context({

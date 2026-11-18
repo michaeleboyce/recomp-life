@@ -73,6 +73,11 @@ export interface HomePlanContext {
   /** Every set as strength evidence, the app's and the imported (`useStrengthEvidence`). */
   strengthSets?: readonly StrengthSet[];
   equipment: EquipmentProfile;
+  /**
+   * The date planned for: a first weight's own history counts back from it
+   * (`seedVariantWeight`). Left out, from the newest set in `strengthSets`.
+   */
+  now?: Date;
 }
 
 /** The next session of a home version, as Today shows it. */
@@ -168,6 +173,7 @@ export function homeNextSession(
       variantStates: ctx.variantStates,
       ...(ctx.strengthSets ? { strengthSets: ctx.strengthSets } : {}),
       ...(overrides ? { overrides } : {}),
+      ...(ctx.now ? { now: ctx.now } : {}),
     });
 
   const fromEntry = (
@@ -220,6 +226,7 @@ export function homeNextSession(
       liftState,
       equipment: ctx.equipment,
       ...(ctx.strengthSets ? { strengthSets: ctx.strengthSets } : {}),
+      ...(ctx.now ? { now: ctx.now } : {}),
     });
   const weight = Math.min(state.weight, max);
   const cappedFrom = state.weight > max ? state.weight : stored ? undefined : state.seed.cappedFrom;
