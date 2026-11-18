@@ -32,6 +32,8 @@ import { ForecastTiles } from "./ForecastTiles";
 import { LiftRows, buildLiftRows } from "./LiftRows";
 import { TodayHero } from "./TodayHero";
 import { dayName } from "./todayModel";
+import { startingWeightReason } from "./startingWeightsModel";
+import { useStartingWeightsToConfirm } from "./useStartingWeightsToConfirm";
 
 /**
  * The top of Today, everything above the fold: the photo hero with the gym/home
@@ -62,7 +64,18 @@ export function NextWorkoutHero() {
   const working = useMemo(() => plan?.filter((entry) => !entry.isWarmUp) ?? [], [plan]);
   // The program's lifts get the lift rows; the accessories their own, under T3 (A7).
   const program = useMemo(() => working.filter((entry) => entry.tier !== "accessory"), [working]);
-  const rows = useMemo(() => buildLiftRows(program, finished ?? []), [program, finished]);
+  // A lift not done in the app yet says so honestly: planned at the default weight while
+  // the imported history's starting weight waits for confirmation (the weight is not changed).
+  const toConfirm = useStartingWeightsToConfirm();
+  const rows = useMemo(
+    () =>
+      buildLiftRows(program, finished ?? []).map((row) =>
+        toConfirm
+          ? { ...row, reason: startingWeightReason(row.entry, row.reason, toConfirm.unconfirmed, toConfirm.imported) }
+          : row
+      ),
+    [program, finished, toConfirm]
+  );
   const accessories = useMemo(
     () => (plan ? accessoryRowViews(plan, showOpen ? null : next?.accessories) : []),
     [plan, showOpen, next]

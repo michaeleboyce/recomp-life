@@ -12,6 +12,13 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-18",
+    ruleId: "starting-weights",
+    change:
+      "While starting weights suggested from imported history wait to be confirmed, Today lists \"Confirm your starting weights\" under Needs attention, linking to Settings → Import history. A lift not yet done in the app no longer says \"First time\" when the imported history holds it: it says it is at the default starting weight and what the history suggests. No planned weight changes until you confirm one.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
     ruleId: "home-progression",
     change:
       "A home exercise's first weight read its own sets from the weeks before the newest set in the history, so with nothing newer, sets from years ago could set today's weight. The window now counts back from the workout being planned (Today, the Ready screen, Coming up, the swap sheet, resume and finishing): older sets only say when it was last done, and the weight comes from the next source (the lift's estimate through the learned or starting ratio).",

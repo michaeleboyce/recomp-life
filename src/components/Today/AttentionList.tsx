@@ -10,6 +10,15 @@ import type { Insight, InsightSeverity } from "@/lib/insights";
 import { cn } from "@/lib/utils";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { SectionHeader } from "@/components/ui/section-header";
+import type { StartingWeightsAttention } from "./startingWeightsModel";
+
+/** A row of the list: an insight, or Today's own "Confirm your starting weights". */
+type AttentionItem = Omit<Insight, "kind"> & { kind: Insight["kind"] | "starting-weights" };
+
+/** Today's own item as a row: an action, first in the list. */
+function startingWeightsItem(extra: StartingWeightsAttention): AttentionItem {
+  return { ...extra, kind: "starting-weights", severity: "action", evidenceId: "starting-weights" };
+}
 
 /** How many items show before "N more". */
 const VISIBLE = 3;
@@ -66,11 +75,21 @@ export function useDiscardStaleWorkouts(): void {
 
 /**
  * "Needs attention": the action, warning and info insights, three at a time (the
- * rest behind "N more"). Renders nothing when there are none.
+ * rest behind "N more"), with `startingWeights` ("Confirm your starting weights") first
+ * when given. Renders nothing when there are none.
  */
-export function AttentionList({ insights }: { insights: Insight[] }) {
+export function AttentionList({
+  insights,
+  startingWeights,
+}: {
+  insights: Insight[];
+  startingWeights?: StartingWeightsAttention | null;
+}) {
   const [expanded, setExpanded] = useState(false);
-  const items = attentionItems(insights);
+  const items: AttentionItem[] = [
+    ...(startingWeights ? [startingWeightsItem(startingWeights)] : []),
+    ...attentionItems(insights),
+  ];
   if (items.length === 0) return null;
 
   const shown = expanded ? items : items.slice(0, VISIBLE);
@@ -97,7 +116,7 @@ export function AttentionList({ insights }: { insights: Insight[] }) {
   );
 }
 
-function AttentionRow({ insight }: { insight: Insight }) {
+function AttentionRow({ insight }: { insight: AttentionItem }) {
   const icon = ICON[insight.severity] ?? ICON.action!;
   const { Icon } = icon;
   return (
@@ -128,7 +147,7 @@ function AttentionRow({ insight }: { insight: Insight }) {
 }
 
 /** One-tap answers that the old banners offered beside their link. */
-function RowExtras({ insight }: { insight: Insight }) {
+function RowExtras({ insight }: { insight: AttentionItem }) {
   const [busy, setBusy] = useState(false);
   const run = (task: () => Promise<void>) => {
     setBusy(true);

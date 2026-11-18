@@ -14,6 +14,8 @@ import {
   PositiveInsightLine,
   useDiscardStaleWorkouts,
 } from "./AttentionList";
+import { startingWeightsAttention } from "./startingWeightsModel";
+import type { StartingWeightSuggestion } from "@/lib/import/startingWeights";
 
 function Harness() {
   useDiscardStaleWorkouts();
@@ -138,6 +140,24 @@ describe("AttentionList", () => {
     await waitFor(async () =>
       expect((await db.painEntries.get("p2"))!.date.getTime()).toBeGreaterThan(date.getTime())
     );
+  });
+});
+
+describe("AttentionList: confirm your starting weights", () => {
+  it("lists it first, as an action linking to Import history, even with no insight", () => {
+    const item = startingWeightsAttention([
+      { liftId: "db_row", tier: "T3", location: "gym", exerciseId: "db_row", exerciseName: "Dumbbell Row", current: 35, suggested: 65 } as StartingWeightSuggestion,
+    ]);
+    render(<AttentionList insights={[insight(1, { severity: "warning" })]} startingWeights={item} />);
+    const rows = screen.getAllByTestId("attention-row");
+    expect(rows[0]).toHaveTextContent("Confirm your starting weights");
+    expect(rows[0]).toHaveAttribute("data-severity", "action");
+    expect(screen.getByRole("link", { name: "Review" })).toHaveAttribute("href", "/settings/import");
+  });
+
+  it("is not there when nothing waits", () => {
+    const { container } = render(<AttentionList insights={[]} startingWeights={startingWeightsAttention([])} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });
 

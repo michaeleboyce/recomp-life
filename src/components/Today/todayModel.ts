@@ -136,6 +136,14 @@ export type LiftReason =
    * (too long ago to set its weight); without it, a first time.
    */
   | { kind: "seeded"; basis: SeedBasis; lastDone?: number }
+  /**
+   * Not done in the app yet, planned at the default weight while the imported history
+   * suggests `suggested` (as lifted) and the lifter has not confirmed it
+   * (`startingWeightReason`).
+   */
+  | { kind: "unconfirmed"; suggested: number; perHand: boolean }
+  /** Not done in the app yet, but the imported history contains the exercise. */
+  | { kind: "notYetInApp" }
   | { kind: "first" };
 
 /** What a first home weight not from the exercise's own history was worked out from. */
@@ -312,6 +320,10 @@ export function reasonText(reason: LiftReason): string {
       return `From your history: last ${formatLbs(reason.weight)} × ${reason.reps} on ${historyDay(reason.at)}`;
     case "seeded":
       return `${reason.lastDone != null ? `Last done ${historyDay(reason.lastDone)}` : "First time"} · ${seedBasisText(reason.basis)}`;
+    case "unconfirmed":
+      return `Default starting weight. Your history suggests ${formatLbs(reason.suggested)}${reason.perHand ? " a hand" : ""}: confirm it in Import history`;
+    case "notYetInApp":
+      return "First time in the app; it is in your imported history";
     case "first":
       return "First time";
   }
