@@ -1,10 +1,9 @@
 # Architecture
 
-A map of the code as it stands (17 Nov 2026), for someone new to it and for agents.
-Project rules are in `CLAUDE.md`; this file says where things live and how data moves.
-How a workout is planned is not described here: see
-`docs/plans/2026-11-17-imported-history-and-planning-paths.md` (that code is being
-refactored).
+A map of the code as it stands (18 Nov 2026), for someone new to it and for agents.
+Project rules are in `CLAUDE.md`; this file says where things live, how data moves and
+how a workout is planned. The history of the planning paths is in
+`docs/plans/2026-11-17-imported-history-and-planning-paths.md`.
 
 ## Layers
 
@@ -42,8 +41,8 @@ Program and coaching (top-level files):
 - `progression.ts`: GZCLP stage and weight changes after a session. Pure; never writes lift states (the rebuild does).
 - `autoAdapt.ts`, `deload.ts`, `stallDetection.ts`, `rateOfLoss.ts`, `weightDecay.ts`, `recovery.ts`, `runRecovery.ts`, `painModifications.ts`, `painAutoClear.ts`, `volumeRatio.ts`, `volumeTracking.ts`, `muscleLoad.ts`, `amrap.ts`, `restTimes.ts`, `warmups.ts`, `e1rm.ts`, `plates.ts`, `dbConversion.ts`, `inactivity.ts`: one coaching calculation each, named by the file. Pure; thresholds are exported constants that the evidence rules read.
 - `exercises.ts`, `workoutTemplates.ts`, `accessories.ts`, `exerciseCategories.ts`, `exercisePreferences.ts`, `muscles.ts`, `activities.ts`: the exercise catalogue, the four GZCLP workouts and their metadata. Data and lookups only.
-- `liftNames.ts`, `workoutNames.ts`, `glossary.ts`, `tierStyle.ts`: names, words and tier classes shared by screens and lib code.
-- `text.ts` (plural, percent, joinList), `dates.ts` (time constants, calendar days, Monday of a week), `utils.ts` (`cn`): small shared helpers. Use these instead of local copies.
+- `liftNames.ts`, `workoutNames.ts`: every lift, exercise, workout and day name (see Naming). `glossary.ts`, `tierStyle.ts`: glossary words and tier classes.
+- `text.ts` (`plural`, `pluralGrouped`, `percent`, `formatLbs`, `joinList`, `capitalise`, `lowerFirst`, `isAbbreviation`), `dates.ts` (`HOUR_MS`, `DAY_MS`, `WEEK_MS`, calendar days, "N days ago", "N weeks ago", Monday of a week, local day key), `utils.ts` (`cn`): small shared helpers. Use these instead of local copies.
 - `weighIn.ts`, `unfinishedWorkout.ts`, `favorites.ts`, `favoriteSummary.ts`: logic behind one screen or flow.
 - `apiBase.ts`, `securityHeaders.ts`, `routes.ts`, `offlineWarmList.ts`, `exerciseMedia.ts`: build and runtime configuration (API origin, headers, URLs, service-worker warm list, media index).
 - `audio.ts`, `timerWorker.ts`: browser side effects for the rest timer. Not pure.
@@ -58,7 +57,7 @@ Folders:
 - `sync/`: sync registry (the one list of synced tables, imported by client, guard and routes), wire types, pull state, row revival, the rebuild marker, the HTTP wrapper.
 - `metrics/`: every trend the app charts, as registered metrics producing a `Series` from plain records. Pure.
 - `projection/`: e1RM projection, its baseline and scenario summary, PR opportunity. Pure; `now` is passed in.
-- `forecast/`: forecast models, stored-forecast rows, resolution against the log and the track record. Pure; the ledger writes are in `lib/data/forecasts.ts`.
+- `forecast/`: forecast models, stored-forecast rows, resolution against the log and the track record. Pure; the ledger writes are in `lib/data/forecasts.ts`. `forecast/text/` (its own `index.ts`) holds the words the forecast screens show: `words.ts` (names, kinds, dates and numbers, stored inputs), `open.ts` (`viewOf`, `openForecasts`), `inputs.ts` (`inputLines`), `record.ts` (the track record in words).
 - `readiness/`: the 0 to 100 readiness score and what moved it. It shifts forecasts only; it never changes what is lifted.
 - `insights/`: ranked attention items, one rule file per kind under `rules/`, each an adapter over an existing coaching function.
 - `review/`: the weekly review's sections and takeaways.
@@ -105,6 +104,36 @@ marker (`lib/sync/rebuildMarker.ts`) in the same transaction. At the end of the 
 and at the start of the next sync or app start (`db/init.ts`), `rebuildIfNeeded` runs
 `applyRebuild()` and clears the marker only if no newer page re-marked it.
 
+## How a workout is planned
+
+All in `src/lib/workout`, pure. `planningPaths.characterisation.test.ts` pins what every
+path below plans for the demo log; a difference there means a planning number moved.
+
+- **The due day.** `dueTemplateId` (`rotation.ts`): A1, B1, A2, B2 from the finished
+  workouts. Screens that only need the day read `useDueTemplateId`.
+- **Starting a session.** `planWorkoutStart` (`startPlan.ts`), the one function every
+  path shares: re-entry after time off (`reentry.ts`), each program lift resolved once
+  (`resolveLifts` in `liftResolution.ts`: the exercise done, a first home weight from
+  the strength evidence in `strength.ts`), the prescription recorded
+  (`prescriptionOf`), the accessories chosen (`accessoryPlan.ts` over
+  `lib/accessories`), then the plan with next-session set plans and the user's edits
+  applied (`planFromLifts`, `withPlanEdits`, `planEdits.ts`).
+- **The next workout on every screen.** `resolveNextWorkout` (`nextWorkout.ts`): the due
+  day, then exactly what `planWorkoutStart` would plan for it now. Hook:
+  `useNextWorkout`. Configure (`components/PreWorkout/useWorkoutSetup.ts`) calls
+  `planWorkoutStart` with the user's choices; starting stores that plan and its
+  prescription on the workout row.
+- **A session in progress.** `planForSession` (`planForSession.ts`) rebuilds the plan
+  of a stored session from its prescription, so a resumed workout shows what was
+  planned at the start.
+- **The workouts after the next.** `projectUpcomingWorkouts` and
+  `describeUpcomingWorkout` (`upcoming.ts`) plan each coming day the same way, with the
+  lift states moved on by a simulated pass (`simulateCompletedWorkout`). Hook:
+  `useUpcomingWorkouts`.
+- **Forecasts.** `lib/data/forecasts.ts` builds the forecast source from the same
+  strength evidence (`strengthSetsFrom`), so a forecast is made for the plan the
+  screens show.
+
 ## The evidence registry
 
 `src/lib/evidence/` holds every coaching rule: what the app does, why, the grade of
@@ -150,10 +179,10 @@ the back button), and the `nameOf` helpers that take a candidate object.
 
 ## Conventions in the code
 
-- Tests sit beside the file they test (`foo.ts` and `foo.test.ts`); larger subjects split by topic (`project.range.test.ts`). Shared fakes and builders live in a `testHelpers.ts`, `testUtils.ts` or `testFakes.ts` in the same folder. Vitest with jsdom; Dexie tests use `fake-indexeddb`.
+- Tests sit beside the file they test (`foo.ts` and `foo.test.ts`); larger subjects split by topic (`project.range.test.ts`). Shared fakes and builders live in a `testHelpers.ts`, `testUtils.ts`, `testFixtures.ts` or `testFakes.ts` in the same folder. A builder of one record is named `makeX` (`makeWorkout`, `makeSet`, `makeForecast`, `makeImportedSet`) and takes overrides. Vitest with jsdom; Dexie tests use `fake-indexeddb`.
 - Each pure module starts with a comment saying what it owns and, usually, "Pure".
 - Folders with a public surface export it from `index.ts` (`lib/forecast`, `lib/rebuild`, `lib/workout`, `lib/metrics`, `hooks`); import from the folder, not its files, where an index exists.
-- A feature folder under `src/components/<Feature>/` holds PascalCase component files, camelCase pure helpers for that feature (`todayModel.ts`, `format.ts`, `bodyMath.ts`, `forecastText.ts`) with their tests, and feature-local hooks (`useBodySeries.ts`). Larger features use subfolders (`Progress/body`, `Progress/runs`). `components/ui/` holds the shared primitives (kebab-case, shadcn style) and `components/chart-kit/` the charts.
+- A feature folder under `src/components/<Feature>/` holds PascalCase component files, camelCase pure helpers for that feature (`todayModel.ts`, `format.ts`, `bodyMath.ts`) with their tests, and feature-local hooks (`useBodySeries.ts`). Larger features use subfolders (`Progress/body`, `Progress/runs`). `components/ui/` holds the shared primitives (kebab-case, shadcn style) and `components/chart-kit/` the charts.
 - Hooks are named `useX` and live one concern per file in `src/hooks`; their pure counterparts are named `xFrom(records, ...)` where a hook and a test share the sum.
 - Units: weights in lbs, durations in seconds, stamps in epoch milliseconds; time constants from `lib/dates`.
 - Every synced record has a `clientId`; soft deletes set `deletedAt`.
@@ -161,16 +190,38 @@ the back button), and the `nameOf` helpers that take a candidate object.
 
 ## Cleanup still to do
 
-Found during the 17 Nov cleanup and left because the files were out of that pass's
-scope or the change would alter behaviour. Highest value first. The 18 Nov pass did
-the small ones: nothing in `src/lib`, `src/hooks` or `src/db` imports from
-`src/components` any more (`architecture.test.ts` checks it), lint is clean, and the
-sync-key event name has one definition.
+What the 18 Nov cleanup (K1 to K8) left, and why. Highest value first.
 
-1. Remaining local copies of the shared text helpers: `plural` in `lib/insights/shared.ts`, `lib/trace/homeWeight.ts`, `components/Lift/homeVersion.ts`; `joinList` in `lib/insights/shared.ts`, `lib/trace/text.ts` (has an "or" variant), `components/Projection/ScenarioControls.tsx`; inline `n === 1 ? "" : "s"` in `lib/sync.ts`, `lib/import/startingWeights.ts`, `components/Projection/*`; `pct` in `lib/evidence/rules/*.ts`, `lib/glossary.ts`, `components/ActiveWorkout/glassForecast.ts`. Use `lib/text`. Small.
-2. Day and week constants still defined locally (`DAY_MS`, `86_400_000`) in `lib/strength/*`, `lib/data/health.ts`, `lib/health/importWindow.ts`, `lib/import/*`, `lib/insights/shared.ts`, `components/{Lift,LogEdit,Today,PreWorkout}`; use `lib/dates`. Small.
-3. Lift naming has several functions for one idea with different words: `liftLabel`/`liftShort` in `components/Forecast/forecastText.ts` ("bench press") and in `lib/adjustments/text.ts` ("bench"), `liftShortName` in `lib/workoutNames.ts` and in `lib/projection/summary.ts`, `displayLiftName` in `components/Today/todayModel.ts`, `liftName` in `lib/insights/shared.ts` and `components/LogEdit/format.ts`. Unifying changes screen words, so it needs a decision on the wording first. Medium.
-4. `components/Forecast/forecastText.ts` (860 lines) is pure text logic for stored forecasts; it would sit better as `lib/forecast/text.ts`, split into names, due dates and track-record words. Medium.
-5. Test builders are spread over `lib/readiness/testUtils.ts` (`makeWorkout`, used by some 40 test files across the repo), `lib/data/testUtils.ts`, `lib/rebuild/testHelpers.ts`, `lib/strength/testHelpers.ts`, `lib/workout/testFixtures.ts`, with three naming schemes. Move the general record builders to one shared test module. Medium.
-6. `src/hooks/useWeightChances.ts` (`weightChancesFrom`) and `src/hooks/useLogEdit.ts` (`countDifferences`) hold pure logic that belongs in `src/lib`; `components/Dashboard/MuscleHeatCard.tsx` and `app/exercises/page.tsx` still read Dexie directly (on the R8 allowlist). Small to medium.
-7. `components/ui/logo.tsx` (`Logo`) is used only by its test; wire it in or drop it. Trivial.
+1. Text and date helpers whose output differs, so they were not merged: `formatLbs` in
+   `components/LogEdit/format.ts` (drops a trailing ".0": "203") against the one in
+   `lib/text` ("203.0"); `formatAmount` in `lib/forecast/text/words.ts` and
+   `formatNumber` in `components/chart-kit/scale.ts` (identical to each other, with
+   thousands separators) against `formatNumber` in `lib/metrics/helpers.ts`; percent
+   variants with decimals in `lib/evidence/rules/{effort,strength,forecast,readinessScore}.ts`
+   and `components/Readiness/readinessText.ts`; `joinList` with "or" in
+   `lib/trace/text.ts`; "N days ago" variants in `components/Progress/sections.ts`
+   ("1 day ago"), `lib/favoriteSummary.ts` and `lib/readiness/score.ts`; short-date
+   formatters in `components/chart-kit/{scale,trendGeometry}.ts` (same output as
+   `shortDate` in `lib/forecast/text`, but a component can not be imported from lib).
+   A shared `shortDate` in `lib/dates` would let them go. Small.
+2. `components/Lift/homeVersion.ts` keeps a local `plural` (the file was being edited
+   by another session). Trivial.
+3. Lift names: the wording differs between screens and sometimes on one screen (see
+   Naming). Merging needs the owner to choose the words first. Re-exports kept for
+   many importers: `displayLiftName`, `nameInSentence`, `dayName` from
+   `components/Today/todayModel.ts`; `liftName` from `components/LogEdit/format.ts`;
+   `components/Progress/lifts.ts` (`LIFT_NAMES` and friends); `DAY_MS` from
+   `lib/forecast/log.ts`.
+4. `src/hooks/useWeightChances.ts` (`weightChancesFrom`) and `src/hooks/useLogEdit.ts`
+   (`countDifferences`) hold pure logic that belongs in `src/lib`;
+   `components/Dashboard/MuscleHeatCard.tsx` and `app/exercises/page.tsx` still read
+   Dexie directly (on the R8 allowlist). Small to medium.
+5. Unused code left for a decision: the coaching code under "Decide: build or remove"
+   in `docs/plans/2026-11-17-open-items.md` (deload, pain load changes, volume ratio,
+   the weigh-in reminder, `Logo`), the recovery ramp-up helpers in `lib/recovery.ts`,
+   and hooks and data-layer readers only tests call (listed in the cleanup report).
+6. `useStrengthEvidence()` is called separately by each hook on a screen, and
+   `strengthEvidenceOf` builds a new array per call, so the per-array caches in
+   `lib/workout/strength.ts` are not shared between hooks. One provider over the
+   screen (or a cache keyed on the input arrays inside `strengthEvidenceOf`) would let
+   them share. Medium.
