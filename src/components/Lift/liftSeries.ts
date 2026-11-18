@@ -11,7 +11,6 @@ import type {
 import { nextWeekMs, weekStartMs } from "@/lib/metrics/helpers";
 import {
   describePrOpportunity,
-  fitTrend,
   measureBaseline,
   projectionTeaser,
   type PrOpportunity,
@@ -27,7 +26,6 @@ import {
 import { getPrescription } from "@/lib/workout";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, SetLog, WorkoutTemplateExercise } from "@/types";
-import type { TrendOverlay } from "@/components/chart-kit";
 
 /** How far ahead the projection teaser looks, then the fallback when that is too far. */
 const TEASER_WEEKS = [8, 4] as const;
@@ -149,23 +147,6 @@ export function liftStats(m: LiftMetrics): LiftStats {
 export function formatCompact(value: number): string {
   if (Math.abs(value) >= 1000) return `${Number((value / 1000).toFixed(1))}k`;
   return String(Math.round(value));
-}
-
-/** The fitted straight line across the visible points, or null under four points. */
-export function trendOverlay(points: Point[]): TrendOverlay | null {
-  const fit = fitTrend(points);
-  if (!fit || points.length === 0) return null;
-  const first = points[0].t;
-  const last = points[points.length - 1].t;
-  return {
-    id: "trend",
-    label: "Trend",
-    style: "dashed",
-    points: [
-      { t: first, v: fit.valueAt(first) },
-      { t: last, v: fit.valueAt(last) },
-    ],
-  };
 }
 
 /**
