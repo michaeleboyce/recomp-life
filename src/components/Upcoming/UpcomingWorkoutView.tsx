@@ -294,8 +294,10 @@ function SetBlockRow({ block, note, likely }: { block: SetBlock; note: string | 
         {likely && <span className="text-xs text-muted-foreground">likely</span>}
         {block.perHand && <span className="ml-auto shrink-0 text-xs text-muted-foreground">lb per hand</span>}
       </span>
-      {block.warmUps.length > 0 && <SetLine label="Warm-up" sets={block.warmUps} testId="warm-up-sets" />}
-      <SetLine label="Sets" sets={block.sets} amrap={block.isAMRAP} testId="working-sets" />
+      {block.warmUps.length > 0 && (
+        <SetLine label="Warm-up" sets={block.warmUps} bodyweight={block.bodyweight} testId="warm-up-sets" />
+      )}
+      <SetLine label="Sets" sets={block.sets} amrap={block.isAMRAP} bodyweight={block.bodyweight} testId="working-sets" />
       {note && (
         <p data-testid="assumption" className="pl-7 text-xs text-muted-foreground">
           {note}
@@ -309,11 +311,13 @@ function SetLine({
   label,
   sets,
   amrap = false,
+  bodyweight,
   testId,
 }: {
   label: string;
   sets: SetBlock["sets"];
   amrap?: boolean;
+  bodyweight: boolean;
   testId: string;
 }) {
   return (
@@ -321,7 +325,7 @@ function SetLine({
       <span className="w-14 shrink-0 text-xs text-muted-foreground">{label}</span>
       <span data-testid={testId} className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5 font-mono text-[13px] text-foreground tabular-nums">
         {sets.map((set, i) => (
-          <span key={i}>{setText(set, i === sets.length - 1, amrap)}</span>
+          <span key={i}>{setText(set, i === sets.length - 1, amrap, bodyweight)}</span>
         ))}
       </span>
     </span>

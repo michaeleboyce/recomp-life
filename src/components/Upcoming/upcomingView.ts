@@ -103,6 +103,8 @@ export interface SetBlock {
   /** The last set asks for as many reps as you can. */
   isAMRAP: boolean;
   perHand: boolean;
+  /** No weight is a bodyweight set; for anything else it is a weight still to choose. */
+  bodyweight: boolean;
 }
 
 /** Every entry of the plan in order, each lift with the warm-ups that lead to it. */
@@ -124,15 +126,16 @@ export function setBlocks(plan: WorkoutPlan): SetBlock[] {
       sets: plannedSetsOf(entry),
       isAMRAP: entry.isAMRAP,
       perHand: entry.perHand ?? EXERCISES[shownId]?.grip === "per_hand",
+      bodyweight: EXERCISES[shownId]?.type === "bodyweight",
     });
     warmUps = [];
   }
   return blocks;
 }
 
-/** "190×3", "BW×10". */
-export function setText(set: PlannedSet, last = false, amrap = false): string {
-  const weight = set.weight > 0 ? formatLbs(set.weight) : "BW";
+/** "190×3", "BW×10" for a bodyweight set, "—×15" when the weight is still to choose. */
+export function setText(set: PlannedSet, last = false, amrap = false, bodyweight = false): string {
+  const weight = set.weight > 0 ? formatLbs(set.weight) : bodyweight ? "BW" : "—";
   return `${weight}×${set.reps}${last && amrap ? "+" : ""}`;
 }
 

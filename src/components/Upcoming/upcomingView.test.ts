@@ -69,7 +69,8 @@ describe("words", () => {
   it("writes sets short, the last one with + when it asks for as many as you can", () => {
     expect(setText({ weight: 190, reps: 3 })).toBe("190×3");
     expect(setText({ weight: 190, reps: 3 }, true, true)).toBe("190×3+");
-    expect(setText({ weight: 0, reps: 10 })).toBe("BW×10");
+    expect(setText({ weight: 0, reps: 10 }, false, false, true)).toBe("BW×10");
+    expect(setText({ weight: 0, reps: 15 })).toBe("—×15");
     expect(setText({ weight: 22.5, reps: 8 })).toBe("22.5×8");
   });
 });
