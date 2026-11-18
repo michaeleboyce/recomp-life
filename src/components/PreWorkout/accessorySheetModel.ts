@@ -4,6 +4,7 @@
 // app could have picked and comes with its reasons. Pure; no React.
 import {
   budgetLine,
+  insteadOfNote,
   type AccessoryCandidate,
   type ChooseAccessoriesResult,
   type LeftOutForTime,
@@ -84,6 +85,23 @@ export function addLists(ranked: readonly AccessoryCandidate[], inPlan: readonly
 }
 
 const nameOf = (c: AccessoryCandidate) => EXERCISES[c.exerciseId]?.name ?? c.exerciseId;
+
+/** The pin's own words: the pin button says them when it is shown. */
+const PINNED_REASON = "Always on this day";
+
+/**
+ * A pick's lines on its sheet row: the first reason it earned (leaving out "Always on
+ * this day" when the pin button already says it) and, at home, a quieter note naming
+ * the gym exercise it stands in for. The note is never given as the reason.
+ */
+export function pickReasonLines(
+  pick: Pick<AccessoryCandidate, "reasons" | "insteadOf">,
+  { pinShown }: { pinShown: boolean }
+): { reason: string | null; note: string | null } {
+  const note = pick.insteadOf ? insteadOfNote(pick.insteadOf) : null;
+  const reason = pick.reasons.find((r) => r !== note && !(pinShown && r === PINNED_REASON)) ?? null;
+  return { reason, note };
+}
 
 /** What the sheet says about the session length: the line, and the ones left out for time. */
 export interface BudgetView {

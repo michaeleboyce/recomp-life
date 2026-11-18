@@ -14,15 +14,20 @@ export function isLive(row: { deletedAt?: number | null }): boolean {
   return row.deletedAt == null;
 }
 
-function compareIds(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0;
+function compareIds(a: string | undefined, b: string | undefined): number {
+  const x = a ?? "";
+  const y = b ?? "";
+  return x < y ? -1 : x > y ? 1 : 0;
 }
+
+/** What `finishedBy` reads of a workout: its finish, id and deletion. */
+export type FinishedRow = Pick<WorkoutSession, "completedAt"> & { id?: string; deletedAt?: number | null };
 
 /**
  * The workouts a model may learn from at `nowMs`: finished by then and not deleted,
  * oldest finish first (ties by id, so the order never depends on the input order).
  */
-export function finishedBy(workouts: WorkoutSession[], nowMs: number): WorkoutSession[] {
+export function finishedBy<W extends FinishedRow>(workouts: readonly W[], nowMs: number): W[] {
   return workouts
     .filter((w) => isLive(w) && w.completedAt != null && toMs(w.completedAt) <= nowMs)
     .sort((a, b) => toMs(a.completedAt) - toMs(b.completedAt) || compareIds(a.id, b.id));

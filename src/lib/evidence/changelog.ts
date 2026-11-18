@@ -12,6 +12,48 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-18",
+    ruleId: "starting-weights",
+    change:
+      "While starting weights suggested from imported history wait to be confirmed, Today lists \"Confirm your starting weights\" under Needs attention, linking to Settings → Import history. A lift not yet done in the app no longer says \"First time\" when the imported history holds it: it says it is at the default starting weight and what the history suggests. No planned weight changes until you confirm one.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "home-progression",
+    change:
+      "A home exercise's first weight read its own sets from the weeks before the newest set in the history, so with nothing newer, sets from years ago could set today's weight. The window now counts back from the workout being planned (Today, the Ready screen, Coming up, the swap sheet, resume and finishing): older sets only say when it was last done, and the weight comes from the next source (the lift's estimate through the learned or starting ratio).",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "accessory-progression",
+    change:
+      "An accessory's first weight from its own history now reads the days before the workout being planned, not before its newest set: history older than that no longer sets the weight; the row says when it was last done and leaves the weight to you.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "time-off",
+    change:
+      "The Ready screen's lighter weights after a break now count sessions imported from other apps, as Today's days-off note does: an imported session of a lift, or of one of its home versions, ends that lift's break (one within the break length means no suggestion; an older one shortens the break it is measured from). A lift never done in the app is still left to its starting weight.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "session-length-budget",
+    change:
+      "The accessories were kept to the session length on paper while Today and the Ready screen showed the length corrected for your own pace, so the sheet could say \"3 of 3 fit in 60 min\" beside \"About 66 of 60 min\". The budget now measures the plan the way the screens do: on paper, with the day's per-set plans, times your pace once you have finished enough sessions. A lifter faster than the estimate gets room for more accessories, a slower one fewer; Today, the Ready screen and Coming up agree.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "accessory-selection",
+    change:
+      "An accessory offered at home in place of a gym one used to give the replacement as its reason (\"At home instead of Machine Chest Fly\"). It now gives the reason it earned itself, as every other pick does, and the accessory sheet names the gym exercise it stands in for as a quieter note below.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
     ruleId: "strength-pooling",
     change:
       "The weekly review's lift rows now count the lift's home versions: an app session done as a substitute or stand-in and an imported session of the home exercise count as sessions of the lift (\"2 sessions, 1 at home\"), and their estimates, converted through the same ratios as the lift chart, can be the week's best (\"Best from DB Bench Press\"). A week with only a dumbbell bench had shown the bench with no sessions and no estimate. A new best is still judged on the app's own barbell estimates.",

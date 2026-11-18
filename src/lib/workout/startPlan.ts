@@ -83,6 +83,8 @@ export interface StartPlanInput extends BuildPlanInput {
 export function planWorkoutStart(input: StartPlanInput): WorkoutStartPlan {
   const { template, location, equipment, overrides, strengthSets } = input;
   const scope = input.reentry ?? "day";
+  // The date planned for: the input's, else the accessories' day.
+  const now = input.now ?? input.accessories?.now;
 
   // 1. Resolve the lifts.
   const resolved: ReentryResolution =
@@ -100,6 +102,7 @@ export function planWorkoutStart(input: StartPlanInput): WorkoutStartPlan {
           ...(scope === "day" ? { template } : {}),
           ...(strengthSets ? { strengthSets } : {}),
           ...(overrides ? { overrides } : {}),
+          ...(now ? { now } : {}),
         });
   const lifts = resolveLifts({
     template,
@@ -110,6 +113,7 @@ export function planWorkoutStart(input: StartPlanInput): WorkoutStartPlan {
     reentries: resolved.reentries,
     ...(strengthSets ? { strengthSets } : {}),
     ...(overrides ? { overrides } : {}),
+    ...(now ? { now } : {}),
   });
 
   // 2. Record the prescription.
@@ -118,6 +122,8 @@ export function planWorkoutStart(input: StartPlanInput): WorkoutStartPlan {
   // 3. The accessories, chosen once from the lifts as resolved (never from the user's
   //    edits to them, so an edit does not reshuffle them), appended after the lifts and
   //    kept to the session length measured on the program's own plan.
+  //    The length is measured on the program as it will be done (its next-session set
+  //    plans applied, which can change its sets), as the screens measure it.
   const program = planFromLifts(lifts, input.accessories ? { ...input, selectedAccessories: [] } : input);
   const accessories = input.accessories
     ? planAccessories({
@@ -126,7 +132,7 @@ export function planWorkoutStart(input: StartPlanInput): WorkoutStartPlan {
         location,
         source: input.accessories,
         selected: input.selectedAccessories,
-        programPlan: program,
+        programPlan: withPlanEdits(program, input.nextSetPlans, undefined).plan,
       })
     : null;
   const accessoryEdits = accessories?.edits ?? [];

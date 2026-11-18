@@ -47,6 +47,11 @@ export interface AccessorySource {
   strengthSets: readonly StrengthSet[];
   /** The moment planned for; only its calendar day matters (see `accessoryDay`). */
   now: Date;
+  /**
+   * The lifter's own pace (`sessionPaceCorrection` of the finished workouts by `now`):
+   * the session length is measured as the screens show it. Left out, on paper.
+   */
+  pace?: number;
 }
 
 /** One accessory in the plan: its prescription and, when the app chose it, why. */
@@ -221,6 +226,7 @@ export function planAccessories(input: PlanAccessoriesInput): AccessoryPlan {
         minutes: sessionMinutesOf(settings),
         programPlan: input.programPlan,
         phase,
+        ...(source.pace !== undefined ? { pace: source.pace } : {}),
         candidates: offered.map((p) => ({
           exerciseId: p.exerciseId,
           sets: p.prescription.sets,

@@ -21,7 +21,8 @@ export const ACCESSORY_LOAD_STEP_LBS = 5;
  * src/lib/workout/variant.ts is adding (F6); the two are meant to be unified into one
  * helper later, so the names say "own history" in both.
  *
- * - `recentDays`: the history read is the sets within this many days of the newest one.
+ * - `recentDays`: the history read is the sets within this many days before the date
+ *   planned for (the same window as a home exercise's, OWN_HISTORY_WINDOW_WEEKS).
  * - `stepsAboveHeaviest`: never more than the heaviest weight lifted in that window
  *   plus this many steps.
  *
@@ -74,6 +75,19 @@ export function handSetAccessoryWeight(
   return activeHandSetWeight(sanitizeAccessoryWeights(settings?.accessoryWeights)?.[exerciseId], exerciseId, sets);
 }
 
+/** An exercise's normal loaded sets up to `now` (any date when left out). */
+function ownLoadedSets(sets: readonly StrengthSet[], exerciseId: string, now?: Date): StrengthSet[] {
+  const until = now ? now.getTime() : Infinity;
+  return sets.filter(
+    (s) =>
+      s.exerciseId === exerciseId && isNormal(s) && s.weight > 0 && s.reps > 0 && Number.isFinite(t(s.date)) && t(s.date) <= until
+  );
+}
+
+/** "Nov 3, 2024": a day for a note. */
+const dayText = (at: number) =>
+  new Date(at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
 export interface OwnHistoryFirstWeight {
   weight: number;
   /** "top": the heaviest weight the top of the range was reached at; "estimate": the
@@ -93,7 +107,9 @@ export interface OwnHistoryFirstWeight {
  *    max, each set read as taken to its limit, which gives the lower estimate), else
  * 3. the heaviest weight lifted;
  * never more than the heaviest weight lifted plus one step, rounded down to the step.
- * The window is OWN_HISTORY_FIRST_WEIGHT.recentDays back from the newest set.
+ * The window is OWN_HISTORY_FIRST_WEIGHT.recentDays back from `now`, the date planned
+ * for (sets after it are not read); with none inside it, null, however much older
+ * history there is. Left out, `now` is the newest set of the exercise.
  *
  * @evidence accessory-progression
  */
@@ -101,14 +117,15 @@ export function ownHistoryFirstWeight(
   sets: readonly StrengthSet[],
   exerciseId: string,
   range: { min: number; max: number },
-  step: number
+  step: number,
+  now?: Date
 ): OwnHistoryFirstWeight | null {
-  const own = sets.filter(
-    (s) => s.exerciseId === exerciseId && isNormal(s) && s.weight > 0 && s.reps > 0 && Number.isFinite(t(s.date))
-  );
+  const own = ownLoadedSets(sets, exerciseId, now);
   if (own.length === 0) return null;
   const newest = Math.max(...own.map((s) => t(s.date)));
-  const recent = own.filter((s) => t(s.date) >= newest - OWN_HISTORY_FIRST_WEIGHT.recentDays * DAY_MS);
+  const until = now ? now.getTime() : newest;
+  const recent = own.filter((s) => t(s.date) >= until - OWN_HISTORY_FIRST_WEIGHT.recentDays * DAY_MS);
+  if (recent.length === 0) return null;
   const heaviest = Math.max(...recent.map((s) => s.weight));
   const cap = heaviest + OWN_HISTORY_FIRST_WEIGHT.stepsAboveHeaviest * step;
 
@@ -251,7 +268,7 @@ function planFromLog(input: AccessoryPrescriptionInput, range: { min: number; ma
           : `Same weight: working toward ${range.max} reps on every set`;
     return { weight: result.newWeight, basis: "progression", last, verdict, note };
   }
-  const first = bodyweight ? null : ownHistoryFirstWeight(sets, exerciseId, range, step);
+  const first = bodyweight ? null : ownHistoryFirstWeight(sets, exerciseId, range, step, input.now);
   if (first) {
     const why =
       first.rule === "top"
@@ -261,7 +278,14 @@ function planFromLog(input: AccessoryPrescriptionInput, range: { min: number; ma
           : "the heaviest weight you lifted";
     return { weight: first.weight, basis: "history", note: `First time in the app: from your history, ${why}` };
   }
-  return { weight: null, basis: "none", note: bodyweight ? "Bodyweight: log your reps" : "No history yet: enter a weight" };
+  if (bodyweight) return { weight: null, basis: "none", note: "Bodyweight: log your reps" };
+  // History older than the window: say when, rather than "No history yet".
+  const older = ownLoadedSets(sets, exerciseId, input.now);
+  if (older.length > 0) {
+    const last = Math.max(...older.map((s) => t(s.date)));
+    return { weight: null, basis: "none", note: `Last done ${dayText(last)}: too long ago to set its weight, enter one` };
+  }
+  return { weight: null, basis: "none", note: "No history yet: enter a weight" };
 }
 
 /**

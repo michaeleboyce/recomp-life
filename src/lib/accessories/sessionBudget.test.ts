@@ -106,6 +106,27 @@ describe("fitAccessoriesToBudget", () => {
     expect(budget.offered).toBe(4);
   });
 
+  it("measures the lengths the screens show: on paper times the lifter's own pace", () => {
+    const program = programOf(35);
+    const onPaper = estimateWorkoutSeconds(program, PHASE);
+    // On paper 35 min plus three 3-set accessories fit in 60; at 1.3 times the pace
+    // the lifts alone take about 46 min and only what fits in the rest is kept.
+    const candidates = [c("a"), c("b"), c("c")];
+    const paper = fitAccessoriesToBudget({ minutes: 60, programPlan: program, phase: PHASE, candidates });
+    const slow = fitAccessoriesToBudget({ minutes: 60, programPlan: program, phase: PHASE, candidates, pace: 1.3 });
+    expect(paper.kept).toEqual(["a", "b", "c"]);
+    expect(slow.programMinutes).toBe(Math.round((onPaper * 1.3) / 60));
+    const fits = Math.floor((60 * 60 - onPaper * 1.3) / (3 * ACC * 1.3));
+    expect(slow.kept).toEqual(["a", "b", "c"].slice(0, fits));
+    expect(slow.kept.length).toBeLessThan(3);
+    expect(slow.plannedMinutes).toBe(Math.round(((onPaper + slow.kept.length * 3 * ACC) * 1.3) / 60));
+    expect(slow.leftOut[0].minutes).toBe(Math.round((3 * ACC * 1.3) / 60));
+    // A pace that says nothing (missing, zero, not a number) is the length on paper.
+    for (const pace of [undefined, 0, -1, Number.NaN]) {
+      expect(fitAccessoriesToBudget({ minutes: 60, programPlan: program, phase: PHASE, candidates, pace })).toEqual(paper);
+    }
+  });
+
   it("tries the next one when one does not fit", () => {
     const program = programOf(40);
     const base = fitAccessoriesToBudget({ minutes: null, programPlan: program, phase: PHASE, candidates: [] });

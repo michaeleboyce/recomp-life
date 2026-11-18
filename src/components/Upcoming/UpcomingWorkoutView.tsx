@@ -208,7 +208,7 @@ function DetailBody({
         <h2 id="upcoming-lifts" className={cn(SECTION, "px-5 pt-2")}>
           Lifts
         </h2>
-        <LiftRows rows={rows} />
+        <LiftRows rows={rows} label={`${name}'s lifts`} />
         {liveWhy ? null : detail.projected ? (
           <ProjectionSheet lift={open} onClose={() => setOpen(null)} />
         ) : (

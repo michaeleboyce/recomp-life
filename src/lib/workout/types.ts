@@ -134,6 +134,12 @@ export interface BuildPlanInput {
    */
   strengthSets?: readonly StrengthSet[];
   /**
+   * The date being planned for: a home exercise's first weight reads its own sets from
+   * the OWN_HISTORY_WINDOW_WEEKS before it (`seedVariantWeight`). Left out, the window
+   * runs back from the newest set in `strengthSets`.
+   */
+  now?: Date;
+  /**
    * The re-entry decisions `resolveReentry` made for the states given here, by
    * `reentryKey(liftId, tier)`: each matching entry carries its `reentry`. The states
    * must already be the resolved ones.

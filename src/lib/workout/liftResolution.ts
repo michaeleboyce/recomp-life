@@ -82,6 +82,8 @@ export interface LiftResolutionInput {
   overrides?: Record<string, string>;
   /** Re-entry decisions for the states given (`resolveReentry`), by `reentryKey`. */
   reentries?: ReadonlyMap<string, PlanReentry>;
+  /** The date being planned for: a seed's own history counts back from it (`seedVariantWeight`). */
+  now?: Date;
 }
 
 function stageOf(liftState: LiftState | undefined, tier: VariantTier): T1Stage | T2Stage | undefined {
@@ -124,6 +126,7 @@ export function resolveLifts(input: LiftResolutionInput): LiftResolution[] {
             equipment,
             overrideId: overrides[slot.exerciseId],
             ...(strengthSets ? { strengthSets } : {}),
+            ...(input.now ? { now: input.now } : {}),
           })
         : null;
     // Null for "no_substitute" and for exercises that already work at home.

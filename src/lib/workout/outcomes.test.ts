@@ -45,7 +45,7 @@ describe("describeOutcomes", () => {
     ).toEqual([
       "squat missed: moves to 6x2 at 190 lbs",
       "bench partly done: no change",
-      "lat_pulldown stays at 90 lbs (last set 17 of 18 reps)",
+      "lat_pulldown 17 reps on the last set, needed 18: stays at 90 lbs",
     ]);
   });
 
@@ -129,7 +129,7 @@ describe("describeOutcome", () => {
   it("leaves the rep count out when it is not given the sets", () => {
     expect(describeOutcome(makeOutcome("lat_pulldown", "T3", "t3Same", T3, T3, "lastSet"))).toBe("stays at 90 lbs");
     expect(describeOutcome(makeOutcome("lat_pulldown", "T3", "t3Same", T3, T3, "lastSet"), t3Sets(17))).toBe(
-      "stays at 90 lbs (last set 17 of 18 reps)"
+      "17 reps on the last set, needed 18: stays at 90 lbs"
     );
   });
 });
@@ -138,10 +138,10 @@ describe("a T3's line uses the threshold its own weight asked for", () => {
   it("a 50 lb T3: 20 of 20 goes up, 19 of 20 stays", () => {
     const at50 = { weight: 50 };
     expect(describeOutcome(makeOutcome("db_row", "T3", "t3Up", at50, { weight: 55 }, "lastSet"), t3Sets(20))).toBe(
-      "last set reached 20 of 20: next 55 lbs"
+      "20 reps on the last set, needed 20: next 55 lbs"
     );
     expect(describeOutcome(makeOutcome("db_row", "T3", "t3Same", at50, at50, "lastSet"), t3Sets(19))).toBe(
-      "stays at 50 lbs (last set 19 of 20 reps)"
+      "19 reps on the last set, needed 20: stays at 50 lbs"
     );
   });
 });
@@ -155,12 +155,12 @@ describe("describeOutcomes on a rebuilt log", () => {
     expect(describeOutcomes(first, outcomes.get(first.id)).map((o) => o.text)).toEqual([
       "passed: next 200 lbs 5x3",
       "passed: next 105 lbs 3x10",
-      "last set reached 26 of 18: next 95 lbs",
+      "26 reps on the last set, needed 18: next 95 lbs",
     ]);
     expect(describeOutcomes(second, outcomes.get(second.id)).map((o) => `${o.kind}|${o.text}`)).toEqual([
       "stageDown|missed: moves to 6x2 at 200 lbs",
       "partial|partly done: no change",
-      "t3Same|stays at 95 lbs (last set 17 of 18 reps)",
+      "t3Same|17 reps on the last set, needed 18: stays at 95 lbs",
     ]);
   });
 });

@@ -218,6 +218,8 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
         liftState: storedLiftState,
         equipment: settings.equipment,
         ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
+        // Seeded as the plan was, for the day the session started.
+        ...(input.session.startedAt ? { now: new Date(input.session.startedAt) } : {}),
       });
 
     /** The lift done as itself at this tier: the steps its home exercises earned are used up. */

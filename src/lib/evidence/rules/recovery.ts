@@ -60,7 +60,7 @@ export const RECOVERY_RULES = {
     status: "active",
     title: "Why lighter weights after a break?",
     summary: "Short breaks cost little strength; long ones come back fast",
-    appBehavior: `Breaks of up to ${LONG_BREAK_DAYS - 1} days change nothing. After that the setup screen suggests starting lighter: ${describeDecayTiers()}. The suggestion is scaled by ${DECAY_PHASE_MULTIPLIERS.cutting} while cutting and ${DECAY_PHASE_MULTIPLIERS.bulking} while bulking, and never exceeds ${pct(MAX_DECAY)}. You can always keep your old weight. Today mentions a break once it has been 5 days since your last workout (a session imported from another app counts), and from ${LONG_BREAK_DAYS} days says that setup will suggest lighter weights.`,
+    appBehavior: `A break is counted for each lift from its last session: in the app, as one of its home exercises, or in a session imported from another app with the lift or one of its home versions. Breaks of up to ${LONG_BREAK_DAYS - 1} days change nothing. After that the setup screen suggests starting lighter: ${describeDecayTiers()}. The suggestion is scaled by ${DECAY_PHASE_MULTIPLIERS.cutting} while cutting and ${DECAY_PHASE_MULTIPLIERS.bulking} while bulking, and never exceeds ${pct(MAX_DECAY)}. You can always keep your old weight. Today mentions a break once it has been 5 days since your last workout (a session imported from another app counts), and from ${LONG_BREAK_DAYS} days says that setup will suggest lighter weights.`,
     rationale:
       "Strength is well preserved through breaks: one session a week maintains it for months, and after a full 10-week layoff trainees were back to their pre-break level in about 5 weeks. Losses do grow with the length of the break, so the suggestion scales with time away.",
     caveat:
@@ -70,6 +70,7 @@ export const RECOVERY_RULES = {
     reviewedOn: "2026-11",
     implementedIn: [
       "src/lib/weightDecay.ts#calculateWeightDecay",
+      "src/lib/workout/timeOff.ts#timeOffSuggestions",
       "src/lib/recovery.ts#LONG_BREAK_DAYS",
       "src/lib/inactivity.ts#checkInactivity",
       "src/lib/insights/rules/inactivity.ts#inactivityInsights",

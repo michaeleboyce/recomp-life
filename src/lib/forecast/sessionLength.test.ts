@@ -4,7 +4,7 @@ import { estimateLoggedSeconds, estimateWorkoutSeconds } from "@/lib/workout/dur
 import { makeEntry, makeSets } from "@/lib/workout/testFixtures";
 import type { WorkoutSession } from "@/types";
 import { CALIBRATION, SESSION_LENGTH_MODEL } from "./coefficients";
-import { forecastSessionLength, sessionPaceRatios } from "./sessionLength";
+import { forecastSessionLength, sessionPaceCorrection, sessionPaceRatios } from "./sessionLength";
 import { DAY, t1Session } from "./testHelpers";
 
 const NOW = new Date("2026-11-14T17:00:00Z");
@@ -52,6 +52,27 @@ describe("sessionPaceRatios", () => {
     };
     // Same real length, longer on paper in a cut, so the ratio is lower.
     expect(sessionPaceRatios([cut], NOW)[0]).toBeLessThan(sessionPaceRatios([session], NOW)[0]);
+  });
+});
+
+describe("sessionPaceCorrection", () => {
+  it("is 1 until there are enough finished sessions, then their median pace", () => {
+    const few = [paced("a", 9, 1.3), paced("b", 6, 1.3)].slice(0, SESSION_LENGTH_MODEL.minSessionsForCorrection - 1);
+    expect(sessionPaceCorrection(few, NOW)).toBe(1);
+    const enough = [paced("a", 9, 1.1), paced("b", 6, 1.3), paced("c", 3, 1.2)];
+    expect(sessionPaceCorrection(enough, NOW)).toBeCloseTo(1.2, 2);
+  });
+
+  it("is the correction the forecast applies, so length on paper x it is the forecast", () => {
+    const workouts = [paced("a", 9, 1.1), paced("b", 6, 1.3), paced("c", 3, 1.25), paced("d", 1, 1.4)];
+    const forecast = forecastSessionLength({ plan, workouts, phase: { mode: "maintaining" }, now: NOW });
+    expect(sessionPaceCorrection(workouts, NOW, { mode: "maintaining" })).toBe(forecast.correction);
+    expect(planned * sessionPaceCorrection(workouts, NOW)).toBeCloseTo(forecast.seconds, 6);
+  });
+
+  it("reads only the sessions finished by the date planned for", () => {
+    const workouts = [paced("a", 9, 1.3), paced("b", 6, 1.3), paced("c", 3, 1.3)];
+    expect(sessionPaceCorrection(workouts, daysAgo(4))).toBe(1);
   });
 });
 

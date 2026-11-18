@@ -24,6 +24,7 @@ import { startWorkout } from "@/lib/data/workouts";
 import { clearAccessoryWeight, setAccessorySettings, setAccessoryWeight, updateSettings } from "@/lib/data/records";
 import { sessionMinutesFromParam, sessionMinutesOf, type SessionMinutes } from "@/lib/accessories/sessionBudget";
 import { EXERCISES } from "@/lib/exercises";
+import { sessionPaceCorrection } from "@/lib/forecast";
 import { resolvePreferences } from "@/lib/exercisePreferences";
 import {
   favoriteEditsAt,
@@ -34,7 +35,6 @@ import {
 import { RECOVERY_HOURS, lastTrainedDates } from "@/lib/recovery";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
 import { sleepBucket } from "@/lib/health/sleep";
-import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
 import {
   accessoryAddEdit,
   accessoryRowsOf,
@@ -43,6 +43,7 @@ import {
   planWorkoutStart,
   prescribeAccessory,
   substituteModification,
+  timeOffSuggestions,
   type AccessorySource,
 } from "@/lib/workout";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
@@ -358,9 +359,15 @@ export function useWorkoutSetup(
   // (`resolveNextWorkout`), on this screen's day, so the same day gives the same picks,
   // kept to this workout's session length.
   const [openedAt] = useState(() => new Date());
+  // The length is measured with the lifter's own pace, as the length line shows it.
   const accessorySource = useMemo<AccessorySource>(
-    () => ({ settings: { ...settings, sessionMinutes }, strengthSets: strengthSets ?? [], now: openedAt }),
-    [settings, sessionMinutes, strengthSets, openedAt]
+    () => ({
+      settings: { ...settings, sessionMinutes },
+      strengthSets: strengthSets ?? [],
+      now: openedAt,
+      pace: sessionPaceCorrection(completedWorkouts ?? [], openedAt, settings.trainingPhase),
+    }),
+    [settings, sessionMinutes, strengthSets, openedAt, completedWorkouts]
   );
 
   /**
@@ -380,6 +387,7 @@ export function useWorkoutSetup(
             includeWarmUps: warmUps,
             selectedAccessories: namedAccessories,
             accessories: accessorySource,
+            now: openedAt,
             overrides,
             edits: pinned,
             variantStates,
@@ -387,7 +395,7 @@ export function useWorkoutSetup(
             ...(nextSetPlans ? { nextSetPlans } : {}),
           })
         : null,
-    [template, liftStates, location, equipment, warmUps, namedAccessories, accessorySource, overrides, pinned, variantStates, strengthSets, nextSetPlans]
+    [template, liftStates, location, equipment, warmUps, namedAccessories, accessorySource, openedAt, overrides, pinned, variantStates, strengthSets, nextSetPlans]
   );
   const plan = useMemo(() => startPlan?.plan ?? [], [startPlan]);
   const prescribed = startPlan?.prescribed ?? NO_PRESCRIBED;
@@ -684,17 +692,19 @@ export function useWorkoutSetup(
     [reduceT1, queue, recoveryWarnings]
   );
 
-  // A lift trained at home was not away: its home sessions count as training it.
+  // A lift trained at home or in another app was not away: its home sessions and the
+  // imported sessions of it or its home versions count as training it.
   const decaySuggestions = useMemo(() => {
     if (!template) return [];
-    return getExerciseDecaySuggestions(
+    return timeOffSuggestions(
       template.exercises,
       liftStates,
       trainingPhase,
       new Date(),
-      variantStates
+      variantStates,
+      strengthSets ?? []
     ).filter((s) => !dismissedDecays.has(`${s.exerciseId}-${s.tier}`));
-  }, [template, liftStates, variantStates, trainingPhase, dismissedDecays]);
+  }, [template, liftStates, variantStates, strengthSets, trainingPhase, dismissedDecays]);
 
   const settleDecay = useCallback((exerciseId: string, tier: string) => {
     setDismissedDecays((prev) => new Set(prev).add(`${exerciseId}-${tier}`));

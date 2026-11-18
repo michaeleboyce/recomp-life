@@ -10,7 +10,7 @@ import { formatNumber } from "@/lib/metrics/helpers";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { describeOutcomes, describeT3 } from "@/lib/workout/outcomes";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
-import { t3IncreaseOfVariantOutcome } from "@/lib/workout/t3Increase";
+import { t3IncreaseOfVariantOutcome, t3LastSetAgainst } from "@/lib/workout/t3Increase";
 import type {
   EquipmentProfile,
   ProgressionOutcome,
@@ -79,8 +79,12 @@ export function describeVariantOutcome(
   }
   // A T3 whose last set earned a heavier weight it cannot have: the cap policy adds reps.
   if (cap?.policy === "reps" && kind === "t3Same") {
+    const threshold = t3IncreaseOfVariantOutcome(outcome, { ...equipment, maxDumbbellWeight: cap.maxDumbbellWeight })?.threshold;
+    const lastSet = sets[sets.length - 1];
+    const reached =
+      lastSet && threshold != null ? t3LastSetAgainst(lastSet.actualReps, threshold) : `last set reached ${threshold}`;
     return (
-      `last set reached ${t3IncreaseOfVariantOutcome(outcome, { ...equipment, maxDumbbellWeight: cap.maxDumbbellWeight })?.threshold} at your heaviest dumbbell (${formatNumber(cap.maxDumbbellWeight, 1)}): ` +
+      `${reached}, at your heaviest dumbbell (${formatNumber(cap.maxDumbbellWeight, 1)}): ` +
       `stays at ${next}, sets of ${cap.repsTo} reps next (was ${cap.repsFrom})`
     );
   }

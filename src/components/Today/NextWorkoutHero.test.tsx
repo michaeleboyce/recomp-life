@@ -12,6 +12,7 @@ import { strengthSetsOf } from "@/lib/workout/strength";
 import { getNextWorkoutId, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { WorkoutLocation } from "@/types";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
 import { NextWorkoutHero } from "./NextWorkoutHero";
 import { dayName, displayLiftName, liftPageHref } from "./todayModel";
 
@@ -272,5 +273,38 @@ describe("NextWorkoutHero", () => {
     expect(within(rows[0]).getByTestId("lift-reason")).toHaveTextContent("First time");
     await screen.findByTestId("forecast-session");
     expect(screen.queryByTestId("forecast-new-best")).toBeNull();
+  });
+
+  it("never says First time for a lift the imported history holds: the default weight and the history's suggestion", async () => {
+    await initializeDatabase();
+    // Made-up imported squat sessions, heavier than the default start.
+    const day = (n: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() - n);
+      return d;
+    };
+    await db.importedSessions.bulkPut(
+      [3, 6, 9].map((n) =>
+        importedSession(
+          [1, 2, 3].map((order) => importedSet({ setOrder: order, mappedExerciseId: "squat", weightPerImplementLb: 275, reps: 5 })),
+          { startedAt: day(n) }
+        )
+      )
+    );
+    render(<NextWorkoutHero />);
+    const rows = await screen.findAllByTestId("hero-exercise");
+    await waitFor(() =>
+      expect(within(rows[0]).getByTestId("lift-reason")).toHaveTextContent(
+        /^Default starting weight\. Your history suggests \d+: confirm it in Import history/
+      )
+    );
+    // The planned weight is not changed.
+    const planned = describeNextWorkout({
+      completedWorkouts: [],
+      templates: WORKOUT_TEMPLATES,
+      liftStates: await db.liftStates.toArray(),
+      plan: { location: "gym", equipment: DEFAULT_USER_PROFILE.settings.equipment, includeWarmUps: false, selectedAccessories: [] },
+    }).plan.find((e) => e.exerciseId === "squat" && e.tier === "T1")!;
+    expect(within(rows[0]).getByText(String(planned.weight))).toBeInTheDocument();
   });
 });

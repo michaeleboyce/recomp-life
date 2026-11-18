@@ -5,7 +5,7 @@
 import { formatNumber } from "@/lib/metrics/helpers";
 import type { ProgressionOutcome, ProgressionOutcomeKind, SetLog, WorkoutSession } from "@/types";
 import { workingSetsFor } from "./setSelectors";
-import { t3IncreaseOfOutcome, type T3Increase } from "./t3Increase";
+import { t3IncreaseOfOutcome, t3LastSetAgainst, type T3Increase } from "./t3Increase";
 
 export type ProgramTier = ProgressionOutcome["tier"];
 
@@ -55,9 +55,9 @@ export function describeOutcome(outcome: ProgressionOutcome, sets: SetLog[] = []
 }
 
 /**
- * A T3's line against the threshold its session was judged by: "last set reached 20
- * of 20: next 55 lbs", "stays at 50 lbs (last set 19 of 20 reps)". Shared with the
- * home exercises' lines (`describeVariantOutcome`).
+ * A T3's line against the threshold its session was judged by: "26 reps on the last
+ * set, needed 18: next 95 lbs", "19 reps on the last set, needed 20: stays at 50 lbs"
+ * (`t3LastSetAgainst`). Shared with the home exercises' lines (`describeVariantOutcome`).
  */
 export function describeT3(
   inc: T3Increase | null,
@@ -71,12 +71,10 @@ export function describeT3(
     if (reason === "heavier") return `done heavier: next ${next}`;
     if (!inc) return `went up: next ${next}`;
     return lastSet
-      ? `last set reached ${lastSet.actualReps} of ${inc.threshold}: next ${next}`
+      ? `${t3LastSetAgainst(lastSet.actualReps, inc.threshold)}: next ${next}`
       : `last set reached ${inc.threshold}: next ${next}`;
   }
-  return lastSet && inc
-    ? `stays at ${next} (last set ${lastSet.actualReps} of ${inc.threshold} reps)`
-    : `stays at ${next}`;
+  return lastSet && inc ? `${t3LastSetAgainst(lastSet.actualReps, inc.threshold)}: stays at ${next}` : `stays at ${next}`;
 }
 
 /**

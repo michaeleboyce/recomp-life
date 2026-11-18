@@ -192,10 +192,26 @@ describe("chooseAccessories: rules", () => {
     const r = chooseAccessories(input({ location: "home", pins: ["hack_squat", "barbell_rdl"], mainLifts: [{ exerciseId: "goblet_squat", sets: 5 }] }));
     const ids = all(r).map((c) => c.exerciseId);
     expect(r.picks[0].exerciseId).toBe("db_lunge");
-    expect(r.picks[0].reasons).toContain("At home instead of Hack Squat");
+    expect(r.picks[0].insteadOf).toBe("hack_squat");
     expect(ids).not.toContain("barbell_rdl");
     expect(ids).not.toContain("hack_squat");
     expect(ids).not.toContain("face_pulls");
+  });
+
+  it("at home a replacement gives the reason it earned first; the gym exercise it replaces is a note after", () => {
+    const r = chooseAccessories(
+      input({ location: "home", preferences: { machine_chest_fly: "preferred" }, mainLifts: [{ exerciseId: "goblet_squat", sets: 5 }] })
+    );
+    const fly = find(r, "db_fly")!;
+    expect(fly.insteadOf).toBe("machine_chest_fly");
+    expect(fly.reasons[0]).toBe("You marked this preferred");
+    expect(fly.reasons.at(-1)).toBe("At home instead of Machine Chest Fly");
+    // With nothing else to say, it still names what it works rather than the replacement.
+    const plain = all(chooseAccessories(input({ location: "home", history: [] }))).filter((c) => c.insteadOf);
+    expect(plain.length).toBeGreaterThan(0);
+    for (const c of plain) expect(c.reasons[0]).not.toMatch(/^At home instead of/);
+    // At the gym nothing stands in for anything.
+    expect(all(chooseAccessories(input())).every((c) => c.insteadOf === null)).toBe(true);
   });
 
   it("at home with no bench leaves out bench exercises", () => {

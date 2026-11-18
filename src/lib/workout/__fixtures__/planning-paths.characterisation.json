@@ -307,7 +307,8 @@
     "T2 ohp | 60 3x10",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift | 45 1x10",
@@ -318,7 +319,8 @@
     "T2 ohp | 60 3x10",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 deadlift 220 5x3; T2 ohp 60 3x10; T3 db_row 40 3x15",
@@ -336,7 +338,8 @@
      "T2 ohp | 60 3x10",
      "T3 db_row | 40 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory back_extensions | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -380,6 +383,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "back_extensions",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -393,7 +404,8 @@
     "T2 ohp | 60 3x10",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ]
   },
   {
@@ -408,7 +420,8 @@
     "T2 bench | 105 3x10 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":145,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":195}",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "forecast": [
     "warmup squat | 45 1x10",
@@ -419,7 +432,8 @@
     "T2 bench | 105 3x10 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":145,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":195}",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "upcoming": [
     "A1: T1 squat 200 5x3; T2 bench 105 3x10; T3 lat_pulldown 90 3x15",
@@ -437,7 +451,8 @@
      "T2 bench | 105 3x10 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":145,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":195}",
      "T3 lat_pulldown | 90 3x15+",
      "accessory face_pulls | 0 3x20+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory leg_curls | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -481,6 +496,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_curls",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -517,7 +540,8 @@
     "T2 bench | 105 3x10",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ]
   },
   {
@@ -530,7 +554,8 @@
     "T2 deadlift | 165 3x10 | reentry={\"rule\":\"steps\",\"weight\":165,\"fromSteps\":165,\"fromEstimate\":225,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":155,\"estimate\":300}",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp | 45 1x10",
@@ -539,7 +564,8 @@
     "T2 deadlift | 165 3x10 | reentry={\"rule\":\"steps\",\"weight\":165,\"fromSteps\":165,\"fromEstimate\":225,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":155,\"estimate\":300}",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 ohp 90 5x3; T2 deadlift 165 3x10; T3 db_row 40 3x15",
@@ -555,7 +581,8 @@
      "T2 deadlift | 165 3x10 | reentry={\"rule\":\"steps\",\"weight\":165,\"fromSteps\":165,\"fromEstimate\":225,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":155,\"estimate\":300}",
      "T3 db_row | 40 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory oh_tricep_ext | 0 3x15+"
+     "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -599,6 +626,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -633,7 +668,8 @@
     "T2 deadlift | 165 3x10",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ]
   },
   {
@@ -648,7 +684,8 @@
     "T2 squat | 145 3x10 | reentry={\"rule\":\"steps\",\"weight\":145,\"fromSteps\":145,\"fromEstimate\":190,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":135,\"estimate\":259}",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "forecast": [
     "warmup bench | 45 1x10",
@@ -659,7 +696,8 @@
     "T2 squat | 145 3x10 | reentry={\"rule\":\"steps\",\"weight\":145,\"fromSteps\":145,\"fromEstimate\":190,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":135,\"estimate\":259}",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "upcoming": [
     "A2: T1 bench 150 5x3; T2 squat 145 3x10; T3 lat_pulldown 90 3x15",
@@ -677,7 +715,8 @@
      "T2 squat | 145 3x10 | reentry={\"rule\":\"steps\",\"weight\":145,\"fromSteps\":145,\"fromEstimate\":190,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":135,\"estimate\":259}",
      "T3 lat_pulldown | 90 3x15+",
      "accessory face_pulls | 0 3x20+",
-     "accessory incline_db_fly | 0 3x15+"
+     "accessory incline_db_fly | 0 3x15+",
+     "accessory leg_extensions | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -721,6 +760,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_extensions",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -757,7 +804,8 @@
     "T2 squat | 145 3x10",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ]
   },
   {
@@ -772,7 +820,8 @@
     "T2 ohp | 65 3x10 | reentry={\"rule\":\"steps\",\"weight\":65,\"fromSteps\":65,\"fromEstimate\":85,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":60,\"estimate\":115}",
     "T3 db_row | 45 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift | 45 1x10",
@@ -783,7 +832,8 @@
     "T2 ohp | 65 3x10 | reentry={\"rule\":\"steps\",\"weight\":65,\"fromSteps\":65,\"fromEstimate\":85,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":60,\"estimate\":115}",
     "T3 db_row | 45 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 deadlift 230 5x3; T2 ohp 65 3x10; T3 db_row 45 3x15",
@@ -801,7 +851,8 @@
      "T2 ohp | 65 3x10 | reentry={\"rule\":\"steps\",\"weight\":65,\"fromSteps\":65,\"fromEstimate\":85,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":60,\"estimate\":115}",
      "T3 db_row | 45 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory back_extensions | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -845,6 +896,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "back_extensions",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -881,7 +940,8 @@
     "T2 ohp | 65 3x10",
     "T3 db_row | 45 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ]
   },
   {
@@ -896,7 +956,8 @@
     "T2 bench | 105 3x10 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":145,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":199}",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "forecast": [
     "warmup squat | 45 1x10",
@@ -907,7 +968,8 @@
     "T2 bench | 105 3x10 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":145,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":199}",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "upcoming": [
     "A1: T1 squat 210 5x3; T2 bench 105 3x10; T3 lat_pulldown 90 3x15",
@@ -925,7 +987,8 @@
      "T2 bench | 105 3x10 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":145,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":199}",
      "T3 lat_pulldown | 90 3x15+",
      "accessory face_pulls | 0 3x20+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory leg_curls | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -969,6 +1032,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_curls",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -1005,7 +1076,8 @@
     "T2 bench | 105 3x10",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ]
   },
   {
@@ -1018,7 +1090,8 @@
     "T2 deadlift | 175 3x10 | reentry={\"rule\":\"steps\",\"weight\":175,\"fromSteps\":175,\"fromEstimate\":220,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":155,\"estimate\":295}",
     "T3 db_row | 50 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp | 45 1x10",
@@ -1027,7 +1100,8 @@
     "T2 deadlift | 175 3x10 | reentry={\"rule\":\"steps\",\"weight\":175,\"fromSteps\":175,\"fromEstimate\":220,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":155,\"estimate\":295}",
     "T3 db_row | 50 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 ohp 95 5x3; T2 deadlift 175 3x10; T3 db_row 50 3x15",
@@ -1043,7 +1117,8 @@
      "T2 deadlift | 175 3x10 | reentry={\"rule\":\"steps\",\"weight\":175,\"fromSteps\":175,\"fromEstimate\":220,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":155,\"estimate\":295}",
      "T3 db_row | 50 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory oh_tricep_ext | 0 3x15+"
+     "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -1087,6 +1162,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -1121,7 +1204,8 @@
     "T2 deadlift | 175 3x10",
     "T3 db_row | 50 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ]
   },
   {
@@ -1136,7 +1220,8 @@
     "T2 squat | 155 3x10 | reentry={\"rule\":\"steps\",\"weight\":155,\"fromSteps\":155,\"fromEstimate\":200,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":135,\"estimate\":270}",
     "T3 lat_pulldown | 95 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "forecast": [
     "warmup bench | 45 1x10",
@@ -1147,7 +1232,8 @@
     "T2 squat | 155 3x10 | reentry={\"rule\":\"steps\",\"weight\":155,\"fromSteps\":155,\"fromEstimate\":200,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":135,\"estimate\":270}",
     "T3 lat_pulldown | 95 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "upcoming": [
     "A2: T1 bench 155 5x3; T2 squat 155 3x10; T3 lat_pulldown 95 3x15",
@@ -1165,7 +1251,8 @@
      "T2 squat | 155 3x10 | reentry={\"rule\":\"steps\",\"weight\":155,\"fromSteps\":155,\"fromEstimate\":200,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":135,\"estimate\":270}",
      "T3 lat_pulldown | 95 3x15+",
      "accessory face_pulls | 0 3x20+",
-     "accessory incline_db_fly | 0 3x15+"
+     "accessory incline_db_fly | 0 3x15+",
+     "accessory leg_extensions | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -1209,6 +1296,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_extensions",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -1245,7 +1340,8 @@
     "T2 squat | 155 3x10",
     "T3 lat_pulldown | 95 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ]
   },
   {
@@ -1260,7 +1356,8 @@
     "T2 ohp | 70 3x10 | reentry={\"rule\":\"steps\",\"weight\":70,\"fromSteps\":70,\"fromEstimate\":90,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":60,\"estimate\":122}",
     "T3 db_row | 55 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift | 45 1x10",
@@ -1271,7 +1368,8 @@
     "T2 ohp | 70 3x10 | reentry={\"rule\":\"steps\",\"weight\":70,\"fromSteps\":70,\"fromEstimate\":90,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":60,\"estimate\":122}",
     "T3 db_row | 55 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 deadlift 240 5x3; T2 ohp 70 3x10; T3 db_row 55 3x15",
@@ -1289,7 +1387,8 @@
      "T2 ohp | 70 3x10 | reentry={\"rule\":\"steps\",\"weight\":70,\"fromSteps\":70,\"fromEstimate\":90,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":60,\"estimate\":122}",
      "T3 db_row | 55 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory back_extensions | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -1333,6 +1432,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "back_extensions",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -1369,7 +1476,8 @@
     "T2 ohp | 70 3x10",
     "T3 db_row | 55 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ]
   },
   {
@@ -1384,7 +1492,8 @@
     "T2 bench | 110 3x10",
     "T3 lat_pulldown | 100 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "forecast": [
     "warmup squat | 45 1x10",
@@ -1395,7 +1504,8 @@
     "T2 bench | 110 3x10",
     "T3 lat_pulldown | 100 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "upcoming": [
     "A1: T1 squat 220 5x3; T2 bench 110 3x10; T3 lat_pulldown 100 3x15",
@@ -1413,7 +1523,8 @@
      "T2 bench | 110 3x10",
      "T3 lat_pulldown | 100 3x15+",
      "accessory face_pulls | 0 3x20+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory leg_curls | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -1457,6 +1568,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_curls",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -1470,7 +1589,8 @@
     "T2 bench | 110 3x10",
     "T3 lat_pulldown | 100 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ]
   },
   {
@@ -1485,7 +1605,8 @@
     "T2 deadlift | 185 3x10",
     "T3 db_row | 60 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp | 45 1x10",
@@ -1496,7 +1617,8 @@
     "T2 deadlift | 185 3x10",
     "T3 db_row | 60 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 ohp 100 5x3; T2 deadlift 185 3x10; T3 db_row 60 3x15",
@@ -1514,7 +1636,8 @@
      "T2 deadlift | 185 3x10",
      "T3 db_row | 60 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory oh_tricep_ext | 0 3x15+"
+     "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -1558,6 +1681,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -1571,7 +1702,8 @@
     "T2 deadlift | 185 3x10",
     "T3 db_row | 60 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ]
   },
   {
@@ -1586,7 +1718,8 @@
     "T2 squat | 155 3x8",
     "T3 lat_pulldown | 105 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "forecast": [
     "warmup bench | 45 1x10",
@@ -1597,7 +1730,8 @@
     "T2 squat | 155 3x8",
     "T3 lat_pulldown | 105 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "upcoming": [
     "A2: T1 bench 160 5x3; T2 squat 155 3x8; T3 lat_pulldown 105 3x15",
@@ -1615,7 +1749,8 @@
      "T2 squat | 155 3x8",
      "T3 lat_pulldown | 105 3x15+",
      "accessory face_pulls | 0 3x20+",
-     "accessory incline_db_fly | 0 3x15+"
+     "accessory incline_db_fly | 0 3x15+",
+     "accessory leg_extensions | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -1659,6 +1794,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_extensions",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -1672,7 +1815,8 @@
     "T2 squat | 155 3x8",
     "T3 lat_pulldown | 105 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ]
   },
   {
@@ -1687,7 +1831,8 @@
     "T2 ohp | 75 3x10",
     "T3 db_row | 65 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift | 45 1x10",
@@ -1698,7 +1843,8 @@
     "T2 ohp | 75 3x10",
     "T3 db_row | 65 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 deadlift 250 5x3; T2 ohp 75 3x10; T3 db_row 65 3x15",
@@ -1716,7 +1862,8 @@
      "T2 ohp | 75 3x10",
      "T3 db_row | 65 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory back_extensions | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -1760,6 +1907,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "back_extensions",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -1773,7 +1928,8 @@
     "T2 ohp | 75 3x10",
     "T3 db_row | 65 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ]
   },
   {
@@ -1788,7 +1944,8 @@
     "T2 bench | 115 3x10",
     "T3 lat_pulldown | 110 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "forecast": [
     "warmup squat | 45 1x10",
@@ -1799,7 +1956,8 @@
     "T2 bench | 115 3x10",
     "T3 lat_pulldown | 110 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "upcoming": [
     "A1: T1 squat 230 5x3; T2 bench 115 3x10; T3 lat_pulldown 110 3x15",
@@ -1817,7 +1975,8 @@
      "T2 bench | 115 3x10",
      "T3 lat_pulldown | 110 3x15+",
      "accessory face_pulls | 0 3x20+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory leg_curls | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -1861,6 +2020,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_curls",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -1874,7 +2041,8 @@
     "T2 bench | 115 3x10",
     "T3 lat_pulldown | 110 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ]
   },
   {
@@ -1889,7 +2057,8 @@
     "T2 deadlift | 195 3x10",
     "T3 db_row | 70 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp | 45 1x10",
@@ -1900,7 +2069,8 @@
     "T2 deadlift | 195 3x10",
     "T3 db_row | 70 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 ohp 105 5x3; T2 deadlift 195 3x10; T3 db_row 70 3x15",
@@ -1918,7 +2088,8 @@
      "T2 deadlift | 195 3x10",
      "T3 db_row | 70 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory oh_tricep_ext | 0 3x15+"
+     "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -1962,6 +2133,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -1975,7 +2154,8 @@
     "T2 deadlift | 195 3x10",
     "T3 db_row | 70 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ]
   },
   {
@@ -1990,7 +2170,8 @@
     "T2 squat | 165 3x8",
     "T3 lat_pulldown | 115 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "forecast": [
     "warmup bench | 45 1x10",
@@ -2001,7 +2182,8 @@
     "T2 squat | 165 3x8",
     "T3 lat_pulldown | 115 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "upcoming": [
     "A2: T1 bench 165 5x3; T2 squat 165 3x8; T3 lat_pulldown 115 3x15",
@@ -2019,7 +2201,8 @@
      "T2 squat | 165 3x8",
      "T3 lat_pulldown | 115 3x15+",
      "accessory face_pulls | 0 3x20+",
-     "accessory incline_db_fly | 0 3x15+"
+     "accessory incline_db_fly | 0 3x15+",
+     "accessory leg_extensions | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -2063,6 +2246,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_extensions",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -2076,7 +2267,8 @@
     "T2 squat | 165 3x8",
     "T3 lat_pulldown | 115 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ]
   },
   {
@@ -2091,7 +2283,8 @@
     "T2 ohp | 80 3x10",
     "T3 db_row | 75 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift | 45 1x10",
@@ -2102,7 +2295,8 @@
     "T2 ohp | 80 3x10",
     "T3 db_row | 75 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 deadlift 260 5x3; T2 ohp 80 3x10; T3 db_row 75 3x15",
@@ -2120,7 +2314,8 @@
      "T2 ohp | 80 3x10",
      "T3 db_row | 75 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory back_extensions | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -2164,6 +2359,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "back_extensions",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -2177,7 +2380,8 @@
     "T2 ohp | 80 3x10",
     "T3 db_row | 75 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ]
   },
   {
@@ -2192,7 +2396,8 @@
     "T2 bench | 115 3x8",
     "T3 lat_pulldown | 120 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "forecast": [
     "warmup squat | 45 1x10",
@@ -2203,7 +2408,8 @@
     "T2 bench | 115 3x8",
     "T3 lat_pulldown | 120 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "upcoming": [
     "A1: T1 squat 240 5x3; T2 bench 115 3x8; T3 lat_pulldown 120 3x15",
@@ -2221,7 +2427,8 @@
      "T2 bench | 115 3x8",
      "T3 lat_pulldown | 120 3x15+",
      "accessory face_pulls | 0 3x20+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory leg_curls | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -2265,6 +2472,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_curls",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -2278,7 +2493,8 @@
     "T2 bench | 115 3x8",
     "T3 lat_pulldown | 120 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ]
   },
   {
@@ -2293,7 +2509,8 @@
     "T2 deadlift | 205 3x10",
     "T3 db_row | 80 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp | 45 1x10",
@@ -2304,7 +2521,8 @@
     "T2 deadlift | 205 3x10",
     "T3 db_row | 80 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 ohp 110 5x3; T2 deadlift 205 3x10; T3 db_row 80 3x15",
@@ -2322,7 +2540,8 @@
      "T2 deadlift | 205 3x10",
      "T3 db_row | 80 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory oh_tricep_ext | 0 3x15+"
+     "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -2366,6 +2585,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -2379,7 +2606,8 @@
     "T2 deadlift | 205 3x10",
     "T3 db_row | 80 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ]
   },
   {
@@ -2394,7 +2622,8 @@
     "T2 squat | 175 3x8",
     "T3 lat_pulldown | 125 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "forecast": [
     "warmup bench | 45 1x10",
@@ -2405,7 +2634,8 @@
     "T2 squat | 175 3x8",
     "T3 lat_pulldown | 125 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "upcoming": [
     "A2: T1 bench 170 5x3; T2 squat 175 3x8; T3 lat_pulldown 125 3x15",
@@ -2423,7 +2653,8 @@
      "T2 squat | 175 3x8",
      "T3 lat_pulldown | 125 3x15+",
      "accessory face_pulls | 0 3x20+",
-     "accessory incline_db_fly | 0 3x15+"
+     "accessory incline_db_fly | 0 3x15+",
+     "accessory leg_extensions | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -2467,6 +2698,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_extensions",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -2480,7 +2719,8 @@
     "T2 squat | 175 3x8",
     "T3 lat_pulldown | 125 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ]
   },
   {
@@ -2495,7 +2735,8 @@
     "T2 ohp | 85 3x10",
     "T3 db_row | 85 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift | 45 1x10",
@@ -2506,7 +2747,8 @@
     "T2 ohp | 85 3x10",
     "T3 db_row | 85 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 deadlift 270 5x3; T2 ohp 85 3x10; T3 db_row 85 3x15",
@@ -2524,7 +2766,8 @@
      "T2 ohp | 85 3x10",
      "T3 db_row | 85 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory back_extensions | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -2568,6 +2811,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "back_extensions",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -2581,7 +2832,8 @@
     "T2 ohp | 85 3x10",
     "T3 db_row | 85 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ]
   }
  ],
@@ -2937,7 +3189,8 @@
     "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":103,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"repsInReserve\":\"1-2\"}}",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 25(220) 1x10",
@@ -2946,7 +3199,8 @@
     "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":103,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"repsInReserve\":\"1-2\"}}",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 db_rdl 65 5x3; T2 db_shoulder_press 35 3x10; T3 db_row 40 3x15",
@@ -2962,7 +3216,8 @@
      "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":103,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"repsInReserve\":\"1-2\"}}",
      "T3 db_row | 40 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory ab_rollout | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -3022,6 +3277,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -3033,7 +3296,8 @@
     "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":103,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"repsInReserve\":\"1-2\"}}",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ]
   },
   {
@@ -3046,7 +3310,8 @@
     "T2 bench>db_bench | 45(100) 3x10 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 45(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup squat>bulgarian_split_squat | 20(190) 1x10",
@@ -3055,7 +3320,8 @@
     "T2 bench>db_bench | 45(100) 3x10 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 45(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "A1: T1 bulgarian_split_squat 55 5x3; T2 db_bench 45 3x10; T3 db_row 45 3x15",
@@ -3071,7 +3337,8 @@
      "T2 bench>db_bench | 45(100) 3x10 | variant=bench|db_bench|T2 perHand",
      "T3 lat_pulldown>db_row | 45(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
      "accessory lateral_raises | 0 3x20+",
-     "accessory hip_thrust | 0 3x15+"
+     "accessory hip_thrust | 0 3x15+",
+     "accessory ab_rollout | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -3138,6 +3405,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -3149,7 +3424,8 @@
     "T2 bench>db_bench | 45(100) 3x10 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 45(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ]
   },
   {
@@ -3162,7 +3438,8 @@
     "T2 deadlift>db_rdl | 50(155) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp>db_shoulder_press | 20(85) 1x10",
@@ -3171,7 +3448,8 @@
     "T2 deadlift>db_rdl | 50(155) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 db_shoulder_press 45 5x3; T2 db_rdl 50 3x10; T3 db_row 40 3x15",
@@ -3187,7 +3465,8 @@
      "T2 deadlift>db_rdl | 50(155) 3x10 | variant=deadlift|db_rdl|T2 perHand",
      "T3 db_row | 40 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory oh_tricep_ext | 0 3x15+"
+     "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -3247,6 +3526,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -3258,7 +3545,8 @@
     "T2 deadlift>db_rdl | 50(155) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ]
   },
   {
@@ -3271,7 +3559,8 @@
     "T2 squat>bulgarian_split_squat | 55(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "forecast": [
     "warmup bench>db_bench | 25(145) 1x10",
@@ -3280,7 +3569,8 @@
     "T2 squat>bulgarian_split_squat | 55(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "upcoming": [
     "A2: T1 db_bench 65 5x3; T2 bulgarian_split_squat 55 3x10; T3 db_row 50 3x15",
@@ -3296,7 +3586,8 @@
      "T2 squat>bulgarian_split_squat | 55(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
      "T3 lat_pulldown>db_row | 50(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
      "accessory lateral_raises | 0 3x20+",
-     "accessory incline_db_fly | 0 3x15+"
+     "accessory incline_db_fly | 0 3x15+",
+     "accessory calf_raises | 0 3x20+"
     ],
     "prescribed": [
      {
@@ -3363,6 +3654,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "calf_raises",
+      "sets": 3,
+      "reps": 20,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -3374,7 +3673,8 @@
     "T2 squat>bulgarian_split_squat | 55(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ]
   },
   {
@@ -3387,7 +3687,8 @@
     "T2 ohp>db_shoulder_press | 40(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 45 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 30(220) 1x10",
@@ -3396,7 +3697,8 @@
     "T2 ohp>db_shoulder_press | 40(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 45 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 db_rdl 70 5x3; T2 db_shoulder_press 40 3x10; T3 db_row 45 3x15",
@@ -3412,7 +3714,8 @@
      "T2 ohp>db_shoulder_press | 40(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
      "T3 db_row | 45 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory ab_rollout | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -3472,6 +3775,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -3483,7 +3794,8 @@
     "T2 ohp>db_shoulder_press | 40(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 45 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ]
   },
   {
@@ -3496,7 +3808,8 @@
     "T2 bench>db_bench | 45(100) 3x8 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 50(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup squat>bulgarian_split_squat | 25(190) 1x10",
@@ -3505,7 +3818,8 @@
     "T2 bench>db_bench | 45(100) 3x8 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 50(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "A1: T1 bulgarian_split_squat 60 5x3; T2 db_bench 45 3x8; T3 db_row 50 3x15",
@@ -3521,7 +3835,8 @@
      "T2 bench>db_bench | 45(100) 3x8 | variant=bench|db_bench|T2 perHand",
      "T3 lat_pulldown>db_row | 50(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
      "accessory lateral_raises | 0 3x20+",
-     "accessory hip_thrust | 0 3x15+"
+     "accessory hip_thrust | 0 3x15+",
+     "accessory ab_rollout | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -3588,6 +3903,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -3599,7 +3922,8 @@
     "T2 bench>db_bench | 45(100) 3x8 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 50(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ]
   },
   {
@@ -3612,7 +3936,8 @@
     "T2 deadlift>db_rdl | 55(155) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 50 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp>db_shoulder_press | 20(85) 1x10",
@@ -3621,7 +3946,8 @@
     "T2 deadlift>db_rdl | 55(155) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 50 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 db_shoulder_press 50 5x3; T2 db_rdl 55 3x10; T3 db_row 50 3x15",
@@ -3637,7 +3963,8 @@
      "T2 deadlift>db_rdl | 55(155) 3x10 | variant=deadlift|db_rdl|T2 perHand",
      "T3 db_row | 50 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory oh_tricep_ext | 0 3x15+"
+     "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -3697,6 +4024,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -3708,7 +4043,8 @@
     "T2 deadlift>db_rdl | 55(155) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 50 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ]
   },
   {
@@ -3721,7 +4057,8 @@
     "T2 squat>bulgarian_split_squat | 60(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(95) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "forecast": [
     "warmup bench>db_bench | 30(145) 1x10",
@@ -3730,7 +4067,8 @@
     "T2 squat>bulgarian_split_squat | 60(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(95) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "upcoming": [
     "A2: T1 db_bench 70 5x3; T2 bulgarian_split_squat 60 3x10; T3 db_row 50 3x15",
@@ -3746,7 +4084,8 @@
      "T2 squat>bulgarian_split_squat | 60(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
      "T3 lat_pulldown>db_row | 50(95) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
      "accessory lateral_raises | 0 3x20+",
-     "accessory incline_db_fly | 0 3x15+"
+     "accessory incline_db_fly | 0 3x15+",
+     "accessory calf_raises | 0 3x20+"
     ],
     "prescribed": [
      {
@@ -3813,6 +4152,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "calf_raises",
+      "sets": 3,
+      "reps": 20,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -3824,7 +4171,8 @@
     "T2 squat>bulgarian_split_squat | 60(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(95) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ]
   },
   {
@@ -3837,7 +4185,8 @@
     "T2 ohp>db_shoulder_press | 45(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 55 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 30(220) 1x10",
@@ -3846,7 +4195,8 @@
     "T2 ohp>db_shoulder_press | 45(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 55 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 db_rdl 75 5x3; T2 db_shoulder_press 45 3x10; T3 db_row 55 3x15",
@@ -3862,7 +4212,8 @@
      "T2 ohp>db_shoulder_press | 45(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
      "T3 db_row | 55 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory ab_rollout | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -3922,6 +4273,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -3933,7 +4292,8 @@
     "T2 ohp>db_shoulder_press | 45(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 55 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ]
   },
   {
@@ -3946,7 +4306,8 @@
     "T2 bench>db_bench | 50(110) 3x8 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":50,\"fromSteps\":50,\"fromEstimate\":65,\"stepsEarned\":1,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":199,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
     "T3 lat_pulldown>db_row | 50(100) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup squat>bulgarian_split_squat | 20(220) 1x10",
@@ -3955,7 +4316,8 @@
     "T2 bench>db_bench | 50(110) 3x8 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":50,\"fromSteps\":50,\"fromEstimate\":65,\"stepsEarned\":1,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":199,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
     "T3 lat_pulldown>db_row | 50(100) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "A1: T1 bulgarian_split_squat 55 5x3; T2 db_bench 50 3x8; T3 db_row 50 3x15",
@@ -3971,7 +4333,8 @@
      "T2 bench>db_bench | 50(110) 3x8 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":50,\"fromSteps\":50,\"fromEstimate\":65,\"stepsEarned\":1,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":199,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
      "T3 lat_pulldown>db_row | 50(100) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
      "accessory lateral_raises | 0 3x20+",
-     "accessory hip_thrust | 0 3x15+"
+     "accessory hip_thrust | 0 3x15+",
+     "accessory ab_rollout | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -4038,6 +4401,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -4076,7 +4447,8 @@
     "T2 bench>db_bench | 50(110) 3x8 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 50(100) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ]
   },
   {
@@ -4089,7 +4461,8 @@
     "T2 deadlift>db_rdl | 60(185) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":60,\"fromSteps\":60,\"fromEstimate\":65,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":316,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
     "T3 db_row | 60 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp>db_shoulder_press | 20(100) 1x10",
@@ -4098,7 +4471,8 @@
     "T2 deadlift>db_rdl | 60(185) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":60,\"fromSteps\":60,\"fromEstimate\":65,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":316,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
     "T3 db_row | 60 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 db_shoulder_press 50 5x3; T2 db_rdl 60 3x10; T3 db_row 60 3x15",
@@ -4114,7 +4488,8 @@
      "T2 deadlift>db_rdl | 60(185) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":60,\"fromSteps\":60,\"fromEstimate\":65,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":316,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
      "T3 db_row | 60 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory oh_tricep_ext | 0 3x15+"
+     "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -4174,6 +4549,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -4212,7 +4595,8 @@
     "T2 deadlift>db_rdl | 60(185) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 60 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ]
   },
   {
@@ -4225,7 +4609,8 @@
     "T2 squat>bulgarian_split_squat | 50(155) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":60,\"fromEstimate\":50,\"stepsEarned\":0,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":282,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 50(105) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "forecast": [
     "warmup bench>db_bench | 30(160) 1x10",
@@ -4234,7 +4619,8 @@
     "T2 squat>bulgarian_split_squat | 50(155) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":60,\"fromEstimate\":50,\"stepsEarned\":0,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":282,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 50(105) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "upcoming": [
     "A2: T1 db_bench 75 5x3; T2 bulgarian_split_squat 50 3x10; T3 db_row 50 3x15",
@@ -4250,7 +4636,8 @@
      "T2 squat>bulgarian_split_squat | 50(155) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":60,\"fromEstimate\":50,\"stepsEarned\":0,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":282,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
      "T3 lat_pulldown>db_row | 50(105) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
      "accessory lateral_raises | 0 3x20+",
-     "accessory incline_db_fly | 0 3x15+"
+     "accessory incline_db_fly | 0 3x15+",
+     "accessory calf_raises | 0 3x20+"
     ],
     "prescribed": [
      {
@@ -4317,6 +4704,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "calf_raises",
+      "sets": 3,
+      "reps": 20,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -4355,7 +4750,8 @@
     "T2 squat>bulgarian_split_squat | 50(155) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(105) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ]
   },
   {
@@ -4368,7 +4764,8 @@
     "T2 ohp>db_shoulder_press | 40(75) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":50,\"fromEstimate\":40,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":122,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
     "T3 db_row | 65 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 30(250) 1x10",
@@ -4377,7 +4774,8 @@
     "T2 ohp>db_shoulder_press | 40(75) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":50,\"fromEstimate\":40,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":122,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
     "T3 db_row | 65 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 db_rdl 80 5x3; T2 db_shoulder_press 40 3x10; T3 db_row 65 3x15",
@@ -4393,7 +4791,8 @@
      "T2 ohp>db_shoulder_press | 40(75) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":50,\"fromEstimate\":40,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":122,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
      "T3 db_row | 65 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory ab_rollout | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -4453,6 +4852,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -4491,7 +4898,8 @@
     "T2 ohp>db_shoulder_press | 40(75) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 65 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ]
   },
   {
@@ -4504,7 +4912,8 @@
     "T2 bench>db_bench | 55(115) 3x8 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":55,\"fromSteps\":55,\"fromEstimate\":70,\"stepsEarned\":2,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":216,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
     "T3 lat_pulldown>db_row | 50(110) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup squat>bulgarian_split_squat | 25(230) 1x10",
@@ -4513,7 +4922,8 @@
     "T2 bench>db_bench | 55(115) 3x8 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":55,\"fromSteps\":55,\"fromEstimate\":70,\"stepsEarned\":2,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":216,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
     "T3 lat_pulldown>db_row | 50(110) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "A1: T1 bulgarian_split_squat 60 5x3; T2 db_bench 55 3x8; T3 db_row 50 3x15",
@@ -4529,7 +4939,8 @@
      "T2 bench>db_bench | 55(115) 3x8 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":55,\"fromSteps\":55,\"fromEstimate\":70,\"stepsEarned\":2,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":216,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
      "T3 lat_pulldown>db_row | 50(110) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
      "accessory lateral_raises | 0 3x20+",
-     "accessory hip_thrust | 0 3x15+"
+     "accessory hip_thrust | 0 3x15+",
+     "accessory ab_rollout | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -4596,6 +5007,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -4634,7 +5053,8 @@
     "T2 bench>db_bench | 55(115) 3x8 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 50(110) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ]
   },
   {
@@ -4647,7 +5067,8 @@
     "T2 deadlift>db_rdl | 65(195) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":65,\"fromSteps\":65,\"fromEstimate\":65,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":329,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
     "T3 db_row | 70 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp>db_shoulder_press | 20(105) 1x10",
@@ -4656,7 +5077,8 @@
     "T2 deadlift>db_rdl | 65(195) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":65,\"fromSteps\":65,\"fromEstimate\":65,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":329,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
     "T3 db_row | 70 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 db_shoulder_press 50 5x3; T2 db_rdl 65 3x10; T3 db_row 70 3x15",
@@ -4672,7 +5094,8 @@
      "T2 deadlift>db_rdl | 65(195) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":65,\"fromSteps\":65,\"fromEstimate\":65,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":329,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
      "T3 db_row | 70 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory oh_tricep_ext | 0 3x15+"
+     "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -4732,6 +5155,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -4770,7 +5201,8 @@
     "T2 deadlift>db_rdl | 65(195) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 70 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ]
   },
   {
@@ -4783,7 +5215,8 @@
     "T2 squat>bulgarian_split_squat | 50(165) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":65,\"fromEstimate\":50,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":288,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 50(115) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "forecast": [
     "warmup bench>db_bench | 30(165) 1x10",
@@ -4792,7 +5225,8 @@
     "T2 squat>bulgarian_split_squat | 50(165) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":65,\"fromEstimate\":50,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":288,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 50(115) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "upcoming": [
     "A2: T1 db_bench 80 5x3; T2 bulgarian_split_squat 50 3x10; T3 db_row 50 3x15",
@@ -4808,7 +5242,8 @@
      "T2 squat>bulgarian_split_squat | 50(165) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":65,\"fromEstimate\":50,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":288,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
      "T3 lat_pulldown>db_row | 50(115) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
      "accessory lateral_raises | 0 3x20+",
-     "accessory incline_db_fly | 0 3x15+"
+     "accessory incline_db_fly | 0 3x15+",
+     "accessory calf_raises | 0 3x20+"
     ],
     "prescribed": [
      {
@@ -4875,6 +5310,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "calf_raises",
+      "sets": 3,
+      "reps": 20,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -4913,7 +5356,8 @@
     "T2 squat>bulgarian_split_squat | 50(165) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(115) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ]
   },
   {
@@ -4926,7 +5370,8 @@
     "T2 ohp>db_shoulder_press | 40(80) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":55,\"fromEstimate\":40,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":124,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
     "T3 db_row | 75 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 30(260) 1x10",
@@ -4935,7 +5380,8 @@
     "T2 ohp>db_shoulder_press | 40(80) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":55,\"fromEstimate\":40,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":124,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
     "T3 db_row | 75 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 db_rdl 80 5x3; T2 db_shoulder_press 40 3x10; T3 db_row 75 3x15",
@@ -4951,7 +5397,8 @@
      "T2 ohp>db_shoulder_press | 40(80) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":55,\"fromEstimate\":40,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":124,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
      "T3 db_row | 75 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory ab_rollout | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -5011,6 +5458,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -5049,7 +5504,8 @@
     "T2 ohp>db_shoulder_press | 40(80) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 75 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ]
   },
   {
@@ -5062,7 +5518,8 @@
     "T2 bench>db_bench | 55(115) 3x8 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":55,\"fromSteps\":55,\"fromEstimate\":70,\"stepsEarned\":2,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":217,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
     "T3 lat_pulldown>db_row | 50(120) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup squat>bulgarian_split_squat | 25(240) 1x10",
@@ -5071,7 +5528,8 @@
     "T2 bench>db_bench | 55(115) 3x8 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":55,\"fromSteps\":55,\"fromEstimate\":70,\"stepsEarned\":2,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":217,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
     "T3 lat_pulldown>db_row | 50(120) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "A1: T1 bulgarian_split_squat 60 5x3; T2 db_bench 55 3x8; T3 db_row 50 3x15",
@@ -5087,7 +5545,8 @@
      "T2 bench>db_bench | 55(115) 3x8 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":55,\"fromSteps\":55,\"fromEstimate\":70,\"stepsEarned\":2,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":217,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
      "T3 lat_pulldown>db_row | 50(120) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
      "accessory lateral_raises | 0 3x20+",
-     "accessory hip_thrust | 0 3x15+"
+     "accessory hip_thrust | 0 3x15+",
+     "accessory ab_rollout | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -5154,6 +5613,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -5192,7 +5659,8 @@
     "T2 bench>db_bench | 55(115) 3x8 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 50(120) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ]
   },
   {
@@ -5205,7 +5673,8 @@
     "T2 deadlift>db_rdl | 65(205) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":65,\"fromSteps\":70,\"fromEstimate\":65,\"stepsEarned\":3,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":325,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
     "T3 db_row | 80 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp>db_shoulder_press | 20(110) 1x10",
@@ -5214,7 +5683,8 @@
     "T2 deadlift>db_rdl | 65(205) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":65,\"fromSteps\":70,\"fromEstimate\":65,\"stepsEarned\":3,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":325,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
     "T3 db_row | 80 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 db_shoulder_press 50 5x3; T2 db_rdl 65 3x10; T3 db_row 80 3x15",
@@ -5230,7 +5700,8 @@
      "T2 deadlift>db_rdl | 65(205) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":65,\"fromSteps\":70,\"fromEstimate\":65,\"stepsEarned\":3,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":325,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
      "T3 db_row | 80 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory oh_tricep_ext | 0 3x15+"
+     "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+"
     ],
     "prescribed": [
      {
@@ -5290,6 +5761,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -5328,7 +5807,8 @@
     "T2 deadlift>db_rdl | 65(205) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 80 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ]
   },
   {
@@ -5341,7 +5821,8 @@
     "T2 squat>bulgarian_split_squat | 50(175) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":70,\"fromEstimate\":50,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":300,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 50(125) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "forecast": [
     "warmup bench>db_bench | 30(170) 1x10",
@@ -5350,7 +5831,8 @@
     "T2 squat>bulgarian_split_squat | 50(175) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":70,\"fromEstimate\":50,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":300,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 50(125) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "upcoming": [
     "A2: T1 db_bench 80 5x3; T2 bulgarian_split_squat 50 3x10; T3 db_row 50 3x15",
@@ -5366,7 +5848,8 @@
      "T2 squat>bulgarian_split_squat | 50(175) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":70,\"fromEstimate\":50,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":300,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
      "T3 lat_pulldown>db_row | 50(125) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
      "accessory lateral_raises | 0 3x20+",
-     "accessory incline_db_fly | 0 3x15+"
+     "accessory incline_db_fly | 0 3x15+",
+     "accessory calf_raises | 0 3x20+"
     ],
     "prescribed": [
      {
@@ -5433,6 +5916,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "calf_raises",
+      "sets": 3,
+      "reps": 20,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -5471,7 +5962,8 @@
     "T2 squat>bulgarian_split_squat | 50(175) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(125) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ]
   },
   {
@@ -5484,7 +5976,8 @@
     "T2 ohp>db_shoulder_press | 40(85) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":60,\"fromEstimate\":40,\"stepsEarned\":3,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":126,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
     "T3 db_row | 85 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 30(270) 1x10",
@@ -5493,7 +5986,8 @@
     "T2 ohp>db_shoulder_press | 40(85) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":60,\"fromEstimate\":40,\"stepsEarned\":3,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":126,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
     "T3 db_row | 85 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 db_rdl 80 5x3; T2 db_shoulder_press 40 3x10; T3 db_row 85 3x15",
@@ -5509,7 +6003,8 @@
      "T2 ohp>db_shoulder_press | 40(85) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":60,\"fromEstimate\":40,\"stepsEarned\":3,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":126,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
      "T3 db_row | 85 3x15+",
      "accessory bicep_curls | 0 3x15+",
-     "accessory lateral_raises | 0 3x20+"
+     "accessory lateral_raises | 0 3x20+",
+     "accessory ab_rollout | 0 3x12+"
     ],
     "prescribed": [
      {
@@ -5569,6 +6064,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -5607,7 +6110,8 @@
     "T2 ohp>db_shoulder_press | 40(85) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 85 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ]
   }
  ],
@@ -5969,7 +6473,8 @@
     "T2 ohp | 60 3x10",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift | 45 1x10",
@@ -5980,7 +6485,8 @@
     "T2 ohp | 60 3x10",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 deadlift 220 5x3; T2 ohp 60 3x10; T3 db_row 40 3x15",
@@ -5998,6 +6504,7 @@
      "T2 ohp | 60 4x8",
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory back_extensions | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -6042,6 +6549,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "back_extensions",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -6055,6 +6570,7 @@
     "T2 ohp | 60 4x8",
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -6070,7 +6586,8 @@
     "T2 bench | 105 3x10 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":135,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":185}",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "forecast": [
     "warmup squat | 45 1x10",
@@ -6081,7 +6598,8 @@
     "T2 bench | 105 3x10 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":135,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":185}",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "upcoming": [
     "A1: T1 squat 185 4x3; T2 bench 105 3x10; T3 lat_pulldown 90 3x15",
@@ -6100,6 +6618,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory face_pulls | 0 3x20+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory leg_curls | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -6169,6 +6688,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_curls",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -6206,6 +6733,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory face_pulls | 0 3x20+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -6219,7 +6747,8 @@
     "T2 deadlift | 185 3x10 | sets=185x10,185x10,165x12:backoff | reentry={\"rule\":\"steps\",\"weight\":165,\"fromSteps\":165,\"fromEstimate\":210,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":155,\"estimate\":283}",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp | 45 1x10",
@@ -6228,7 +6757,8 @@
     "T2 deadlift | 185 3x10 | sets=185x10,185x10,165x12:backoff | reentry={\"rule\":\"steps\",\"weight\":165,\"fromSteps\":165,\"fromEstimate\":210,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":155,\"estimate\":283}",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 ohp 90 5x3; T2 deadlift 185 3x10; T3 db_row 40 3x15",
@@ -6244,6 +6774,7 @@
      "T2 deadlift | 185 4x8 | reentry={\"rule\":\"steps\",\"weight\":165,\"fromSteps\":165,\"fromEstimate\":210,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":155,\"estimate\":283}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -6309,6 +6840,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -6343,6 +6882,7 @@
     "T2 deadlift | 185 4x8",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -6358,7 +6898,8 @@
     "T2 squat | 145 3x10 | reentry={\"rule\":\"steps\",\"weight\":145,\"fromSteps\":145,\"fromEstimate\":185,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":135,\"estimate\":247}",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "forecast": [
     "warmup bench | 45 1x10",
@@ -6369,7 +6910,8 @@
     "T2 squat | 145 3x10 | reentry={\"rule\":\"steps\",\"weight\":145,\"fromSteps\":145,\"fromEstimate\":185,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":135,\"estimate\":247}",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "upcoming": [
     "A2: T1 bench 150 5x3; T2 squat 145 3x10; T3 lat_pulldown 90 3x15",
@@ -6388,6 +6930,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory face_pulls | 0 3x20+",
      "accessory incline_db_fly | 0 3x15+",
+     "accessory leg_extensions | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -6432,6 +6975,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_extensions",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -6469,6 +7020,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory face_pulls | 0 3x20+",
     "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -6484,7 +7036,8 @@
     "T2 ohp | 65 3x10 | reentry={\"rule\":\"steps\",\"weight\":65,\"fromSteps\":65,\"fromEstimate\":85,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":60,\"estimate\":115}",
     "T3 db_row | 45 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift | 45 1x10",
@@ -6495,7 +7048,8 @@
     "T2 ohp | 65 3x10 | reentry={\"rule\":\"steps\",\"weight\":65,\"fromSteps\":65,\"fromEstimate\":85,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":60,\"estimate\":115}",
     "T3 db_row | 45 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 deadlift 230 5x3; T2 ohp 65 3x10; T3 db_row 45 3x15",
@@ -6513,6 +7067,7 @@
      "T2 ohp | 65 4x8 | reentry={\"rule\":\"steps\",\"weight\":65,\"fromSteps\":65,\"fromEstimate\":85,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":60,\"estimate\":115}",
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory back_extensions | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -6557,6 +7112,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "back_extensions",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -6593,6 +7156,7 @@
     "T2 ohp | 65 4x8",
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -6608,7 +7172,8 @@
     "T2 bench | 105 3x10 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":140,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":192}",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "forecast": [
     "warmup squat | 45 1x10",
@@ -6619,7 +7184,8 @@
     "T2 bench | 105 3x10 | reentry={\"rule\":\"steps\",\"weight\":105,\"fromSteps\":105,\"fromEstimate\":140,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":100,\"estimate\":192}",
     "T3 lat_pulldown | 90 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "upcoming": [
     "A1: T1 squat 185 4x3; T2 bench 105 3x10; T3 lat_pulldown 90 3x15",
@@ -6638,6 +7204,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory face_pulls | 0 3x20+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory leg_curls | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -6707,6 +7274,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_curls",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -6744,6 +7319,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory face_pulls | 0 3x20+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -6757,7 +7333,8 @@
     "T2 deadlift | 185 3x10 | sets=185x10,185x10,165x12:backoff | reentry={\"rule\":\"steps\",\"weight\":175,\"fromSteps\":175,\"fromEstimate\":215,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":155,\"estimate\":287}",
     "T3 db_row | 50 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp | 45 1x10",
@@ -6766,7 +7343,8 @@
     "T2 deadlift | 185 3x10 | sets=185x10,185x10,165x12:backoff | reentry={\"rule\":\"steps\",\"weight\":175,\"fromSteps\":175,\"fromEstimate\":215,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":155,\"estimate\":287}",
     "T3 db_row | 50 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 ohp 95 5x3; T2 deadlift 185 3x10; T3 db_row 50 3x15",
@@ -6782,6 +7360,7 @@
      "T2 deadlift | 185 4x8 | reentry={\"rule\":\"steps\",\"weight\":175,\"fromSteps\":175,\"fromEstimate\":215,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":155,\"estimate\":287}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -6847,6 +7426,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -6881,6 +7468,7 @@
     "T2 deadlift | 185 4x8",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -6896,7 +7484,8 @@
     "T2 squat | 155 3x10 | reentry={\"rule\":\"steps\",\"weight\":155,\"fromSteps\":155,\"fromEstimate\":200,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":135,\"estimate\":270}",
     "T3 lat_pulldown | 95 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "forecast": [
     "warmup bench | 45 1x10",
@@ -6907,7 +7496,8 @@
     "T2 squat | 155 3x10 | reentry={\"rule\":\"steps\",\"weight\":155,\"fromSteps\":155,\"fromEstimate\":200,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":135,\"estimate\":270}",
     "T3 lat_pulldown | 95 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "upcoming": [
     "A2: T1 bench 155 5x3; T2 squat 155 3x10; T3 lat_pulldown 95 3x15",
@@ -6926,6 +7516,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory face_pulls | 0 3x20+",
      "accessory incline_db_fly | 0 3x15+",
+     "accessory leg_extensions | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -6970,6 +7561,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_extensions",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -7007,6 +7606,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory face_pulls | 0 3x20+",
     "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -7022,7 +7622,8 @@
     "T2 ohp | 70 3x10 | reentry={\"rule\":\"steps\",\"weight\":70,\"fromSteps\":70,\"fromEstimate\":90,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":60,\"estimate\":122}",
     "T3 db_row | 55 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift | 45 1x10",
@@ -7033,7 +7634,8 @@
     "T2 ohp | 70 3x10 | reentry={\"rule\":\"steps\",\"weight\":70,\"fromSteps\":70,\"fromEstimate\":90,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":60,\"estimate\":122}",
     "T3 db_row | 55 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 deadlift 240 5x3; T2 ohp 70 3x10; T3 db_row 55 3x15",
@@ -7051,6 +7653,7 @@
      "T2 ohp | 70 4x8 | reentry={\"rule\":\"steps\",\"weight\":70,\"fromSteps\":70,\"fromEstimate\":90,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"gym\",\"lastWeight\":60,\"estimate\":122}",
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory back_extensions | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -7095,6 +7698,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "back_extensions",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -7131,6 +7742,7 @@
     "T2 ohp | 70 4x8",
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -7146,7 +7758,8 @@
     "T2 bench | 120 3x10",
     "T3 lat_pulldown | 100 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "forecast": [
     "warmup squat | 45 1x10",
@@ -7157,7 +7770,8 @@
     "T2 bench | 120 3x10",
     "T3 lat_pulldown | 100 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "upcoming": [
     "A1: T1 squat 185 4x3; T2 bench 120 3x10; T3 lat_pulldown 100 3x15",
@@ -7176,6 +7790,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory face_pulls | 0 3x20+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory leg_curls | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -7245,6 +7860,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_curls",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -7259,6 +7882,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory face_pulls | 0 3x20+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -7274,7 +7898,8 @@
     "T2 deadlift | 185 3x10 | sets=185x10,185x10,165x12:backoff",
     "T3 db_row | 60 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp | 45 1x10",
@@ -7285,7 +7910,8 @@
     "T2 deadlift | 185 3x10 | sets=185x10,185x10,165x12:backoff",
     "T3 db_row | 60 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 ohp 100 5x3; T2 deadlift 185 3x10; T3 db_row 60 3x15",
@@ -7303,6 +7929,7 @@
      "T2 deadlift | 185 4x8",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -7368,6 +7995,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -7381,6 +8016,7 @@
     "T2 deadlift | 185 4x8",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -7396,7 +8032,8 @@
     "T2 squat | 155 3x8",
     "T3 lat_pulldown | 105 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "forecast": [
     "warmup bench | 45 1x10",
@@ -7407,7 +8044,8 @@
     "T2 squat | 155 3x8",
     "T3 lat_pulldown | 105 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "upcoming": [
     "A2: T1 bench 160 5x3; T2 squat 155 3x8; T3 lat_pulldown 105 3x15",
@@ -7426,6 +8064,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory face_pulls | 0 3x20+",
      "accessory incline_db_fly | 0 3x15+",
+     "accessory leg_extensions | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -7470,6 +8109,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_extensions",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -7484,6 +8131,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory face_pulls | 0 3x20+",
     "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -7499,7 +8147,8 @@
     "T2 ohp | 75 3x10",
     "T3 db_row | 65 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift | 45 1x10",
@@ -7510,7 +8159,8 @@
     "T2 ohp | 75 3x10",
     "T3 db_row | 65 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 deadlift 250 5x3; T2 ohp 75 3x10; T3 db_row 65 3x15",
@@ -7528,6 +8178,7 @@
      "T2 ohp | 75 4x8",
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory back_extensions | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -7572,6 +8223,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "back_extensions",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -7585,6 +8244,7 @@
     "T2 ohp | 75 4x8",
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -7600,7 +8260,8 @@
     "T2 bench | 115 3x10",
     "T3 lat_pulldown | 110 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "forecast": [
     "warmup squat | 45 1x10",
@@ -7611,7 +8272,8 @@
     "T2 bench | 115 3x10",
     "T3 lat_pulldown | 110 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "upcoming": [
     "A1: T1 squat 185 4x3; T2 bench 115 3x10; T3 lat_pulldown 110 3x15",
@@ -7630,6 +8292,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory face_pulls | 0 3x20+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory leg_curls | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -7699,6 +8362,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_curls",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -7713,6 +8384,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory face_pulls | 0 3x20+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -7728,7 +8400,8 @@
     "T2 deadlift | 185 3x10 | sets=185x10,185x10,165x12:backoff",
     "T3 db_row | 70 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp | 45 1x10",
@@ -7739,7 +8412,8 @@
     "T2 deadlift | 185 3x10 | sets=185x10,185x10,165x12:backoff",
     "T3 db_row | 70 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 ohp 105 5x3; T2 deadlift 185 3x10; T3 db_row 70 3x15",
@@ -7757,6 +8431,7 @@
      "T2 deadlift | 185 4x8",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -7822,6 +8497,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -7835,6 +8518,7 @@
     "T2 deadlift | 185 4x8",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -7850,7 +8534,8 @@
     "T2 squat | 165 3x8",
     "T3 lat_pulldown | 115 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "forecast": [
     "warmup bench | 45 1x10",
@@ -7861,7 +8546,8 @@
     "T2 squat | 165 3x8",
     "T3 lat_pulldown | 115 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "upcoming": [
     "A2: T1 bench 165 5x3; T2 squat 165 3x8; T3 lat_pulldown 115 3x15",
@@ -7880,6 +8566,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory face_pulls | 0 3x20+",
      "accessory incline_db_fly | 0 3x15+",
+     "accessory leg_extensions | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -7924,6 +8611,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_extensions",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -7938,6 +8633,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory face_pulls | 0 3x20+",
     "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -7953,7 +8649,8 @@
     "T2 ohp | 80 3x10",
     "T3 db_row | 75 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift | 45 1x10",
@@ -7964,7 +8661,8 @@
     "T2 ohp | 80 3x10",
     "T3 db_row | 75 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 deadlift 260 5x3; T2 ohp 80 3x10; T3 db_row 75 3x15",
@@ -7982,6 +8680,7 @@
      "T2 ohp | 80 4x8",
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory back_extensions | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -8026,6 +8725,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "back_extensions",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -8039,6 +8746,7 @@
     "T2 ohp | 80 4x8",
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -8054,7 +8762,8 @@
     "T2 bench | 115 3x8",
     "T3 lat_pulldown | 120 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "forecast": [
     "warmup squat | 45 1x10",
@@ -8065,7 +8774,8 @@
     "T2 bench | 115 3x8",
     "T3 lat_pulldown | 120 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+"
    ],
    "upcoming": [
     "A1: T1 squat 185 4x3; T2 bench 115 3x8; T3 lat_pulldown 120 3x15",
@@ -8084,6 +8794,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory face_pulls | 0 3x20+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory leg_curls | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -8153,6 +8864,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_curls",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -8167,6 +8886,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory face_pulls | 0 3x20+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory leg_curls | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -8182,7 +8902,8 @@
     "T2 deadlift | 185 3x10 | sets=185x10,185x10,165x12:backoff",
     "T3 db_row | 80 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp | 45 1x10",
@@ -8193,7 +8914,8 @@
     "T2 deadlift | 185 3x10 | sets=185x10,185x10,165x12:backoff",
     "T3 db_row | 80 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 ohp 110 5x3; T2 deadlift 185 3x10; T3 db_row 80 3x15",
@@ -8211,6 +8933,7 @@
      "T2 deadlift | 185 4x8",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -8276,6 +8999,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -8289,6 +9020,7 @@
     "T2 deadlift | 185 4x8",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -8304,7 +9036,8 @@
     "T2 squat | 175 3x8",
     "T3 lat_pulldown | 125 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "forecast": [
     "warmup bench | 45 1x10",
@@ -8315,7 +9048,8 @@
     "T2 squat | 175 3x8",
     "T3 lat_pulldown | 125 3x15+",
     "accessory face_pulls | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+"
    ],
    "upcoming": [
     "A2: T1 bench 170 5x3; T2 squat 175 3x8; T3 lat_pulldown 125 3x15",
@@ -8334,6 +9068,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory face_pulls | 0 3x20+",
      "accessory incline_db_fly | 0 3x15+",
+     "accessory leg_extensions | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -8378,6 +9113,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "leg_extensions",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -8392,6 +9135,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory face_pulls | 0 3x20+",
     "accessory incline_db_fly | 0 3x15+",
+    "accessory leg_extensions | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -8407,7 +9151,8 @@
     "T2 ohp | 85 3x10",
     "T3 db_row | 85 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift | 45 1x10",
@@ -8418,7 +9163,8 @@
     "T2 ohp | 85 3x10",
     "T3 db_row | 85 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 deadlift 270 5x3; T2 ohp 85 3x10; T3 db_row 85 3x15",
@@ -8436,6 +9182,7 @@
      "T2 ohp | 85 4x8",
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory back_extensions | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -8480,6 +9227,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "back_extensions",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -8493,6 +9248,7 @@
     "T2 ohp | 85 4x8",
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory back_extensions | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   }
@@ -8646,7 +9402,8 @@
     "T2 deadlift>db_rdl | 60(155) 3x10 | variant=deadlift|db_rdl|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":155,\"ownEstimate\":160,\"targetReps\":10,\"history\":{\"at\":\"2026-09-12T17:30\",\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true}}",
     "T3 db_row | 35 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp>db_shoulder_press | 20(85) 1x10",
@@ -8655,7 +9412,8 @@
     "T2 deadlift>db_rdl | 60(155) 3x10 | variant=deadlift|db_rdl|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":155,\"ownEstimate\":160,\"targetReps\":10,\"history\":{\"at\":\"2026-09-12T17:30\",\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true}}",
     "T3 db_row | 35 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 db_shoulder_press 30 2x4; T2 db_rdl 60 3x10; T3 db_row 35 3x15",
@@ -8671,6 +9429,7 @@
      "T2 deadlift>single_leg_db_rdl | 35(155) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":155,\"ratio\":0.35,\"estimate\":268,\"targetReps\":10}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -8747,6 +9506,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -8758,6 +9525,7 @@
     "T2 deadlift>single_leg_db_rdl | 35(155) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":155,\"ratio\":0.35,\"estimate\":268,\"targetReps\":10}",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -8889,7 +9657,8 @@
     "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":103,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"repsInReserve\":\"1-2\"}}",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 25(220) 1x10",
@@ -8898,7 +9667,8 @@
     "T2 ohp>db_shoulder_press | 35(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":103,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"repsInReserve\":\"1-2\"}}",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 db_rdl 65 5x3; T2 db_shoulder_press 35 3x10; T3 db_row 40 3x15",
@@ -8914,6 +9684,7 @@
      "T2 ohp>db_shoulder_press | 35(60) 4x8 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":103,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"repsInReserve\":\"1-2\"}}",
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory ab_rollout | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -8974,6 +9745,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -8985,6 +9764,7 @@
     "T2 ohp>db_shoulder_press | 35(60) 4x8 | variant=ohp|db_shoulder_press|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":60,\"ownEstimate\":103,\"targetReps\":10,\"history\":{\"at\":\"2026-09-22T17:49\",\"weight\":40,\"reps\":7,\"perHand\":true,\"sessionId\":\"demo-workout-02\",\"repsInReserve\":\"1-2\"}}",
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -8998,7 +9778,8 @@
     "T2 bench>db_bench | 45(100) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 45(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup squat>bulgarian_split_squat | 25(190) 1x10",
@@ -9007,7 +9788,8 @@
     "T2 bench>db_bench | 45(100) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 45(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "A1: T1 bulgarian_split_squat 60 5x3; T2 db_bench 45 3x10; T3 db_row 45 3x15",
@@ -9024,6 +9806,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
      "accessory hip_thrust | 0 3x15+",
+     "accessory ab_rollout | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -9111,6 +9894,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -9123,6 +9914,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
     "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -9136,7 +9928,8 @@
     "T2 deadlift>db_rdl | 50(155) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp>db_shoulder_press | 20(85) 1x10",
@@ -9145,7 +9938,8 @@
     "T2 deadlift>db_rdl | 50(155) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 40 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 db_shoulder_press 30 2x4; T2 db_rdl 50 3x10; T3 db_row 40 3x15",
@@ -9161,6 +9955,7 @@
      "T2 deadlift>single_leg_db_rdl | 35(155) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":155,\"ratio\":0.35,\"estimate\":283,\"targetReps\":10}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -9237,6 +10032,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -9248,6 +10051,7 @@
     "T2 deadlift>single_leg_db_rdl | 35(155) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":155,\"ratio\":0.35,\"estimate\":283,\"targetReps\":10}",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -9261,7 +10065,8 @@
     "T2 squat>bulgarian_split_squat | 55(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "forecast": [
     "warmup bench>db_bench | 25(145) 1x10",
@@ -9270,7 +10075,8 @@
     "T2 squat>bulgarian_split_squat | 55(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "upcoming": [
     "A2: T1 db_bench 65 5x3; T2 bulgarian_split_squat 55 3x10; T3 db_row 50 3x15",
@@ -9287,6 +10093,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
      "accessory incline_db_fly | 0 3x15+",
+     "accessory calf_raises | 0 3x20+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -9354,6 +10161,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "calf_raises",
+      "sets": 3,
+      "reps": 20,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -9366,6 +10181,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
     "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -9379,7 +10195,8 @@
     "T2 ohp>db_shoulder_press | 40(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 45 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 30(220) 1x10",
@@ -9388,7 +10205,8 @@
     "T2 ohp>db_shoulder_press | 40(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 45 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 db_rdl 70 5x3; T2 db_shoulder_press 40 3x10; T3 db_row 45 3x15",
@@ -9404,6 +10222,7 @@
      "T2 ohp>db_shoulder_press | 40(60) 4x8 | variant=ohp|db_shoulder_press|T2 perHand",
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory ab_rollout | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -9464,6 +10283,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -9475,6 +10302,7 @@
     "T2 ohp>db_shoulder_press | 40(60) 4x8 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -9488,7 +10316,8 @@
     "T2 bench>db_bench | 45(100) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 50(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup squat>bulgarian_split_squat | 25(190) 1x10",
@@ -9497,7 +10326,8 @@
     "T2 bench>db_bench | 45(100) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand",
     "T3 lat_pulldown>db_row | 50(90) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "A1: T1 bulgarian_split_squat 60 5x3; T2 db_bench 45 3x10; T3 db_row 50 3x15",
@@ -9514,6 +10344,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
      "accessory hip_thrust | 0 3x15+",
+     "accessory ab_rollout | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -9601,6 +10432,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -9613,6 +10452,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
     "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -9626,7 +10466,8 @@
     "T2 deadlift>db_rdl | 55(155) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 50 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp>db_shoulder_press | 20(85) 1x10",
@@ -9635,7 +10476,8 @@
     "T2 deadlift>db_rdl | 55(155) 3x10 | variant=deadlift|db_rdl|T2 perHand",
     "T3 db_row | 50 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 db_shoulder_press 30 2x4; T2 db_rdl 55 3x10; T3 db_row 50 3x15",
@@ -9651,6 +10493,7 @@
      "T2 deadlift>single_leg_db_rdl | 35(155) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":155,\"ratio\":0.35,\"estimate\":287,\"targetReps\":10}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -9727,6 +10570,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -9738,6 +10589,7 @@
     "T2 deadlift>single_leg_db_rdl | 35(155) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":155,\"ratio\":0.35,\"estimate\":287,\"targetReps\":10}",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -9751,7 +10603,8 @@
     "T2 squat>bulgarian_split_squat | 60(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(95) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "forecast": [
     "warmup bench>db_bench | 30(145) 1x10",
@@ -9760,7 +10613,8 @@
     "T2 squat>bulgarian_split_squat | 60(135) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand",
     "T3 lat_pulldown>db_row | 50(95) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "upcoming": [
     "A2: T1 db_bench 70 5x3; T2 bulgarian_split_squat 60 3x10; T3 db_row 50 3x15",
@@ -9777,6 +10631,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
      "accessory incline_db_fly | 0 3x15+",
+     "accessory calf_raises | 0 3x20+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -9844,6 +10699,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "calf_raises",
+      "sets": 3,
+      "reps": 20,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -9856,6 +10719,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
     "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -9869,7 +10733,8 @@
     "T2 ohp>db_shoulder_press | 45(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 55 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 30(220) 1x10",
@@ -9878,7 +10743,8 @@
     "T2 ohp>db_shoulder_press | 45(60) 3x10 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 db_row | 55 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 db_rdl 75 5x3; T2 db_shoulder_press 45 3x10; T3 db_row 55 3x15",
@@ -9894,6 +10760,7 @@
      "T2 ohp>db_shoulder_press | 45(60) 4x8 | variant=ohp|db_shoulder_press|T2 perHand",
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory ab_rollout | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -9954,6 +10821,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {}
@@ -9965,6 +10840,7 @@
     "T2 ohp>db_shoulder_press | 45(60) 4x8 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -9978,7 +10854,8 @@
     "T2 bench>db_bench | 45(108) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":50,\"fromSteps\":50,\"fromEstimate\":65,\"stepsEarned\":1,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":199,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
     "T3 lat_pulldown>db_row | 50(100) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup squat>bulgarian_split_squat | 20(220) 1x10",
@@ -9987,7 +10864,8 @@
     "T2 bench>db_bench | 45(108) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":50,\"fromSteps\":50,\"fromEstimate\":65,\"stepsEarned\":1,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":199,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
     "T3 lat_pulldown>db_row | 50(100) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "A1: T1 bulgarian_split_squat 55 5x3; T2 db_bench 45 3x10; T3 db_row 50 3x15",
@@ -10004,6 +10882,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
      "accessory hip_thrust | 0 3x15+",
+     "accessory ab_rollout | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -10091,6 +10970,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -10130,6 +11017,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
     "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -10143,7 +11031,8 @@
     "T2 deadlift>db_rdl | 60(185) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":60,\"fromSteps\":60,\"fromEstimate\":65,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":316,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
     "T3 db_row | 60 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp>db_shoulder_press | 20(100) 1x10",
@@ -10152,7 +11041,8 @@
     "T2 deadlift>db_rdl | 60(185) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":60,\"fromSteps\":60,\"fromEstimate\":65,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":316,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
     "T3 db_row | 60 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 db_shoulder_press 30 2x4; T2 db_rdl 60 3x10; T3 db_row 60 3x15",
@@ -10168,6 +11058,7 @@
      "T2 deadlift>single_leg_db_rdl | 40(185) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":185,\"ratio\":0.35,\"estimate\":316,\"targetReps\":10}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -10244,6 +11135,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -10269,6 +11168,7 @@
     "T2 deadlift>single_leg_db_rdl | 40(185) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":185,\"ratio\":0.35,\"estimate\":316,\"targetReps\":10}",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -10282,7 +11182,8 @@
     "T2 squat>bulgarian_split_squat | 50(155) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":60,\"fromEstimate\":50,\"stepsEarned\":0,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":282,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 50(105) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "forecast": [
     "warmup bench>db_bench | 30(160) 1x10",
@@ -10291,7 +11192,8 @@
     "T2 squat>bulgarian_split_squat | 50(155) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":60,\"fromEstimate\":50,\"stepsEarned\":0,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":282,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 50(105) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "upcoming": [
     "A2: T1 db_bench 75 5x3; T2 bulgarian_split_squat 50 3x10; T3 db_row 50 3x15",
@@ -10308,6 +11210,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
      "accessory incline_db_fly | 0 3x15+",
+     "accessory calf_raises | 0 3x20+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -10375,6 +11278,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "calf_raises",
+      "sets": 3,
+      "reps": 20,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -10414,6 +11325,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
     "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -10427,7 +11339,8 @@
     "T2 ohp>db_shoulder_press | 40(75) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":50,\"fromEstimate\":40,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":122,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
     "T3 db_row | 65 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 30(250) 1x10",
@@ -10436,7 +11349,8 @@
     "T2 ohp>db_shoulder_press | 40(75) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":50,\"fromEstimate\":40,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":122,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
     "T3 db_row | 65 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 db_rdl 80 5x3; T2 db_shoulder_press 40 3x10; T3 db_row 65 3x15",
@@ -10452,6 +11366,7 @@
      "T2 ohp>db_shoulder_press | 40(75) 4x8 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":50,\"fromEstimate\":40,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":122,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory ab_rollout | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -10512,6 +11427,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -10537,6 +11460,7 @@
     "T2 ohp>db_shoulder_press | 40(75) 4x8 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -10550,7 +11474,8 @@
     "T2 bench>db_bench | 45(94) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":55,\"fromSteps\":55,\"fromEstimate\":70,\"stepsEarned\":2,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":216,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
     "T3 lat_pulldown>db_row | 50(110) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup squat>bulgarian_split_squat | 25(230) 1x10",
@@ -10559,7 +11484,8 @@
     "T2 bench>db_bench | 45(94) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":55,\"fromSteps\":55,\"fromEstimate\":70,\"stepsEarned\":2,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":216,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
     "T3 lat_pulldown>db_row | 50(110) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "A1: T1 bulgarian_split_squat 60 5x3; T2 db_bench 45 3x10; T3 db_row 50 3x15",
@@ -10576,6 +11502,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
      "accessory hip_thrust | 0 3x15+",
+     "accessory ab_rollout | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -10663,6 +11590,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -10702,6 +11637,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
     "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -10715,7 +11651,8 @@
     "T2 deadlift>db_rdl | 65(195) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":65,\"fromSteps\":65,\"fromEstimate\":65,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":329,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
     "T3 db_row | 70 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp>db_shoulder_press | 20(105) 1x10",
@@ -10724,7 +11661,8 @@
     "T2 deadlift>db_rdl | 65(195) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":65,\"fromSteps\":65,\"fromEstimate\":65,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":329,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
     "T3 db_row | 70 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 db_shoulder_press 30 2x4; T2 db_rdl 65 3x10; T3 db_row 70 3x15",
@@ -10740,6 +11678,7 @@
      "T2 deadlift>single_leg_db_rdl | 40(195) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":195,\"ratio\":0.35,\"estimate\":329,\"targetReps\":10}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -10816,6 +11755,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -10841,6 +11788,7 @@
     "T2 deadlift>single_leg_db_rdl | 40(195) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":195,\"ratio\":0.35,\"estimate\":329,\"targetReps\":10}",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -10854,7 +11802,8 @@
     "T2 squat>bulgarian_split_squat | 50(165) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":65,\"fromEstimate\":50,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":288,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 50(115) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "forecast": [
     "warmup bench>db_bench | 25(165) 1x10",
@@ -10863,7 +11812,8 @@
     "T2 squat>bulgarian_split_squat | 50(165) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":65,\"fromEstimate\":50,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":288,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 50(115) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "upcoming": [
     "A2: T1 db_bench 60 5x3; T2 bulgarian_split_squat 50 3x10; T3 db_row 50 3x15",
@@ -10880,6 +11830,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
      "accessory incline_db_fly | 0 3x15+",
+     "accessory calf_raises | 0 3x20+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -10947,6 +11898,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "calf_raises",
+      "sets": 3,
+      "reps": 20,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -10986,6 +11945,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
     "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -10999,7 +11959,8 @@
     "T2 ohp>db_shoulder_press | 40(80) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":55,\"fromEstimate\":40,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":124,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
     "T3 db_row | 75 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 30(260) 1x10",
@@ -11008,7 +11969,8 @@
     "T2 ohp>db_shoulder_press | 40(80) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":55,\"fromEstimate\":40,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":124,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
     "T3 db_row | 75 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 db_rdl 80 5x3; T2 db_shoulder_press 40 3x10; T3 db_row 75 3x15",
@@ -11024,6 +11986,7 @@
      "T2 ohp>db_shoulder_press | 40(80) 4x8 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":55,\"fromEstimate\":40,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":124,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory ab_rollout | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -11084,6 +12047,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -11109,6 +12080,7 @@
     "T2 ohp>db_shoulder_press | 40(80) 4x8 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -11122,7 +12094,8 @@
     "T2 bench>db_bench | 45(94) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":55,\"fromSteps\":55,\"fromEstimate\":70,\"stepsEarned\":2,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":217,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
     "T3 lat_pulldown>db_row | 50(120) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup squat>bulgarian_split_squat | 25(240) 1x10",
@@ -11131,7 +12104,8 @@
     "T2 bench>db_bench | 45(94) 3x10 | sets=40x10,45x10,45x10 | variant=bench|db_bench|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":55,\"fromSteps\":55,\"fromEstimate\":70,\"stepsEarned\":2,\"targetReps\":8,\"location\":\"home\",\"lastWeight\":45,\"estimate\":217,\"ratio\":0.835873748346754,\"exerciseId\":\"db_bench\"}",
     "T3 lat_pulldown>db_row | 50(120) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory hip_thrust | 0 3x15+"
+    "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "A1: T1 bulgarian_split_squat 60 5x3; T2 db_bench 45 3x10; T3 db_row 50 3x15",
@@ -11148,6 +12122,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
      "accessory hip_thrust | 0 3x15+",
+     "accessory ab_rollout | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -11235,6 +12210,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -11274,6 +12257,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
     "accessory hip_thrust | 0 3x15+",
+    "accessory ab_rollout | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -11287,7 +12271,8 @@
     "T2 deadlift>db_rdl | 65(205) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":65,\"fromSteps\":70,\"fromEstimate\":65,\"stepsEarned\":3,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":325,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
     "T3 db_row | 80 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "forecast": [
     "warmup ohp>db_shoulder_press | 20(110) 1x10",
@@ -11296,7 +12281,8 @@
     "T2 deadlift>db_rdl | 65(205) 3x10 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":65,\"fromSteps\":70,\"fromEstimate\":65,\"stepsEarned\":3,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":325,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
     "T3 db_row | 80 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory oh_tricep_ext | 0 3x15+"
+    "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+"
    ],
    "upcoming": [
     "B1: T1 db_shoulder_press 30 2x4; T2 db_rdl 65 3x10; T3 db_row 80 3x15",
@@ -11312,6 +12298,7 @@
      "T2 deadlift>single_leg_db_rdl | 40(205) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":205,\"ratio\":0.35,\"estimate\":325,\"targetReps\":10}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
+     "accessory hip_thrust | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -11388,6 +12375,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "hip_thrust",
+      "sets": 3,
+      "reps": 15,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -11413,6 +12408,7 @@
     "T2 deadlift>single_leg_db_rdl | 40(205) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":205,\"ratio\":0.35,\"estimate\":325,\"targetReps\":10}",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
+    "accessory hip_thrust | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -11426,7 +12422,8 @@
     "T2 squat>bulgarian_split_squat | 50(175) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":70,\"fromEstimate\":50,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":300,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 50(125) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "forecast": [
     "warmup bench>db_bench | 25(170) 1x10",
@@ -11435,7 +12432,8 @@
     "T2 squat>bulgarian_split_squat | 50(175) 3x10 | variant=squat|bulgarian_split_squat|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":70,\"fromEstimate\":50,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":60,\"estimate\":300,\"ratio\":0.47526761522518635,\"exerciseId\":\"bulgarian_split_squat\"}",
     "T3 lat_pulldown>db_row | 50(125) 3x15+ | variant=lat_pulldown|db_row|T3 perHand",
     "accessory lateral_raises | 0 3x20+",
-    "accessory incline_db_fly | 0 3x15+"
+    "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+"
    ],
    "upcoming": [
     "A2: T1 db_bench 65 5x3; T2 bulgarian_split_squat 50 3x10; T3 db_row 50 3x15",
@@ -11452,6 +12450,7 @@
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
      "accessory incline_db_fly | 0 3x15+",
+     "accessory calf_raises | 0 3x20+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -11519,6 +12518,14 @@
       "reps": 15,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "calf_raises",
+      "sets": 3,
+      "reps": 20,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -11558,6 +12565,7 @@
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
     "accessory incline_db_fly | 0 3x15+",
+    "accessory calf_raises | 0 3x20+",
     "accessory bicep_curls | 25 3x12"
    ]
   },
@@ -11571,7 +12579,8 @@
     "T2 ohp>db_shoulder_press | 40(85) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":60,\"fromEstimate\":40,\"stepsEarned\":3,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":126,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
     "T3 db_row | 85 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "forecast": [
     "warmup deadlift>db_rdl | 30(270) 1x10",
@@ -11580,7 +12589,8 @@
     "T2 ohp>db_shoulder_press | 40(85) 3x10 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":60,\"fromEstimate\":40,\"stepsEarned\":3,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":126,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
     "T3 db_row | 85 3x15+",
     "accessory bicep_curls | 0 3x15+",
-    "accessory lateral_raises | 0 3x20+"
+    "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+"
    ],
    "upcoming": [
     "B2: T1 db_rdl 80 5x3; T2 db_shoulder_press 40 3x10; T3 db_row 85 3x15",
@@ -11596,6 +12606,7 @@
      "T2 ohp>db_shoulder_press | 40(85) 4x8 | variant=ohp|db_shoulder_press|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":40,\"fromSteps\":60,\"fromEstimate\":40,\"stepsEarned\":3,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":45,\"estimate\":126,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
      "T3 face_pulls | 30 3x15+",
      "accessory lateral_raises | 0 3x20+",
+     "accessory ab_rollout | 0 3x12+",
      "accessory bicep_curls | 25 3x12"
     ],
     "prescribed": [
@@ -11656,6 +12667,14 @@
       "reps": 20,
       "weight": 0,
       "isAMRAP": true
+     },
+     {
+      "kind": "add",
+      "exerciseId": "ab_rollout",
+      "sets": 3,
+      "reps": 12,
+      "weight": 0,
+      "isAMRAP": true
      }
     ],
     "reentries": {
@@ -11681,6 +12700,7 @@
     "T2 ohp>db_shoulder_press | 40(85) 4x8 | variant=ohp|db_shoulder_press|T2 perHand",
     "T3 face_pulls | 30 3x15+",
     "accessory lateral_raises | 0 3x20+",
+    "accessory ab_rollout | 0 3x12+",
     "accessory bicep_curls | 25 3x12"
    ]
   }

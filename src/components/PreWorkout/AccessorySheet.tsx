@@ -26,6 +26,7 @@ import {
   budgetView,
   mainMuscleOf,
   muscleChip,
+  pickReasonLines,
   rankedCandidates,
   searchCandidates,
   swapAlternatives,
@@ -342,13 +343,17 @@ function AccessoryCard({
         </div>
       )}
 
-      {/* The first reason that the pin button below does not already say. */}
+      {/* The first reason that the pin button below does not already say; at home, what it replaces, quieter. */}
       {(() => {
-        const reasons = row.pick?.reasons.filter((r) => !(onPin && r === "Always on this day")) ?? [];
-        const reason = reasons[0] ?? (row.pick ? null : view.reason);
+        const lines = row.pick ? pickReasonLines(row.pick, { pinShown: !!onPin }) : { reason: view.reason, note: null };
         return (
           <p className="text-[13px] leading-snug">
-            {reason && <span className="block">{reason}</span>}
+            {lines.reason && <span className="block">{lines.reason}</span>}
+            {lines.note && (
+              <span data-testid="accessory-home-note" className="block text-muted-foreground">
+                {lines.note}
+              </span>
+            )}
             <span className="block text-muted-foreground">{prescription.note}</span>
           </p>
         );

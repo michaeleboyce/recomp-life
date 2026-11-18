@@ -1,6 +1,7 @@
 // The next workout, resolved once from one input record: the due day of the rotation,
 // the states after re-entry, each lift and the plan. Every screen that shows the next
 // workout (Today's rows and forecast, the ledger, the coming workouts) reads this. Pure.
+import { sessionPaceCorrection, type PaceSession } from "@/lib/forecast/sessionLength";
 import type { StrengthSet } from "@/lib/strength";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, UserSettings, VariantState, WorkoutLocation, WorkoutTemplate } from "@/types";
@@ -12,8 +13,12 @@ import type { NextWorkoutDescription } from "./types";
 
 /** Everything the next workout is worked out from. */
 export interface NextWorkoutInput {
-  /** The finished workouts (any order): the rotation is folded from them. */
-  completedWorkouts: readonly RotationSession[];
+  /**
+   * The finished workouts (any order): the rotation is folded from them, and the
+   * session length the accessories are kept to is corrected by the lifter's pace in them
+   * (`sessionPaceCorrection`, the factor the session-length forecast applies).
+   */
+  completedWorkouts: readonly (RotationSession & Partial<PaceSession>)[];
   liftStates: LiftState[];
   /** The home exercises' own states. */
   variantStates: VariantState[];
@@ -71,6 +76,7 @@ export function resolveNextWorkout(input: NextWorkoutInput): ResolvedNextWorkout
   const template = templates[templateId];
   if (!template) throw new Error(`Workout template not found: ${templateId}`);
   const location = input.location ?? settings.defaultLocation ?? "gym";
+  const now = input.now ?? new Date();
   const start = planWorkoutStart({
     template,
     liftStates: input.liftStates,
@@ -82,13 +88,17 @@ export function resolveNextWorkout(input: NextWorkoutInput): ResolvedNextWorkout
     ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
     ...(settings.nextSetPlans ? { nextSetPlans: settings.nextSetPlans } : {}),
     reentry: input.reentry ?? "day",
+    // The date planned for (own-history windows): the one given, else the accessories'
+    // day; a projection of the program alone with no date keeps the evidence's clock.
+    ...(input.now ? { now: input.now } : {}),
     ...(input.accessories === false
       ? {}
       : {
           accessories: {
             settings: { ...settings, trainingPhase: settings.trainingPhase ?? { mode: "maintaining" } },
             strengthSets: input.strengthSets ?? [],
-            now: input.now ?? new Date(),
+            now,
+            pace: sessionPaceCorrection(input.completedWorkouts, now, settings.trainingPhase),
           },
         }),
   });

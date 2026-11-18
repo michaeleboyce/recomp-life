@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * After a T3's last set: what its weight does next time, against the reps this weight
- * needed ("20 of 20 on the last set: 55 lbs next time"; `t3NextTimeAfterSet`).
+ * needed ("20 reps on the last set, needed 20: 55 lbs next time"; `t3NextTimeAfterSet`).
  */
 export function T3NextTime({ name, text, className }: { name: string; text: string; className?: string }) {
   return (

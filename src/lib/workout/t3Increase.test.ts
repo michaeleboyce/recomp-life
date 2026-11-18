@@ -5,6 +5,7 @@ import {
   homeT3Increase,
   liftT3Increase,
   t3GoesUpSentence,
+  t3LastSetAgainst,
   t3IncreaseForEntry,
   t3IncreaseOfOutcome,
   t3IncreaseOfVariantOutcome,
@@ -105,11 +106,19 @@ describe("words", () => {
   it("during the workout: the number to reach, and what happens next time", () => {
     const at50 = homeT3Increase(50, 15, EQUIPMENT);
     expect(t3MoveUpHint(at50)).toBe("20 to move up");
-    expect(t3NextTimeText(at50, 20, "lb")).toBe("20 of 20 on the last set: 55 lb next time");
-    expect(t3NextTimeText(at50, 19, "lb")).toBe("19 of 20 on the last set: stays at 50 lb next time");
+    expect(t3NextTimeText(at50, 20, "lb")).toBe("20 reps on the last set, needed 20: 55 lb next time");
+    expect(t3NextTimeText(at50, 19, "lb")).toBe("19 reps on the last set, needed 20: stays at 50 lb next time");
     expect(t3NextTimeText(homeT3Increase(60, 15, EQUIPMENT), 25, "lb")).toBe(
-      "25 of 25 on the last set, at your heaviest dumbbell: more reps or a harder exercise next time"
+      "25 reps on the last set, needed 25, at your heaviest dumbbell: more reps or a harder exercise next time"
     );
+  });
+});
+
+describe("the last set against its threshold, in words", () => {
+  it("reads the same above, at and below the threshold", () => {
+    expect(t3LastSetAgainst(26, 18)).toBe("26 reps on the last set, needed 18");
+    expect(t3LastSetAgainst(18, 18)).toBe("18 reps on the last set, needed 18");
+    expect(t3LastSetAgainst(1, 20)).toBe("1 rep on the last set, needed 20");
   });
 });
 
@@ -145,12 +154,12 @@ describe("after the last T3 set of a workout", () => {
   it("logging 19 then 20 on a 50 lb dumbbell row: stays, then goes up", () => {
     const at19 = [set(1, 15), set(2, 15), set(3, 19)];
     expect(t3NextTimeAfterSet(at19[2], [entry], at19, EQUIPMENT)?.text).toBe(
-      "19 of 20 on the last set: stays at 50 lbs next time"
+      "19 reps on the last set, needed 20: stays at 50 lbs next time"
     );
     const at20 = [set(1, 15), set(2, 15), set(3, 20)];
     expect(t3NextTimeAfterSet(at20[2], [entry], at20, EQUIPMENT)).toEqual({
       exerciseId: "db_row",
-      text: "20 of 20 on the last set: 55 lbs next time",
+      text: "20 reps on the last set, needed 20: 55 lbs next time",
     });
   });
 

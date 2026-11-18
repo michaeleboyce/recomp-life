@@ -1,3 +1,4 @@
+import { sessionPaceCorrection, type PaceSession } from "@/lib/forecast/sessionLength";
 import type { StrengthSet } from "@/lib/strength";
 import { applySteps } from "@/lib/trace/replay";
 import { change, num, stageWords, step } from "@/lib/trace/text";
@@ -21,13 +22,12 @@ import type {
   WorkoutSession,
   WorkoutTemplate,
 } from "@/types";
-import { planAccessories, type AccessoryPlan, type AccessorySource } from "./accessoryPlan";
+import type { AccessoryPlan, AccessorySource } from "./accessoryPlan";
 import { buildWorkoutPlan, describeNextWorkout } from "./buildPlan";
 import { computeCompletion } from "./completeWorkout";
 import { createSetLog } from "./logSet";
 import { performedSetPlanKey } from "./nextSetPlans";
 import { resolveNextWorkout } from "./nextWorkout";
-import { applyPlanEdits } from "./planEdits";
 import { planWorkoutStart, type WorkoutStartPlan } from "./startPlan";
 import type { WorkoutExerciseState, WorkoutPlan } from "./types";
 
@@ -64,7 +64,11 @@ export interface UpcomingWorkout {
 }
 
 export interface ProjectUpcomingInput {
-  completedWorkouts: Pick<WorkoutSession, "templateId" | "startedAt" | "completedAt">[];
+  /**
+   * The finished workouts: the rotation, and the lifter's pace the session length is
+   * measured with (`sessionPaceCorrection`, as the lengths shown are).
+   */
+  completedWorkouts: (Pick<WorkoutSession, "templateId" | "startedAt" | "completedAt"> & Partial<PaceSession>)[];
   templates: Record<string, WorkoutTemplate>;
   liftStates: LiftState[];
   location: WorkoutLocation;
@@ -94,6 +98,8 @@ export interface ProjectUpcomingInput {
    * Plan each workout's accessories as the start would (`planAccessories` from
    * `settings` and `strengthSets`, chosen for this calendar day and kept to the session
    * length `settings.sessionMinutes`) and add them to `plan`. Left out, no accessories.
+   * It is also the date planned for: a first home weight's own history counts back from
+   * it (`seedVariantWeight`); left out, from the newest set.
    */
   accessoriesNow?: Date;
 }
@@ -255,6 +261,7 @@ const planOptionsOf = (input: ProjectionInput) => ({
   includeWarmUps: input.includeWarmUps,
   selectedAccessories: [] as string[],
   ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
+  ...(input.accessoriesNow ? { now: input.accessoriesNow } : {}),
 });
 
 /**
@@ -283,6 +290,7 @@ function walkProjection(
         location,
         reentry: "everyLift",
         accessories: false,
+        ...(input.accessoriesNow ? { now: input.accessoriesNow } : {}),
       })
     : describeNextWorkout({
         completedWorkouts,
@@ -361,7 +369,64 @@ function accessorySourceOf(input: ProjectionInput): AccessorySource | null {
     settings: { ...input.settings, equipment: input.equipment },
     strengthSets: input.strengthSets ?? [],
     now: input.accessoriesNow,
+    pace: sessionPaceCorrection(input.completedWorkouts, input.accessoriesNow, input.settings.trainingPhase),
   };
+}
+
+/**
+ * The plan shown for the session at `position` of the projection, exactly as the start
+ * would plan it (`planWorkoutStart`), with the accessories for `accessoriesNow`'s day:
+ * the next workout through `resolveNextWorkout` (re-entry for the day, as Today and
+ * Ready), a later one from the states the projection carried to it (no re-entry). The
+ * card (`projectUpcomingWorkouts`) and the full view (`describeUpcomingWorkout`) both
+ * read it, so they cannot differ.
+ */
+function shownStartPlan(
+  input: ProjectionInput,
+  sessions: readonly ProjectedSession[],
+  position: number,
+  source: AccessorySource | null
+): WorkoutStartPlan {
+  const target = sessions[position];
+  const planOptions = planOptionsOf(input);
+  if (position === 0) {
+    if (input.reentry) {
+      return resolveNextWorkout({
+        completedWorkouts: input.completedWorkouts,
+        templates: input.templates,
+        liftStates: input.liftStates,
+        variantStates: input.variantStates ?? [],
+        ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
+        settings: {
+          ...input.settings,
+          equipment: input.equipment,
+          showWarmUps: input.includeWarmUps,
+          nextSetPlans: input.nextSetPlans,
+        },
+        location: input.location,
+        accessories: source !== null,
+        ...(input.accessoriesNow ? { now: input.accessoriesNow } : {}),
+      });
+    }
+    return planWorkoutStart({
+      ...planOptions,
+      template: target.template,
+      liftStates: input.liftStates,
+      variantStates: input.variantStates ?? [],
+      ...(input.nextSetPlans ? { nextSetPlans: input.nextSetPlans } : {}),
+      reentry: "none",
+      ...(source ? { accessories: source } : {}),
+    });
+  }
+  return planWorkoutStart({
+    ...planOptions,
+    template: target.template,
+    liftStates: target.liftStates,
+    variantStates: target.variantStates,
+    ...(target.setPlans ? { nextSetPlans: target.setPlans } : {}),
+    reentry: "none",
+    ...(source ? { accessories: source } : {}),
+  });
 }
 
 /**
@@ -369,38 +434,24 @@ function accessorySourceOf(input: ProjectionInput): AccessorySource | null {
  * `describeNextWorkout`; each later one assumes every earlier one was completed
  * with every set at its target reps (`simulateCompletedWorkout`). Pure: the given
  * lift states are not changed. A sequence, not a calendar: no dates are forecast.
+ * Each shown plan is `shownStartPlan`'s, the one the full view shows; the entries
+ * are the program's lifts the projection carried on.
  */
 export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWorkout[] {
   if (input.count <= 0) return [];
   const { sessions } = walkProjection(input, input.count);
   const source = accessorySourceOf(input);
-
-  // One workout's accessories, chosen from its lifts as planned, as the start chooses
-  // them. Only the plan shown gets them: the projection carries the program's plan on.
-  const withAccessories = (
-    templateId: string,
-    plan: WorkoutPlan
-  ): { plan: WorkoutPlan; accessories: AccessoryPlan | null } => {
-    if (!source) return { plan, accessories: null };
-    const accessories = planAccessories({
-      templateId,
-      mainLifts: plan
-        .filter((e) => !e.isWarmUp && e.tier !== "accessory")
-        .map((e) => ({ exerciseId: e.substituteExerciseId || e.exerciseId, sets: e.targetSets })),
-      location: input.location,
-      source,
-      programPlan: plan,
-    });
-    return { plan: accessories.edits.length ? applyPlanEdits(plan, accessories.edits) : plan, accessories };
-  };
-
-  return sessions.map((session, index) => ({
-    templateId: session.templateId,
-    template: session.template,
-    ...withAccessories(session.templateId, session.plan),
-    entries: toEntries(session.plan, session.advanced),
-    projected: index > 0,
-  }));
+  return sessions.map((session, index) => {
+    const start = shownStartPlan(input, sessions, index, source);
+    return {
+      templateId: session.templateId,
+      template: session.template,
+      plan: start.plan,
+      accessories: start.accessories,
+      entries: toEntries(session.plan, session.advanced),
+      projected: index > 0,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -623,37 +674,7 @@ export function describeUpcomingWorkout(input: DescribeUpcomingInput): UpcomingW
       ...(accessories ? { accessories } : {}),
     });
 
-  let start: WorkoutStartPlan;
-  if (position === 0) {
-    start = input.reentry
-      ? resolveNextWorkout({
-          completedWorkouts: input.completedWorkouts,
-          templates: input.templates,
-          liftStates: input.liftStates,
-          variantStates: input.variantStates ?? [],
-          ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
-          settings: {
-            ...input.settings,
-            equipment: input.equipment,
-            showWarmUps: input.includeWarmUps,
-            nextSetPlans: input.nextSetPlans,
-          },
-          location,
-          accessories: source !== null,
-          ...(input.accessoriesNow ? { now: input.accessoriesNow } : {}),
-        })
-      : fromNow(source);
-  } else {
-    start = planWorkoutStart({
-      ...planOptions,
-      template: target.template,
-      liftStates: target.liftStates,
-      variantStates: target.variantStates,
-      ...(target.setPlans ? { nextSetPlans: target.setPlans } : {}),
-      reentry: "none",
-      ...(source ? { accessories: source } : {}),
-    });
-  }
+  const start = shownStartPlan(input, sessions, position, source);
 
   const before = simulated.slice(0, position);
   const lifts: UpcomingLift[] = programEntries(start.plan).map((entry) => {

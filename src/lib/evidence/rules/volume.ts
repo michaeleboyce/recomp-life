@@ -29,6 +29,7 @@ import {
   SWAP_TIER_FIT_POINTS,
 } from "@/lib/swap/recommend";
 import { DEFAULT_SESSION_MINUTES, SESSION_MINUTE_CHOICES } from "@/lib/accessories/sessionBudget";
+import { SESSION_LENGTH_MODEL } from "@/lib/forecast/coefficients";
 
 export const VOLUME_RULES = {
   "weekly-volume": {
@@ -72,7 +73,7 @@ export const VOLUME_RULES = {
     status: "active",
     title: "How are a workout's accessories chosen?",
     summary: "A scored list: your pins and preferences, your habits, and this week's gaps",
-    appBehavior: `Every workout gets accessories up to the phase's number, chosen from a scored list. Exercises you pinned to the day are always in. Then points are added: ${ACCESSORY_PREFERRED_WEIGHT} for an exercise you marked preferred; up to ${ACCESSORY_HABIT_WEIGHT} for one you do often and lately (each session counts half as much for every ${STRENGTH_POOLING.evidenceHalfLifeDays} days of age, and more when it was done on the same kind of day); up to ${ACCESSORY_SHORTFALL_WEIGHT} when its main muscle is short of ${WEEKLY_SET_TARGET} sets this week, counting the sets today's main lifts will add (full at ${ACCESSORY_SHORTFALL_FULL_SETS} short); up to ${ACCESSORY_DAY_FIT_WEIGHT} when today's main lifts leave its muscles alone (none once they give it ${ACCESSORY_DAY_HARD_SETS} sets). ${ACCESSORY_RECOVERY_PENALTY} come off when its main muscle is still recovering, and ${ACCESSORY_SPREAD_PENALTY} when another pick already works that muscle and it is not short (such a repeat is picked only when nothing else is left). Blocked exercises are never offered; at home a gym-only exercise is swapped for its home version or left out. With no accessory history the day's usual list is used. They are chosen once for the day, the same on Today, the Ready screen and the workout, and each comes with its reasons and score. Removing, swapping or adding one is yours and always wins; the setting can also be "ask me" (none chosen) or "none".`,
+    appBehavior: `Every workout gets accessories up to the phase's number, chosen from a scored list. Exercises you pinned to the day are always in. Then points are added: ${ACCESSORY_PREFERRED_WEIGHT} for an exercise you marked preferred; up to ${ACCESSORY_HABIT_WEIGHT} for one you do often and lately (each session counts half as much for every ${STRENGTH_POOLING.evidenceHalfLifeDays} days of age, and more when it was done on the same kind of day); up to ${ACCESSORY_SHORTFALL_WEIGHT} when its main muscle is short of ${WEEKLY_SET_TARGET} sets this week, counting the sets today's main lifts will add (full at ${ACCESSORY_SHORTFALL_FULL_SETS} short); up to ${ACCESSORY_DAY_FIT_WEIGHT} when today's main lifts leave its muscles alone (none once they give it ${ACCESSORY_DAY_HARD_SETS} sets). ${ACCESSORY_RECOVERY_PENALTY} come off when its main muscle is still recovering, and ${ACCESSORY_SPREAD_PENALTY} when another pick already works that muscle and it is not short (such a repeat is picked only when nothing else is left). Blocked exercises are never offered; at home a gym-only exercise is swapped for its home version or left out, and the home version gives the reason it earned itself, with the gym exercise it stands in for as a note after it. With no accessory history the day's usual list is used. They are chosen once for the day, the same on Today, the Ready screen and the workout, and each comes with its reasons and score. Removing, swapping or adding one is yours and always wins; the setting can also be "ask me" (none chosen) or "none".`,
     rationale:
       "Each part follows something the app already counts: what you choose, what you actually do, the weekly set target and recovery. The pins and preferences come first because you have the final say.",
     caveat:
@@ -112,17 +113,18 @@ export const VOLUME_RULES = {
     status: "active",
     title: "Why are some accessories left out to fit the session length?",
     summary: "Accessories are kept to the length you plan for; the main lifts never are",
-    appBehavior: `You choose the session length to plan for: ${SESSION_MINUTE_CHOICES.join(", ")} minutes or no limit (${DEFAULT_SESSION_MINUTES} until you choose), in Settings or for one workout on the Ready screen. The app times the plan on paper: every set plus the rest after it, warm-ups included when they are on. The accessories it chose are then added best first, each only if the plan with it stays within the length; one that does not fit is left out, with "Left out to fit" and a way to add it anyway, and the next one is tried. The main lifts (T1, T2 and T3) are never dropped or shortened. Accessories you pinned to the day are always kept, even past the length. When the main lifts alone take longer than the length, no other accessory is added and the app says so. A workout already started keeps the accessories it started with.`,
+    appBehavior: `You choose the session length to plan for: ${SESSION_MINUTE_CHOICES.join(", ")} minutes or no limit (${DEFAULT_SESSION_MINUTES} until you choose), in Settings or for one workout on the Ready screen. The app times the plan as Today, the Ready screen and Coming up show it: on paper, every set plus the rest after it (warm-ups included when they are on, and your per-set plans for the day), then, once you have finished ${SESSION_LENGTH_MODEL.minSessionsForCorrection} sessions, times your own pace (the median of real length over length on paper in your latest ${SESSION_LENGTH_MODEL.recentSessions}). The accessories it chose are then added best first, each only if the plan with it stays within the length; one that does not fit is left out, with "Left out to fit" and a way to add it anyway, and the next one is tried. The main lifts (T1, T2 and T3) are never dropped or shortened. Accessories you pinned to the day are always kept, even past the length. When the main lifts alone take longer than the length, no other accessory is added and the app says so. A workout already started keeps the accessories it started with.`,
     rationale:
       "A planning convenience: a session that fits the time you have is easier to finish, and leaving out the lowest-ranked extras first keeps the program's lifts, which drive progression, untouched.",
     caveat:
-      "This is not a research finding. The length is the app's own estimate on paper, which no study has checked for this kind of session (the research notes found nothing on predicting a strength session's length from its sets and rests), and the forecast shown on Today and the Ready screen may differ once it is corrected for your own pace. The choices of length are conveniences, not targets.",
+      "This is not a research finding. The length is the app's own estimate, on paper and corrected by your pace, which no study has checked for this kind of session (the research notes found nothing on predicting a strength session's length from its sets and rests). Your own changes on the Ready screen are not re-measured: the accessories are chosen before them. The choices of length are conveniences, not targets.",
     strength: "heuristic",
     sources: [],
     reviewedOn: "2026-11",
     implementedIn: [
       "src/lib/accessories/sessionBudget.ts#fitAccessoriesToBudget",
       "src/lib/workout/accessoryPlan.ts#planAccessories",
+      "src/lib/forecast/sessionLength.ts#sessionPaceCorrection",
     ],
     surfaces: [
       "src/components/PreWorkout/AccessorySheet.tsx",
