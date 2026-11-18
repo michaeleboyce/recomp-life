@@ -99,9 +99,11 @@ export function SwapPanel({
     ? swapProgressionEffect(tier, exerciseId, effectFor, setsLogged ? { setsLogged } : {})
     : null;
   const location = context?.location ?? "gym";
+  // An accessory is left out as it is done here (a home alternative's own id); a program
+  // lift is named as the program names it.
   const standing = everyTimeOption(
     tier,
-    shownId || exerciseId,
+    tier === "accessory" ? shownId || exerciseId : exerciseId,
     picks.map((c) => c.exerciseId),
     location
   );
