@@ -3,7 +3,7 @@
 // done at. Pure and deterministic: the same input gives the same output; the clock is
 // `now`. Spec: docs/plans/2026-11-18-future-workouts-and-swaps-design.md.
 import { NEEDS_BENCH, accessoryPrescription, accessoryLoadStep, ownHistoryFirstWeight } from "@/lib/accessories/index";
-import { DAY_MS, calendarDaysBetween } from "@/lib/dates";
+import { agoText, DAY_MS } from "@/lib/dates";
 import { getPreference, resolvePreferences } from "@/lib/exercisePreferences";
 import { ACCESSORY_IDS, DEFAULT_ACCESSORY_WEIGHTS, EXERCISES } from "@/lib/exercises";
 import { MUSCLE_LABELS } from "@/lib/muscles";
@@ -272,15 +272,8 @@ function historyOf(sets: readonly StrengthSet[], exerciseId: string, now: number
   return [...sessions.values()];
 }
 
-/** "3 weeks ago" style wording for a past date. */
-export function agoText(date: Date, now: Date): string {
-  const days = calendarDaysBetween(date, now);
-  if (days <= 0) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 14) return `${days} days ago`;
-  if (days < 61) return `${plural(Math.round(days / 7), "week")} ago`;
-  return `${plural(Math.round(days / 30), "month")} ago`;
-}
+/** "3 weeks ago" style wording for a past date: `agoText` in lib/dates. */
+export { agoText } from "@/lib/dates";
 
 // ─── Prescription ────────────────────────────────────────────────────────────
 

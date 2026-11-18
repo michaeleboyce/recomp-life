@@ -1,3 +1,5 @@
+import { plural } from "./text";
+
 export const HOUR_MS = 60 * 60 * 1000;
 export const DAY_MS = 24 * HOUR_MS;
 export const WEEK_MS = 7 * DAY_MS;
@@ -39,4 +41,19 @@ export function localDayKey(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/** "8 weeks ago" below 61 days, else "14 months ago": weeks and months only. */
+export function weeksOrMonthsAgo(date: Date, now: Date): string {
+  const days = calendarDaysBetween(date, now);
+  return days < 61 ? `${plural(Math.round(days / 7), "week")} ago` : `${plural(Math.round(days / 30), "month")} ago`;
+}
+
+/** "today", "yesterday", "5 days ago", then as `weeksOrMonthsAgo` from 14 days. */
+export function agoText(date: Date, now: Date): string {
+  const days = calendarDaysBetween(date, now);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
+  return weeksOrMonthsAgo(date, now);
 }
