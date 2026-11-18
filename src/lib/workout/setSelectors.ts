@@ -5,6 +5,13 @@ export function isWarmUpSet(set: SetLog): boolean {
   return set.tier === "warmup";
 }
 
+/**
+ * How much lighter a drop set starts than the set it continues, before rounding to the
+ * equipment. Only a starting point: the weight is adjusted before the drop is logged.
+ * The `drop-set-evidence` rule states it (see `dropSetWeight` in components/ActiveWorkout/setPlan.ts).
+ */
+export const DROP_SET_LIGHTER_BY = 0.2;
+
 /** Roles that are extra to the program's working sets: never part of a pass or a fail. */
 export const EXTRA_SET_ROLES: readonly SetRole[] = ["ramp", "backoff", "drop"];
 

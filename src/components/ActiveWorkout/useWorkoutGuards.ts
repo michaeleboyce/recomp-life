@@ -7,11 +7,15 @@ import { requestNotificationPermission } from "@/lib/audio";
 export function useWakeLock(): void {
   useEffect(() => {
     let wakeLock: WakeLockSentinel | null = null;
+    let unmounted = false;
 
     async function requestWakeLock() {
       try {
         if ("wakeLock" in navigator) {
-          wakeLock = await navigator.wakeLock.request("screen");
+          const lock = await navigator.wakeLock.request("screen");
+          // The screen was left while the request was pending: nothing would release it.
+          if (unmounted) void lock.release().catch(() => {});
+          else wakeLock = lock;
         }
       } catch {
         // Not supported or denied: the workout still works.
@@ -27,7 +31,8 @@ export function useWakeLock(): void {
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      wakeLock?.release();
+      unmounted = true;
+      void wakeLock?.release().catch(() => {});
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);

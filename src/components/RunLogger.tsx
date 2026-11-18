@@ -73,6 +73,7 @@ export default function RunLogger({ returnTo = "/" }: { returnTo?: string }) {
       toast({ message: "Run saved" });
       goBack();
     } catch (err) {
+      console.error("Failed to save run:", err);
       setError("Failed to save run. Please try again.");
       setSaving(false);
     }

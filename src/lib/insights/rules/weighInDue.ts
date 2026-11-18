@@ -3,7 +3,7 @@ import type { Insight, InsightContext } from "../types";
 import { formatLbs, sortedWeights } from "../shared";
 
 /**
- * Same behaviour as WeighInPrompt: shown while the morning reminder is on and no
+ * Shown while the morning reminder is on and no
  * weight is logged for the local day of `now`.
  */
 export function weighInDueInsights(ctx: InsightContext): Insight[] {

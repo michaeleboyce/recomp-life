@@ -8,8 +8,8 @@ import { SLEEP_LEVELS, STRESS_LEVELS } from "@/lib/metrics/readiness";
 import type { Point } from "@/lib/metrics/types";
 import { calculateGroupVolume } from "@/lib/volumeTracking";
 import { excludeWarmUps } from "@/lib/workout/setSelectors";
-import { LIFT_NAMES, MAIN_LIFTS } from "@/components/Progress/lifts";
-import { cutTargetBand, paceStatus } from "@/components/Progress/body/bodyMath";
+import { LIFT_NAMES, MAIN_LIFTS } from "@/lib/liftNames";
+import { cutTargetBand, paceStatus } from "@/lib/rateOfLoss";
 import type { ImportedSessionRecord, WorkoutSession } from "@/types";
 import { inWeek, nextWeek, previousWeek, weekOf } from "./weeks";
 import type {

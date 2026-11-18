@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { db } from "@/db/local";
 import { clearDb } from "@/lib/data/testUtils";
 import { installNavHistory, resetNavHistoryForTests } from "@/components/nav/navHistory";
-import { STALE_WEIGH_IN_DAYS } from "@/components/Today/GlanceTiles";
+import { STALE_WEIGH_IN_DAYS } from "@/lib/weighIn";
 import WeighInPage from "./page";
 
 const push = vi.fn();

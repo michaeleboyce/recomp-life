@@ -4,16 +4,12 @@ import { EXERCISES } from "@/lib/exercises";
 import { describePlateLoad } from "@/lib/plates";
 import { rehydratePlan } from "@/lib/workout/rehydrate";
 import { isNextSetAMRAP } from "@/lib/workout/logSet";
-import { entrySetsFor } from "@/lib/workout/setSelectors";
+import { DROP_SET_LIGHTER_BY, entrySetsFor } from "@/lib/workout/setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
 import type { EquipmentProfile, PlannedSet, SetLog, SetRole, WorkoutLocation } from "@/types";
 
-/**
- * How much lighter a drop set starts than the set it continues, before rounding to the
- * equipment. Only a starting point: the weight is adjusted before the drop is logged.
- * The `drop-set-evidence` rule states it (see `dropSetWeight`).
- */
-export const DROP_SET_LIGHTER_BY = 0.2;
+export { DROP_SET_LIGHTER_BY };
+
 
 /** Weight step for exercises loaded neither with plates nor with dumbbells (cables, machines). */
 const OTHER_STEP_LBS = 5;

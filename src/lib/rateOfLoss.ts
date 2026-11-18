@@ -153,3 +153,42 @@ export function getStallProtocolSuggestion(
   // Stalled for 5+ weeks — suggest a modest calorie reduction
   return "Consider reducing daily intake by 100-150 calories";
 }
+
+/**
+ * The green zone (0.5 to 1.0 percent of bodyweight a week): the
+ * target while cutting. Yellow and red above it are "fast", below it "slow".
+ */
+export const CUT_TARGET_PERCENT = { low: 0.5, high: 1.0 } as const;
+
+export type PaceWord = "on pace" | "slow" | "fast" | "gaining";
+
+/**
+ * The target band for the weekly rate of change chart, in lbs/week. The rate metric
+ * is negative while losing, so the band sits below zero: `low` is the faster limit.
+ * `average` is the current 7-day average bodyweight.
+ */
+export function cutTargetBand(average: number): { low: number; high: number } {
+  return {
+    low: -(average * CUT_TARGET_PERCENT.high) / 100,
+    high: -(average * CUT_TARGET_PERCENT.low) / 100,
+  };
+}
+
+/** One word for how the latest weekly rate compares with the cutting target; null without enough weigh-ins. */
+export function paceStatus(entries: { date: Date; weight: number }[]): PaceWord | null {
+  const rate = calculateWeeklyRateOfLoss(entries);
+  if (!rate) return null;
+  switch (rate.zone) {
+    case "green":
+      return "on pace";
+    case "red":
+      return "fast";
+    case "stall":
+      return "slow";
+    case "gaining":
+      return "gaining";
+    default:
+      // Yellow sits on both sides of the green zone.
+      return rate.percentPerWeek < CUT_TARGET_PERCENT.low ? "slow" : "fast";
+  }
+}

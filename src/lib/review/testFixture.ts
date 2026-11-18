@@ -1,6 +1,6 @@
 // Shared hand-built fixture for the weekly review tests (not a test file itself).
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
-import { WEEKLY_SESSION_TARGET } from "@/components/Today/GlanceTiles";
+import { WEEKLY_SESSION_TARGET } from "@/lib/workout/rotation";
 import type {
   ActivityLog,
   BodyweightLog,

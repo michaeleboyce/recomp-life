@@ -16,7 +16,10 @@ vi.mock("@/lib/sync", () => ({
   checkConnectivity: sync.checkConnectivity,
   SYNC_UNAUTHORIZED: "Sync passphrase missing or rejected",
 }));
-vi.mock("@/lib/syncKey", () => ({ getSyncKey: sync.getSyncKey }));
+vi.mock("@/lib/syncKey", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/syncKey")>()),
+  getSyncKey: sync.getSyncKey,
+}));
 
 const ok = { pushed: 0, pulled: 0, errors: [] as string[], pullSucceeded: true };
 

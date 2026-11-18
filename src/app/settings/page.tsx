@@ -23,6 +23,7 @@ import { LocationChip } from "@/components/ui/location-chip";
 import { ListRow } from "@/components/ui/list-row";
 import { TrainingLocationRow } from "@/components/More/TrainingLocationRow";
 import { useProfile } from "@/hooks";
+import { localDayKey } from "@/lib/dates";
 import { exportBackup, importBackup, parseBackup } from "@/lib/data/backup";
 import { updateProfile as saveProfile, updateSettings as saveSettings } from "@/lib/data/records";
 import {
@@ -131,7 +132,7 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `recomp-life-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `recomp-life-backup-${localDayKey(new Date())}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

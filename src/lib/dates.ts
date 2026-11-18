@@ -33,3 +33,10 @@ export function getMonday(date: Date): Date {
   d.setHours(0, 0, 0, 0);
   return d;
 }
+
+/** "2026-11-10": the local calendar day of a date (also the value a date input uses). */
+export function localDayKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}

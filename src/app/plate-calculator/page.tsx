@@ -19,6 +19,9 @@ const PLATE_COLORS: Record<number, string> = {
   2.5: "bg-plate-2p5 text-plate-label-dark",
 };
 
+/** The plates assumed until the profile has loaded. */
+const DEFAULT_PLATES = [45, 35, 25, 10, 5, 2.5];
+
 function PlateVisual({ plates }: { plates: { plate: number; count: number }[] }) {
   if (plates.length === 0) {
     return (
@@ -95,7 +98,7 @@ export default function PlateCalculatorPage() {
   const profile = useProfile();
 
   const barWeight = profile?.settings.equipment.barWeight ?? 45;
-  const availablePlates = profile?.settings.equipment.availablePlates ?? [45, 35, 25, 10, 5, 2.5];
+  const availablePlates = profile?.settings.equipment.availablePlates ?? DEFAULT_PLATES;
 
   // The target is never less than the bar itself.
   const targetWeight = Math.max(chosenWeight, barWeight);

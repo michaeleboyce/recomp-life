@@ -1,6 +1,5 @@
 import type { EvidenceRule } from "@/types";
 import type { SourceId } from "../sources";
-import { DROP_SET_LIGHTER_BY } from "@/components/ActiveWorkout/setPlan";
 import { E1RM_MAX_REPS, E1RM_MAX_REPS_IN_RESERVE } from "@/lib/e1rm";
 import { EXERCISES } from "@/lib/exercises";
 import { EFFORT_WORD_RPE } from "@/lib/import/evidence";
@@ -15,6 +14,7 @@ import {
   type TransferPrior,
 } from "@/lib/strength/coefficients";
 import { TREND_SMOOTHING } from "@/lib/strength/timeline";
+import { DROP_SET_LIGHTER_BY } from "@/lib/workout/setSelectors";
 
 /** 0.4 -> "40%", 0.035 -> "3.5%". */
 const pct = (fraction: number) => `${Number((fraction * 100).toPrecision(3))}%`;

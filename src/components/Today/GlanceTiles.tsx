@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useBodyweightLog, useDueTemplateId, useImportedSessions, useMetric, useSettings } from "@/hooks";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import { getMonday } from "@/lib/dates";
+import { DAY_MS, getMonday } from "@/lib/dates";
+import { STALE_WEIGH_IN_DAYS } from "@/lib/weighIn";
+import { WEEKLY_SESSION_TARGET } from "@/lib/workout/rotation";
 import { importedSessionsBetween } from "@/lib/import/history";
 import { Sparkline, type SparklineTone } from "@/components/chart-kit";
 import { Delta, type DeltaBetter } from "@/components/ui/delta";
@@ -15,13 +17,7 @@ import { rangeSuffix } from "@/components/Progress/rangeText";
 import { useLiftEstimate } from "@/components/Progress/useLiftEstimate";
 import { formatLbs, shortLiftName } from "./format";
 
-/** The program rotates four workouts (A1, B1, A2, B2), so a full week is four sessions. */
-export const WEEKLY_SESSION_TARGET = 4;
-
 const DASH = "—";
-/** Past this, the rate of change describes an old stretch, so it is not shown. */
-export const STALE_WEIGH_IN_DAYS = 14;
-const DAY_MS = 86_400_000;
 
 /** While cutting, the rate is judged against the target band, as the Body tab does. */
 const PACE_TONE: Record<PaceWord, SparklineTone> = {

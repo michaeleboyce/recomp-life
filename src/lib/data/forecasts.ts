@@ -21,7 +21,6 @@ import {
   sdScales,
   type ForecastLog,
   type ForecastSource,
-  type ScoredForecast,
 } from "@/lib/forecast";
 import { finishedBy } from "@/lib/forecast/log";
 import {
@@ -246,14 +245,6 @@ const timeOf = (date: Date | string | number) => new Date(date).getTime();
 /** The log stored forecasts are checked against. */
 export function forecastLogFrom(records: LedgerRecords): ForecastLog {
   return { workouts: records.workouts, bodyweight: records.bodyweight };
-}
-
-/** Every forecast to score (the earliest row per slot) with its status at `now`, oldest first. */
-export function scoredForecastsFrom(
-  records: LedgerRecords,
-  now: Date = records.readAt
-): ScoredForecast[] {
-  return scoreForecasts(records.forecasts, forecastLogFrom(records), now);
 }
 
 /**

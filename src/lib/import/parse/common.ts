@@ -41,16 +41,6 @@ export function cardioKind(name: string): CardioKind {
   return 'other'
 }
 
-/** Column index by header name, case- and space-insensitive. Unknown extra columns are never asked for. */
-export function headerIndex(fields: string[]): Map<string, number> {
-  const m = new Map<string, number>()
-  fields.forEach((f, i) => {
-    const k = cleanName(f).toLowerCase()
-    if (!m.has(k)) m.set(k, i)
-  })
-  return m
-}
-
 export function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n)
 }

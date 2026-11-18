@@ -30,7 +30,6 @@ Still to do (small):
   home instead of face pulls"); give the reason the pick itself earned.
 - Default accessories add about 20 minutes to a session; consider a time budget in the
   selection (pick fewer when the session forecast passes a length the user sets).
-- `MusclesTab` keeps its own weekly target of 10 sets instead of `WEEKLY_SET_TARGET`.
 
 ## Promised and missing
 
@@ -55,11 +54,10 @@ Still to do (small):
 - The lift page's "Show all" renders every session.
 - Still app-only (imported history not counted): the weekly review, insights, the Strength
   tab's recovery rows.
-- `docs/architecture.md`, "Cleanup still to do": logic that imports from components
-  (`lib/review`, `favoriteSummary`, an evidence rule, `GlanceTiles` constants), remaining
-  local copies of text and date helpers, about eight lift-naming functions with different
-  wording, `forecastText.ts` (860 lines of logic in a component folder), three naming schemes
-  for test builders, six lint warnings, logic still inside hooks.
+- `docs/architecture.md`, "Cleanup still to do": remaining local copies of text and date
+  helpers, about eight lift-naming functions with different wording, `forecastText.ts` (860
+  lines of logic in a component folder), three naming schemes for test builders, logic still
+  inside hooks. (Logic importing from components and the lint warnings: done 2026-11-18.)
 - R3 (one owner for each piece of active-workout state): deferred on purpose.
 - `QuickAddSheet` still plans a whole workout to read which day is next; a home exercise no
   longer offered is seeded from app sets only in the rebuild but from app plus imported sets

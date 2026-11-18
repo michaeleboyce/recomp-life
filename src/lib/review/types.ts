@@ -1,8 +1,8 @@
 // Types for the weekly review. Pure: no React, no database.
 import type { RuleId } from "@/lib/evidence";
 import type { MetricSource } from "@/lib/metrics/types";
-import type { MainLiftId } from "@/components/Progress/lifts";
-import type { PaceWord } from "@/components/Progress/body/bodyMath";
+import type { MainLiftId } from "@/lib/liftNames";
+import type { PaceWord } from "@/lib/rateOfLoss";
 import type { MappingOverrides } from "@/lib/import/mapping/types";
 import type { ActivityLog, ImportedSessionRecord } from "@/types";
 

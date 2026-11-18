@@ -1,6 +1,6 @@
 // Week handling for the weekly review: Monday to Sunday in local time, built only on
 // getMonday (src/lib/dates) and nextWeekMs (the metrics layer's week step). Pure.
-import { getMonday } from "@/lib/dates";
+import { getMonday, localDayKey } from "@/lib/dates";
 import { nextWeekMs, toMs, weekStartMs } from "@/lib/metrics/helpers";
 import type { ReviewSource } from "./types";
 
@@ -19,9 +19,7 @@ export const inWeek = (t: number, weekStart: Date): boolean =>
 
 /** "2026-11-02" for the URL. */
 export function weekKey(weekStart: Date): string {
-  const d = weekOf(weekStart);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return localDayKey(weekOf(weekStart));
 }
 
 /** Parses "YYYY-MM-DD" (local) to the Monday of its week; null when not a valid date. */

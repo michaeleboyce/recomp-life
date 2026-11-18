@@ -6,6 +6,9 @@ import type { TimeOfDay } from "@/types";
 export const MIN_BODYWEIGHT_LBS = 50;
 export const MAX_BODYWEIGHT_LBS = 500;
 
+/** Past this many days since the last weigh-in, the rate of change describes an old stretch, so it is not shown. */
+export const STALE_WEIGH_IN_DAYS = 14;
+
 /** The typed weight in lbs, or null when it is not a number in the accepted range. */
 export function parseBodyweight(text: string): number | null {
   const weight = parseFloat(text);
