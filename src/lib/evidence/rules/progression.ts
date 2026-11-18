@@ -111,6 +111,7 @@ export const PROGRESSION_RULES = {
       "src/components/PreWorkout/AccessorySheet.tsx",
       "src/components/Why/AccessoryWhySheet.tsx",
       "src/components/ActiveWorkout/ExerciseBlock.tsx",
+      "src/components/ExercisePage/AccessoryNextSession.tsx",
     ],
   },
   "off-program-credit": {

@@ -13,6 +13,7 @@ import {
 import { clearAccessoryWeight, setAccessoryWeight } from "@/lib/data/records";
 import { DEFAULT_ACCESSORY_WEIGHTS, EXERCISES } from "@/lib/exercises";
 import type { StrengthSet } from "@/lib/strength";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { EditSheetFrame } from "@/components/LogEdit/EditSheetFrame";
@@ -75,9 +76,12 @@ export function AccessoryNextSession({
         scheme={accessoryScheme(rx)}
         isAMRAP={false}
       >
-        <p data-testid="weight-line" className="border-t border-border pt-2 text-[13px] text-muted-foreground">
-          {rx.note}
-        </p>
+        <div className="flex items-start gap-2 border-t border-border pt-2">
+          <p data-testid="weight-line" className="flex-1 text-[13px] text-muted-foreground">
+            {rx.note}
+          </p>
+          <EvidenceLine ruleId="accessory-progression" variant="icon" />
+        </div>
         {rx.planWeight != null && rx.weight != null && (
           <PlanYouRow
             planWeight={rx.planWeight}

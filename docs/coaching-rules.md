@@ -144,7 +144,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Moderate evidence
 - **Implemented in:** `src/lib/accessories.ts` (`evaluateAccessoryProgression`), `src/lib/accessories/prescription.ts` (`accessoryPrescription`), `src/lib/accessories/prescription.ts` (`ownHistoryFirstWeight`), `src/lib/workout/accessoryPlan.ts` (`planAccessories`), `src/lib/workout/accessoryPlan.ts` (`accessoryNextTime`), `src/lib/workout/accessoryPlan.ts` (`accessoryOutcomesOf`)
-- **Shown in:** `src/components/PreWorkout/AccessorySheet.tsx`, `src/components/Why/AccessoryWhySheet.tsx`, `src/components/ActiveWorkout/ExerciseBlock.tsx`
+- **Shown in:** `src/components/PreWorkout/AccessorySheet.tsx`, `src/components/Why/AccessoryWhySheet.tsx`, `src/components/ActiveWorkout/ExerciseBlock.tsx`, `src/components/ExercisePage/AccessoryNextSession.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Add weight once every set reaches the top of its rep range
