@@ -5,7 +5,17 @@ import { generateDeloadPrescription } from "@/lib/deload";
 import { E1RM_MAX_REPS } from "@/lib/e1rm";
 import { REPS_IN_RESERVE_OPTIONS, RIR_ESTIMATE } from "@/lib/effort";
 import type { RuleId } from "@/lib/evidence";
-import { RESET_FACTOR, T2_AUTOREG_DROP, T2_AUTOREG_SUGGESTION } from "@/lib/progression";
+import {
+  RESET_FACTOR,
+  T2_AUTOREG_DROP,
+  T2_AUTOREG_SUGGESTION,
+  T3_INCREASE_REPS_MAX,
+  T3_INCREASE_REPS_MIN,
+  T3_INCREMENT_LBS,
+  T3_TARGET_REPS,
+  t3IncreaseThreshold,
+  t3NextWeight,
+} from "@/lib/progression";
 import { PR_CHANCE_RECENT_SETS, PR_STRETCH_MAX_REPS_ABOVE } from "@/lib/projection/prOpportunity";
 import { STALL_BAND_PERCENT } from "@/lib/rateOfLoss";
 import { CUTTING_REST_BONUS_SECONDS, REST_SECONDS } from "@/lib/restTimes";
@@ -52,6 +62,9 @@ const t2Stages = stages(T2_STAGE_SCHEME);
 function duration(seconds: number): string {
   return seconds % 60 === 0 ? `${seconds / 60} minutes` : `${seconds} seconds`;
 }
+/** The last-set reps a T3 at `weight` needs for its usual step. */
+const t3StepThreshold = (weight: number) =>
+  t3IncreaseThreshold({ weight, nextWeight: t3NextWeight(weight), targetReps: T3_TARGET_REPS });
 const deloadCut = generateDeloadPrescription({ mode: "cutting" }).weightReductionPercent;
 const deloadOther = generateDeloadPrescription({ mode: "maintaining" }).weightReductionPercent;
 
@@ -83,7 +96,7 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
     term: "T3",
     aka: ["Tier 3"],
     short: "The lighter exercise at the end of the workout, done for high reps to build muscle.",
-    long: `T3 is an assistance exercise such as a lat pulldown or dumbbell row: 3 sets of 15 or more, with the last set as many reps as you can. The weight goes up by 5 lbs when that last set reaches 25 reps (or, when you are not cutting, 50 reps across all three sets). It rests ${duration(REST_SECONDS.T3)} between sets.`,
+    long: `T3 is an assistance exercise such as a lat pulldown or dumbbell row: 3 sets of ${T3_TARGET_REPS} or more, with the last set as many reps as you can. The weight goes up when that last set shows you would still get ${T3_TARGET_REPS} at the next weight, so the number depends on the size of the step: between ${T3_INCREASE_REPS_MIN} and ${T3_INCREASE_REPS_MAX} reps. A ${T3_INCREMENT_LBS} lb step from 120 lb asks for ${t3StepThreshold(120)} and from 25 lb ${t3StepThreshold(25)}; each exercise's page shows its own number. It rests ${duration(REST_SECONDS.T3)} between sets.`,
     ruleId: "t3-progression",
     seeAlso: ["amrap", "t1", "t2"],
   },

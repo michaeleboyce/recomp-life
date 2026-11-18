@@ -235,7 +235,7 @@ describe("computeCompletion credits each lift on its own", () => {
     );
   });
 
-  it("a T3 lift done heavier keeps the heavier weight, and goes up from it on 25 reps", () => {
+  it("a T3 lift done heavier keeps the heavier weight, and goes up from it when its last set reaches the threshold", () => {
     const base = seedLiftStates().map((ls) =>
       ls.exerciseId === "lat_pulldown" ? { ...ls, t3Weight: 90 } : ls
     );

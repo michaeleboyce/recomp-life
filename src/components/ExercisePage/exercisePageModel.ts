@@ -2,7 +2,8 @@
 // Spec: docs/plans/2026-11-17-exercise-page-design.md (E1-E4, E9, E10).
 import { ACCESSORY_IDS, EXERCISES } from "@/lib/exercises";
 import { isMainLift, LIFT_NAMES, type MainLiftId } from "@/lib/liftNames";
-import { T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
+import { T3_TARGET_REPS } from "@/lib/progression";
+import { homeT3Increase, liftT3Increase } from "@/lib/workout/t3Increase";
 import {
   sessionEstimates,
   targetEstimates,
@@ -14,6 +15,7 @@ import type { UpcomingWorkout } from "@/lib/workout/upcoming";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
+  EquipmentProfile,
   Estimated1RM,
   LiftAdjustment,
   LiftState,
@@ -163,26 +165,37 @@ export function liftPlanWeight(state: LiftState | undefined, tier: Tier, weight:
   return planned !== undefined && planned !== weight ? planned : null;
 }
 
-/** One T3 session's last set against the rep count that adds weight. */
+/** One T3 session's last set against the rep count that adds weight at its weight. */
 export interface T3LastSet {
   key: string;
   t: number;
   weight: number;
   reps: number;
-  /** The last set reached T3_LAST_SET_INCREASE_REPS. */
+  /** Reps that session's weight asked of the last set (`t3IncreaseThreshold`). */
+  threshold: number;
+  /** The last set reached `threshold`. */
   reached: boolean;
 }
 
 /**
- * The last set of each of the newest T3 sessions, newest first.
+ * The last set of each of the newest T3 sessions, newest first, each against the
+ * threshold that applied to its own weight: a home session steps in dumbbells (with
+ * `equipment`, the current settings), the lift itself in its T3 step.
  */
-export function t3LastSets(sessions: readonly LiftSession[], limit = 5): T3LastSet[] {
+export function t3LastSets(
+  sessions: readonly LiftSession[],
+  equipment: Pick<EquipmentProfile, "dumbbellIncrementLbs" | "maxDumbbellWeight">,
+  limit = 5
+): T3LastSet[] {
   return sessions
     .filter((s) => s.tier === "T3" && s.sets.length > 0)
     .slice(0, limit)
     .map((s) => {
       const reps = s.sets[s.sets.length - 1].reps;
-      return { key: s.key, t: s.t, weight: s.weight, reps, reached: reps >= T3_LAST_SET_INCREASE_REPS };
+      const { threshold } = s.substituteExerciseId
+        ? homeT3Increase(s.weight, T3_TARGET_REPS, equipment)
+        : liftT3Increase(s.weight);
+      return { key: s.key, t: s.t, weight: s.weight, reps, threshold, reached: reps >= threshold };
     });
 }
 

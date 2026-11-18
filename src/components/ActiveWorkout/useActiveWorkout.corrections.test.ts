@@ -420,7 +420,7 @@ describe("a workout edited before starting", () => {
       lat: await liftState("lat_pulldown"),
     };
     const hook = await mount(await start({ planEdits: EDITS }));
-    // The T3 AMRAP set reaches 25 reps, so the untouched T3 lift earns its increase.
+    // The T3 AMRAP set reaches 25 reps (above its threshold), so the untouched T3 lift earns its increase.
     while (hook.result.current.status === "active") {
       const entry = hook.result.current.entry!;
       const last = entry.completedSets + 1 === entry.targetSets;

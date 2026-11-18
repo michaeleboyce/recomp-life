@@ -10,7 +10,9 @@
 //
 // Regenerated on purpose for A6 (accessories chosen by default,
 // docs/plans/2026-11-17-accessories-design.md): only accessory entries were added; every
-// T1 to T3 entry is as before.
+// T1 to T3 entry is as before. Regenerated on purpose on 2026-11-18 for the T3 threshold
+// sized to the step: only T3 weights moved (the demo's T3s go up more often); no T1, T2
+// or accessory entry changed.
 //
 // A difference means a planning number moved. The refactor must not move any. If the
 // first home weights are changed on purpose (F6, seeding from the exercise's own

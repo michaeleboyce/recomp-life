@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { makeLiftState, makeSet, makeWorkout } from "@/lib/data/testUtils";
-import { T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
 import { sessionEstimates } from "@/lib/strength";
 import { strengthSetsOf } from "@/lib/workout/strength";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
@@ -221,27 +220,50 @@ describe("strength", () => {
 });
 
 describe("t3LastSets", () => {
-  const session = (key: string, reps: number[], tier: LiftSession["tier"] = "T3"): LiftSession => ({
+  const session = (
+    key: string,
+    reps: number[],
+    tier: LiftSession["tier"] = "T3",
+    weight = 50,
+    substituteExerciseId?: string
+  ): LiftSession => ({
     key,
     workoutId: key,
     t: 0,
     tier,
-    weight: 50,
+    weight,
     sets: reps.map((r) => ({ reps: r, amrap: false, failed: false })),
     meanRepsInReserve: null,
     best: false,
+    ...(substituteExerciseId ? { substituteExerciseId } : {}),
   });
+  const equipment = { dumbbellIncrementLbs: 5, maxDumbbellWeight: 50 };
 
   it("reads the last set's reps against the threshold, not the total", () => {
-    const rows = t3LastSets([
-      session("a", [15, 15, T3_LAST_SET_INCREASE_REPS]),
-      session("b", [20, 20, T3_LAST_SET_INCREASE_REPS - 1]),
-      session("c", [5], "T1"),
+    const rows = t3LastSets(
+      [session("a", [15, 15, 20]), session("b", [20, 20, 19]), session("c", [5], "T1")],
+      equipment
+    );
+    expect(rows.map((r) => [r.key, r.reps, r.threshold, r.reached])).toEqual([
+      ["a", 20, 20, true],
+      ["b", 19, 20, false],
     ]);
-    expect(rows.map((r) => [r.key, r.reps, r.reached])).toEqual([
-      ["a", T3_LAST_SET_INCREASE_REPS, true],
-      ["b", T3_LAST_SET_INCREASE_REPS - 1, false],
+  });
+
+  it("marks each session against the threshold of its own weight", () => {
+    const rows = t3LastSets(
+      [session("heavy", [15, 15, 18], "T3", 120), session("light", [15, 15, 23], "T3", 25)],
+      equipment
+    );
+    expect(rows.map((r) => [r.key, r.threshold, r.reached])).toEqual([
+      ["heavy", 18, true],
+      ["light", 24, false],
     ]);
+  });
+
+  it("a home session at the heaviest dumbbell asks the maximum", () => {
+    const [row] = t3LastSets([session("home", [15, 15, 24], "T3", 50, "db_row")], equipment);
+    expect(row).toMatchObject({ threshold: 25, reached: false });
   });
 });
 

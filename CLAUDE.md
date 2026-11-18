@@ -55,6 +55,6 @@ A mobile-first Next.js PWA (with Capacitor for a native iOS app) for tracking th
 ## GZCLP Program Rules (Critical)
 - Rotation: A1 → B1 → A2 → B2 → repeat (never changes based on location)
 - Pain/run/equipment skips FREEZE progression — they do NOT trigger failure cascade
-- T3 weight increases when AMRAP last set ≥ 25 reps (NOT total reps ≥ 25)
+- T3 weight increases when the AMRAP last set (NOT total reps) reaches `t3IncreaseThreshold` in `src/lib/progression.ts`: the reps that predict 15 at the next weight, 18 to 25 depending on the step (25 for bodyweight or at the heaviest dumbbell)
 - Training phase (cutting/maintaining/bulking) affects thresholds throughout the app
 - Home sessions progress their own weight by the GZCLP rules, count for the rotation, and are strength evidence for the program lift; the barbell weight moves at re-entry, within limits.

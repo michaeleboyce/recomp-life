@@ -380,7 +380,7 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
         partialOutcome();
         continue;
       }
-      const evaluated = evaluateT3(liftState, exerciseSets);
+      const evaluated = evaluateT3(liftState, exerciseSets, templateEx.reps);
       const increased = evaluated.outcome.kind === "t3Up";
       if (!increased && heavier == null) {
         outcomes.push(evaluated.outcome);

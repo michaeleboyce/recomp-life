@@ -3,9 +3,10 @@
 // `describeOutcomes`, the same ones the workout page shows; this file adds the titles
 // and the reasons. An ordinary workout is one entry; a stage change, a reset, a hold
 // and a T3 increase each get their own. Pure.
-import { OUTCOME_RULE_IDS, RESET_FACTOR, T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
+import { OUTCOME_RULE_IDS, RESET_FACTOR } from "@/lib/progression";
 import { workoutDetailHref } from "@/lib/routes";
 import { describeOutcomes, type LiftOutcome } from "@/lib/workout/outcomes";
+import { t3IncreaseOfOutcome } from "@/lib/workout/t3Increase";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
 import type {
   AdjustmentEntry,
@@ -147,14 +148,15 @@ function ownEntry(session: WorkoutSession, outcome: LiftOutcome): EntryText | nu
       };
     case "t3Up": {
       const lastSet = sets[sets.length - 1];
+      const threshold = t3IncreaseOfOutcome(outcome)?.threshold;
       return {
         title: `${tagged} ${weights.from} → ${weights.to}`,
         detail:
           reason === "heavier"
             ? "You lifted heavier than planned in every set, so the next weight carries on from what you lifted."
             : lastSet
-              ? `Your last set was ${lastSet.actualReps} reps. At ${T3_LAST_SET_INCREASE_REPS} or more the weight goes up.`
-              : `Your last set reached ${T3_LAST_SET_INCREASE_REPS} reps, so the weight goes up.`,
+              ? `Your last set was ${lastSet.actualReps} reps. At ${threshold} or more the weight goes up.`
+              : `Your last set reached ${threshold} reps, so the weight goes up.`,
         change: weights,
       };
     }

@@ -35,7 +35,8 @@ export const MODELS: readonly ModelDef[] = [
   {
     id: "progression",
     label: "Progression",
-    blurb: "Weights, stages, resets and freezes, and which accessories at what weight.",
+    blurb:
+      "Weights, stages, resets and freezes, T3 increases sized to the next step, and which accessories at what weight.",
     ruleIds: [
       "tier-structure",
       "gzclp-progression",

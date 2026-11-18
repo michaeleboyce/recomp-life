@@ -1,4 +1,5 @@
 import { afterEach, describe, it, expect } from "vitest";
+import { T3_INCREASE_REPS_MIN, t3IncreaseThreshold } from "@/lib/progression";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, SetLog, VariantState, WorkoutSession } from "@/types";
 import { buildWorkoutPlan } from "./buildPlan";
@@ -125,7 +126,7 @@ describe("computeCompletion: pass", () => {
     });
   });
 
-  it("accessories never change lift state, nor does a T3 that stayed under 25 reps", () => {
+  it("accessories never change lift state, nor does a T3 whose last set fell short of its threshold", () => {
     const session = makeSession({ selectedAccessories: ["face_pulls"] });
     const result = computeCompletion(
       completion({
@@ -646,22 +647,36 @@ describe("computeCompletion: working sets only (H12)", () => {
 describe("computeCompletion: T3 progression", () => {
   const maintaining = { ...SETTINGS, trainingPhase: { ...SETTINGS.trainingPhase, mode: "maintaining" as const } };
 
-  it("adds 5 lb when the last set reaches 25 reps, and changes nothing else", () => {
+  // 90 → 95 lb is a 6% step: the threshold is the floor.
+  const AT_90 = t3IncreaseThreshold({ weight: 90, nextWeight: 95, targetReps: 15 });
+
+  it("adds 5 lb when the last set reaches the threshold for its step, and changes nothing else", () => {
+    expect(AT_90).toBe(T3_INCREASE_REPS_MIN);
     const seeded = seedLiftStates();
-    const result = computeCompletion(completion({ sets: latT3(25) }));
+    const result = computeCompletion(completion({ sets: latT3(AT_90) }));
     expect(result.liftStateUpdates).toEqual([
       { ...seeded.find((s) => s.exerciseId === "lat_pulldown"), t3Weight: 95, synced: false },
     ]);
   });
 
-  it("24 reps on the last set is not enough", () => {
-    expect(computeCompletion(completion({ sets: latT3(24) })).liftStateUpdates).toEqual([]);
+  it("one rep short of it is not enough", () => {
+    expect(computeCompletion(completion({ sets: latT3(AT_90 - 1) })).liftStateUpdates).toEqual([]);
   });
 
-  it("50 total reps without a 25-rep last set does not progress, in any phase", () => {
+  it("a light T3 asks for more: 25 → 30 lb needs 24", () => {
+    const liftStates = seedLiftStates().map((s) => (s.exerciseId === "lat_pulldown" ? { ...s, t3Weight: 25 } : s));
+    const at = (reps: number) => latT3(reps, { weight: 25 }).map((s) => ({ ...s, weight: 25 }));
+    expect(computeCompletion(completion({ liftStates, sets: at(23) })).liftStateUpdates).toEqual([]);
+    expect(byId(computeCompletion(completion({ liftStates, sets: at(24) })).liftStateUpdates, "lat_pulldown")).toMatchObject({
+      t3Weight: 30,
+    });
+  });
+
+  it("many total reps without the last set reaching it does not progress, in any phase", () => {
     expect(SETTINGS.trainingPhase.mode).toBe("cutting");
-    expect(computeCompletion(completion({ sets: latT3(20) })).liftStateUpdates).toEqual([]);
-    const result = computeCompletion(completion({ sets: latT3(20), settings: maintaining }));
+    const sets = latT3(AT_90 - 1).map((s, i) => (i < 2 ? { ...s, actualReps: 25 } : s));
+    expect(computeCompletion(completion({ sets })).liftStateUpdates).toEqual([]);
+    const result = computeCompletion(completion({ sets, settings: maintaining }));
     expect(byId(result.liftStateUpdates, "lat_pulldown")).toBeUndefined();
   });
 

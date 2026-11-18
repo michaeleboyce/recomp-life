@@ -331,7 +331,7 @@ describe("explainPrescription: T3, accessories, warm-ups and lifts swapped in", 
     const up = next(simOf({ t3: { lastReps: 26 } })).weight("lat_pulldown", "T3");
     expect(byId(up, "last-session").detail).toBe("90 × 15, 15, 26. Last set: 26 reps.");
     expect(byId(up, "progression")).toMatchObject({
-      detail: "The last set reached 25 reps, which adds 5 lb.",
+      detail: "At 90 the last set needed 18 reps and reached them, which adds 5 lb.",
       effect: { op: "add", value: 5, unit: "lb" },
       ruleId: "t3-progression",
     });
@@ -340,9 +340,9 @@ describe("explainPrescription: T3, accessories, warm-ups and lifts swapped in", 
     expect(ids(up)).toEqual(["last-session", "progression", "readiness", "pain", "phase"]);
     expect(byId(up, "pain").detail).toBe("No body area is watched for this lift.");
 
-    const same = next(simOf({ t3: { lastReps: 18 } })).weight("lat_pulldown", "T3");
+    const same = next(simOf({ t3: { lastReps: 17 } })).weight("lat_pulldown", "T3");
     expect(byId(same, "progression")).toMatchObject({
-      detail: "It goes up when the last set reaches 25 reps.",
+      detail: "At 90 it goes up when the last set reaches 18 reps.",
       effect: { op: "none", unit: "lb" },
     });
   });

@@ -8,7 +8,7 @@ import {
   OUTCOME_RULE_IDS,
   RESET_FACTOR,
   T3_INCREMENT_LBS,
-  T3_LAST_SET_INCREASE_REPS,
+  t3IncreaseThreshold,
   evaluateT1,
   evaluateT1Progression,
   evaluateT2,
@@ -211,8 +211,12 @@ describe("evaluateT2", () => {
 });
 
 describe("evaluateT3", () => {
+  // 90 → 95 is a 6% step: the floor.
+  const AT_90 = t3IncreaseThreshold({ weight: 90, nextWeight: 95, targetReps: 15 });
+  it("asks 18 of a 90 lb T3", () => expect(AT_90).toBe(18));
+
   it("goes up when the last set reaches the target, and says it was the last set", () => {
-    const { state, outcome } = evaluateT3(lift(), sets("T3", 3, 15, T3_LAST_SET_INCREASE_REPS));
+    const { state, outcome } = evaluateT3(lift(), sets("T3", 3, 15, AT_90));
     expect(state.t3Weight).toBe(90 + T3_INCREMENT_LBS);
     expect(outcome).toEqual({
       exerciseId: "squat",
@@ -226,12 +230,12 @@ describe("evaluateT3", () => {
   });
 
   it("stays when the last set is short, however many reps the sets total", () => {
-    const { state, outcome } = evaluateT3(lift(), sets("T3", 3, 24, T3_LAST_SET_INCREASE_REPS - 1));
+    const { state, outcome } = evaluateT3(lift(), sets("T3", 3, 24, AT_90 - 1));
     expect(state.t3Weight).toBe(90);
     expect(outcome).toMatchObject({ kind: "t3Same", reason: "lastSet", from: { weight: 90 }, to: { weight: 90 } });
   });
 
-  it("a set held for pain keeps the weight even with 25 on the last set", () => {
+  it("a set held for pain keeps the weight even with 30 on the last set", () => {
     const { state, outcome } = evaluateT3(lift(), sets("T3", 3, 15, 30, { 0: "skipped_pain" }));
     expect(state.t3Weight).toBe(90);
     expect(outcome).toMatchObject({ kind: "held", reason: "pain", ruleId: "t3-progression" });

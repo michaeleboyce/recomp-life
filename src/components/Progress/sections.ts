@@ -1,4 +1,5 @@
 // Rows for the Strength tab's Recovery and "Waiting for gym" sections. Pure.
+import { homeSubstitutesOf } from "@/components/Lift/homeVersion";
 import { displayLiftName } from "@/components/Today/todayModel";
 import { DAY_MS } from "@/lib/dates";
 import { EXERCISES } from "@/lib/exercises";
@@ -136,7 +137,7 @@ export function importedLastTrained(index: ImportedLiftIndex): Partial<Record<st
  * One row per main lift with a lift state, using the same status as the Dashboard's
  * recovery bars. A lift was last trained at the latest of its barbell sessions, the
  * sessions of the home exercises done for it (`lastTrainedDates`: home training is
- * training) and the imported sessions of the lift or of those home exercises
+ * training) and the imported sessions of the lift or of any of its home versions
  * (`importedLast`, from `importedLastTrained`; counted as heavy sessions). Empty when
  * none of them has been trained yet.
  */
@@ -151,7 +152,12 @@ export function recoveryRows(
     const state = liftStates.find((s) => s.exerciseId === id);
     if (!state) return [];
     const dates = lastTrainedDates(state, variantStates);
-    const homeIds = variantStates.filter((v) => v.liftId === id).map((v) => v.exerciseId);
+    // Home versions the app has planned, plus the lift's known ones: an imported home
+    // session counts before the app has ever planned that exercise at home.
+    const homeIds = new Set([
+      ...variantStates.filter((v) => v.liftId === id).map((v) => v.exerciseId),
+      ...homeSubstitutesOf(id),
+    ]);
     let t1 = dates.t1;
     for (const exerciseId of [id, ...homeIds]) t1 = getMostRecent(t1, importedLast[exerciseId] ?? null);
     const t2 = dates.t2;

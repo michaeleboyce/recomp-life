@@ -478,14 +478,14 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
     expect(variantOf(rebuiltOld.variantStates, split)).toMatchObject({ weight: 50, extraReps: 1 });
   });
 
-  it("raises T3 when the last AMRAP set reaches 25, and not otherwise", () => {
+  it("raises T3 when the last AMRAP set reaches the threshold for its step, and not otherwise", () => {
+    // 90 → 95 lb asks for 18 on the last set.
     const hit = startSim();
-    runSession(hit, { templateId: "A1", t3: { lastReps: 25 } });
+    runSession(hit, { templateId: "A1", t3: { lastReps: 18 } });
     expect(stateOf(rebuilt(hit).liftStates, "lat_pulldown").t3Weight).toBe(95);
 
-    // Cutting (the fixture phase): 15 + 15 + 24 = 54 total reps is not enough.
     const miss = startSim();
-    runSession(miss, { templateId: "A1", t3: { lastReps: 24 } });
+    runSession(miss, { templateId: "A1", t3: { lastReps: 17 } });
     expect(stateOf(rebuilt(miss).liftStates, "lat_pulldown").t3Weight).toBe(90);
   });
 

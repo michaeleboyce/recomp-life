@@ -29,7 +29,7 @@ describe("progressionEntries", () => {
     // The lines are the ones the workout page shows ("What it did").
     expect(entries[0].detail).toBe(
       "Squat passed: next 200 lbs 5×3. Bench press passed: next 105 lbs 3×10. " +
-        "Lat pulldown stays at 90 lbs (last set 15 of 25 reps)."
+        "Lat pulldown stays at 90 lbs (last set 15 of 18 reps)."
     );
     expect(entries[0].undo).toBeUndefined();
   });
@@ -153,7 +153,7 @@ describe("progressionEntries", () => {
 
     expect(t3.title).toBe("Lat pulldown 90 → 95");
     expect(t3.change).toEqual({ from: "90", to: "95" });
-    expect(t3.detail).toBe("Your last set was 26 reps. At 25 or more the weight goes up.");
+    expect(t3.detail).toBe("Your last set was 26 reps. At 18 or more the weight goes up.");
     expect(t3.ruleId).toBe("t3-progression");
     // The day's line still counts all three lifts and lists the two that passed.
     expect(entries[0].title).toBe("Squat day: all three lifts passed");

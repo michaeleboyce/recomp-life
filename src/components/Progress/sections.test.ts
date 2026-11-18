@@ -167,6 +167,12 @@ describe("recoveryRows with imported sessions", () => {
     ]);
   });
 
+  it("counts an imported home version before the app has ever planned it at home", () => {
+    // No variant state yet: the home versions come from the exercise table.
+    const rows = recoveryRows([state("bench")], now, { mode: "maintaining" }, [], importedLastTrained(importedLiftIndex(sets)));
+    expect(rows.map((r) => [r.exerciseId, r.detail])).toEqual([["bench", "Primed, 3 days ago"]]);
+  });
+
   it("shows rows when only imported sessions trained a lift", () => {
     const rows = recoveryRows([state("squat")], now, { mode: "maintaining" }, [], importedLastTrained(importedLiftIndex(sets)));
     expect(rows).toHaveLength(1);
