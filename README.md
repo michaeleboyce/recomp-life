@@ -1,40 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ReComp Life
 
-## Coaching rules and research
+A workout tracker for the GZCLP linear progression program that acts as a coach and shows
+its working: every planned weight, forecast and adjustment comes with the rule and the
+research behind it. Built for one lifter, offline-first, as an installable web app with an
+iOS wrapper.
 
-Every coaching rule, the research behind it and where it lives in the code is documented in [docs/coaching-rules.md](docs/coaching-rules.md) (generated from `src/lib/evidence/`). The same content is in the app under Tools > How the App Coaches. To add or change research, follow [docs/research/ADDING_RESEARCH.md](docs/research/ADDING_RESEARCH.md).
-
-## Getting Started
-
-First, run the development server:
+## Run it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # http://localhost:3000
+npx vitest run       # tests
+npx tsc --noEmit     # type-check
+npx eslint .         # lint
+npm run build:native # static export for the iOS app (Capacitor)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sync needs `DATABASE_URL` (Neon Postgres) and `SYNC_SECRET` (the shared passphrase) in the
+environment; without them the app works on the device alone.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Where things are
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `CLAUDE.md`: conventions and the program rules the code must keep.
+- `docs/architecture.md`: a map of the code and how data flows.
+- `docs/plans/`: the design and plan for each piece of work, newest last.
+- `docs/coaching-rules.md`: every coaching rule with its evidence grade (generated from
+  `src/lib/evidence/`; regenerate with `npm run docs:evidence`).
+- `docs/research/`: notes behind the models.

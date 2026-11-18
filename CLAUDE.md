@@ -1,15 +1,15 @@
 # ReComp Life — GZCLP Workout Tracker
 
 ## Project Overview
-A mobile-first Next.js PWA (with Capacitor for native iOS/Android) for tracking the GZCLP linear progression program. Acts as an intelligent coach with RPE-driven autoregulation, training phase awareness, and data-driven deload triggers.
+A mobile-first Next.js PWA (with Capacitor for a native iOS app) for tracking the GZCLP linear progression program. Acts as an intelligent coach with RPE-driven autoregulation, training phase awareness, and data-driven deload triggers.
 
 ## Tech Stack
 - **Framework:** Next.js 14+ (App Router, TypeScript)
 - **UI:** Tailwind CSS + shadcn/ui (dark mode default)
 - **Local Storage:** Dexie.js (IndexedDB) — offline-first
 - **Backend DB:** Neon Postgres (serverless) + Drizzle ORM
-- **Auth:** Auth.js (Apple + Google sign-in)
-- **Mobile:** Capacitor wrapper for iOS/Android
+- **Auth:** none; sync is guarded by one shared passphrase (`SYNC_SECRET`, sent as a Bearer token). There is a single user
+- **Mobile:** Capacitor wrapper for iOS (static export, `npm run build:native`); no Android project
 - **Charts:** Recharts
 - **Testing:** Vitest + React Testing Library
 - **Deploy:** Vercel

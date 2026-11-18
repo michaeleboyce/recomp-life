@@ -259,30 +259,23 @@ the Strength tab and Today's estimated-max cards read imported history; the Log 
 Imported filter, paging and labelled imported strength sessions; Today names the latest
 imported session of a home exercise instead of "First time".
 
-Found in that check (to fix next, before R1 and R2):
+Found in that check, and fixed the same day (F6, deployed and confirmed on the live data):
 
-- **F6: a home exercise's first weight ignores that exercise's own history.** Today showed
-  a Bulgarian split squat planned at about twice the per-hand weight of its latest imported
-  session, beside the text naming that session. The first home weight is still seeded from
-  the program lift's pooled estimate through the exercise's starting ratio (H3), even when the
-  exercise itself has recent history. Rule to adopt: when the home exercise has its own
-  logged or imported sets within the evidence window, seed from that exercise's own estimate
-  (same recency rules), and fall back to the pooled estimate through the learned or starting
-  ratio only when it has none; the "from your history" text and the why sheet must show the
-  numbers the weight came from. Acceptance: a test with made-up history where the exercise's
-  own sets and the barbell estimate disagree, at home, through every planning path
-  (`src/hooks/planningPaths.test.tsx`). Needs a changelog entry for `home-progression`.
-- A home exercise whose history is under another name (for example a one-arm dumbbell row)
-  still says "First time"; check the name mapping for it.
-- The Strength tab rows show "–" for lifts whose latest estimate is outside the selected
-  range while the total above them counts it; say which range the row uses, or show the
-  latest estimate with its date.
+- **F6: a home exercise's first weight ignored that exercise's own history.** A first home
+  weight was seeded from the program lift's pooled estimate through the exercise's starting
+  ratio (H3) even when the exercise itself had recent history. `seedVariantWeight` now goes in
+  order: the exercise's own sets of the last `OWN_HISTORY_WINDOW_WEEKS` (app or imported),
+  never more than one dumbbell step above the heaviest weight lifted in that window; else the
+  lift's pooled estimate through the ratio learned from the lifter's own pairs; else the
+  starting ratio; else the flat conversion. The row text, why sheet and trace state the basis
+  the weight came from. The same rule applies to T3 exercises, which fixed "First time" on an
+  exercise with a long history (its names were mapped correctly; the T3 path never read
+  history).
+- The Strength tab rows now show the latest estimate with its date when the selected range
+  holds none, so they agree with the total.
 
 Left for later (not blocking):
 
-- Learned ratios (from the owner's own imported dumbbell and barbell pairs) are shown on the
-  lift page but not yet used for a first home weight; F6 decides the order (own history, then
-  learned ratio, then starting ratio).
 - Still app-only: the exercise page chart, the weekly review, insights and the Strength tab's
   recovery rows.
 - The lift page's "Show all" renders every session (a few hundred for a long history); page
