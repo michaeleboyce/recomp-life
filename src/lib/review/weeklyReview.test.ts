@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { cutTargetBand } from "@/components/Progress/body/bodyMath";
-import { WEEKLY_SESSION_TARGET } from "@/components/Today/GlanceTiles";
+import { WEEKLY_SESSION_TARGET } from "@/lib/workout/rotation";
 import { calculateGroupVolume } from "@/lib/volumeTracking";
 import { calculateWeeklyRateOfLoss } from "@/lib/rateOfLoss";
 import type { SetLog } from "@/types";

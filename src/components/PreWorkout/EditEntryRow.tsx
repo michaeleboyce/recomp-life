@@ -174,9 +174,9 @@ export function EditEntryRow({
   onWeight: (weight: number) => void;
   /** Each set its own weight and reps; null goes back to one weight for every set. */
   onSetWeights?: (sets: PlannedSet[] | null) => void;
-  /** What a per-set weight moves by: the plate or dumbbell step. */
+  /** What a weight moves by: the plate or dumbbell step. */
   weightStep?: number;
-  /** The lightest a per-set weight can be: the empty bar for a barbell at the gym. */
+  /** The lightest a weight can be: the empty bar for a barbell at the gym. */
   minWeight?: number;
   /**
    * The plan's own sets, for "Plan · You" on a set changed from them and "Back to plan".
@@ -248,7 +248,8 @@ export function EditEntryRow({
             label={`${name} weight`}
             value={entry.weight}
             unit={weightUnit(entry.perHand ?? false)}
-            step={WEIGHT_STEP_LBS}
+            step={weightStep}
+            min={minWeight}
             onChange={onWeight}
           />
           {toggle}

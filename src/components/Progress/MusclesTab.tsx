@@ -15,6 +15,7 @@ import {
   useSettings,
 } from "@/hooks";
 import { useMappingOverrides } from "@/hooks/useMappingOverrides";
+import { WEEKLY_SET_TARGET } from "@/lib/accessories/select";
 import { getMonday } from "@/lib/dates";
 import {
   addImportedVolume,
@@ -58,7 +59,6 @@ const RECOVERY_LABELS: Record<RecoveryStatus, string> = {
   detraining: "Long break",
 };
 
-const WEEKLY_TARGET_SETS = 10;
 const PAIN_WINDOW_DAYS = 30;
 
 function formatSets(n: number): string {
@@ -184,7 +184,7 @@ export function MusclesTab() {
                                 <span
                                   className="block h-full rounded-full"
                                   style={{
-                                    width: `${Math.min(100, (sets / WEEKLY_TARGET_SETS) * 100)}%`,
+                                    width: `${Math.min(100, (sets / WEEKLY_SET_TARGET) * 100)}%`,
                                     backgroundColor: HEAT_COLORS[data.weekHeat[muscle] ?? 1],
                                   }}
                                 />

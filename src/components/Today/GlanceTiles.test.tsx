@@ -12,7 +12,8 @@ import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { getMonday } from "@/lib/dates";
 import { rangeSuffix } from "@/components/Progress/rangeText";
 import { importedSession, importedSet } from "@/lib/import/testRecords";
-import { GlanceTiles, STALE_WEIGH_IN_DAYS } from "./GlanceTiles";
+import { STALE_WEIGH_IN_DAYS } from "@/lib/weighIn";
+import { GlanceTiles } from "./GlanceTiles";
 
 vi.mock("next/link", () => ({
   default: ({

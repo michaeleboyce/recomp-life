@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { WEEKLY_SESSION_TARGET } from "@/components/Today/GlanceTiles";
+import { WEEKLY_SESSION_TARGET } from "@/lib/workout/rotation";
 import type { Insight } from "@/lib/insights";
 import { buildWeeklyReview } from "./weeklyReview";
 import { AFTER, LATER, OPTS, WEEK, fixture } from "./testFixture";

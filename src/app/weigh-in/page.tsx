@@ -14,7 +14,6 @@ import { backTarget } from "@/components/nav/backTarget";
 import { BackButton } from "@/components/nav/BackButton";
 import { useGoBack } from "@/components/nav/useNavHistory";
 import { DateField, dateFromInput, toDateInputValue } from "@/components/Activity/DateField";
-import { STALE_WEIGH_IN_DAYS } from "@/components/Today/GlanceTiles";
 import {
   averageOfLatest,
   currentRate,
@@ -23,6 +22,7 @@ import {
   MAX_BODYWEIGHT_LBS,
   MIN_BODYWEIGHT_LBS,
   parseBodyweight,
+  STALE_WEIGH_IN_DAYS,
   startOfDay,
 } from "@/lib/weighIn";
 

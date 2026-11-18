@@ -13,7 +13,6 @@ import {
   ACCESSORY_RECOMMENDATIONS,
 } from "./workoutTemplates";
 import { isMuscleId } from "./muscles";
-import type { Exercise } from "@/types";
 
 describe("Exercise Registry", () => {
   it("every exercise has required fields", () => {
@@ -189,7 +188,7 @@ describe("Workout Templates", () => {
   });
 
   it("each template has exactly 3 exercises (T1, T2, T3)", () => {
-    for (const [id, template] of Object.entries(WORKOUT_TEMPLATES)) {
+    for (const template of Object.values(WORKOUT_TEMPLATES)) {
       expect(template.exercises).toHaveLength(3);
       expect(template.exercises[0].tier).toBe("T1");
       expect(template.exercises[1].tier).toBe("T2");

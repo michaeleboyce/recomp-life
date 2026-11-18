@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { buildWeeklyReview, previousWeek, reviewWeeks, weekOf, type WeeklyReview } from "@/lib/review";
 // Today's weekly target, so the review and the Today tile count against the same number.
 // Read only inside the hook body, so the import cycle through "@/hooks" is harmless.
-import { WEEKLY_SESSION_TARGET } from "@/components/Today/GlanceTiles";
+import { WEEKLY_SESSION_TARGET } from "@/lib/workout/rotation";
 import { useInsights } from "./useInsights";
 import { useMetricSource } from "./useMetric";
 import { useActivities } from "./useRecords";

@@ -1,4 +1,4 @@
-import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
+import { templateTitle } from "@/lib/workoutNames";
 import { EXERCISES } from "@/lib/exercises";
 import type { FavoriteWorkout, Tier } from "@/types";
 

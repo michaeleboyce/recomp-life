@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Calculator } from "lucide-react";
 import { initializeDatabase } from "@/db/init";
 import { BackButton } from "@/components/nav/BackButton";
+import { toDateInputValue } from "@/components/Activity/DateField";
 import type { UserProfile, UserSettings, TrainingPhase, EquipmentProfile, ExercisePreferences } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -116,7 +117,7 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `recomp-life-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `recomp-life-backup-${toDateInputValue(new Date())}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

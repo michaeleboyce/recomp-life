@@ -5,7 +5,7 @@ import { db } from "@/db/local";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { previousWeek, weekOf } from "@/lib/review";
-import { WEEKLY_SESSION_TARGET } from "@/components/Today/GlanceTiles";
+import { WEEKLY_SESSION_TARGET } from "@/lib/workout/rotation";
 import { useWeeklyReview } from "./index";
 
 beforeEach(clearDb);

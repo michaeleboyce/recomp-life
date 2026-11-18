@@ -181,7 +181,7 @@ export default function ExerciseRow({
           {exercise.grip && (
             <DetailRow label="Grip" value={formatGrip(exercise.grip)} />
           )}
-          <InlineE1RMCalc exerciseName={exercise.name} />
+          <InlineE1RMCalc />
         </div>
       )}
     </div>
@@ -205,7 +205,7 @@ function formatGrip(grip: string): string {
   return grip.split("_").map(capitalize).join(" ");
 }
 
-function InlineE1RMCalc({ exerciseName }: { exerciseName: string }) {
+function InlineE1RMCalc() {
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState("");
 
