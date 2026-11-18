@@ -5,6 +5,7 @@
 // it is given. Pure: no React, no database.
 import { EXERCISES } from "@/lib/exercises";
 import { formatNumber } from "@/lib/metrics/helpers";
+import { plural } from "@/lib/text";
 import {
   T3_INCREMENT_LBS,
   T3_TARGET_REPS,
@@ -144,11 +145,20 @@ export function t3NextTimeAfterSet(
 }
 
 /**
- * After the last T3 set is logged: "20 of 20 on the last set: 55 lb next time", or
- * "19 of 20 on the last set: stays at 50 lb next time".
+ * The one wording of a T3's last set against the reps it needed, used by every line that
+ * states both (during the workout, What it did, the adjustment feed): "26 reps on the
+ * last set, needed 18". It reads the same above, at and below the threshold.
+ */
+export function t3LastSetAgainst(lastSetReps: number, threshold: number): string {
+  return `${plural(lastSetReps, "rep")} on the last set, needed ${threshold}`;
+}
+
+/**
+ * After the last T3 set is logged: "20 reps on the last set, needed 20: 55 lb next
+ * time", or "19 reps on the last set, needed 20: stays at 50 lb next time".
  */
 export function t3NextTimeText(inc: T3Increase, lastSetReps: number, unit: string): string {
-  const got = `${lastSetReps} of ${inc.threshold} on the last set`;
+  const got = t3LastSetAgainst(lastSetReps, inc.threshold);
   if (lastSetReps < inc.threshold) return `${got}: stays at ${num(inc.weight)} ${unit} next time`;
   if (inc.nextWeight == null) return `${got}, at your heaviest dumbbell: more reps or a harder exercise next time`;
   return `${got}: ${num(inc.nextWeight)} ${unit} next time`;

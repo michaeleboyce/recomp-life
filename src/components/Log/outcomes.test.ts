@@ -87,7 +87,7 @@ describe("describeVariantOutcome", () => {
     });
     const sets = [makeSet({ exerciseId: "lat_pulldown", tier: "T3", actualReps: 27, weight: 50 })];
     const text = describeVariantOutcome(capped, sets);
-    expect(text).toBe("last set reached 25 at your heaviest dumbbell (50): stays at 50 lbs, sets of 17 reps next (was 15)");
+    expect(text).toBe("27 reps on the last set, needed 25, at your heaviest dumbbell (50): stays at 50 lbs, sets of 17 reps next (was 15)");
     expect(text).not.toMatch(/of 25 reps/);
   });
 });

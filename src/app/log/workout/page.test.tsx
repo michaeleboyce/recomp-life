@@ -67,8 +67,8 @@ describe("/log/workout?id=", () => {
     render(<LogWorkoutPage />);
     const section = await whatItDid();
     expect(await section.findByText(/^passed: next \d+ lbs 5x3$/)).toBeInTheDocument();
-    expect(section.getByText("last set reached 26 of 18: next 95 lbs")).toBeInTheDocument();
-    const t3Row = section.getByText("last set reached 26 of 18: next 95 lbs").closest("li")!;
+    expect(section.getByText("26 reps on the last set, needed 18: next 95 lbs")).toBeInTheDocument();
+    const t3Row = section.getByText("26 reps on the last set, needed 18: next 95 lbs").closest("li")!;
     expect(t3Row.querySelector('[data-evidence="t3-progression"]')).not.toBeNull();
     // The later failed session does not leak into this one's result.
     expect(section.queryByText(/missed/)).toBeNull();
@@ -85,7 +85,7 @@ describe("/log/workout?id=", () => {
     render(<LogWorkoutPage />);
     const section = await whatItDid();
     expect(await section.findByText(`missed: moves to 6x2 at ${weight} lbs`)).toBeInTheDocument();
-    expect(section.getByText(/^stays at 95 lbs \(last set 15 of 18 reps\)$/)).toBeInTheDocument();
+    expect(section.getByText(/^15 reps on the last set, needed 18: stays at 95 lbs$/)).toBeInTheDocument();
   });
 
   it("says the workout is not found for an unknown id", async () => {

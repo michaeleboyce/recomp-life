@@ -668,8 +668,8 @@ describe("glass box: forecast, why and rest", () => {
 
 describe("a T3's last set: the number to reach, then what happens next time", () => {
   it.each([
-    [19, "19 of 20 on the last set: stays at 50 lbs next time"],
-    [20, "20 of 20 on the last set: 55 lbs next time"],
+    [19, "19 reps on the last set, needed 20: stays at 50 lbs next time"],
+    [20, "20 reps on the last set, needed 20: 55 lbs next time"],
   ])("a 50 lb dumbbell row logged at %i reps", async (reps, said) => {
     await db.liftStates.update("db_row", { t3Weight: 50 });
     await open({ templateId: "B1" });

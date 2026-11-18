@@ -17,7 +17,9 @@
 // 2026-11-18 for the T3 threshold sized to the step (18 to 25 reps instead of a flat 25):
 // every changed line is a T3. Its text now names that session's own threshold, and in
 // the demo each T3 whose last set fell between its new threshold and 24 now goes up
-// (later T3 weights follow). No T1 or T2 line changed.
+// (later T3 weights follow). No T1 or T2 line changed. Rewritten on purpose later on
+// 2026-11-18 for the T3 wording only ("26 reps on the last set, needed 18: next 95 lbs"
+// for "last set reached 26 of 18: ..."): 33 T3 lines changed their text, no kind changed.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";

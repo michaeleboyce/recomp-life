@@ -29,7 +29,7 @@ describe("progressionEntries", () => {
     // The lines are the ones the workout page shows ("What it did").
     expect(entries[0].detail).toBe(
       "Squat passed: next 200 lbs 5×3. Bench press passed: next 105 lbs 3×10. " +
-        "Lat pulldown stays at 90 lbs (last set 15 of 18 reps)."
+        "Lat pulldown 15 reps on the last set, needed 18: stays at 90 lbs."
     );
     expect(entries[0].undo).toBeUndefined();
   });
