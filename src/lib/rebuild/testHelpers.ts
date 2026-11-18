@@ -306,10 +306,26 @@ export function runSession(sim: Sim, options: SessionOptions = {}): WorkoutSessi
     strengthSets,
   });
 
+  // A lift the session was prescribed but logged no set of stays where it stood before
+  // the session (re-entry included), and so do its home exercises at that tier: the
+  // prescription says how to read the session, it is not a result.
+  const notLifted = (session.prescribed ?? []).filter(
+    (entry) => !sets.some((set) => set.exerciseId === entry.exerciseId)
+  );
+  const standing = new Map(sim.states.map((ls) => [ls.exerciseId, ls]));
   const updated = new Map(result.liftStateUpdates.map((ls) => [ls.exerciseId, ls]));
-  sim.states = goingIn.liftStates.map((ls) => updated.get(ls.exerciseId) ?? ls);
+  sim.states = goingIn.liftStates.map((ls) =>
+    notLifted.some((entry) => entry.exerciseId === ls.exerciseId)
+      ? (standing.get(ls.exerciseId) ?? ls)
+      : (updated.get(ls.exerciseId) ?? ls)
+  );
   const variants = new Map(goingIn.variantStates.map((v) => [v.id, v]));
   for (const v of result.variantStateUpdates) variants.set(v.id, v);
+  for (const before of sim.variants) {
+    if (notLifted.some((entry) => entry.exerciseId === before.liftId && entry.tier === before.tier)) {
+      variants.set(before.id, before);
+    }
+  }
   sim.variants = [...variants.values()];
 
   const finished: WorkoutSession = {

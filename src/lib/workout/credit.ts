@@ -1,7 +1,7 @@
 import { getNextWorkoutId } from "@/lib/workoutTemplates";
 import type { PrescribedEntry, SetLog, SetStatus, Tier, WorkoutSession } from "@/types";
 import { applyPlanEdits, workingTargetSets } from "./planEdits";
-import { workingSetsFor } from "./setSelectors";
+import { isWorkingSet, workingSetsFor } from "./setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "./types";
 
 /** Whether an entry is evaluated by the program's progression rules or only logged. */
@@ -37,6 +37,17 @@ export function workingSetsReachPrescription(
 ): boolean {
   const atWeight = weights.filter((weight) => weight >= required).length;
   return atWeight === weights.length || atWeight >= prescribedSets;
+}
+
+/**
+ * Whether an entry is done at the prescribed scheme: the prescribed number of working
+ * sets at the prescribed reps. With a set plan (`perSet`), no working set may ask for
+ * fewer reps than prescribed, whichever set it is: the entry's own `targetReps` is only
+ * the heaviest working set's, and at equal weights that is the first.
+ */
+function keepsScheme(entry: CreditEntry, target: { sets: number; reps: number }): boolean {
+  if (workingTargetSets(entry) !== target.sets || entry.targetReps !== target.reps) return false;
+  return !entry.perSet?.some((set) => isWorkingSet(set) && set.reps < target.reps);
 }
 
 type CreditEntry = Pick<
@@ -84,9 +95,7 @@ export function classifyEntry(
     (p) => p.exerciseId === entry.exerciseId && p.tier === entry.tier
   );
   if (!target) return "logged-only";
-  if (workingTargetSets(entry) !== target.sets || entry.targetReps !== target.reps) {
-    return "logged-only";
-  }
+  if (!keepsScheme(entry, target)) return "logged-only";
 
   const required = target.weight * CREDIT_MIN_WEIGHT_RATIO;
   const deciding = workingSetsFor(sets ?? [], entry.exerciseId, entry.tier).filter((set) =>
@@ -154,9 +163,7 @@ export function classifyVariantEntry(
 ): EntryCredit {
   if (!prescribed) return "program";
   if (!entry || entry.isWarmUp) return "logged-only";
-  if (workingTargetSets(entry) !== target.sets || entry.targetReps !== target.reps) {
-    return "logged-only";
-  }
+  if (!keepsScheme(entry, target)) return "logged-only";
   const deciding = workingSetsFor(sets, entry.exerciseId, entry.tier).filter((set) =>
     CREDIT_DECIDING_STATUSES.includes(set.status)
   );

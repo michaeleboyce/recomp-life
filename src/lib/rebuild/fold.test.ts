@@ -670,6 +670,35 @@ describe("anchoring to the stored prescription", () => {
     expect(stateOf(result.snapshots.get(w3.id)!, "squat")).toMatchObject({ t1Weight: 200, t1Stage: "10x1", t1FailCount: 2 });
   });
 
+  it("a later session that did not do a lift does not undo a correction to it", () => {
+    for (const removed of [true, false]) {
+      const sim = startSim();
+      const w1 = runSession(sim, { templateId: "A1", t1: FAIL }); // squat missed at 190: 6x2 next
+      // The next workout stored squat at 190 for 6x2, but squat was taken out (or just
+      // not done): only the bench was lifted.
+      const w2 = runSession(sim, { templateId: "A1", t1: { sets: 0 } });
+      expect(w2.sets.some((s) => s.exerciseId === "squat")).toBe(false);
+      expect(w2.prescribed?.find((e) => e.exerciseId === "squat")).toMatchObject({ weight: 190, stage: "6x2" });
+      if (removed) {
+        sim.workouts = sim.workouts.map((w) =>
+          w.id === w2.id ? { ...w, planEdits: [{ kind: "remove", exerciseId: "squat", tier: "T1" }] } : w
+        );
+      }
+      expect(stateOf(rebuilt(sim).liftStates, "squat")).toMatchObject({ t1Weight: 190, t1Stage: "6x2" });
+
+      // The missed squat is corrected to a pass. The second workout never lifted squat,
+      // so its stored prescription must not put the miss back.
+      const lastSet = w1.sets.filter((s) => s.tier === "T1").at(-1)!;
+      const log = applyChange(sim, { kind: "editSet", workoutId: w1.id, setId: lastSet.id, patch: { actualReps: 3 } });
+      const result = rebuildDerived({ ...log, settings: SETTINGS });
+      expect(stateOf(result.liftStates, "squat")).toMatchObject({ t1Weight: 200, t1Stage: "5x3", t1FailCount: 0 });
+      // The session itself is still read at what it prescribed.
+      expect(stateOf(result.before.get(w2.id)!, "squat")).toMatchObject({ t1Weight: 190, t1Stage: "6x2" });
+      // The bench it did lift keeps its result.
+      expect(stateOf(result.liftStates, "bench").t2Weight).toBe(stateOf(rebuilt(sim).liftStates, "bench").t2Weight);
+    }
+  });
+
   it("does not anchor when no prescription is stored", () => {
     const sim = startSim();
     runSession(sim, { templateId: "A1" });
