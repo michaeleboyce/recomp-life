@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { requestNotificationPermission } from "@/lib/audio";
+import { requestRestAlertPermission } from "@/native/restNotifications";
 
 /** Keeps the screen on while the workout screen is mounted. */
 export function useWakeLock(): void {
@@ -48,6 +49,8 @@ export function useNotificationPermission(): void {
     ) {
       requestNotificationPermission();
     }
+    // In the phone app the alerts go through the system instead; a no-op in a browser.
+    void requestRestAlertPermission();
   }, []);
 }
 

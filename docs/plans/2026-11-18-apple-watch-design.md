@@ -1,6 +1,6 @@
 # Apple Watch companion app
 
-**Status:** draft for review, 2026-11-18. No code written yet. Screens reviewed and
+**Status:** phase 1 (W1, W2) built on `feat/rest-notifications`, 2026-11-18; not yet checked on a phone. Phases 2 to 4 not started. Screens reviewed and
 approved by the owner on 2026-11-18:
 https://claude.ai/artifact/7phuEnGXgHDcQYjtEVUotN
 

@@ -9,20 +9,25 @@ import { useWorkoutStore } from "@/stores/workoutStore";
 import { TimerWorkerManager } from "@/lib/timerWorker";
 import { playTimerChime, vibrateTimer, sendTimerNotification } from "@/lib/audio";
 import { getRule, isRuleId, type RuleId } from "@/lib/evidence";
+import { REST_WARNING_SECONDS, planRestAlerts } from "@/lib/restAlerts";
 import {
   hasCuttingRestBonus,
   formatRestDuration,
   getRestEvidenceId,
 } from "@/lib/restTimes";
 import { cn } from "@/lib/utils";
+import { cancelRestAlerts, restEndHaptic, scheduleRestAlerts } from "@/native/restNotifications";
 import type { DecisionTrace, TrainingPhase } from "@/types";
 
 /** Small top-ups to the remaining rest. */
 const EXTEND_SECONDS = [5, 15] as const;
 const RING_R = 76;
 const RING_C = 2 * Math.PI * RING_R;
-/** The last stretch of a rest, shown without sound: ring and numeral change colour. */
-export const FINAL_SECONDS = 10;
+/**
+ * The last stretch of a rest, shown without sound: ring and numeral change colour.
+ * The same moment the phone app's "get ready" alert is given in the background.
+ */
+export const FINAL_SECONDS = REST_WARNING_SECONDS;
 
 /**
  * How much of the ring to draw. The clock ticks once a second, so the ring aims at
@@ -169,11 +174,31 @@ export function RestTimer({
     );
   }, [isRestTimerActive, getManager]);
 
+  // In the phone app: alerts for the end of this rest (and the warning before it),
+  // scheduled with the system so they fire while the app is in the background.
+  // Scheduled again when the rest is extended; removed when it ends or is skipped.
+  useEffect(() => {
+    if (!isRestTimerActive) return;
+    void scheduleRestAlerts(
+      planRestAlerts({
+        now: new Date(),
+        remainingSeconds: useWorkoutStore.getState().restTimeRemaining,
+        nextLabel,
+      })
+    );
+    return () => {
+      void cancelRestAlerts();
+    };
+  }, [isRestTimerActive, restTimerDuration, nextLabel]);
+
   // Rest is over: let the user know, then give the screen back to the set.
   useEffect(() => {
     if (!isRestTimerActive || restTimeRemaining > 0) return;
     if (audioEnabled) playTimerChime();
-    if (vibrationEnabled) vibrateTimer();
+    if (vibrationEnabled) {
+      vibrateTimer();
+      void restEndHaptic();
+    }
     if (document.visibilityState === "hidden") sendTimerNotification();
     managerRef.current?.stop();
     skipRest();
