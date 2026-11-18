@@ -14,7 +14,7 @@ function open(overrides: Partial<Parameters<typeof SetEditSheet>[0]> = {}) {
       open
       onOpenChange={onOpenChange}
       workoutId="w1"
-      set={set({ actualReps: 3, weight: 205, rpe: 8 })}
+      set={set({ actualReps: 3, weight: 205, repsInReserve: "1-2" })}
       onSubmit={onSubmit}
       {...overrides}
     />
@@ -75,15 +75,33 @@ describe("SetEditSheet", () => {
     expect(field("Weight").value).toBe("207.5");
   });
 
-  it("can clear the RPE: the patch carries rpe undefined", async () => {
+  it("starts with the stored answer selected", () => {
+    open();
+    expect(screen.getByRole("button", { name: "1-2 reps left" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "0 reps left" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("changing the answer patches only repsInReserve", async () => {
     const { onSubmit } = open();
-    fireEvent.click(screen.getByRole("button", { name: "Clear effort" }));
+    fireEvent.click(screen.getByRole("button", { name: "0 reps left" }));
+    await save();
+    expect(onSubmit).toHaveBeenCalledWith({
+      kind: "editSet",
+      workoutId: "w1",
+      setId: "s1",
+      patch: { repsInReserve: "0" },
+    });
+  });
+
+  it("can clear the answer: the patch carries repsInReserve undefined", async () => {
+    const { onSubmit } = open();
+    fireEvent.click(screen.getByRole("button", { name: "1-2 reps left" }));
     await save();
     const change = onSubmit.mock.calls[0][0];
     expect(change.kind).toBe("editSet");
-    expect("rpe" in change.patch).toBe(true);
-    expect(change.patch.rpe).toBeUndefined();
-    expect(Object.keys(change.patch)).toEqual(["rpe"]);
+    expect("repsInReserve" in change.patch).toBe(true);
+    expect(change.patch.repsInReserve).toBeUndefined();
+    expect(Object.keys(change.patch)).toEqual(["repsInReserve"]);
   });
 
   it("builds a deleteSet change", async () => {
@@ -101,10 +119,10 @@ describe("SetEditSheet", () => {
 
   it("rejects invalid entry and stays open", async () => {
     const { onSubmit } = open();
-    fireEvent.change(field("Effort"), { target: { value: "14" } });
+    fireEvent.change(field("Reps"), { target: { value: "2.5" } });
     await save();
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByRole("alert")).toHaveTextContent("Enter an effort from 1 to 10, or clear it.");
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter reps as a whole number");
   });
 
   it("stays open when the save flow reports an error", async () => {
@@ -124,7 +142,7 @@ describe("SetEditSheet", () => {
     expect(change).toMatchObject({
       kind: "addSet",
       workoutId: "w1",
-      set: { exerciseId: "squat", tier: "T1", setNumber: 6, actualReps: 2, weight: 205, rpe: 8, status: "failed" },
+      set: { exerciseId: "squat", tier: "T1", setNumber: 6, actualReps: 2, weight: 205, repsInReserve: "1-2", status: "failed" },
     });
     expect(change.set.id).not.toBe("s1");
   });

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { getAllRules } from "@/lib/evidence";
-import { RESET_FACTOR } from "@/lib/progression";
+import { T1_AMRAP_TARGET_REPS_IN_RESERVE } from "@/lib/amrap";
+import { REPS_IN_RESERVE_OPTIONS, RIR_ESTIMATE } from "@/lib/effort";
+import { RESET_FACTOR, T2_AUTOREG_DROP } from "@/lib/progression";
 import { REST_SECONDS } from "@/lib/restTimes";
 import {
   GLOSSARY,
@@ -13,7 +15,7 @@ import {
 
 const REQUIRED: TermId[] = [
   "gzclp", "t1", "t2", "t3", "amrap", "amrap-plus", "sets-reps", "stage", "fail-reset",
-  "rpe", "rir", "e1rm", "pr", "working-weight", "warm-up", "deload", "freeze",
+  "rir", "e1rm", "pr", "working-weight", "warm-up", "deload", "freeze",
   "accessory", "substitute", "rest-timer", "training-phase", "rate-of-loss",
   "weekly-sets", "hard-set", "rotation", "gym-debt", "projection", "pr-chance",
 ];
@@ -67,12 +69,37 @@ describe("glossary registry", () => {
     expect(GLOSSARY["rest-timer"].long).toContain(`${REST_SECONDS.T1 / 60} minutes`);
     expect(GLOSSARY.t3.long).toContain("25");
   });
+
+  it("defines reps in reserve with the app's three answers and their credit", () => {
+    const { term, short, long, ruleId } = GLOSSARY.rir;
+    expect(term).toBe("Reps in reserve");
+    expect(ruleId).toBe("effort-logging");
+    for (const answer of REPS_IN_RESERVE_OPTIONS) expect(short).toContain(answer);
+    expect(long).toContain(`${RIR_ESTIMATE["1-2"]} for 1-2`);
+    expect(long).toContain(`${RIR_ESTIMATE["3+"]} for 3+`);
+  });
+
+  it("states the T2 lighter-weight suggestion from its constants", () => {
+    const { long } = GLOSSARY.autoregulation;
+    expect(long).toContain(`${Math.round(T2_AUTOREG_DROP.max * 1000) / 10}%`);
+    expect(long).toContain(`${T2_AUTOREG_DROP.stepLbs} lb step down`);
+    expect(long).toContain("While cutting, 1-2 reps left");
+    expect(GLOSSARY.amrap.long).toContain(`${T1_AMRAP_TARGET_REPS_IN_RESERVE} reps left`);
+  });
+
+  it("never says RPE or RIR", () => {
+    for (const id of TERM_IDS) {
+      const { term, aka = [], short, long } = GLOSSARY[id];
+      for (const text of [term, ...aka, short, long]) expect(text, id).not.toMatch(/\bRPE\b|\bRIR\b/i);
+    }
+  });
 });
 
 describe("searchGlossary", () => {
   it("matches term and aka, case-insensitively", () => {
     expect(searchGlossary("amrap")).toContain("amrap");
     expect(searchGlossary("one-rep max")).toContain("e1rm");
+    expect(searchGlossary("reps left")).toContain("rir");
     expect(searchGlossary("")).toEqual(TERM_IDS);
     expect(searchGlossary("zzzz")).toEqual([]);
   });

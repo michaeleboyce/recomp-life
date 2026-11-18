@@ -42,7 +42,7 @@ function set(exerciseId: string, date: Date, overrides: Partial<StrengthSet> = {
     weight: 50,
     perHand: EXERCISES[exerciseId]?.grip === "per_hand",
     reps: 10,
-    rpe: null,
+    repsInReserve: null,
     role: "working",
     tier: "accessory",
     isAMRAP: false,

@@ -91,8 +91,8 @@ describe("buildWeeklyReview", () => {
     expect(buildWeeklyReview({ ...fixture(), readiness: [] }, [], WEEK, AFTER).readiness).toBeNull();
   });
 
-  it("averages T1 RPE against last week", () => {
-    expect(review.effort).toEqual({ meanRpe: 8, sets: 3, previous: 8 });
+  it("averages T1 reps left against last week", () => {
+    expect(review.effort).toEqual({ meanRepsInReserve: 2, sets: 3, previous: 1.5 });
   });
 
   it("reads ISO-string dates the same as Date objects", () => {

@@ -62,7 +62,7 @@ function runSwapped(options: {
           createSetLog({
             exercise: { ...entry, completedSets: done },
             actualReps: entry.targetReps,
-            rpe: null,
+            repsInReserve: null,
             location: options.location,
             autoRegulated: false,
             now: d,

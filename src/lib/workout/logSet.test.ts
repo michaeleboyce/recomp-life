@@ -9,7 +9,7 @@ function input(overrides: Partial<CreateSetLogInput> = {}): CreateSetLogInput {
   return {
     exercise: makeEntry(),
     actualReps: 3,
-    rpe: 8,
+    repsInReserve: "1-2",
     location: "gym",
     autoRegulated: false,
     now: NOW,
@@ -53,7 +53,7 @@ describe("createSetLog", () => {
       originalWeight: undefined,
       isSubstituted: false,
       substituteExerciseId: undefined,
-      rpe: 8,
+      repsInReserve: "1-2",
       location: "gym",
       synced: false,
     });
@@ -94,9 +94,9 @@ describe("createSetLog", () => {
     expect(createSetLog(input({ autoRegulated: true, actualReps: 1 })).status).toBe("failed");
   });
 
-  it("rpe is undefined when none was selected", () => {
-    const set = createSetLog(input({ rpe: null }));
-    expect(set.rpe).toBeUndefined();
+  it("repsInReserve is undefined when none was selected", () => {
+    const set = createSetLog(input({ repsInReserve: null }));
+    expect(set.repsInReserve).toBeUndefined();
   });
 
   it("a substituted entry keeps the template id and records the substitute", () => {
@@ -125,7 +125,7 @@ describe("createSetLog", () => {
       input({
         exercise: makeEntry({ tier: "warmup", targetSets: 1, targetReps: 10, weight: 45, isAMRAP: false, isWarmUp: true }),
         actualReps: 10,
-        rpe: null,
+        repsInReserve: null,
       })
     );
     expect(set).toMatchObject({ tier: "warmup", setNumber: 1, weight: 45, isAMRAP: false, status: "completed" });

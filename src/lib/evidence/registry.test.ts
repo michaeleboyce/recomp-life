@@ -25,10 +25,12 @@ import {
 import { RULE_GROUPS } from "./rules";
 import { evaluateRunImpact } from "@/lib/runRecovery";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
-import { evaluateT2AutoRegulation } from "@/lib/progression";
+import { T2_AUTOREG_DROP, evaluateT2AutoRegulation } from "@/lib/progression";
 import { getRestEvidenceId } from "@/lib/restTimes";
 import { DROP_SET_LIGHTER_BY } from "@/components/ActiveWorkout/setPlan";
-import { EFFORT_WORD_RPE } from "@/lib/import/evidence";
+import { EFFORT_WORD_REPS_IN_RESERVE } from "@/lib/import/evidence";
+import { REPS_IN_RESERVE_OPTIONS, REPS_IN_RESERVE_QUESTION, RIR_ESTIMATE, repsInReserveLabel } from "@/lib/effort";
+import { T1_AMRAP_TARGET_REPS_IN_RESERVE } from "@/lib/amrap";
 import { STARTING_WEIGHT_RULES } from "@/lib/import/startingWeights";
 import type { LiftState, RunLog, Tier } from "@/types";
 
@@ -249,10 +251,44 @@ describe("live values in rule text", () => {
     expect(text).toContain(`about ${STARTING_WEIGHT_RULES.t3Reps} times`);
   });
 
-  it("the import effort-word rule gives each word's approximate RPE", () => {
+  it("the import effort-word rule gives each word's answer for reps left", () => {
     const text = getRule("import-effort-words").appBehavior;
-    for (const [word, rpe] of Object.entries(EFFORT_WORD_RPE)) {
-      expect(text).toContain(`${word[0].toUpperCase()}${word.slice(1)} ${rpe}`);
+    for (const [word, answer] of Object.entries(EFFORT_WORD_REPS_IN_RESERVE)) {
+      expect(text).toContain(`${word[0].toUpperCase()}${word.slice(1)} ${repsInReserveLabel(answer)}`);
+    }
+    expect(text).toContain(`Easy counts as ${RIR_ESTIMATE[EFFORT_WORD_REPS_IN_RESERVE.easy]} reps`);
+  });
+
+  it("the effort-logging rule states the question, its answers and their credit", () => {
+    const text = getRule("effort-logging").appBehavior;
+    expect(text).toContain(REPS_IN_RESERVE_QUESTION);
+    for (const answer of REPS_IN_RESERVE_OPTIONS) {
+      expect(text).toContain(`${RIR_ESTIMATE[answer]} for ${answer}`);
+    }
+    expect(getRule("e1rm-estimate").appBehavior).toContain(`${RIR_ESTIMATE["1-2"]} for 1-2`);
+    expect(getRule("e1rm-estimate").caveat).toContain(`counts as ${RIR_ESTIMATE["3+"]}`);
+  });
+
+  it("the T2 rule states the drop sizes and when each is suggested", () => {
+    const text = getRule("t2-autoregulation").appBehavior;
+    expect(text).toContain(`${Math.round(T2_AUTOREG_DROP.max * 1000) / 10}%`);
+    expect(text).toContain(`one ${T2_AUTOREG_DROP.stepLbs} lb step down, while cutting only`);
+    expect(text).toContain("in every phase");
+    // The text matches what the code does for each phase and answer.
+    expect(evaluateT2AutoRegulation("1-2", { mode: "cutting" }, 150).action).toBe("suggest_drop");
+    expect(evaluateT2AutoRegulation("1-2", { mode: "maintaining" }, 150).action).not.toBe("suggest_drop");
+    expect(evaluateT2AutoRegulation("0", { mode: "bulking" }, 150).action).toBe("suggest_drop");
+    expect(evaluateT2AutoRegulation("3+", { mode: "cutting" }, 150).action).not.toBe("suggest_drop");
+  });
+
+  it("the AMRAP rule reads its T1 target from the constant", () => {
+    expect(getRule("amrap-effort").appBehavior).toContain(`${T1_AMRAP_TARGET_REPS_IN_RESERVE} reps left`);
+  });
+
+  it("no rule text says RPE", () => {
+    for (const rule of rules) {
+      const text = [rule.title, rule.summary, rule.appBehavior, rule.rationale, rule.caveat ?? ""].join(" ");
+      expect(text, rule.id).not.toMatch(/\bRPE\b/);
     }
   });
 
@@ -305,7 +341,7 @@ describe("evidence ids returned by coaching logic", () => {
   });
 
   it("T2 load-drop suggestions carry a valid rule id", () => {
-    const result = evaluateT2AutoRegulation(10, { mode: "maintaining" }, 150);
+    const result = evaluateT2AutoRegulation("0", { mode: "maintaining" }, 150);
     expect(result.action).toBe("suggest_drop");
     expect(result.evidenceId && isRuleId(result.evidenceId)).toBe(true);
   });

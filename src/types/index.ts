@@ -24,7 +24,7 @@ export interface UserSettings {
   restTimerAudio: boolean;
   restTimerVibration: boolean;
   showWarmUps: boolean;
-  showRPE: boolean;
+  showEffort: boolean;
   morningWeighInReminder: boolean;
   weighInReminderTime: string;
   trainingPhase: TrainingPhase;
@@ -242,7 +242,8 @@ export interface LiftState {
   preDeloadT2Weight: number | null;
   t2LoadDropCount: number;
   recentE1RMs: number[];
-  recentAvgRPEs: number[];
+  /** Mean reps left (RIR_ESTIMATE) per recent session; higher is easier. */
+  recentAvgRepsInReserve: number[];
   recentAMRAPReps: number[];
   synced: boolean;
 }
@@ -287,7 +288,7 @@ export interface VariantSeed {
     reps: number;
     perHand: boolean;
     sessionId?: string;
-    rpe?: number;
+    repsInReserve?: RepsInReserve;
     imported?: true;
   };
   /**
@@ -437,7 +438,8 @@ export interface SetLog {
   originalWeight?: number;
   isSubstituted: boolean;
   substituteExerciseId?: string;
-  rpe?: number;
+  /** Reps the lifter judged they had left; absent when not answered. */
+  repsInReserve?: RepsInReserve;
   location: WorkoutLocation;
   /** What the set was for; absent on a working set (and on every row logged before roles). */
   role?: SetRole;
@@ -856,9 +858,15 @@ export interface VolumeRatioCheck {
   suggestedMaxAccessories?: number;
 }
 
+/**
+ * Reps the lifter judged they had left after a set: the app's one effort rating.
+ * Helpers and the numbers behind each answer live in `src/lib/effort.ts`.
+ */
+export type RepsInReserve = "0" | "1-2" | "3+";
+
 // Fatigue/Deload Types
 
-export type FatigueSignalType = "e1rm_decline" | "rpe_increase" | "amrap_decline";
+export type FatigueSignalType = "e1rm_decline" | "effort_increase" | "amrap_decline";
 export type FatigueAlertLevel = "watch" | "systemic";
 export type InactivityAlertLevel = "gentle" | "urgent" | "detraining";
 
@@ -874,7 +882,7 @@ export interface DeloadWeek {
   t2: string;
   t3: string;
   accessories: string;
-  rpe_target: string;
+  effort_target: string;
   return: string;
 }
 
@@ -883,7 +891,7 @@ export interface DeloadPrescription {
   t3VolumeReduction: number; // 0 = no reduction, 0.25 = -25%, 0.5 = -50% (half)
   dropAllAccessories: boolean;
   maxAccessories: number;
-  rpeTarget: string;
+  effortTarget: string;
 }
 
 export interface FatigueAlert {

@@ -6,7 +6,7 @@ import { liftName } from "@/components/LogEdit/format";
 import type { ScoredForecast } from "@/lib/forecast";
 import { VOID_REASONS, type VoidReason } from "@/lib/forecast";
 import { e1rmsForWorkout } from "@/lib/rebuild/e1rm";
-import type { Forecast, SetLog, Tier, WorkoutSession } from "@/types";
+import type { Forecast, RepsInReserve, SetLog, Tier, WorkoutSession } from "@/types";
 
 /** Weights within this many lbs count as the same weight. */
 const SAME_WEIGHT_LBS = 0.01;
@@ -86,7 +86,7 @@ export interface ForecastNote {
  */
 export function forecastNote(
   forecasts: LiftForecasts,
-  picked: { weight: number; reps: number; rpe: number | null }
+  picked: { weight: number; reps: number; repsInReserve: RepsInReserve | null }
 ): ForecastNote {
   const { reps, newBest } = forecasts;
   const { point, low, high } = reps.prediction;
@@ -107,7 +107,7 @@ export function forecastNote(
 
   let selected: string | null = null;
   if (best !== undefined) {
-    const estimate = calculateE1RM(picked.weight, picked.reps, picked.rpe);
+    const estimate = calculateE1RM(picked.weight, picked.reps, picked.repsInReserve);
     if (estimate !== null && isNewPR(estimate, [best])) {
       selected = `${picked.reps} would put your estimated max at ${estimate}, up from ${best}.`;
     }

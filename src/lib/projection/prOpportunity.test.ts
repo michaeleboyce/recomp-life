@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { calculateE1RM, E1RM_MAX_REPS } from "@/lib/e1rm";
+import { calculateE1RM, E1RM_MAX_REPS, E1RM_MAX_REPS_IN_RESERVE } from "@/lib/e1rm";
+import { REPS_IN_RESERVE_OPTIONS, RIR_ESTIMATE } from "@/lib/effort";
 import {
   describePrOpportunity,
   prChance,
@@ -63,24 +64,55 @@ describe("repsToBeat", () => {
     }
   });
 
-  it("with a logged effort, counts the reps left in reserve as the estimate does", () => {
-    for (const rpe of [10, 9, 8.5, 8, 7, 6, 5]) {
+  it("with a reps-left answer, counts the reps left as the estimate does", () => {
+    for (const answer of REPS_IN_RESERVE_OPTIONS) {
       for (let weight = 95; weight <= 315; weight += 20) {
         for (let best = 100; best <= 420; best += 9) {
           let expected: { reps: number; e1rm: number } | null = null;
           for (let reps = 1; reps <= E1RM_MAX_REPS && !expected; reps++) {
-            const e1rm = calculateE1RM(weight, reps, rpe);
+            const e1rm = calculateE1RM(weight, reps, answer);
             if (e1rm !== null && e1rm > best) expected = { reps, e1rm };
           }
-          expect(repsToBeat(weight, best, rpe), `${weight} vs ${best} at ${rpe}`).toEqual(expected);
+          expect(repsToBeat(weight, best, answer), `${weight} vs ${best} at ${answer}`).toEqual(expected);
         }
       }
     }
-    // Six reps all-out, or four logged as two short of all-out.
+    // Six reps all-out, four with 1-2 left, three with 3+ left.
     expect(repsToBeat(200, 236)!.reps).toBe(6);
-    expect(repsToBeat(200, 236, 8)!.reps).toBe(4);
-    expect(repsToBeat(200, 236, 10)).toEqual(repsToBeat(200, 236));
+    expect(repsToBeat(200, 236, "1-2")!.reps).toBe(4);
+    expect(repsToBeat(200, 236, "3+")!.reps).toBe(3);
+    expect(repsToBeat(200, 236, "0")).toEqual(repsToBeat(200, 236));
     expect(repsToBeat(200, 236, null)).toEqual(repsToBeat(200, 236));
+  });
+
+  it("takes a numeric credit equal to an answer's the same as the answer", () => {
+    for (const answer of REPS_IN_RESERVE_OPTIONS) {
+      expect(repsToBeat(200, 236, RIR_ESTIMATE[answer])).toEqual(repsToBeat(200, 236, answer));
+    }
+  });
+
+  it("with a fractional credit, still names a whole number of reps, never a single", () => {
+    // A median of credits can fall between answers, e.g. 0.75 or 2.25.
+    for (const credit of [0.75, 2.25]) {
+      for (let weight = 95; weight <= 315; weight += 20) {
+        for (let best = 100; best <= 420; best += 9) {
+          const result = repsToBeat(weight, best, credit);
+          if (result) {
+            expect(Number.isInteger(result.reps)).toBe(true);
+            expect(result.reps).toBeGreaterThanOrEqual(2);
+            expect(result.e1rm).toBeGreaterThan(best);
+          }
+        }
+      }
+    }
+    // 200 x (1 + 5.75 / 30) = 238.3: five reps at a 0.75 credit.
+    expect(repsToBeat(200, 236, 0.75)).toEqual({ reps: 5, e1rm: 238 });
+  });
+
+  it("clamps a numeric credit to 0..E1RM_MAX_REPS_IN_RESERVE", () => {
+    expect(repsToBeat(200, 236, 10)).toEqual(repsToBeat(200, 236, E1RM_MAX_REPS_IN_RESERVE));
+    expect(repsToBeat(200, 236, -2)).toEqual(repsToBeat(200, 236));
+    expect(repsToBeat(200, 236, NaN)).toEqual(repsToBeat(200, 236));
   });
 });
 

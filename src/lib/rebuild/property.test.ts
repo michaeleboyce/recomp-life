@@ -3,7 +3,8 @@
 import { describe, expect, it } from "vitest";
 import { roundToNearest5 } from "@/lib/progression";
 import { SETTINGS } from "@/lib/workout/testFixtures";
-import type { UserSettings } from "@/types";
+import { REPS_IN_RESERVE_OPTIONS } from "@/lib/effort";
+import type { RepsInReserve, UserSettings } from "@/types";
 import { diffDerived, rebuildDerived } from "./index";
 import {
   type Sim,
@@ -32,29 +33,29 @@ function prng(seed: number): () => number {
 const SESSIONS = 40;
 const SEEDS = [1, 2, 3, 7, 42, 2026, 90210, 123456789];
 
-function randomRpe(rand: () => number): number | null {
-  return rand() < 0.3 ? null : 6 + Math.floor(rand() * 9) / 2;
+function randomRepsInReserve(rand: () => number): RepsInReserve | null {
+  return rand() < 0.3 ? null : REPS_IN_RESERVE_OPTIONS[Math.floor(rand() * 3)];
 }
 
 function randomOutcome(rand: () => number, tier: "T1" | "T2" | "T3"): TierOutcome {
   const roll = rand();
-  const rpe = randomRpe(rand);
+  const repsInReserve = randomRepsInReserve(rand);
   if (tier === "T3") {
-    if (roll < 0.1) return { sets: 1 + Math.floor(rand() * 2), rpe };
-    return { lastReps: 12 + Math.floor(rand() * 17), rpe };
+    if (roll < 0.1) return { sets: 1 + Math.floor(rand() * 2), repsInReserve };
+    return { lastReps: 12 + Math.floor(rand() * 17), repsInReserve };
   }
   if (roll < 0.05) return { sets: 0 };
-  if (roll < 0.17) return { sets: 1 + Math.floor(rand() * 2), rpe };
+  if (roll < 0.17) return { sets: 1 + Math.floor(rand() * 2), repsInReserve };
   if (roll < 0.42) {
     // A miss somewhere in the first three sets, or on the last one.
-    if (rand() < 0.5) return { lastReps: -1, rpe };
+    if (rand() < 0.5) return { lastReps: -1, repsInReserve };
     const reps: (number | undefined)[] = [];
     reps[Math.floor(rand() * 3)] = 0;
-    return { reps, rpe };
+    return { reps, repsInReserve };
   }
-  if (tier === "T2" && roll < 0.55) return { drop: true, rpe };
+  if (tier === "T2" && roll < 0.55) return { drop: true, repsInReserve };
   // A clean pass. The caller adds extra reps to a T1 AMRAP set.
-  return { rpe };
+  return { repsInReserve };
 }
 
 function settingsAt(index: number): UserSettings {

@@ -35,12 +35,12 @@ describe("glossary page", () => {
     window.location.hash = "#amrap";
     render(<GlossaryPage />);
     expect(document.getElementById("amrap")).toHaveAttribute("data-highlighted", "true");
-    expect(document.getElementById("rpe")).not.toHaveAttribute("data-highlighted");
+    expect(document.getElementById("rir")).not.toHaveAttribute("data-highlighted");
 
     act(() => {
-      window.location.hash = "#rpe";
+      window.location.hash = "#rir";
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
-    expect(document.getElementById("rpe")).toHaveAttribute("data-highlighted", "true");
+    expect(document.getElementById("rir")).toHaveAttribute("data-highlighted", "true");
   });
 });

@@ -94,7 +94,7 @@ describe("generateDemoData", () => {
       // Every T1 lift passes, and no last set is too long to count toward the estimated max.
       expect(t1[4].actualReps).toBeGreaterThanOrEqual(3);
       expect(t1[4].actualReps).toBeLessThanOrEqual(E1RM_MAX_REPS);
-      expect(t1.every((s) => typeof s.rpe === "number")).toBe(true);
+      expect(t1.every((s) => typeof s.repsInReserve === "string")).toBe(true);
       // Working sets: the one drop set (see below) is extra.
       expect(workingSetsFor(w.sets, w.sets.find((s) => s.tier === "T2")!.exerciseId, "T2")).toHaveLength(3);
       const t3 = w.sets.filter((s) => s.tier === "T3");
@@ -256,12 +256,12 @@ describe("generateDemoData", () => {
       expect(split.weight).toBe(roundToStep((0.5 * DEMO_LIFT_STATES.squat.t1Weight) / 2, 5) + 2 * 5);
       // The T2 split squat comes later, after a T1 split squat session gave the exercise
       // an estimate of its own (50 a hand x 9): it is seeded from that (F6), and the
-      // stored seed says so. With the squat estimate resting on that session alone, the
-      // weight is the same as through the ratio.
+      // stored seed says so. The "1-2 left" answer on that set credits 1.5 reps, so the
+      // estimate (135) puts the T2 seed one step above what the ratio alone would give (45).
       const splitT2 = data.variantStates.find((v) => v.id === "squat|bulgarian_split_squat|T2")!;
-      expect(splitT2.seed).toMatchObject({ source: "history", ownEstimate: 133, targetReps: 10, history: { weight: 50, reps: 9 } });
+      expect(splitT2.seed).toMatchObject({ source: "history", ownEstimate: 135, targetReps: 10, history: { weight: 50, reps: 9 } });
       const firstT2 = home.find((w) => w.sets.some((s) => s.exerciseId === "squat" && s.tier === "T2"))!;
-      expect(firstT2.prescribed!.find((p) => p.exerciseId === "squat")!.home).toMatchObject({ exerciseId: "bulgarian_split_squat", weight: 45 });
+      expect(firstT2.prescribed!.find((p) => p.exerciseId === "squat")!.home).toMatchObject({ exerciseId: "bulgarian_split_squat", weight: 50 });
     });
 
     it("the first gym session after the block takes the re-entry weight (H6)", () => {
@@ -332,8 +332,8 @@ describe("generateDemoData", () => {
   it("matches folding the same sessions one by one through the live completion path", () => {
     const sim = startSim(settings);
     for (const w of data.workouts) {
-      const t1AmrapReps = (id: string) =>
-        w.sets.find((s) => s.exerciseId === id && s.tier === "T1" && s.isAMRAP)?.actualReps;
+      const t1Amrap = (id: string) =>
+        w.sets.find((s) => s.exerciseId === id && s.tier === "T1" && s.isAMRAP);
       const t1 = w.sets.filter((s) => s.tier === "T1");
       const options: SessionOptions = {
         templateId: w.templateId,
@@ -341,7 +341,11 @@ describe("generateDemoData", () => {
         startedAt: w.startedAt,
         // Planned as the Ready screen plans, re-entry included, as the demo is.
         live: true,
-        t1: { lastReps: t1AmrapReps(t1[0].exerciseId), rpe: null },
+        // The answer the demo logged on the AMRAP set: it credits the estimated max.
+        t1: {
+          lastReps: t1Amrap(t1[0].exerciseId)?.actualReps,
+          repsInReserve: t1Amrap(t1[0].exerciseId)?.repsInReserve ?? null,
+        },
         t2: { reps: w.sets.filter((s) => s.tier === "T2").map((s) => s.actualReps) },
         t3: { lastReps: w.sets.filter((s) => s.tier === "T3").at(-1)!.actualReps },
       };
@@ -427,7 +431,7 @@ describe("generateDemoData", () => {
           .map((w) => w.sets.find((s) => s.exerciseId === id && s.isAMRAP)!.actualReps)
           .slice(-5)
       );
-      expect(state.recentAvgRPEs).toHaveLength(gymT1.length);
+      expect(state.recentAvgRepsInReserve).toHaveLength(gymT1.length);
       // The next T1 weight is above the last one lifted.
       const lastSet = lastT1.sets.find((s) => s.exerciseId === id && s.tier === "T1")!;
       expect(state.t1Weight).toBeGreaterThan(lastSet.originalWeight ?? lastSet.weight);

@@ -65,7 +65,7 @@ class Live {
       this.clock += 3;
       const id = `${this.session.id}-set-${this.sets.length + 1}`;
       this.sets.push(
-        createSetLog({ exercise: entry, actualReps: entry.targetReps, rpe: null, location: "gym", autoRegulated: false, now: at(this.clock), id, clientId: id })
+        createSetLog({ exercise: entry, actualReps: entry.targetReps, repsInReserve: null, location: "gym", autoRegulated: false, now: at(this.clock), id, clientId: id })
       );
     }
   }

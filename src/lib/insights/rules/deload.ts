@@ -8,10 +8,10 @@ const OPTIONAL = "If you feel run down, an easier week is optional";
 /**
  * Fatigue signs from checkSystemicFatigue, using the e1RM trend only.
  *
- * The fatigue-detection rule's activation notes say RPE and AMRAP trends must be
+ * The fatigue-detection rule's activation notes say effort and AMRAP trends must be
  * compared at equal load (they rise and fall as the weight goes up every session)
  * "or use the estimated 1RM trend only". LiftState does not record the load behind
- * each RPE/AMRAP value, so those arrays are blanked before the check.
+ * each reps-left average or AMRAP value, so those arrays are blanked before the check.
  *
  * Returns the insights and the lifts they cover, so strength-stall does not repeat them.
  *
@@ -24,7 +24,7 @@ export function deloadInsights(ctx: InsightContext): { insights: Insight[]; cove
 
   const lifts: LiftState[] = ctx.liftStates
     .filter((l) => !l.deloadActive && (l.recentE1RMs?.length ?? 0) > 0)
-    .map((l) => ({ ...l, recentAvgRPEs: [], recentAMRAPReps: [] }))
+    .map((l) => ({ ...l, recentAvgRepsInReserve: [], recentAMRAPReps: [] }))
     .sort((a, b) => a.exerciseId.localeCompare(b.exerciseId));
 
   const alert = checkSystemicFatigue(lifts, phase);

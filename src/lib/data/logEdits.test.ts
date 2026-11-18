@@ -89,7 +89,7 @@ describe("commitLogChange: sets (E5)", () => {
       kind: "editSet",
       workoutId: first,
       setId: set.id,
-      patch: { actualReps: 2, rpe: 9 },
+      patch: { actualReps: 2, repsInReserve: "1-2" },
     });
 
     // The later squat day was lifted at 200 and passed: the next prescription stands.

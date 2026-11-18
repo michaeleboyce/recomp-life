@@ -109,9 +109,9 @@ function SessionRow({
           best
         </span>
       ) : (
-        session.rpe !== null && (
+        session.meanRepsInReserve !== null && (
           <span className="shrink-0 font-mono text-xs text-muted-foreground">
-            RPE {Number(session.rpe.toFixed(1))}
+            {Number(session.meanRepsInReserve.toFixed(1))} left
           </span>
         )
       )}

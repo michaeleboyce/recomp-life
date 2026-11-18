@@ -1,13 +1,14 @@
 // Plain-language definitions for the words and abbreviations the app uses.
 // Numbers come from the constants that drive the app, so the text cannot drift.
-import { T1_AMRAP_TARGET_RPE } from "@/lib/amrap";
+import { T1_AMRAP_TARGET_REPS_IN_RESERVE } from "@/lib/amrap";
 import { generateDeloadPrescription } from "@/lib/deload";
-import { E1RM_MAX_REPS, E1RM_MAX_REPS_IN_RESERVE } from "@/lib/e1rm";
+import { E1RM_MAX_REPS } from "@/lib/e1rm";
+import { REPS_IN_RESERVE_OPTIONS, RIR_ESTIMATE } from "@/lib/effort";
 import type { RuleId } from "@/lib/evidence";
 import {
   RESET_FACTOR,
   T2_AUTOREG_DROP,
-  T2_AUTOREG_RPE_THRESHOLD,
+  T2_AUTOREG_SUGGESTION,
   T3_INCREASE_REPS_MAX,
   T3_INCREASE_REPS_MIN,
   T3_INCREMENT_LBS,
@@ -26,7 +27,7 @@ export type TermId =
   | "gzclp" | "t1" | "t2" | "t3" | "rotation" | "sets-reps" | "amrap-plus" | "stage"
   | "fail-reset" | "freeze" | "working-weight" | "warm-up" | "accessory" | "substitute"
   | "gym-debt" | "rest-timer" | "deload"
-  | "amrap" | "rpe" | "rir" | "hard-set" | "autoregulation"
+  | "amrap" | "rir" | "hard-set" | "autoregulation"
   | "e1rm" | "pr" | "pr-chance" | "projection" | "weekly-sets"
   | "training-phase" | "rate-of-loss" | "counts-toward-progression";
 
@@ -44,7 +45,16 @@ export interface GlossaryEntry {
 export type GlossaryTheme = "Program" | "Effort" | "Progress" | "Body";
 
 const pct = (fraction: number) => `${Math.round(fraction * 100)}%`;
+/** 0.075 -> "7.5%": a drop size keeps its half percent. */
+const dropPct = (fraction: number) => `${Math.round(fraction * 1000) / 10}%`;
 const resetPct = pct(RESET_FACTOR);
+/** "0, 1-2 or 3+". */
+const answerList = `${REPS_IN_RESERVE_OPTIONS.slice(0, -1).join(", ")} or ${REPS_IN_RESERVE_OPTIONS[REPS_IN_RESERVE_OPTIONS.length - 1]}`;
+/** The phases in which a first T2 set with 1-2 left suggests one step down ("cutting"). */
+const stepPhases = Object.entries(T2_AUTOREG_SUGGESTION)
+  .filter(([, byAnswer]) => byAnswer["1-2"] === "step")
+  .map(([phase]) => phase)
+  .join(" or ");
 const stages = (scheme: Record<string, unknown>) => Object.keys(scheme).join(", then ");
 const t1Stages = stages(T1_STAGE_SCHEME);
 const t2Stages = stages(T2_STAGE_SCHEME);
@@ -109,7 +119,7 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
     term: "The \"+\" in 5x3+",
     aka: ["plus", "5x3+"],
     short: "The plus means the last set is an AMRAP: do the listed reps, then keep going if you have more in you.",
-    long: `A plus after the reps marks the last set as an AMRAP. On T1 stop with about one rep left (RPE ${T1_AMRAP_TARGET_RPE}); on T3 push close to failure. Those extra reps are how the app tracks your strength between weight increases.`,
+    long: `A plus after the reps marks the last set as an AMRAP. On T1 stop with ${T1_AMRAP_TARGET_REPS_IN_RESERVE} reps left; on T3 push close to failure. Those extra reps are how the app tracks your strength between weight increases.`,
     ruleId: "amrap-effort",
     seeAlso: ["amrap", "sets-reps", "e1rm"],
   },
@@ -186,54 +196,46 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
   deload: {
     term: "Deload",
     short: "A planned lighter stretch of training to let built-up fatigue clear before you push again.",
-    long: `When several lifts show signs of fatigue at once (estimates dropping, RPE climbing, AMRAP reps falling), a short deload helps. It cuts the weight by ${deloadCut}% while cutting and ${deloadOther}% otherwise, with easier effort. Your previous weights come back afterwards.`,
+    long: `When several lifts show signs of fatigue at once (estimates dropping, fewer reps left at the end of sets, AMRAP reps falling), a short deload helps. It cuts the weight by ${deloadCut}% while cutting and ${deloadOther}% otherwise, with easier effort. Your previous weights come back afterwards.`,
     ruleId: "deload",
-    seeAlso: ["rpe", "e1rm"],
+    seeAlso: ["rir", "e1rm"],
   },
   amrap: {
     term: "AMRAP",
     aka: ["as many reps as possible"],
     short: "As many reps as possible: on that set, keep going past the target until you have only a rep or so left.",
-    long: `AMRAP stands for "as many reps as possible". The last set of T1 and T3 is an AMRAP: T1 stops with about one rep left (RPE ${T1_AMRAP_TARGET_RPE}), T3 goes close to failure. The extra reps show how strong you are today and feed the estimated 1RM.`,
+    long: `AMRAP stands for "as many reps as possible". The last set of T1 and T3 is an AMRAP: T1 stops with ${T1_AMRAP_TARGET_REPS_IN_RESERVE} reps left, T3 goes close to failure. The extra reps show how strong you are today and feed the estimated 1RM.`,
     ruleId: "amrap-effort",
-    seeAlso: ["amrap-plus", "rpe", "e1rm"],
-  },
-  rpe: {
-    term: "RPE",
-    aka: ["effort", "rate of perceived exertion"],
-    short: "How hard a set felt on a 1 to 10 scale; 10 means you could not have done another rep.",
-    long: "RPE stands for rate of perceived exertion. RPE 10 is an all-out set, RPE 9 means one more rep was possible, RPE 8 two more. The app uses it to spot fatigue and, on T2, to suggest a lighter load.",
-    ruleId: "rpe-logging",
-    seeAlso: ["rir", "autoregulation", "hard-set"],
+    seeAlso: ["amrap-plus", "rir", "e1rm"],
   },
   rir: {
     term: "Reps in reserve",
-    aka: ["RIR", "reps left"],
-    short: "How many more reps you could have done when you stopped a set; RPE 8 means 2 in reserve.",
-    long: `Reps in reserve is the other side of RPE: 10 minus your RPE. The estimated 1RM adds them back, up to ${E1RM_MAX_REPS_IN_RESERVE}, so stopping a set early does not look like getting weaker.`,
-    ruleId: "rpe-logging",
-    seeAlso: ["rpe", "e1rm"],
+    aka: ["reps left", "effort"],
+    short: `How many more reps you could have done at the end of a set; the app asks it as ${answerList}.`,
+    long: `Reps in reserve is how many more reps you could have done when you stopped a set: ${REPS_IN_RESERVE_OPTIONS[0]} means you had nothing left. After a set the app can ask it, with three answers (${answerList}), and answering is optional. Fewer reps left means a harder set; the estimated 1RM adds them back (${RIR_ESTIMATE["1-2"]} for 1-2, ${RIR_ESTIMATE["3+"]} for 3+), so stopping a set early does not look like getting weaker. On T2, a very hard first set can bring a lighter-weight suggestion.`,
+    ruleId: "effort-logging",
+    seeAlso: ["autoregulation", "hard-set", "e1rm"],
   },
   "hard-set": {
     term: "Hard set",
     short: "A working set taken close to failure; warm-ups and very easy sets do not count.",
     long: "Hard sets are the ones that drive muscle growth, so weekly volume counts them rather than every set. Warm-ups and sets skipped for pain are left out. Failed sets still count: they were hard.",
     ruleId: "weekly-volume",
-    seeAlso: ["weekly-sets", "rpe"],
+    seeAlso: ["weekly-sets", "rir"],
   },
   autoregulation: {
     term: "Auto-regulation",
     aka: ["load drop"],
     short: "If the first T2 set feels very hard, the app offers a lighter weight for the rest of that exercise.",
-    long: `When your first T2 set is RPE ${T2_AUTOREG_RPE_THRESHOLD.cutting} or more while cutting (${T2_AUTOREG_RPE_THRESHOLD.maintaining} maintaining, ${T2_AUTOREG_RPE_THRESHOLD.bulking} bulking), the app suggests dropping ${pct(T2_AUTOREG_DROP.standard)}, or ${pct(T2_AUTOREG_DROP.max)} after an RPE 10 set. Accepting it freezes that lift for the day instead of counting a fail. You can always say no.`,
+    long: `When your first T2 set ends with nothing left, the app suggests dropping ${dropPct(T2_AUTOREG_DROP.max)} (at least ${T2_AUTOREG_DROP.stepLbs} lbs) for the remaining sets. While ${stepPhases}, 1-2 reps left also brings a suggestion: one ${T2_AUTOREG_DROP.stepLbs} lb step down. Accepting it freezes that lift for the day instead of counting a fail. You can always say no.`,
     ruleId: "t2-autoregulation",
-    seeAlso: ["rpe", "t2", "freeze"],
+    seeAlso: ["rir", "t2", "freeze"],
   },
   e1rm: {
     term: "Estimated 1RM",
     aka: ["e1RM", "1RM", "est. 1RM", "one-rep max"],
     short: "A calculated guess at the most you could lift once, worked out from a set of several reps.",
-    long: `1RM means one-rep max. Rather than testing it, the app estimates it from your sets with the Epley formula: weight times (1 + reps / 30), adding any reps in reserve you logged. Sets of more than ${E1RM_MAX_REPS} reps are left out because the estimate gets unreliable.`,
+    long: `1RM means one-rep max. Rather than testing it, the app estimates it from your sets with the Epley formula: weight times (1 + reps / 30), adding the reps you said you had left. Sets of more than ${E1RM_MAX_REPS} reps are left out because the estimate gets unreliable.`,
     ruleId: "e1rm-estimate",
     seeAlso: ["pr", "rir", "projection"],
   },
@@ -299,7 +301,7 @@ export const GLOSSARY_THEMES: Record<GlossaryTheme, TermId[]> = {
     "freeze", "working-weight", "warm-up", "accessory", "substitute", "gym-debt",
     "rest-timer", "deload", "counts-toward-progression",
   ],
-  Effort: ["amrap", "rpe", "rir", "hard-set", "autoregulation"],
+  Effort: ["amrap", "rir", "hard-set", "autoregulation"],
   Progress: ["e1rm", "pr", "pr-chance", "projection", "weekly-sets"],
   Body: ["training-phase", "rate-of-loss"],
 };

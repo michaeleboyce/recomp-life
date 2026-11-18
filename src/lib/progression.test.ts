@@ -7,16 +7,21 @@ import {
   evaluateT2Progression,
   evaluateT3Progression,
   evaluateT2AutoRegulation,
+  T2_AUTOREG_DROP,
+  T2_AUTOREG_SUGGESTION,
   t3IncreaseThreshold,
   T3_INCREASE_REPS_MAX,
   T3_INCREASE_REPS_MIN,
   T3_TARGET_REPS,
 } from "./progression";
+import { REPS_IN_RESERVE_OPTIONS } from "./effort";
 import type {
   LiftState,
   SetLog,
   EquipmentProfile,
   WorkoutLocation,
+  RepsInReserve,
+  TrainingPhase,
 } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -44,7 +49,7 @@ function makeLiftState(overrides: Partial<LiftState> = {}): LiftState {
     preDeloadT2Weight: null,
     t2LoadDropCount: 0,
     recentE1RMs: [],
-    recentAvgRPEs: [],
+    recentAvgRepsInReserve: [],
     recentAMRAPReps: [],
     synced: false,
     ...overrides,
@@ -517,59 +522,82 @@ describe("evaluateT3Progression", () => {
 });
 
 describe("evaluateT2AutoRegulation", () => {
-  it("RPE 9.0 on T2 Set 1 in cutting -> suggests 5% drop", () => {
-    const result = evaluateT2AutoRegulation(9.0, { mode: "cutting" }, 100);
-    expect(result.action).toBe("suggest_drop");
-    expect(result.reducedWeight).toBe(95);
-    expect(result.progressionEffect).toBe("freeze");
+  const PHASES: TrainingPhase["mode"][] = ["cutting", "maintaining", "bulking"];
+
+  // Every phase x answer at 185 lb: "0" is the larger drop everywhere, "1-2" is a
+  // one-step drop only on a cut, "3+" never suggests anything.
+  const EXPECTED_AT_185: Record<TrainingPhase["mode"], Record<RepsInReserve, number | null>> = {
+    cutting: { "0": 170, "1-2": 180, "3+": null },
+    maintaining: { "0": 170, "1-2": null, "3+": null },
+    bulking: { "0": 170, "1-2": null, "3+": null },
+  };
+
+  for (const mode of PHASES) {
+    for (const answer of REPS_IN_RESERVE_OPTIONS) {
+      const expected = EXPECTED_AT_185[mode][answer];
+      it(`${mode}, "${answer}" left on set 1 at 185 lb -> ${expected ?? "continue"}`, () => {
+        const result = evaluateT2AutoRegulation(answer, { mode }, 185);
+        if (expected === null) {
+          expect(result).toEqual({ action: "continue" });
+        } else {
+          expect(result.action).toBe("suggest_drop");
+          expect(result.reducedWeight).toBe(expected);
+          expect(result.progressionEffect).toBe("freeze");
+          expect(result.evidenceId).toBe("t2-autoregulation");
+          expect(result.message).toContain(`${answer} left`);
+          expect(result.message).toContain(`${expected} lbs`);
+        }
+      });
+    }
+  }
+
+  it("follows the phase table for every phase and answer", () => {
+    for (const mode of PHASES) {
+      for (const answer of REPS_IN_RESERVE_OPTIONS) {
+        const result = evaluateT2AutoRegulation(answer, { mode }, 185);
+        expect(result.action === "suggest_drop").toBe(T2_AUTOREG_SUGGESTION[mode][answer] !== null);
+      }
+    }
   });
 
-  it("RPE 10 on T2 Set 1 in cutting -> suggests 10% drop", () => {
-    const result = evaluateT2AutoRegulation(10, { mode: "cutting" }, 100);
-    expect(result.action).toBe("suggest_drop");
-    expect(result.reducedWeight).toBe(90);
-    expect(result.progressionEffect).toBe("freeze");
+  it('"0" at lighter weights: 115 -> 105, 75 -> 70', () => {
+    for (const mode of PHASES) {
+      expect(evaluateT2AutoRegulation("0", { mode }, 115).reducedWeight).toBe(105);
+      expect(evaluateT2AutoRegulation("0", { mode }, 75).reducedWeight).toBe(70);
+    }
   });
 
-  it("RPE 9.0 in bulking -> no suggestion (threshold is 10)", () => {
-    const result = evaluateT2AutoRegulation(9.0, { mode: "bulking" }, 100);
-    expect(result.action).toBe("continue");
+  it('a "max" drop is never smaller than the 5 lb step', () => {
+    for (let w = 10; w <= 500; w += 5) {
+      const result = evaluateT2AutoRegulation("0", { mode: "cutting" }, w);
+      expect(result.action).toBe("suggest_drop");
+      expect(w - result.reducedWeight!).toBeGreaterThanOrEqual(T2_AUTOREG_DROP.stepLbs);
+    }
   });
 
-  it("RPE not logged -> no intervention", () => {
-    const result = evaluateT2AutoRegulation(null, { mode: "cutting" }, 100);
-    expect(result.action).toBe("continue");
+  it("a suggestion always lowers the weight and never to zero or less", () => {
+    for (const mode of PHASES) {
+      for (const answer of REPS_IN_RESERVE_OPTIONS) {
+        for (let w = 0; w <= 300; w += 5) {
+          const result = evaluateT2AutoRegulation(answer, { mode }, w);
+          if (result.action === "suggest_drop") {
+            expect(result.reducedWeight!).toBeLessThan(w);
+            expect(result.reducedWeight!).toBeGreaterThan(0);
+          }
+        }
+      }
+    }
   });
 
-  it("reduced weight rounds to nearest 5", () => {
-    // 5% of 135 = 6.75, 135 - 6.75 = 128.25, round to 130
-    const result = evaluateT2AutoRegulation(9.0, { mode: "cutting" }, 135);
-    expect(result.action).toBe("suggest_drop");
-    expect(result.reducedWeight).toBe(130);
+  it("continues rather than suggest zero at the lightest weight", () => {
+    expect(evaluateT2AutoRegulation("0", { mode: "cutting" }, 5).action).toBe("continue");
+    expect(evaluateT2AutoRegulation("1-2", { mode: "cutting" }, 5).action).toBe("continue");
   });
 
-  it("RPE 9.5 in maintaining -> suggests 5% drop (threshold 9.5)", () => {
-    const result = evaluateT2AutoRegulation(9.5, { mode: "maintaining" }, 200);
-    expect(result.action).toBe("suggest_drop");
-    expect(result.reducedWeight).toBe(190);
-    expect(result.progressionEffect).toBe("freeze");
-  });
-
-  it("RPE 9.0 in maintaining -> no suggestion (below 9.5 threshold)", () => {
-    const result = evaluateT2AutoRegulation(9.0, { mode: "maintaining" }, 200);
-    expect(result.action).toBe("continue");
-  });
-
-  it("RPE 10 in maintaining -> suggests 10% drop", () => {
-    const result = evaluateT2AutoRegulation(10, { mode: "maintaining" }, 200);
-    expect(result.action).toBe("suggest_drop");
-    expect(result.reducedWeight).toBe(180);
-  });
-
-  it("RPE 10 in bulking -> suggests 10% drop (at threshold)", () => {
-    const result = evaluateT2AutoRegulation(10, { mode: "bulking" }, 200);
-    expect(result.action).toBe("suggest_drop");
-    expect(result.reducedWeight).toBe(180);
+  it("no answer -> continue, in every phase", () => {
+    for (const mode of PHASES) {
+      expect(evaluateT2AutoRegulation(null, { mode }, 185)).toEqual({ action: "continue" });
+    }
   });
 });
 

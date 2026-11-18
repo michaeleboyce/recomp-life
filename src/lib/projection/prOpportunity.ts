@@ -1,7 +1,13 @@
 // PR opportunity: how many reps at a given weight would raise a lift's best
 // estimated 1RM, and how reachable that is. Pure functions.
-import { calculateE1RM, E1RM_MAX_REPS, isE1RMEligibleSet } from "@/lib/e1rm";
-import type { Tier } from "@/types";
+import {
+  calculateE1RM,
+  E1RM_MAX_REPS,
+  E1RM_MAX_REPS_IN_RESERVE,
+  isE1RMEligibleSet,
+} from "@/lib/e1rm";
+import { repsInReserveCredit } from "@/lib/effort";
+import type { RepsInReserve, Tier } from "@/types";
 
 export type PrChance = "likely" | "stretch" | "unlikely" | "unknown";
 
@@ -40,19 +46,28 @@ function isPositiveFinite(value: number): boolean {
  * strictly above `bestE1RM`, with that estimate; null when none does or inputs are
  * not positive and finite.
  *
- * Without `rpe` the estimate is taken as an all-out set: a logged RPE below 10 would
- * only raise it. With `rpe` it is the fewest reps logged at that effort, the reps left
- * in reserve counted exactly as `calculateE1RM` counts them. `calculateE1RM` gives no
- * estimate for a single, so the answer is never 1 rep.
+ * Without `repsInReserve` the estimate is taken as an all-out set: an answer with reps
+ * left would only raise it. With an answer it is the fewest reps logged with that
+ * answer, the reps left counted exactly as `calculateE1RM` counts them. A number is a
+ * credit in reps (as `usualEffortCredit` gives, which can be fractional), clamped to
+ * 0..E1RM_MAX_REPS_IN_RESERVE. The reps returned are always a whole number.
+ * `calculateE1RM` gives no estimate for a single, so the answer is never 1 rep.
  */
 export function repsToBeat(
   weight: number,
   bestE1RM: number,
-  rpe?: number | null
+  repsInReserve?: RepsInReserve | number | null
 ): { reps: number; e1rm: number } | null {
   if (!isPositiveFinite(weight) || !isPositiveFinite(bestE1RM)) return null;
-  for (let reps = 1; reps <= E1RM_MAX_REPS; reps++) {
-    const e1rm = calculateE1RM(weight, reps, rpe);
+  const credit =
+    typeof repsInReserve === "number"
+      ? Number.isFinite(repsInReserve)
+        ? Math.min(Math.max(repsInReserve, 0), E1RM_MAX_REPS_IN_RESERVE)
+        : 0
+      : repsInReserveCredit(repsInReserve);
+  for (let reps = 2; reps <= E1RM_MAX_REPS; reps++) {
+    // The credit added to the reps before the formula, as calculateE1RM adds an answer's.
+    const e1rm = calculateE1RM(weight, reps + credit);
     if (e1rm !== null && e1rm > bestE1RM) return { reps, e1rm };
   }
   return null;

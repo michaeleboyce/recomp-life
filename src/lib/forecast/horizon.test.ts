@@ -119,10 +119,10 @@ describe("e1rmResults", () => {
     expect(results.get("bench")!.map((p) => p.v)).toEqual([calculateE1RM(150, 6)]);
   });
 
-  it("credits a logged RPE, as the stored estimate does", () => {
+  it("credits a logged reps-left answer, as the stored estimate does", () => {
     const [workout] = squatHistory([[1, 5]]);
-    workout.sets[4] = { ...workout.sets[4], rpe: 8 };
-    expect(e1rmResults([workout]).get("squat")![0].v).toBe(calculateE1RM(200, 5, 8));
+    workout.sets[4] = { ...workout.sets[4], repsInReserve: "1-2" };
+    expect(e1rmResults([workout]).get("squat")![0].v).toBe(calculateE1RM(200, 5, "1-2"));
   });
 
   it("skips deleted workouts, home substitutes and sets too long to estimate from", () => {

@@ -9,6 +9,7 @@ import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type {
   Estimated1RM,
   LiftState,
+  RepsInReserve,
   SetLog,
   Tier,
   UserProfile,
@@ -120,7 +121,7 @@ export interface ScriptedSession {
   lastReps?: Partial<Record<Tier, number>>;
   /** How many sets of a tier are logged; default all of them. */
   setsLogged?: Partial<Record<Tier, number>>;
-  rpe?: number;
+  repsInReserve?: RepsInReserve;
   /** Leave the workout unfinished. */
   skipFinish?: boolean;
 }
@@ -173,7 +174,7 @@ export async function runSession(
         createSetLog({
           exercise: { ...entry, completedSets: i },
           actualReps: (isLast ? script.lastReps?.[entry.tier] : undefined) ?? entry.targetReps,
-          rpe: script.rpe ?? null,
+          repsInReserve: script.repsInReserve ?? null,
           location,
           autoRegulated: false,
           now: new Date(time),

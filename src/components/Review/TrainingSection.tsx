@@ -42,7 +42,7 @@ export function TrainingSection({ review }: { review: WeeklyReview }) {
         <ListRow
           title={
             <>
-              T1 effort, mean <Term id="rpe">RPE</Term>
+              T1 sets, average <Term id="rir">reps left</Term>
             </>
           }
           subtitle={
@@ -50,10 +50,10 @@ export function TrainingSection({ review }: { review: WeeklyReview }) {
               ? plural(effort.sets, "set")
               : `${plural(effort.sets, "set")} · ${effort.previous.toFixed(1)} the week before`
           }
-          value={effort.meanRpe.toFixed(1)}
+          value={effort.meanRepsInReserve.toFixed(1)}
           valueSub={
             effort.previous === null ? undefined : (
-              <Delta value={Number((effort.meanRpe - effort.previous).toFixed(1))} />
+              <Delta value={Number((effort.meanRepsInReserve - effort.previous).toFixed(1))} />
             )
           }
         />

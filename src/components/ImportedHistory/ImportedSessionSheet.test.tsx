@@ -47,7 +47,7 @@ describe("ImportedSessionSheet", () => {
     const sets = within(press).getAllByTestId("imported-set");
     expect(sets).toHaveLength(3);
     expect(sets[0]).toHaveTextContent(/30 lb × 2.*12 reps.*Warm-up/);
-    expect(sets[1]).toHaveTextContent(/50 lb × 2.*10 reps.*Hard, about RPE 9/);
+    expect(sets[1]).toHaveTextContent(/50 lb × 2.*10 reps.*Hard, about 1-2 reps left/);
     expect(sets[2]).toHaveTextContent(/40 lb × 2.*8 reps.*Drop/);
 
     expect(sections[1]).toHaveTextContent("Counts as Lat Pulldown");

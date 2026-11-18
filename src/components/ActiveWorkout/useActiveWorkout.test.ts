@@ -8,7 +8,7 @@ import { appendSet, startWorkout, type StartWorkoutInput } from "@/lib/data/work
 import { evaluateT1Progression, evaluateT2Progression } from "@/lib/progression";
 import { substituteModification } from "@/lib/workout";
 import { useWorkoutStore } from "@/stores/workoutStore";
-import type { LiftState } from "@/types";
+import type { LiftState, RepsInReserve } from "@/types";
 import { LOG_TAP_GUARD_MS, useActiveWorkout } from "./useActiveWorkout";
 
 const describePrOpportunity = vi.hoisted(() => vi.fn());
@@ -42,10 +42,11 @@ async function mount(sessionId: string) {
 type Hook = Awaited<ReturnType<typeof mount>>;
 
 /** Logs the set on screen (at target unless told otherwise) and skips any rest. */
-async function logSet(hook: Hook, options: { reps?: number; rpe?: number } = {}) {
+async function logSet(hook: Hook, options: { reps?: number; repsInReserve?: RepsInReserve } = {}) {
   const before = hook.result.current.sets.length;
   if (options.reps != null) act(() => hook.result.current.setSelectedReps(options.reps!));
-  if (options.rpe != null) act(() => hook.result.current.setSelectedRPE(options.rpe!));
+  if (options.repsInReserve != null)
+    act(() => hook.result.current.setSelectedRepsInReserve(options.repsInReserve!));
   await act(() => hook.result.current.logSet());
   await waitFor(() => expect(hook.result.current.sets.length).toBe(before + 1));
   await waitFor(() => expect(hook.result.current.isSaving).toBe(false));
@@ -125,7 +126,7 @@ describe("a full A1 workout at the gym with warm-ups", () => {
         restAfterSeconds: 0,
         synced: false,
       });
-      expect(set.rpe).toBeUndefined();
+      expect(set.repsInReserve).toBeUndefined();
       expect(set.originalWeight).toBeUndefined();
     }
 
@@ -156,7 +157,7 @@ describe("a full A1 workout at the gym with warm-ups", () => {
       ...evaluateT1Progression(before.squat, squatSets, "gym", equipment, "lower"),
       t1LastWorkoutDate: workout.completedAt,
       recentE1RMs: [209],
-      recentAvgRPEs: [],
+      recentAvgRepsInReserve: [],
       recentAMRAPReps: [3],
       synced: true,
     });
@@ -164,7 +165,7 @@ describe("a full A1 workout at the gym with warm-ups", () => {
       ...evaluateT2Progression(before.bench, benchSets, "gym", equipment, "upper"),
       t2LastWorkoutDate: workout.completedAt,
       recentE1RMs: [],
-      recentAvgRPEs: [],
+      recentAvgRepsInReserve: [],
       recentAMRAPReps: [],
       synced: true,
     });
@@ -177,25 +178,25 @@ describe("a full A1 workout at the gym with warm-ups", () => {
     expect(after.ohp).toEqual(before.ohp);
   });
 
-  it("records RPE and uses it for the e1RM estimate", async () => {
+  it("records the reps-left answer and uses it for the e1RM estimate", async () => {
     const sessionId = await start({ includeWarmUps: false });
     const hook = await mount(sessionId);
-    for (let i = 0; i < 4; i++) await logSet(hook, { rpe: 8 });
-    await logSet(hook, { reps: 5, rpe: 9 });
+    for (let i = 0; i < 4; i++) await logSet(hook, { repsInReserve: "3+" });
+    await logSet(hook, { reps: 5, repsInReserve: "1-2" });
 
-    // 5 reps at RPE 9 = 1 rep in reserve: round(190 * (1 + 6 / 30)) = 228.
+    // 5 reps with "1-2" left count as 6.5: round(190 * (1 + 6.5 / 30)) = 231.
     const e1rms = await db.estimated1RMs.toArray();
-    expect(e1rms.map((e) => e.estimated1RM)).toEqual([228]);
-    expect(hook.result.current.e1rmFlash).toBe(228);
+    expect(e1rms.map((e) => e.estimated1RM)).toEqual([231]);
+    expect(hook.result.current.e1rmFlash).toBe(231);
 
     await logEverything(hook);
     await act(async () => {
       await hook.result.current.finish();
     });
     const squat = (await liftStatesById()).squat;
-    expect(squat.recentAvgRPEs).toEqual([(8 * 4 + 9) / 5]);
+    expect(squat.recentAvgRepsInReserve).toEqual([(3 * 4 + 1.5) / 5]);
     expect(squat.recentAMRAPReps).toEqual([5]);
-    expect(squat.recentE1RMs).toEqual([228]);
+    expect(squat.recentE1RMs).toEqual([231]);
   });
 
   it("marks a set below target as failed and moves the T1 stage on finish", async () => {
@@ -481,8 +482,8 @@ describe("T2 auto-regulation", () => {
     const hook = await reachBench(sessionId);
     expect(hook.result.current.dropSuggestion).toBeNull();
 
-    await logSet(hook, { rpe: 9 });
-    expect(hook.result.current.dropSuggestion).toEqual({ reducedWeight: 95, rpe: 9 });
+    await logSet(hook, { repsInReserve: "1-2" });
+    expect(hook.result.current.dropSuggestion).toEqual({ reducedWeight: 95, repsInReserve: "1-2" });
 
     act(() => hook.result.current.acceptDrop());
     expect(hook.result.current.dropSuggestion).toBeNull();
@@ -510,7 +511,7 @@ describe("T2 auto-regulation", () => {
   it("an accepted drop survives a reload", async () => {
     const sessionId = await start({ includeWarmUps: false });
     const first = await reachBench(sessionId);
-    await logSet(first, { rpe: 9 });
+    await logSet(first, { repsInReserve: "1-2" });
     act(() => first.result.current.acceptDrop());
     await logSet(first);
     first.unmount();
@@ -534,7 +535,7 @@ describe("T2 auto-regulation", () => {
   it("keeps the weight when the suggestion is declined, and offers it again after a reload", async () => {
     const sessionId = await start({ includeWarmUps: false });
     const first = await reachBench(sessionId);
-    await logSet(first, { rpe: 9.5 });
+    await logSet(first, { repsInReserve: "0" });
     act(() => first.result.current.keepWeight());
     expect(first.result.current.dropSuggestion).toBeNull();
     expect(first.result.current.entry?.weight).toBe(100);
@@ -542,15 +543,15 @@ describe("T2 auto-regulation", () => {
     useWorkoutStore.getState().reset();
 
     const second = await mount(sessionId);
-    expect(second.result.current.dropSuggestion).toEqual({ reducedWeight: 95, rpe: 9.5 });
+    expect(second.result.current.dropSuggestion).toEqual({ reducedWeight: 95, repsInReserve: "0" });
     await logSet(second);
     expect(second.result.current.sets.at(-1)).toMatchObject({ weight: 100, status: "completed" });
     expect(second.result.current.dropSuggestion).toBeNull();
   });
 
-  it("makes no suggestion below the phase threshold", async () => {
+  it("makes no suggestion when the first set left plenty", async () => {
     const hook = await reachBench(await start({ includeWarmUps: false }));
-    await logSet(hook, { rpe: 8.5 });
+    await logSet(hook, { repsInReserve: "3+" });
     expect(hook.result.current.dropSuggestion).toBeNull();
   });
 });

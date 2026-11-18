@@ -167,13 +167,13 @@ describe("makeSessionForecasts", () => {
   it("counts the usual effort credit when the earlier last sets were logged with one", () => {
     const logged = squats.map((workout) => ({
       ...workout,
-      sets: workout.sets.map((set) => ({ ...set, rpe: 8 })),
+      sets: workout.sets.map((set) => ({ ...set, repsInReserve: "1-2" as const })),
     }));
     const credited = byKind(makeSessionForecasts(session, plan, { ...source, workouts: logged }));
-    const needed = repsToBeat(225, 255, 8)!.reps;
+    const needed = repsToBeat(225, 255, "1-2")!.reps;
     expect(needed).toBeLessThan(repsToBeat(225, 255)!.reps);
     expect(credited.newBest.event).toEqual({ type: "e1rmAbove", weight: 225, level: 255 });
-    expect(credited.newBest.inputs).toMatchObject({ repsNeeded: needed, effortCredit: 2 });
+    expect(credited.newBest.inputs).toMatchObject({ repsNeeded: needed, effortCredit: 1.5 });
     expect(credited.newBest.prediction.probability).toBeCloseTo(
       sum(credited.amrapReps.prediction.pmf!.slice(needed, E1RM_MAX_REPS + 1)),
       12

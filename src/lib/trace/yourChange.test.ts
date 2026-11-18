@@ -67,7 +67,7 @@ function perform(plan: WorkoutPlan, location: WorkoutLocation): SetLog[] {
         createSetLog({
           exercise: { ...entry, completedSets: done },
           actualReps: entry.targetReps,
-          rpe: null,
+          repsInReserve: null,
           location,
           autoRegulated: false,
           now: NOW,

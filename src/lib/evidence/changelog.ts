@@ -68,6 +68,41 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
   },
   {
     date: "2026-11-18",
+    ruleId: "effort-logging",
+    change:
+      "The effort rating is now one optional question, \"How many more reps could you have done?\", with three answers (0, 1-2 or 3+), in place of a 6 to 10 effort score. Self-ratings are off by about one rep on average, so finer answers would not be more accurate.",
+    sources: ["halperin2022"],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "t2-autoregulation",
+    change:
+      "The lighter-weight suggestion now reads the first T2 set's reps left. Nothing left suggests a 7.5% drop (never less than one 5 lb step) in every phase, down from 10%; while cutting, 1-2 left suggests one 5 lb step down, in place of a 5% drop, and now also appears at 2 reps left. While maintaining, \"maybe one more rep\" no longer brings a suggestion. The drops were made smaller as a deliberate choice, not because of new research; the sizes and the split by phase are graded as coaching heuristics.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "e1rm-estimate",
+    change:
+      "The reps added for effort before the formula are now 0, 1.5 or 3 for the answers 0, 1-2 and 3+, in place of 10 minus the effort score (up to 4). An estimate from a 3+ set is a lower bound.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "amrap-effort",
+    change:
+      "The last T1 set now asks you to stop with 1-2 reps left, in the same words as the effort question, in place of about 1 rep left on the old effort score.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "import-effort-words",
+    change:
+      "Effort words from other apps now map to an answer for reps left in place of an effort score: Max, Failure and Failed to 0; Ideal, Moderate and Hard to 1-2; Easy to 3+. A set with no word is still read as taken to its limit.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
     ruleId: "t3-progression",
     change:
       "T3 weight used to go up when the last set reached a flat 25 reps, for every exercise. It now goes up when the last set shows you could still do the target reps at the next weight, by the app's rep formula: 18 to 25 reps depending on the size of the step (for example 18 for a 120 lb pulldown going up 5 lb, 24 for a 25 lb dumbbell). The threshold is graded heuristic; past sessions are re-read under it. The exercise page, the workout's last T3 set, What it did and the why sheet show each exercise's own number.",
@@ -98,7 +133,7 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     date: "2026-11-17",
     ruleId: "import-effort-words",
     change:
-      "Switched on: an imported session's detail, opened from the Log or a lift's session list, shows each set's effort word with the approximate RPE it is read as.",
+      "Switched on: an imported session's detail, opened from the Log or a lift's session list, shows each set's effort word with the effort it is read as.",
     sources: [],
   },
   {
@@ -168,7 +203,7 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     date: "2026-11-16",
     ruleId: "import-effort-words",
     change:
-      "Added as a planned rule (not active yet): effort words in another app's export (Easy, Ideal, Hard and others) are read as an approximate RPE when imported sets feed the strength estimate.",
+      "Added as a planned rule (not active yet): effort words in another app's export (Easy, Ideal, Hard and others) are read as an approximate effort rating when imported sets feed the strength estimate.",
     sources: [],
   },
   {
@@ -322,7 +357,7 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     date: "2026-11-12",
     ruleId: "fatigue-detection",
     change:
-      "Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or the reps on the last set, taken to as many as you can), and an easier week is offered as optional.",
+      "Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not effort ratings or the reps on the last set, taken to as many as you can), and an easier week is offered as optional.",
     sources: [],
   },
   {
@@ -406,7 +441,7 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     date: "2026-11-11",
     ruleId: "e1rm-estimate",
     change:
-      "Estimated 1RM now accounts for logged RPE and uses only T1 sets of 10 reps or fewer. The trend arrow was also corrected: it had been reading the history backwards.",
+      "Estimated 1RM now accounts for a logged effort rating and uses only T1 sets of 10 reps or fewer. The trend arrow was also corrected: it had been reading the history backwards.",
     sources: ["nuzzo2024", "halperin2022"],
   },
   {

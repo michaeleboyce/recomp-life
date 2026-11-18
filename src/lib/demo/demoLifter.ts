@@ -11,7 +11,7 @@ const DEMO_LIFT_DEFAULTS = {
   t1LastWorkoutDate: null, t2LastWorkoutDate: null,
   deloadActive: false, deloadSessionsRemaining: 0,
   preDeloadT1Weight: null, preDeloadT2Weight: null,
-  t2LoadDropCount: 0, recentE1RMs: [] as number[], recentAvgRPEs: [] as number[], recentAMRAPReps: [] as number[],
+  t2LoadDropCount: 0, recentE1RMs: [] as number[], recentAvgRepsInReserve: [] as number[], recentAMRAPReps: [] as number[],
 } as const;
 
 /** The demo lifter's starting weights and stages, one state per program lift. */

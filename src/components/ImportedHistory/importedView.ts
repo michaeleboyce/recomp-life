@@ -4,7 +4,7 @@
 // screen's remembered choices, win over the mapping stored with each set).
 import { formatDuration, liftName } from "@/components/LogEdit/format";
 import { EXERCISES } from "@/lib/exercises";
-import { effortRpe, liftedWeight, resolveImportedSet } from "@/lib/import/evidence";
+import { effortRepsInReserve, liftedWeight, resolveImportedSet } from "@/lib/import/evidence";
 import { implementsForExercise, implementsForName, type MappingOverrides } from "@/lib/import/mapping";
 import { formatLb } from "@/lib/import/preview";
 import { SOURCE_APP_NAMES } from "@/lib/import/records";
@@ -115,15 +115,15 @@ function amountOf(set: Pick<ImportedSetRecord, "reps" | "durationSec" | "distanc
 }
 
 /**
- * The effort word as the file wrote it, with the approximate RPE the app reads it as
- * (`effortRpe`, the import-effort-words rule): "Hard, about RPE 9". A word the app does
- * not know is shown as written.
+ * The effort word as the file wrote it, with the reps left the app reads it as
+ * (`effortRepsInReserve`, the import-effort-words rule): "Hard, about 1-2 reps left". A
+ * word the app does not know is shown as written.
  */
 function effortText(word: string | null): string | null {
   const text = word?.trim();
   if (!text) return null;
-  const rpe = effortRpe(text);
-  return rpe === null ? text : `${text}, about RPE ${rpe}`;
+  const repsInReserve = effortRepsInReserve(text);
+  return repsInReserve === null ? text : `${text}, about ${repsInReserve} reps left`;
 }
 
 export interface ImportedSetView {

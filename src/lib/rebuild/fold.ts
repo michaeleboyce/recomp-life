@@ -71,7 +71,7 @@ export function emptyLiftState(exerciseId: string): LiftState {
     preDeloadT2Weight: null,
     t2LoadDropCount: 0,
     recentE1RMs: [],
-    recentAvgRPEs: [],
+    recentAvgRepsInReserve: [],
     recentAMRAPReps: [],
     synced: true,
   };
@@ -370,7 +370,7 @@ function sortedStates(states: Map<string, LiftState>): LiftState[] {
     .map((state) => ({
       ...normalise(state),
       recentE1RMs: [...(state.recentE1RMs ?? [])],
-      recentAvgRPEs: [...(state.recentAvgRPEs ?? [])],
+      recentAvgRepsInReserve: [...(state.recentAvgRepsInReserve ?? [])],
       recentAMRAPReps: [...(state.recentAMRAPReps ?? [])],
     }))
     .sort((a, b) => compareStrings(a.exerciseId, b.exerciseId));

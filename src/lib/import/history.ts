@@ -4,7 +4,7 @@
  *
  * Per exercise, one entry per imported session: its estimated max by the app's own
  * formula and limits (`sessionEstimates`: warm-ups and drops never give one, an effort
- * word is read as `effortRpe` reads it), its heaviest working set, its volume. The points
+ * word is read as `effortRepsInReserve` reads it), its heaviest working set, its volume. The points
  * built from them are marked `imported`, so a chart can draw them apart and a best
  * among them is never taken for a new best in the app: the new-best chances, the
  * forecasts and the program itself read the app's own workouts only.

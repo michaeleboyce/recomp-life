@@ -95,7 +95,7 @@ export const MODELS: readonly ModelDef[] = [
       "rest-heavy",
       "rest-light",
       "rest-cut-bonus",
-      "rpe-logging",
+      "effort-logging",
       "t2-autoregulation",
       "amrap-effort",
     ],

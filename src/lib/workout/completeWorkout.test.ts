@@ -87,8 +87,8 @@ const byId = (updates: LiftState[], id: string) => updates.find((u) => u.exercis
 describe("computeCompletion: pass", () => {
   it("progresses T1 and T2 and fills the tracking arrays", () => {
     const sets = [
-      ...squatT1(5, { rpe: 8 }),
-      ...benchT2({ rpe: 7 }),
+      ...squatT1(5, { repsInReserve: "1-2" }),
+      ...benchT2({ repsInReserve: "3+" }),
       ...latT3(),
     ];
     const seeded = seedLiftStates();
@@ -108,7 +108,7 @@ describe("computeCompletion: pass", () => {
       t1FailCount: 0,
       t1LastWorkoutDate: NOW,
       recentE1RMs: [214, 216, 218, 220, 222],
-      recentAvgRPEs: [8],
+      recentAvgRepsInReserve: [1.5],
       recentAMRAPReps: [5],
       synced: false,
     });
@@ -120,7 +120,7 @@ describe("computeCompletion: pass", () => {
       t2FailCount: 0,
       t2LastWorkoutDate: NOW,
       recentE1RMs: [130],
-      recentAvgRPEs: [],
+      recentAvgRepsInReserve: [],
       recentAMRAPReps: [],
       synced: false,
     });
@@ -139,45 +139,45 @@ describe("computeCompletion: pass", () => {
 
   it("warm-up sets are not counted as T1 sets", () => {
     const session = makeSession({ includeWarmUps: true });
-    const warmUps = makeSets("squat", "warmup", 4, 5, { weight: 45, rpe: 2 });
+    const warmUps = makeSets("squat", "warmup", 4, 5, { weight: 45, repsInReserve: "3+" });
     const result = computeCompletion(
-      completion({ session, sets: [...warmUps, ...squatT1(4, { rpe: 8 })] })
+      completion({ session, sets: [...warmUps, ...squatT1(4, { repsInReserve: "1-2" })] })
     );
     const squat = byId(result.liftStateUpdates, "squat")!;
     expect(squat.t1Weight).toBe(200);
-    expect(squat.recentAvgRPEs).toEqual([8]);
+    expect(squat.recentAvgRepsInReserve).toEqual([1.5]);
   });
 
-  it("averages RPE over only the sets that have one, and keeps the last 5 entries", () => {
+  it("averages reps left over only the sets that have one, and keeps the last 5 entries", () => {
     const liftStates = seedLiftStates().map((ls) =>
       ls.exerciseId === "squat"
-        ? { ...ls, recentAvgRPEs: [6, 6.5, 7, 7.5, 8], recentAMRAPReps: [3, 4, 5, 6, 7] }
+        ? { ...ls, recentAvgRepsInReserve: [0, 1, 1.5, 2, 3], recentAMRAPReps: [3, 4, 5, 6, 7] }
         : ls
     );
     const sets = squatT1(4);
-    sets[0] = { ...sets[0], rpe: 7 };
-    sets[4] = { ...sets[4], rpe: 9 };
+    sets[0] = { ...sets[0], repsInReserve: "3+" };
+    sets[4] = { ...sets[4], repsInReserve: "1-2" };
     const squat = byId(computeCompletion(completion({ sets, liftStates })).liftStateUpdates, "squat")!;
-    expect(squat.recentAvgRPEs).toEqual([6.5, 7, 7.5, 8, 8]);
+    expect(squat.recentAvgRepsInReserve).toEqual([1, 1.5, 2, 3, 2.25]);
     expect(squat.recentAMRAPReps).toEqual([4, 5, 6, 7, 4]);
   });
 });
 
 describe("computeCompletion: effort history is T1-only", () => {
-  it("a T2 day leaves recentAvgRPEs and recentAMRAPReps exactly as stored", () => {
+  it("a T2 day leaves recentAvgRepsInReserve and recentAMRAPReps exactly as stored", () => {
     const liftStates = seedLiftStates().map((ls) =>
       ls.exerciseId === "bench"
-        ? { ...ls, recentAvgRPEs: [8, 8.5], recentAMRAPReps: [5, 4] }
+        ? { ...ls, recentAvgRepsInReserve: [1.5, 1], recentAMRAPReps: [5, 4] }
         : ls
     );
     // Even a T2 set flagged AMRAP (no real template has one) is not recorded.
-    const sets = benchT2({ rpe: 6 });
+    const sets = benchT2({ repsInReserve: "3+" });
     sets[2] = { ...sets[2], isAMRAP: true, actualReps: 14 };
     const bench = byId(computeCompletion(completion({ sets, liftStates })).liftStateUpdates, "bench")!;
     expect(bench).toMatchObject({
       t2Weight: 105,
       t2LastWorkoutDate: NOW,
-      recentAvgRPEs: [8, 8.5],
+      recentAvgRepsInReserve: [1.5, 1],
       recentAMRAPReps: [5, 4],
     });
   });
@@ -185,7 +185,7 @@ describe("computeCompletion: effort history is T1-only", () => {
   it("a T2 day still stores the e1RM series the caller looked up (it is built from T1 sets only)", () => {
     const bench = byId(
       computeCompletion(
-        completion({ sets: benchT2({ rpe: 6 }), recentE1RMsByExercise: { bench: [160, 162] } })
+        completion({ sets: benchT2({ repsInReserve: "3+" }), recentE1RMsByExercise: { bench: [160, 162] } })
       ).liftStateUpdates,
       "bench"
     )!;
@@ -196,29 +196,29 @@ describe("computeCompletion: effort history is T1-only", () => {
     const liftStates = seedLiftStates().map((ls) => {
       if (ls.exerciseId !== "bench") return ls;
       const legacy = { ...ls } as Partial<LiftState>;
-      delete legacy.recentAvgRPEs;
+      delete legacy.recentAvgRepsInReserve;
       delete legacy.recentAMRAPReps;
       return legacy as LiftState;
     });
     const bench = byId(
-      computeCompletion(completion({ sets: benchT2({ rpe: 6 }), liftStates })).liftStateUpdates,
+      computeCompletion(completion({ sets: benchT2({ repsInReserve: "3+" }), liftStates })).liftStateUpdates,
       "bench"
     )!;
-    expect(bench.recentAvgRPEs).toEqual([]);
+    expect(bench.recentAvgRepsInReserve).toEqual([]);
     expect(bench.recentAMRAPReps).toEqual([]);
   });
 });
 
-describe("computeCompletion: no RPE logged, no AMRAP set", () => {
-  it("leaves recentAvgRPEs as it was when no set has an RPE", () => {
+describe("computeCompletion: no reps left logged, no AMRAP set", () => {
+  it("leaves recentAvgRepsInReserve as it was when no set has an answer", () => {
     const liftStates = seedLiftStates().map((ls) =>
-      ls.exerciseId === "squat" ? { ...ls, recentAvgRPEs: [7.5] } : ls
+      ls.exerciseId === "squat" ? { ...ls, recentAvgRepsInReserve: [1.5] } : ls
     );
     const squat = byId(
       computeCompletion(completion({ sets: squatT1(5), liftStates })).liftStateUpdates,
       "squat"
     )!;
-    expect(squat.recentAvgRPEs).toEqual([7.5]);
+    expect(squat.recentAvgRepsInReserve).toEqual([1.5]);
     expect(squat.t1Weight).toBe(200);
   });
 
@@ -259,13 +259,13 @@ describe("computeCompletion: no RPE logged, no AMRAP set", () => {
     const liftStates = seedLiftStates().map((ls) => {
       if (ls.exerciseId !== "squat") return ls;
       const legacy = { ...ls } as Partial<LiftState>;
-      delete legacy.recentAvgRPEs;
+      delete legacy.recentAvgRepsInReserve;
       delete legacy.recentAMRAPReps;
       return legacy as LiftState;
     });
     const sets = makeSets("squat", "T1", 5, 3, { weight: 190 });
     const squat = byId(computeCompletion(completion({ sets, liftStates })).liftStateUpdates, "squat")!;
-    expect(squat.recentAvgRPEs).toEqual([]);
+    expect(squat.recentAvgRepsInReserve).toEqual([]);
     expect(squat.recentAMRAPReps).toEqual([]);
   });
 });
@@ -273,7 +273,7 @@ describe("computeCompletion: no RPE logged, no AMRAP set", () => {
 describe("computeCompletion: fail", () => {
   it("a failed T1 moves to the next stage at the same weight", () => {
     const squat = byId(
-      computeCompletion(completion({ sets: squatT1(2, { rpe: 10 }) })).liftStateUpdates,
+      computeCompletion(completion({ sets: squatT1(2, { repsInReserve: "0" }) })).liftStateUpdates,
       "squat"
     )!;
     expect(squat).toMatchObject({
@@ -282,7 +282,7 @@ describe("computeCompletion: fail", () => {
       t1FailCount: 1,
       t1LastWorkoutDate: NOW,
       recentAMRAPReps: [2],
-      recentAvgRPEs: [10],
+      recentAvgRepsInReserve: [0],
       synced: false,
     });
   });
@@ -319,14 +319,14 @@ describe("computeCompletion: fail", () => {
   });
 
   it("an accepted T2 load drop freezes the T2 weight but still records the date", () => {
-    const sets = benchT2({ status: "autoregulated_load_drop", rpe: 9 });
+    const sets = benchT2({ status: "autoregulated_load_drop", repsInReserve: "1-2" });
     const bench = byId(computeCompletion(completion({ sets })).liftStateUpdates, "bench")!;
     expect(bench).toMatchObject({
       t2Weight: 100,
       t2Stage: "3x10",
       t2FailCount: 0,
       t2LastWorkoutDate: NOW,
-      recentAvgRPEs: [],
+      recentAvgRepsInReserve: [],
       synced: false,
     });
   });
@@ -335,10 +335,10 @@ describe("computeCompletion: fail", () => {
 describe("computeCompletion: partial completion freezes progression", () => {
   it("only the matching last-workout date changes", () => {
     const seeded = seedLiftStates().map((ls) =>
-      ls.exerciseId === "squat" ? { ...ls, synced: true, recentAvgRPEs: [7] } : ls
+      ls.exerciseId === "squat" ? { ...ls, synced: true, recentAvgRepsInReserve: [2] } : ls
     );
     const sets = [
-      ...makeSets("squat", "T1", 3, 3, { weight: 190, rpe: 9 }),
+      ...makeSets("squat", "T1", 3, 3, { weight: 190, repsInReserve: "1-2" }),
       ...makeSets("bench", "T2", 2, 10, { weight: 100 }),
     ];
     const result = computeCompletion(
@@ -627,7 +627,7 @@ describe("computeCompletion: working sets only (H12)", () => {
         exercise: { ...entry, completedSets: i },
         // The back-off set falls short; the last working set is the AMRAP one.
         actualReps: i === 7 ? 4 : i === 6 ? 5 : 3,
-        rpe: null,
+        repsInReserve: null,
         location: "gym",
         autoRegulated: false,
         now: NOW,
@@ -753,7 +753,7 @@ describe("computeCompletion: guards", () => {
   it("does not mutate its inputs", () => {
     const liftStates = seedLiftStates();
     const snapshot = structuredClone(liftStates);
-    const sets = [...squatT1(5, { rpe: 8 }), ...benchT2()];
+    const sets = [...squatT1(5, { repsInReserve: "1-2" }), ...benchT2()];
     const setsSnapshot = structuredClone(sets);
     computeCompletion(completion({ liftStates, sets }));
     expect(liftStates).toEqual(snapshot);
@@ -778,8 +778,8 @@ describe("computeCompletion: one exercise as both T1 and T2", () => {
     };
     const session = makeSession({ templateId: "TEST_DOUBLE" });
     const sets = [
-      ...squatT1(5, { rpe: 8 }),
-      ...makeSets("squat", "T2", 3, 10, { weight: 135, rpe: 6 }),
+      ...squatT1(5, { repsInReserve: "1-2" }),
+      ...makeSets("squat", "T2", 3, 10, { weight: 135, repsInReserve: "3+" }),
     ];
     const result = computeCompletion(completion({ session, sets }));
 
@@ -790,7 +790,7 @@ describe("computeCompletion: one exercise as both T1 and T2", () => {
       t2Weight: 145,
       t1LastWorkoutDate: NOW,
       t2LastWorkoutDate: NOW,
-      recentAvgRPEs: [8],
+      recentAvgRepsInReserve: [1.5],
       recentAMRAPReps: [5],
       synced: false,
     });

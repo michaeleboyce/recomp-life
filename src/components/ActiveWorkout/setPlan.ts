@@ -6,7 +6,7 @@ import { rehydratePlan } from "@/lib/workout/rehydrate";
 import { isNextSetAMRAP } from "@/lib/workout/logSet";
 import { DROP_SET_LIGHTER_BY, entrySetsFor } from "@/lib/workout/setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
-import type { EquipmentProfile, PlannedSet, SetLog, SetRole, WorkoutLocation } from "@/types";
+import type { EquipmentProfile, PlannedSet, RepsInReserve, SetLog, SetRole, WorkoutLocation } from "@/types";
 
 export { DROP_SET_LIGHTER_BY };
 
@@ -265,7 +265,7 @@ export interface BuildDropSetInput {
   parent: SetLog;
   weight: number;
   actualReps: number;
-  rpe: number | null;
+  repsInReserve: RepsInReserve | null;
   now: Date;
   id: string;
   clientId: string;
@@ -279,7 +279,7 @@ export interface BuildDropSetInput {
  * substitute's program weight is scaled to the drop's weight.
  */
 export function buildDropSet(input: BuildDropSetInput): SetLog {
-  const { parent, weight, actualReps, rpe, now, id, clientId } = input;
+  const { parent, weight, actualReps, repsInReserve, now, id, clientId } = input;
   const originalWeight =
     parent.originalWeight != null && parent.weight > 0
       ? Math.round((parent.originalWeight * weight) / parent.weight)
@@ -300,7 +300,7 @@ export function buildDropSet(input: BuildDropSetInput): SetLog {
     ...(originalWeight != null ? { originalWeight } : {}),
     isSubstituted: parent.isSubstituted,
     ...(parent.substituteExerciseId ? { substituteExerciseId: parent.substituteExerciseId } : {}),
-    ...(rpe != null ? { rpe } : {}),
+    ...(repsInReserve != null ? { repsInReserve } : {}),
     location: parent.location,
     role: "drop",
     dropOf: parent.id,

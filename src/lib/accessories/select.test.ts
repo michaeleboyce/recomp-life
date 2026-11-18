@@ -31,7 +31,7 @@ function s(exerciseId: string, sessionId: string, ago: number, over: Partial<Str
     weight: 20,
     perHand: false,
     reps: 12,
-    rpe: null,
+    repsInReserve: null,
     role: "working",
     tier: "accessory",
     isAMRAP: false,

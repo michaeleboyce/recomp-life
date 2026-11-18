@@ -29,7 +29,7 @@ import {
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { midWorkoutRemove, midWorkoutSwap, type MidWorkoutChange, type SwapReplacement } from "@/lib/swap";
-import type { PlanEdit, SetLog, Tier, TrainingPhase } from "@/types";
+import type { PlanEdit, RepsInReserve, SetLog, Tier, TrainingPhase } from "@/types";
 import {
   clampReps,
   correctedSet,
@@ -130,7 +130,10 @@ export function useActiveWorkout(
   // Index of the entry that was on screen when the user chose to end early.
   const [endedAtIndex, setEndedAtIndex] = useState<number | null>(null);
   const [repsChoice, setRepsChoice] = useState<{ key: string; reps: number } | null>(null);
-  const [rpeChoice, setRpeChoice] = useState<{ key: string; rpe: number } | null>(null);
+  const [repsInReserveChoice, setRepsInReserveChoice] = useState<{
+    key: string;
+    repsInReserve: RepsInReserve;
+  } | null>(null);
   // Weights changed on the spot from the set chips, each for its own set (by `spotKey`).
   const [spotChoice, setSpotChoice] = useState<{ sessionId: string; weights: SpotWeightsByKey } | null>(
     null
@@ -223,7 +226,8 @@ export function useActiveWorkout(
   );
   const selectedReps =
     entry && repsChoice?.key === setKey ? repsChoice.reps : (entry?.targetReps ?? 0);
-  const selectedRPE = rpeChoice?.key === setKey ? rpeChoice.rpe : null;
+  const selectedRepsInReserve =
+    repsInReserveChoice?.key === setKey ? repsInReserveChoice.repsInReserve : null;
 
   const equipment = settings?.equipment;
   const location = session?.location ?? "gym";
@@ -287,7 +291,7 @@ export function useActiveWorkout(
     const set = createSetLog({
       exercise,
       actualReps: selectedReps,
-      rpe: selectedRPE,
+      repsInReserve: selectedRepsInReserve,
       location: session.location,
       autoRegulated: dropAccepted,
       now,
@@ -300,7 +304,7 @@ export function useActiveWorkout(
     // The row itself is written by appendSet; this is only the number to flash.
     const e1rm =
       !entry.substituteExerciseId && isE1RMEligibleSet(entry.tier, set.isAMRAP, selectedReps)
-        ? calculateE1RM(set.weight, selectedReps, selectedRPE)
+        ? calculateE1RM(set.weight, selectedReps, selectedRepsInReserve)
         : null;
 
     setAwaitingSetId(set.id);
@@ -348,7 +352,7 @@ export function useActiveWorkout(
     isSaving,
     dropAccepted,
     selectedReps,
-    selectedRPE,
+    selectedRepsInReserve,
     activeIndex,
     plan,
     trainingPhase,
@@ -484,7 +488,7 @@ export function useActiveWorkout(
       parent,
       weight: activeDrop.weight,
       actualReps: activeDrop.reps,
-      rpe: null,
+      repsInReserve: null,
       now: new Date(),
       id: uuidv4(),
       clientId: uuidv4(),
@@ -519,8 +523,9 @@ export function useActiveWorkout(
     (reps: number) => setRepsChoice({ key: setKey, reps: clampReps(reps) }),
     [setKey]
   );
-  const setSelectedRPE = useCallback(
-    (rpe: number | null) => setRpeChoice(rpe == null ? null : { key: setKey, rpe }),
+  const setSelectedRepsInReserve = useCallback(
+    (repsInReserve: RepsInReserve | null) =>
+      setRepsInReserveChoice(repsInReserve == null ? null : { key: setKey, repsInReserve }),
     [setKey]
   );
 
@@ -542,7 +547,7 @@ export function useActiveWorkout(
 
   /**
    * Corrects a set of this workout before it is finished: an edit to its reps, weight
-   * or RPE, or deleting the last set logged for an exercise. Nothing is previewed:
+   * or effort answer, or deleting the last set logged for an exercise. Nothing is previewed:
    * an unfinished workout has no progression yet, and finishing reads the corrected
    * sets. Resolves false (with `correctionError` set) when nothing was changed.
    */
@@ -612,7 +617,7 @@ export function useActiveWorkout(
       setAwaitingSetId((id) => (id === original.id ? null : id));
       // Start the set over from its target, not from what was picked for the deleted one.
       setRepsChoice(null);
-      setRpeChoice(null);
+      setRepsInReserveChoice(null);
       const store = useWorkoutStore.getState();
       // The rest that followed the deleted set is over: it is the next set to do.
       if (wasMostRecent) store.skipRest();
@@ -863,8 +868,8 @@ export function useActiveWorkout(
     endDropSets,
     selectedReps,
     setSelectedReps,
-    selectedRPE,
-    setSelectedRPE,
+    selectedRepsInReserve,
+    setSelectedRepsInReserve,
     isSaving,
     logSet,
     e1rmFlash,

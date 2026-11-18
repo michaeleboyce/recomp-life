@@ -64,9 +64,9 @@ describe("useProfile / useSettings", () => {
     expect(s.result.current).toEqual(profile.settings);
 
     await act(() =>
-      db.userProfile.update(profile.id, { settings: { ...profile.settings, showRPE: false } })
+      db.userProfile.update(profile.id, { settings: { ...profile.settings, showEffort: false } })
     );
-    await waitFor(() => expect(s.result.current?.showRPE).toBe(false));
+    await waitFor(() => expect(s.result.current?.showEffort).toBe(false));
   });
 });
 

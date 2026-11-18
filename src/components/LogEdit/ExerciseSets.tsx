@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ExerciseImage } from "@/components/ui/exercise-image";
 import { SectionHeader } from "@/components/ui/section-header";
 import { TierBadge } from "@/components/ui/tier-badge";
+import { repsInReserveLabel } from "@/lib/effort";
 import { cn } from "@/lib/utils";
 import type { SetLog } from "@/types";
 import { formatLbs, liftName, setStatusText } from "./format";
@@ -25,8 +26,8 @@ function SetSummary({ set }: { set: SetLog }) {
         {set.isAMRAP ? "+" : ""} reps
       </span>
       {set.isAMRAP && <span className="text-xs text-muted-foreground">As many as you can</span>}
-      {set.rpe !== undefined && (
-        <span className="text-xs text-muted-foreground">Effort {formatLbs(set.rpe)}</span>
+      {set.repsInReserve && (
+        <span className="text-xs text-muted-foreground">{repsInReserveLabel(set.repsInReserve)}</span>
       )}
       {status && (
         <span

@@ -47,7 +47,7 @@ const lastToast = () => toast.mock.calls.at(-1)![0];
 beforeEach(() => {
   result = null;
   vi.clearAllMocks();
-  loadRebuildInput.mockResolvedValue(input([workout({ sets: [set({ actualReps: 3, rpe: 8 })] })]));
+  loadRebuildInput.mockResolvedValue(input([workout({ sets: [set({ actualReps: 3, repsInReserve: "1-2" })] })]));
   commitLogChange.mockResolvedValue({});
 });
 afterEach(cleanup);

@@ -18,7 +18,7 @@ import { ExerciseBlock } from "@/components/ActiveWorkout/ExerciseBlock";
 import { LogDock } from "@/components/ActiveWorkout/LogDock";
 import { PrOpportunityLine } from "@/components/ActiveWorkout/PrOpportunityLine";
 import { RepPicker } from "@/components/ActiveWorkout/RepPicker";
-import { RPESelector } from "@/components/ActiveWorkout/RPESelector";
+import { EffortSelector } from "@/components/ActiveWorkout/EffortSelector";
 import { WeightDisplay } from "@/components/ActiveWorkout/WeightDisplay";
 import { WorkoutFinished } from "@/components/ActiveWorkout/WorkoutFinished";
 import { WorkoutHeader } from "@/components/ActiveWorkout/WorkoutHeader";
@@ -392,7 +392,7 @@ function ActiveWorkoutContent() {
     );
   }
 
-  const showEffort = settings.showRPE && !entry.isWarmUp;
+  const showEffort = settings.showEffort && !entry.isWarmUp;
   const shown = getExercise(entry.substituteExerciseId || entry.exerciseId);
   const perHand = !!entry.substituteExerciseId && shown.grip === "per_hand";
   const nextLabel = restNextLabel(entry, shown.name, perHand);
@@ -415,7 +415,7 @@ function ActiveWorkoutContent() {
     ? forecastNote(forecast, {
         weight: entry.weight,
         reps: workout.selectedReps,
-        rpe: workout.selectedRPE,
+        repsInReserve: workout.selectedRepsInReserve,
       })
     : null;
   const forecastBestFrom =
@@ -539,7 +539,7 @@ function ActiveWorkoutContent() {
 
       {workout.dropSuggestion && (
         <AutoRegCallout
-          rpe={workout.dropSuggestion.rpe}
+          repsInReserve={workout.dropSuggestion.repsInReserve}
           reducedWeight={workout.dropSuggestion.reducedWeight}
           onAccept={workout.acceptDrop}
           onKeep={workout.keepWeight}
@@ -567,7 +567,10 @@ function ActiveWorkoutContent() {
       </RepPicker>
 
       {showEffort && (
-        <RPESelector selectedRPE={workout.selectedRPE} onSelectRPE={workout.setSelectedRPE} />
+        <EffortSelector
+          selected={workout.selectedRepsInReserve}
+          onSelect={workout.setSelectedRepsInReserve}
+        />
       )}
 
       <LogDock

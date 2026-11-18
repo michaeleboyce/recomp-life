@@ -6,6 +6,7 @@ import type {
   BodyweightLog,
   Estimated1RM,
   ReadinessLog,
+  RepsInReserve,
   RunLog,
   SetLog,
   Tier,
@@ -21,7 +22,7 @@ export const LATER = new Date(2026, 11, 20, 12); // weeks later: insights no lon
 export const OPTS = { sessionTarget: WEEKLY_SESSION_TARGET };
 
 let n = 0;
-function sets(exerciseId: string, tier: Tier, weight: number, reps: number[], rpes: number[] = []): SetLog[] {
+function sets(exerciseId: string, tier: Tier, weight: number, reps: number[], answers: RepsInReserve[] = []): SetLog[] {
   return reps.map((actualReps, i) => ({
     id: `s${++n}`,
     clientId: `cs${n}`,
@@ -36,7 +37,7 @@ function sets(exerciseId: string, tier: Tier, weight: number, reps: number[], rp
     restAfterSeconds: 0,
     status: "completed",
     isSubstituted: false,
-    rpe: rpes[i],
+    repsInReserve: answers[i],
     location: "gym",
     synced: false,
   }));
@@ -87,9 +88,9 @@ export const weighIns: BodyweightLog[] = Array.from({ length: 28 }, (_, i) => ({
 })) as BodyweightLog[];
 
 export const W1 = sets("squat", "T1", 200, [3, 3, 5]).concat(sets("bench", "T2", 100, [10, 10, 10]));
-export const W2 = sets("bench", "T1", 150, [3, 3], [8, 9]).concat(sets("deadlift", "T2", 180, [10]));
-export const W3 = sets("ohp", "T1", 100, [3], [7]);
-export const W0 = sets("squat", "T1", 195, [3], [8]);
+export const W2 = sets("bench", "T1", 150, [3, 3], ["1-2", "1-2"]).concat(sets("deadlift", "T2", 180, [10]));
+export const W3 = sets("ohp", "T1", 100, [3], ["3+"]);
+export const W0 = sets("squat", "T1", 195, [3], ["1-2"]);
 export const W4 = sets("squat", "T1", 210, [3]);
 export const warm = sets("squat", "warmup", 45, [5]);
 

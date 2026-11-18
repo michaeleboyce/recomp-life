@@ -33,7 +33,7 @@ export function seedLiftStates(): LiftState[] {
   return Object.values(FIXTURE_LIFT_STATES).map((ls) => ({
     ...ls,
     recentE1RMs: [...ls.recentE1RMs],
-    recentAvgRPEs: [...ls.recentAvgRPEs],
+    recentAvgRepsInReserve: [...ls.recentAvgRepsInReserve],
     recentAMRAPReps: [...ls.recentAMRAPReps],
   }));
 }

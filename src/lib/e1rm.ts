@@ -3,14 +3,15 @@
  *
  * Uses the Epley formula: e1RM = weight * (1 + reps / 30)
  *
- * Epley assumes the set was taken to failure. When the lifter logs an RPE,
- * the reps they had left (10 - RPE) are added before the formula is applied,
- * so stopping a rep early does not read as a strength drop.
+ * Epley assumes the set was taken to failure. When the lifter says how many reps
+ * they had left, those reps (`repsInReserveCredit`) are added before the formula
+ * is applied, so stopping a rep early does not read as a strength drop.
  *
  * @evidence e1rm-estimate
  */
 
-import type { Tier } from "@/types";
+import type { RepsInReserve, Tier } from "@/types";
+import { RIR_ESTIMATE, repsInReserveCredit } from "@/lib/effort";
 
 export type E1RMTrend = "increasing" | "decreasing" | "stable" | "insufficient_data";
 
@@ -20,36 +21,27 @@ export type E1RMTrend = "increasing" | "decreasing" | "stable" | "insufficient_d
  */
 export const E1RM_MAX_REPS = 10;
 
-/** Most reps-in-reserve credited from a logged RPE (RPE 6 = 4 reps left). */
-export const E1RM_MAX_REPS_IN_RESERVE = 4;
+/** Most reps in reserve credited to a set: the "3+" answer counts as its floor. */
+export const E1RM_MAX_REPS_IN_RESERVE = RIR_ESTIMATE["3+"];
 
 /** How many recent e1RM values are kept per lift for trend detection. */
 export const E1RM_SERIES_LENGTH = 5;
-
-/**
- * Reps in reserve implied by a logged RPE, clamped to 0..E1RM_MAX_REPS_IN_RESERVE.
- * Returns 0 when no RPE was logged.
- */
-export function repsInReserveFromRPE(rpe?: number | null): number {
-  if (rpe === undefined || rpe === null || Number.isNaN(rpe)) return 0;
-  return Math.min(E1RM_MAX_REPS_IN_RESERVE, Math.max(0, 10 - rpe));
-}
 
 /**
  * Calculate estimated 1-rep max using the Epley formula.
  *
  * @param weight - The working weight used
  * @param reps - The number of reps completed
- * @param rpe - Optional RPE of the set; reps left in reserve are added to `reps`
+ * @param repsInReserve - Optional answer for the set; the reps it counts for are added to `reps`
  * @returns The estimated 1RM rounded to the nearest integer, or null if reps < 2
  */
 export function calculateE1RM(
   weight: number,
   reps: number,
-  rpe?: number | null
+  repsInReserve?: RepsInReserve | null
 ): number | null {
   if (reps < 2) return null;
-  const effectiveReps = reps + repsInReserveFromRPE(rpe);
+  const effectiveReps = reps + repsInReserveCredit(repsInReserve);
   return Math.round(weight * (1 + effectiveReps / 30));
 }
 

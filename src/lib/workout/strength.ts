@@ -63,7 +63,7 @@ export function strengthSetOf(set: SetLog, sessionId: string, standIns?: Readonl
     weight: set.weight,
     perHand: EXERCISES[exerciseId]?.grip === "per_hand",
     reps: set.actualReps,
-    rpe: set.rpe ?? null,
+    repsInReserve: set.repsInReserve ?? null,
     role: roleOf(set),
     tier: set.tier,
     isAMRAP: set.isAMRAP,

@@ -18,6 +18,7 @@ import type {
   LiftAdjustment,
   LiftState,
   PrescribedEntry,
+  RepsInReserve,
   SetLog,
   UserSettings,
   VariantState,
@@ -39,7 +40,7 @@ export interface TierOutcome {
   reps?: (number | undefined)[];
   /** Reps of the last prescribed set (the AMRAP set for T1 and T3). */
   lastReps?: number;
-  rpe?: number | null;
+  repsInReserve?: RepsInReserve | null;
   /** T2 only: accept a load drop after the first set. */
   drop?: boolean;
 }
@@ -255,7 +256,7 @@ export function runSession(sim: Sim, options: SessionOptions = {}): WorkoutSessi
       const set = createSetLog({
         exercise,
         actualReps: reps,
-        rpe: outcome.rpe ?? null,
+        repsInReserve: outcome.repsInReserve ?? null,
         location,
         autoRegulated: dropped,
         now,
@@ -266,7 +267,7 @@ export function runSession(sim: Sim, options: SessionOptions = {}): WorkoutSessi
 
       // Same rule as `useActiveWorkout.logSet`.
       if (!exercise.substituteExerciseId && isE1RMEligibleSet(entry.tier, set.isAMRAP, reps)) {
-        const e1rm = calculateE1RM(exercise.weight, reps, outcome.rpe ?? null);
+        const e1rm = calculateE1RM(exercise.weight, reps, outcome.repsInReserve ?? null);
         if (e1rm) {
           sim.e1rms.push({
             id: `live-${set.id}`,
@@ -338,7 +339,7 @@ export const PROGRESSION_FIELDS = [
   "t3Weight",
   "t1LastWorkoutDate",
   "t2LastWorkoutDate",
-  "recentAvgRPEs",
+  "recentAvgRepsInReserve",
   "recentAMRAPReps",
   "recentE1RMs",
 ] as const satisfies readonly (AdjustableField | keyof LiftState)[];

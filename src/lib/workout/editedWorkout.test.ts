@@ -40,7 +40,7 @@ function performAll(plan: WorkoutPlan, location: "gym" | "home" = "gym"): SetLog
         createSetLog({
           exercise: { ...entry, completedSets: done },
           actualReps: entry.targetReps,
-          rpe: null,
+          repsInReserve: null,
           location,
           autoRegulated: false,
           now: NOW,

@@ -51,7 +51,7 @@ function lift(overrides: Partial<LiftState> = {}): LiftState {
     preDeloadT2Weight: null,
     t2LoadDropCount: 0,
     recentE1RMs: [],
-    recentAvgRPEs: [],
+    recentAvgRepsInReserve: [],
     recentAMRAPReps: [],
     synced: false,
     ...overrides,

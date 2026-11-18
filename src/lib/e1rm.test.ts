@@ -3,7 +3,7 @@ import {
   calculateE1RM,
   isNewPR,
   getE1RMTrend,
-  repsInReserveFromRPE,
+  E1RM_MAX_REPS_IN_RESERVE,
   isE1RMEligibleSet,
   toRecentE1RMSeries,
 } from "./e1rm";
@@ -87,36 +87,35 @@ describe("getE1RMTrend", () => {
   });
 });
 
-describe("repsInReserveFromRPE", () => {
-  it("returns 0 when no RPE was logged", () => {
-    expect(repsInReserveFromRPE()).toBe(0);
-    expect(repsInReserveFromRPE(null)).toBe(0);
+describe("calculateE1RM with reps in reserve", () => {
+  it("is unchanged with no answer or a \"0\" answer", () => {
+    expect(calculateE1RM(190, 5, null)).toBe(calculateE1RM(190, 5));
+    expect(calculateE1RM(190, 5, undefined)).toBe(calculateE1RM(190, 5));
+    expect(calculateE1RM(190, 5, "0")).toBe(calculateE1RM(190, 5));
   });
 
-  it("returns 10 minus RPE", () => {
-    expect(repsInReserveFromRPE(10)).toBe(0);
-    expect(repsInReserveFromRPE(9)).toBe(1);
-    expect(repsInReserveFromRPE(8.5)).toBe(1.5);
+  it('credits 1.5 reps for "1-2", so stopping a rep or two early is not a drop', () => {
+    // 190 x (1 + 6.5 / 30) = 231.17 -> 231
+    expect(calculateE1RM(190, 5, "1-2")).toBe(231);
+    expect(calculateE1RM(190, 5, "1-2")!).toBeGreaterThan(calculateE1RM(190, 5)!);
   });
 
-  it("is clamped to 4 reps so a very easy set cannot inflate the estimate", () => {
-    expect(repsInReserveFromRPE(6)).toBe(4);
-    expect(repsInReserveFromRPE(3)).toBe(4);
-  });
-});
-
-describe("calculateE1RM with RPE", () => {
-  it("is unchanged when the set was RPE 10", () => {
-    expect(calculateE1RM(190, 5, 10)).toBe(calculateE1RM(190, 5));
+  it('credits 3 reps for "3+", its floor, so the estimate is a lower bound', () => {
+    expect(E1RM_MAX_REPS_IN_RESERVE).toBe(3);
+    expect(calculateE1RM(190, 5, "3+")).toBe(calculateE1RM(190, 8));
   });
 
-  it("adds one rep for an RPE 9 set, so stopping a rep early is not a drop", () => {
-    // 5 reps at RPE 9 is treated like 6 reps to failure
-    expect(calculateE1RM(190, 5, 9)).toBe(calculateE1RM(190, 6));
+  it("orders the answers: more reps left gives a higher estimate", () => {
+    const zero = calculateE1RM(200, 5, "0")!;
+    const some = calculateE1RM(200, 5, "1-2")!;
+    const many = calculateE1RM(200, 5, "3+")!;
+    expect(zero).toBeLessThan(some);
+    expect(some).toBeLessThan(many);
   });
 
   it("still returns null below 2 reps", () => {
-    expect(calculateE1RM(190, 1, 9)).toBeNull();
+    expect(calculateE1RM(190, 1, "1-2")).toBeNull();
+    expect(calculateE1RM(190, 1, "3+")).toBeNull();
   });
 });
 

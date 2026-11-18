@@ -22,6 +22,7 @@ import type {
   ProgressionOutcomeKind,
   ProgressionOutcomeReason,
   SetLog,
+  RepsInReserve,
   T1Stage,
   T2Stage,
   VariantCapAction,
@@ -143,7 +144,7 @@ export interface VariantSeedSession {
   weight: number;
   reps: number;
   perHand: boolean;
-  rpe: number | null;
+  repsInReserve: RepsInReserve | null;
   /** The session was imported from another app. */
   imported?: true;
 }
@@ -252,7 +253,7 @@ export function seedVariantWeight(input: VariantSeedInput): VariantSeedWeight {
         weight: best.weight,
         reps: best.reps,
         perHand: best.perHand,
-        rpe: best.rpe,
+        repsInReserve: best.repsInReserve,
         ...(imported ? { imported: true as const } : {}),
       },
     });
@@ -352,7 +353,7 @@ export function seedVariantState(input: {
               reps: session.reps,
               perHand: session.perHand,
               sessionId: session.sessionId,
-              ...(session.rpe != null ? { rpe: session.rpe } : {}),
+              ...(session.repsInReserve != null ? { repsInReserve: session.repsInReserve } : {}),
               ...(session.imported ? { imported: true as const } : {}),
             },
           }
@@ -523,7 +524,7 @@ export function targetStrengthSets(variantStates: readonly VariantState[]): Stre
       weight: state.weight,
       perHand: state.perHand,
       reps: variantScheme(state).reps,
-      rpe: null,
+      repsInReserve: null,
       role: "working",
       tier: state.tier,
       isAMRAP: state.tier === "T1",

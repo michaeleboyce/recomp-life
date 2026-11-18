@@ -1,4 +1,5 @@
 // Per-lift metrics (params.exerciseId). Pure.
+import { averageRepsInReserve } from "@/lib/effort";
 import { excludeWarmUps, workingSetsFor } from "@/lib/workout/setSelectors";
 import type { SetLog } from "@/types";
 import {
@@ -6,7 +7,6 @@ import {
   defineMetric,
   formatNumber,
   formatWhole,
-  mean,
   setsVolume,
   sortedWorkouts,
   toMs,
@@ -117,23 +117,25 @@ export const amrapReps = defineMetric(
     })
 );
 
-/** Mean RPE of the lift's non-warm-up sets per workout; workouts with no RPE are skipped. */
-export const avgRpe = defineMetric(
+/**
+ * Mean reps left (`averageRepsInReserve`) of the lift's non-warm-up sets per workout;
+ * workouts with no answer are skipped. Higher means easier.
+ */
+export const avgRepsInReserve = defineMetric(
   {
-    id: "avgRpe",
-    label: "Average RPE",
-    unit: "rpe",
+    id: "avgRepsInReserve",
+    label: "Average reps left",
+    unit: "repsLeft",
     better: "none",
     scope: "lift",
     format: (v) => v.toFixed(1),
   },
   (source, params) =>
     perWorkout(source, params, (sets, exerciseId) => {
-      const rpes = liftSets(sets, exerciseId).flatMap((s) =>
-        typeof s.rpe === "number" && Number.isFinite(s.rpe) ? [s.rpe] : []
-      );
-      if (rpes.length === 0) return null;
-      return { v: mean(rpes), label: count(rpes.length, "set") };
+      const answers = liftSets(sets, exerciseId).flatMap((s) => (s.repsInReserve ? [s.repsInReserve] : []));
+      const avg = averageRepsInReserve(answers);
+      if (avg === null) return null;
+      return { v: avg, label: count(answers.length, "set") };
     })
 );
 

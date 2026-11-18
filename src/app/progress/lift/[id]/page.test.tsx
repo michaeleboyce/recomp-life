@@ -81,7 +81,7 @@ describe("Lift page (the barbell lift's exercise page)", () => {
     expect(within(next).getByTestId("set-plan-editor")).toBeInTheDocument();
 
     const stats = screen.getByRole("region", { name: "Lift stats" });
-    for (const label of ["Working", "Last set", "Effort", "Volume"]) {
+    for (const label of ["Working", "Last set", "Reps left", "Volume"]) {
       expect(stats).toHaveTextContent(label);
     }
     expect(within(stats).getByRole("button", { name: "What does Last set mean?" })).toHaveAttribute("data-term", "amrap");
@@ -138,7 +138,7 @@ describe("Lift page (the barbell lift's exercise page)", () => {
     const toggle = await screen.findByRole("button", { name: "More charts" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(toggle);
-    for (const title of ["Working weight", "Last-set reps", "Effort (RPE)", "Weekly volume"]) {
+    for (const title of ["Working weight", "Last-set reps", "Reps left", "Weekly volume"]) {
       expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     }
   });

@@ -1,5 +1,6 @@
 // Rows for the lift detail page's session list. Pure.
 import { importedSource } from "@/components/ImportedHistory/importedView";
+import { averageRepsInReserve } from "@/lib/effort";
 import { importedSessionStrengthSets } from "@/lib/import/evidence";
 import type { MappingOverrides } from "@/lib/import/mapping";
 import { relatedExercises, type StrengthSet } from "@/lib/strength";
@@ -26,8 +27,8 @@ export interface LiftSession {
   /** Heaviest weight among the tier's sets, as lifted. */
   weight: number;
   sets: SessionSet[];
-  /** Mean logged RPE, or null when none was logged. */
-  rpe: number | null;
+  /** Mean reps left (`averageRepsInReserve`), or null when no answer was logged. */
+  meanRepsInReserve: number | null;
   /**
    * This session holds the lift's best estimated 1RM. Never a home session: a
    * substitute's weight says nothing about the barbell lift.
@@ -74,7 +75,6 @@ export function liftSessions(
         : seen;
       for (const substituteExerciseId of versions) {
         const sets = inTier.filter((s) => substituteOf(s) === substituteExerciseId);
-        const rpes = sets.flatMap((s) => (typeof s.rpe === "number" && Number.isFinite(s.rpe) ? [s.rpe] : []));
         const best = substituteExerciseId === undefined && workout.id === bestId && !bestMarked;
         if (best) bestMarked = true;
         rows.push({
@@ -84,7 +84,7 @@ export function liftSessions(
           tier,
           weight: Math.max(...sets.map((s) => s.weight)),
           sets: sets.map((s) => ({ reps: s.actualReps, amrap: s.isAMRAP, failed: s.status === "failed" })),
-          rpe: rpes.length ? rpes.reduce((a, b) => a + b, 0) / rpes.length : null,
+          meanRepsInReserve: averageRepsInReserve(sets.map((s) => s.repsInReserve)),
           best,
           ...(substituteExerciseId ? { substituteExerciseId } : {}),
         });

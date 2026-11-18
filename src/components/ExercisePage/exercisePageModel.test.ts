@@ -233,7 +233,7 @@ describe("t3LastSets", () => {
     tier,
     weight,
     sets: reps.map((r) => ({ reps: r, amrap: false, failed: false })),
-    rpe: null,
+    meanRepsInReserve: null,
     best: false,
     ...(substituteExerciseId ? { substituteExerciseId } : {}),
   });

@@ -101,7 +101,7 @@ export function GlossaryList() {
         <EmptyState
           icon={<Search />}
           title="No matching terms"
-          body="Try a shorter word, such as RPE or rest."
+          body="Try a shorter word, such as reps or rest."
         />
       )}
 

@@ -19,6 +19,7 @@ import type {
   Estimated1RM,
   ReadinessLog,
   RunLog,
+  RepsInReserve,
   SetLog,
   Tier,
   UserSettings,
@@ -31,7 +32,7 @@ const ALL_IDS: MetricId[] = [
   "e1rm",
   "workingWeight",
   "amrapReps",
-  "avgRpe",
+  "avgRepsInReserve",
   "liftVolume",
   "weeklySets",
   "bodyweight",
@@ -66,9 +67,9 @@ function sets(
   tier: Tier,
   weight: number,
   reps: number[],
-  extra: Partial<SetLog> & { rpes?: Array<number | undefined>; amrapLast?: boolean } = {}
+  extra: Partial<SetLog> & { answers?: Array<RepsInReserve | undefined>; amrapLast?: boolean } = {}
 ): SetLog[] {
-  const { rpes, amrapLast, ...overrides } = extra;
+  const { answers, amrapLast, ...overrides } = extra;
   return reps.map((actualReps, i) => {
     const id = `set-${++setCounter}`;
     return {
@@ -87,7 +88,7 @@ function sets(
       isSubstituted: false,
       location: "gym",
       synced: false,
-      ...(rpes?.[i] !== undefined ? { rpe: rpes[i] } : {}),
+      ...(answers?.[i] !== undefined ? { repsInReserve: answers[i] } : {}),
       ...overrides,
     } satisfies SetLog;
   });
@@ -117,8 +118,8 @@ const MON_OCT_19 = new Date(2026, 9, 19, 18, 0);
 
 const w1 = workout("w1", MON_OCT_5, [
   ...sets("squat", "warmup", 45, [10]),
-  ...sets("squat", "T1", 190, [3, 3, 3, 3, 5], { rpes: [8, 8, 8, 8, 9], amrapLast: true }),
-  ...sets("bench", "T2", 100, [10, 10, 10], { rpes: [7, 7, 8] }),
+  ...sets("squat", "T1", 190, [3, 3, 3, 3, 5], { answers: ["1-2", "1-2", "1-2", "1-2", "0"], amrapLast: true }),
+  ...sets("bench", "T2", 100, [10, 10, 10], { answers: ["3+", "3+", "1-2"] }),
   ...sets("lat_pulldown", "T3", 90, [15, 15, 20], { amrapLast: true }),
 ]);
 // Stored with an ISO-string date, as rows synced from another device can be.
@@ -129,7 +130,7 @@ const w2 = workout("w2", THU_OCT_8.toISOString(), [
 // A home session two weeks later: goblet squats standing in for 195 lb squats.
 const w3 = workout("w3", MON_OCT_19, [
   ...sets("squat", "T1", 75, [3, 3, 3, 3, 6], {
-    rpes: [undefined, undefined, undefined, undefined, 9],
+    answers: [undefined, undefined, undefined, undefined, "1-2"],
     amrapLast: true,
     isSubstituted: true,
     substituteExerciseId: "goblet_squat",
@@ -225,7 +226,7 @@ describe("registry", () => {
   });
 
   it("scopes and directions are as specified", () => {
-    const lift: MetricId[] = ["e1rm", "workingWeight", "amrapReps", "avgRpe", "liftVolume"];
+    const lift: MetricId[] = ["e1rm", "workingWeight", "amrapReps", "avgRepsInReserve", "liftVolume"];
     for (const id of ALL_IDS) {
       const scope = lift.includes(id) ? "lift" : id === "weeklySets" ? "muscle" : "global";
       expect(METRICS[id].scope).toBe(scope);
@@ -233,7 +234,7 @@ describe("registry", () => {
     expect(METRICS.e1rm).toMatchObject({ unit: "lbs", better: "up" });
     expect(METRICS.workingWeight).toMatchObject({ unit: "lbs", better: "up" });
     expect(METRICS.amrapReps).toMatchObject({ unit: "reps", better: "up" });
-    expect(METRICS.avgRpe).toMatchObject({ unit: "rpe", better: "none" });
+    expect(METRICS.avgRepsInReserve).toMatchObject({ unit: "repsLeft", better: "none" });
     expect(METRICS.liftVolume).toMatchObject({ unit: "lbs", better: "up" });
     expect(METRICS.weeklySets).toMatchObject({ unit: "sets", better: "none" });
     expect(METRICS.lossRate.unit).toBe("lbs/week");
@@ -261,7 +262,7 @@ describe("registry", () => {
 
   it("lift metrics return an empty series for an unknown or missing exercise", () => {
     const full = source({ workouts: [w1, w2, w3], e1rms: [e1rmRow("a", MON_OCT_5, "squat", 190, 5, 222)] });
-    for (const id of ["e1rm", "workingWeight", "amrapReps", "avgRpe", "liftVolume"] as MetricId[]) {
+    for (const id of ["e1rm", "workingWeight", "amrapReps", "avgRepsInReserve", "liftVolume"] as MetricId[]) {
       expect(computeMetric(id, full, { exerciseId: "nope" }).points).toEqual([]);
       expect(computeMetric(id, full).points).toEqual([]);
     }
@@ -327,16 +328,16 @@ describe("amrapReps", () => {
   });
 });
 
-describe("avgRpe", () => {
-  it("averages the RPE of non-warm-up sets and skips workouts with none", () => {
-    const squat = computeMetric("avgRpe", training, { exerciseId: "squat" });
+describe("avgRepsInReserve", () => {
+  it("averages the reps left of non-warm-up sets and skips workouts with none", () => {
+    const squat = computeMetric("avgRepsInReserve", training, { exerciseId: "squat" });
     expect(squat.points).toHaveLength(2);
-    expect(squat.points[0].v).toBeCloseTo(8.2, 10);
-    expect(squat.points[1].v).toBe(9);
+    expect(squat.points[0].v).toBeCloseTo(1.2, 10);
+    expect(squat.points[1].v).toBe(1.5);
     expect(squat.points.map((p) => p.refId)).toEqual(["w1", "w3"]);
-    const bench = computeMetric("avgRpe", training, { exerciseId: "bench" });
+    const bench = computeMetric("avgRepsInReserve", training, { exerciseId: "bench" });
     expect(bench.points).toHaveLength(1);
-    expect(bench.points[0].v).toBeCloseTo(22 / 3, 10);
+    expect(bench.points[0].v).toBeCloseTo(2.5, 10);
   });
 });
 
@@ -717,7 +718,7 @@ describe("every metric over the demo data", () => {
   }
 
   for (const exerciseId of ["squat", "bench", "deadlift", "ohp"]) {
-    for (const id of ["e1rm", "workingWeight", "amrapReps", "avgRpe", "liftVolume"] as MetricId[]) {
+    for (const id of ["e1rm", "workingWeight", "amrapReps", "avgRepsInReserve", "liftVolume"] as MetricId[]) {
       it(`${id} for ${exerciseId}`, () => {
         expectHealthy(computeMetric(id, src, { exerciseId }));
       });

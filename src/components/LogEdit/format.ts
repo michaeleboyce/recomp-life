@@ -34,7 +34,7 @@ export function setStatusText(status: SetStatus): string | null {
     case "reduced_equipment":
       return "Reduced (equipment)";
     case "autoregulated_load_drop":
-      return "Load dropped (RPE)";
+      return "Load dropped (effort)";
   }
 }
 

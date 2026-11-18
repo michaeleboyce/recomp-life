@@ -1,4 +1,5 @@
 // Builders for strength-model tests. Not used by app code.
+import type { RepsInReserve } from "@/types";
 import type { StrengthSet } from "./types";
 
 const DAY = 86_400_000;
@@ -21,7 +22,7 @@ export function set(overrides: Partial<StrengthSet> = {}): StrengthSet {
     weight: 100,
     perHand: false,
     reps: 5,
-    rpe: null,
+    repsInReserve: null,
     role: "working",
     tier: "T1",
     isAMRAP: true,
@@ -43,7 +44,7 @@ export function t1Session(opts: {
   perHand?: boolean;
   sets?: number;
   target?: number;
-  rpe?: number | null;
+  repsInReserve?: RepsInReserve | null;
 }): StrengthSet[] {
   const count = opts.sets ?? 5;
   const target = opts.target ?? 3;
@@ -58,7 +59,7 @@ export function t1Session(opts: {
         weight: opts.weight,
         perHand: opts.perHand ?? false,
         reps: last ? opts.amrapReps : target,
-        rpe: last ? opts.rpe ?? null : null,
+        repsInReserve: last ? opts.repsInReserve ?? null : null,
         isAMRAP: last,
         date: day(opts.day, i * 3),
       })

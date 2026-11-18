@@ -21,7 +21,7 @@ describe("applyChange", () => {
     const frozen = JSON.stringify(log);
     const setId = log.workouts[0].sets[0].id;
     const changes = [
-      { kind: "editSet", workoutId: "w1", setId, patch: { actualReps: 1, weight: 50, rpe: 8 } },
+      { kind: "editSet", workoutId: "w1", setId, patch: { actualReps: 1, weight: 50, repsInReserve: "1-2" } },
       { kind: "addSet", workoutId: "w1", set: makeSet("squat", "T1", { id: "new" }) },
       { kind: "deleteSet", workoutId: "w1", setId },
       {
@@ -43,20 +43,20 @@ describe("applyChange", () => {
   });
 
   describe("editSet", () => {
-    it("patches reps, weight and RPE and re-derives the status", () => {
+    it("patches reps, weight and reps left and re-derives the status", () => {
       const log = makeLog();
       const set = setsOf(log, "w1")[0];
       const failed = applyChange(log, {
         kind: "editSet",
         workoutId: "w1",
         setId: set.id,
-        patch: { actualReps: 2, weight: 185, rpe: 9 },
+        patch: { actualReps: 2, weight: 185, repsInReserve: "1-2" },
       });
       expect(setsOf(failed, "w1")[0]).toMatchObject({
         id: set.id,
         actualReps: 2,
         weight: 185,
-        rpe: 9,
+        repsInReserve: "1-2",
         status: "failed",
         setNumber: set.setNumber,
       });
@@ -87,21 +87,21 @@ describe("applyChange", () => {
       expect(setsOf(reps, "w1")[0].originalWeight).toBe(214);
     });
 
-    it("clears the RPE when the patch names it as undefined", () => {
+    it("clears the reps left when the patch names it as undefined", () => {
       const log = applyChange(makeLog(), {
         kind: "editSet",
         workoutId: "w1",
         setId: "s1",
-        patch: { rpe: 8 },
+        patch: { repsInReserve: "1-2" },
       });
       const cleared = applyChange(log, {
         kind: "editSet",
         workoutId: "w1",
         setId: "s1",
-        patch: { rpe: undefined },
+        patch: { repsInReserve: undefined },
       });
-      expect(setsOf(log, "w1")[0].rpe).toBe(8);
-      expect(setsOf(cleared, "w1")[0].rpe).toBeUndefined();
+      expect(setsOf(log, "w1")[0].repsInReserve).toBe("1-2");
+      expect(setsOf(cleared, "w1")[0].repsInReserve).toBeUndefined();
     });
 
     it.each(["autoregulated_load_drop", "skipped_pain", "reduced_run_fatigue", "reduced_equipment"] as const)(

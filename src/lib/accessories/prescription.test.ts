@@ -26,7 +26,7 @@ function set(exerciseId: string, sessionId: string, ago: number, weight: number,
     weight,
     perHand: false,
     reps,
-    rpe: null,
+    repsInReserve: null,
     role: "working",
     tier: "accessory",
     isAMRAP: false,
@@ -131,9 +131,9 @@ describe("accessoryPrescription: first weight from own history", () => {
     const first = ownHistoryFirstWeight(sets, "machine_row", { min: 10, max: 12 }, 5)!;
     expect(first.weight).toBe(50);
     expect(OWN_HISTORY_FIRST_WEIGHT.stepsAboveHeaviest).toBe(1);
-    // The estimate can exceed what was lifted (RPE credit); the cap holds it to one step above.
+    // The estimate can exceed what was lifted (reps-left credit); the cap holds it to one step above.
     const capped = ownHistoryFirstWeight(
-      [set("machine_row", "a", 1, 50, 6, { imported: true, rpe: 6 })],
+      [set("machine_row", "a", 1, 50, 6, { imported: true, repsInReserve: "3+" })],
       "machine_row",
       { min: 6, max: 8 },
       5

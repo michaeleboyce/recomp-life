@@ -228,7 +228,7 @@ function ownSession(
     weight,
     perHand: EXERCISES[exerciseId]?.grip === "per_hand",
     reps,
-    rpe: null,
+    repsInReserve: null,
     role: "working" as const,
     tier: "T1" as const,
     isAMRAP: true,
@@ -256,7 +256,7 @@ describe("seeding (F6): the exercise's own history first", () => {
       weight: 25,
       source: "history",
       ownEstimate: 65,
-      session: { at: bss[2].date.valueOf(), sessionId: bss[0].sessionId, weight: 25, reps: 9, perHand: true, rpe: null, imported: true },
+      session: { at: bss[2].date.valueOf(), sessionId: bss[0].sessionId, weight: 25, reps: 9, perHand: true, repsInReserve: null, imported: true },
     });
     // T2 3x10: 65 / (1 + 10/30) = 48.75 in all, 24.4 a hand: 20. T3 3x15: 65 / 1.5 = 43.3, 21.7 a hand: 20.
     expect(seedFor("bulgarian_split_squat", "T2", 10, sets)).toMatchObject({ weight: 20, source: "history" });
@@ -273,24 +273,24 @@ describe("seeding (F6): the exercise's own history first", () => {
   });
 
   it("credits the logged effort as the strength library does", () => {
-    // RPE 8 leaves 2 reps: 50 x (1 + 11/30) = 68.3; for 3 reps 62.1 in all, 31 a hand: 30.
-    const easier = ownSession("bulgarian_split_squat", 25, 9, "2026-11-03T18:00:00Z", { rpe: 8 });
+    // "1-2 left" credits 1.5 reps: 50 x (1 + 10.5/30) = 67.5; for 3 reps 61.4 in all, 30.7 a hand: 30.
+    const easier = ownSession("bulgarian_split_squat", 25, 9, "2026-11-03T18:00:00Z", { repsInReserve: "1-2" });
     expect(seedFor("bulgarian_split_squat", "T1", 3, [...barbell, ...easier])).toMatchObject({ weight: 30, ownEstimate: 68 });
   });
 
   it("never seeds more than one dumbbell step above the heaviest weight it was lifted at", () => {
-    // 25 x 10 at RPE 6 (4 reps left): 50 x (1 + 14/30) = 73.3; for 1 rep (10x1) 71 in all,
-    // 35.5 a hand: 35. The heaviest lifted is 25, so at most 30.
-    const easy = ownSession("bulgarian_split_squat", 25, 10, "2026-11-03T18:00:00Z", { rpe: 6 });
+    // 30 x 10 with "3+ left" credits 3 reps: 60 x (1 + 13/30) = 86; for 1 rep (10x1) 83.2 in all,
+    // 41.6 a hand: 40. The heaviest lifted is 30, so at most 35.
+    const easy = ownSession("bulgarian_split_squat", 30, 10, "2026-11-03T18:00:00Z", { repsInReserve: "3+" });
     expect(seedFor("bulgarian_split_squat", "T1", 1, [...barbell, ...easy])).toMatchObject({
-      weight: 30,
+      weight: 35,
       source: "history",
-      heaviestLifted: 25,
+      heaviestLifted: 30,
       limitedByHeaviest: true,
     });
     // A heavier set inside the window raises the limit.
-    const heavier = ownSession("bulgarian_split_squat", 30, 3, "2026-10-20T18:00:00Z", { isAMRAP: false, tier: "T2" });
-    expect(seedFor("bulgarian_split_squat", "T1", 1, [...barbell, ...easy, ...heavier])).toMatchObject({ weight: 35 });
+    const heavier = ownSession("bulgarian_split_squat", 35, 3, "2026-10-20T18:00:00Z", { isAMRAP: false, tier: "T2" });
+    expect(seedFor("bulgarian_split_squat", "T1", 1, [...barbell, ...easy, ...heavier])).toMatchObject({ weight: 40 });
     expect(seedFor("bulgarian_split_squat", "T1", 1, [...barbell, ...easy, ...heavier]).limitedByHeaviest).toBeUndefined();
   });
 

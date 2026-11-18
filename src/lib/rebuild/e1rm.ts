@@ -23,7 +23,7 @@ export function e1rmsForWorkout(workout: WorkoutSession): Estimated1RM[] {
     if (set.isSubstituted || set.substituteExerciseId) continue;
     if (set.role != null && set.role !== "work") continue;
     if (!isE1RMEligibleSet(set.tier, set.isAMRAP, set.actualReps)) continue;
-    const estimated1RM = calculateE1RM(set.weight, set.actualReps, set.rpe);
+    const estimated1RM = calculateE1RM(set.weight, set.actualReps, set.repsInReserve);
     if (!estimated1RM) continue;
     const id = e1rmRowId(workout.id, set.id);
     rows.push({

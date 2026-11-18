@@ -128,21 +128,21 @@ describe("active workout page", () => {
     await waitFor(() => expect(logButton()).toHaveTextContent("LOG 3 REPS"));
   });
 
-  it("hides effort for warm-ups and when RPE is switched off", async () => {
+  it("hides effort for warm-ups and when the question is switched off", async () => {
     const view = await open({ includeWarmUps: true });
     expect(screen.getByText(/Warm-up · 10 reps/)).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Effort" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "RPE 8" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "1-2 reps left" })).toBeNull();
 
     await logSets(4);
     expect(screen.getByText("Set 1 of 5")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "RPE 8" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "1-2 reps left" })).toBeInTheDocument();
 
     const profile = (await db.userProfile.toCollection().first())!;
     await act(() =>
-      db.userProfile.update(profile.id, { settings: { ...profile.settings, showRPE: false } })
+      db.userProfile.update(profile.id, { settings: { ...profile.settings, showEffort: false } })
     );
-    await waitFor(() => expect(screen.queryByRole("button", { name: "RPE 8" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("button", { name: "1-2 reps left" })).toBeNull());
     view.unmount();
   });
 
@@ -177,11 +177,13 @@ describe("active workout page", () => {
     await logSets(5);
     expect(screen.getByRole("heading", { name: "Barbell Bench Press" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "RPE 9" }));
+    fireEvent.click(screen.getByRole("button", { name: "1-2 reps left" }));
     fireEvent.click(logButton());
     const accept = await screen.findByRole("button", { name: "Accept Drop" });
     expect(document.querySelector('[data-evidence="t2-autoregulation"]')).not.toBeNull();
-    expect(screen.getByText(/That set was RPE/)).toHaveTextContent("dropping to 95 lbs");
+    expect(screen.getByText(/Your first set left you/)).toHaveTextContent(
+      "Your first set left you 1-2 reps. Drop to 95 lb for the remaining sets?"
+    );
 
     fireEvent.click(accept);
     expect(screen.queryByRole("button", { name: "Accept Drop" })).toBeNull();

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { strengthTimeline, type TimelineSource } from "@/lib/strength";
 import { day, t1Session } from "@/lib/strength/testHelpers";
-import { formatTrendValue, reasonText, smoothingText, sourceDetail } from "./trendText";
+import { formatTrendValue, reasonText, setText, smoothingText, sourceDetail } from "./trendText";
 
 const timeline = strengthTimeline("bench", t1Session({ sessionId: "w", exerciseId: "bench", weight: 185, amrapReps: 5, day: 0 }), {
   now: day(3).getTime(),
@@ -23,6 +23,12 @@ describe("trend text", () => {
     expect(reasonText({ kind: "older-sessions", ownBefore: 3, relatedBefore: 1, line: 182, anchor: 186 }, timeline)).toBe(
       "The line reads 182 lbs today: it still averages 3 older bench sessions and 1 earlier related session, each halving every 14 days. The plan starts from your latest bench session and adds only the related sessions after it."
     );
+  });
+
+  it("shows a best set's reps left, and nothing when none was answered", () => {
+    const point = (bestSet: object) => ({ bestSet }) as unknown as Parameters<typeof setText>[0];
+    expect(setText(point({ weight: 70, reps: 8, perHand: true, repsInReserve: "1-2" }))).toBe("70 each × 8, 1-2 left");
+    expect(setText(point({ weight: 185, reps: 5, perHand: false, repsInReserve: null }))).toBe("185 × 5");
   });
 
   it("names the smoothing with its half-life", () => {

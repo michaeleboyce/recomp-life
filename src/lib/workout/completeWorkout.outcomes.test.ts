@@ -47,7 +47,7 @@ function run(
         createSetLog({
           exercise: { ...entry, completedSets: done },
           actualReps: entry.targetReps,
-          rpe: null,
+          repsInReserve: null,
           location: "gym",
           autoRegulated: false,
           now: NOW,

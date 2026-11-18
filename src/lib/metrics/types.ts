@@ -16,7 +16,7 @@ export type Unit =
   | "lbs"
   | "lbs/week"
   | "reps"
-  | "rpe"
+  | "repsLeft"
   | "sets"
   | "sessions"
   | "miles"
@@ -51,7 +51,7 @@ export type MetricId =
   | "e1rm"
   | "workingWeight"
   | "amrapReps"
-  | "avgRpe"
+  | "avgRepsInReserve"
   | "liftVolume"
   // per muscle group (params.muscleGroup, a key of calculateGroupVolume)
   | "weeklySets"

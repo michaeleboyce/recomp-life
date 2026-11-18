@@ -4,9 +4,11 @@ import type { ReactNode } from "react";
 import { Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
+import type { RepsInReserve } from "@/types";
 
 interface AutoRegCalloutProps {
-  rpe: number;
+  /** What the lifter answered after the first set. */
+  repsInReserve: RepsInReserve;
   reducedWeight: number;
   onAccept: () => void;
   onKeep: () => void;
@@ -16,7 +18,7 @@ interface AutoRegCalloutProps {
 
 /** The T2 load-drop suggestion after a hard first set. The user decides. */
 export function AutoRegCallout({
-  rpe,
+  repsInReserve,
   reducedWeight,
   onAccept,
   onKeep,
@@ -39,8 +41,15 @@ export function AutoRegCallout({
       }
     >
       <p>
-        That set was RPE <span className="font-mono">{rpe}</span>. Suggest dropping to{" "}
-        <span className="font-mono">{reducedWeight} lbs</span> for the remaining sets.
+        {repsInReserve === "0" ? (
+          "You had nothing left after your first set."
+        ) : (
+          <>
+            Your first set left you <span className="font-mono">{repsInReserve}</span> reps.
+          </>
+        )}{" "}
+        Drop to{" "}
+        <span className="font-mono">{reducedWeight} lb</span> for the remaining sets?
       </p>
       {evidence}
     </Callout>

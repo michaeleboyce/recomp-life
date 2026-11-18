@@ -24,7 +24,7 @@ const session: LiftSession = {
     { reps: 3, amrap: false, failed: false },
     { reps: 5, amrap: true, failed: false },
   ],
-  rpe: 7.5,
+  meanRepsInReserve: 1.5,
   best: false,
 } as LiftSession;
 

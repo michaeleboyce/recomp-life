@@ -9,11 +9,11 @@ import { makeAdjustment, rebuildInput, runSession, startSim, stateOf } from "./t
 /** A1, B1, A2, B2, A1: squat is the T1 of the first and the last session. */
 function fiveSessions(firstAmrapReps = 3) {
   const sim = startSim();
-  runSession(sim, { t1: { lastReps: firstAmrapReps, rpe: 8 } });
+  runSession(sim, { t1: { lastReps: firstAmrapReps, repsInReserve: "1-2" } });
   runSession(sim);
   runSession(sim);
   runSession(sim);
-  runSession(sim, { t1: { rpe: 9 } });
+  runSession(sim, { t1: { repsInReserve: "1-2" } });
   return { sim, input: rebuildInput(sim) };
 }
 
@@ -125,7 +125,7 @@ describe("previewLogChange (E7)", () => {
         kind: "editSet",
         workoutId: "w1",
         setId: t3.id,
-        patch: { rpe: 7 },
+        patch: { repsInReserve: "3+" },
       })
     ).toEqual({ nextWorkout: [], prChanges: [], e1rmChanges: 0, unaffected: true });
   });
