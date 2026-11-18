@@ -9,7 +9,8 @@ import { applyChange, rebuildDerived, tierPrescription } from "@/lib/rebuild";
 import { fullSync, pullFromServer, pushUnsynced } from "@/lib/sync";
 import { fixtureStartAdjustments } from "@/lib/workout/testFixtures";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import type { LiftAdjustment, WorkoutSession } from "@/types";
+import type { LiftAdjustment, NextSetPlan, UserSettings, WorkoutSession } from "@/types";
+import { stampSettingsChanges } from "./settingsMerge";
 import { PROFILE_ID } from "./registry";
 import { FakeSyncServer, TEST_PASSPHRASE, makeDeviceDb } from "./testFakes";
 
@@ -353,5 +354,80 @@ describe("two devices, one server: each device rebuilds the same derived data", 
       t2Stage: "3x8",
     });
     expect(onA.e1rms).toEqual([]);
+  });
+});
+
+describe("two devices, one server: settings merge field by field", () => {
+  /** A settings write the way `writeSettings` makes one: changed paths stamped, row stamped and dirty. */
+  // Real times: the merge prunes removal stamps by the clock (REMOVED_STAMP_TTL_MS).
+  const T = Date.now() - 60_000;
+  async function editSettings(database: Dexie, change: (s: UserSettings) => UserSettings, offset: number) {
+    const at = T + offset;
+    const profile = await database.table("userProfile").toCollection().first();
+    const settings = stampSettingsChanges(profile.settings, change(profile.settings), at);
+    await database.table("userProfile").update(profile.id, { settings, updatedAt: at, synced: false });
+  }
+  const settingsOf = async (database: Dexie): Promise<UserSettings> =>
+    (await database.table("userProfile").toCollection().first()).settings;
+  const plan = (weight: number): NextSetPlan => ({
+    exerciseId: "squat",
+    liftId: "squat",
+    tier: "T1",
+    sets: [{ weight, reps: 3 }],
+    planSets: [{ weight: 200, reps: 3 }],
+    createdAt: "2026-11-18T10:00:00.000Z",
+  });
+
+  beforeEach(async () => {
+    await A.table("userProfile").add({ ...makeProfile(), id: PROFILE_ID, clientId: PROFILE_ID, updatedAt: T, synced: false });
+    await sync(A);
+    await sync(B);
+  });
+
+  it("a set plan saved on A and the theme changed on B both survive, whichever syncs first", async () => {
+    await editSettings(A, (s) => ({ ...s, nextSetPlans: { "squat|T1": plan(205) } }), 200);
+    await editSettings(B, (s) => ({ ...s, theme: "light" }), 300);
+
+    await sync(A);
+    await sync(B); // B is newer as a row: without the merge, A's plan would be lost here
+    await sync(A); // A merges B's theme in and sends the merged row back
+    await sync(B);
+
+    for (const database of [A, B]) {
+      const settings = await settingsOf(database);
+      expect(settings.theme, nameOf(database)).toBe("light");
+      expect(settings.nextSetPlans?.["squat|T1"]?.sets, nameOf(database)).toEqual([{ weight: 205, reps: 3 }]);
+    }
+    expect(server.rows("userProfile")[0].settings).toMatchObject({ theme: "light" });
+  });
+
+  it("a plan used up on A is not brought back by B's older copy", async () => {
+    await editSettings(A, (s) => ({ ...s, nextSetPlans: { "squat|T1": plan(205) } }), 200);
+    await sync(A);
+    await sync(B);
+    await editSettings(A, (s) => ({ ...s, nextSetPlans: {} }), 400);
+    await editSettings(B, (s) => ({ ...s, restTimerAudio: !s.restTimerAudio }), 500);
+
+    await sync(A);
+    await sync(B);
+    await sync(A);
+    await sync(B);
+
+    for (const database of [A, B]) {
+      expect((await settingsOf(database)).nextSetPlans, nameOf(database)).toEqual({});
+    }
+  });
+
+  it("the same plan edited on both: the later edit wins", async () => {
+    await editSettings(A, (s) => ({ ...s, nextSetPlans: { "squat|T1": plan(205) } }), 300);
+    await editSettings(B, (s) => ({ ...s, nextSetPlans: { "squat|T1": plan(210) } }), 200);
+
+    await sync(B);
+    await sync(A);
+    await sync(B);
+
+    for (const database of [A, B]) {
+      expect((await settingsOf(database)).nextSetPlans?.["squat|T1"]?.sets[0].weight, nameOf(database)).toBe(205);
+    }
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { useLiftStates, useSettings } from "@/hooks";
 import { T3_INCREMENT_LBS, T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
@@ -9,7 +9,9 @@ import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { AdjustLiftSheet, BackToPlanButton } from "@/components/LogEdit";
 import { minWeightFor, plannedSetsOf, weightStepFor } from "@/components/ActiveWorkout/setPlan";
 import { weightUnit } from "@/components/SetPlan/setPlanModel";
-import { schemeText } from "@/components/Lift/homeVersion";
+import { homeNextSession, homePlanWeight, schemeText } from "@/components/Lift/homeVersion";
+import { useHomePlanContext } from "@/components/Lift/useHomePlanContext";
+import type { VariantTier } from "@/lib/workout/variant";
 import { formatShortDate } from "@/components/chart-kit";
 import { nameInSentence } from "@/components/Today/todayModel";
 import { LIFT_NAMES } from "@/components/Progress/lifts";
@@ -117,8 +119,11 @@ export function PlannedNextSession({
   const liftId = entry.exerciseId;
   const tier = entry.tier;
   const state = liftStates.find((s) => s.exerciseId === liftId);
-  // A row done standing in for another lift at T3 has no form of its own; its own lift state is edited.
+  // Done standing in for another lift (dumbbell row for lat pulldown at T3). At home the
+  // weight is that home version's own (`variantId`): Adjust and "Plan · You" are its, as
+  // on a home exercise's page; elsewhere it is this exercise's own lift state.
   const asOther = liftId !== exerciseId;
+  const homeStandIn = asOther && !!entry.variantId;
   const ownState = liftStates.find((s) => s.exerciseId === exerciseId);
   const planWeight = asOther ? null : liftPlanWeight(state, tier, entry.weight);
   const unit = weightUnit(entry.perHand ?? false);
@@ -127,7 +132,7 @@ export function PlannedNextSession({
     next.workoutsAway === 0
       ? "Your next workout"
       : `Workout ${next.templateId}, ${next.workoutsAway} ${next.workoutsAway === 1 ? "workout" : "workouts"} from now`;
-  const canAdjust = !!(asOther ? ownState : state);
+  const canAdjust = homeStandIn || !!(asOther ? ownState : state);
 
   return (
     <NextSessionSection title={location === "home" ? "Next session at home" : "Next session"}>
@@ -153,6 +158,7 @@ export function PlannedNextSession({
             Set by you. The plan&apos;s own weight stays beside yours until you lift it.
           </PlanYouRow>
         )}
+        {homeStandIn && <HomeStandInPlanYou liftId={liftId} exerciseId={exerciseId} tier={tier} weight={entry.weight} unit={unit} />}
         {kind.kind !== "accessory" && kind.kind !== "reference" && <ProgressionLine tier={tier} liftShort={liftShort} />}
         <NextSetPlanEditor
           exerciseId={exerciseId}
@@ -169,10 +175,64 @@ export function PlannedNextSession({
       </NextSessionCard>
       {prLine}
       {canAdjust && (
-        <AdjustRow sheet={<AdjustLiftSheet exerciseId={asOther ? exerciseId : liftId} tier={tier} />}>
-          Wrong weight for next time? Set it yourself, from now on.
+        <AdjustRow
+          sheet={
+            homeStandIn ? (
+              <AdjustLiftSheet exerciseId={liftId} home={{ substituteId: exerciseId, tier }} />
+            ) : (
+              <AdjustLiftSheet exerciseId={asOther ? exerciseId : liftId} tier={tier} />
+            )
+          }
+        >
+          {homeStandIn
+            ? `Wrong weight for next time? Set the ${nameInSentence(exerciseId)} weight it has standing in for ${nameInSentence(liftId)}; ${nameInSentence(liftId)} itself stays as it is.`
+            : "Wrong weight for next time? Set it yourself, from now on."}
         </AdjustRow>
       )}
     </NextSessionSection>
+  );
+}
+
+/**
+ * "Plan · You" for a home version standing in for another lift, while its weight is set
+ * by hand: the plan's own weight (`homePlanWeight`) and "Use" to go back to it.
+ */
+function HomeStandInPlanYou({
+  liftId,
+  exerciseId,
+  tier,
+  weight,
+  unit,
+}: {
+  liftId: string;
+  exerciseId: string;
+  tier: Tier;
+  weight: number;
+  unit: string;
+}) {
+  const ctx = useHomePlanContext();
+  const planWeight = useMemo(() => {
+    if (!ctx) return null;
+    const next = homeNextSession(liftId, exerciseId, ctx, tier as VariantTier);
+    return homePlanWeight(liftId, exerciseId, ctx, next);
+  }, [ctx, liftId, exerciseId, tier]);
+  if (planWeight == null) return null;
+  return (
+    <PlanYouRow
+      planWeight={planWeight}
+      weight={weight}
+      evidence={<EvidenceLine ruleId="target-evidence" variant="icon" />}
+      backToPlan={
+        <BackToPlanButton
+          exerciseId={liftId}
+          substituteId={exerciseId}
+          tier={weightTier(tier)}
+          planWeight={planWeight}
+          unit={unit}
+        />
+      }
+    >
+      Set by you. The plan&apos;s own weight stays beside yours until you lift it.
+    </PlanYouRow>
   );
 }

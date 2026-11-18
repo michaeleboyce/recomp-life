@@ -20,6 +20,7 @@ import { liftName } from "./format";
 import { WEIGHT_MAX } from "./setChanges";
 import { useCommitLogChange } from "./useCommitLogChange";
 import { BACK_TO_PLAN_NOTE } from "@/lib/workout/variant";
+import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 
 type AdjustTier = "T1" | "T2" | "T3";
 const T1_STAGES: T1Stage[] = ["5x3", "6x2", "10x1"];
@@ -203,7 +204,15 @@ function AdjustForm({
   );
 }
 
-const HOME_TIERS = TIERS.filter((t) => t.value !== "T3");
+/** The tiers at which the program has `exerciseId`: a main lift's T1 and T2, a T3 lift's T3. */
+function programTiers(exerciseId: string): AdjustTier[] {
+  const tiers = new Set<string>();
+  for (const template of Object.values(WORKOUT_TEMPLATES)) {
+    for (const slot of template.exercises) if (slot.exerciseId === exerciseId) tiers.add(slot.tier);
+  }
+  const found = TIERS.map((t) => t.value as AdjustTier).filter((t) => tiers.has(t));
+  return found.length > 0 ? found : ["T1", "T2"];
+}
 
 /**
  * The Adjust weight form for a home exercise standing in for `exerciseId`: its own
@@ -223,13 +232,14 @@ function HomeAdjustForm({
 }: {
   exerciseId: string;
   substituteId: string;
-  initialTier: "T1" | "T2";
+  initialTier: AdjustTier;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   submit: ReturnType<typeof useCommitLogChange>["submit"];
 }) {
   const ctx = useHomePlanContext();
-  const [tier, setTier] = useState<"T1" | "T2">(initialTier);
+  const tiers = useMemo(() => programTiers(exerciseId), [exerciseId]);
+  const [tier, setTier] = useState<AdjustTier>(tiers.includes(initialTier) ? initialTier : tiers[0]);
   const [weight, setWeight] = useState<string | null>(null);
   const [stage, setStage] = useState<string | null>(null);
   const [invalid, setInvalid] = useState<string | null>(null);
@@ -241,7 +251,7 @@ function HomeAdjustForm({
   const weightText = weight ?? String(now?.weight ?? 0);
   const stageValue = stage ?? now?.stage ?? null;
   const barbell = ctx?.liftStates.find((s) => s.exerciseId === exerciseId);
-  const barbellWeight = tier === "T1" ? barbell?.t1Weight : barbell?.t2Weight;
+  const barbellWeight = tier === "T1" ? barbell?.t1Weight : tier === "T2" ? barbell?.t2Weight : barbell?.t3Weight;
   const max = ctx?.equipment.maxDumbbellWeight ?? WEIGHT_MAX;
   const description = "Saved as a dated change from today on. Past sessions are not altered.";
 
@@ -306,17 +316,21 @@ function HomeAdjustForm({
       onSave={() => void save()}
       busy={busy}
     >
-      <FieldLabel>Tier</FieldLabel>
-      <ChipGroup
-        ariaLabel="Tier"
-        options={HOME_TIERS}
-        value={tier}
-        onChange={(v) => {
-          setTier(v as "T1" | "T2");
-          setWeight(null);
-          setStage(null);
-        }}
-      />
+      {tiers.length > 1 && (
+        <>
+          <FieldLabel>Tier</FieldLabel>
+          <ChipGroup
+            ariaLabel="Tier"
+            options={TIERS.filter((t) => tiers.includes(t.value as AdjustTier))}
+            value={tier}
+            onChange={(v) => {
+              setTier(v as AdjustTier);
+              setWeight(null);
+              setStage(null);
+            }}
+          />
+        </>
+      )}
       <StepperField
         label="Weight"
         unit={unit}
@@ -326,18 +340,23 @@ function HomeAdjustForm({
         max={max}
         hint={
           <p data-testid="weight-hint" className="text-xs text-muted-foreground">
-            {name}&apos;s own weight{perHand ? ", for each dumbbell" : ", one dumbbell"}. The barbell{" "}
-            {liftName(exerciseId).toLowerCase()} stays at {barbellWeight ?? 0} lbs.
+            {name}&apos;s own weight{perHand ? ", for each dumbbell" : ", one dumbbell"}.{" "}
+            {tier === "T3" ? liftName(exerciseId) : `The barbell ${liftName(exerciseId).toLowerCase()}`} stays at{" "}
+            {barbellWeight ?? 0} lbs.
           </p>
         }
       />
-      <FieldLabel>Stage</FieldLabel>
-      <ChipGroup
-        ariaLabel="Stage"
-        options={(tier === "T1" ? T1_STAGES : T2_STAGES).map((s) => ({ value: s, label: s }))}
-        value={stageValue ?? ""}
-        onChange={setStage}
-      />
+      {tier !== "T3" && (
+        <>
+          <FieldLabel>Stage</FieldLabel>
+          <ChipGroup
+            ariaLabel="Stage"
+            options={(tier === "T1" ? T1_STAGES : T2_STAGES).map((s) => ({ value: s, label: s }))}
+            value={stageValue ?? ""}
+            onChange={setStage}
+          />
+        </>
+      )}
       {preview && (
         <p data-testid="home-adjust-preview" className="rounded-lg bg-accent-primary-soft px-3 py-2 text-[13px] text-foreground">
           {now.plannedAs ? `Next time you do ${nameInSentence(substituteId)}` : "Next home session"}:{" "}
@@ -396,7 +415,7 @@ export function AdjustLiftSheet({
           key={String(open)}
           exerciseId={exerciseId}
           substituteId={home.substituteId}
-          initialTier={home.tier === "T2" ? "T2" : "T1"}
+          initialTier={home.tier === "T2" ? "T2" : home.tier === "T3" ? "T3" : "T1"}
           open={open}
           onOpenChange={setOpen}
           submit={submit}

@@ -373,7 +373,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/strength/coefficients.ts` (`TARGET_EVIDENCE`), `src/lib/strength/estimate.ts` (`targetEstimates`), `src/lib/strength/pooled.ts` (`pooledLiftEstimate`), `src/lib/workout/variant.ts` (`targetStrengthSets`), `src/lib/workout/variant.ts` (`withHandSetWeight`), `src/components/Lift/homeVersion.ts` (`homePlanWeight`), `src/components/LogEdit/AdjustLiftSheet.tsx` (`BackToPlanButton`), `src/hooks/useStrengthEvidence.ts` (`useStrengthEvidence`), `src/lib/data/forecasts.ts` (`strengthSetsFrom`), `src/lib/trace/homeWeight.ts` (`homeWeightSteps`), `src/lib/strength/timeline.ts` (`strengthTimeline`)
-- **Shown in:** `src/components/ExercisePage/HomeNextSession.tsx`
+- **Shown in:** `src/components/ExercisePage/HomeNextSession.tsx`, `src/components/ExercisePage/NextSession.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** A weight you set counts a little toward the lift's estimate until you lift it
