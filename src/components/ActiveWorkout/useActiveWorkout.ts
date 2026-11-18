@@ -10,10 +10,10 @@
  * | logged sets, plan edits      | session row (Dexie)            | appendSet, appendPlanEdit, commitLogChange                     | everything                      | never (soft delete on discard)                   | kept   | kept    |
  * | start time                   | session row (startedAt)        | startWorkout only                                             | header clock, finish            | never                                            | kept   | kept    |
  * | frozen plan                  | React (per session id)         | first load (planForSession), addExercise, applyChange         | everything                      | another session id                               | rebuilt from session | rebuilt |
- * | weights changed on the spot  | React + sessionStorage         | setSetWeight / setNextWeight, applyChange (replaced entry)    | plan, chips, logSet             | per set: back to plan; per entry: replaced swap  | kept   | kept    |
- * | reps picked, effort picked   | React, keyed "entry:set"       | setSelectedReps, setSelectedRepsInReserve                     | logSet                          | key changes (next set); deleting a set           | lost   | lost    |
- * | pending T2 drop              | store                          | acceptDrop                                                    | plan, dropAccepted              | log on its entry, delete on it, swap of it, reset| lost   | kept    |
- * | declined T2 drop             | store                          | keepWeight                                                    | dropSuggestion                  | another session id, reset                        | lost   | kept    |
+ * | draft: spot weights          | useSetDraft: React + sessionStorage | setSetWeight / setNextWeight, applyChange (replaced entry)    | plan, chips, logSet             | per set: back to plan; per entry: replaced swap  | kept   | kept    |
+ * | draft: reps, effort picked   | useSetDraft: React, by "entry:set" | setSelectedReps, setSelectedRepsInReserve                     | logSet                          | key changes (next set); deleting a set           | lost   | lost    |
+ * | draft: pending T2 drop       | useSetDraft: store             | acceptDrop                                                    | plan, dropAccepted              | log on its entry, delete on it, swap of it, reset| lost   | kept    |
+ * | draft: declined T2 drop      | useSetDraft: store             | keepWeight                                                    | dropSuggestion                  | another session id, reset                        | lost   | kept    |
  * | drop sets in progress        | React (per session id)         | startDropSet, setDropWeight/Reps, logDropSet, endDropSets     | dropSet                         | endDropSets                                      | lost   | lost    |
  * | rest countdown               | store (RestTimer ticks it)     | only through restCountdown.ts: logSet, endDropSets start it; jumpTo, swap, endEarly, startDropSet, delete of the latest set skip it; RestTimer ticks, adds, ends | RestTimer, LogDock | skipRest, reset | lost | kept |
  * | viewed entry                 | store                          | logSet (last set of an entry), jumpTo, swap, delete           | activeIndex                     | another session id, reset                        | lost (resumes at first unfinished) | kept |
@@ -73,13 +73,11 @@ import {
   spotKey,
   spotWeightsOf,
   weightStepFor,
-  type SpotWeightsByKey,
 } from "./setPlan";
 import { clampWeight } from "@/components/SetPlan/setPlanModel";
-import { loadSpotWeights, saveSpotWeights } from "./spotWeightStorage";
+import { withPendingDrop } from "./setDraft";
+import { useSetDraft } from "./useSetDraft";
 import { afterSetLogged, restsAfterDrops, restTimer } from "./restCountdown";
-
-const NO_SPOT_WEIGHTS: SpotWeightsByKey = {};
 
 /** The exercise a set was done with: the substitute when there was one. */
 const performedId = (set: Pick<SetLog, "exerciseId" | "substituteExerciseId">) =>
@@ -141,21 +139,10 @@ export function useActiveWorkout(
   const strengthSets = useStrengthEvidence();
 
   const viewedEntryIndex = useWorkoutStore((s) => s.viewedEntryIndex);
-  const pendingDrop = useWorkoutStore((s) => s.pendingDrop);
-  const dismissedDropEntryIndex = useWorkoutStore((s) => s.dismissedDropEntryIndex);
   const storeSessionId = useWorkoutStore((s) => s.sessionId);
 
   // Index of the entry that was on screen when the user chose to end early.
   const [endedAtIndex, setEndedAtIndex] = useState<number | null>(null);
-  const [repsChoice, setRepsChoice] = useState<{ key: string; reps: number } | null>(null);
-  const [repsInReserveChoice, setRepsInReserveChoice] = useState<{
-    key: string;
-    repsInReserve: RepsInReserve;
-  } | null>(null);
-  // Weights changed on the spot from the set chips, each for its own set (by `spotKey`).
-  const [spotChoice, setSpotChoice] = useState<{ sessionId: string; weights: SpotWeightsByKey } | null>(
-    null
-  );
   const [dropState, setDropState] = useState<DropState | null>(null);
   const [e1rmFlash, setE1rmFlash] = useState<number | null>(null);
   // Id of a set that has been written but is not yet visible on the live record.
@@ -208,27 +195,29 @@ export function useActiveWorkout(
   const workoutStartTime = useMemo(() => (startedAtMs == null ? null : new Date(startedAtMs)), [startedAtMs]);
 
   const sets = useMemo(() => session?.sets ?? [], [session]);
-  // Kept per workout in sessionStorage, so a reload keeps the weights changed on the spot.
-  if (session && spotChoice?.sessionId !== session.id) {
-    setSpotChoice({ sessionId: session.id, weights: loadSpotWeights(session.id) });
-  }
-  const spotWeights = useMemo<SpotWeightsByKey>(
-    () => (session && spotChoice?.sessionId === session.id ? spotChoice.weights : NO_SPOT_WEIGHTS),
-    [session, spotChoice]
-  );
+  // The next set's draft: reps and effort picked, weights changed on the spot, T2 drops.
+  const {
+    repsFor,
+    repsInReserveFor,
+    pickReps,
+    pickRepsInReserve,
+    clearPicks,
+    spotWeights,
+    setSpotWeight,
+    clearEntrySpotWeights,
+    pendingDrop,
+    dismissedDropEntryIndex,
+    acceptDrop: acceptDropOn,
+    dismissDrop,
+    clearPendingDropOn,
+  } = useSetDraft(session?.id ?? null);
 
   // Drop sets continue a set and are not sets of their entry; a per-set entry keeps its
   // working weight (each set's own is in `perSet`); a weight changed on the spot is for
   // its own set alone.
   const plan = useMemo<WorkoutPlan>(() => {
     if (!basePlan) return [];
-    const rehydrated = screenPlan(basePlan, sets, spotWeights);
-    if (!storeReady || !pendingDrop) return rehydrated;
-    return rehydrated.map((entry, i) =>
-      i === pendingDrop.entryIndex && entry.completedSets < entry.targetSets
-        ? { ...entry, weight: pendingDrop.weight }
-        : entry
-    );
+    return withPendingDrop(screenPlan(basePlan, sets, spotWeights), storeReady ? pendingDrop : null);
   }, [basePlan, sets, spotWeights, pendingDrop, storeReady]);
 
   const naturalIndex = resolveActiveIndex(plan, storeReady ? viewedEntryIndex : null);
@@ -247,10 +236,9 @@ export function useActiveWorkout(
     () => (planEntry ? nextSetView(planEntry, weightOverride) : undefined),
     [planEntry, weightOverride]
   );
-  const selectedReps =
-    entry && repsChoice?.key === setKey ? repsChoice.reps : (entry?.targetReps ?? 0);
-  const selectedRepsInReserve =
-    repsInReserveChoice?.key === setKey ? repsInReserveChoice.repsInReserve : null;
+  const pickedReps = repsFor(setKey);
+  const selectedReps = entry && pickedReps !== undefined ? pickedReps : (entry?.targetReps ?? 0);
+  const selectedRepsInReserve = repsInReserveFor(setKey);
 
   const equipment = settings?.equipment;
   const location = session?.location ?? "gym";
@@ -347,12 +335,11 @@ export function useActiveWorkout(
       setTimeout(() => setE1rmFlash(null), E1RM_FLASH_MS);
     }
 
-    const store = useWorkoutStore.getState();
-    if (store.pendingDrop?.entryIndex === activeIndex) store.clearPendingDrop();
+    clearPendingDropOn(activeIndex);
 
     // Another set of the entry after its rest, or on to whatever is next.
     const after = afterSetLogged(plan, activeIndex);
-    if (after.view !== undefined) store.viewEntry(after.view);
+    if (after.view !== undefined) useWorkoutStore.getState().viewEntry(after.view);
     if (after.rest) restTimer.start(entry.tier, trainingPhase);
   }, [
     tapGuardMs,
@@ -368,6 +355,7 @@ export function useActiveWorkout(
     activeIndex,
     plan,
     trainingPhase,
+    clearPendingDropOn,
   ]);
 
   /**
@@ -380,16 +368,10 @@ export function useActiveWorkout(
       const key = spotKey(activeIndex, setIndex);
       const planned = setChips[setIndex]?.planWeight;
       const value = weight != null && Number.isFinite(weight) ? clampWeight(weight, minWeight, maxWeight) : null;
-      setSpotChoice((was) => {
-        const weights: Record<string, number> = { ...(was?.sessionId === session.id ? was.weights : {}) };
-        // Stepping back onto the plan's weight is the plan again.
-        if (value == null || value === planned) delete weights[key];
-        else weights[key] = value;
-        saveSpotWeights(session.id, weights);
-        return { sessionId: session.id, weights };
-      });
+      // Stepping back onto the plan's weight is the plan again.
+      setSpotWeight(key, value, planned);
     },
-    [session, planEntry, activeIndex, minWeight, maxWeight, setChips]
+    [session, planEntry, activeIndex, minWeight, maxWeight, setChips, setSpotWeight]
   );
 
   /** Changes the next set's weight on the spot; null goes back to the planned weight. */
@@ -530,24 +512,24 @@ export function useActiveWorkout(
   }, [activeDrop, sets, endedAtIndex, plan, trainingPhase]);
 
   const setSelectedReps = useCallback(
-    (reps: number) => setRepsChoice({ key: setKey, reps: clampReps(reps) }),
-    [setKey]
+    (reps: number) => pickReps(setKey, reps),
+    [setKey, pickReps]
   );
   const setSelectedRepsInReserve = useCallback(
     (repsInReserve: RepsInReserve | null) =>
-      setRepsInReserveChoice(repsInReserve == null ? null : { key: setKey, repsInReserve }),
-    [setKey]
+      pickRepsInReserve(setKey, repsInReserve),
+    [setKey, pickRepsInReserve]
   );
 
   const acceptDrop = useCallback(() => {
     if (dropSuggestion) {
-      useWorkoutStore.getState().acceptDrop(activeIndex, dropSuggestion.reducedWeight);
+      acceptDropOn(activeIndex, dropSuggestion.reducedWeight);
     }
-  }, [dropSuggestion, activeIndex]);
+  }, [dropSuggestion, activeIndex, acceptDropOn]);
 
   const keepWeight = useCallback(() => {
-    useWorkoutStore.getState().dismissDrop(activeIndex);
-  }, [activeIndex]);
+    dismissDrop(activeIndex);
+  }, [activeIndex, dismissDrop]);
 
   // What an Undo tapped later has to check against: the sets and plan as they are then.
   const latest = useRef<{ sets: typeof sets; plan: WorkoutPlan }>({ sets, plan });
@@ -626,14 +608,13 @@ export function useActiveWorkout(
       // The log button waits for the set it just wrote to show up; that set is gone.
       setAwaitingSetId((id) => (id === original.id ? null : id));
       // Start the set over from its target, not from what was picked for the deleted one.
-      setRepsChoice(null);
-      setRepsInReserveChoice(null);
+      clearPicks();
       const store = useWorkoutStore.getState();
       // The rest that followed the deleted set is over: it is the next set to do.
       if (wasMostRecent) restTimer.skip();
       const index = entryIndexForSet(plan, original);
       if (index !== -1) {
-        if (store.pendingDrop?.entryIndex === index) store.clearPendingDrop();
+        clearPendingDropOn(index);
         store.viewEntry(index);
       }
       setE1rmFlash(null);
@@ -662,7 +643,7 @@ export function useActiveWorkout(
       });
       return true;
     },
-    [session, sets, plan]
+    [session, sets, plan, clearPicks, clearPendingDropOn]
   );
 
   const clearCorrectionError = useCallback(() => setCorrectionError(null), []);
@@ -714,18 +695,10 @@ export function useActiveWorkout(
       if (!session) return;
       for (const edit of change.edits) await appendPlanEdit(session.id, edit);
       setFrozen((was) => (was && was.sessionId === session.id ? { sessionId: was.sessionId, plan: change.plan } : was));
-      if (change.mode === "replaced") {
-        setSpotChoice((was) => {
-          if (!was || was.sessionId !== session.id) return was;
-          const weights = Object.fromEntries(Object.entries(was.weights).filter(([key]) => !key.startsWith(`${index}:`)));
-          saveSpotWeights(session.id, weights);
-          return { sessionId: session.id, weights };
-        });
-      }
-      const store = useWorkoutStore.getState();
-      if (store.pendingDrop?.entryIndex === index) store.clearPendingDrop();
+      if (change.mode === "replaced") clearEntrySpotWeights(index);
+      clearPendingDropOn(index);
     },
-    [session]
+    [session, clearEntrySpotWeights, clearPendingDropOn]
   );
 
   const changeFor = useCallback(
