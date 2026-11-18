@@ -19,14 +19,13 @@ import {
   isLive,
   lbs,
   liftHref,
-  liftLabel,
-  liftShort,
   FEED_HREFS,
   scheme,
   tierTag,
   toDate,
   toMs,
 } from "./text";
+import { feedLiftLabel, feedLiftShort } from "@/lib/liftNames";
 import {
   SOURCE_RANK,
   type AdjustmentFeedInput,
@@ -268,7 +267,7 @@ function changeOf(change: TierChange): ShownChange | null {
 
 /** Title and before/after for a row that is not a starting weight. */
 function describeRow(row: Replayed): Pick<AdjustmentEntry, "title" | "change"> & { lead: string } {
-  const name = liftLabel(row.adjustment.exerciseId);
+  const name = feedLiftLabel(row.adjustment.exerciseId);
   const changes = tierChanges(row);
 
   if (changes.length === 0) return { title: `${name} progression record changed`, lead: "" };
@@ -319,11 +318,11 @@ function startEntry(rows: Replayed[]): AdjustmentEntry {
         order(a.adjustment.exerciseId) - order(b.adjustment.exerciseId) ||
         compareIds(a.adjustment.exerciseId, b.adjustment.exerciseId)
     )
-    .map((row) => `${liftShort(row.adjustment.exerciseId)} ${lbs(row.adjustment.set.t1Weight!)}`);
+    .map((row) => `${feedLiftShort(row.adjustment.exerciseId)} ${lbs(row.adjustment.set.t1Weight!)}`);
   const what =
     heavy.length > 0
       ? `Heavy sets start at ${joinList(heavy)}.`
-      : `Starting weights for ${joinList(rows.map((row) => liftShort(row.adjustment.exerciseId)))}.`;
+      : `Starting weights for ${joinList(rows.map((row) => feedLiftShort(row.adjustment.exerciseId)))}.`;
   return {
     id: `${START_ENTRY_ID_PREFIX}${rows[0].at.getTime()}`,
     at: rows[0].at,

@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { SetEditSheet } from "./SetEditSheet";
-import { set } from "./testFixtures";
+import { makeSet } from "./testFixtures";
 
 afterEach(cleanup);
 
@@ -14,7 +14,7 @@ function open(overrides: Partial<Parameters<typeof SetEditSheet>[0]> = {}) {
       open
       onOpenChange={onOpenChange}
       workoutId="w1"
-      set={set({ actualReps: 3, weight: 205, repsInReserve: "1-2" })}
+      set={makeSet({ actualReps: 3, weight: 205, repsInReserve: "1-2" })}
       onSubmit={onSubmit}
       {...overrides}
     />
@@ -46,7 +46,7 @@ describe("SetEditSheet", () => {
   });
 
   it("edits a home set's weight as lifted, a hand, and moves the barbell weight it stands for", async () => {
-    const home = set({
+    const home = makeSet({
       id: "h1",
       location: "home",
       isSubstituted: true,

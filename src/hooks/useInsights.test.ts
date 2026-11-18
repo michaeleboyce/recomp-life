@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb, makeProfile, makeWorkout } from "@/lib/data/testUtils";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { useInsights } from "./index";
 
 const HOUR = 60 * 60 * 1000;
@@ -40,7 +40,7 @@ describe("useInsights", () => {
     await waitFor(() => expect(r.result.current?.map((i) => i.kind)).toContain("inactivity"));
     const recent = new Date();
     recent.setDate(recent.getDate() - 1);
-    await db.importedSessions.put(importedSession([importedSet()], { startedAt: recent }));
+    await db.importedSessions.put(makeImportedSession([makeImportedSet()], { startedAt: recent }));
     await waitFor(() => expect(r.result.current?.map((i) => i.kind)).not.toContain("inactivity"));
   });
 

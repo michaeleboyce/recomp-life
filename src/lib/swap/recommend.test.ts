@@ -3,7 +3,7 @@ import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { NEEDS_BENCH } from "@/lib/accessories/select";
 import { EXERCISES } from "@/lib/exercises";
 import { importedStrengthSets } from "@/lib/import/evidence";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import type { StrengthSet } from "@/lib/strength";
 import { seedLiftStates } from "@/lib/workout/testFixtures";
 import { chooseHomeVariant, seedVariantState } from "@/lib/workout/variant";
@@ -136,7 +136,7 @@ describe("recommendSwaps: score parts", () => {
     });
 
     const imported = importedStrengthSets([
-      importedSession([importedSet({ mappedExerciseId: "incline_db_press", exerciseName: "Incline DB" })], {
+      makeImportedSession([makeImportedSet({ mappedExerciseId: "incline_db_press", exerciseName: "Incline DB" })], {
         startedAt: daysBefore(21),
       }),
     ]);

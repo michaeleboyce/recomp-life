@@ -13,8 +13,8 @@ import {
   fullSync,
   pullFromServer,
   pushUnsynced,
-  syncRequest,
 } from "./sync";
+import { syncRequest } from "@/lib/sync/request";
 
 const derived = vi.hoisted(() => ({ applyRebuild: vi.fn() }));
 vi.mock("@/lib/data/derived", () => ({ applyRebuild: derived.applyRebuild }));

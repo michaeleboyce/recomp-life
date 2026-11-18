@@ -1,7 +1,7 @@
 // Insights with sessions imported from other apps (made-up sessions only).
 import { describe, expect, it } from "vitest";
 import { DEFAULT_USER_PROFILE, INITIAL_LIFT_STATES } from "@/db/seed";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import type { LiftState, WorkoutSession } from "@/types";
 import { computeInsights, type InsightContext } from "./index";
 
@@ -52,7 +52,7 @@ function workout(id: string, completedAt: Date): WorkoutSession {
 
 /** A made-up imported squat session: one working set. */
 const squat = (startedAt: Date, weight = 200, reps = 5) =>
-  importedSession([importedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: weight, reps })], {
+  makeImportedSession([makeImportedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: weight, reps })], {
     startedAt,
   });
 

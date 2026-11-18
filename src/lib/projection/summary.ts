@@ -1,19 +1,9 @@
 // The plain-language sentence at the top of the projection screen. Pure.
 import { EXERCISES } from "@/lib/exercises";
+import { projectionLiftName } from "@/lib/liftNames";
 import { joinList, percent, plural } from "@/lib/text";
 import type { ProjectionBaseline } from "./baseline";
 import type { Projection, ProjectionScenario, RelatedTrend } from "./project";
-
-/** "Barbell Squat" -> "squat", "Barbell OHP" -> "OHP"; unknown ids are returned as is. */
-export function liftShortName(exerciseId: string): string {
-  const name = EXERCISES[exerciseId]?.name;
-  if (!name) return exerciseId;
-  return name
-    .replace(/^Barbell\s+/, "")
-    .split(" ")
-    .map((word) => (word === word.toUpperCase() ? word : word.toLowerCase()))
-    .join(" ");
-}
 
 /** 2 -> "2", 1.53 -> "1.5", 5.08 -> "5.1". */
 export function formatAmount(value: number): string {
@@ -29,7 +19,7 @@ export function describeChanges(
   baseline: ProjectionBaseline,
   scenario: ProjectionScenario
 ): string[] {
-  const lift = liftShortName(baseline.exerciseId);
+  const lift = projectionLiftName(baseline.exerciseId);
   const changes: string[] = [];
   const s = scenario.sessionsPerWeek;
   if (s !== undefined && s !== baseline.sessionsPerWeek) {
@@ -83,7 +73,7 @@ export function summarizeScenario(
   projection: Projection,
   comparison: Projection
 ): string {
-  const lift = liftShortName(baseline.exerciseId);
+  const lift = projectionLiftName(baseline.exerciseId);
   if (projection.status === "insufficient-data" || projection.points.length === 0) {
     return `Not enough recent ${lift} results to project yet.`;
   }

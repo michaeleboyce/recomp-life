@@ -5,7 +5,7 @@ import { seedVariantState, variantKey } from "@/lib/workout/variant";
 import type { LiftState, VariantState } from "@/types";
 import { importedStrengthSets } from "@/lib/import/evidence";
 import { importedLiftIndex } from "@/lib/import/history";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { DEFAULT_MAX_DUMBBELL, gymDebtItems, importedLastTrained, recoveryRows } from "./sections";
 
 const HOUR = 3_600_000;
@@ -131,12 +131,12 @@ describe("recoveryRows with imported sessions", () => {
   // Made up: squat imported 10 hours ago, a DB bench (bench's home version) 3 days ago,
   // a deadlift warm-up only 1 day ago.
   const sets = importedStrengthSets([
-    importedSession([importedSet()], { startedAt: at(0, 10) }),
-    importedSession([importedSet({ exerciseName: "Made-up DB Bench", mappedExerciseId: "db_bench" })], {
+    makeImportedSession([makeImportedSet()], { startedAt: at(0, 10) }),
+    makeImportedSession([makeImportedSet({ exerciseName: "Made-up DB Bench", mappedExerciseId: "db_bench" })], {
       startedAt: at(3, 8),
     }),
-    importedSession(
-      [importedSet({ exerciseName: "Made-up Deadlift", mappedExerciseId: "deadlift", role: "warmup" })],
+    makeImportedSession(
+      [makeImportedSet({ exerciseName: "Made-up Deadlift", mappedExerciseId: "deadlift", role: "warmup" })],
       { startedAt: at(1) }
     ),
   ]);

@@ -22,7 +22,7 @@
 //   own sets next time (`accessoryPrescription`).
 import { EXERCISES } from "@/lib/exercises";
 import { homeOptionsFor } from "@/lib/workout/variant";
-import { liftShortName } from "@/lib/workoutNames";
+import { catalogueName, liftShortName } from "@/lib/liftNames";
 import type { Tier, WorkoutLocation } from "@/types";
 
 /**
@@ -87,7 +87,7 @@ export function swapCountsAsLift(
 }
 
 const PROGRAM_TIERS: readonly Tier[] = ["T1", "T2", "T3"];
-const nameOf = (id: string) => EXERCISES[id]?.name ?? id;
+const nameOf = catalogueName;
 
 /**
  * The line a finished workout shows for an exercise that stood in for a program lift

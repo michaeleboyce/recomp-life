@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { db } from "@/db/local";
 import { clearDb, makeProfile, seedFixtureStartingWeights } from "@/lib/data/testUtils";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { initializeDatabase } from "@/db/init";
 import { Toaster, dismissToast } from "@/components/ui/toast";
@@ -276,12 +276,12 @@ describe("Lift page (the barbell lift's exercise page)", () => {
   // Made-up imported history only: the repository is public.
   describe("with imported history", () => {
     const legDay = () =>
-      importedSession(
+      makeImportedSession(
         [
-          importedSet({ exerciseName: "Made-up Goblet", mappedExerciseId: "goblet_squat", weightPerImplementLb: 60, reps: 12 }),
-          importedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 185, reps: 5, role: "warmup" }),
-          importedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 225, reps: 5, setOrder: 2 }),
-          importedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 135, reps: 5 }),
+          makeImportedSet({ exerciseName: "Made-up Goblet", mappedExerciseId: "goblet_squat", weightPerImplementLb: 60, reps: 12 }),
+          makeImportedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 185, reps: 5, role: "warmup" }),
+          makeImportedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 225, reps: 5, setOrder: 2 }),
+          makeImportedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 135, reps: 5 }),
         ],
         // Newer than every demo workout, so it heads the list.
         { id: "imp-legs", sourceApp: "fitbod", title: "Leg Day", startedAt: new Date(Date.now() + 60_000) }

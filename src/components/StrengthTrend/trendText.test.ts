@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { MUSCLE_INDEX, strengthTimeline, type TimelineSource } from "@/lib/strength";
-import { day, t1Session } from "@/lib/strength/testHelpers";
+import { day, makeT1Session } from "@/lib/strength/testHelpers";
 import { formatTrendValue, indexLineText, reasonText, setText, smoothingText, sourceDetail } from "./trendText";
 
-const timeline = strengthTimeline("bench", t1Session({ sessionId: "w", exerciseId: "bench", weight: 185, amrapReps: 5, day: 0 }), {
+const timeline = strengthTimeline("bench", makeT1Session({ sessionId: "w", exerciseId: "bench", weight: 185, amrapReps: 5, day: 0 }), {
   now: day(3).getTime(),
 });
 

@@ -9,8 +9,8 @@ import { STRENGTH_POOLING, TARGET_EVIDENCE } from "./coefficients";
 import { compareEstimates, sessionEstimates, targetEstimates } from "./estimate";
 import { learnTransferRatios } from "./ratio";
 import type { PooledEstimate, RelatedEvidence, SessionEstimate, StrengthSet, TransferRatio } from "./types";
+import { DAY_MS } from "@/lib/dates";
 
-const DAY_MS = 86_400_000;
 
 export interface PooledEstimateOptions {
   /**

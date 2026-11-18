@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { db } from "@/db/local";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 
 const replace = vi.fn();
 let search = new URLSearchParams();
@@ -131,8 +131,8 @@ describe("Strength tab", () => {
   // Made-up imported history only: the repository is public.
   it("the muscles tab opens on imported history alone, before any workout is logged in the app", async () => {
     await db.importedSessions.add(
-      importedSession(
-        [importedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 225, reps: 5 })],
+      makeImportedSession(
+        [makeImportedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 225, reps: 5 })],
         { id: "imp-only", sourceApp: "fitbod", title: "Leg Day", startedAt: new Date() }
       )
     );

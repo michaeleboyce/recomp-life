@@ -2,7 +2,7 @@
 import type { ChangePreview, RebuildInput } from "@/lib/rebuild";
 import type { SetLog, UserSettings, WorkoutSession } from "@/types";
 
-export function set(overrides: Partial<SetLog> = {}): SetLog {
+export function makeSet(overrides: Partial<SetLog> = {}): SetLog {
   const id = overrides.id ?? "s1";
   return {
     id,
@@ -24,7 +24,7 @@ export function set(overrides: Partial<SetLog> = {}): SetLog {
   };
 }
 
-export function workout(overrides: Partial<WorkoutSession> = {}): WorkoutSession {
+export function makeWorkout(overrides: Partial<WorkoutSession> = {}): WorkoutSession {
   const id = overrides.id ?? "w1";
   return {
     id,
@@ -44,7 +44,7 @@ export function workout(overrides: Partial<WorkoutSession> = {}): WorkoutSession
   };
 }
 
-export function input(workouts: WorkoutSession[] = []): RebuildInput {
+export function makeRebuildInput(workouts: WorkoutSession[] = []): RebuildInput {
   return { workouts, adjustments: [], settings: {} as UserSettings };
 }
 

@@ -6,7 +6,7 @@ import { STALL_MODEL } from "./coefficients";
 import { DAY_MS } from "./log";
 import { resolveForecast } from "./resolve";
 import { scoreForecasts } from "./score";
-import { forecastRow, SETTINGS, t1Session, type T1SessionSpec } from "./testHelpers";
+import { makeForecast, SETTINGS, makeT1Session, type T1SessionSpec } from "./testHelpers";
 import type { ForecastLog } from "./types";
 
 const MADE = new Date("2026-11-02T18:00:00Z");
@@ -14,7 +14,7 @@ const at = (days: number) => new Date(MADE.getTime() + days * DAY_MS);
 const logOf = (...workouts: WorkoutSession[]): ForecastLog => ({ workouts, bodyweight: [] });
 
 const stall = (overrides: Partial<Forecast> = {}): Forecast =>
-  forecastRow({
+  makeForecast({
     id: "h-stall",
     clientId: "h-stall",
     slot: "stallRisk|squat|2026-W45",
@@ -38,7 +38,7 @@ const stall = (overrides: Partial<Forecast> = {}): Forecast =>
   });
 
 const session = (id: string, days: number, weight: number, lastReps: number, extra: Partial<T1SessionSpec> = {}) =>
-  t1Session({ id, at: at(days), weight, lastReps, ...extra });
+  makeT1Session({ id, at: at(days), weight, lastReps, ...extra });
 
 const LATE = at(60);
 const resolve = (forecast: Forecast, log: ForecastLog, now = LATE) => resolveForecast(forecast, log, now);
@@ -148,7 +148,7 @@ describe("the chance of a stall, checked", () => {
 describe("the date of a round number, checked", () => {
   const day = (date: Date) => date.getTime() / DAY_MS;
   const milestone = (overrides: Partial<Forecast> = {}): Forecast =>
-    forecastRow({
+    makeForecast({
       id: "h-mile",
       clientId: "h-mile",
       slot: "milestone|squat|2026-W45",
@@ -209,7 +209,7 @@ describe("scoring them over a long history", () => {
       workouts.push(session(`w${i}`, i * 3, 200, i % 2 === 0 ? 5 : 2));
       forecasts.push(
         stall({ id: `s${i}`, slot: `stallRisk|squat|${i}`, madeAt: at(i * 3 - 1), dueAt: at(i * 3 + 12) }),
-        forecastRow({
+        makeForecast({
           id: `m${i}`,
           slot: `milestone|squat|${i}`,
           kind: "milestone",

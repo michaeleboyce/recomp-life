@@ -12,7 +12,7 @@ import { strengthSetsOf } from "@/lib/workout/strength";
 import { getNextWorkoutId, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { WorkoutLocation } from "@/types";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { NextWorkoutHero } from "./NextWorkoutHero";
 import { dayName, displayLiftName, liftPageHref } from "./todayModel";
 
@@ -285,8 +285,8 @@ describe("NextWorkoutHero", () => {
     };
     await db.importedSessions.bulkPut(
       [3, 6, 9].map((n) =>
-        importedSession(
-          [1, 2, 3].map((order) => importedSet({ setOrder: order, mappedExerciseId: "squat", weightPerImplementLb: 275, reps: 5 })),
+        makeImportedSession(
+          [1, 2, 3].map((order) => makeImportedSet({ setOrder: order, mappedExerciseId: "squat", weightPerImplementLb: 275, reps: 5 })),
           { startedAt: day(n) }
         )
       )

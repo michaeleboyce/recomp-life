@@ -14,7 +14,7 @@ import {
   summarize,
   trackRecord,
 } from "./score";
-import { forecastRow, t1Session } from "./testHelpers";
+import { makeForecast, makeT1Session } from "./testHelpers";
 import type { ScoredForecast } from "./types";
 
 const T0 = new Date("2026-09-01T17:00:00Z").getTime();
@@ -26,7 +26,7 @@ function scored(status: ForecastStatus, overrides: Partial<Forecast> = {}): Scor
   serial += 1;
   const id = overrides.id ?? `f${serial}`;
   return {
-    forecast: forecastRow({ id, slot: id, madeAt: new Date(T0 + serial * HOUR), ...overrides }),
+    forecast: makeForecast({ id, slot: id, madeAt: new Date(T0 + serial * HOUR), ...overrides }),
     status,
   };
 }
@@ -175,15 +175,15 @@ describe("trackRecord", () => {
 
 describe("scoreForecasts", () => {
   it("scores the earliest row of each slot against the log", () => {
-    const workout = t1Session({
+    const workout = makeT1Session({
       id: "w1",
       at: new Date("2026-11-02T17:00:00Z"),
       weight: 200,
       lastReps: 5,
     });
-    const first = forecastRow({ id: "a", slot: "s1", madeAt: new Date(T0) });
-    const second = forecastRow({ id: "b", slot: "s1", madeAt: new Date(T0 + HOUR) });
-    const missing = forecastRow({ id: "c", slot: "s2", workoutId: "nope", madeAt: new Date(T0) });
+    const first = makeForecast({ id: "a", slot: "s1", madeAt: new Date(T0) });
+    const second = makeForecast({ id: "b", slot: "s1", madeAt: new Date(T0 + HOUR) });
+    const missing = makeForecast({ id: "c", slot: "s2", workoutId: "nope", madeAt: new Date(T0) });
     const result = scoreForecasts(
       [second, missing, first],
       { workouts: [workout], bodyweight: [] },
@@ -302,10 +302,10 @@ describe("sdScaleFor: when a kind's range widens", () => {
   });
 
   it("reads the factor a forecast was made with, 1 when it is missing or out of bounds", () => {
-    expect(sdScaleOf(forecastRow({ inputs: { sdScale: 1.3 } }))).toBe(1.3);
-    expect(sdScaleOf(forecastRow({ inputs: {} }))).toBe(1);
-    expect(sdScaleOf(forecastRow({ inputs: { sdScale: "wide" } }))).toBe(1);
-    expect(sdScaleOf(forecastRow({ inputs: { sdScale: 12 } }))).toBe(CALIBRATION.sdScaleMax);
+    expect(sdScaleOf(makeForecast({ inputs: { sdScale: 1.3 } }))).toBe(1.3);
+    expect(sdScaleOf(makeForecast({ inputs: {} }))).toBe(1);
+    expect(sdScaleOf(makeForecast({ inputs: { sdScale: "wide" } }))).toBe(1);
+    expect(sdScaleOf(makeForecast({ inputs: { sdScale: 12 } }))).toBe(CALIBRATION.sdScaleMax);
   });
 });
 

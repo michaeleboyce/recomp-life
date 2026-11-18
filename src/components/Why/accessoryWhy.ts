@@ -14,7 +14,7 @@ import {
   type AccessoryScoreParts,
 } from "@/lib/accessories/index";
 import { historyDay } from "@/components/Today/todayModel";
-import { formatLbs } from "@/components/Today/format";
+import { formatLbs } from "@/lib/text";
 
 export interface ScorePartLine {
   key: keyof AccessoryScoreParts;

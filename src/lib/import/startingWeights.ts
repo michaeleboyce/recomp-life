@@ -26,8 +26,11 @@
  * @evidence starting-weights
  */
 import type { NewAdjustment } from "@/lib/data/adjustments";
+import { DAY_MS } from "@/lib/dates";
 import { EXERCISES } from "@/lib/exercises";
+import { catalogueName } from "@/lib/liftNames";
 import { T3_INCREMENT_LBS } from "@/lib/progression";
+import { plural } from "@/lib/text";
 import {
   asLifted,
   impliedWeightForReps,
@@ -112,14 +115,13 @@ export interface StartingWeightInput {
   importedSessionIds?: ReadonlySet<string>;
 }
 
-const DAY_MS = 86_400_000;
 
 function restsOn(estimate: PooledEstimate, ids: ReadonlySet<string> | undefined): boolean {
   if (!ids) return true;
   return (estimate.own != null && ids.has(estimate.own.sessionId)) || estimate.related.some((r) => ids.has(r.sessionId));
 }
 
-const nameOf = (id: string) => EXERCISES[id]?.name ?? id;
+const nameOf = catalogueName;
 
 function formatDay(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -128,7 +130,7 @@ function formatDay(date: Date): string {
 /** "3 days", "5 weeks", "7 months", "2 years". */
 export function formatAge(days: number): string {
   const d = Math.max(0, Math.floor(days));
-  if (d < 14) return `${d} day${d === 1 ? "" : "s"}`;
+  if (d < 14) return plural(d, "day");
   if (d < 60) return `${Math.floor(d / 7)} weeks`;
   if (d < 730) return `${Math.floor(d / 30.44)} months`;
   return `${Math.floor(d / 365.25)} years`;
@@ -159,7 +161,7 @@ export function describeEstimate(estimate: PooledEstimate): string {
       byExercise.set(r.exerciseId, entry);
     }
     for (const [exerciseId, { count, ratio, pairs }] of byExercise) {
-      const basis = pairs > 0 ? `ratio ${ratio.toFixed(2)} from ${pairs} pair${pairs === 1 ? "" : "s"}` : `starting ratio ${ratio.toFixed(2)}`;
+      const basis = pairs > 0 ? `ratio ${ratio.toFixed(2)} from ${plural(pairs, "pair")}` : `starting ratio ${ratio.toFixed(2)}`;
       parts.push(`${count} ${nameOf(exerciseId)} session${count === 1 ? "" : "s"}${estimate.own ? " after it" : ""} (${basis})`);
     }
   }

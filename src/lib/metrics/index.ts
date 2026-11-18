@@ -1,7 +1,8 @@
 // The metrics layer: every trend the app shows is a Series produced by a registered
 // metric from plain records. Pure: no React, no database, no clock.
 import { bodyweight, bodyweight7d, lossRate } from "./body";
-import { count, mean, monthStartMs, weekStartMs } from "./helpers";
+import { plural } from "@/lib/text";
+import { mean, monthStartMs, weekStartMs } from "./helpers";
 import { inWindow, type ChartWindow } from "./window";
 import {
   activeEnergy,
@@ -130,7 +131,7 @@ export function bucket(
       }
       const values = members.map((m) => m.v);
       const v = aggregate === "sum" ? values.reduce((a, b) => a + b, 0) : mean(values);
-      return { t, v, label: count(members.length, "point") };
+      return { t, v, label: plural(members.length, "point") };
     });
   return { ...series, points };
 }

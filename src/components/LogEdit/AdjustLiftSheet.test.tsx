@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { LiftState } from "@/types";
-import { input, UNAFFECTED } from "./testFixtures";
+import { makeRebuildInput, UNAFFECTED } from "./testFixtures";
 
 const { useLiftStates, previewLogChange, loadRebuildInput, commitLogChange, toast } = vi.hoisted(() => ({
   useLiftStates: vi.fn(),
@@ -27,7 +27,7 @@ const SQUAT = { exerciseId: "squat", t1Weight: 205, t1Stage: "5x3", t2Weight: 15
 beforeEach(() => {
   vi.clearAllMocks();
   useLiftStates.mockReturnValue([SQUAT]);
-  loadRebuildInput.mockResolvedValue(input());
+  loadRebuildInput.mockResolvedValue(makeRebuildInput());
   previewLogChange.mockReturnValue(UNAFFECTED);
   commitLogChange.mockResolvedValue({});
 });

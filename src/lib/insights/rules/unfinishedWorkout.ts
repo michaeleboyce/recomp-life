@@ -1,6 +1,6 @@
 import { workoutDisplayName } from "@/lib/workoutNames";
 import type { Insight, InsightContext } from "../types";
-import { plural } from "../shared";
+import { plural } from "@/lib/text";
 
 const workingSets = (session: { sets?: { tier: string }[] }) =>
   (session.sets ?? []).filter((s) => s.tier !== "warmup").length;

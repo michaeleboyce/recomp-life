@@ -2,8 +2,8 @@
 import { averageRepsInReserve } from "@/lib/effort";
 import { excludeWarmUps, workingSetsFor } from "@/lib/workout/setSelectors";
 import type { SetLog } from "@/types";
+import { plural } from "@/lib/text";
 import {
-  count,
   defineMetric,
   formatNumber,
   formatWhole,
@@ -135,7 +135,7 @@ export const avgRepsInReserve = defineMetric(
       const answers = liftSets(sets, exerciseId).flatMap((s) => (s.repsInReserve ? [s.repsInReserve] : []));
       const avg = averageRepsInReserve(answers);
       if (avg === null) return null;
-      return { v: avg, label: count(answers.length, "set") };
+      return { v: avg, label: plural(answers.length, "set") };
     })
 );
 
@@ -153,6 +153,6 @@ export const liftVolume = defineMetric(
     perWorkout(source, params, (sets, exerciseId) => {
       const mine = liftSets(sets, exerciseId);
       if (mine.length === 0) return null;
-      return { v: setsVolume(mine), label: count(mine.length, "set") };
+      return { v: setsVolume(mine), label: plural(mine.length, "set") };
     })
 );

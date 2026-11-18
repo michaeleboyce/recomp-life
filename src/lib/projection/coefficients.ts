@@ -165,4 +165,3 @@ export const PROJECTION_COEFFICIENTS = {
   scenarioUncertainty: 0.5,
 } as const;
 
-export type ProjectionCoefficients = typeof PROJECTION_COEFFICIENTS;

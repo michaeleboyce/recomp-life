@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { getChangelog, getRule, isRuleId } from "@/lib/evidence";
 import { replayForecasts } from "@/lib/forecast";
-import { SETTINGS, forecastRow } from "@/lib/forecast/testHelpers";
+import { SETTINGS, makeForecast } from "@/lib/forecast/testHelpers";
 import { rebuildDerived } from "@/lib/rebuild";
 import { FAIL, adjust, runSession, startSim, type Sim } from "@/lib/rebuild/testHelpers";
 import type { AdjustmentEntry, AdjustmentSource, Forecast } from "@/types";
 import { buildAdjustmentFeed, entryGrade } from "./feed";
 import { FEED_GROUPS, filterFeed, groupsOf } from "./filter";
-import { adjustFrom, bySource, coachEvent, feedInput, textOf } from "./testHelpers";
+import { adjustFrom, bySource, makeCoachEvent, feedInput, textOf } from "./testHelpers";
 import type { AdjustmentFeedInput } from "./types";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -25,7 +25,7 @@ const ALL_SOURCES: AdjustmentSource[] = [
 
 function horizonRow(n: number, point: number, madeAt: Date, sdScale = 1): Forecast {
   const id = `h-squat-${n}`;
-  return forecastRow({
+  return makeForecast({
     id,
     clientId: id,
     slot: `e1rm4w|squat|2026-W0${n}`,
@@ -72,7 +72,7 @@ function busyLog(): { sim: Sim; input: AdjustmentFeedInput } {
     horizonRow(1, 250, new Date(first.startedAt.getTime())),
     horizonRow(2, 262, new Date(first.startedAt.getTime() + 7 * DAY), 1.15),
   ];
-  const coachEvents = [coachEvent({ at: new Date(first.completedAt!.getTime() + DAY) })];
+  const coachEvents = [makeCoachEvent({ at: new Date(first.completedAt!.getTime() + DAY) })];
   return {
     sim,
     input: feedInput(sim, { workouts, rebuild, forecasts, coachEvents, changelog: undefined }),
@@ -350,7 +350,7 @@ describe("filterFeed", () => {
   it("a coach event with no rule shows only under All", () => {
     const feed = buildAdjustmentFeed({
       ...busyLog().input,
-      coachEvents: [coachEvent({ ruleId: undefined })],
+      coachEvents: [makeCoachEvent({ ruleId: undefined })],
       changelog: [],
     });
     const event = bySource(feed, "coachEvent")[0];

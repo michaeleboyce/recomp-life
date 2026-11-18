@@ -7,6 +7,7 @@ import type {
   WorkoutSession,
 } from "@/types";
 import { EXERCISES } from "@/lib/exercises";
+import { shortLiftName } from "@/lib/liftNames";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { overridesFromSession } from "@/lib/workout/buildPlan";
 import {
@@ -257,7 +258,7 @@ export function favoriteEditsAt(
   return { edits: edits.filter((edit) => !drop.some((pin) => sameEdit(pin, edit))), dropped };
 }
 
-const nameOf = (exerciseId: string) => (EXERCISES[exerciseId]?.name ?? exerciseId).replace(/^Barbell /, "");
+const nameOf = shortLiftName;
 
 /** "Squat", "Squat and Bench Press", "Squat, Bench Press and Lat Pulldown". */
 function listOf(names: string[]): string {

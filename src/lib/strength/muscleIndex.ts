@@ -15,8 +15,8 @@ import type { MuscleId } from "@/types";
 import { MUSCLE_INDEX, MUSCLE_WEIGHTS } from "./coefficients";
 import { sessionEstimates } from "./estimate";
 import type { SessionEstimate, StrengthSet } from "./types";
+import { DAY_MS } from "@/lib/dates";
 
-const DAY_MS = 86_400_000;
 
 export interface MuscleIndexContributor {
   exerciseId: string;

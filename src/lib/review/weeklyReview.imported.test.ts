@@ -1,21 +1,21 @@
 // The weekly review with sessions imported from other apps (made-up sessions only).
 import { describe, expect, it } from "vitest";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { buildWeeklyReview, reviewWeeks } from "./index";
 import { AFTER, OPTS, WEEK, fixture } from "./testFixture";
 
 // Review week: Mon 2 Nov to Sun 8 Nov 2026 (local).
 const squat = (weight: number, reps = 5, role: "work" | "warmup" = "work") =>
-  importedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: weight, reps, role });
+  makeImportedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: weight, reps, role });
 const curl = () =>
-  importedSet({ exerciseName: "Made-up Curl", mappedExerciseId: "bicep_curls", weightPerImplementLb: 20, reps: 10 });
+  makeImportedSet({ exerciseName: "Made-up Curl", mappedExerciseId: "bicep_curls", weightPerImplementLb: 20, reps: 10 });
 
 // Two imported sessions in the week, one the week before, one deleted.
 const imported = [
-  importedSession([squat(45, 5, "warmup"), squat(250), squat(250)], { id: "i1", startedAt: new Date(2026, 10, 3, 7) }),
-  importedSession([curl(), curl(), curl()], { id: "i2", startedAt: new Date(2026, 10, 6, 7) }),
-  importedSession([squat(200)], { id: "i0", startedAt: new Date(2026, 9, 28, 7) }),
-  importedSession([squat(400)], { id: "gone", startedAt: new Date(2026, 10, 5, 7), deletedAt: 1 }),
+  makeImportedSession([squat(45, 5, "warmup"), squat(250), squat(250)], { id: "i1", startedAt: new Date(2026, 10, 3, 7) }),
+  makeImportedSession([curl(), curl(), curl()], { id: "i2", startedAt: new Date(2026, 10, 6, 7) }),
+  makeImportedSession([squat(200)], { id: "i0", startedAt: new Date(2026, 9, 28, 7) }),
+  makeImportedSession([squat(400)], { id: "gone", startedAt: new Date(2026, 10, 5, 7), deletedAt: 1 }),
 ];
 
 const withImported = () => ({ ...fixture(), imported });
@@ -70,7 +70,7 @@ describe("buildWeeklyReview with imported sessions (H1)", () => {
       runs: [],
       activities: [],
       e1rms: [],
-      imported: [importedSession([squat(200)], { startedAt: new Date(2026, 8, 9, 7) })],
+      imported: [makeImportedSession([squat(200)], { startedAt: new Date(2026, 8, 9, 7) })],
     };
     const week = new Date(2026, 8, 7);
     const r = buildWeeklyReview(source, [], week, AFTER, OPTS);

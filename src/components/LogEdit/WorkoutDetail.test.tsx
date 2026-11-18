@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { WorkoutSession } from "@/types";
-import { input, set, UNAFFECTED, workout } from "./testFixtures";
+import { makeRebuildInput, makeSet, UNAFFECTED, makeWorkout } from "./testFixtures";
 
 const { useWorkout, previewLogChange, loadRebuildInput, commitLogChange, softDelete, restore, toast } =
   vi.hoisted(() => ({
@@ -27,23 +27,23 @@ import { WorkoutDetail } from "./WorkoutDetail";
 
 const at = (minute: number) => new Date(`2026-11-10T09:${String(minute).padStart(2, "0")}:00`);
 
-const W: WorkoutSession = workout({
+const W: WorkoutSession = makeWorkout({
   id: "w1",
   location: "home",
   sets: [
     // Stored out of order: the detail sorts by completion time.
-    set({ id: "b1", exerciseId: "bench", tier: "T2", setNumber: 1, targetReps: 10, actualReps: 10, weight: 135, completedAt: at(30) }),
-    set({ id: "q2", setNumber: 2, actualReps: 3, completedAt: at(12), repsInReserve: "1-2" }),
-    set({ id: "wu", tier: "warmup", setNumber: 1, actualReps: 5, weight: 95, completedAt: at(5) }),
-    set({ id: "q1", setNumber: 1, actualReps: 3, completedAt: at(10) }),
-    set({ id: "q3", setNumber: 3, actualReps: 1, targetReps: 3, isAMRAP: true, status: "failed", completedAt: at(14) }),
+    makeSet({ id: "b1", exerciseId: "bench", tier: "T2", setNumber: 1, targetReps: 10, actualReps: 10, weight: 135, completedAt: at(30) }),
+    makeSet({ id: "q2", setNumber: 2, actualReps: 3, completedAt: at(12), repsInReserve: "1-2" }),
+    makeSet({ id: "wu", tier: "warmup", setNumber: 1, actualReps: 5, weight: 95, completedAt: at(5) }),
+    makeSet({ id: "q1", setNumber: 1, actualReps: 3, completedAt: at(10) }),
+    makeSet({ id: "q3", setNumber: 3, actualReps: 1, targetReps: 3, isAMRAP: true, status: "failed", completedAt: at(14) }),
   ],
 });
 
 beforeEach(() => {
   vi.clearAllMocks();
   useWorkout.mockReturnValue(W);
-  loadRebuildInput.mockResolvedValue(input([W]));
+  loadRebuildInput.mockResolvedValue(makeRebuildInput([W]));
   previewLogChange.mockReturnValue(UNAFFECTED);
   commitLogChange.mockResolvedValue({});
   softDelete.mockResolvedValue(undefined);

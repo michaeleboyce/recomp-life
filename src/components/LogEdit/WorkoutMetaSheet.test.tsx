@@ -2,12 +2,12 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { buildWorkoutMetaChange, WorkoutMetaSheet } from "./WorkoutMetaSheet";
-import { workout } from "./testFixtures";
+import { makeWorkout } from "./testFixtures";
 
 afterEach(cleanup);
 
 const NOW = new Date("2026-11-12T12:00:00");
-const W = workout({ id: "w1", completedAt: new Date("2026-11-10T10:00:00"), location: "gym" });
+const W = makeWorkout({ id: "w1", completedAt: new Date("2026-11-10T10:00:00"), location: "gym" });
 
 function open() {
   const onSubmit = vi.fn().mockResolvedValue("committed");

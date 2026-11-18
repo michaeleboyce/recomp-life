@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
+import { templateTitle } from "@/lib/workoutNames";
 import { ExerciseImage, hasExercisePhoto } from "@/components/ui/exercise-image";
 import { WorkoutFigure } from "@/components/ui/workout-figure";
 import { EYEBROW } from "@/components/Today/TodayHero";
-import { formatLbs } from "@/components/Today/format";
+import { formatLbs } from "@/lib/text";
 import { dayName, displayLiftName, photoPosition } from "@/components/Today/todayModel";
 import { getExercise } from "@/lib/exercises";
 import { upcomingWorkoutHref } from "@/lib/routes";

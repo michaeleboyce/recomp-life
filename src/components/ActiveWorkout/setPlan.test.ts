@@ -8,7 +8,6 @@ import {
   DROP_SET_LIGHTER_BY,
   attachDrops,
   buildDropSet,
-  dropChainOf,
   dropSetWeight,
   exerciseForLog,
   nextSetView,
@@ -343,14 +342,6 @@ describe("attachDrops", () => {
   it("keeps a drop whose set is not in the list as a row of its own", () => {
     const lone = set({ role: "drop", dropOf: "gone" });
     expect(attachDrops([lone]).map((r) => r.set.id)).toEqual([lone.id]);
-  });
-
-  it("finds the chain a set belongs to", () => {
-    const b = set();
-    const d1 = set({ role: "drop", dropOf: b.id });
-    const d2 = set({ role: "drop", dropOf: d1.id });
-    expect(dropChainOf([b, d1, d2], d1.id)).toEqual({ set: b, drops: [d1, d2] });
-    expect(dropChainOf([b, d1, d2], "nope")).toBeNull();
   });
 });
 

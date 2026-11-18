@@ -4,7 +4,7 @@ import { weekStartMs } from "@/lib/metrics/helpers";
 import { STRENGTH_POOLING, TARGET_EVIDENCE } from "./coefficients";
 import { muscleStrengthIndex } from "./muscleIndex";
 import { pooledLiftEstimate } from "./pooled";
-import { day, set, t1Session } from "./testHelpers";
+import { day, makeStrengthSet, makeT1Session } from "./testHelpers";
 import {
   TREND_SMOOTHING,
   gridTimes,
@@ -22,10 +22,10 @@ const NOW = (n: number) => day(n).getTime();
 const standard = { halfLifeDays: TREND_SMOOTHING.standard };
 
 function bench(sessionId: string, d: number, weight: number, amrapReps = 5): StrengthSet[] {
-  return t1Session({ sessionId, exerciseId: "bench", weight, amrapReps, day: d });
+  return makeT1Session({ sessionId, exerciseId: "bench", weight, amrapReps, day: d });
 }
 function dbBench(sessionId: string, d: number, perHand: number, amrapReps = 8): StrengthSet[] {
-  return t1Session({ sessionId, exerciseId: "db_bench", weight: perHand, perHand: true, amrapReps, day: d });
+  return makeT1Session({ sessionId, exerciseId: "db_bench", weight: perHand, perHand: true, amrapReps, day: d });
 }
 const asImported = (sets: StrengthSet[]) => sets.map((s) => ({ ...s, imported: true as const }));
 
@@ -83,7 +83,7 @@ describe("strengthTimeline (M1)", () => {
   });
 
   it("keeps a hand-set target as a ring until the exercise is next logged", () => {
-    const target = set({
+    const target = makeStrengthSet({
       id: "t1",
       sessionId: "target:db_bench",
       exerciseId: "db_bench",
@@ -106,7 +106,7 @@ describe("strengthTimeline (M1)", () => {
   it("puts a session with drops at its strength, the planner's value", () => {
     const sets = [
       ...bench("w1", 0, 185),
-      set({ id: "d1", sessionId: "w1", exerciseId: "bench", weight: 135, reps: 8, role: "drop", dropOf: "w1:bench:4", date: day(0, 20) }),
+      makeStrengthSet({ id: "d1", sessionId: "w1", exerciseId: "bench", weight: 135, reps: 8, role: "drop", dropOf: "w1:bench:4", date: day(0, 20) }),
     ];
     const [p] = strengthTimeline("bench", sets, { now: NOW(1) }).points;
     expect(p.dropsCounted).toBe(1);
@@ -178,7 +178,7 @@ describe("smoothedEstimate (M2)", () => {
   });
 
   it("drops a target from the line when the exercise is logged", () => {
-    const target = set({
+    const target = makeStrengthSet({
       id: "t1",
       sessionId: "target:db_bench",
       exerciseId: "db_bench",
@@ -261,15 +261,15 @@ describe("muscleTimeline (M10)", () => {
   const BSS = "bulgarian_split_squat";
   const sets = [
     ...[0, 3, 6].flatMap((d, i) =>
-      t1Session({ sessionId: `g${i}`, exerciseId: "squat", weight: 200 + 10 * i, amrapReps: 5, day: d })
+      makeT1Session({ sessionId: `g${i}`, exerciseId: "squat", weight: 200 + 10 * i, amrapReps: 5, day: d })
     ),
     // A home exercise joins later.
     ...[9, 12].flatMap((d, i) =>
-      t1Session({ sessionId: `h${i}`, exerciseId: BSS, weight: 50 + 5 * i, perHand: true, amrapReps: 8, day: d })
+      makeT1Session({ sessionId: `h${i}`, exerciseId: BSS, weight: 50 + 5 * i, perHand: true, amrapReps: 8, day: d })
     ),
     // An imported leg press.
     ...asImported(
-      t1Session({ sessionId: "imp", exerciseId: "leg_press", weight: 300, amrapReps: 8, day: 4 })
+      makeT1Session({ sessionId: "imp", exerciseId: "leg_press", weight: 300, amrapReps: 8, day: 4 })
     ),
   ];
 

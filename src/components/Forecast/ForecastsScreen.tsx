@@ -23,7 +23,7 @@ import {
   TARGET_IN_TEN,
   type ForecastCategory,
   type ForecastView,
-} from "./forecastText";
+} from "@/lib/forecast/text";
 
 export const EYEBROW = "text-xs font-semibold tracking-[0.16em] uppercase";
 export const PILL =

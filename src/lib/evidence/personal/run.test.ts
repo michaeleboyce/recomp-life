@@ -6,7 +6,7 @@ import {
   PERSONAL_MIN_GROUP_SIZE,
 } from "./constants";
 import { hardSessionBefore, isLowerBodyLift, runEvidence } from "./run";
-import { DAY, HOUR, activity, constructedHistory, emptyLog, run, t1Workout } from "./testHelpers";
+import { DAY, HOUR, makeActivity, constructedHistory, emptyLog, makeRun, makeT1Workout } from "./testHelpers";
 import type { RunLog } from "@/types";
 import type { PersonalLog } from "./types";
 
@@ -26,39 +26,39 @@ describe("isLowerBodyLift", () => {
 
 describe("hardSessionBefore", () => {
   it("counts a run rated hard in the window before the workout", () => {
-    expect(hardSessionBefore(START, [run("r", before(10), HARD_RUN_EFFORT)], [])).toBe("hard");
-    expect(hardSessionBefore(START, [run("r", before(10), 5)], [])).toBe("hard");
+    expect(hardSessionBefore(START, [makeRun("r", before(10), HARD_RUN_EFFORT)], [])).toBe("hard");
+    expect(hardSessionBefore(START, [makeRun("r", before(10), 5)], [])).toBe("hard");
   });
 
   it("counts another hard session too", () => {
     expect(
-      hardSessionBefore(START, [], [activity("a", before(20), HARD_ACTIVITY_EFFORT, "yoga")])
+      hardSessionBefore(START, [], [makeActivity("a", before(20), HARD_ACTIVITY_EFFORT, "yoga")])
     ).toBe("hard");
   });
 
   it("is none for an easier run, one outside the window or one after the start", () => {
-    expect(hardSessionBefore(START, [run("r", before(10), (HARD_RUN_EFFORT - 1) as RunLog["perceivedEffort"])], [])).toBe("none");
+    expect(hardSessionBefore(START, [makeRun("r", before(10), (HARD_RUN_EFFORT - 1) as RunLog["perceivedEffort"])], [])).toBe("none");
     expect(
-      hardSessionBefore(START, [run("r", before(HARD_SESSION_WINDOW_HOURS + 1), 5)], [])
+      hardSessionBefore(START, [makeRun("r", before(HARD_SESSION_WINDOW_HOURS + 1), 5)], [])
     ).toBe("none");
-    expect(hardSessionBefore(START, [run("r", before(-1), 5)], [])).toBe("none");
+    expect(hardSessionBefore(START, [makeRun("r", before(-1), 5)], [])).toBe("none");
     expect(hardSessionBefore(START, [], [])).toBe("none");
   });
 
   it("is unknown after a run or session with no rating, except a walk", () => {
-    expect(hardSessionBefore(START, [run("r", before(10), null)], [])).toBe("unknown");
-    expect(hardSessionBefore(START, [], [activity("a", before(5), null, "cycling")])).toBe("unknown");
-    expect(hardSessionBefore(START, [], [activity("a", before(5), null, "walking")])).toBe("none");
+    expect(hardSessionBefore(START, [makeRun("r", before(10), null)], [])).toBe("unknown");
+    expect(hardSessionBefore(START, [], [makeActivity("a", before(5), null, "cycling")])).toBe("unknown");
+    expect(hardSessionBefore(START, [], [makeActivity("a", before(5), null, "walking")])).toBe("none");
   });
 
   it("a rated hard run wins over an unrated one", () => {
     expect(
-      hardSessionBefore(START, [run("r1", before(10), null), run("r2", before(4), 5)], [])
+      hardSessionBefore(START, [makeRun("r1", before(10), null), makeRun("r2", before(4), 5)], [])
     ).toBe("hard");
   });
 
   it("ignores deleted rows", () => {
-    expect(hardSessionBefore(START, [{ ...run("r", before(10), 5), deletedAt: 1 }], [])).toBe("none");
+    expect(hardSessionBefore(START, [{ ...makeRun("r", before(10), 5), deletedAt: 1 }], [])).toBe("none");
   });
 });
 
@@ -88,10 +88,10 @@ describe("runEvidence", () => {
     const log = emptyLog();
     for (let i = 0; i < 8; i++) {
       const at = new Date(NOW.getTime() - (20 - 2 * i) * DAY);
-      const { workout, forecast } = t1Workout({ id: `w${i}`, at, weight: 200, lastReps: 5, expected: 5 });
+      const { workout, forecast } = makeT1Workout({ id: `w${i}`, at, weight: 200, lastReps: 5, expected: 5 });
       log.workouts.push(workout);
       log.forecasts.push(forecast!);
-      if (i < 2) log.runs.push(run(`r${i}`, new Date(at.getTime() - 3 * HOUR), 5));
+      if (i < 2) log.runs.push(makeRun(`r${i}`, new Date(at.getTime() - 3 * HOUR), 5));
     }
     const out = runEvidence(log, NOW);
     expect(out.result).toBeNull();

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildAddSet, buildSetEdit, homeOriginalWeight } from "./setChanges";
-import { set } from "./testFixtures";
+import { makeSet } from "./testFixtures";
 
 /** A Bulgarian split squat set at 80 a hand, standing in for a 245 lb barbell squat. */
-const home = set({
+const home = makeSet({
   id: "h1",
   location: "home",
   isSubstituted: true,
@@ -20,7 +20,7 @@ describe("homeOriginalWeight", () => {
   });
 
   it("is undefined for a set that stands for nothing else", () => {
-    expect(homeOriginalWeight(set({ weight: 205 }), 195)).toBeUndefined();
+    expect(homeOriginalWeight(makeSet({ weight: 205 }), 195)).toBeUndefined();
     expect(homeOriginalWeight({ ...home, originalWeight: undefined }, 70)).toBeUndefined();
     expect(homeOriginalWeight({ ...home, weight: 0 }, 70)).toBeUndefined();
   });
@@ -46,7 +46,7 @@ describe("buildSetEdit at home", () => {
   });
 
   it("at the gym edits the weight alone", () => {
-    expect(buildSetEdit("w1", set({ weight: 205 }), { actualReps: 3, weight: 195, repsInReserve: null })).toEqual({
+    expect(buildSetEdit("w1", makeSet({ weight: 205 }), { actualReps: 3, weight: 195, repsInReserve: null })).toEqual({
       kind: "editSet",
       workoutId: "w1",
       setId: "s1",
@@ -69,7 +69,7 @@ describe("buildAddSet at home", () => {
   });
 
   it("adds a gym set with no barbell weight to stand for", () => {
-    const change = buildAddSet("w1", set({ weight: 205 }), 6, { actualReps: 3, weight: 205, repsInReserve: null }, () => "new");
+    const change = buildAddSet("w1", makeSet({ weight: 205 }), 6, { actualReps: 3, weight: 205, repsInReserve: null }, () => "new");
     expect(change.kind === "addSet" && "originalWeight" in change.set).toBe(false);
   });
 });

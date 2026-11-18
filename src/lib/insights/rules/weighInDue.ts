@@ -1,6 +1,7 @@
 import { formatDaysAgo } from "@/lib/dates";
 import type { Insight, InsightContext } from "../types";
-import { formatLbs, sortedWeights } from "../shared";
+import { formatLbs } from "@/lib/text";
+import { sortedWeights } from "../shared";
 
 /**
  * Shown while the morning reminder is on and no

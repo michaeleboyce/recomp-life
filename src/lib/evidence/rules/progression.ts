@@ -14,12 +14,12 @@ import { CREDIT_MIN_WEIGHT_RATIO } from "@/lib/workout/credit";
 import { CAP_REP_STEP, HARDER_HOME_VARIANT } from "@/lib/workout/variant";
 import { OWN_HISTORY_WINDOW_WEEKS } from "@/lib/workout/strength";
 import { STRENGTH_POOLING } from "@/lib/strength/coefficients";
-import { EXERCISES } from "@/lib/exercises";
+import { catalogueName } from "@/lib/liftNames";
 import { ACCESSORY_DELOAD_FRACTION, ACCESSORY_STUCK_SESSIONS } from "@/lib/accessories";
 import { ACCESSORY_LOAD_STEP_LBS, OWN_HISTORY_FIRST_WEIGHT } from "@/lib/accessories/prescription";
 import { STARTING_WEIGHT_RULES as SW } from "@/lib/import/startingWeights";
 
-const exerciseName = (id: string) => EXERCISES[id]?.name ?? id;
+const exerciseName = catalogueName;
 const HARDER_LIST = Object.entries(HARDER_HOME_VARIANT)
   .map(([from, to]) => `${exerciseName(from)} to ${exerciseName(to)}`)
   .join(", ");

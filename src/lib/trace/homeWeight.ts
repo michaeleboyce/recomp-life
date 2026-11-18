@@ -5,7 +5,7 @@
 // (`pooledLiftEstimate`, `learnTransferRatios`, the re-entry helpers) and the plan entry's
 // fields; no number is worked out again here.
 import { DUMBBELL_LOAD_FACTOR, ceilToStep } from "@/lib/dbConversion";
-import { EXERCISES } from "@/lib/exercises";
+import { catalogueName } from "@/lib/liftNames";
 import { pooledLiftEstimate, sessionEstimates, targetEstimates } from "@/lib/strength";
 import type { PooledEstimate, ReentryRule, StrengthSet, TransferRatio } from "@/lib/strength";
 import {
@@ -18,6 +18,7 @@ import {
 import type { EquipmentProfile, TraceStep, VariantCapAction, VariantState } from "@/types";
 import { joinList, num, step } from "./text";
 import type { PlanEntry, TraceContext } from "./types";
+import { plural } from "@/lib/text";
 
 export const HOME_PROGRESSION_RULE = "home-progression";
 export const CAP_PROGRESSION_RULE = "cap-progression";
@@ -65,10 +66,9 @@ export interface HomeTraceInputs {
 
 type HomeContext = Pick<TraceContext, "location" | "equipment" | "home">;
 
-const nameOf = (exerciseId: string) => EXERCISES[exerciseId]?.name ?? exerciseId;
+const nameOf = catalogueName;
 /** "Barbell Squat" -> "squat": how the program lift is named in a sentence. */
 const liftWord = (liftId: string) => nameOf(liftId).replace(/^barbell /i, "").toLowerCase();
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** "75", or "75 a hand" for two dumbbells. */
 function asLiftedText(weight: number, perHand: boolean): string {

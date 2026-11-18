@@ -4,7 +4,7 @@ import type { ImportedSessionRecord, ImportedSetRecord } from "@/types";
 let counter = 0;
 
 /** A made-up imported set: a working set of 5 reps at 100 lb, mapped to the squat. */
-export function importedSet(overrides: Partial<ImportedSetRecord> = {}): ImportedSetRecord {
+export function makeImportedSet(overrides: Partial<ImportedSetRecord> = {}): ImportedSetRecord {
   counter += 1;
   return {
     id: `imp-set-${counter}`,
@@ -25,7 +25,7 @@ export function importedSet(overrides: Partial<ImportedSetRecord> = {}): Importe
 }
 
 /** A made-up imported session holding `sets`, started at `startedAt`. */
-export function importedSession(
+export function makeImportedSession(
   sets: ImportedSetRecord[],
   overrides: Partial<ImportedSessionRecord> = {}
 ): ImportedSessionRecord {

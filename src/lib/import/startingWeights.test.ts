@@ -11,7 +11,7 @@ import { strengthEvidenceOf, strengthSetsOf } from "@/lib/workout/strength";
 import { makeSession, makeSets } from "@/lib/workout/testFixtures";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { STARTING_WEIGHT_RULES, adjustmentFor, formatAge, suggestStartingWeights } from "./startingWeights";
-import { importDay, importedSession, importedSet } from "./testRecords";
+import { importDay, makeImportedSession, makeImportedSet } from "./testRecords";
 
 // Made-up history only.
 
@@ -20,7 +20,7 @@ const maintaining = { mode: "maintaining" as const };
 
 function benchHistory() {
   return [
-    importedSession([importedSet({ exerciseName: "Barbell Bench Press", mappedExerciseId: "bench", weightPerImplementLb: 150, reps: 5 })], {
+    makeImportedSession([makeImportedSet({ exerciseName: "Barbell Bench Press", mappedExerciseId: "bench", weightPerImplementLb: 150, reps: 5 })], {
       startedAt: importDay(0),
     }),
   ];
@@ -134,8 +134,8 @@ describe("suggestStartingWeights", () => {
   });
 
   it("suggests a T3 weight for about 20 reps, per hand for a dumbbell row", () => {
-    const rows = importedSession(
-      [importedSet({ exerciseName: "Dumbbell Row", mappedExerciseId: "db_row", weightPerImplementLb: 60, reps: 10, implementCount: 2 })],
+    const rows = makeImportedSession(
+      [makeImportedSet({ exerciseName: "Dumbbell Row", mappedExerciseId: "db_row", weightPerImplementLb: 60, reps: 10, implementCount: 2 })],
       { startedAt: importDay(0) }
     );
     const t3 = suggest([rows]).find((s) => s.id === "db_row|T3|gym")!;
@@ -160,7 +160,7 @@ describe("suggestStartingWeights", () => {
   });
 
   it("never uses a muscle-guessed name", () => {
-    const guessed = importedSession([importedSet({ exerciseName: "Wobbly Bench Thing", mappedExerciseId: null, muscles: ["chest"] })]);
+    const guessed = makeImportedSession([makeImportedSet({ exerciseName: "Wobbly Bench Thing", mappedExerciseId: null, muscles: ["chest"] })]);
     expect(suggest([guessed])).toEqual([]);
   });
 });

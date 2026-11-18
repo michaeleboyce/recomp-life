@@ -1,6 +1,6 @@
 // The weekly review's lift rows count the lift's home versions (Q3). Made-up sessions only.
 import { describe, expect, it } from "vitest";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { strengthTimeline } from "@/lib/strength";
 import { strengthEvidenceOf } from "@/lib/workout/strength";
 import type { SetLog, WorkoutSession } from "@/types";
@@ -10,7 +10,7 @@ import type { ReviewSource } from "./types";
 
 // Review week: Mon 2 Nov to Sun 8 Nov 2026 (local).
 const dbBench = (perHand: number, reps = 8) =>
-  importedSet({
+  makeImportedSet({
     exerciseName: "Made-up DB Bench",
     mappedExerciseId: "db_bench",
     weightPerImplementLb: perHand,
@@ -70,7 +70,7 @@ describe("weekly review lift rows with home versions (Q3)", () => {
     const source = {
       ...fixture(),
       workouts: [...fixture().workouts, homeWorkout("h1", new Date(2026, 10, 6, 18), 40, 8)],
-      imported: [importedSession([dbBench(30)], { id: "ih", startedAt: new Date(2026, 10, 7, 9) })],
+      imported: [makeImportedSession([dbBench(30)], { id: "ih", startedAt: new Date(2026, 10, 7, 9) })],
     };
     const row = bench(buildWeeklyReview(source, [], WEEK, AFTER, OPTS));
     expect(row.sessions).toBe(bench(plain).sessions + 2);
@@ -85,7 +85,7 @@ describe("weekly review lift rows with home versions (Q3)", () => {
   it("takes the week's best from a home version, converted as the lift chart converts it, never a new best", () => {
     const source = {
       ...fixture(),
-      imported: [importedSession([dbBench(70, 8)], { id: "heavy", startedAt: new Date(2026, 10, 5, 9) })],
+      imported: [makeImportedSession([dbBench(70, 8)], { id: "heavy", startedAt: new Date(2026, 10, 5, 9) })],
     };
     const row = bench(buildWeeklyReview(source, [], WEEK, AFTER, OPTS));
     expect(row.bestE1RM).toBeCloseTo(chartValue(source, "heavy"), 6);
@@ -118,7 +118,7 @@ describe("weekly review lift rows with home versions (Q3)", () => {
   it("leaves the other lifts and a new best of the barbell alone", () => {
     const source = {
       ...fixture(),
-      imported: [importedSession([dbBench(30)], { id: "ih", startedAt: new Date(2026, 10, 7, 9) })],
+      imported: [makeImportedSession([dbBench(30)], { id: "ih", startedAt: new Date(2026, 10, 7, 9) })],
     };
     const review = buildWeeklyReview(source, [], WEEK, AFTER, OPTS);
     for (const id of ["squat", "deadlift", "ohp"]) {

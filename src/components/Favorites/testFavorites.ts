@@ -5,7 +5,7 @@ import { EQUIPMENT, seedLiftStates } from "@/lib/workout/testFixtures";
 import type { FavoriteWorkout } from "@/types";
 
 /** A favourite built the way the app builds one, for component tests. */
-export function testFavorite(
+export function makeFavorite(
   id: string,
   name: string,
   options: { templateId?: string; lastUsedAt?: Date; createdAt?: Date } = {}

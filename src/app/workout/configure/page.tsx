@@ -13,7 +13,7 @@ import { Callout } from "@/components/ui/callout";
 import { LocationChip } from "@/components/ui/location-chip";
 import { PageHeader, PageShell } from "@/components/ui/page-shell";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
-import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
+import { templateTitle } from "@/lib/workoutNames";
 import { DaySelector } from "@/components/PreWorkout/DaySelector";
 import { FavouriteActions } from "@/components/PreWorkout/FavouriteActions";
 import { EditWorkoutButton } from "@/components/PreWorkout/EditWorkoutButton";

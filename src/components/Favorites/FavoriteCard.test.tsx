@@ -3,12 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { FAVORITE_NAME_MAX_LENGTH } from "@/lib/favorites";
 import { FavoriteCard } from "./FavoriteCard";
-import { testFavorite } from "./testFavorites";
+import { makeFavorite } from "./testFavorites";
 
 afterEach(cleanup);
 
 const NOW = new Date(2026, 10, 12, 10, 0, 0);
-const favorite = testFavorite("f1", "Heavy legs", { lastUsedAt: new Date(2026, 10, 11, 9) });
+const favorite = makeFavorite("f1", "Heavy legs", { lastUsedAt: new Date(2026, 10, 11, 9) });
 
 describe("FavoriteCard", () => {
   it("shows the name, day, location, exercises and last used", () => {

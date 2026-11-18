@@ -25,9 +25,8 @@ import {
 import { loadPullState, saveTablePullState, type TablePullState } from "@/lib/sync/pullState";
 import { decidePull, stampOf, toLocalRow } from "@/lib/sync/revive";
 import { syncRequest } from "@/lib/sync/request";
+import { plural } from "@/lib/text";
 
-export { reviveDates } from "@/lib/sync/revive";
-export { syncRequest } from "@/lib/sync/request";
 
 export const SYNC_UNAUTHORIZED = "Sync passphrase missing or rejected";
 
@@ -187,7 +186,7 @@ async function pushBatch(database: Dexie, def: SyncTableDef, rows: Row[], result
   if (failed.length > 0) {
     const count = (result.refused[def.name] ?? 0) + failed.length;
     result.refused[def.name] = count;
-    result.errors[def.name] = `${count} row${count === 1 ? "" : "s"} could not be saved by the server`;
+    result.errors[def.name] = `${plural(count, "row")} could not be saved by the server`;
   }
 
   // Only rows unchanged since they were read: a later edit carries a new stamp.

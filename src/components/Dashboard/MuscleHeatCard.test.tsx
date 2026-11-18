@@ -5,7 +5,7 @@ import { render, screen } from "@testing-library/react";
 import { db } from "@/db/local";
 import { getMonday } from "@/lib/dates";
 import { clearDb } from "@/lib/data/testUtils";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import MuscleHeatCard from "./MuscleHeatCard";
 
 vi.mock("@/components/Anatomy/MuscleMap", () => ({ MuscleMap: () => null }));
@@ -23,17 +23,17 @@ describe("MuscleHeatCard", () => {
     const monday = getMonday(new Date());
     const startedAt = new Date(Math.min(Date.now() - 60_000, monday.getTime() + 12 * 3_600_000));
     await db.importedSessions.bulkPut([
-      importedSession(
+      makeImportedSession(
         [
-          importedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench" }),
-          importedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench" }),
-          importedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench" }),
+          makeImportedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench" }),
+          makeImportedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench" }),
+          makeImportedSet({ exerciseName: "Bench Press", mappedExerciseId: "bench" }),
         ],
         { startedAt }
       ),
       // Last week and an undone import count for nothing.
-      importedSession([importedSet()], { startedAt: new Date(monday.getTime() - 3 * 86_400_000) }),
-      importedSession([importedSet()], { startedAt, deletedAt: 5 }),
+      makeImportedSession([makeImportedSet()], { startedAt: new Date(monday.getTime() - 3 * 86_400_000) }),
+      makeImportedSession([makeImportedSet()], { startedAt, deletedAt: 5 }),
     ]);
     render(<MuscleHeatCard />);
     expect(await screen.findByText("3 sets")).toBeInTheDocument();

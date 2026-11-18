@@ -18,7 +18,7 @@ import { FORECAST_KINDS, FORECAST_KIND_IDS } from "./registry";
 import { replayForecasts } from "./replay";
 import { lastT1Sets, usualEffortCredit } from "./reps";
 import { resolveForecast } from "./resolve";
-import { demoReplayInput, forecastRow } from "./testHelpers";
+import { demoReplayInput, makeForecast } from "./testHelpers";
 
 /** Every kind the stored type allows. Adding one to the type breaks this until it is listed. */
 const ALL_KINDS: Record<ForecastKind, true> = {
@@ -151,14 +151,14 @@ describe("every kind has a resolver", () => {
   });
 
   it.each(Object.keys(ALL_KINDS) as ForecastKind[])("%s gives a status even with an empty log", (kind) => {
-    const row = forecastRow({ kind, event: { type: EVENT_OF_KIND[kind] } });
+    const row = makeForecast({ kind, event: { type: EVENT_OF_KIND[kind] } });
     const far = new Date("2030-01-01T00:00:00Z");
     const status = resolveForecast(row, { workouts: [], bodyweight: [] }, far);
     expect(status.state).toBe("void");
   });
 
   it("is void, not an error, for a kind it does not know", () => {
-    const row = forecastRow({ kind: "notAKind" as ForecastKind });
+    const row = makeForecast({ kind: "notAKind" as ForecastKind });
     expect(resolveForecast(row, { workouts: [], bodyweight: [] }, NOW)).toEqual({
       state: "void",
       reason: "not-scorable",

@@ -4,7 +4,7 @@ import { HOME_SUBSTITUTE_CHAINS } from "@/lib/exercises";
 import { TRANSFER_PRIORS, TRANSFER_RATIO, type ProgramLiftId } from "./coefficients";
 import { learnTransferRatio, learnTransferRatios, pairSessions, priorFor } from "./ratio";
 import { sessionEstimates, asLifted } from "./estimate";
-import { t1Session } from "./testHelpers";
+import { makeT1Session } from "./testHelpers";
 import type { StrengthSet } from "./types";
 
 const PAIRS: Array<[ProgramLiftId, string]> = Object.entries(TRANSFER_PRIORS).flatMap(([lift, table]) =>
@@ -31,8 +31,8 @@ function syntheticPairs(
     const target = liftMax * trueRatio * (noise[i] ?? 1);
     const total = target / (1 + 8 / 30);
     sets.push(
-      ...t1Session({ sessionId: `g${i}`, exerciseId: liftId, weight: liftWeight, amrapReps: 5, day: 7 * i }),
-      ...t1Session({
+      ...makeT1Session({ sessionId: `g${i}`, exerciseId: liftId, weight: liftWeight, amrapReps: 5, day: 7 * i }),
+      ...makeT1Session({
         sessionId: `h${i}`,
         exerciseId,
         weight: asLifted(total, exerciseId),
@@ -89,8 +89,8 @@ describe("pairSessions", () => {
   });
 
   it(`ignores sessions more than ${TRANSFER_RATIO.pairWindowDays} days apart`, () => {
-    const gym = t1Session({ sessionId: "g", exerciseId: "squat", weight: 200, amrapReps: 5, day: 0 });
-    const home = t1Session({
+    const gym = makeT1Session({ sessionId: "g", exerciseId: "squat", weight: 200, amrapReps: 5, day: 0 });
+    const home = makeT1Session({
       sessionId: "h",
       exerciseId: "bulgarian_split_squat",
       weight: 50,
@@ -103,8 +103,8 @@ describe("pairSessions", () => {
   });
 
   it("never pairs two sessions of the same workout", () => {
-    const gym = t1Session({ sessionId: "same", exerciseId: "squat", weight: 200, amrapReps: 5, day: 0 });
-    const home = t1Session({
+    const gym = makeT1Session({ sessionId: "same", exerciseId: "squat", weight: 200, amrapReps: 5, day: 0 });
+    const home = makeT1Session({
       sessionId: "same",
       exerciseId: "bulgarian_split_squat",
       weight: 50,
@@ -131,7 +131,7 @@ describe("learnTransferRatio", () => {
   });
 
   it("with no pairs ignores sessions of only one side", () => {
-    const gymOnly = t1Session({ sessionId: "g", exerciseId: "bench", weight: 185, amrapReps: 5, day: 0 });
+    const gymOnly = makeT1Session({ sessionId: "g", exerciseId: "bench", weight: 185, amrapReps: 5, day: 0 });
     expect(learnKnown("bench", "db_bench", gymOnly).ratio).toBe(TRANSFER_PRIORS.bench.db_bench.ratio);
   });
 

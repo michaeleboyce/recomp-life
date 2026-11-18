@@ -9,7 +9,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(search),
 }));
 vi.mock("@/hooks", () => ({
-  useNextWorkout: () => undefined,
+  useDueTemplateId: () => undefined,
   useBodyweightLog: () => undefined,
   useRuns: () => undefined,
   useFavoriteWorkouts: () => undefined,

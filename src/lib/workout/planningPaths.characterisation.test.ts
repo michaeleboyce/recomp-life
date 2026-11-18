@@ -30,7 +30,7 @@ import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { nextWorkoutFrom, strengthSetsFrom, type LedgerRecords } from "@/lib/data/forecasts";
 import { sessionPaceCorrection } from "@/lib/forecast";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { rebuildDerived } from "@/lib/rebuild";
 import { substituteModification } from "@/lib/workout/buildPlan";
 import { resolveNextWorkout } from "@/lib/workout/nextWorkout";
@@ -75,7 +75,7 @@ const between = (i: number) => {
 /** One made-up imported session: three working sets of one exercise. */
 function imp(id: string, exerciseId: string, at: Date, weight: number, reps: number): ImportedSessionRecord {
   const sets = [0, 1, 2].map((i) =>
-    importedSet({
+    makeImportedSet({
       id: `${id}-set-${i}`,
       exerciseName: exerciseId,
       mappedExerciseId: exerciseId,
@@ -84,7 +84,7 @@ function imp(id: string, exerciseId: string, at: Date, weight: number, reps: num
       reps: i === 2 ? reps - 1 : reps,
     })
   );
-  return importedSession(sets, { id, clientId: id, startedAt: at });
+  return makeImportedSession(sets, { id, clientId: id, startedAt: at });
 }
 
 /** Barbell sessions three months before the demo log, dumbbell sessions just before it. */

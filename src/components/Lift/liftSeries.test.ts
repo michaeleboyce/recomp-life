@@ -15,7 +15,7 @@ import {
 import { computeMetric } from "@/lib/metrics";
 import { importedStrengthSets } from "@/lib/import/evidence";
 import { importedHistoryOf } from "@/lib/import/history";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { measureBaseline, projectionTeaser } from "@/lib/projection";
 
 const DAY = 86_400_000;
@@ -107,7 +107,7 @@ const line = (n: number, slope = 2): Point[] =>
 
 describe("liftMetrics with imported sessions (made-up)", () => {
   const sets = importedStrengthSets([
-    importedSession([importedSet({ weightPerImplementLb: 225, reps: 5 }), importedSet({ weightPerImplementLb: 225, reps: 4 })], {
+    makeImportedSession([makeImportedSet({ weightPerImplementLb: 225, reps: 5 }), makeImportedSet({ weightPerImplementLb: 225, reps: 4 })], {
       startedAt: new Date(now.getTime() - 400 * DAY),
     }),
   ]);

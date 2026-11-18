@@ -1,7 +1,7 @@
 // Weight overrides: the user lifted (or set) a weight other than the planned one. An
 // override is the user's choice, so the wording is neutral and no rule is cited.
 import { describe, expect, it } from "vitest";
-import { forecastRow } from "@/lib/forecast/testHelpers";
+import { makeForecast } from "@/lib/forecast/testHelpers";
 import { rebuildDerived } from "@/lib/rebuild";
 import { runSession, startSim, type Sim } from "@/lib/rebuild/testHelpers";
 import { workoutDetailHref } from "@/lib/routes";
@@ -144,7 +144,7 @@ describe("overrideEntries", () => {
   it("says when the forecast made for the planned weight is set aside", () => {
     const sim = startSim();
     const workout = runSession(sim, { templateId: "A1" });
-    const forecast = forecastRow({
+    const forecast = makeForecast({
       id: `fc:${workout.id}:amrapReps:squat:T1`,
       slot: `fc:${workout.id}:amrapReps:squat:T1`,
       workoutId: workout.id,

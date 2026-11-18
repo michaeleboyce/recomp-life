@@ -17,7 +17,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Stripes } from "@/components/ui/stripes";
-import { formatLbs, formatSetsReps } from "@/components/Today/format";
+import { formatLbs } from "@/lib/text";
+import { formatSetsReps } from "@/components/Today/format";
 import { displayLiftName } from "@/components/Today/todayModel";
 import { AccessoryWhySheet } from "./AccessoryWhySheet";
 import { WhySteps } from "./WhySteps";

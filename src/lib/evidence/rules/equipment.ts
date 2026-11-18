@@ -1,8 +1,8 @@
 import type { EvidenceRule } from "@/types";
 import type { SourceId } from "../sources";
 import { DUMBBELL_LOAD_FACTOR } from "@/lib/dbConversion";
+import { percent as pct } from "@/lib/text";
 
-const pct = (fraction: number) => `${Math.round(fraction * 100)}%`;
 
 export const EQUIPMENT_RULES = {
   "dumbbell-conversion": {

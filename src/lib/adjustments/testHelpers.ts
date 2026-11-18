@@ -35,7 +35,7 @@ export function adjustFrom(
   return adjustment;
 }
 
-export function coachEvent(overrides: Partial<CoachEvent> = {}): CoachEvent {
+export function makeCoachEvent(overrides: Partial<CoachEvent> = {}): CoachEvent {
   return {
     id: "ce-1",
     clientId: "ce-1",

@@ -24,7 +24,7 @@ import { WorkoutFinished } from "@/components/ActiveWorkout/WorkoutFinished";
 import { WorkoutHeader } from "@/components/ActiveWorkout/WorkoutHeader";
 import { WorkoutOverviewSheet } from "@/components/ActiveWorkout/WorkoutOverviewSheet";
 import { formatClock, restNextLabel } from "@/components/ActiveWorkout/activeWorkoutLogic";
-import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
+import { templateTitle } from "@/lib/workoutNames";
 import { useActiveWorkout } from "@/components/ActiveWorkout/useActiveWorkout";
 import { useWorkoutAccessories } from "@/components/ActiveWorkout/useWorkoutAccessories";
 import { AccessoryNextTime, AddAccessoryButton } from "@/components/ActiveWorkout/AccessoryNextTime";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { replayForecasts, type ScoredForecast } from "@/lib/forecast";
-import { demoReplayInput, forecastRow } from "@/lib/forecast/testHelpers";
+import { demoReplayInput, makeForecast } from "@/lib/forecast/testHelpers";
 import type { ForecastStatus } from "@/types";
 import {
   formatMinutes,
@@ -16,21 +16,21 @@ import {
   viewOf,
   voidLine,
   wrongest,
-} from "./forecastText";
+} from ".";
 
 // A local stamp, so the dates in words are the same in every time zone.
 const NOW = new Date(2026, 10, 15, 12);
 const DAY = 24 * 60 * 60 * 1000;
 
 const scored = (status: ForecastStatus, overrides = {}): ScoredForecast => ({
-  forecast: forecastRow(overrides),
+  forecast: makeForecast(overrides),
   status,
 });
 
 describe("one forecast in words", () => {
   it("shows the most likely rep count from the stored spread and the stored range", () => {
     const view = viewOf(
-      forecastRow({ prediction: { point: 5.4, low: 4, high: 7, pmf: [0, 0, 0, 0.1, 0.2, 0.3, 0.25, 0.15], unit: "reps" } }),
+      makeForecast({ prediction: { point: 5.4, low: 4, high: 7, pmf: [0, 0, 0, 0.1, 0.2, 0.3, 0.25, 0.15], unit: "reps" } }),
       NOW
     );
     expect(view.question).toBe("Reps on today's last squat set");
@@ -42,7 +42,7 @@ describe("one forecast in words", () => {
 
   it("shows a chance as a percentage with no bar", () => {
     const view = viewOf(
-      forecastRow({ kind: "newBest", prediction: { point: 0.41, probability: 0.41, unit: "chance" } }),
+      makeForecast({ kind: "newBest", prediction: { point: 0.41, probability: 0.41, unit: "chance" } }),
       NOW
     );
     expect(view.value).toBe("41%");
@@ -51,19 +51,19 @@ describe("one forecast in words", () => {
   });
 
   it("says a forecast with no history is a wide guess", () => {
-    expect(restsOnOf(forecastRow({ basis: "prior", inputs: { sampleSize: 0 } }))).toBe(
+    expect(restsOnOf(makeForecast({ basis: "prior", inputs: { sampleSize: 0 } }))).toBe(
       "First session at this stage, a wide guess"
     );
-    expect(restsOnOf(forecastRow({ basis: "trend", inputs: { sampleSize: 6, cuttingShift: -0.02 } }))).toBe(
+    expect(restsOnOf(makeForecast({ basis: "trend", inputs: { sampleSize: 6, cuttingShift: -0.02 } }))).toBe(
       "Trend of 6 last sets · the cut"
     );
     expect(
-      restsOnOf(forecastRow({ kind: "bodyweight4w", basis: "trend", inputs: { sampleSize: 12, ratePerWeek: -0.9 } }))
+      restsOnOf(makeForecast({ kind: "bodyweight4w", basis: "trend", inputs: { sampleSize: 12, ratePerWeek: -0.9 } }))
     ).toBe("12 weigh-ins · losing 0.9 lb a week");
   });
 
   it("dates a forecast weeks ahead and a session forecast by its last set", () => {
-    const ahead = forecastRow({
+    const ahead = makeForecast({
       kind: "e1rm4w",
       workoutId: undefined,
       dueAt: new Date(NOW.getTime() + 21 * DAY),
@@ -74,12 +74,12 @@ describe("one forecast in words", () => {
     expect(view.due).toBe("Due Dec 6, in 3 weeks");
     expect(view.value).toBe("271");
     expect(view.valueUnit).toBe("lb");
-    expect(viewOf(forecastRow(), NOW).due).toBe("Checked on the last set at 200 lb");
+    expect(viewOf(makeForecast(), NOW).due).toBe("Checked on the last set at 200 lb");
   });
 
   it("lists the stored inputs in plain words and leaves unknown keys out", () => {
     const lines = inputLines(
-      forecastRow({ inputs: { weight: 200, targetReps: 3, sampleSize: 6, level: 230.4, mystery: 7, phase: "cutting" } })
+      makeForecast({ inputs: { weight: 200, targetReps: 3, sampleSize: 6, level: 230.4, mystery: 7, phase: "cutting" } })
     );
     const labels = lines.map((l) => l.label);
     expect(labels).toContain("Weight on the bar");
@@ -172,7 +172,7 @@ describe("the track record in words", () => {
 });
 
 describe("the second set of forecasts in words", () => {
-  const stallRow = forecastRow({
+  const stallRow = makeForecast({
     id: "h-stall",
     slot: "stallRisk|squat|2026-W46",
     kind: "stallRisk",
@@ -186,7 +186,7 @@ describe("the second set of forecasts in words", () => {
     modelVersion: "stall-1",
   });
   const day = (offsetDays: number) => (NOW.getTime() + offsetDays * DAY) / DAY;
-  const milestoneRow = forecastRow({
+  const milestoneRow = makeForecast({
     id: "h-mile",
     slot: "milestone|bench|2026-W46",
     kind: "milestone",
@@ -224,7 +224,7 @@ describe("the second set of forecasts in words", () => {
     expect(view.due).toBe("Checked when the bar first has 200 lb on it");
     expect(inputLines(milestoneRow)).toContainEqual({ label: "Round number", value: "200 lb" });
     // Weeks ahead: the stall chance, then the date, then the estimated max.
-    const estimate = forecastRow({
+    const estimate = makeForecast({
       id: "e",
       slot: "e1rm4w|squat|w",
       kind: "e1rm4w",

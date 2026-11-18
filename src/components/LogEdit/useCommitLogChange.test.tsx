@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { LogChange } from "@/lib/rebuild";
-import { input, NEXT_CHANGES, set, UNAFFECTED, workout } from "./testFixtures";
+import { makeRebuildInput, NEXT_CHANGES, makeSet, UNAFFECTED, makeWorkout } from "./testFixtures";
 
 const { previewLogChange, loadRebuildInput, commitLogChange, toast } = vi.hoisted(() => ({
   previewLogChange: vi.fn(),
@@ -47,7 +47,7 @@ const lastToast = () => toast.mock.calls.at(-1)![0];
 beforeEach(() => {
   result = null;
   vi.clearAllMocks();
-  loadRebuildInput.mockResolvedValue(input([workout({ sets: [set({ actualReps: 3, repsInReserve: "1-2" })] })]));
+  loadRebuildInput.mockResolvedValue(makeRebuildInput([makeWorkout({ sets: [makeSet({ actualReps: 3, repsInReserve: "1-2" })] })]));
   commitLogChange.mockResolvedValue({});
 });
 afterEach(cleanup);

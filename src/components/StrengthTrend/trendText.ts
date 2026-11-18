@@ -4,7 +4,7 @@ import { formatShortDate } from "@/components/chart-kit/scale";
 import { DAY_MS } from "@/lib/dates";
 import { repsInReserveLabel } from "@/lib/effort";
 import { EXERCISES } from "@/lib/exercises";
-import { LIFT_NAMES, isMainLift } from "@/lib/liftNames";
+import { catalogueName, LIFT_NAMES, isMainLift } from "@/lib/liftNames";
 import { formatMuscle } from "@/lib/muscles";
 import {
   MUSCLE_INDEX,
@@ -39,10 +39,6 @@ function liftWords(liftId: string): { label: string; short: string } {
   return { label: name, short: name.toLowerCase() };
 }
 
-export function exerciseName(exerciseId: string): string {
-  return EXERCISES[exerciseId]?.name ?? exerciseId;
-}
-
 /** What the chart is about: "Bench press" or "Quads". */
 export function subjectName(timeline: StrengthTimeline): string {
   return timeline.subject.kind === "lift" ? liftWords(timeline.subject.liftId).label : formatMuscle(timeline.subject.muscle);
@@ -52,7 +48,7 @@ export function subjectName(timeline: StrengthTimeline): string {
 export function sourceLabel(source: TimelineSource): string {
   if (source.kind === "own") return liftWords(source.exerciseId).label;
   if (source.kind === "imported") return `Imported ${liftWords(source.exerciseId).short}`;
-  return exerciseName(source.exerciseId);
+  return catalogueName(source.exerciseId);
 }
 
 const ratioNumber = (r: number) => r.toFixed(2);
@@ -156,7 +152,7 @@ export function pointDetail(
   share: number
 ): PointDetail {
   const source = timeline.sources.find((s) => s.id === point.sourceId);
-  const name = exerciseName(point.exerciseId);
+  const name = catalogueName(point.exerciseId);
   const kind = point.provisional ? " · weight you set, not lifted yet" : point.imported ? " · imported" : "";
   const lines: string[] = [];
   const both = point.bestSet.perHand ? `, ${Math.round(point.bestSet.load)} lbs both dumbbells` : "";

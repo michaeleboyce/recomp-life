@@ -13,8 +13,8 @@
 import { TRANSFER_PRIORS, TRANSFER_RATIO, type TransferPrior } from "./coefficients";
 import { sessionEstimates } from "./estimate";
 import type { SessionEstimate, SessionPair, StrengthSet, TransferRatio } from "./types";
+import { DAY_MS } from "@/lib/dates";
 
-const DAY_MS = 86_400_000;
 
 /** The starting ratio for a lift and a home exercise, or null when none is known. */
 export function priorFor(liftId: string, exerciseId: string): TransferPrior | null {

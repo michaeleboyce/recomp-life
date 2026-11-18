@@ -20,8 +20,8 @@ import { kgToLbs } from "@/lib/health/units";
 import { watchDataFields } from "@/lib/sync/workoutMerge";
 import type { HealthDailyLog, TimeOfDay } from "@/types";
 import { editStamps, newRowStamps } from "./stamp";
+import { DAY_MS } from "@/lib/dates";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface HealthImportOptions {
   /** The groups of data to import. */

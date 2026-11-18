@@ -12,7 +12,7 @@
 import { expect, it } from "vitest";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { EXERCISES } from "@/lib/exercises";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { suggestStartingWeights } from "@/lib/import/startingWeights";
 import { runSession, startSim } from "@/lib/rebuild/testHelpers";
 import { strengthEvidenceOf } from "@/lib/workout/strength";
@@ -38,10 +38,10 @@ function importedHistory(count: number, end: Date): ImportedSessionRecord[] {
       const id = ids[(i + k * 3) % ids.length];
       const weight = 40 + ((i * 7 + k * 13) % 120);
       return [1, 2, 3, 4].map((order) =>
-        importedSet({ exerciseName: `Made-up ${id}`, mappedExerciseId: id, setOrder: order, weightPerImplementLb: weight, reps: 5 + ((i + order) % 8) })
+        makeImportedSet({ exerciseName: `Made-up ${id}`, mappedExerciseId: id, setOrder: order, weightPerImplementLb: weight, reps: 5 + ((i + order) % 8) })
       );
     });
-    sessions.push(importedSession(sets, { id: `bench-imp-${i}`, startedAt }));
+    sessions.push(makeImportedSession(sets, { id: `bench-imp-${i}`, startedAt }));
   }
   return sessions;
 }

@@ -9,13 +9,14 @@ import { formatMuscle } from "@/lib/muscles";
 import { PROJECTION_COEFFICIENTS } from "@/lib/projection/coefficients";
 import {
   formatAmount,
-  liftShortName,
   type ProjectionBaseline,
   type ProjectionScenario,
 } from "@/lib/projection";
+import { projectionLiftName } from "@/lib/liftNames";
 import type { TrainingPhase } from "@/types";
 import { TermIcon } from "@/components/ui/term";
 import { ScenarioSlider } from "./ScenarioSlider";
+import { joinList } from "@/lib/text";
 
 type Phase = TrainingPhase["mode"];
 
@@ -33,11 +34,6 @@ function snap(value: number, min: number, max: number, step: number): number {
   return Math.min(max, Math.max(min, Number(snapped.toFixed(4))));
 }
 
-function joinList(items: string[]): string {
-  if (items.length <= 1) return items.join("");
-  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
-}
-
 interface ScenarioControlsProps {
   baseline: ProjectionBaseline;
   scenario: ProjectionScenario;
@@ -47,7 +43,7 @@ interface ScenarioControlsProps {
 
 /** "Try an alternative": one control per scenario field, each against "now". */
 export function ScenarioControls({ baseline, scenario, onChange, onReset }: ScenarioControlsProps) {
-  const lift = liftShortName(baseline.exerciseId);
+  const lift = projectionLiftName(baseline.exerciseId);
   const primary = (EXERCISES[baseline.exerciseId]?.primaryMuscles ?? []).map((m) =>
     formatMuscle(m).toLowerCase()
   );

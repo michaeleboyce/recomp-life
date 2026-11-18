@@ -6,22 +6,22 @@ import { applyChange, e1rmsForWorkout, type LogState } from "@/lib/rebuild";
 import type { Forecast, SetLog, SetStatus, WorkoutSession } from "@/types";
 import { BODYWEIGHT_MODEL, E1RM_HORIZON_MODEL } from "./coefficients";
 import { earliestPerSlot, resolveForecast, VOID_REASONS } from "./resolve";
-import { DAY, forecastRow, t1Session, weighIn } from "./testHelpers";
+import { DAY, makeForecast, makeT1Session, makeWeighIn } from "./testHelpers";
 import type { ForecastLog } from "./types";
 
 const START = new Date("2026-11-02T17:00:00Z");
 const NOW = new Date("2026-11-03T09:00:00Z");
 
 /** The workout the default forecast row is about: squat 5x3 at 200, 5 reps on the last set. */
-const workout = (overrides: Partial<Parameters<typeof t1Session>[0]> = {}) =>
-  t1Session({ id: "w1", at: START, weight: 200, lastReps: 5, ...overrides });
+const workout = (overrides: Partial<Parameters<typeof makeT1Session>[0]> = {}) =>
+  makeT1Session({ id: "w1", at: START, weight: 200, lastReps: 5, ...overrides });
 
 const logOf = (...workouts: WorkoutSession[]): ForecastLog => ({ workouts, bodyweight: [] });
 const resolve = (forecast: Forecast, log: ForecastLog, now: Date = NOW) =>
   resolveForecast(forecast, log, now);
 
-const reps = forecastRow();
-const pass = forecastRow({
+const reps = makeForecast();
+const pass = makeForecast({
   id: "fc:w1:liftPass:squat:T1",
   kind: "liftPass",
   event: { type: "repsAtLeast", weight: 200, reps: 3 },
@@ -29,13 +29,13 @@ const pass = forecastRow({
 });
 /** The best estimated max that stood when the forecast was made: six all-out reps at 200 beat it. */
 const BEST_LEVEL = 236;
-const best = forecastRow({
+const best = makeForecast({
   id: "fc:w1:newBest:squat:T1",
   kind: "newBest",
   event: { type: "e1rmAbove", weight: 200, level: BEST_LEVEL },
   prediction: { point: 0.3, probability: 0.3, unit: "chance" },
 });
-const length = forecastRow({
+const length = makeForecast({
   id: "fc:w1:sessionLength",
   kind: "sessionLength",
   exerciseId: undefined,
@@ -60,10 +60,10 @@ describe("reps on the last set", () => {
 
   it("treats a range that ends at the last bucket as having no upper end", () => {
     const pmf = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.2, 0.3, 0.5];
-    const open = forecastRow({ prediction: { point: 12, low: 10, high: 12, pmf, unit: "reps" } });
+    const open = makeForecast({ prediction: { point: 12, low: 10, high: 12, pmf, unit: "reps" } });
     expect(resolve(open, logOf(workout({ lastReps: 17 })))).toMatchObject({ value: 17, inside: true });
     expect(resolve(open, logOf(workout({ lastReps: 9 })))).toMatchObject({ value: 9, inside: false });
-    const closed = forecastRow({ prediction: { point: 5, low: 3, high: 6, pmf, unit: "reps" } });
+    const closed = makeForecast({ prediction: { point: 5, low: 3, high: 6, pmf, unit: "reps" } });
     expect(resolve(closed, logOf(workout({ lastReps: 17 })))).toMatchObject({ inside: false });
   });
 
@@ -184,7 +184,7 @@ describe("chance of a new best and of a pass", () => {
   it("is decided against the level on the row, whatever else is in the log", () => {
     const today = workout({ lastReps: 6 });
     // An earlier session edited upwards afterwards does not turn the hit into a miss.
-    const earlier = t1Session({
+    const earlier = makeT1Session({
       id: "w0",
       at: new Date(START.getTime() - 7 * DAY),
       weight: 230,
@@ -197,7 +197,7 @@ describe("chance of a new best and of a pass", () => {
   });
 
   it("is void when the row does not say what level to beat", () => {
-    const unstated = forecastRow({ ...best, event: { type: "e1rmAbove", weight: 200 } });
+    const unstated = makeForecast({ ...best, event: { type: "e1rmAbove", weight: 200 } });
     expect(resolve(unstated, logOf(workout()))).toEqual({ state: "void", reason: "not-scorable" });
   });
 
@@ -342,7 +342,7 @@ describe("forecasts for a date", () => {
   const around = (days: number) => new Date(due.getTime() + days * DAY);
   const closed = around(BODYWEIGHT_MODEL.outcomeWindowDays + 0.01);
 
-  const body = forecastRow({
+  const body = makeForecast({
     id: "h1",
     slot: "bodyweight4w|bodyweight|2026-W45",
     kind: "bodyweight4w",
@@ -355,7 +355,7 @@ describe("forecasts for a date", () => {
   });
 
   it("is open until the window around the date has closed", () => {
-    const bodyweight = [weighIn("a", around(-1), 226), weighIn("b", around(0), 227)];
+    const bodyweight = [makeWeighIn("a", around(-1), 226), makeWeighIn("b", around(0), 227)];
     const log: ForecastLog = { workouts: [], bodyweight };
     expect(resolve(body, log, around(-10))).toEqual({ state: "open" });
     expect(resolve(body, log, around(BODYWEIGHT_MODEL.outcomeWindowDays - 0.01))).toEqual({
@@ -366,12 +366,12 @@ describe("forecasts for a date", () => {
 
   it("resolves bodyweight to the mean of the weigh-ins in the window", () => {
     const bodyweight = [
-      weighIn("before", around(-BODYWEIGHT_MODEL.outcomeWindowDays - 1), 240),
-      weighIn("a", around(-2), 226),
-      weighIn("b", around(0), 227),
-      weighIn("c", around(3), 225),
-      weighIn("after", around(BODYWEIGHT_MODEL.outcomeWindowDays + 1), 210),
-      { ...weighIn("deleted", around(1), 300), deletedAt: 2 },
+      makeWeighIn("before", around(-BODYWEIGHT_MODEL.outcomeWindowDays - 1), 240),
+      makeWeighIn("a", around(-2), 226),
+      makeWeighIn("b", around(0), 227),
+      makeWeighIn("c", around(3), 225),
+      makeWeighIn("after", around(BODYWEIGHT_MODEL.outcomeWindowDays + 1), 210),
+      { ...makeWeighIn("deleted", around(1), 300), deletedAt: 2 },
     ];
     expect(resolve(body, { workouts: [], bodyweight }, closed)).toEqual({
       state: "resolved",
@@ -387,7 +387,7 @@ describe("forecasts for a date", () => {
 
   it("is void with too few measurements in the window", () => {
     expect(BODYWEIGHT_MODEL.minOutcomeEntries).toBe(2);
-    const one = [weighIn("a", around(0), 226)];
+    const one = [makeWeighIn("a", around(0), 226)];
     expect(resolve(body, { workouts: [], bodyweight: one }, closed)).toEqual({
       state: "void",
       reason: "too-few-measurements",
@@ -396,7 +396,7 @@ describe("forecasts for a date", () => {
   });
 
   it("scores with the minimum stored on the row, not the constant read now", () => {
-    const one: ForecastLog = { workouts: [], bodyweight: [weighIn("a", around(0), 226)] };
+    const one: ForecastLog = { workouts: [], bodyweight: [makeWeighIn("a", around(0), 226)] };
     const stored = (minResults: number): Forecast => ({
       ...body,
       event: { ...body.event, minResults },
@@ -410,7 +410,7 @@ describe("forecasts for a date", () => {
     });
   });
 
-  const lift = forecastRow({
+  const lift = makeForecast({
     id: "h2",
     slot: "e1rm4w|squat|2026-W45",
     kind: "e1rm4w",
@@ -424,11 +424,11 @@ describe("forecasts for a date", () => {
 
   it("resolves an estimated max to the mean of the lift's results in the window", () => {
     const workouts = [
-      t1Session({ id: "in1", at: around(-5), weight: 205, lastReps: 5 }),
-      t1Session({ id: "in2", at: around(4), weight: 210, lastReps: 5, setOverrides: { repsInReserve: "1-2" } }),
-      t1Session({ id: "out", at: around(-20), weight: 300, lastReps: 5 }),
-      t1Session({ id: "bench", exerciseId: "bench", at: around(1), weight: 150, lastReps: 5 }),
-      { ...t1Session({ id: "gone", at: around(2), weight: 400, lastReps: 5 }), deletedAt: 8 },
+      makeT1Session({ id: "in1", at: around(-5), weight: 205, lastReps: 5 }),
+      makeT1Session({ id: "in2", at: around(4), weight: 210, lastReps: 5, setOverrides: { repsInReserve: "1-2" } }),
+      makeT1Session({ id: "out", at: around(-20), weight: 300, lastReps: 5 }),
+      makeT1Session({ id: "bench", exerciseId: "bench", at: around(1), weight: 150, lastReps: 5 }),
+      { ...makeT1Session({ id: "gone", at: around(2), weight: 400, lastReps: 5 }), deletedAt: 8 },
     ];
     // The app's own estimate, which credits the logged reps-left answer.
     const expected = (calculateE1RM(205, 5)! + calculateE1RM(210, 5, "1-2")!) / 2;
@@ -453,19 +453,19 @@ describe("earliestPerSlot", () => {
 
   it("keeps the first row made for each slot, oldest first", () => {
     const rows = [
-      forecastRow({ id: "late", slot: "e1rm4w|squat|2026-W45", madeAt: at(30) }),
-      forecastRow({ id: "session", slot: "fc:w1:amrapReps:squat:T1", madeAt: at(10) }),
-      forecastRow({ id: "early", slot: "e1rm4w|squat|2026-W45", madeAt: at(5) }),
-      forecastRow({ id: "other", slot: "e1rm4w|bench|2026-W45", madeAt: at(20) }),
+      makeForecast({ id: "late", slot: "e1rm4w|squat|2026-W45", madeAt: at(30) }),
+      makeForecast({ id: "session", slot: "fc:w1:amrapReps:squat:T1", madeAt: at(10) }),
+      makeForecast({ id: "early", slot: "e1rm4w|squat|2026-W45", madeAt: at(5) }),
+      makeForecast({ id: "other", slot: "e1rm4w|bench|2026-W45", madeAt: at(20) }),
     ];
     expect(earliestPerSlot(rows).map((row) => row.id)).toEqual(["early", "session", "other"]);
   });
 
   it("breaks a tie on the time by id and ignores deleted rows", () => {
     const rows = [
-      forecastRow({ id: "b", slot: "s", madeAt: at(1) }),
-      forecastRow({ id: "a", slot: "s", madeAt: at(1) }),
-      forecastRow({ id: "0", slot: "s", madeAt: at(0), deletedAt: 3 }),
+      makeForecast({ id: "b", slot: "s", madeAt: at(1) }),
+      makeForecast({ id: "a", slot: "s", madeAt: at(1) }),
+      makeForecast({ id: "0", slot: "s", madeAt: at(0), deletedAt: 3 }),
     ];
     expect(earliestPerSlot(rows).map((row) => row.id)).toEqual(["a"]);
     expect(earliestPerSlot([])).toEqual([]);
@@ -473,8 +473,8 @@ describe("earliestPerSlot", () => {
 
   it("reads times stored as text", () => {
     const rows = [
-      forecastRow({ id: "x", slot: "s", madeAt: "2026-11-03T00:00:00Z" as unknown as Date }),
-      forecastRow({ id: "y", slot: "s", madeAt: "2026-11-02T00:00:00Z" as unknown as Date }),
+      makeForecast({ id: "x", slot: "s", madeAt: "2026-11-03T00:00:00Z" as unknown as Date }),
+      makeForecast({ id: "y", slot: "s", madeAt: "2026-11-02T00:00:00Z" as unknown as Date }),
     ];
     expect(earliestPerSlot(rows).map((row) => row.id)).toEqual(["y"]);
   });

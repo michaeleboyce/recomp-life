@@ -25,7 +25,7 @@ import {
   type LastSetPoint,
   type RepsModelInput,
 } from "./reps";
-import { DAY, t1Session } from "./testHelpers";
+import { DAY, makeT1Session } from "./testHelpers";
 import { repsInReserveCredit } from "@/lib/effort";
 import type { RepsInReserve, SetLog } from "@/types";
 
@@ -82,8 +82,8 @@ describe("repsIndex", () => {
 describe("lastT1Sets", () => {
   it("reads the last set of each finished T1 session, oldest first", () => {
     const workouts = [
-      t1Session({ id: "b", at: daysAgo(3), weight: 205, lastReps: 4, phase: "cutting" }),
-      t1Session({ id: "a", at: daysAgo(12), weight: 200, lastReps: 6, phase: "maintaining" }),
+      makeT1Session({ id: "b", at: daysAgo(3), weight: 205, lastReps: 4, phase: "cutting" }),
+      makeT1Session({ id: "a", at: daysAgo(12), weight: 200, lastReps: 6, phase: "maintaining" }),
     ];
     const points = lastT1Sets(workouts, "squat", NOW);
     expect(points.map((p) => [p.workoutId, p.weight, p.reps, p.stage, p.phase])).toEqual([
@@ -97,7 +97,7 @@ describe("lastT1Sets", () => {
   });
 
   it("reads the working last set, never a ramp, back-off or drop set around it (H14)", () => {
-    const base = t1Session({ id: "a", at: daysAgo(3), weight: 200, lastReps: 5 });
+    const base = makeT1Session({ id: "a", at: daysAgo(3), weight: 200, lastReps: 5 });
     const last = base.sets.at(-1)!;
     const extra = (id: string, overrides: Partial<SetLog>): SetLog => ({
       ...last,
@@ -125,7 +125,7 @@ describe("lastT1Sets", () => {
 
   it("takes the stage from the set's target reps", () => {
     const [point] = lastT1Sets(
-      [t1Session({ id: "a", at: daysAgo(3), weight: 200, lastReps: 3, stage: "6x2" })],
+      [makeT1Session({ id: "a", at: daysAgo(3), weight: 200, lastReps: 3, stage: "6x2" })],
       "squat",
       NOW
     );
@@ -134,7 +134,7 @@ describe("lastT1Sets", () => {
 
   it("uses the logged reps even when a reps-left answer was logged", () => {
     const [point] = lastT1Sets(
-      [t1Session({ id: "a", at: daysAgo(3), weight: 200, lastReps: 5, setOverrides: { repsInReserve: "3+" } })],
+      [makeT1Session({ id: "a", at: daysAgo(3), weight: 200, lastReps: 5, setOverrides: { repsInReserve: "3+" } })],
       "squat",
       NOW
     );
@@ -143,7 +143,7 @@ describe("lastT1Sets", () => {
 
   it("counts a set longer than the cap as the cap", () => {
     const [point] = lastT1Sets(
-      [t1Session({ id: "a", at: daysAgo(3), weight: 100, lastReps: 14 })],
+      [makeT1Session({ id: "a", at: daysAgo(3), weight: 100, lastReps: 14 })],
       "squat",
       NOW
     );
@@ -154,7 +154,7 @@ describe("lastT1Sets", () => {
   it("records the substitute as the exercise performed", () => {
     const [point] = lastT1Sets(
       [
-        t1Session({
+        makeT1Session({
           id: "a",
           at: daysAgo(3),
           weight: 80,
@@ -170,30 +170,30 @@ describe("lastT1Sets", () => {
 
   it("leaves out workouts that are unfinished, deleted or finished after now", () => {
     const workouts = [
-      t1Session({ id: "open", at: daysAgo(9), weight: 200, lastReps: 5, overrides: { completedAt: null } }),
-      t1Session({ id: "gone", at: daysAgo(8), weight: 200, lastReps: 5, overrides: { deletedAt: 1 } }),
-      t1Session({ id: "later", at: new Date(NOW.getTime() + DAY), weight: 200, lastReps: 5 }),
-      t1Session({ id: "ok", at: daysAgo(7), weight: 200, lastReps: 5 }),
+      makeT1Session({ id: "open", at: daysAgo(9), weight: 200, lastReps: 5, overrides: { completedAt: null } }),
+      makeT1Session({ id: "gone", at: daysAgo(8), weight: 200, lastReps: 5, overrides: { deletedAt: 1 } }),
+      makeT1Session({ id: "later", at: new Date(NOW.getTime() + DAY), weight: 200, lastReps: 5 }),
+      makeT1Session({ id: "ok", at: daysAgo(7), weight: 200, lastReps: 5 }),
     ];
     expect(lastT1Sets(workouts, "squat", NOW).map((p) => p.workoutId)).toEqual(["ok"]);
   });
 
   it("leaves out sessions that do not measure strength", () => {
-    const partial = t1Session({ id: "partial", at: daysAgo(9), weight: 200, lastReps: 5 });
+    const partial = makeT1Session({ id: "partial", at: daysAgo(9), weight: 200, lastReps: 5 });
     partial.sets = partial.sets.slice(0, 3);
-    const pain = t1Session({ id: "pain", at: daysAgo(8), weight: 200, lastReps: 5 });
+    const pain = makeT1Session({ id: "pain", at: daysAgo(8), weight: 200, lastReps: 5 });
     pain.sets[1] = { ...pain.sets[1], status: "skipped_pain" };
-    const run = t1Session({ id: "run", at: daysAgo(7), weight: 200, lastReps: 5 });
+    const run = makeT1Session({ id: "run", at: daysAgo(7), weight: 200, lastReps: 5 });
     run.sets[4] = { ...run.sets[4], status: "reduced_run_fatigue" };
-    const drop = t1Session({ id: "drop", at: daysAgo(6), weight: 200, lastReps: 5 });
+    const drop = makeT1Session({ id: "drop", at: daysAgo(6), weight: 200, lastReps: 5 });
     drop.sets[2] = { ...drop.sets[2], status: "autoregulated_load_drop" };
-    const other = t1Session({ id: "other", exerciseId: "bench", at: daysAgo(5), weight: 150, lastReps: 5 });
+    const other = makeT1Session({ id: "other", exerciseId: "bench", at: daysAgo(5), weight: 150, lastReps: 5 });
     expect(lastT1Sets([partial, pain, run, drop, other], "squat", NOW)).toEqual([]);
   });
 
   it("does not depend on the order of the input", () => {
     const workouts = [1, 2, 3, 4, 5].map((n) =>
-      t1Session({ id: `w${n}`, at: daysAgo(n * 7), weight: 250 - n * 10, lastReps: 3 + (n % 3) })
+      makeT1Session({ id: `w${n}`, at: daysAgo(n * 7), weight: 250 - n * 10, lastReps: 3 + (n % 3) })
     );
     const shuffled = [workouts[3], workouts[0], workouts[4], workouts[2], workouts[1]];
     expect(lastT1Sets(shuffled, "squat", NOW)).toEqual(lastT1Sets(workouts, "squat", NOW));
@@ -691,8 +691,8 @@ describe("usualEffortCredit", () => {
 
   it("comes through lastT1Sets from the effort logged on the last set", () => {
     const workouts = [
-      t1Session({ id: "a", at: daysAgo(9), weight: 200, lastReps: 5, setOverrides: { repsInReserve: "3+" } }),
-      t1Session({ id: "b", at: daysAgo(2), weight: 205, lastReps: 5 }),
+      makeT1Session({ id: "a", at: daysAgo(9), weight: 200, lastReps: 5, setOverrides: { repsInReserve: "3+" } }),
+      makeT1Session({ id: "b", at: daysAgo(2), weight: 205, lastReps: 5 }),
     ];
     const sets = lastT1Sets(workouts, "squat", NOW);
     expect(sets.map((point) => point.repsInReserve)).toEqual(["3+", null]);

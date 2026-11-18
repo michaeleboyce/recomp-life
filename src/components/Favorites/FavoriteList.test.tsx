@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { FavoriteList } from "./FavoriteList";
-import { testFavorite } from "./testFavorites";
+import { makeFavorite } from "./testFavorites";
 
 afterEach(cleanup);
 
@@ -10,9 +10,9 @@ const NOW = new Date(2026, 10, 12, 10, 0, 0);
 
 describe("FavoriteList", () => {
   it("lists favourites most recently used first and leaves out deleted ones", () => {
-    const old = testFavorite("a", "Old one", { createdAt: new Date(2026, 9, 1) });
-    const recent = testFavorite("b", "Recent one", { lastUsedAt: new Date(2026, 10, 10) });
-    const gone = { ...testFavorite("c", "Gone one"), deletedAt: 1 };
+    const old = makeFavorite("a", "Old one", { createdAt: new Date(2026, 9, 1) });
+    const recent = makeFavorite("b", "Recent one", { lastUsedAt: new Date(2026, 10, 10) });
+    const gone = { ...makeFavorite("c", "Gone one"), deletedAt: 1 };
     render(<FavoriteList favorites={[old, gone, recent]} now={NOW} onStart={vi.fn()} />);
     const names = screen.getAllByRole("heading").map((h) => h.textContent);
     expect(names).toEqual(["Recent one", "Old one"]);
@@ -24,7 +24,7 @@ describe("FavoriteList", () => {
     const onDelete = vi.fn();
     render(
       <FavoriteList
-        favorites={[testFavorite("a", "Only one")]}
+        favorites={[makeFavorite("a", "Only one")]}
         now={NOW}
         onStart={onStart}
         onRename={onRename}

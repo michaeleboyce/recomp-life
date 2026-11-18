@@ -11,7 +11,7 @@ import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { getMonday } from "@/lib/dates";
 import { useLiftTimeline } from "@/hooks";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { STALE_WEIGH_IN_DAYS } from "@/lib/weighIn";
 import { GlanceTiles } from "./GlanceTiles";
 
@@ -151,12 +151,12 @@ describe("GlanceTiles", () => {
   it("counts imported history: a lift's estimate from it (labelled) and this week's imported sessions", async () => {
     await initializeDatabase();
     const squat = (daysAgo: number, weight: number) =>
-      importedSession([importedSet({ weightPerImplementLb: weight, reps: 5 })], {
+      makeImportedSession([makeImportedSet({ weightPerImplementLb: weight, reps: 5 })], {
         startedAt: new Date(Date.now() - daysAgo * 86_400_000),
       });
     const monday = getMonday(new Date());
     // One imported session this week (Monday noon, never in the future), two older ones.
-    const thisWeek = importedSession([importedSet({ weightPerImplementLb: 200, reps: 5 })], {
+    const thisWeek = makeImportedSession([makeImportedSet({ weightPerImplementLb: 200, reps: 5 })], {
       startedAt: new Date(Math.min(Date.now() - 60_000, monday.getTime() + 12 * 3_600_000)),
     });
     await db.importedSessions.bulkPut([squat(20, 180), squat(10, 190), thisWeek]);
@@ -186,9 +186,9 @@ describe("GlanceTiles", () => {
     };
     // Made-up history: the squat itself 20 days ago, the split squat 4 days ago.
     await db.importedSessions.bulkPut([
-      importedSession([importedSet({ weightPerImplementLb: 200, reps: 5 })], { startedAt: day(20) }),
-      importedSession(
-        [importedSet({ exerciseName: "Test Split Squat", mappedExerciseId: "bulgarian_split_squat", weightPerImplementLb: 40, implementCount: 2, reps: 8 })],
+      makeImportedSession([makeImportedSet({ weightPerImplementLb: 200, reps: 5 })], { startedAt: day(20) }),
+      makeImportedSession(
+        [makeImportedSet({ exerciseName: "Test Split Squat", mappedExerciseId: "bulgarian_split_squat", weightPerImplementLb: 40, implementCount: 2, reps: 8 })],
         { startedAt: day(4) }
       ),
     ]);

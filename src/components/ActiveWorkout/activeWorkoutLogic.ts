@@ -11,9 +11,6 @@ import type {
   WorkoutSession,
 } from "@/types";
 
-/** Moved to `src/lib/workout/planForSession.ts`; re-exported for existing callers. */
-export { planForSession } from "@/lib/workout/planForSession";
-
 /**
  * A missed set is logged as 0 reps (a failed set: no estimated max, and progression
  * treats it as any other missed set). The stepper is not capped near a target.

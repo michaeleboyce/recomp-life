@@ -1,9 +1,7 @@
 // Pure helpers for the Body tab and the bodyweight detail page.
 import type { BodyweightLog, TimeOfDay } from "@/types";
 
-// The pace helpers live in `@/lib/rateOfLoss` so code in src/lib does not import from components.
-export { CUT_TARGET_PERCENT, cutTargetBand, paceStatus } from "@/lib/rateOfLoss";
-export type { PaceWord } from "@/lib/rateOfLoss";
+// The pace helpers (`paceStatus`, `cutTargetBand`) are in `@/lib/rateOfLoss`; import them from there.
 
 export interface WeighInRow {
   id: string;

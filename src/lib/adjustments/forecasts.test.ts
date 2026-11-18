@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { isRuleId } from "@/lib/evidence";
 import { CALIBRATION, FORECAST_KINDS } from "@/lib/forecast";
-import { forecastRow } from "@/lib/forecast/testHelpers";
+import { makeForecast } from "@/lib/forecast/testHelpers";
 import type { Forecast } from "@/types";
 import { forecastEntries } from "./forecasts";
 
@@ -17,7 +17,7 @@ function e1rmRow(week: number, point: number, overrides: Partial<Forecast> = {})
   const exerciseId = overrides.exerciseId ?? "squat";
   const madeAt = new Date(WEEK_41 + (week - 41) * 7 * DAY);
   const id = `h-${exerciseId}-${week}`;
-  return forecastRow({
+  return makeForecast({
     id,
     clientId: id,
     slot: `e1rm4w|${exerciseId}|2026-W${week}`,
@@ -38,7 +38,7 @@ function e1rmRow(week: number, point: number, overrides: Partial<Forecast> = {})
 function bodyweightRow(week: number, point: number, halfWidth = 1.7): Forecast {
   const madeAt = new Date(WEEK_41 + (week - 41) * 7 * DAY);
   const id = `h-bodyweight-${week}`;
-  return forecastRow({
+  return makeForecast({
     id,
     clientId: id,
     slot: `bodyweight4w|bodyweight|2026-W${week}`,
@@ -58,7 +58,7 @@ function bodyweightRow(week: number, point: number, halfWidth = 1.7): Forecast {
 /** A stored reps forecast for one workout, made with the given widening factor. */
 function repsRow(n: number, sdScale: number, kind: Forecast["kind"] = "amrapReps"): Forecast {
   const id = `fc:w${n}:${kind}:squat:T1`;
-  return forecastRow({
+  return makeForecast({
     id,
     clientId: id,
     slot: id,

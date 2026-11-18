@@ -2,8 +2,8 @@ import type { EvidenceRule } from "@/types";
 import type { SourceId } from "../sources";
 import { PROJECTION_COEFFICIENTS as C } from "@/lib/projection/coefficients";
 import { MIN_RELIABLE_WEEKS, STALE_HISTORY_WEEKS } from "@/lib/projection/project";
+import { percent as pct } from "@/lib/text";
 
-const pct = (fraction: number) => `${Math.round(fraction * 100)}%`;
 /** Rate multiplier for doubling a dose under the given exponent, e.g. 2 ^ 0.1 -> "7%". */
 const doubling = (exponent: number) => pct(2 ** exponent - 1);
 /** Weeks until the projected rate halves at the given weekly retention. */

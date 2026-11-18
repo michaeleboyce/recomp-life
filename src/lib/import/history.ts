@@ -99,13 +99,6 @@ export function importedHistoryOf(sets: readonly StrengthSet[], exerciseId: stri
   return importedLiftIndex(sets).get(exerciseId) ?? NONE;
 }
 
-/** The latest imported session of an exercise in `sets` that has a top set, or null. */
-export function lastImportedSession(sets: readonly StrengthSet[], exerciseId: string): ImportedLiftSession | null {
-  const history = importedHistoryOf(sets, exerciseId);
-  for (let i = history.length - 1; i >= 0; i -= 1) if (history[i].topSet) return history[i];
-  return null;
-}
-
 const weightText = (weight: number, perHand: boolean) => `${Number(weight.toFixed(1))}${perHand ? " each" : ""}`;
 
 /** "Imported · 185 x 5": the label of an imported point. */

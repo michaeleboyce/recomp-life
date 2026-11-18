@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { FavoritePickerSheet } from "@/components/Favorites/FavoritePickerSheet";
 import { SaveFavoriteDialog } from "@/components/Favorites/SaveFavoriteDialog";
-import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
+import { templateTitle } from "@/lib/workoutNames";
 import { useFavoriteWorkouts } from "@/hooks";
 import { saveFavoriteFromSetup } from "@/lib/data/favorites";
 import type { FavoriteMode } from "@/lib/favorites";

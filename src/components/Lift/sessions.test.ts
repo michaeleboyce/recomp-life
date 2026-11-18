@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { makeSet, makeWorkout } from "@/lib/data/testUtils";
-import { importDay, importedSession, importedSet } from "@/lib/import/testRecords";
+import { importDay, makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { relatedExercises } from "@/lib/strength";
 import type { Estimated1RM } from "@/types";
 import { importedLiftSessions, importedPoolFor, liftSessions } from "./sessions";
@@ -100,27 +100,27 @@ describe("liftSessions", () => {
 
 // Made-up imported sessions only: the repository is public.
 describe("importedLiftSessions", () => {
-  const benchDay = importedSession(
+  const benchDay = makeImportedSession(
     [
-      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 30, reps: 12, role: "warmup" }),
-      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, setOrder: 2 }),
-      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 9, setOrder: 3 }),
-      importedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 40, reps: 8, setOrder: 4, role: "drop" }),
-      importedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 135, reps: 5 }),
-      importedSet({ exerciseName: "Made-up Curl", mappedExerciseId: "bicep_curls", weightPerImplementLb: 25, reps: 12 }),
+      makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 30, reps: 12, role: "warmup" }),
+      makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 10, setOrder: 2 }),
+      makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 50, reps: 9, setOrder: 3 }),
+      makeImportedSet({ exerciseName: "Made-up DB Press", mappedExerciseId: "db_bench", weightPerImplementLb: 40, reps: 8, setOrder: 4, role: "drop" }),
+      makeImportedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", weightPerImplementLb: 135, reps: 5 }),
+      makeImportedSet({ exerciseName: "Made-up Curl", mappedExerciseId: "bicep_curls", weightPerImplementLb: 25, reps: 12 }),
     ],
     { id: "imp-a", sourceApp: "gravl", startedAt: importDay(10) }
   );
-  const unmapped = importedSession(
-    [importedSet({ exerciseName: "Zorbing Press", mappedExerciseId: null, muscles: ["chest"] })],
+  const unmapped = makeImportedSession(
+    [makeImportedSet({ exerciseName: "Zorbing Press", mappedExerciseId: null, muscles: ["chest"] })],
     { id: "imp-b", startedAt: importDay(12) }
   );
-  const kept = importedSession(
-    [importedSet({ exerciseName: "Made-up Floor Thing", mappedExerciseId: null, weightPerImplementLb: 45, reps: 12 })],
+  const kept = makeImportedSession(
+    [makeImportedSet({ exerciseName: "Made-up Floor Thing", mappedExerciseId: null, weightPerImplementLb: 45, reps: 12 })],
     { id: "imp-c", startedAt: importDay(11) }
   );
-  const warmupOnly = importedSession(
-    [importedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", role: "warmup" })],
+  const warmupOnly = makeImportedSession(
+    [makeImportedSet({ exerciseName: "Made-up Bench", mappedExerciseId: "bench", role: "warmup" })],
     { id: "imp-d", startedAt: importDay(13) }
   );
   const all = [benchDay, unmapped, kept, warmupOnly];

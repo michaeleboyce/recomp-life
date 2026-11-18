@@ -12,11 +12,12 @@ import { Delta, type DeltaBetter } from "@/components/ui/delta";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/ui/stat-tile";
 import { TermIcon } from "@/components/ui/term";
-import { paceStatus, type PaceWord } from "@/components/Progress/body/bodyMath";
+import { paceStatus, type PaceWord } from "@/lib/rateOfLoss";
 import { rangeSuffix } from "@/components/Progress/rangeText";
 import { estimateNote } from "@/components/Progress/strength";
 import { useLiftEstimate } from "@/components/Progress/useLiftEstimate";
-import { formatLbs, shortLiftName } from "./format";
+import { formatLbs } from "@/lib/text";
+import { shortLiftName } from "@/lib/liftNames";
 
 const DASH = "—";
 

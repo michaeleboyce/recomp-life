@@ -12,7 +12,8 @@ import { Term } from "@/components/ui/term";
 import { useLiftTimeline, useProjection } from "@/hooks";
 import type { Point } from "@/lib/metrics/types";
 import { TREND_SMOOTHING, smoothedEstimate } from "@/lib/strength";
-import { liftShortName, type Projection, type ProjectionScenario } from "@/lib/projection";
+import { projectionLiftName } from "@/lib/liftNames";
+import type { Projection, ProjectionScenario } from "@/lib/projection";
 import { HorizonChips } from "./HorizonChips";
 import { HowItWorks } from "./HowItWorks";
 import { ProjectionChart } from "./ProjectionChart";
@@ -68,7 +69,7 @@ export function ProjectionView({ exerciseId }: { exerciseId: string }) {
   const weeks = Math.min(requested, largestAllowed);
   const someDisabled = fitted && HORIZONS.some((w) => w > maxWeeks);
 
-  const short = liftShortName(exerciseId);
+  const short = projectionLiftName(exerciseId);
   const title = `${short[0].toUpperCase()}${short.slice(1)}`;
   const backHref = `/progress/lift/${exerciseId}`;
 

@@ -14,7 +14,8 @@ import type { EquipmentProfile, Tier, WorkoutSession } from "@/types";
 import { Term } from "@/components/ui/term";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { LiftWhySheet, WhyButton } from "@/components/Why";
-import { formatLbs, formatSetsReps } from "./format";
+import { formatLbs } from "@/lib/text";
+import { formatSetsReps } from "./format";
 import {
   atDumbbellCap,
   capNextText,

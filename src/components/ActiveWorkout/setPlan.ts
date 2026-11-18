@@ -348,11 +348,3 @@ export function attachDrops(sets: readonly SetLog[]): SetWithDrops[] {
   }
   return rows;
 }
-
-/** The set (and its drops) that the set with `setId` belongs to; null when it is not logged. */
-export function dropChainOf(sets: readonly SetLog[], setId: string): SetWithDrops | null {
-  return (
-    attachDrops(sets).find((row) => row.set.id === setId || row.drops.some((d) => d.id === setId)) ??
-    null
-  );
-}

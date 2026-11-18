@@ -16,6 +16,7 @@ import {
 } from "@/lib/strength";
 import { timeOf } from "@/lib/strength/estimate";
 import type { ImportedSessionRecord, PlanEdit, SetLog, Tier, WorkoutSession } from "@/types";
+import { WEEK_MS } from "@/lib/dates";
 
 /** What a stand-in replaced: a program lift at its tier. */
 export type StandIn = { exerciseId: string; tier: Tier };
@@ -173,7 +174,6 @@ export function transferRatioOf(
  */
 export const OWN_HISTORY_WINDOW_WEEKS = 8;
 
-const WEEK_MS = 7 * 86_400_000;
 
 /** What a home exercise's own sets say, for its first weight (`ownHistoryOf`). */
 export interface OwnHistory {
@@ -194,11 +194,6 @@ export interface OwnHistory {
 }
 
 const ownCache = new WeakMap<readonly StrengthSet[], Map<string, OwnHistory>>();
-
-/** The start of the own-history window for a plan on `now` (epoch ms). */
-export function ownHistorySince(now: Date): number {
-  return now.getTime() - OWN_HISTORY_WINDOW_WEEKS * WEEK_MS;
-}
 
 /** A set the lifter did with a load: not a warm-up, a drop or a weight set by hand and not lifted. */
 function isLoadedWorkSet(set: StrengthSet): boolean {

@@ -15,8 +15,8 @@ import {
   ACTIVITY_NOTE_WINDOW_HOURS,
   ACTIVITY_HARD_EFFORT,
 } from "@/lib/activities";
+import { percent as pct } from "@/lib/text";
 
-const pct = (fraction: number) => `${Math.round(fraction * 100)}%`;
 
 /** "5% after 21–41 days, 10% after 42–69 days, 15% after 70 days or more" */
 function describeDecayTiers(): string {

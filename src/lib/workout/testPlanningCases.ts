@@ -5,7 +5,7 @@
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import type { LedgerRecords } from "@/lib/data/forecasts";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import { rebuildDerived } from "@/lib/rebuild";
 import type {
   ImportedSessionRecord,
@@ -34,7 +34,7 @@ const between = (i: number) =>
 
 function imp(id: string, exerciseId: string, at: Date, weight: number, reps: number): ImportedSessionRecord {
   const sets = [0, 1, 2].map((i) =>
-    importedSet({
+    makeImportedSet({
       id: `${id}-set-${i}`,
       exerciseName: exerciseId,
       mappedExerciseId: exerciseId,
@@ -43,7 +43,7 @@ function imp(id: string, exerciseId: string, at: Date, weight: number, reps: num
       reps: i === 2 ? reps - 1 : reps,
     })
   );
-  return importedSession(sets, { id, clientId: id, startedAt: at });
+  return makeImportedSession(sets, { id, clientId: id, startedAt: at });
 }
 
 const IMPORTED: ImportedSessionRecord[] = [

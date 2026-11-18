@@ -5,9 +5,8 @@ import {
   evaluateAccessoryProgression,
   getAccessoryRepRange,
 } from "@/lib/accessories";
-import { calendarDaysBetween } from "@/lib/dates";
+import { weeksOrMonthsAgo as longAgoText } from "@/lib/dates";
 import { EXERCISES } from "@/lib/exercises";
-import { plural } from "@/lib/text";
 import { asLifted, impliedWeightForReps, latestEstimate, type StrengthSet } from "@/lib/strength";
 import type { AccessoryHandSetWeight, EquipmentProfile, UserSettings } from "@/types";
 import { sanitizeAccessoryWeights } from "./settings";
@@ -222,12 +221,6 @@ function lastOf(session: StrengthSet[]): AccessoryLastSession {
 }
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
-
-/** "8 weeks ago", "14 months ago": how long ago a session older than the window was. */
-function longAgoText(date: Date, now: Date): string {
-  const days = calendarDaysBetween(date, now);
-  return days < 61 ? `${plural(Math.round(days / 7), "week")} ago` : `${plural(Math.round(days / 30), "month")} ago`;
-}
 
 interface PlanWeight {
   weight: number | null;

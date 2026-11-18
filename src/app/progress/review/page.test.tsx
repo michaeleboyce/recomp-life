@@ -10,7 +10,7 @@ import {
   weekOf,
   type ReviewSource,
 } from "@/lib/review";
-import { importedSession, importedSet } from "@/lib/import/testRecords";
+import { makeImportedSession, makeImportedSet } from "@/lib/import/testRecords";
 import type { ImportedSessionRecord, UserSettings } from "@/types";
 
 // Friday 13 Nov 2026: the last completed week is 2-8 Nov.
@@ -102,7 +102,7 @@ describe("Weekly review page", () => {
   });
 
   it("counts a made-up imported session and says how many were imported", () => {
-    imported = [importedSession([importedSet(), importedSet()], { startedAt: new Date(2026, 10, 3, 7) })];
+    imported = [makeImportedSession([makeImportedSet(), makeImportedSet()], { startedAt: new Date(2026, 10, 3, 7) })];
     render(<WeeklyReviewPage />);
     const sessions = screen.getByRole("link", { name: /^Sessions/ });
     expect(sessions).toHaveTextContent("1 imported");
@@ -112,14 +112,14 @@ describe("Weekly review page", () => {
   });
 
   it("counts a made-up imported dumbbell bench in the bench row, at home, and names it when it gives the best", () => {
-    const db = importedSet({
+    const db = makeImportedSet({
       exerciseName: "Made-up DB Bench",
       mappedExerciseId: "db_bench",
       weightPerImplementLb: 120,
       implementCount: 2,
       reps: 8,
     });
-    imported = [importedSession([db], { startedAt: new Date(2026, 10, 7, 9) })];
+    imported = [makeImportedSession([db], { startedAt: new Date(2026, 10, 7, 9) })];
     const plain = buildWeeklyReview({ ...source(), imported: [] }, [], new Date(2026, 10, 2), NOW).lifts.find(
       (l) => l.id === "bench"
     )!;
