@@ -1,0 +1,1122 @@
+{
+  "rows": [
+    {
+      "id": "reps-prior",
+      "question": "Reps on today's last squat set",
+      "due": "Checked on the last set at 200 lb",
+      "restsOn": "First session at this stage, a wide guess",
+      "view": {
+        "forecastId": "reps-prior",
+        "id": "reps-prior",
+        "category": "strength",
+        "question": "Reps on today's last squat set",
+        "due": "Checked on the last set at 200 lb",
+        "restsOn": "First session at this stage, a wide guess",
+        "ruleId": "forecast-reps",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "5 reps",
+        "range": "3 to 6",
+        "bar": {
+          "low": 3,
+          "high": 6,
+          "point": 5,
+          "formatted": [
+            "3",
+            "5",
+            "6"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Past last sets used",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "id": "reps-trend",
+      "question": "Reps on today's last squat set",
+      "due": "Checked on the last set at 200 lb",
+      "restsOn": "Trend of 6 last sets · the cut · readiness below usual",
+      "view": {
+        "forecastId": "reps-trend",
+        "id": "reps-trend",
+        "category": "strength",
+        "question": "Reps on today's last squat set",
+        "due": "Checked on the last set at 200 lb",
+        "restsOn": "Trend of 6 last sets · the cut · readiness below usual",
+        "ruleId": "forecast-reps",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "5 reps",
+        "range": "4 to 7",
+        "bar": {
+          "low": 4,
+          "high": 7,
+          "point": 5.4,
+          "formatted": [
+            "4",
+            "5",
+            "7"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Weight on the bar",
+          "value": "200 lb"
+        },
+        {
+          "label": "Weight the program planned",
+          "value": "205 lb"
+        },
+        {
+          "label": "Target reps",
+          "value": "3"
+        },
+        {
+          "label": "Stage",
+          "value": "5×3"
+        },
+        {
+          "label": "Past last sets used",
+          "value": "6"
+        },
+        {
+          "label": "Strength level (weight × (1 + reps ÷ 30))",
+          "value": "230.4 lb"
+        },
+        {
+          "label": "Day-to-day scatter of that level",
+          "value": "6.2 lb"
+        },
+        {
+          "label": "Lowered for the cut",
+          "value": "2%"
+        },
+        {
+          "label": "Training phase",
+          "value": "Cutting"
+        },
+        {
+          "label": "Readiness moved the level",
+          "value": "−3%"
+        },
+        {
+          "label": "Range widened by the track record",
+          "value": "× 1.3"
+        }
+      ]
+    },
+    {
+      "id": "reps-one",
+      "question": "Reps on today's last bench press set",
+      "due": "Checked on the last set at 200 lb",
+      "restsOn": "Trend of 0 last sets",
+      "view": {
+        "forecastId": "reps-one",
+        "id": "reps-one",
+        "category": "strength",
+        "question": "Reps on today's last bench press set",
+        "due": "Checked on the last set at 200 lb",
+        "restsOn": "Trend of 0 last sets",
+        "ruleId": "forecast-reps",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "1 rep"
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        }
+      ]
+    },
+    {
+      "id": "reps-persist",
+      "question": "Reps on today's last squat set",
+      "due": "Checked on the last set at 200 lb",
+      "restsOn": "From 1 last set, so wider · readiness above usual",
+      "view": {
+        "forecastId": "reps-persist",
+        "id": "reps-persist",
+        "category": "strength",
+        "question": "Reps on today's last squat set",
+        "due": "Checked on the last set at 200 lb",
+        "restsOn": "From 1 last set, so wider · readiness above usual",
+        "ruleId": "forecast-reps",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "5 reps",
+        "range": "3 to 6",
+        "bar": {
+          "low": 3,
+          "high": 6,
+          "point": 5,
+          "formatted": [
+            "3",
+            "5",
+            "6"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Past last sets used",
+          "value": "1"
+        },
+        {
+          "label": "Readiness moved the level",
+          "value": "+4%"
+        }
+      ]
+    },
+    {
+      "id": "reps-regime",
+      "question": "Reps on today's last squat set",
+      "due": "Checked on the last set at 200 lb",
+      "restsOn": "After a reset, so wider",
+      "view": {
+        "forecastId": "reps-regime",
+        "id": "reps-regime",
+        "category": "strength",
+        "question": "Reps on today's last squat set",
+        "due": "Checked on the last set at 200 lb",
+        "restsOn": "After a reset, so wider",
+        "ruleId": "forecast-reps",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "5 reps",
+        "range": "3 to 6",
+        "bar": {
+          "low": 3,
+          "high": 6,
+          "point": 5,
+          "formatted": [
+            "3",
+            "5",
+            "6"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Past last sets used",
+          "value": "3"
+        },
+        {
+          "label": "Recent change",
+          "value": "a reset"
+        },
+        {
+          "label": "Scatter widened after the change",
+          "value": "× 1.5"
+        }
+      ]
+    },
+    {
+      "id": "reps-regime-unknown",
+      "question": "Reps on today's last squat set",
+      "due": "Checked on the last set at 200 lb",
+      "restsOn": "After a change, so wider",
+      "view": {
+        "forecastId": "reps-regime-unknown",
+        "id": "reps-regime-unknown",
+        "category": "strength",
+        "question": "Reps on today's last squat set",
+        "due": "Checked on the last set at 200 lb",
+        "restsOn": "After a change, so wider",
+        "ruleId": "forecast-reps",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "5 reps",
+        "range": "3 to 6",
+        "bar": {
+          "low": 3,
+          "high": 6,
+          "point": 5,
+          "formatted": [
+            "3",
+            "5",
+            "6"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Recent change",
+          "value": "odd"
+        }
+      ]
+    },
+    {
+      "id": "pass",
+      "question": "Deadlift passes today",
+      "due": "Checked on the last set at 315 lb",
+      "restsOn": "Trend of 4 last sets",
+      "view": {
+        "forecastId": "pass",
+        "id": "pass",
+        "category": "strength",
+        "question": "Deadlift passes today",
+        "due": "Checked on the last set at 315 lb",
+        "restsOn": "Trend of 4 last sets",
+        "ruleId": "forecast-reps",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "82%",
+        "range": "chance of passing"
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Past last sets used",
+          "value": "4"
+        }
+      ]
+    },
+    {
+      "id": "best",
+      "question": "A new overhead press best today",
+      "due": "Checked when this workout ends",
+      "restsOn": "Trend of 4 last sets",
+      "view": {
+        "forecastId": "best",
+        "id": "best",
+        "category": "strength",
+        "question": "A new overhead press best today",
+        "due": "Checked when this workout ends",
+        "restsOn": "Trend of 4 last sets",
+        "ruleId": "forecast-reps",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "41%",
+        "range": "chance"
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Past last sets used",
+          "value": "4"
+        },
+        {
+          "label": "Best estimated max to beat",
+          "value": "139.6 lb"
+        },
+        {
+          "label": "Reps needed for a new best",
+          "value": "7"
+        }
+      ]
+    },
+    {
+      "id": "length-prior",
+      "question": "How long today's workout takes",
+      "due": "Checked when this workout ends",
+      "restsOn": "From the plan alone, a wide guess",
+      "view": {
+        "forecastId": "length-prior",
+        "id": "length-prior",
+        "category": "session",
+        "question": "How long today's workout takes",
+        "due": "Checked when this workout ends",
+        "restsOn": "From the plan alone, a wide guess",
+        "ruleId": "forecast-session-length",
+        "strength": "heuristic",
+        "earlierOpen": 1,
+        "value": "52 min",
+        "range": "45 min to 1 h 5 min",
+        "bar": {
+          "low": 2700,
+          "high": 3900,
+          "point": 3120,
+          "formatted": [
+            "45 min",
+            "52 min",
+            "1 h 5 min"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Planned sets and rests",
+          "value": "50 min"
+        },
+        {
+          "label": "Past sessions used",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "id": "length-trend",
+      "question": "How long today's workout takes",
+      "due": "Checked when this workout ends",
+      "restsOn": "The plan, corrected by your pace over 8 sessions",
+      "view": {
+        "forecastId": "length-trend",
+        "id": "length-trend",
+        "category": "session",
+        "question": "How long today's workout takes",
+        "due": "Checked when this workout ends",
+        "restsOn": "The plan, corrected by your pace over 8 sessions",
+        "ruleId": "forecast-session-length",
+        "strength": "heuristic",
+        "earlierOpen": 1,
+        "value": "1 h",
+        "range": "55 min to 1 h 7 min",
+        "bar": {
+          "low": 3300,
+          "high": 4000,
+          "point": 3600,
+          "formatted": [
+            "55 min",
+            "1 h",
+            "1 h 7 min"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Planned sets and rests",
+          "value": "55 min"
+        },
+        {
+          "label": "Past sessions used",
+          "value": "8"
+        },
+        {
+          "label": "Your pace against the plan",
+          "value": "× 1.09"
+        }
+      ]
+    },
+    {
+      "id": "e1rm-trend",
+      "question": "Squat estimated max, Dec 6",
+      "due": "Due Dec 6, in 3 weeks",
+      "restsOn": "Trend of 9 results · gaining 1.2 lb a week",
+      "view": {
+        "forecastId": "e1rm-trend",
+        "id": "e1rm-trend",
+        "category": "strength",
+        "question": "Squat estimated max, Dec 6",
+        "due": "Due Dec 6, in 3 weeks",
+        "restsOn": "Trend of 9 results · gaining 1.2 lb a week",
+        "ruleId": "projection-rate-of-gain",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "271.3",
+        "valueUnit": "lb",
+        "range": "260 to 283",
+        "bar": {
+          "low": 260,
+          "high": 283,
+          "point": 271.26,
+          "formatted": [
+            "260",
+            "271.3",
+            "283"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Results used",
+          "value": "9"
+        },
+        {
+          "label": "Estimated max today",
+          "value": "266.1 lb"
+        },
+        {
+          "label": "Change per week",
+          "value": "+1.2 lb"
+        },
+        {
+          "label": "Measured over",
+          "value": "7 days either side of the date"
+        },
+        {
+          "label": "Training phase",
+          "value": "Bulking"
+        }
+      ]
+    },
+    {
+      "id": "e1rm-regime",
+      "question": "Bench press estimated max, Nov 16",
+      "due": "Due Nov 16, tomorrow",
+      "restsOn": "Last result 6 weeks ago, so wider · about flat",
+      "view": {
+        "forecastId": "e1rm-regime",
+        "id": "e1rm-regime",
+        "category": "strength",
+        "question": "Bench press estimated max, Nov 16",
+        "due": "Due Nov 16, tomorrow",
+        "restsOn": "Last result 6 weeks ago, so wider · about flat",
+        "ruleId": "projection-rate-of-gain",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "180",
+        "valueUnit": "lb",
+        "range": "160 to 200",
+        "bar": {
+          "low": 160,
+          "high": 200,
+          "point": 180,
+          "formatted": [
+            "160",
+            "180",
+            "200"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Results used",
+          "value": "3"
+        },
+        {
+          "label": "Change per week",
+          "value": "+0 lb"
+        },
+        {
+          "label": "Last result",
+          "value": "6 weeks before"
+        },
+        {
+          "label": "Measured over",
+          "value": "7 days either side of the date"
+        }
+      ]
+    },
+    {
+      "id": "e1rm-old",
+      "question": "Leg Press estimated max, Nov 13",
+      "due": "Measuring now; scored after Nov 20",
+      "restsOn": "Old results, so wider",
+      "view": {
+        "forecastId": "e1rm-old",
+        "id": "e1rm-old",
+        "category": "strength",
+        "question": "Leg Press estimated max, Nov 13",
+        "due": "Measuring now; scored after Nov 20",
+        "restsOn": "Old results, so wider",
+        "ruleId": "projection-rate-of-gain",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "400",
+        "valueUnit": "lb",
+        "range": "380 to 420",
+        "bar": {
+          "low": 380,
+          "high": 420,
+          "point": 400,
+          "formatted": [
+            "380",
+            "400",
+            "420"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Measured over",
+          "value": "7 days either side of the date"
+        }
+      ]
+    },
+    {
+      "id": "bw",
+      "question": "Bodyweight around Nov 25",
+      "due": "Due Nov 25, in 10 days",
+      "restsOn": "12 weigh-ins · losing 0.9 lb a week",
+      "view": {
+        "forecastId": "bw",
+        "id": "bw",
+        "category": "body",
+        "question": "Bodyweight around Nov 25",
+        "due": "Due Nov 25, in 10 days",
+        "restsOn": "12 weigh-ins · losing 0.9 lb a week",
+        "ruleId": "forecast-bodyweight",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "198",
+        "valueUnit": "lb",
+        "range": "196 to 200",
+        "bar": {
+          "low": 196,
+          "high": 200,
+          "point": 198.04,
+          "formatted": [
+            "196",
+            "198",
+            "200"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Weigh-ins used",
+          "value": "12"
+        },
+        {
+          "label": "Bodyweight on the line today",
+          "value": "201.3 lb"
+        },
+        {
+          "label": "Change per week",
+          "value": "−0.9 lb"
+        },
+        {
+          "label": "Measured over",
+          "value": "3 days either side of the date"
+        },
+        {
+          "label": "Training phase",
+          "value": "Maintaining"
+        }
+      ]
+    },
+    {
+      "id": "bw-flat",
+      "question": "Bodyweight around Dec 25",
+      "due": "Due Dec 25, in 6 weeks",
+      "restsOn": "2 weigh-ins · about flat",
+      "view": {
+        "forecastId": "bw-flat",
+        "id": "bw-flat",
+        "category": "body",
+        "question": "Bodyweight around Dec 25",
+        "due": "Due Dec 25, in 6 weeks",
+        "restsOn": "2 weigh-ins · about flat",
+        "ruleId": "forecast-bodyweight",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "198",
+        "valueUnit": "lb"
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Weigh-ins used",
+          "value": "2"
+        },
+        {
+          "label": "Change per week",
+          "value": "+0 lb"
+        }
+      ]
+    },
+    {
+      "id": "stall-ahead",
+      "question": "Squat misses at 6×2 in the next two sessions",
+      "due": "Checked over the next two sessions, the second due about Nov 20",
+      "restsOn": "Trend of 5 last sets · a session every 4 days",
+      "view": {
+        "forecastId": "stall-ahead",
+        "id": "stall-ahead",
+        "category": "strength",
+        "question": "Squat misses at 6×2 in the next two sessions",
+        "due": "Checked over the next two sessions, the second due about Nov 20",
+        "restsOn": "Trend of 5 last sets · a session every 4 days",
+        "ruleId": "forecast-stall",
+        "strength": "heuristic",
+        "earlierOpen": 1,
+        "value": "30%",
+        "range": "chance of a stall",
+        "bar": {
+          "low": 0.19999999999999996,
+          "high": 0.3,
+          "point": 0.3,
+          "min": 0,
+          "max": 1,
+          "label": "Chance of a miss: 20% at the next session, 30% within two",
+          "formatted": [
+            "20%",
+            "30%",
+            "30%"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Working weight today",
+          "value": "225 lb"
+        },
+        {
+          "label": "Stage",
+          "value": "6×2"
+        },
+        {
+          "label": "Target reps",
+          "value": "2"
+        },
+        {
+          "label": "Added after each pass",
+          "value": "10 lb"
+        },
+        {
+          "label": "Past last sets used",
+          "value": "5"
+        },
+        {
+          "label": "Strength level (weight × (1 + reps ÷ 30))",
+          "value": "250 lb"
+        },
+        {
+          "label": "Day-to-day scatter of that level",
+          "value": "5 lb"
+        },
+        {
+          "label": "Days between sessions of this lift",
+          "value": "3.6"
+        },
+        {
+          "label": "Chance the next session passes",
+          "value": "80%"
+        },
+        {
+          "label": "Lowered for the cut",
+          "value": "1%"
+        }
+      ]
+    },
+    {
+      "id": "stall-past",
+      "question": "Bench press misses at this stage in the next two sessions",
+      "due": "Checked over the next two sessions; set aside if they are not done by Nov 18",
+      "restsOn": "From 2 last sets, so wider",
+      "view": {
+        "forecastId": "stall-past",
+        "id": "stall-past",
+        "category": "strength",
+        "question": "Bench press misses at this stage in the next two sessions",
+        "due": "Checked over the next two sessions; set aside if they are not done by Nov 18",
+        "restsOn": "From 2 last sets, so wider",
+        "ruleId": "forecast-stall",
+        "strength": "heuristic",
+        "earlierOpen": 1,
+        "value": "60%",
+        "range": "chance of a stall"
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Past last sets used",
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "id": "milestone",
+      "question": "Squat reaches 300 lb",
+      "due": "Checked when the bar first has 300 lb on it",
+      "restsOn": "Trend of 6 last sets · a session every 3 days",
+      "view": {
+        "forecastId": "milestone",
+        "id": "milestone",
+        "category": "strength",
+        "question": "Squat reaches 300 lb",
+        "due": "Checked when the bar first has 300 lb on it",
+        "restsOn": "Trend of 6 last sets · a session every 3 days",
+        "ruleId": "forecast-milestone",
+        "strength": "heuristic",
+        "earlierOpen": 1,
+        "value": "Dec 13",
+        "range": "Dec 3 to Jan 2",
+        "bar": {
+          "low": 20790,
+          "high": 20820,
+          "point": 20800,
+          "formatted": [
+            "Dec 3",
+            "Dec 13",
+            "Jan 2"
+          ]
+        }
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        },
+        {
+          "label": "Working weight today",
+          "value": "275 lb"
+        },
+        {
+          "label": "Past last sets used",
+          "value": "6"
+        },
+        {
+          "label": "Days between sessions of this lift",
+          "value": "3"
+        },
+        {
+          "label": "Round number",
+          "value": "300 lb"
+        },
+        {
+          "label": "Chance of getting there within the walk",
+          "value": "70%"
+        },
+        {
+          "label": "Chance the range itself gives",
+          "value": "65%"
+        }
+      ]
+    },
+    {
+      "id": "milestone-unknown",
+      "question": "Lift reaches its next round number",
+      "due": "Checked when the bar first has that weight on it",
+      "restsOn": "From 0 last sets, so wider",
+      "view": {
+        "forecastId": "milestone-unknown",
+        "id": "milestone-unknown",
+        "category": "strength",
+        "question": "Lift reaches its next round number",
+        "due": "Checked when the bar first has that weight on it",
+        "restsOn": "From 0 last sets, so wider",
+        "ruleId": "forecast-milestone",
+        "strength": "heuristic",
+        "earlierOpen": 1,
+        "value": "50%",
+        "range": "chance"
+      },
+      "inputs": [
+        {
+          "label": "Made",
+          "value": "Nov 2"
+        }
+      ]
+    }
+  ],
+  "open": {
+    "today": [
+      {
+        "forecastId": "reps-prior",
+        "id": "reps-prior",
+        "category": "strength",
+        "question": "Reps on today's last squat set",
+        "due": "Checked on the last set at 200 lb",
+        "restsOn": "First session at this stage, a wide guess",
+        "ruleId": "forecast-reps",
+        "strength": "limited",
+        "earlierOpen": 4,
+        "value": "5 reps",
+        "range": "3 to 6",
+        "bar": {
+          "low": 3,
+          "high": 6,
+          "point": 5,
+          "formatted": [
+            "3",
+            "5",
+            "6"
+          ]
+        }
+      },
+      {
+        "forecastId": "reps-one",
+        "id": "reps-one",
+        "category": "strength",
+        "question": "Reps on today's last bench press set",
+        "due": "Checked on the last set at 200 lb",
+        "restsOn": "Trend of 0 last sets",
+        "ruleId": "forecast-reps",
+        "strength": "limited",
+        "earlierOpen": 0,
+        "value": "1 rep"
+      },
+      {
+        "forecastId": "pass",
+        "id": "pass",
+        "category": "strength",
+        "question": "Deadlift passes today",
+        "due": "Checked on the last set at 315 lb",
+        "restsOn": "Trend of 4 last sets",
+        "ruleId": "forecast-reps",
+        "strength": "limited",
+        "earlierOpen": 0,
+        "value": "82%",
+        "range": "chance of passing"
+      },
+      {
+        "forecastId": "best",
+        "id": "best",
+        "category": "strength",
+        "question": "A new overhead press best today",
+        "due": "Checked when this workout ends",
+        "restsOn": "Trend of 4 last sets",
+        "ruleId": "forecast-reps",
+        "strength": "limited",
+        "earlierOpen": 0,
+        "value": "41%",
+        "range": "chance"
+      },
+      {
+        "forecastId": "length-prior",
+        "id": "length-prior",
+        "category": "session",
+        "question": "How long today's workout takes",
+        "due": "Checked when this workout ends",
+        "restsOn": "From the plan alone, a wide guess",
+        "ruleId": "forecast-session-length",
+        "strength": "heuristic",
+        "earlierOpen": 1,
+        "value": "52 min",
+        "range": "45 min to 1 h 5 min",
+        "bar": {
+          "low": 2700,
+          "high": 3900,
+          "point": 3120,
+          "formatted": [
+            "45 min",
+            "52 min",
+            "1 h 5 min"
+          ]
+        }
+      }
+    ],
+    "ahead": [
+      {
+        "forecastId": "stall-past",
+        "id": "stall-past",
+        "category": "strength",
+        "question": "Bench press misses at this stage in the next two sessions",
+        "due": "Checked over the next two sessions; set aside if they are not done by Nov 18",
+        "restsOn": "From 2 last sets, so wider",
+        "ruleId": "forecast-stall",
+        "strength": "heuristic",
+        "earlierOpen": 0,
+        "value": "60%",
+        "range": "chance of a stall"
+      },
+      {
+        "forecastId": "stall-ahead",
+        "id": "stall-ahead",
+        "category": "strength",
+        "question": "Squat misses at 6×2 in the next two sessions",
+        "due": "Checked over the next two sessions, the second due about Nov 20",
+        "restsOn": "Trend of 5 last sets · a session every 4 days",
+        "ruleId": "forecast-stall",
+        "strength": "heuristic",
+        "earlierOpen": 0,
+        "value": "30%",
+        "range": "chance of a stall",
+        "bar": {
+          "low": 0.19999999999999996,
+          "high": 0.3,
+          "point": 0.3,
+          "min": 0,
+          "max": 1,
+          "label": "Chance of a miss: 20% at the next session, 30% within two",
+          "formatted": [
+            "20%",
+            "30%",
+            "30%"
+          ]
+        }
+      },
+      {
+        "forecastId": "milestone",
+        "id": "milestone",
+        "category": "strength",
+        "question": "Squat reaches 300 lb",
+        "due": "Checked when the bar first has 300 lb on it",
+        "restsOn": "Trend of 6 last sets · a session every 3 days",
+        "ruleId": "forecast-milestone",
+        "strength": "heuristic",
+        "earlierOpen": 0,
+        "value": "Dec 13",
+        "range": "Dec 3 to Jan 2",
+        "bar": {
+          "low": 20790,
+          "high": 20820,
+          "point": 20800,
+          "formatted": [
+            "Dec 3",
+            "Dec 13",
+            "Jan 2"
+          ]
+        }
+      },
+      {
+        "forecastId": "milestone-unknown",
+        "id": "milestone-unknown",
+        "category": "strength",
+        "question": "Lift reaches its next round number",
+        "due": "Checked when the bar first has that weight on it",
+        "restsOn": "From 0 last sets, so wider",
+        "ruleId": "forecast-milestone",
+        "strength": "heuristic",
+        "earlierOpen": 0,
+        "value": "50%",
+        "range": "chance"
+      },
+      {
+        "forecastId": "e1rm-old",
+        "id": "e1rm-old",
+        "category": "strength",
+        "question": "Leg Press estimated max, Nov 13",
+        "due": "Measuring now; scored after Nov 20",
+        "restsOn": "Old results, so wider",
+        "ruleId": "projection-rate-of-gain",
+        "strength": "limited",
+        "earlierOpen": 0,
+        "value": "400",
+        "valueUnit": "lb",
+        "range": "380 to 420",
+        "bar": {
+          "low": 380,
+          "high": 420,
+          "point": 400,
+          "formatted": [
+            "380",
+            "400",
+            "420"
+          ]
+        }
+      },
+      {
+        "forecastId": "e1rm-regime",
+        "id": "e1rm-regime",
+        "category": "strength",
+        "question": "Bench press estimated max, Nov 16",
+        "due": "Due Nov 16, tomorrow",
+        "restsOn": "Last result 6 weeks ago, so wider · about flat",
+        "ruleId": "projection-rate-of-gain",
+        "strength": "limited",
+        "earlierOpen": 0,
+        "value": "180",
+        "valueUnit": "lb",
+        "range": "160 to 200",
+        "bar": {
+          "low": 160,
+          "high": 200,
+          "point": 180,
+          "formatted": [
+            "160",
+            "180",
+            "200"
+          ]
+        }
+      },
+      {
+        "forecastId": "e1rm-trend",
+        "id": "e1rm-trend",
+        "category": "strength",
+        "question": "Squat estimated max, Dec 6",
+        "due": "Due Dec 6, in 3 weeks",
+        "restsOn": "Trend of 9 results · gaining 1.2 lb a week",
+        "ruleId": "projection-rate-of-gain",
+        "strength": "limited",
+        "earlierOpen": 0,
+        "value": "271.3",
+        "valueUnit": "lb",
+        "range": "260 to 283",
+        "bar": {
+          "low": 260,
+          "high": 283,
+          "point": 271.26,
+          "formatted": [
+            "260",
+            "271.3",
+            "283"
+          ]
+        }
+      },
+      {
+        "forecastId": "bw",
+        "id": "bw",
+        "category": "body",
+        "question": "Bodyweight around Nov 25",
+        "due": "Due Nov 25, in 10 days",
+        "restsOn": "12 weigh-ins · losing 0.9 lb a week",
+        "ruleId": "forecast-bodyweight",
+        "strength": "limited",
+        "earlierOpen": 1,
+        "value": "198",
+        "valueUnit": "lb",
+        "range": "196 to 200",
+        "bar": {
+          "low": 196,
+          "high": 200,
+          "point": 198.04,
+          "formatted": [
+            "196",
+            "198",
+            "200"
+          ]
+        }
+      }
+    ],
+    "totalOpen": 19
+  },
+  "voids": "4 forecasts set aside, never counted as a miss: the weight changed (2), the workout ended early (1), something-new (1)."
+}

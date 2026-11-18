@@ -1,0 +1,91 @@
+{
+  "constants": {
+    "TOO_FEW_TO_JUDGE": "not enough results to judge yet",
+    "TARGET_PERCENT": 80,
+    "TARGET_IN_TEN": "8 times in 10",
+    "CATEGORY_LABELS": {
+      "strength": "Strength",
+      "body": "Body",
+      "session": "Workout"
+    },
+    "BASIS_LABELS": {
+      "prior": "No history yet, a wide guess",
+      "persistence": "A few past results",
+      "trend": "A trend of recent results",
+      "regime-change": "After a change or a break"
+    },
+    "PERIOD_LABELS": {
+      "4w": "4 weeks",
+      "3m": "3 months",
+      "all": "All"
+    }
+  },
+  "lifts": [
+    [
+      "Squat",
+      "squat"
+    ],
+    [
+      "Bench press",
+      "bench press"
+    ],
+    [
+      "Deadlift",
+      "deadlift"
+    ],
+    [
+      "Overhead press",
+      "overhead press"
+    ],
+    [
+      "Leg Press",
+      "leg press"
+    ],
+    [
+      "not-a-lift",
+      "not-a-lift"
+    ],
+    [
+      "Lift",
+      "lift"
+    ]
+  ],
+  "amounts": [
+    "0",
+    "0",
+    "1",
+    "178.4",
+    "271",
+    "1,234.6",
+    "-3.2"
+  ],
+  "minutes": [
+    "0 min",
+    "1 min",
+    "52 min",
+    "1 h",
+    "1 h 5 min",
+    "2 h 1 min"
+  ],
+  "dates": [
+    "Nov 15",
+    "Dec 13"
+  ],
+  "judged": [
+    {
+      "enough": false,
+      "value": null,
+      "counts": "3 of 4 inside"
+    },
+    {
+      "enough": true,
+      "value": "80%",
+      "counts": "8 of 10 inside"
+    },
+    {
+      "enough": true,
+      "value": "82%",
+      "counts": "31 of 38 inside the range"
+    }
+  ]
+}
