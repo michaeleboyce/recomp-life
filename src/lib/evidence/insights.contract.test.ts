@@ -124,7 +124,7 @@ describe("insight evidence ids", () => {
 describe("numbers quoted in the connected rules", () => {
   const declining = (sessions: number): LiftState => ({
     ...INITIAL_LIFT_STATES.squat,
-    recentAvgRPEs: [],
+    recentAvgRepsInReserve: [],
     recentAMRAPReps: [],
     recentE1RMs: Array.from({ length: sessions + 1 }, (_, i) => 300 - 5 * i),
   });

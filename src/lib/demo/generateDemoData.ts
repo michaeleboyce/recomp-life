@@ -23,6 +23,7 @@ import type {
   LiftState,
   PainSorenessEntry,
   ReadinessLog,
+  RepsInReserve,
   RunLog,
   SetLog,
   SleepHours,
@@ -231,7 +232,7 @@ export function generateDemoData(now: Date): DemoData {
       for (let s = 1; s <= entry.targetSets; s++) {
         const isLast = s === entry.targetSets;
         let actualReps = entry.targetReps;
-        let rpe: number | null = null;
+        let repsInReserve: RepsInReserve | null = null;
 
         if (entry.tier === "T1") {
           if (entry.isAMRAP && isLast) {
@@ -245,15 +246,15 @@ export function generateDemoData(now: Date): DemoData {
               (daysAgo[0] - daysAgo[i]) / 7,
               bellDraw(i * 31 + 7) * DEMO_LIFTER.dailyVariation
             );
-            rpe = actualReps <= 4 ? 9.5 : 9;
+            repsInReserve = "1-2";
           } else {
-            rpe = s <= 2 ? 7.5 : 8;
+            repsInReserve = s <= 2 ? "3+" : "1-2";
           }
         } else if (entry.tier === "T2") {
-          rpe = 6.5 + s * 0.5 + (failT2 ? 1 : 0); // 7, 7.5, 8 (8, 8.5, 9 on a bad day)
+          repsInReserve = s <= 2 && !failT2 ? "3+" : "1-2"; // easy early sets; all hard on a bad day
           if (failT2 && isLast) {
             actualReps = entry.targetReps - 3;
-            rpe = 10;
+            repsInReserve = "0";
           }
         } else if (entry.tier === "T3" && entry.isAMRAP && isLast) {
           actualReps = 18 + Math.floor(rand(i * 17 + 3) * 9); // 18 to 26
@@ -265,7 +266,7 @@ export function generateDemoData(now: Date): DemoData {
           createSetLog({
             exercise: { ...entry, completedSets: s - 1 },
             actualReps,
-            rpe,
+            repsInReserve,
             location,
             autoRegulated: false,
             now: new Date(clock),
@@ -287,7 +288,7 @@ export function generateDemoData(now: Date): DemoData {
                 completedSets: s,
               },
               actualReps: DEMO_DROP_SET.reps,
-              rpe: 9.5,
+              repsInReserve: "1-2",
               location,
               autoRegulated: false,
               now: new Date(clock),

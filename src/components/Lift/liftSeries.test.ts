@@ -77,14 +77,14 @@ describe("liftMetrics and liftStats", () => {
           originalWeight: 400,
           actualReps: 20,
           isAMRAP: true,
-          rpe: 4,
+          repsInReserve: "3+",
           isSubstituted: true,
           substituteExerciseId: "goblet_squat",
         }),
       ],
     });
     const m = liftMetrics({ ...source, workouts: [...source.workouts, home] }, "squat", "all", now.getTime());
-    for (const id of ["workingWeight", "amrapReps", "avgRpe", "liftVolume"] as const) {
+    for (const id of ["workingWeight", "amrapReps", "avgRepsInReserve", "liftVolume"] as const) {
       expect(m[id].full.points.some((p) => p.refId === "home-only"), id).toBe(false);
     }
   });
@@ -121,7 +121,7 @@ describe("liftMetrics with imported sessions (made-up)", () => {
     expect(m.workingWeight.full.points[0]).toMatchObject({ v: 225, imported: true });
     expect(m.liftVolume.full.points[0]).toMatchObject({ v: 225 * 9, imported: true });
     expect(m.amrapReps.full.points).toEqual(without.amrapReps.full.points);
-    expect(m.avgRpe.full.points).toEqual(without.avgRpe.full.points);
+    expect(m.avgRepsInReserve.full.points).toEqual(without.avgRepsInReserve.full.points);
     // A range that does not reach back that far shows the app's sessions only.
     expect(liftMetrics(source, "squat", "3m", now.getTime(), history).e1rm.series.points.some((p) => p.imported)).toBe(false);
   });

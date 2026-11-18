@@ -1,5 +1,6 @@
 // The hooks the glass-box screens read: forecasts with their derived status, the
 // track record, readiness, decision traces and Today's forecast tiles.
+import type { RepsInReserve } from "@/types";
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
@@ -46,14 +47,15 @@ afterEach(() => {
 });
 
 /** A seeded database with `count` finished sessions, two days apart. The clock is left a day later. */
-async function history(count: number): Promise<Date> {
+async function history(count: number, repsInReserve?: RepsInReserve, lastT1 = 5): Promise<Date> {
   await initializeDatabase();
   for (let i = 0; i < count; i += 1) {
     await runSession(
       {
         templateId: ROTATION[i % ROTATION.length],
         startedAt: new Date(FIRST + i * 2 * DAY),
-        lastReps: { T1: 5 },
+        lastReps: { T1: lastT1 },
+        repsInReserve,
       },
       setNow
     );
@@ -197,7 +199,7 @@ describe("useSessionForecasts, useScoredForecasts, useTrackRecord and useStoredD
             createSetLog({
               exercise: { ...entry, completedSets: i },
               actualReps: last ? entry.targetReps + 1 : entry.targetReps,
-              rpe: null,
+              repsInReserve: null,
               location: "gym",
               autoRegulated: false,
               now: new Date(time),
@@ -386,6 +388,24 @@ describe("useTodayForecast", () => {
     expect(today.newBest!.best).toBe(newBest.event.level);
     expect(today.newBest!.approximate).toBe((newBest.inputs.effortCredit as number) > 0);
     expect(today.session!.minutes).toBe(Math.round(length.prediction.point / 60));
+  });
+
+  it("reads a credit of 1.5 reps as 1.5 reps left, not as 8.5, in the reps needed", async () => {
+    await history(8, "1-2", 9);
+    const records = await readLedgerRecords(new Date());
+    const today = todayForecastFrom(records, "gym");
+    const next = nextWorkoutFrom(records, "gym");
+    const id = await startWorkout({
+      templateId: "A1",
+      location: "gym",
+      includeWarmUps: records.settings.showWarmUps,
+      selectedAccessories: next.accessories!.planned.map((p) => p.exerciseId),
+      planEdits: next.accessoryEdits,
+    });
+    const stored = (await db.forecasts.get(sessionForecastId(id, "newBest", "squat", "T1")))!;
+    expect(stored.inputs.effortCredit).toBe(1.5);
+    expect(today.newBest!.approximate).toBe(true);
+    expect(today.newBest!.repsNeeded).toBe(stored.inputs.repsNeeded);
   });
 
   it("gives no forecast, and says so once, when working it out throws", async () => {

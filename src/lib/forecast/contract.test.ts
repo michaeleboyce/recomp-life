@@ -91,7 +91,7 @@ describe("the registry", () => {
   it("uses plain words in what screens show", () => {
     for (const def of Object.values(FORECAST_KINDS)) {
       for (const text of [def.label, def.estimand]) {
-        expect(text, `${def.kind}: "${text}"`).not.toMatch(/AMRAP|e1RM|1RM|RPE|\bPR\b|\bT1\b/);
+        expect(text, `${def.kind}: "${text}"`).not.toMatch(/AMRAP|e1RM|1RM|RPE|\bRIR\b|\bPR\b|\bT1\b/);
       }
       expect(def.label.length).toBeGreaterThan(5);
     }
@@ -194,7 +194,7 @@ describe("the reps kinds are three readings of one spread", () => {
    * The new-best relationship, exactly:
    * - the event is "this workout's estimated max for the lift is above `event.level`",
    *   the best that stood when the forecast was made (`source.bestE1RMs`);
-   * - the reps that needs are `repsToBeat(weight, level, 10 - effortCredit)`: the
+   * - the reps that needs are `repsToBeat(weight, level, effortCredit)`: the
    *   fewest logged reps whose estimate, with the lifter's usual effort credit
    *   (`usualEffortCredit` of the last sets known then), beats the level;
    * - the stated chance is the reps spread from that count up to E1RM_MAX_REPS, the
@@ -229,7 +229,7 @@ describe("the reps kinds are three readings of one spread", () => {
       expect(row.inputs.effortSample).toBe(effort.sample);
       if (effort.credit > 0) credited += 1;
 
-      const needed = repsToBeat(weight!, level!, 10 - effort.credit)!;
+      const needed = repsToBeat(weight!, level!, effort.credit)!;
       expect(row.inputs.repsNeeded).toBe(needed.reps);
       expect(needed.reps).toBeLessThanOrEqual(E1RM_MAX_REPS);
       const pmf = sibling(row, "amrapReps")!.prediction.pmf!;

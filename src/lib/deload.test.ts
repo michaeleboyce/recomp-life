@@ -34,7 +34,7 @@ function makeLiftState(overrides: Partial<LiftState> = {}): LiftState {
     preDeloadT2Weight: null,
     t2LoadDropCount: 0,
     recentE1RMs: [],
-    recentAvgRPEs: [],
+    recentAvgRepsInReserve: [],
     recentAMRAPReps: [],
     synced: false,
     ...overrides,
@@ -152,25 +152,40 @@ describe("checkSystemicFatigue", () => {
     expect(alert!.level).toBe("watch"); // only 1 signal = watch
   });
 
-  it("RPE increasing at same weight 2 sessions on cut triggers signal", () => {
-    // Cutting RPE threshold = 2
+  it("fewer reps left 2 sessions running on cut triggers an effort signal", () => {
+    // Cutting effort threshold = 2
     const lifts = [
       makeLiftState({
         exerciseId: "squat",
-        recentAvgRPEs: [7, 8, 9], // 2 consecutive increases
+        recentAvgRepsInReserve: [3, 1.5, 0], // 2 consecutive drops
       }),
       makeLiftState({
         exerciseId: "bench",
-        recentAvgRPEs: [7.5, 8, 8.5], // 2 consecutive increases
+        recentAvgRepsInReserve: [2.5, 2, 1], // 2 consecutive drops
       }),
     ];
     const alert = checkSystemicFatigue(lifts, CUTTING);
     expect(alert).not.toBeNull();
     expect(alert!.level).toBe("systemic");
-    expect(alert!.signals.every((s) => s.type === "rpe_increase")).toBe(true);
+    expect(alert!.signals.every((s) => s.type === "effort_increase")).toBe(true);
   });
 
-  it("AMRAP reps declining 2 sessions triggers signal (cut, no RPE required)", () => {
+  it("more reps left (easier) is never an effort signal", () => {
+    const lifts = [
+      makeLiftState({ exerciseId: "squat", recentAvgRepsInReserve: [0, 1.5, 3] }),
+      makeLiftState({ exerciseId: "bench", recentAvgRepsInReserve: [0, 1, 2, 3, 3] }),
+    ];
+    expect(checkSystemicFatigue(lifts, CUTTING)).toBeNull();
+  });
+
+  it("the same reps left session to session is not an effort signal", () => {
+    const lifts = [
+      makeLiftState({ exerciseId: "squat", recentAvgRepsInReserve: [1.5, 1.5, 1.5] }),
+    ];
+    expect(checkSystemicFatigue(lifts, CUTTING)).toBeNull();
+  });
+
+  it("AMRAP reps declining 2 sessions triggers signal (cut, no effort answers required)", () => {
     // Cutting AMRAP threshold = 2
     const lifts = [
       makeLiftState({
@@ -236,26 +251,26 @@ describe("checkSystemicFatigue", () => {
     expect(alert!.signals).toHaveLength(2);
   });
 
-  it("bulking RPE threshold is 4 (not 3)", () => {
-    // Bulking RPE threshold = 4. Three increases is not enough.
+  it("bulking effort threshold is 4 (not 3)", () => {
+    // Bulking effort threshold = 4. Three drops in reps left is not enough.
     const lifts = [
       makeLiftState({
         exerciseId: "squat",
-        recentAvgRPEs: [6, 7, 8, 9], // 3 consecutive increases, need 4
+        recentAvgRepsInReserve: [3, 2.5, 2, 1.5], // 3 consecutive drops, need 4
       }),
     ];
     expect(checkSystemicFatigue(lifts, BULKING)).toBeNull();
 
-    // 4 consecutive increases should trigger
+    // 4 consecutive drops should trigger
     const lifts2 = [
       makeLiftState({
         exerciseId: "squat",
-        recentAvgRPEs: [5, 6, 7, 8, 9], // 4 consecutive increases
+        recentAvgRepsInReserve: [3, 2.5, 2, 1.5, 0], // 4 consecutive drops
       }),
     ];
     const alert = checkSystemicFatigue(lifts2, BULKING);
     expect(alert).not.toBeNull();
-    expect(alert!.signals[0].type).toBe("rpe_increase");
+    expect(alert!.signals[0].type).toBe("effort_increase");
   });
 });
 
@@ -270,7 +285,7 @@ describe("generateDeloadPrescription", () => {
     expect(rx.t3VolumeReduction).toBe(0.5);
     expect(rx.dropAllAccessories).toBe(true);
     expect(rx.maxAccessories).toBe(0);
-    expect(rx.rpeTarget).toBe("6-7");
+    expect(rx.effortTarget).toBe("3+ reps left");
   });
 
   it("maintaining: -10% weight, -25% T3 volume, max 1 accessory", () => {
@@ -279,7 +294,7 @@ describe("generateDeloadPrescription", () => {
     expect(rx.t3VolumeReduction).toBe(0.25);
     expect(rx.dropAllAccessories).toBe(false);
     expect(rx.maxAccessories).toBe(1);
-    expect(rx.rpeTarget).toBe("6-7");
+    expect(rx.effortTarget).toBe("3+ reps left");
   });
 
   it("bulking: -10% weight, keep T3 volume, max 1 accessory", () => {
@@ -288,7 +303,7 @@ describe("generateDeloadPrescription", () => {
     expect(rx.t3VolumeReduction).toBe(0);
     expect(rx.dropAllAccessories).toBe(false);
     expect(rx.maxAccessories).toBe(1);
-    expect(rx.rpeTarget).toBe("6-7");
+    expect(rx.effortTarget).toBe("3+ reps left");
   });
 });
 

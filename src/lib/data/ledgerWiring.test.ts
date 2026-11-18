@@ -162,7 +162,7 @@ async function logSets(
             completedSets: i,
           },
           actualReps: (isLast ? options.lastReps?.[entry.tier] : undefined) ?? entry.targetReps,
-          rpe: null,
+          repsInReserve: null,
           location: session.location,
           autoRegulated: false,
           now: new Date(time),

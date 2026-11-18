@@ -6,6 +6,7 @@ import type {
   NextSetPlan,
   PlanEdit,
   PlannedSet,
+  RepsInReserve,
   SetLog,
   Tier,
   UserSettings,
@@ -155,7 +156,7 @@ export type NextStep = "rest" | "next-exercise" | "done";
 export interface CreateSetLogInput {
   exercise: WorkoutExerciseState;
   actualReps: number;
-  rpe: number | null;
+  repsInReserve: RepsInReserve | null;
   location: WorkoutLocation;
   /** True when the user accepted a T2 auto-regulation load drop for this exercise. */
   autoRegulated: boolean;

@@ -19,14 +19,14 @@ function set(overrides: Partial<SetLog>): SetLog {
 
 describe("strengthSetOf", () => {
   it("is the barbell lift as lifted, a working set with no role", () => {
-    expect(strengthSetOf(set({ id: "a", weight: 200, actualReps: 5, isAMRAP: true, rpe: 9 }), "w1")).toEqual({
+    expect(strengthSetOf(set({ id: "a", weight: 200, actualReps: 5, isAMRAP: true, repsInReserve: "1-2" }), "w1")).toEqual({
       id: "a",
       sessionId: "w1",
       exerciseId: "squat",
       weight: 200,
       perHand: false,
       reps: 5,
-      rpe: 9,
+      repsInReserve: "1-2",
       role: "working",
       tier: "T1",
       isAMRAP: true,
@@ -85,7 +85,7 @@ describe("ownHistoryOf: a home exercise's own recent sets", () => {
     weight: 25,
     perHand: true,
     reps: 9,
-    rpe: null,
+    repsInReserve: null,
     role: "working",
     tier: "T1",
     isAMRAP: true,

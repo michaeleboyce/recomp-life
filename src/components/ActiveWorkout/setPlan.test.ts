@@ -218,11 +218,11 @@ describe("exerciseForLog", () => {
       changed.originalWeight
     );
     // And the set logged from it carries that weight, as a per-set change does.
-    const logged = createSetLog({ exercise: changed, actualReps: 3, rpe: null, location: "home", autoRegulated: false, now: new Date(), id: "s", clientId: "s" });
+    const logged = createSetLog({ exercise: changed, actualReps: 3, repsInReserve: null, location: "home", autoRegulated: false, now: new Date(), id: "s", clientId: "s" });
     expect(logged.originalWeight).toBe(164);
     const perSet = exerciseForLog({ ...home, perSet: [{ weight: 50, reps: 3 }, { weight: 50, reps: 3 }], targetSets: 2 }, 40);
     expect(
-      createSetLog({ exercise: perSet, actualReps: 3, rpe: null, location: "home", autoRegulated: false, now: new Date(), id: "p", clientId: "p" })
+      createSetLog({ exercise: perSet, actualReps: 3, repsInReserve: null, location: "home", autoRegulated: false, now: new Date(), id: "p", clientId: "p" })
         .originalWeight
     ).toBe(164);
   });
@@ -276,7 +276,7 @@ describe("buildDropSet", () => {
       parent,
       weight: 150,
       actualReps: 5,
-      rpe: null,
+      repsInReserve: null,
       now: new Date(2026, 10, 16, 11),
       id: "d1",
       clientId: "dc1",
@@ -298,7 +298,7 @@ describe("buildDropSet", () => {
       restAfterSeconds: 0,
       synced: false,
     });
-    expect(drop.rpe).toBeUndefined();
+    expect(drop.repsInReserve).toBeUndefined();
   });
 
   it("keeps a home substitute and its program weight scaled to the drop", () => {
@@ -311,18 +311,18 @@ describe("buildDropSet", () => {
       substituteExerciseId: "db_bench",
       location: "home",
     });
-    const drop = buildDropSet({ parent, weight: 30, actualReps: 8, rpe: 10, now: new Date(), id: "d", clientId: "d" });
+    const drop = buildDropSet({ parent, weight: 30, actualReps: 8, repsInReserve: "0", now: new Date(), id: "d", clientId: "d" });
     expect(drop).toMatchObject({
       substituteExerciseId: "db_bench",
       isSubstituted: true,
       originalWeight: 75,
       location: "home",
-      rpe: 10,
+      repsInReserve: "0",
     });
   });
 
   it("marks a drop with no reps as failed", () => {
-    const drop = buildDropSet({ parent: set(), weight: 150, actualReps: 0, rpe: null, now: new Date(), id: "d", clientId: "d" });
+    const drop = buildDropSet({ parent: set(), weight: 150, actualReps: 0, repsInReserve: null, now: new Date(), id: "d", clientId: "d" });
     expect(drop.status).toBe("failed");
   });
 });

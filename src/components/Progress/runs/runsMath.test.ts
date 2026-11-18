@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatPace } from "@/lib/metrics/runs";
-import type { ActivityLog, ReadinessLog, SetLog, WorkoutSession } from "@/types";
+import { RIR_ESTIMATE } from "@/lib/effort";
+import type { ActivityLog, ReadinessLog, RepsInReserve, SetLog, WorkoutSession } from "@/types";
 import {
   activityTotals,
   describeSleepEffort,
@@ -8,6 +9,7 @@ import {
   formatMinutes,
   mean,
   sleepEffortComparison,
+  sleepEffortDirection,
   sum,
   weeklyBars,
 } from "./runsMath";
@@ -109,57 +111,73 @@ describe("formatMinutes", () => {
 });
 
 describe("sleepEffortComparison", () => {
-  function workout(id: string, rpes: Array<number | undefined>): WorkoutSession {
-    const sets = rpes.map((rpe, i) => ({ id: `${id}-${i}`, tier: "T1", rpe }) as SetLog);
-    sets.push({ id: `${id}-w`, tier: "warmup", rpe: 1 } as SetLog);
+  function workout(id: string, answers: Array<RepsInReserve | undefined>): WorkoutSession {
+    const sets = answers.map((repsInReserve, i) => ({ id: `${id}-${i}`, tier: "T1", repsInReserve }) as SetLog);
+    sets.push({ id: `${id}-w`, tier: "warmup", repsInReserve: "3+" } as SetLog);
     return { id, sets, completedAt: new Date() } as WorkoutSession;
   }
   function readiness(id: string, sessionId: string, sleepHours: ReadinessLog["sleepHours"]): ReadinessLog {
     return { id, clientId: id, sessionId, sleepHours, stressLevel: "normal", date: new Date(), synced: false };
   }
 
-  function build(low: number[], rest: number[]) {
+  function build(low: RepsInReserve[], rest: RepsInReserve[]) {
     const workouts: WorkoutSession[] = [];
     const logs: ReadinessLog[] = [];
-    low.forEach((rpe, i) => {
-      workouts.push(workout(`l${i}`, [rpe, rpe]));
+    low.forEach((answer, i) => {
+      workouts.push(workout(`l${i}`, [answer, answer]));
       logs.push(readiness(`rl${i}`, `l${i}`, i % 2 ? "<5" : "5-7"));
     });
-    rest.forEach((rpe, i) => {
-      workouts.push(workout(`o${i}`, [rpe]));
+    rest.forEach((answer, i) => {
+      workouts.push(workout(`o${i}`, [answer]));
       logs.push(readiness(`ro${i}`, `o${i}`, "7+"));
     });
     return { workouts, logs };
   }
+  const compare = (low: RepsInReserve[], rest: RepsInReserve[]) => {
+    const { workouts, logs } = build(low, rest);
+    return sleepEffortComparison(workouts, logs)!;
+  };
 
-  it("compares average effort on under-7-hour days with other days, ignoring warm-ups", () => {
-    const { workouts, logs } = build([9, 8.5, 9.5], [7, 7.5, 8, 7.5]);
+  it("compares mean reps left on under-7-hour days with other days, ignoring warm-ups", () => {
+    const { workouts, logs } = build(["0", "1-2", "0"], ["1-2", "3+", "1-2", "1-2"]);
     const c = sleepEffortComparison(workouts, logs);
     expect(c).not.toBeNull();
     expect(c!.lowDays).toBe(3);
     expect(c!.otherDays).toBe(4);
-    expect(c!.lowAvg).toBeCloseTo(9);
-    expect(c!.otherAvg).toBeCloseTo(7.5);
+    expect(c!.lowAvg).toBeCloseTo(RIR_ESTIMATE["1-2"] / 3);
+    expect(c!.otherAvg).toBeCloseTo((3 * RIR_ESTIMATE["1-2"] + RIR_ESTIMATE["3+"]) / 4);
     expect(describeSleepEffort(c!)).toBe(
-      "On days you slept under 7 hours your average effort was RPE 9.0, against 7.5 on other days."
+      "Sets felt harder on days you slept under 7 hours: about 0.5 reps left, against 1.9 on other days."
     );
   });
 
-  it("needs at least three of each", () => {
-    expect(sleepEffortComparison(...Object.values(build([9, 9], [7, 7, 7])) as [WorkoutSession[], ReadinessLog[]])).toBeNull();
-    expect(sleepEffortComparison(...Object.values(build([9, 9, 9], [7, 7])) as [WorkoutSession[], ReadinessLog[]])).toBeNull();
+  it("reads fewer reps left on short-sleep days as harder", () => {
+    const c = compare(["0", "0", "0"], ["3+", "3+", "3+"]);
+    expect(sleepEffortDirection(c)).toBe("harder");
+    expect(describeSleepEffort(c)).toMatch(/felt harder/);
   });
 
-  it("skips logs whose workout is missing or has no RPE", () => {
-    const { workouts, logs } = build([9, 9, 9], [7, 7, 7]);
-    const noRpe = [workout("x", [undefined])];
+  it("reads more reps left on short-sleep days as easier", () => {
+    const c = compare(["3+", "3+", "3+"], ["0", "0", "0"]);
+    expect(sleepEffortDirection(c)).toBe("easier");
+    expect(describeSleepEffort(c)).toMatch(/felt easier/);
+  });
+
+  it("needs at least three of each", () => {
+    expect(sleepEffortComparison(...Object.values(build(["0", "0"], ["3+", "3+", "3+"])) as [WorkoutSession[], ReadinessLog[]])).toBeNull();
+    expect(sleepEffortComparison(...Object.values(build(["0", "0", "0"], ["3+", "3+"])) as [WorkoutSession[], ReadinessLog[]])).toBeNull();
+  });
+
+  it("skips logs whose workout is missing or has no answer", () => {
+    const { workouts, logs } = build(["0", "0", "0"], ["3+", "3+", "3+"]);
+    const unanswered = [workout("x", [undefined])];
     const extra = [readiness("rx", "x", "<5"), readiness("ry", "gone", "<5")];
-    const c = sleepEffortComparison([...workouts, ...noRpe], [...logs, ...extra]);
+    const c = sleepEffortComparison([...workouts, ...unanswered], [...logs, ...extra]);
     expect(c!.lowDays).toBe(3);
   });
 
   it("says so when the difference is negligible", () => {
-    const { workouts, logs } = build([8, 8, 8.1], [8, 8, 8]);
+    const { workouts, logs } = build(["1-2", "1-2", "1-2"], ["1-2", "1-2", "1-2"]);
     const c = sleepEffortComparison(workouts, logs)!;
     expect(describeSleepEffort(c)).toMatch(/about the same/);
   });

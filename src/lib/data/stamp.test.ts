@@ -186,12 +186,12 @@ describe("every writer stamps its row, even with a frozen clock", () => {
     const profile = (await db.userProfile.toCollection().first())!;
     // The seeded profile is older than any real write, so a default never wins a sync conflict.
     expect(profile).toMatchObject({ updatedAt: SEED_STAMP, deletedAt: null, synced: false });
-    await updateSettings({ showRPE: false });
+    await updateSettings({ showEffort: false });
     await expectStamped(
       () => db.userProfile.get(profile.id),
       () => db.userProfile.update(profile.id, { synced: true }),
       [
-        ["updateSettings", () => updateSettings({ showRPE: true })],
+        ["updateSettings", () => updateSettings({ showEffort: true })],
         ["updateProfile", () => updateProfile({ bodyweight: 220 })],
       ]
     );

@@ -1,25 +1,23 @@
 // Builds the LogChange a set edit sheet saves. Pure.
 import { v4 as uuidv4 } from "uuid";
 import type { EditableSetFields, LogChange } from "@/lib/rebuild";
-import type { SetLog } from "@/types";
+import type { RepsInReserve, SetLog } from "@/types";
 
 export interface SetValues {
   actualReps: number;
   weight: number;
-  /** null when no RPE is recorded. */
-  rpe: number | null;
+  /** null when no answer is recorded. */
+  repsInReserve: RepsInReserve | null;
 }
 
 export const REPS_MAX = 100;
 export const WEIGHT_MAX = 2000;
-export const RPE_MIN = 1;
-export const RPE_MAX = 10;
 
-/** Parses the sheet's text fields; returns an error message instead when one is invalid. */
+/** Parses the sheet's text fields (the answer is already one of the three); returns an error message instead when one is invalid. */
 export function parseSetValues(
   reps: string,
   weight: string,
-  rpe: string
+  repsInReserve: RepsInReserve | null
 ): SetValues | { error: string } {
   const r = Number(reps);
   if (reps.trim() === "" || !Number.isInteger(r) || r < 0 || r > REPS_MAX) {
@@ -29,12 +27,7 @@ export function parseSetValues(
   if (weight.trim() === "" || !Number.isFinite(w) || w < 0 || w > WEIGHT_MAX) {
     return { error: `Enter a weight from 0 to ${WEIGHT_MAX} lbs.` };
   }
-  if (rpe.trim() === "") return { actualReps: r, weight: w, rpe: null };
-  const e = Number(rpe);
-  if (!Number.isFinite(e) || e < RPE_MIN || e > RPE_MAX) {
-    return { error: `Enter an effort from ${RPE_MIN} to ${RPE_MAX}, or clear it.` };
-  }
-  return { actualReps: r, weight: w, rpe: e };
+  return { actualReps: r, weight: w, repsInReserve };
 }
 
 /**
@@ -66,9 +59,9 @@ export function buildSetEdit(workoutId: string, set: SetLog, values: SetValues):
     const original = homeOriginalWeight(set, values.weight);
     if (original !== undefined) patch.originalWeight = original;
   }
-  const rpe = values.rpe ?? undefined;
-  // An explicit `rpe: undefined` clears it.
-  if (rpe !== set.rpe) patch.rpe = rpe;
+  const repsInReserve = values.repsInReserve ?? undefined;
+  // An explicit `repsInReserve: undefined` clears it.
+  if (repsInReserve !== set.repsInReserve) patch.repsInReserve = repsInReserve;
   if (Object.keys(patch).length === 0) return null;
   return { kind: "editSet", workoutId, setId: set.id, patch };
 }
@@ -106,6 +99,6 @@ export function buildAddSet(
   if (like.substituteExerciseId) set.substituteExerciseId = like.substituteExerciseId;
   const original = homeOriginalWeight(like, values.weight);
   if (original !== undefined) set.originalWeight = original;
-  if (values.rpe !== null) set.rpe = values.rpe;
+  if (values.repsInReserve !== null) set.repsInReserve = values.repsInReserve;
   return { kind: "addSet", workoutId, set };
 }

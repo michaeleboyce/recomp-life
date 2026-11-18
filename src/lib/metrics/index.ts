@@ -13,7 +13,7 @@ import {
   steps,
   vo2Max,
 } from "./health";
-import { amrapReps, avgRpe, e1rm, liftVolume, workingWeight } from "./lift";
+import { amrapReps, avgRepsInReserve, e1rm, liftVolume, workingWeight } from "./lift";
 import { sleep, stress } from "./readiness";
 import { runDistance, runDuration, runEffort, runPace } from "./runs";
 import { sessionsPerWeek, tonnage, weeklySets } from "./training";
@@ -37,7 +37,7 @@ export const METRICS: Record<MetricId, MetricDef> = {
   e1rm,
   workingWeight,
   amrapReps,
-  avgRpe,
+  avgRepsInReserve,
   liftVolume,
   weeklySets,
   bodyweight,

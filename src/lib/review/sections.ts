@@ -1,5 +1,6 @@
 // The measured parts of the weekly review, each against its comparison. Pure.
 import { isNewPR } from "@/lib/e1rm";
+import { averageRepsInReserve } from "@/lib/effort";
 import { computeMetric } from "@/lib/metrics";
 import { toMs, workoutMs } from "@/lib/metrics/helpers";
 import { SLEEP_LEVELS, STRESS_LEVELS } from "@/lib/metrics/readiness";
@@ -8,7 +9,7 @@ import { calculateGroupVolume } from "@/lib/volumeTracking";
 import { excludeWarmUps } from "@/lib/workout/setSelectors";
 import { LIFT_NAMES, MAIN_LIFTS } from "@/components/Progress/lifts";
 import { cutTargetBand, paceStatus } from "@/components/Progress/body/bodyMath";
-import type { WorkoutSession } from "@/types";
+import type { RepsInReserve, WorkoutSession } from "@/types";
 import { inWeek, previousWeek, weekOf } from "./weeks";
 import type {
   BodyweightReview,
@@ -154,19 +155,16 @@ export function readinessReview(source: ReviewSource, weekStart: Date): Readines
   };
 }
 
-function t1Rpes(workouts: WorkoutSession[]): number[] {
+function t1RepsInReserve(workouts: WorkoutSession[]): RepsInReserve[] {
   return workouts.flatMap((w) =>
-    (w.sets ?? []).flatMap((s) =>
-      s.tier === "T1" && typeof s.rpe === "number" && Number.isFinite(s.rpe) ? [s.rpe] : []
-    )
+    (w.sets ?? []).flatMap((s) => (s.tier === "T1" && s.repsInReserve ? [s.repsInReserve] : []))
   );
 }
 
-const meanOf = (values: number[]) => values.reduce((a, b) => a + b, 0) / values.length;
-
 export function effortReview(source: ReviewSource, weekStart: Date): EffortReview | null {
-  const mine = t1Rpes(workoutsInWeek(source, weekStart));
-  if (mine.length === 0) return null;
-  const before = t1Rpes(workoutsInWeek(source, previousWeek(weekStart)));
-  return { meanRpe: meanOf(mine), sets: mine.length, previous: before.length > 0 ? meanOf(before) : null };
+  const mine = t1RepsInReserve(workoutsInWeek(source, weekStart));
+  const meanRepsInReserve = averageRepsInReserve(mine);
+  if (meanRepsInReserve === null) return null;
+  const before = t1RepsInReserve(workoutsInWeek(source, previousWeek(weekStart)));
+  return { meanRepsInReserve, sets: mine.length, previous: averageRepsInReserve(before) };
 }

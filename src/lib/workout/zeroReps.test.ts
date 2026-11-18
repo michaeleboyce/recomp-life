@@ -39,7 +39,7 @@ describe("a set of 0 reps", () => {
     const set = createSetLog({
       exercise: makeEntry({ exerciseId: "squat", tier: "T1", targetReps: 3, targetSets: 5, completedSets: 4, isAMRAP: true }),
       actualReps: 0,
-      rpe: null,
+      repsInReserve: null,
       location: "gym",
       autoRegulated: false,
       now: new Date("2026-11-11T09:30:00Z"),

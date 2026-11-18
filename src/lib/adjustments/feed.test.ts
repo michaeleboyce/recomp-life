@@ -201,7 +201,7 @@ describe("buildAdjustmentFeed", () => {
     const feed = buildAdjustmentFeed(busyLog().input);
     for (const entry of feed) {
       // A rule change quotes the changelog's own sentence, which this package does not write.
-      if (entry.source !== "ruleChange") expect(textOf(entry)).not.toMatch(/amrap|e1rm|\brpe\b/i);
+      if (entry.source !== "ruleChange") expect(textOf(entry)).not.toMatch(/amrap|e1rm|\brpe\b|\brir\b/i);
       expect(entry.title.trim().length, entry.id).toBeGreaterThan(0);
       expect(entry.detail.trim().length, entry.id).toBeGreaterThan(0);
       expect(entry.detail.trim()).toMatch(/[.?!]$/);

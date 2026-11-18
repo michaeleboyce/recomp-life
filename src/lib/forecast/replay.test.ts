@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { repsToBeat } from "@/lib/projection/prOpportunity";
-import type { Forecast, WorkoutSession } from "@/types";
+import { repsInReserveCredit } from "@/lib/effort";
+import type { Forecast, RepsInReserve, WorkoutSession } from "@/types";
 import { CALIBRATION } from "./coefficients";
 import { toMs } from "./log";
 import { replayForecasts, type ReplayInput } from "./replay";
@@ -149,7 +150,7 @@ describe("no forecast sees what came after it", () => {
         return {
           ...workout,
           totalDurationSeconds: workout.totalDurationSeconds * 3,
-          sets: workout.sets.map((set) => ({ ...set, actualReps: 1, rpe: 10 })),
+          sets: workout.sets.map((set) => ({ ...set, actualReps: 1, repsInReserve: "0" as const })),
         };
       }),
       bodyweight: demo.bodyweight.map((log) =>
@@ -209,15 +210,15 @@ const STARTS_OVER_TARGET = [3, 5, 7];
 const WEEKLY_GAINS = [0.01, 0.02];
 const DAILY_VARIATION = 0.025;
 
-/** Lifter `seed` (1 to 12) of the calibration population. `rpe` is the effort they log. */
-const calibrationLifter = (seed: number, rpe?: number) =>
+/** Lifter `seed` (1 to 12) of the calibration population. `repsInReserve` is the answer they log. */
+const calibrationLifter = (seed: number, repsInReserve?: RepsInReserve) =>
   simulateLifter({
     seed,
     sessions: 64,
     noise: DAILY_VARIATION,
     weeklyGain: WEEKLY_GAINS[seed % WEEKLY_GAINS.length],
     headroomReps: STARTS_OVER_TARGET[seed % STARTS_OVER_TARGET.length],
-    rpe,
+    repsInReserve,
   });
 
 describe("ranges hold what they say, pooled over simulated lifters", () => {
@@ -311,17 +312,17 @@ describe("stall chances and round-number dates, pooled over simulated lifters", 
 
 // The new best is scored as the app shows it: the workout's estimated max, with the
 // credit for a logged effort, above the best that stood before. The same calibration
-// population as above, once logging no effort and once each logging every last set as
-// one, two or three reps short of all-out (RPE 9, 8, 7). Judged where the model has a
+// population as above, once logging no effort and once each logging every last set with
+// each answer ("0", "1-2" and "3+" reps left). Judged where the model has a
 // level to stand on: a trend, or one to three results.
 describe("new-best chances match the app's new bests, pooled over simulated lifters", () => {
-  const EFFORTS = [undefined, 9, 8, 7];
-  const pools = EFFORTS.map((rpe) => {
-    const inputs = Array.from({ length: 12 }, (_, i) => calibrationLifter(i + 1, rpe));
+  const EFFORTS: Array<RepsInReserve | undefined> = [undefined, "0", "1-2", "3+"];
+  const pools = EFFORTS.map((answer) => {
+    const inputs = Array.from({ length: 12 }, (_, i) => calibrationLifter(i + 1, answer));
     const scored = inputs.flatMap((input) =>
       replayForecasts(input, { horizon: false }).scored.map((item) => ({ ...item, input }))
     );
-    return { rpe, newBest: scored.filter((item) => item.forecast.kind === "newBest") };
+    return { answer, newBest: scored.filter((item) => item.forecast.kind === "newBest") };
   });
   const gap = (items: ScoredForecast[]) => {
     const { chances } = summarize(items);
@@ -329,35 +330,35 @@ describe("new-best chances match the app's new bests, pooled over simulated lift
   };
 
   it("credits the effort the lifter logs, and none when none is logged", () => {
-    for (const { rpe, newBest } of pools) {
-      const credit = rpe === undefined ? 0 : 10 - rpe;
+    for (const { answer, newBest } of pools) {
+      const credit = repsInReserveCredit(answer);
       expect(newBest.length).toBeGreaterThan(500);
       for (const { forecast } of newBest) expect(forecast.inputs.effortCredit).toBe(credit);
     }
   });
 
   it("states chances within 10 points of how often a new best was set, whatever effort is logged", () => {
-    for (const { rpe, newBest } of pools) {
+    for (const { answer, newBest } of pools) {
       for (const basis of ["trend", "persistence"]) {
         const items = newBest.filter((item) => item.forecast.basis === basis);
-        expect(summarize(items).chances.n, `${basis} at ${rpe}`).toBeGreaterThanOrEqual(250);
-        expect(gap(items), `${basis} at ${rpe}`).toBeLessThan(0.1);
+        expect(summarize(items).chances.n, `${basis} at ${answer}`).toBeGreaterThanOrEqual(250);
+        expect(gap(items), `${basis} at ${answer}`).toBeLessThan(0.1);
       }
     }
   });
 
   it("is as well stated with an effort logged as without", () => {
     const plain = gap(pools[0].newBest);
-    for (const { rpe, newBest } of pools.slice(1)) {
-      expect(Math.abs(gap(newBest) - plain), `at ${rpe}`).toBeLessThan(0.05);
+    for (const { answer, newBest } of pools.slice(1)) {
+      expect(Math.abs(gap(newBest) - plain), `at ${answer}`).toBeLessThan(0.05);
     }
   });
 
   it("would be far off if it were scored on logged reps alone", () => {
-    // Lifters logging two reps short of all-out. The best to beat already holds that
+    // Lifters logging every last set with 1-2 reps left. The best to beat already holds that
     // credit, so counting only logged reps (the event as it was first built) finds far
     // fewer new bests than the app shows.
-    const { newBest } = pools[EFFORTS.indexOf(8)];
+    const { newBest } = pools[EFFORTS.indexOf("1-2")];
     let shown = 0;
     let onLoggedReps = 0;
     let resolved = 0;

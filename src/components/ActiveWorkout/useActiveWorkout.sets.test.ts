@@ -138,7 +138,7 @@ describe("a weight per set, planned before the workout", () => {
     });
     const hook = await mount(sessionId);
     while (hook.result.current.entry?.exerciseId !== "bench") await logSet(hook);
-    act(() => hook.result.current.setSelectedRPE(10));
+    act(() => hook.result.current.setSelectedRepsInReserve("0"));
     await logSet(hook);
     expect(hook.result.current.dropSuggestion).toBeNull();
   });

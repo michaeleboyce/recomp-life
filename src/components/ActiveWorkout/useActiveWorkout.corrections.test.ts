@@ -12,7 +12,7 @@ import { startWorkout, type StartWorkoutInput } from "@/lib/data/workouts";
 import type { ToastOptions } from "@/components/ui/toast";
 import { foldRotation } from "@/lib/workout";
 import { useWorkoutStore } from "@/stores/workoutStore";
-import type { LiftState, SetLog } from "@/types";
+import type { LiftState, RepsInReserve, SetLog } from "@/types";
 import { useActiveWorkout } from "./useActiveWorkout";
 
 const toast = vi.hoisted(() => vi.fn());
@@ -45,10 +45,10 @@ async function mount(sessionId: string) {
 
 type Hook = Awaited<ReturnType<typeof mount>>;
 
-async function logSet(hook: Hook, options: { reps?: number; rpe?: number; keepResting?: boolean } = {}) {
+async function logSet(hook: Hook, options: { reps?: number; repsInReserve?: RepsInReserve; keepResting?: boolean } = {}) {
   const before = hook.result.current.sets.length;
   if (options.reps != null) act(() => hook.result.current.setSelectedReps(options.reps!));
-  if (options.rpe != null) act(() => hook.result.current.setSelectedRPE(options.rpe!));
+  if (options.repsInReserve != null) act(() => hook.result.current.setSelectedRepsInReserve(options.repsInReserve!));
   await act(() => hook.result.current.logSet());
   await waitFor(() => expect(hook.result.current.sets.length).toBe(before + 1));
   await waitFor(() => expect(hook.result.current.isSaving).toBe(false));
@@ -62,7 +62,7 @@ async function reload(hook: Hook, sessionId: string): Promise<Hook> {
   return mount(sessionId);
 }
 
-async function editSet(hook: Hook, set: SetLog, patch: { actualReps?: number; weight?: number; rpe?: number }) {
+async function editSet(hook: Hook, set: SetLog, patch: { actualReps?: number; weight?: number; repsInReserve?: RepsInReserve }) {
   let saved = false;
   await act(async () => {
     saved = await hook.result.current.correctSet({
@@ -170,14 +170,14 @@ describe("correcting a set before finishing", () => {
 
   it("Undo puts the set back as it was logged", async () => {
     const hook = await mount(await start());
-    await logSet(hook, { rpe: 8 });
+    await logSet(hook, { repsInReserve: "3+" });
     const first = hook.result.current.sets[0];
 
-    await editSet(hook, first, { actualReps: 2, rpe: 9.5 });
-    await waitFor(() => expect(hook.result.current.sets[0]).toMatchObject({ actualReps: 2, rpe: 9.5, status: "failed" }));
+    await editSet(hook, first, { actualReps: 2, repsInReserve: "0" });
+    await waitFor(() => expect(hook.result.current.sets[0]).toMatchObject({ actualReps: 2, repsInReserve: "0", status: "failed" }));
 
     await undoLastToast();
-    await waitFor(() => expect(hook.result.current.sets[0]).toMatchObject({ actualReps: 3, rpe: 8, status: "completed" }));
+    await waitFor(() => expect(hook.result.current.sets[0]).toMatchObject({ actualReps: 3, repsInReserve: "3+", status: "completed" }));
     expect(toast).toHaveBeenLastCalledWith({ message: "Correction undone" });
   });
 
@@ -310,7 +310,7 @@ describe("correcting a set before finishing", () => {
   it("keeps an accepted load drop's status when that set's reps are corrected", async () => {
     const hook = await mount(await start());
     for (let i = 0; i < 5; i++) await logSet(hook);
-    await logSet(hook, { rpe: 9 });
+    await logSet(hook, { repsInReserve: "1-2" });
     act(() => hook.result.current.acceptDrop());
     await logSet(hook);
     const dropped = hook.result.current.sets[6];

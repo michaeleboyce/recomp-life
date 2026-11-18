@@ -384,12 +384,12 @@ describe("deload", () => {
     expect(kinds(c2)).toEqual(["deload"]);
   });
 
-  it("ignores RPE and AMRAP trends (not comparable across loads)", () => {
+  it("ignores effort and AMRAP trends (not comparable across loads)", () => {
     const c = ctx({
       settings: CUTTING,
       liftStates: [
-        lift("squat", { recentAvgRPEs: [7, 8, 9], recentAMRAPReps: [8, 6, 4] }),
-        lift("bench", { recentAvgRPEs: [7, 8, 9], recentAMRAPReps: [8, 6, 4] }),
+        lift("squat", { recentAvgRepsInReserve: [3, 1.5, 0], recentAMRAPReps: [8, 6, 4] }),
+        lift("bench", { recentAvgRepsInReserve: [3, 1.5, 0], recentAMRAPReps: [8, 6, 4] }),
       ],
     });
     expect(kinds(c)).not.toContain("deload");

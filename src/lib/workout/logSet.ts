@@ -27,7 +27,7 @@ export function isNextSetAMRAP(exercise: WorkoutExerciseState): boolean {
  * is scaled to it); without, every set is the entry's weight and reps, as always.
  */
 export function createSetLog(input: CreateSetLogInput): SetLog {
-  const { exercise, actualReps, rpe, location, autoRegulated, now, id, clientId } = input;
+  const { exercise, actualReps, repsInReserve, location, autoRegulated, now, id, clientId } = input;
   const planned = exercise.perSet?.[exercise.completedSets];
   const weight = planned?.weight ?? exercise.weight;
   const targetReps = planned?.reps ?? exercise.targetReps;
@@ -57,7 +57,7 @@ export function createSetLog(input: CreateSetLogInput): SetLog {
     originalWeight,
     isSubstituted: !!exercise.substituteExerciseId,
     substituteExerciseId: exercise.substituteExerciseId,
-    rpe: rpe ?? undefined,
+    repsInReserve: repsInReserve ?? undefined,
     location,
     ...(planned?.role ? { role: planned.role } : {}),
     synced: false,

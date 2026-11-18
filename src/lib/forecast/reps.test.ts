@@ -4,7 +4,6 @@ import {
   calculateE1RM,
   E1RM_MAX_REPS,
   E1RM_MAX_REPS_IN_RESERVE,
-  repsInReserveFromRPE,
 } from "@/lib/e1rm";
 import { prChanceFromProbability, repsToBeat } from "@/lib/projection/prOpportunity";
 import { fitTrend } from "@/lib/projection/trend";
@@ -27,7 +26,8 @@ import {
   type RepsModelInput,
 } from "./reps";
 import { DAY, t1Session } from "./testHelpers";
-import type { SetLog } from "@/types";
+import { repsInReserveCredit } from "@/lib/effort";
+import type { RepsInReserve, SetLog } from "@/types";
 
 const NOW = new Date("2026-11-14T17:00:00Z");
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * DAY);
@@ -66,9 +66,9 @@ describe("repsIndex", () => {
   it("is weight x (1 + reps / 30), unrounded", () => {
     expect(repsIndex(200, 5)).toBeCloseTo(233.33333, 4);
     expect(repsIndex(200, 0)).toBe(200);
-    // calculateE1RM rounds and credits a logged RPE; the index does neither.
+    // calculateE1RM rounds and credits a logged reps-left answer; the index does neither.
     expect(calculateE1RM(200, 5)).toBe(233);
-    expect(calculateE1RM(200, 5, 8)).toBe(247);
+    expect(calculateE1RM(200, 5, "1-2")).toBe(243);
   });
 
   it("names the stage that has a rep count", () => {
@@ -132,9 +132,9 @@ describe("lastT1Sets", () => {
     expect(point.stage).toBe("6x2");
   });
 
-  it("uses the logged reps even when an RPE was logged", () => {
+  it("uses the logged reps even when a reps-left answer was logged", () => {
     const [point] = lastT1Sets(
-      [t1Session({ id: "a", at: daysAgo(3), weight: 200, lastReps: 5, setOverrides: { rpe: 7 } })],
+      [t1Session({ id: "a", at: daysAgo(3), weight: 200, lastReps: 5, setOverrides: { repsInReserve: "3+" } })],
       "squat",
       NOW
     );
@@ -645,12 +645,12 @@ describe("repsRange", () => {
 });
 
 describe("usualEffortCredit", () => {
-  const rpes = (values: Array<number | null | undefined>) =>
+  type Answer = RepsInReserve | null | undefined;
+  const answered = (values: Answer[]) =>
     history(values.map((_, i): [number, number, number] => [7 * (values.length - i), 200, 5])).map(
-      (point, i) => ({ ...point, rpe: values[i] })
+      (point, i) => ({ ...point, repsInReserve: values[i] })
     );
-  const credit = (values: Array<number | null | undefined>) =>
-    usualEffortCredit(rpes(values), "squat", NOW);
+  const credit = (values: Answer[]) => usualEffortCredit(answered(values), "squat", NOW);
 
   it("is none when no effort was logged, or there is no history", () => {
     expect(usualEffortCredit([], "squat", NOW)).toEqual({ credit: 0, sample: 0 });
@@ -658,42 +658,45 @@ describe("usualEffortCredit", () => {
   });
 
   it("is the middle credit of the recent last sets, as the estimated max counts it", () => {
-    expect(credit([8, 8, 8])).toEqual({ credit: 2, sample: 3 });
-    expect(credit([9, 8, 7])).toEqual({ credit: repsInReserveFromRPE(8), sample: 3 });
-    expect(credit([8.5, 8.5])).toEqual({ credit: 1.5, sample: 2 });
-    // Capped as the estimate caps it, and never negative.
-    expect(credit([4, 4, 4]).credit).toBe(E1RM_MAX_REPS_IN_RESERVE);
-    expect(credit([10, 10, 10]).credit).toBe(0);
+    expect(credit(["1-2", "1-2", "1-2"])).toEqual({ credit: 1.5, sample: 3 });
+    expect(credit(["0", "1-2", "3+"])).toEqual({ credit: repsInReserveCredit("1-2"), sample: 3 });
+    expect(credit(["3+", "3+", "3+"]).credit).toBe(E1RM_MAX_REPS_IN_RESERVE);
+    expect(credit(["0", "0", "0"]).credit).toBe(0);
+  });
+
+  it("can fall between answers with an even number of sets", () => {
+    expect(credit(["0", "1-2"])).toEqual({ credit: 0.75, sample: 2 });
+    expect(credit(["1-2", "3+", "1-2", "3+"])).toEqual({ credit: 2.25, sample: 4 });
   });
 
   it("counts a last set with no logged effort as no credit", () => {
     // Logged once in five: the usual set gets none.
-    expect(credit([null, 8, null, null, null]).credit).toBe(0);
+    expect(credit([null, "1-2", null, null, null]).credit).toBe(0);
     // Logged on most: the usual set gets it.
-    expect(credit([8, null, 8, 8, null]).credit).toBe(2);
+    expect(credit(["1-2", null, "1-2", "1-2", null]).credit).toBe(1.5);
   });
 
   it("reads only the most recent sets, of the exercise performed, up to now", () => {
     const n = NEW_BEST_MODEL.effortCreditRecentSets;
     expect(n).toBe(5);
-    const old = Array.from({ length: 4 }, () => 6);
-    const recent = Array.from({ length: n }, () => 9);
-    expect(credit([...old, ...recent])).toEqual({ credit: 1, sample: n });
+    const old = Array.from({ length: 4 }, (): Answer => "3+");
+    const recent = Array.from({ length: n }, (): Answer => "1-2");
+    expect(credit([...old, ...recent])).toEqual({ credit: 1.5, sample: n });
 
-    const other = rpes([7, 7, 7]).map((point) => ({ ...point, performedExerciseId: "goblet_squat" }));
-    expect(usualEffortCredit([...other, ...rpes([9])], "squat", NOW)).toEqual({ credit: 1, sample: 1 });
-    const future = history([[-3, 200, 5]], { rpe: 6 });
-    expect(usualEffortCredit([...rpes([9, 9]), ...future], "squat", NOW).credit).toBe(1);
+    const other = answered(["3+", "3+", "3+"]).map((point) => ({ ...point, performedExerciseId: "goblet_squat" }));
+    expect(usualEffortCredit([...other, ...answered(["1-2"])], "squat", NOW)).toEqual({ credit: 1.5, sample: 1 });
+    const future = history([[-3, 200, 5]], { repsInReserve: "3+" });
+    expect(usualEffortCredit([...answered(["1-2", "1-2"]), ...future], "squat", NOW).credit).toBe(1.5);
   });
 
   it("comes through lastT1Sets from the effort logged on the last set", () => {
     const workouts = [
-      t1Session({ id: "a", at: daysAgo(9), weight: 200, lastReps: 5, setOverrides: { rpe: 8 } }),
+      t1Session({ id: "a", at: daysAgo(9), weight: 200, lastReps: 5, setOverrides: { repsInReserve: "3+" } }),
       t1Session({ id: "b", at: daysAgo(2), weight: 205, lastReps: 5 }),
     ];
     const sets = lastT1Sets(workouts, "squat", NOW);
-    expect(sets.map((point) => point.rpe)).toEqual([8, null]);
-    expect(usualEffortCredit(sets, "squat", NOW)).toEqual({ credit: 1, sample: 2 });
+    expect(sets.map((point) => point.repsInReserve)).toEqual(["3+", null]);
+    expect(usualEffortCredit(sets, "squat", NOW)).toEqual({ credit: 1.5, sample: 2 });
   });
 });
 
@@ -745,15 +748,15 @@ describe("forecastReps", () => {
   });
 
   it("counts the lifter's usual effort credit toward the reps a new best needs", () => {
-    // Every last set logged as two reps short of all-out (RPE 8).
-    const logged = points.map((point) => ({ ...point, rpe: 8 }));
+    // Every last set logged with 3+ reps left.
+    const logged = points.map((point) => ({ ...point, repsInReserve: "3+" as const }));
     const best = 245;
     const plain = forecastReps(input({ weight: 205, history: points, bestE1RM: best }));
     const credited = forecastReps(input({ weight: 205, history: logged, bestE1RM: best }));
 
-    expect(credited.newBest!.effortCredit).toBe(2);
-    const needed = repsToBeat(205, best, 8)!;
-    expect(needed.reps).toBe(repsToBeat(205, best)!.reps - 2);
+    expect(credited.newBest!.effortCredit).toBe(3);
+    const needed = repsToBeat(205, best, "3+")!;
+    expect(needed.reps).toBe(repsToBeat(205, best)!.reps - 3);
     expect(credited.newBest!.repsNeeded).toBe(needed.reps);
     expect(credited.newBest!.chance).toBeCloseTo(
       sum(credited.pmf.slice(needed.reps, E1RM_MAX_REPS + 1)),
@@ -765,12 +768,27 @@ describe("forecastReps", () => {
     expect(credited.passChance).toBe(plain.passChance);
   });
 
+  it("names a whole number of reps when the usual credit falls between answers", () => {
+    // Two "0" and two "1-2" answers: the middle credit is 0.75.
+    const answers: RepsInReserve[] = ["0", "1-2", "0", "1-2"];
+    const logged = points.map((point, i) => ({ ...point, repsInReserve: answers[i] }));
+    for (const best of [225, 232, 238, 245, 255]) {
+      const credited = forecastReps(input({ weight: 205, history: logged, bestE1RM: best }));
+      expect(credited.newBest!.effortCredit).toBe(0.75);
+      expect(Number.isInteger(credited.newBest!.repsNeeded)).toBe(true);
+      expect(credited.newBest!.repsNeeded).toBe(repsToBeat(205, best, 0.75)!.reps);
+      // Never more than all-out needs, never fewer than "1-2" needs.
+      expect(credited.newBest!.repsNeeded).toBeLessThanOrEqual(repsToBeat(205, best)!.reps);
+      expect(credited.newBest!.repsNeeded).toBeGreaterThanOrEqual(repsToBeat(205, best, "1-2")!.reps);
+    }
+  });
+
   it("has a new-best chance where only the credited estimate can beat the best", () => {
-    const logged = points.map((point) => ({ ...point, rpe: 7 }));
+    const logged = points.map((point) => ({ ...point, repsInReserve: "3+" as const }));
     const ceiling = calculateE1RM(205, E1RM_MAX_REPS)!;
     expect(forecastReps(input({ weight: 205, history: points, bestE1RM: ceiling })).newBest).toBeNull();
     const credited = forecastReps(input({ weight: 205, history: logged, bestE1RM: ceiling }));
-    expect(credited.newBest!.repsNeeded).toBe(repsToBeat(205, ceiling, 7)!.reps);
+    expect(credited.newBest!.repsNeeded).toBe(repsToBeat(205, ceiling, "3+")!.reps);
   });
 
   it("makes a new best less likely the higher the best is", () => {
@@ -788,7 +806,8 @@ describe("forecastReps", () => {
   });
 
   it("is the same whatever the order of the history", () => {
-    const mixed = points.map((point, i) => ({ ...point, rpe: [8, null, 9, 7][i] }));
+    const answers: Array<RepsInReserve | null> = ["1-2", null, "0", "3+"];
+    const mixed = points.map((point, i) => ({ ...point, repsInReserve: answers[i] }));
     expect(
       forecastReps(input({ weight: 205, bestE1RM: 240, history: [mixed[2], mixed[0], mixed[3], mixed[1]] }))
     ).toEqual(forecastReps(input({ weight: 205, bestE1RM: 240, history: mixed })));

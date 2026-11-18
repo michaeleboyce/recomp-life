@@ -383,10 +383,10 @@ export default function SettingsPage() {
                 }
               />
               <SettingsToggle
-                label="Show RPE"
-                checked={settings.showRPE}
+                label="Ask how many reps I had left"
+                checked={settings.showEffort}
                 onCheckedChange={(checked) =>
-                  updateSettings({ showRPE: checked })
+                  updateSettings({ showEffort: checked })
                 }
               />
               <Separator />

@@ -30,15 +30,15 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-/** Eight sessions over three weeks: passes, a T1 fail, a short T2, RPE, a home day. */
+/** Eight sessions over three weeks: passes, a T1 fail, a short T2, reps left, a home day. */
 const SCRIPT: Omit<ScriptedSession, "startedAt">[] = [
   { templateId: "A1" },
-  { templateId: "B1", rpe: 8 },
+  { templateId: "B1", repsInReserve: "1-2" },
   { templateId: "A2", lastReps: { T1: 1 } },
   { templateId: "B2", lastReps: { T3: 26 } },
   { templateId: "A1", location: "home" },
   { templateId: "B1", setsLogged: { T2: 1 } },
-  { templateId: "A2", lastReps: { T1: 5 }, rpe: 9 },
+  { templateId: "A2", lastReps: { T1: 5 }, repsInReserve: "1-2" },
   { templateId: "B2", lastReps: { T2: 4 } },
 ];
 
@@ -70,7 +70,7 @@ describe("finish equals rebuild (E2)", () => {
       });
       for (const set of session.sets) {
         if (set.isSubstituted || !isE1RMEligibleSet(set.tier, set.isAMRAP, set.actualReps)) continue;
-        const estimated1RM = calculateE1RM(set.weight, set.actualReps, set.rpe);
+        const estimated1RM = calculateE1RM(set.weight, set.actualReps, set.repsInReserve);
         if (estimated1RM) e1rmLog.push({ exerciseId: set.exerciseId, date: set.completedAt, estimated1RM });
       }
       const recentE1RMsByExercise: Record<string, number[]> = {};

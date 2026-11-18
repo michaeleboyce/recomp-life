@@ -30,7 +30,7 @@ import type { LiftState, SetLog, WorkoutTemplateExercise } from "@/types";
 /** How far ahead the projection teaser looks, then the fallback when that is too far. */
 const TEASER_WEEKS = [8, 4] as const;
 
-const LIFT_METRICS = ["e1rm", "workingWeight", "amrapReps", "avgRpe", "liftVolume"] as const;
+const LIFT_METRICS = ["e1rm", "workingWeight", "amrapReps", "avgRepsInReserve", "liftVolume"] as const;
 type LiftMetricId = (typeof LIFT_METRICS)[number] & MetricId;
 
 export interface RangedMetric {
@@ -77,7 +77,7 @@ const IMPORTED_POINTS: Partial<Record<LiftMetricId, (history: readonly ImportedL
  * The lift's series over `range`. With `imported` (the lift's imported sessions), the
  * estimated max, working weight and volume also have one point per imported session,
  * marked imported; last-set reps and effort stay the app's (an imported set was not an
- * AMRAP set, and its effort word is only an approximate RPE).
+ * AMRAP set, and its effort word is only an approximate answer).
  */
 export function liftMetrics(
   source: MetricSource,
@@ -125,7 +125,7 @@ export interface LiftStats {
   working: { value: number | null; change: number | null };
   /** Mean AMRAP reps in the range. */
   lastSetReps: number | null;
-  /** Mean RPE in the range. */
+  /** Mean reps left in the range; higher means easier. */
   effort: number | null;
   /** Mean weekly volume (lbs) in the range. */
   weeklyVolume: number | null;
@@ -138,7 +138,7 @@ export function liftStats(m: LiftMetrics): LiftStats {
       change: m.workingWeight.summary.change,
     },
     lastSetReps: meanOf(m.amrapReps.series.points),
-    effort: meanOf(m.avgRpe.series.points),
+    effort: meanOf(m.avgRepsInReserve.series.points),
     weeklyVolume: meanOf(m.weeklyVolume.points),
   };
 }

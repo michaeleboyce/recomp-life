@@ -7,7 +7,7 @@ const SEED_LIFT_DEFAULTS = {
   t1LastWorkoutDate: null, t2LastWorkoutDate: null,
   deloadActive: false, deloadSessionsRemaining: 0,
   preDeloadT1Weight: null, preDeloadT2Weight: null,
-  t2LoadDropCount: 0, recentE1RMs: [] as number[], recentAvgRPEs: [] as number[], recentAMRAPReps: [] as number[],
+  t2LoadDropCount: 0, recentE1RMs: [] as number[], recentAvgRepsInReserve: [] as number[], recentAMRAPReps: [] as number[],
 } as const;
 
 /**
@@ -121,7 +121,7 @@ export const DEFAULT_USER_PROFILE: Omit<UserProfile, 'id' | 'createdAt'> = {
     restTimerAudio: true,
     restTimerVibration: true,
     showWarmUps: true,
-    showRPE: true,
+    showEffort: true,
     morningWeighInReminder: true,
     weighInReminderTime: "07:00",
     trainingPhase: {

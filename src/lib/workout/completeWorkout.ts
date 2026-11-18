@@ -1,3 +1,4 @@
+import { averageRepsInReserve } from "@/lib/effort";
 import { getExercise } from "@/lib/exercises";
 import {
   evaluateT1,
@@ -40,7 +41,7 @@ const TRACKING_WINDOW = 5;
 
 /**
  * What differs between the T1 and T2 halves of a lift state. Only T1 sessions feed the
- * effort history (`recentAvgRPEs`, `recentAMRAPReps`): mixing heavy and light days in
+ * effort history (`recentAvgRepsInReserve`, `recentAMRAPReps`): mixing heavy and light days in
  * one array would make its trend meaningless.
  */
 const PROGRESSING_TIERS = {
@@ -395,9 +396,9 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
     } else {
       const tier = PROGRESSING_TIERS[templateEx.tier];
       const liftType = progressionLiftType(templateEx.exerciseId);
-      const rpes = exerciseSets.flatMap((set) => (set.rpe != null ? [set.rpe] : []));
+      const meanRepsInReserve = averageRepsInReserve(exerciseSets.map((set) => set.repsInReserve));
       const amrapSet = exerciseSets.find((set) => set.isAMRAP);
-      const previousRPEs = liftState.recentAvgRPEs || [];
+      const previousRepsInReserve = liftState.recentAvgRepsInReserve || [];
       const previousAMRAPReps = liftState.recentAMRAPReps || [];
 
       const evaluated = tier.evaluate(
@@ -424,12 +425,10 @@ export function computeCompletion(input: CompletionInput): CompletionWithOutcome
         // instead of wiping it. An explicit empty array still clears it.
         recentE1RMs:
           recentE1RMsByExercise[templateEx.exerciseId] ?? liftState.recentE1RMs ?? [],
-        recentAvgRPEs:
-          tier.tracksEffort && rpes.length > 0
-            ? [...previousRPEs, rpes.reduce((a, b) => a + b, 0) / rpes.length].slice(
-                -TRACKING_WINDOW
-              )
-            : previousRPEs,
+        recentAvgRepsInReserve:
+          tier.tracksEffort && meanRepsInReserve != null
+            ? [...previousRepsInReserve, meanRepsInReserve].slice(-TRACKING_WINDOW)
+            : previousRepsInReserve,
         recentAMRAPReps:
           tier.tracksEffort && amrapSet
             ? [...previousAMRAPReps, amrapSet.actualReps].slice(-TRACKING_WINDOW)

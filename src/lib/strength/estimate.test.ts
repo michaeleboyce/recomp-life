@@ -61,9 +61,10 @@ describe("isEstimateSet", () => {
 });
 
 describe("setEstimate", () => {
-  it("is calculateE1RM on the total load, with the logged effort", () => {
-    const s = set({ exerciseId: "db_bench", weight: 50, perHand: true, reps: 8, rpe: 8 });
-    expect(setEstimate(s)).toBe(calculateE1RM(100, 8, 8));
+  it("is calculateE1RM on the total load, with the reps-left answer", () => {
+    const s = set({ exerciseId: "db_bench", weight: 50, perHand: true, reps: 8, repsInReserve: "1-2" });
+    expect(setEstimate(s)).toBe(calculateE1RM(100, 8, "1-2"));
+    expect(setEstimate(s)!).toBeGreaterThan(calculateE1RM(100, 8)!);
   });
 });
 

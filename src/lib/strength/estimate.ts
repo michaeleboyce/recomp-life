@@ -58,9 +58,9 @@ export function isEstimateSet(set: StrengthSet): boolean {
   return isE1RMEligibleSet(set.tier, set.isAMRAP, set.reps);
 }
 
-/** The set's estimated max on its total load, with the logged effort; null under 2 reps. */
+/** The set's estimated max on its total load, with the reps-left answer; null under 2 reps. */
 export function setEstimate(set: StrengthSet): number | null {
-  return calculateE1RM(externalLoad(set), set.reps, set.rpe ?? null);
+  return calculateE1RM(externalLoad(set), set.reps, set.repsInReserve ?? null);
 }
 
 /** Epoch ms of a set's date; NaN when unreadable. */
@@ -105,7 +105,7 @@ function toEstimateSet(set: StrengthSet): EstimateSet {
     perHand: set.perHand,
     load: externalLoad(set),
     reps: set.reps,
-    rpe: set.rpe ?? null,
+    repsInReserve: set.repsInReserve ?? null,
   };
 }
 

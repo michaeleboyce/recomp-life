@@ -93,7 +93,7 @@ export default function MorePage() {
         <MoreRow
           icon={BookOpen}
           title="Glossary"
-          subtitle="What AMRAP, T1, RPE and the rest mean"
+          subtitle="What AMRAP, T1, reps left and the rest mean"
           href="/more/glossary"
         />
         <MoreRow

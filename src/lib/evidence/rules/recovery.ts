@@ -135,7 +135,7 @@ export const RECOVERY_RULES = {
     title: "How does the app spot built-up fatigue?",
     summary: "A falling estimated 1RM, several sessions running, is a fatigue sign",
     appBehavior:
-      "Today shows a fatigue sign for a lift when its estimated 1RM has fallen 2 sessions in a row while cutting, or 3 otherwise. Two or more such lifts are reported together. Only the estimated-1RM trend is used: RPE and AMRAP reps are left out, because both move as the weight goes up every session. An easier week is optional, and one better session clears the sign. The app never changes your weights or starts a deload for this.",
+      "Today shows a fatigue sign for a lift when its estimated 1RM has fallen 2 sessions in a row while cutting, or 3 otherwise. Two or more such lifts are reported together. Only the estimated-1RM trend is used: the reps you say you had left and AMRAP reps are left out, because both move as the weight goes up every session. An easier week is optional, and one better session clears the sign. The app never changes your weights or starts a deload for this.",
     rationale:
       "Tracking performance trends is a reasonable way to spot fatigue, but no study validates these specific triggers.",
     caveat:

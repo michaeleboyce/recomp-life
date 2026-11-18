@@ -106,8 +106,8 @@ export interface ReadinessReview {
 }
 
 export interface EffortReview {
-  /** Mean RPE of this week's T1 sets that have one. */
-  meanRpe: number;
+  /** Mean reps left (`averageRepsInReserve`) of this week's T1 sets that have one. */
+  meanRepsInReserve: number;
   sets: number;
   /** The same for the previous week; null when none was logged. */
   previous: number | null;

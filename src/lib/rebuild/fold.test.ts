@@ -119,7 +119,7 @@ describe("rebuildDerived: T2", () => {
 
   it("freezes the weight when a load drop was accepted", () => {
     const sim = startSim();
-    const w = runSession(sim, { templateId: "A1", t2: { drop: true, rpe: 9.5 } });
+    const w = runSession(sim, { templateId: "A1", t2: { drop: true, repsInReserve: "1-2" } });
     expect(w.sets.filter((s) => s.status === "autoregulated_load_drop")).toHaveLength(2);
     const bench = stateOf(rebuilt(sim).liftStates, "bench");
     expect(bench).toMatchObject({ t2Weight: 100, t2Stage: "3x10", t2FailCount: 0 });
@@ -685,7 +685,7 @@ describe("anchoring to the stored prescription", () => {
 describe("e1rmsForWorkout", () => {
   it("writes one row per eligible set, shaped like the live path", () => {
     const sim = startSim();
-    const w = runSession(sim, { templateId: "A1", t1: { lastReps: 5, rpe: 9 } });
+    const w = runSession(sim, { templateId: "A1", t1: { lastReps: 5, repsInReserve: "1-2" } });
     const amrap = w.sets.find((s) => s.tier === "T1" && s.isAMRAP)!;
     const rows = e1rmsForWorkout(w);
     expect(rows).toEqual([

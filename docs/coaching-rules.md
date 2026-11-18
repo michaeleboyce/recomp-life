@@ -33,7 +33,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `cap-progression` | Program and progression | Active | Coaching heuristic | none |
 | `starting-weights` | Program and progression | Active | Program rule | none |
 | `amrap-effort` | Effort and estimates | Active | Moderate evidence | Robinson 2024, ACSM 2026, Morán-Navarro 2017 |
-| `rpe-logging` | Effort and estimates | Active | Moderate evidence | Halperin 2022 |
+| `effort-logging` | Effort and estimates | Active | Moderate evidence | Halperin 2022 |
 | `t2-autoregulation` | Effort and estimates | Active | Moderate evidence | Zhang 2021, Halperin 2022 |
 | `e1rm-estimate` | Effort and estimates | Active | Limited evidence | Nuzzo 2024, Halperin 2022 |
 | `transfer-ratio` | Effort and estimates | Active | Limited evidence | Saeterbakken 2011, Saeterbakken 2013, Speirs 2016 |
@@ -246,13 +246,13 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Shown in:** `src/components/ActiveWorkout/AMRAPIndicator.tsx`
 - **Reviewed:** November 2026
 
-**In one line.** Heavy sets: stop 1 rep short. Lighter sets: go close to failure
+**In one line.** Heavy sets: stop with 1-2 reps left. Lighter sets: go close to failure
 
-**What the app does.** On the last T1 set the app asks you to stop with about 1 rep left (RPE 9). On the last T3 set it asks you to push close to failure.
+**What the app does.** On the last T1 set the app asks you to stop with 1-2 reps left. On the last T3 set it asks you to push close to failure.
 
 **Why.** Strength gains are similar whether heavy sets stop short of failure or reach it, and sets taken to failure take a day or two longer to recover from. Muscle growth does benefit from getting close to failure, which is why the lighter T3 sets are pushed harder.
 
-**Limits.** People tend to have about one more rep left than they think, so an honest RPE 9 is already a hard set.
+**Limits.** People tend to have about one more rep left than they think, so a set you honestly judge as 1-2 reps left is already a hard set.
 
 **Sources**
 
@@ -260,22 +260,22 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - [American College of Sports Medicine (Currier et al.) (2026). American College of Sports Medicine Position Stand. Resistance Training Prescription for Muscle Function, Hypertrophy, and Physical Performance in Healthy Adults: An Overview of Reviews. *Medicine & Science in Sports & Exercise*.](https://pubmed.ncbi.nlm.nih.gov/41843416/) Position stand; 137 systematic reviews, more than 30,000 adults. Strength gains were higher with loads of 80% of 1RM or more, 2–3 sets, lifting early in the session and at least 2 sessions a week. Training to failure did not consistently change outcomes.
 - [Morán-Navarro et al. (2017). Time course of recovery following resistance training leading or not to failure. *European Journal of Applied Physiology*.](https://doi.org/10.1007/s00421-017-3725-7) Trial; 10 resistance-trained men. Sets taken to failure slowed recovery by 24–48 hours compared with work stopped short of failure.
 
-### Why log RPE?
+### Why does the app ask how many reps I had left?
 
-- **Rule id:** `rpe-logging`
+- **Rule id:** `effort-logging`
 - **Status:** Active
 - **Evidence:** Moderate evidence
-- **Implemented in:** `src/components/ActiveWorkout/RPESelector.tsx` (`RPESelector`)
-- **Shown in:** `src/components/ActiveWorkout/RPESelector.tsx`
+- **Implemented in:** `src/lib/effort.ts` (`repsInReserveCredit`), `src/components/ActiveWorkout/EffortSelector.tsx` (`EffortSelector`)
+- **Shown in:** `src/components/ActiveWorkout/EffortSelector.tsx`
 - **Reviewed:** November 2026
 
-**In one line.** RPE lets the app adjust for how hard the set really was
+**In one line.** Reps left lets the app adjust for how hard the set really was
 
-**What the app does.** RPE (how hard a set felt, from 6 to 10) is optional. When logged, it is used to suggest lighter T2 sets after a very hard first set, and to adjust your estimated 1RM for reps you had left.
+**What the app does.** After a set the app asks one optional question, "How many more reps could you have done?", with 3 answers: 0, 1-2 or 3+. The answer on the first T2 set decides whether the app suggests a lighter weight for the rest of that exercise, and the answer on a T1 AMRAP set adds the reps you had left to your estimated 1RM (0 for 0, 1.5 for 1-2, 3 for 3+). A set with no answer is never given a guessed one.
 
-**Why.** Effort ratings are accurate enough to be useful: on average people are off by about one rep, and they are most accurate close to failure and in sets of 12 reps or fewer.
+**Why.** Self-ratings of reps left are accurate enough to be useful: on average people are off by about one rep, and they are most accurate close to failure and in sets of 12 reps or fewer. With an error of about one rep, finer answers would not be more accurate, so the app asks for a few broad ones.
 
-**Limits.** Ratings on high-rep sets are less reliable, so the app only acts on RPE for T1 and T2 sets.
+**Limits.** The choice of exactly these three answers is the app's own design, built on that roughly one-rep error; the review did not test any set of answers. Ratings on high-rep sets are less reliable, so the app only acts on the answer for T1 and T2 sets.
 
 **Sources**
 
@@ -292,11 +292,11 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** A very hard first set means the planned load is too heavy today
 
-**What the app does.** If the first T2 set is rated RPE 9 or higher while cutting (9.5 while maintaining, 10 while bulking), the app suggests dropping 5% for the remaining sets, or 10% after an RPE 10 set. Accepting freezes T2 progression for that session; it is not counted as a failure.
+**What the app does.** If the first T2 set ends with 0 reps left, the app suggests dropping 7.5% (never less than one 5 lb step) for the remaining sets, in every phase. With 1-2 reps left it suggests one 5 lb step down, while cutting only. Otherwise there is no suggestion. Accepting freezes T2 progression for that session; it is not counted as a failure.
 
 **Why.** Adjusting load to how the session is actually going produced larger strength gains than sticking to fixed loads in a meta-analysis of 8 studies. Effort ratings are most accurate in exactly this situation: close to failure, in sets of 12 reps or fewer.
 
-**Limits.** The different thresholds per phase are a coaching heuristic. The studies were small and short.
+**Limits.** The split by phase and the drop sizes (7.5%, or one 5 lb step down) are coaching heuristics, not research findings, and the studies were small and short. While cutting, the suggestion now also appears at 2 reps left, because the 1-2 answer covers both.
 
 **Sources**
 
@@ -314,11 +314,11 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** Estimated from your heavy AMRAP set; best read as a trend
 
-**What the app does.** Uses the Epley formula (weight × (1 + reps ÷ 30)) on T1 AMRAP sets of 10 reps or fewer. If you log an RPE, the reps you had left are added first (up to 4). The trend arrow compares your last 3 estimates. Today reports a new best estimate from the last 7 days, and notes when a lift's last three estimates have fallen. Sets imported from another app are estimated the same way, each session's best normal set (warm-ups and drops never count), and shown on the lift pages, the projection, the Strength tab and Today, marked as imported; a best among them is labelled as history and never counts as a new best, which is judged on the workouts you log here.
+**What the app does.** Uses the Epley formula (weight × (1 + reps ÷ 30)) on T1 AMRAP sets of 10 reps or fewer. If you say how many reps you had left, those reps are added first: 0 for 0, 1.5 for 1-2, 3 for 3+. The trend arrow compares your last 3 estimates. Today reports a new best estimate from the last 7 days, and notes when a lift's last three estimates have fallen. Sets imported from another app are estimated the same way, each session's best normal set (warm-ups and drops never count), and shown on the lift pages, the projection, the Strength tab and Today, marked as imported; a best among them is labelled as history and never counts as a new best, which is judged on the workouts you log here.
 
 **Why.** No formula fits everyone: the reps possible at a given percentage of 1RM differ between exercises and between people, and estimates get worse as reps climb. Within one lift the same formula still tracks change well, so the trend is more trustworthy than the number.
 
-**Limits.** Treat the figure as an estimate, not a tested max.
+**Limits.** Treat the figure as an estimate, not a tested max. The 3+ answer counts as 3, so an estimate from such a set is a lower bound.
 
 **Sources**
 
@@ -413,15 +413,15 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `import-effort-words`
 - **Status:** Active
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/import/evidence.ts` (`EFFORT_WORD_RPE`), `src/lib/import/evidence.ts` (`effortRpe`), `src/lib/import/evidence.ts` (`importedSessionStrengthSets`)
+- **Implemented in:** `src/lib/import/evidence.ts` (`EFFORT_WORD_REPS_IN_RESERVE`), `src/lib/import/evidence.ts` (`effortRepsInReserve`), `src/lib/import/evidence.ts` (`importedSessionStrengthSets`)
 - **Shown in:** `src/components/ImportedHistory/ImportedSessionSheet.tsx`
 - **Reviewed:** November 2026
 
-**In one line.** An imported set's effort word becomes an approximate RPE
+**In one line.** An imported set's effort word becomes an answer for reps left
 
-**What the app does.** Sets imported from another app can carry an effort word. When those sets feed the strength estimate, each word is read as an approximate RPE: Easy 7, Ideal 8, Moderate 8, Hard 9, Max 10, Failure 10, Failed 10. The reps left in reserve are then 10 minus that RPE, at most 4, as for an RPE you log yourself: a set marked Easy counts as 3 reps short of failure. A set with no word, or a word not in the list, is read as taken to its limit, which gives the lower estimate. Warm-ups give no estimate, and a drop counts as drops do.
+**What the app does.** Sets imported from another app can carry an effort word. When those sets feed the strength estimate, each word is read as one of the app's answers for reps left: Easy 3+ left, Ideal 1-2 left, Moderate 1-2 left, Hard 1-2 left, Max 0 left, Failure 0 left, Failed 0 left. The reps credited are then the same as for an answer you give yourself (0 for 0, 1.5 for 1-2, 3 for 3+): a set marked Easy counts as 3 reps short of failure. A set with no word, or a word not in the list, is read as taken to its limit, which gives the lower estimate. Warm-ups give no estimate, and a drop counts as drops do.
 
-**Why.** An estimated max from a set depends on how close to failure it went. The other apps record that in words, not reps, so the words are mapped to the nearest RPE that matches their usual meaning, and a set with no word is read the cautious way.
+**Why.** An estimated max from a set depends on how close to failure it went. The other apps record that in words, not reps, so each word is mapped to the answer for reps left that matches its usual meaning, and a set with no word is read the cautious way.
 
 **Limits.** The apps do not say what their words mean in reps; the mapping is this app's reading of them, not a research finding. Imported sets with these words also count less as they age, like any other session.
 
@@ -610,7 +610,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** A falling estimated 1RM, several sessions running, is a fatigue sign
 
-**What the app does.** Today shows a fatigue sign for a lift when its estimated 1RM has fallen 2 sessions in a row while cutting, or 3 otherwise. Two or more such lifts are reported together. Only the estimated-1RM trend is used: RPE and AMRAP reps are left out, because both move as the weight goes up every session. An easier week is optional, and one better session clears the sign. The app never changes your weights or starts a deload for this.
+**What the app does.** Today shows a fatigue sign for a lift when its estimated 1RM has fallen 2 sessions in a row while cutting, or 3 otherwise. Two or more such lifts are reported together. Only the estimated-1RM trend is used: the reps you say you had left and AMRAP reps are left out, because both move as the weight goes up every session. An easier week is optional, and one better session clears the sign. The app never changes your weights or starts a deload for this.
 
 **Why.** Tracking performance trends is a reasonable way to spot fatigue, but no study validates these specific triggers.
 
@@ -1102,7 +1102,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - [Grgic et al. (2020). Test-Retest Reliability of the One-Repetition Maximum (1RM) Strength Assessment: a Systematic Review. *Sports Medicine - Open*.](https://doi.org/10.1186/s40798-020-00260-z) Systematic review; 32 studies, 1,595 people. A tested 1RM is highly repeatable, but still varies between sessions by a median of 4.2% (range 0.5–12.1%). [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC7367986). Used by: `projection-rate-of-gain`, `forecast-reps`.
 - [Hall et al. (2011). Quantification of the effect of energy imbalance on bodyweight. *The Lancet*.](https://doi.org/10.1016/S0140-6736(11)60812-X) Review; Mathematical model of adult energy balance. Bodyweight responds slowly to a lasting change in energy intake, taking about a year to get halfway to its new steady weight. [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC3880593). Used by: `forecast-bodyweight`.
 - [Halonen et al. (2024). Does Taking a Break Matter—Adaptations in Muscle Strength and Size Between Continuous and Periodic Resistance Training. *Scandinavian Journal of Medicine & Science in Sports*.](https://pubmed.ncbi.nlm.nih.gov/39364857/) Randomised trial; 55 untrained adults. After a 10-week break, strength and muscle size were back to pre-break levels within about 5 weeks of retraining. Strength was better preserved than size. Used by: `time-off`.
-- [Halperin et al. (2022). Accuracy in Predicting Repetitions to Task Failure in Resistance Exercise: A Scoping Review and Exploratory Meta-analysis. *Sports Medicine*.](https://pubmed.ncbi.nlm.nih.gov/34542869/) Meta-analysis; 12 studies, 414 participants. People underestimated the reps they had left by about one. Estimates were more accurate close to failure, in sets of 12 reps or fewer, and in later sets. Used by: `t3-progression`, `rpe-logging`, `t2-autoregulation`, `e1rm-estimate`.
+- [Halperin et al. (2022). Accuracy in Predicting Repetitions to Task Failure in Resistance Exercise: A Scoping Review and Exploratory Meta-analysis. *Sports Medicine*.](https://pubmed.ncbi.nlm.nih.gov/34542869/) Meta-analysis; 12 studies, 414 participants. People underestimated the reps they had left by about one. Estimates were more accurate close to failure, in sets of 12 reps or fewer, and in later sets. Used by: `t3-progression`, `effort-logging`, `t2-autoregulation`, `e1rm-estimate`.
 - [Havers et al. (2026). Acute and Chronic Effects of Drop-Set Training: A Meta-Analysis and Systematic Review. *Sports Medicine - Open*.](https://doi.org/10.1186/s40798-026-01012-1) Meta-analysis; 12 studies, 274 participants. Drop sets felt harder and raised blood lactate more than traditional sets in the moment, and gave similar long-term gains in muscle size and strength. [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC13043944). Used by: `drop-set-evidence`.
 - [Helms et al. (2014). Evidence-based recommendations for natural bodybuilding contest preparation: nutrition and supplementation. *Journal of the International Society of Sports Nutrition*.](https://pmc.ncbi.nlm.nih.gov/articles/PMC4033492) Review; Review for physique athletes. Losing 0.5–1% of bodyweight per week is recommended to retain muscle while dieting. Used by: `rate-of-loss`.
 - [Helms et al. (2023). Effect of Small and Large Energy Surpluses on Strength, Muscle, and Skinfold Thickness in Resistance-Trained Individuals: A Parallel Groups Design. *Sports Medicine - Open*.](https://doi.org/10.1186/s40798-023-00651-y) Randomised trial; 17 trained lifters who finished, 8 weeks. Eating 5% or 15% above maintenance did not improve squat 1RM or muscle thickness over maintenance, and faster bodyweight gain mainly added fat. [Free full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC10620361). Used by: `projection-energy-deficit`.
@@ -1140,10 +1140,15 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **18 November 2026** — `effort-logging` (Why does the app ask how many reps I had left?): The effort rating is now one optional question, "How many more reps could you have done?", with three answers (0, 1-2 or 3+), in place of a 6 to 10 effort score. Self-ratings are off by about one rep on average, so finer answers would not be more accurate. Sources: Halperin 2022.
+- **18 November 2026** — `t2-autoregulation` (Why is the app suggesting a lighter weight?): The lighter-weight suggestion now reads the first T2 set's reps left. Nothing left suggests a 7.5% drop (never less than one 5 lb step) in every phase, down from 10%; while cutting, 1-2 left suggests one 5 lb step down, in place of a 5% drop, and now also appears at 2 reps left. While maintaining, "maybe one more rep" no longer brings a suggestion. The drops were made smaller as a deliberate choice, not because of new research; the sizes and the split by phase are graded as coaching heuristics. Sources: .
+- **18 November 2026** — `e1rm-estimate` (How is my 1RM estimated?): The reps added for effort before the formula are now 0, 1.5 or 3 for the answers 0, 1-2 and 3+, in place of 10 minus the effort score (up to 4). An estimate from a 3+ set is a lower bound. Sources: .
+- **18 November 2026** — `amrap-effort` (How hard should the last set be?): The last T1 set now asks you to stop with 1-2 reps left, in the same words as the effort question, in place of about 1 rep left on the old effort score. Sources: .
+- **18 November 2026** — `import-effort-words` (How are effort words from other apps read?): Effort words from other apps now map to an answer for reps left in place of an effort score: Max, Failure and Failed to 0; Ideal, Moderate and Hard to 1-2; Easy to 3+. A set with no word is still read as taken to its limit. Sources: .
 - **17 November 2026** — `accessory-selection` (How are a workout's accessories chosen?): Switched on: every workout now comes with accessories chosen by this rule (the setting can be changed to "ask me" or "none"). Today and the Ready screen list them under the main lifts with a reason each; the why sheet shows every part of the score; the accessory sheet changes, swaps, adds or pins them. Sources: .
 - **17 November 2026** — `accessory-progression` (When would accessory weights go up?): Switched on: each accessory is planned at the weight double progression gives (or one set by hand, or a first weight from your history), the workout shows its rep range, and after its last set, the summary and the Log say what it does next time and why. Sources: .
 - **17 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): A workout keeps the home weight it started with: when the heaviest dumbbell or the dumbbell step is changed after it started, resuming it shows the weight it recorded with a note, the weight can still be changed for the set, and finishing it judges the sets against that weight instead of the new limit. Sources: .
-- **17 November 2026** — `import-effort-words` (How are effort words from other apps read?): Switched on: an imported session's detail, opened from the Log or a lift's session list, shows each set's effort word with the approximate RPE it is read as. Sources: .
+- **17 November 2026** — `import-effort-words` (How are effort words from other apps read?): Switched on: an imported session's detail, opened from the Log or a lift's session list, shows each set's effort word with the effort it is read as. Sources: .
 - **17 November 2026** — `strength-pooling` (How do gym and home sessions combine into one strength estimate?): Sessions imported from another app now feed every plan, not only the muscle view and the starting-weight suggestions: a home exercise's first weight, re-entry and the learned ratios read them, by the same rules and with the same halving for age. They still never change the workout order or the progression. The lift page shows them, marked as imported, and cites this rule. Sources: .
 - **17 November 2026** — `transfer-ratio` (How does a home exercise count toward a barbell lift?): A ratio is now also learned from imported pairs: an imported dumbbell session and an imported barbell session of the same lift close enough in time count like your own. Sources: Saeterbakken 2011, Saeterbakken 2013, Speirs 2016.
 - **17 November 2026** — `home-progression` (What does a home session do to your weights?): A home exercise you have not done in the app starts from an estimate that includes your imported history, and Today names its latest imported session ("From your history: last 45 × 10 on Nov 3") instead of "First time". Sources: .
@@ -1160,7 +1165,7 @@ Changes made to the app because of research, newest first.
 - **16 November 2026** — `transfer-ratio` (How does a home exercise count toward a barbell lift?): Switched on: the home lift page cites it for a home exercise's first weight, and the import screen for the home starting weights it suggests. Sources: Saeterbakken 2011, Saeterbakken 2013, Speirs 2016.
 - **16 November 2026** — `drop-set-evidence` (How do drop sets count?): Switched on: the drop set screen in a workout shows how a drop counts. The rule now also states the weight a drop starts at (about a fifth lighter), read from the code. Sources: Havers 2026, Sødal 2023.
 - **16 November 2026** — `starting-weights` (Where do the suggested starting weights come from?): Added: after an import, each program lift the history informs gets a suggested starting weight from its strength estimate (T1 at the GZCLP guide's share of a five-rep max), shown with its working and used only once you confirm it. Sources: .
-- **16 November 2026** — `import-effort-words` (How are effort words from other apps read?): Added as a planned rule (not active yet): effort words in another app's export (Easy, Ideal, Hard and others) are read as an approximate RPE when imported sets feed the strength estimate. Sources: .
+- **16 November 2026** — `import-effort-words` (How are effort words from other apps read?): Added as a planned rule (not active yet): effort words in another app's export (Easy, Ideal, Hard and others) are read as an approximate effort rating when imported sets feed the strength estimate. Sources: .
 - **16 November 2026** — `strength-pooling` (How do gym and home sessions combine into one strength estimate?): Switched on: the Muscles tab shows a strength trend for each muscle from every exercise that works it, barbell and home, a primary muscle at full weight and a secondary one at half. It is an index starting at 100, not a weight. Sources: .
 - **16 November 2026** — `home-progression` (What does a home session do to your weights?): Added: a home session now moves its own exercise's weight (in dumbbell steps) and no longer raises the barbell weight, which moves when you are back at the gym; before, a home pass raised the barbell weight. It still counts for the rotation and as evidence for the lift. Sources: .
 - **16 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): Added as a planned rule (not active yet): at your heaviest dumbbell, a pass moves to a harder exercise at a load no lighter, or adds reps, instead of stalling. Sources: .
@@ -1186,7 +1191,7 @@ Changes made to the app because of research, newest first.
 - **12 November 2026** — `off-program-credit` (Does a changed workout still count toward progression?): You can now change a workout before starting it. Each lift you change says whether it still counts toward progression or is only logged, and a lift you skip keeps its weight. Sources: .
 - **12 November 2026** — `t3-progression` (When does T3 weight go up?): The T3 rule is now shown: each workout's page says whether its T3 lift went up (and why) or stays at the same weight, as of that workout. The rule itself is unchanged. Sources: .
 - **12 November 2026** — `gzclp-progression` (Why does the weight go up, change stage or reset?): Logged sessions can now be edited or deleted. Doing so re-runs progression from the log, so the next workout follows the corrected history; sessions logged later are kept as they were lifted. Sources: .
-- **12 November 2026** — `fatigue-detection` (How does the app spot built-up fatigue?): Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not RPE or the reps on the last set, taken to as many as you can), and an easier week is offered as optional. Sources: .
+- **12 November 2026** — `fatigue-detection` (How does the app spot built-up fatigue?): Today now shows a fatigue sign when a lift's estimated 1RM falls several sessions in a row. Only that trend is used (not effort ratings or the reps on the last set, taken to as many as you can), and an easier week is offered as optional. Sources: .
 - **12 November 2026** — `fat-loss-stall` (What should I do when weight loss stalls?): Today now reports a weight-loss stall while cutting, but only after about three slow weeks, and suggests more daily steps before any cut in calories. Sources: .
 - **12 November 2026** — `projection-rate-of-gain` (Why does the projection curve flatten, and why is the range so wide?): Projections are more cautious: the range now includes how uncertain your rate of gain is (much wider from only a few results), horizons longer than your history are marked unreliable, and after a break the projection starts from your last result instead of extending the trend across the gap. Sources: .
 - **12 November 2026** — `projection-dose-response` (How much would more sets or sessions speed up my lift?): An alternative with no sets and no sessions of the lift no longer projects a gain. Sources: .
@@ -1198,7 +1203,7 @@ Changes made to the app because of research, newest first.
 - **11 November 2026** — `t3-progression` (When does T3 weight go up?): T3 weight now goes up by 5 lb after a fully completed T3 exercise whose last set reached 25 reps. The rule existed but was never applied, so T3 weight only changed when edited by hand. Sources: .
 - **11 November 2026** — `time-off` (Why lighter weights after a break?): A lift now counts as a long break after 21 days instead of 7, and suggested weight cuts after time off were reduced from 10–40% to 5–15%. Sources: Spiering 2021, Halonen 2024.
 - **11 November 2026** — `amrap-effort` (How hard should the last set be?): On a T1 lift, the last set, taken to as many reps as you can, now asks you to stop about 1 rep short of failure in every phase, not only while cutting. Sources: Robinson 2024, Morán-Navarro 2017.
-- **11 November 2026** — `e1rm-estimate` (How is my 1RM estimated?): Estimated 1RM now accounts for logged RPE and uses only T1 sets of 10 reps or fewer. The trend arrow was also corrected: it had been reading the history backwards. Sources: Nuzzo 2024, Halperin 2022.
+- **11 November 2026** — `e1rm-estimate` (How is my 1RM estimated?): Estimated 1RM now accounts for a logged effort rating and uses only T1 sets of 10 reps or fewer. The trend arrow was also corrected: it had been reading the history backwards. Sources: Nuzzo 2024, Halperin 2022.
 - **11 November 2026** — `rest-light` (Why 90 seconds after lighter sets?): Rest after T3 and accessory sets was raised from 60 to 90 seconds. Sources: Singer 2024.
 - **11 November 2026** — `run-interference` (Why does a recent run matter?): The strong run advisory now applies only within 6 hours of a hard run, and suggests a lighter T1 instead of resting. Sources: Robineau 2016, Markov 2021.
 - **11 November 2026** — `accessories-in-cut` (Why not fewer accessories while cutting?): The accessory cap while cutting was raised from 2 to 3, to match maintaining. Sources: Roth 2022.

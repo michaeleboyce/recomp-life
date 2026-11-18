@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { EffortSelector } from "@/components/ActiveWorkout/EffortSelector";
 import { ChipGroup } from "@/components/ui/chip-group";
 import { EXERCISES } from "@/lib/exercises";
 import type { LogChange } from "@/lib/rebuild";
-import type { SetLog } from "@/types";
+import type { RepsInReserve, SetLog } from "@/types";
 import { EditSheetFrame } from "./EditSheetFrame";
 import { FieldError, StepperField } from "./fields";
 import { liftName } from "./format";
-import { buildAddSet, buildSetEdit, parseSetValues, REPS_MAX, RPE_MAX, RPE_MIN, WEIGHT_MAX } from "./setChanges";
+import { buildAddSet, buildSetEdit, parseSetValues, REPS_MAX, WEIGHT_MAX } from "./setChanges";
 
 export interface SetEditSheetProps {
   open: boolean;
@@ -41,7 +41,7 @@ function SetForm({
 }: SetEditSheetProps & { mode: "edit" | "add" }) {
   const [reps, setReps] = useState(String(set.actualReps));
   const [weight, setWeight] = useState(String(set.weight));
-  const [rpe, setRpe] = useState(set.rpe === undefined ? "" : String(set.rpe));
+  const [repsInReserve, setRepsInReserve] = useState<RepsInReserve | null>(set.repsInReserve ?? null);
   const [fine, setFine] = useState(set.weight % 5 !== 0);
   const [invalid, setInvalid] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -57,7 +57,7 @@ function SetForm({
   }
 
   function save() {
-    const values = parseSetValues(reps, weight, rpe);
+    const values = parseSetValues(reps, weight, repsInReserve);
     if ("error" in values) {
       setInvalid(values.error);
       return;
@@ -116,28 +116,13 @@ function SetForm({
           />
         }
       />
-      <StepperField
-        label="Effort"
-        unit="optional"
-        value={rpe}
-        onChange={setRpe}
-        step={0.5}
-        min={RPE_MIN}
-        max={RPE_MAX}
-        hint={
-          rpe !== "" && (
-            <Button type="button" variant="ghost" className="h-11 self-start" onClick={() => setRpe("")}>
-              Clear effort
-            </Button>
-          )
-        }
-      />
+      <EffortSelector selected={repsInReserve} onSelect={setRepsInReserve} />
       <FieldError>{invalid ?? error}</FieldError>
     </EditSheetFrame>
   );
 }
 
-/** Edit one logged set (reps, weight, RPE) or delete it; in "add" mode, add a set. */
+/** Edit one logged set (reps, weight, reps left) or delete it; in "add" mode, add a set. */
 export function SetEditSheet(props: SetEditSheetProps) {
   const mode = props.mode ?? "edit";
   // Remount per set and per opening so the fields start from the stored values.

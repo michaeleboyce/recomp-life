@@ -5,13 +5,14 @@
 // around a level m with scatter s, and the chance of at least k reps at weight W is
 // the share of that curve at or above the index k reps would need. The chance of a
 // new best and the chance of passing are two readings of the same curve.
-import { E1RM_MAX_REPS, repsInReserveFromRPE } from "@/lib/e1rm";
+import { E1RM_MAX_REPS } from "@/lib/e1rm";
+import { repsInReserveCredit } from "@/lib/effort";
 import { prChanceFromProbability, repsToBeat, type PrChance } from "@/lib/projection/prOpportunity";
 import { WEEK_MS } from "@/lib/dates";
 import { fitTrend } from "@/lib/projection/trend";
 import { T1_STAGE_SCHEME } from "@/lib/workout/prescription";
 import { workingSetsFor } from "@/lib/workout/setSelectors";
-import type { ForecastBasis, T1Stage, TrainingPhase, WorkoutSession } from "@/types";
+import type { ForecastBasis, RepsInReserve, T1Stage, TrainingPhase, WorkoutSession } from "@/types";
 import { CALIBRATION, NEW_BEST_MODEL, REPS_MODEL } from "./coefficients";
 import {
   finishedBy,
@@ -34,8 +35,8 @@ export interface LastSetPoint {
   weight: number;
   /** Reps logged, with no reps-in-reserve credit. */
   reps: number;
-  /** The effort (RPE) logged with the set; null or absent when none was. */
-  rpe?: number | null;
+  /** The reps-left answer logged with the set; null or absent when none was. */
+  repsInReserve?: RepsInReserve | null;
   stage: T1Stage | null;
   /** The training phase the session was finished in, when it was stored. */
   phase: PhaseMode | null;
@@ -97,7 +98,7 @@ export function lastT1Sets(
       workoutId: workout.id,
       weight,
       reps,
-      rpe: last.rpe ?? null,
+      repsInReserve: last.repsInReserve ?? null,
       stage: stageForReps(last.targetReps) ?? ((prescribed?.stage as T1Stage) || null),
       phase: workout.completionContext?.phaseMode ?? null,
       performedExerciseId: performedExerciseId(last),
@@ -527,11 +528,12 @@ export function repsRange(pmf: number[], target: number = CALIBRATION.targetCove
 
 /**
  * The lifter's usual effort credit on the last set of an exercise, in reps: what the
- * estimated max adds for the effort logged with a set (`repsInReserveFromRPE`), as
- * the middle value over the latest NEW_BEST_MODEL.effortCreditRecentSets last sets
- * of the exercise performed, up to `now`. A set with no logged effort counts as no
- * credit, so a lifter who does not log one gets none. `sample` is how many sets
- * were read.
+ * estimated max adds for the reps-left answer logged with a set (`repsInReserveCredit`:
+ * 0, 1.5 or 3), as the middle value over the latest NEW_BEST_MODEL.effortCreditRecentSets
+ * last sets of the exercise performed, up to `now`. With an even number of sets the
+ * middle value is the mean of the two middle credits, so it can fall between answers
+ * (0.75, 2.25). A set with no answer counts as no credit, so a lifter who does not log
+ * one gets none. `sample` is how many sets were read.
  *
  * @evidence forecast-reps
  */
@@ -547,7 +549,7 @@ export function usualEffortCredit(
     .slice(-NEW_BEST_MODEL.effortCreditRecentSets);
   if (recent.length === 0) return { credit: 0, sample: 0 };
   return {
-    credit: median(recent.map((p) => repsInReserveFromRPE(p.rpe))),
+    credit: median(recent.map((p) => repsInReserveCredit(p.repsInReserve))),
     sample: recent.length,
   };
 }
@@ -589,8 +591,9 @@ export function forecastReps(input: RepsModelInput): RepsForecast {
   const best = input.bestE1RM;
   if (typeof best === "number" && Number.isFinite(best) && best > 0) {
     const effort = usualEffortCredit(input.history, input.performedExerciseId, input.now);
-    // The credit as the effort that gives it, so the estimate's own function counts it.
-    const needed = repsToBeat(input.weight, best, 10 - effort.credit);
+    // The credit in reps, counted as the estimate counts an answer's; the reps needed
+    // stay a whole number even when the credit is fractional.
+    const needed = repsToBeat(input.weight, best, effort.credit);
     if (needed) {
       const chance = chanceOfNewBest(needed.reps, input.weight, estimate);
       newBest = {

@@ -28,7 +28,7 @@ describe("homeOriginalWeight", () => {
 
 describe("buildSetEdit at home", () => {
   it("moves the barbell weight a home set stands for with its weight, so credit reads one number", () => {
-    expect(buildSetEdit("w1", home, { actualReps: 3, weight: 70, rpe: null })).toEqual({
+    expect(buildSetEdit("w1", home, { actualReps: 3, weight: 70, repsInReserve: null })).toEqual({
       kind: "editSet",
       workoutId: "w1",
       setId: "h1",
@@ -37,7 +37,7 @@ describe("buildSetEdit at home", () => {
   });
 
   it("leaves it alone when only the reps change", () => {
-    expect(buildSetEdit("w1", home, { actualReps: 2, weight: 80, rpe: null })).toEqual({
+    expect(buildSetEdit("w1", home, { actualReps: 2, weight: 80, repsInReserve: null })).toEqual({
       kind: "editSet",
       workoutId: "w1",
       setId: "h1",
@@ -46,7 +46,7 @@ describe("buildSetEdit at home", () => {
   });
 
   it("at the gym edits the weight alone", () => {
-    expect(buildSetEdit("w1", set({ weight: 205 }), { actualReps: 3, weight: 195, rpe: null })).toEqual({
+    expect(buildSetEdit("w1", set({ weight: 205 }), { actualReps: 3, weight: 195, repsInReserve: null })).toEqual({
       kind: "editSet",
       workoutId: "w1",
       setId: "s1",
@@ -57,19 +57,19 @@ describe("buildSetEdit at home", () => {
 
 describe("buildAddSet at home", () => {
   it("gives an added home set the barbell weight it stands for, scaled to its weight", () => {
-    const change = buildAddSet("w1", home, 6, { actualReps: 3, weight: 70, rpe: null }, () => "new");
+    const change = buildAddSet("w1", home, 6, { actualReps: 3, weight: 70, repsInReserve: null }, () => "new");
     expect(change.kind === "addSet" && change.set).toMatchObject({
       substituteExerciseId: "bulgarian_split_squat",
       isSubstituted: true,
       weight: 70,
       originalWeight: Math.round((245 * 70) / 80),
     });
-    const same = buildAddSet("w1", home, 6, { actualReps: 3, weight: 80, rpe: null }, () => "new");
+    const same = buildAddSet("w1", home, 6, { actualReps: 3, weight: 80, repsInReserve: null }, () => "new");
     expect(same.kind === "addSet" && same.set.originalWeight).toBe(245);
   });
 
   it("adds a gym set with no barbell weight to stand for", () => {
-    const change = buildAddSet("w1", set({ weight: 205 }), 6, { actualReps: 3, weight: 205, rpe: null }, () => "new");
+    const change = buildAddSet("w1", set({ weight: 205 }), 6, { actualReps: 3, weight: 205, repsInReserve: null }, () => "new");
     expect(change.kind === "addSet" && "originalWeight" in change.set).toBe(false);
   });
 });

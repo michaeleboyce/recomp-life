@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { calculateE1RM, isE1RMEligibleSet, isNewPR } from "@/lib/e1rm";
+import { REPS_IN_RESERVE_OPTIONS } from "@/lib/effort";
 import { applyChange, e1rmsForWorkout, type LogState } from "@/lib/rebuild";
 import type { Forecast, SetLog, SetStatus, WorkoutSession } from "@/types";
 import { BODYWEIGHT_MODEL, E1RM_HORIZON_MODEL } from "./coefficients";
@@ -122,7 +123,7 @@ describe("reps on the last set", () => {
   it("has a plain sentence for every void reason it gives", () => {
     for (const text of Object.values(VOID_REASONS)) {
       expect(text.length).toBeGreaterThan(10);
-      expect(text).not.toMatch(/AMRAP|e1RM|RPE/);
+      expect(text).not.toMatch(/AMRAP|e1RM|RPE|\bRIR\b/);
     }
     expect(Object.keys(VOID_REASONS)).toEqual(
       expect.arrayContaining(["workout-missing", "workout-deleted", "not-reached", "freeze", "load-drop", "weight-changed", "ended-early", "too-few-measurements"])
@@ -144,23 +145,23 @@ describe("chance of a new best and of a pass", () => {
     });
     // The estimate credits a logged effort, so five reps with two left is a new best,
     // exactly as the workout screen flashes it.
-    expect(calculateE1RM(200, 5, 8)!).toBeGreaterThan(BEST_LEVEL);
-    expect(resolve(best, logOf(workout({ lastReps: 5, setOverrides: { rpe: 8 } })))).toEqual({
+    expect(calculateE1RM(200, 5, "1-2")!).toBeGreaterThan(BEST_LEVEL);
+    expect(resolve(best, logOf(workout({ lastReps: 5, setOverrides: { repsInReserve: "1-2" } })))).toEqual({
       state: "resolved",
-      value: calculateE1RM(200, 5, 8)!,
+      value: calculateE1RM(200, 5, "1-2")!,
       hit: true,
     });
   });
 
   it("agrees with the app's own rows for every rep count and effort", () => {
-    for (const rpe of [undefined, 10, 9, 8, 7, 6]) {
+    for (const repsInReserve of [undefined, ...REPS_IN_RESERVE_OPTIONS]) {
       for (let lastReps = 0; lastReps <= 14; lastReps++) {
-        const session = workout({ lastReps, setOverrides: { rpe } });
+        const session = workout({ lastReps, setOverrides: { repsInReserve } });
         const rows = e1rmsForWorkout(session).filter((row) => row.exerciseId === "squat");
         const estimate = rows.length > 0 ? Math.max(...rows.map((row) => row.estimated1RM)) : null;
         const eligible = isE1RMEligibleSet("T1", true, lastReps);
         expect(estimate !== null, `${lastReps} reps`).toBe(eligible);
-        expect(resolve(best, logOf(session)), `${lastReps} reps at ${rpe}`).toEqual({
+        expect(resolve(best, logOf(session)), `${lastReps} reps at ${repsInReserve}`).toEqual({
           state: "resolved",
           value: estimate ?? 0,
           hit: estimate !== null && isNewPR(estimate, [BEST_LEVEL]),
@@ -424,13 +425,13 @@ describe("forecasts for a date", () => {
   it("resolves an estimated max to the mean of the lift's results in the window", () => {
     const workouts = [
       t1Session({ id: "in1", at: around(-5), weight: 205, lastReps: 5 }),
-      t1Session({ id: "in2", at: around(4), weight: 210, lastReps: 5, setOverrides: { rpe: 9 } }),
+      t1Session({ id: "in2", at: around(4), weight: 210, lastReps: 5, setOverrides: { repsInReserve: "1-2" } }),
       t1Session({ id: "out", at: around(-20), weight: 300, lastReps: 5 }),
       t1Session({ id: "bench", exerciseId: "bench", at: around(1), weight: 150, lastReps: 5 }),
       { ...t1Session({ id: "gone", at: around(2), weight: 400, lastReps: 5 }), deletedAt: 8 },
     ];
-    // The app's own estimate, which credits the logged RPE.
-    const expected = (calculateE1RM(205, 5)! + calculateE1RM(210, 5, 9)!) / 2;
+    // The app's own estimate, which credits the logged reps-left answer.
+    const expected = (calculateE1RM(205, 5)! + calculateE1RM(210, 5, "1-2")!) / 2;
     expect(resolve(lift, { workouts, bodyweight: [] }, liftClosed)).toEqual({
       state: "resolved",
       value: expected,

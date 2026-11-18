@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { calculateE1RM } from "@/lib/e1rm";
 import { e1rmsForWorkout, sortE1RMs } from "@/lib/rebuild/e1rm";
-import type { SetLog, Tier, WorkoutSession } from "@/types";
+import type { RepsInReserve, SetLog, Tier, WorkoutSession } from "@/types";
 import { STRENGTH_POOLING, TARGET_EVIDENCE, TRANSFER_PRIORS } from "./coefficients";
 import { sessionEstimates, targetEstimates } from "./estimate";
 import { pooledLiftEstimate } from "./pooled";
@@ -24,7 +24,7 @@ function logged(
   actualReps: number,
   isAMRAP: boolean,
   dayIndex: number,
-  rpe?: number
+  repsInReserve?: RepsInReserve
 ): SetLog {
   return {
     id: `${workoutId}-${n}`,
@@ -40,7 +40,7 @@ function logged(
     restAfterSeconds: 120,
     status: actualReps >= targetReps ? "completed" : "failed",
     isSubstituted: false,
-    rpe,
+    repsInReserve,
     location: "gym",
     synced: true,
   };
@@ -55,7 +55,7 @@ function toStrengthSet(workoutId: string, s: SetLog): StrengthSet {
     weight: s.weight,
     perHand: false,
     reps: s.actualReps,
-    rpe: s.rpe ?? null,
+    repsInReserve: s.repsInReserve ?? null,
     role: s.tier === "warmup" ? "warmup" : "working",
     tier: s.tier,
     isAMRAP: s.isAMRAP,
@@ -76,7 +76,7 @@ function barbellHistory(): WorkoutSession[] {
     const sets: SetLog[] = [
       logged(`a${week}`, 0, "squat", "warmup", 95, 5, 5, false, d),
       ...[1, 2, 3, 4].map((n) => logged(`a${week}`, n, "squat", "T1", squat, 3, 3, false, d)),
-      // Week 4 logs an RPE; week 7 fails the last set with 2 reps; week 9 grinds 1 rep.
+      // Week 4 logs reps left; week 7 fails the last set with 2 reps; week 9 grinds 1 rep.
       logged(
         `a${week}`,
         5,
@@ -87,7 +87,7 @@ function barbellHistory(): WorkoutSession[] {
         week === 7 ? 2 : week === 9 ? 1 : reps,
         true,
         d,
-        week === 4 ? 8 : undefined
+        week === 4 ? "1-2" : undefined
       ),
       ...[6, 7, 8].map((n) => logged(`a${week}`, n, "bench", "T2", bench - 30, 10, 10, false, d)),
       ...[9, 10].map((n) => logged(`a${week}`, n, "lat_pulldown", "T3", 100, 15, 15, false, d)),
@@ -96,9 +96,9 @@ function barbellHistory(): WorkoutSession[] {
     add(`a${week}`, d, sets);
     const benchSets = [
       ...[0, 1, 2, 3].map((n) => logged(`b${week}`, n, "bench", "T1", bench, 3, 3, false, d + 3)),
-      logged(`b${week}`, 4, "bench", "T1", bench, 3, 12 - reps, true, d + 3, week === 2 ? 9 : undefined),
-      // A T2 squat day with an RPE: not an estimate today, so not one here.
-      ...[5, 6, 7].map((n) => logged(`b${week}`, n, "squat", "T2", squat - 50, 10, 10, false, d + 3, 8)),
+      logged(`b${week}`, 4, "bench", "T1", bench, 3, 12 - reps, true, d + 3, week === 2 ? "1-2" : undefined),
+      // A T2 squat day with reps left logged: not an estimate today, so not one here.
+      ...[5, 6, 7].map((n) => logged(`b${week}`, n, "squat", "T2", squat - 50, 10, 10, false, d + 3, "1-2")),
     ];
     add(`b${week}`, d + 3, benchSets);
     squat += 10;

@@ -280,7 +280,7 @@ describe("rule ids and wording", () => {
       expect(s.id).toMatch(/^[a-z]+(-[a-z]+)*$/);
       expect(s.title.length).toBeGreaterThan(0);
       expect(s.detail.length).toBeGreaterThan(0);
-      expect(`${s.title} ${s.detail}`).not.toMatch(/AMRAP|RPE|e1RM|undefined|NaN/);
+      expect(`${s.title} ${s.detail}`).not.toMatch(/AMRAP|RPE|\bRIR\b|e1RM|undefined|NaN/);
     }
   });
 

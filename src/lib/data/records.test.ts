@@ -38,7 +38,7 @@ describe("updateSettings", () => {
   });
 
   it("rejects clearly when there is no profile", async () => {
-    await expect(updateSettings({ showRPE: false })).rejects.toThrow(/no user profile/i);
+    await expect(updateSettings({ showEffort: false })).rejects.toThrow(/no user profile/i);
   });
 });
 

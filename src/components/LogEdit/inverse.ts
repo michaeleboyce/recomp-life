@@ -62,8 +62,8 @@ export function inverseChange(
       if (change.patch.originalWeight !== undefined && set.originalWeight !== undefined) {
         patch.originalWeight = set.originalWeight;
       }
-      // Present with `undefined` clears an RPE the set did not have.
-      if ("rpe" in change.patch) patch.rpe = set.rpe;
+      // Present with `undefined` clears an answer the set did not have.
+      if ("repsInReserve" in change.patch) patch.repsInReserve = set.repsInReserve;
       return { kind: "editSet", workoutId: change.workoutId, setId: change.setId, patch };
     }
     case "addSet":

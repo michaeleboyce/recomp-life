@@ -34,7 +34,7 @@ function widening(source: ForecastSource, kind: "e1rm4w" | "bodyweight4w"): numb
 /**
  * The estimated-max results of the given workouts, by exercise id, oldest first: the
  * rows the app itself would store for them (`e1rmsForWorkout`, which credits a
- * logged RPE and skips home substitutes). Deleted workouts give none.
+ * logged reps-left answer and skips home substitutes). Deleted workouts give none.
  */
 export function e1rmResults(workouts: WorkoutSession[]): Map<string, Point[]> {
   const byExercise = new Map<string, Point[]>();

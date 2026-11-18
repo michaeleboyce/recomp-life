@@ -6,13 +6,13 @@
  *
  * Fatigue signals:
  * - e1rm_decline: consecutive drops in estimated 1RM
- * - rpe_increase: consecutive RPE increases at same weight
+ * - effort_increase: consecutive drops in average reps left (fewer reps left = harder)
  * - amrap_decline: consecutive drops in AMRAP reps
  *
  * Session thresholds vary by phase:
  * - Cutting: 2 consecutive sessions
  * - Maintaining: 3 consecutive sessions
- * - Bulking: 3 for e1rm/amrap, 4 for RPE
+ * - Bulking: 3 for e1rm/amrap, 4 for effort
  *
  * Alert levels:
  * - "watch": 1 signal detected (informational)
@@ -25,9 +25,16 @@ import type {
   FatigueAlert,
   FatigueSignal,
   DeloadPrescription,
+  RepsInReserve,
 } from "@/types";
 
 import { roundToNearest5 } from "./progression";
+
+/** Reps to leave on every set during a deload week, in every phase. */
+export const DELOAD_REPS_IN_RESERVE: RepsInReserve = "3+";
+
+/** The effort target a deload prescribes, e.g. "3+ reps left". */
+export const DELOAD_EFFORT_TARGET = `${DELOAD_REPS_IN_RESERVE} reps left`;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -88,18 +95,18 @@ export function isConsecutivelyIncreasing(
 
 interface SessionThresholds {
   e1rm: number;
-  rpe: number;
+  effort: number;
   amrap: number;
 }
 
 function getSessionThresholds(phase: TrainingPhase): SessionThresholds {
   switch (phase.mode) {
     case "cutting":
-      return { e1rm: 2, rpe: 2, amrap: 2 };
+      return { e1rm: 2, effort: 2, amrap: 2 };
     case "maintaining":
-      return { e1rm: 3, rpe: 3, amrap: 3 };
+      return { e1rm: 3, effort: 3, amrap: 3 };
     case "bulking":
-      return { e1rm: 3, rpe: 4, amrap: 3 };
+      return { e1rm: 3, effort: 4, amrap: 3 };
   }
 }
 
@@ -122,12 +129,12 @@ function detectSignals(
     });
   }
 
-  // RPE increase (increasing RPE at same weight = fatigue signal)
-  if (isConsecutivelyIncreasing(lift.recentAvgRPEs, thresholds.rpe)) {
+  // Effort increase: fewer reps left on average at the same work = harder
+  if (isConsecutivelyDeclining(lift.recentAvgRepsInReserve, thresholds.effort)) {
     signals.push({
-      type: "rpe_increase",
+      type: "effort_increase",
       lift: lift.exerciseId,
-      consecutiveSessions: thresholds.rpe,
+      consecutiveSessions: thresholds.effort,
     });
   }
 
@@ -156,7 +163,7 @@ function detectSignals(
  * - 0 signals -> null
  *
  * Not connected to the UI. Before connecting, see the activation notes on
- * the rule: RPE and AMRAP signals must be compared at equal load.
+ * the rule: effort and AMRAP signals must be compared at equal load.
  *
  * @evidence fatigue-detection
  */
@@ -196,9 +203,11 @@ export function checkSystemicFatigue(
 /**
  * Generate a deload prescription based on the current training phase.
  *
- * - Cutting: -15% weight, half T3 volume, drop all accessories, RPE 6-7
- * - Maintaining: -10% weight, -25% T3 volume, max 1 accessory, RPE 6-7
- * - Bulking: -10% weight, keep T3 volume, max 1 accessory, RPE 6-7
+ * - Cutting: -15% weight, half T3 volume, drop all accessories
+ * - Maintaining: -10% weight, -25% T3 volume, max 1 accessory
+ * - Bulking: -10% weight, keep T3 volume, max 1 accessory
+ *
+ * Every phase stops each set with DELOAD_REPS_IN_RESERVE reps left.
  *
  * Not connected to the UI.
  *
@@ -214,7 +223,7 @@ export function generateDeloadPrescription(
         t3VolumeReduction: 0.5,
         dropAllAccessories: true,
         maxAccessories: 0,
-        rpeTarget: "6-7",
+        effortTarget: DELOAD_EFFORT_TARGET,
       };
     case "maintaining":
       return {
@@ -222,7 +231,7 @@ export function generateDeloadPrescription(
         t3VolumeReduction: 0.25,
         dropAllAccessories: false,
         maxAccessories: 1,
-        rpeTarget: "6-7",
+        effortTarget: DELOAD_EFFORT_TARGET,
       };
     case "bulking":
       return {
@@ -230,7 +239,7 @@ export function generateDeloadPrescription(
         t3VolumeReduction: 0,
         dropAllAccessories: false,
         maxAccessories: 1,
-        rpeTarget: "6-7",
+        effortTarget: DELOAD_EFFORT_TARGET,
       };
   }
 }

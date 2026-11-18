@@ -3,7 +3,7 @@
 // only reads which of its options the plan took.
 import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { DUMBBELL_LOAD_FACTOR, barbellToBothHands, barbellToDumbbell, roundToStep } from "@/lib/dbConversion";
-import { repsInReserveFromRPE } from "@/lib/e1rm";
+import { repsInReserveCredit } from "@/lib/effort";
 import { EXERCISES } from "@/lib/exercises";
 import { asLifted, impliedWeightForReps, roundDownToDumbbell } from "@/lib/strength";
 import { CREDIT_TIERS, classifyEntry } from "@/lib/workout/credit";
@@ -11,6 +11,7 @@ import type {
   DecisionTrace,
   ExerciseAdaptation,
   PrescribedEntry,
+  RepsInReserve,
   TraceAlternative,
   TraceStep,
   VariantSeed,
@@ -173,10 +174,12 @@ function isRatioOrHistorySeed(seed: VariantSeed): boolean {
   return (seed.source === "ratio" || seed.source === "estimate" || seed.source === "learned") && seed.ratio != null;
 }
 
-/** " with 1 rep left" for a logged effort short of the limit (the estimate credits it); "" otherwise. */
-function repsLeftText(rpe: number | null | undefined): string {
-  const left = rpe != null ? repsInReserveFromRPE(rpe) : 0;
-  return left > 0 ? ` with ${num(left)} ${left === 1 ? "rep" : "reps"} left` : "";
+/**
+ * " with 1-2 reps left" for a logged answer with reps left (the estimate credits it);
+ * "" for "0" or no answer.
+ */
+export function repsLeftText(repsInReserve: RepsInReserve | null | undefined): string {
+  return repsInReserveCredit(repsInReserve) > 0 ? ` with ${repsInReserve} reps left` : "";
 }
 
 /** "Nov 3, 2026". */
@@ -250,7 +253,7 @@ function seedStep(
   if (seed.source === "history" && seed.ownEstimate != null) {
     const h = seed.history;
     const session = h
-      ? `${num(h.weight)}${h.perHand ? " per hand" : ""} × ${h.reps}${repsLeftText(h.rpe)} on ${dayText(h.at)}${h.imported ? " (imported)" : ""}`
+      ? `${num(h.weight)}${h.perHand ? " per hand" : ""} × ${h.reps}${repsLeftText(h.repsInReserve)} on ${dayText(h.at)}${h.imported ? " (imported)" : ""}`
       : "your latest session";
     const fromEstimate = `${lead}: from your own history: ${session} gives an estimated max of ${num(seed.ownEstimate)} in all; the heaviest weight for ${reps} reps, rounded down to ${num(increment)}`;
     const held =

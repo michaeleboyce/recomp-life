@@ -47,8 +47,8 @@ export function MoreCharts({ metrics, liftName }: { metrics: LiftMetrics; liftNa
               ariaLabel={`${liftName} last-set reps over time`}
             />
           </ChartFrame>
-          <ChartFrame title="Effort (RPE)" value={latestText(metrics.avgRpe.series)}>
-            <LazyTrendChart series={metrics.avgRpe.series} ariaLabel={`${liftName} RPE over time`} />
+          <ChartFrame title="Reps left" value={latestText(metrics.avgRepsInReserve.series)}>
+            <LazyTrendChart series={metrics.avgRepsInReserve.series} ariaLabel={`${liftName} reps left over time`} />
           </ChartFrame>
           <ChartFrame title="Weekly volume" value={latestText(volume, formatCompact)}>
             <BarSeries

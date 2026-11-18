@@ -1,7 +1,7 @@
 // Input and output shapes of the strength model. The stored set type lives in
 // src/types; the wiring maps stored sets onto `StrengthSet`.
 
-import type { Tier } from "@/types";
+import type { RepsInReserve, Tier } from "@/types";
 
 /**
  * What a set was for. `ramp` and `backoff` count like `working` sets at their own
@@ -21,8 +21,8 @@ export interface StrengthSet {
   /** The weight is per dumbbell. See `externalLoad` for how the total is counted. */
   perHand: boolean;
   reps: number;
-  /** Logged effort (RPE 6-10), when there is one. */
-  rpe?: number | null;
+  /** Reps the lifter said they had left, when they answered. */
+  repsInReserve?: RepsInReserve | null;
   role: StrengthSetRole;
   /** The slot the set was done in; only T1 sets give an estimate, as today. */
   tier: Tier;
@@ -54,7 +54,7 @@ export interface EstimateSet {
   /** Total load moved (see `externalLoad`). */
   load: number;
   reps: number;
-  rpe: number | null;
+  repsInReserve: RepsInReserve | null;
 }
 
 /** What one session says about one exercise's strength. */

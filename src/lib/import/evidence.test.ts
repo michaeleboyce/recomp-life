@@ -7,10 +7,12 @@ import {
   sessionEstimates,
 } from "@/lib/strength";
 import { strengthEvidenceOf, strengthSetsOf } from "@/lib/workout/strength";
+import { REPS_IN_RESERVE_OPTIONS } from "@/lib/effort";
 import {
   addImportedVolume,
   addMuscleValues,
-  effortRpe,
+  EFFORT_WORD_REPS_IN_RESERVE,
+  effortRepsInReserve,
   importedMuscleLastTrained,
   importedMuscleLoad,
   importedMuscleSets,
@@ -51,7 +53,8 @@ describe("importedStrengthSets", () => {
     ]);
     const sets = importedStrengthSets([session]);
     expect(sets.map((s) => s.role)).toEqual(["warmup", "working", "drop", "drop"]);
-    expect(sets[1].rpe).toBe(9);
+    expect(sets[1].repsInReserve).toBe("1-2");
+    expect(sets[0].repsInReserve).toBeNull();
     expect(sets[2].dropOf).toBe("x");
     expect(sets[3].dropOf).toBe("d1");
     // The estimated max is the working set's; drops never set it.
@@ -76,13 +79,41 @@ describe("importedStrengthSets", () => {
   });
 });
 
-describe("effortRpe", () => {
+describe("effortRepsInReserve", () => {
   it("maps the apps' effort words and nothing else", () => {
-    expect(effortRpe("Easy")).toBe(7);
-    expect(effortRpe("Ideal")).toBe(8);
-    expect(effortRpe(" hard ")).toBe(9);
-    expect(effortRpe("Spicy")).toBeNull();
-    expect(effortRpe(null)).toBeNull();
+    expect(effortRepsInReserve("Easy")).toBe("3+");
+    expect(effortRepsInReserve("Ideal")).toBe("1-2");
+    expect(effortRepsInReserve("Moderate")).toBe("1-2");
+    expect(effortRepsInReserve(" hard ")).toBe("1-2");
+    expect(effortRepsInReserve("Max")).toBe("0");
+    expect(effortRepsInReserve("FAILURE")).toBe("0");
+    expect(effortRepsInReserve("failed")).toBe("0");
+    expect(effortRepsInReserve("Spicy")).toBeNull();
+    expect(effortRepsInReserve("")).toBeNull();
+    expect(effortRepsInReserve(null)).toBeNull();
+  });
+
+  it("maps every word to one of the three answers", () => {
+    for (const answer of Object.values(EFFORT_WORD_REPS_IN_RESERVE)) {
+      expect(REPS_IN_RESERVE_OPTIONS).toContain(answer);
+    }
+  });
+
+  it("credits the reps each answer counts for before the formula; no word reads as all-out", () => {
+    const estimateWith = (effort: string | null) => {
+      const session = importedSession([
+        importedSet({ id: "x", exerciseName: "Barbell Squat", mappedExerciseId: "squat", weightPerImplementLb: 185, reps: 5, effort }),
+      ]);
+      return sessionEstimates(importedStrengthSets([session]), "squat")[0].estimatedMax;
+    };
+    // 185 × (1 + 5/30) ≈ 216: no word, or a word for an all-out set, adds nothing.
+    expect(estimateWith(null)).toBe(216);
+    expect(estimateWith("Spicy")).toBe(216);
+    expect(estimateWith("Max")).toBe(216);
+    // "1-2" adds 1.5: 185 × (1 + 6.5/30) ≈ 225.
+    expect(estimateWith("Hard")).toBe(225);
+    // "3+" adds 3 (its floor): 185 × (1 + 8/30) ≈ 234.
+    expect(estimateWith("Easy")).toBe(234);
   });
 });
 

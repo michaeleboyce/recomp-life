@@ -77,7 +77,7 @@ describe("forecastNote", () => {
   it("states the chance of a new best, what the picked count would do and what it rests on", () => {
     const note = forecastNote(
       { reps: row("amrapReps"), newBest: newBestRow() },
-      { weight: 215, reps: 6, rpe: null }
+      { weight: 215, reps: 6, repsInReserve: null }
     );
     expect(note.lead).toBe("5 or more is a new best");
     expect(note.chance).toBe(" (58% chance).");
@@ -88,7 +88,7 @@ describe("forecastNote", () => {
   it("says nothing about the picked count when it would not beat the best", () => {
     const note = forecastNote(
       { reps: row("amrapReps"), newBest: newBestRow() },
-      { weight: 215, reps: 4, rpe: null }
+      { weight: 215, reps: 4, repsInReserve: null }
     );
     expect(note.selected).toBeNull();
   });
@@ -96,7 +96,7 @@ describe("forecastNote", () => {
   it("without a best to beat, gives the most likely count; with no history says it is a starting guess", () => {
     const note = forecastNote(
       { reps: row("amrapReps", { inputs: { sampleSize: 0, readinessShift: null, cuttingShift: 0 } }) },
-      { weight: 215, reps: 6, rpe: null }
+      { weight: 215, reps: 6, repsInReserve: null }
     );
     expect(note.lead).toBe("5 reps is most likely");
     expect(note.chance).toBe(" (4 to 6 expected).");

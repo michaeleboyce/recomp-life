@@ -33,7 +33,7 @@ const W: WorkoutSession = workout({
   sets: [
     // Stored out of order: the detail sorts by completion time.
     set({ id: "b1", exerciseId: "bench", tier: "T2", setNumber: 1, targetReps: 10, actualReps: 10, weight: 135, completedAt: at(30) }),
-    set({ id: "q2", setNumber: 2, actualReps: 3, completedAt: at(12), rpe: 8.5 }),
+    set({ id: "q2", setNumber: 2, actualReps: 3, completedAt: at(12), repsInReserve: "1-2" }),
     set({ id: "wu", tier: "warmup", setNumber: 1, actualReps: 5, weight: 95, completedAt: at(5) }),
     set({ id: "q1", setNumber: 1, actualReps: 3, completedAt: at(10) }),
     set({ id: "q3", setNumber: 3, actualReps: 1, targetReps: 3, isAMRAP: true, status: "failed", completedAt: at(14) }),
@@ -89,7 +89,7 @@ describe("WorkoutDetail", () => {
     expect(rows[0]).toHaveTextContent("Warm-up");
     expect(rows[1]).toHaveTextContent("Set 1");
     expect(rows[2]).toHaveTextContent("Set 2");
-    expect(rows[2]).toHaveTextContent("Effort 8.5");
+    expect(rows[2]).toHaveTextContent("1-2 left");
     // Warm-ups are not tappable; working sets are.
     expect(within(rows[0]).queryByRole("button")).toBeNull();
     expect(within(rows[1]).getByRole("button")).toBeInTheDocument();

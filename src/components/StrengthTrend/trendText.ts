@@ -2,6 +2,7 @@
 // planner's number differ, what one dot is and how much it counts. Pure.
 import { formatShortDate } from "@/components/chart-kit/scale";
 import { DAY_MS } from "@/lib/dates";
+import { repsInReserveLabel } from "@/lib/effort";
 import { EXERCISES } from "@/lib/exercises";
 import { LIFT_NAMES, isMainLift } from "@/lib/liftNames";
 import { formatMuscle } from "@/lib/muscles";
@@ -112,11 +113,11 @@ export function reasonText(reason: TrendReason | null, timeline: StrengthTimelin
   );
 }
 
-/** "70 each × 8 @ RPE 8" for the dot's best set. */
+/** "70 each × 8, 1-2 left" for the dot's best set. */
 export function setText(point: TimelinePoint): string {
   const s = point.bestSet;
   const weight = `${Number(s.weight.toFixed(1))}${s.perHand ? " each" : ""}`;
-  return `${weight} × ${s.reps}${s.rpe != null ? ` @ RPE ${s.rpe}` : ""}`;
+  return `${weight} × ${s.reps}${s.repsInReserve ? `, ${repsInReserveLabel(s.repsInReserve)}` : ""}`;
 }
 
 export interface PointDetail {

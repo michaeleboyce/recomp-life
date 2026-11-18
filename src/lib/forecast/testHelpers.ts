@@ -9,6 +9,7 @@ import type {
   BodyweightLog,
   Forecast,
   LiftAdjustment,
+  RepsInReserve,
   SetLog,
   T1Stage,
   TrainingPhase,
@@ -258,8 +259,8 @@ export interface SimulatedLifter {
   weeklyGain: number;
   /** Reps above the target the lifter starts with at the starting weights. */
   headroomReps: number;
-  /** The effort (RPE) the lifter logs with every T1 set; none when left out. */
-  rpe?: number;
+  /** The reps-left answer the lifter logs with every T1 set; none when left out. */
+  repsInReserve?: RepsInReserve;
 }
 
 const GAP_DAYS = [2, 3, 2];
@@ -302,7 +303,7 @@ export function simulateLifter(lifter: SimulatedLifter): ReplayInput {
       t1: {
         reps: Array.from({ length: scheme.sets - 1 }, () => earlier),
         lastReps: capacity,
-        rpe: lifter.rpe ?? null,
+        repsInReserve: lifter.repsInReserve ?? null,
       },
     });
     start += GAP_DAYS[i % GAP_DAYS.length] * DAY;

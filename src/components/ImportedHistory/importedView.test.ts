@@ -77,8 +77,8 @@ describe("importedSessionExercises", () => {
     expect(press.countsAs).toBe("DB Bench Press");
     expect(press.sets.map((s) => [s.load, s.amount, s.role, s.effort])).toEqual([
       ["30 lb × 2", "12 reps", "warmup", null],
-      ["50 lb × 2", "10 reps", "work", "Hard, about RPE 9"],
-      ["50 lb × 2", "9 reps", "work", "Ideal, about RPE 8"],
+      ["50 lb × 2", "10 reps", "work", "Hard, about 1-2 reps left"],
+      ["50 lb × 2", "9 reps", "work", "Ideal, about 1-2 reps left"],
       ["40 lb × 2", "8 reps", "drop", null],
     ]);
     expect(row.countsAs).toBe("Lat Pulldown");
@@ -107,6 +107,17 @@ describe("importedSessionExercises", () => {
       importedSet({ exerciseName: "Made-up Plank", mappedExerciseId: null, reps: null, weightPerImplementLb: null, durationSec: 75, effort: "Spicy" }),
     ]);
     expect(importedSessionExercises(session)[0].sets[0]).toMatchObject({ amount: "1:15", effort: "Spicy" });
+  });
+
+  it("reads an easy set as 3+ reps left and an all-out one as 0", () => {
+    const session = importedSession([
+      importedSet({ exerciseName: "Barbell Squat", mappedExerciseId: "squat", effort: "Easy" }),
+      importedSet({ exerciseName: "Barbell Squat", mappedExerciseId: "squat", setOrder: 2, effort: "Failure" }),
+    ]);
+    expect(importedSessionExercises(session)[0].sets.map((s) => s.effort)).toEqual([
+      "Easy, about 3+ reps left",
+      "Failure, about 0 reps left",
+    ]);
   });
 });
 

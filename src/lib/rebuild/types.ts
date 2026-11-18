@@ -64,7 +64,7 @@ export interface RebuildResult {
  * set (the barbell weight it stands for, scaled as a plan weight edit scales it), so
  * the credit read from it and the credit read from the weight as lifted agree.
  */
-export type EditableSetFields = Partial<Pick<SetLog, "actualReps" | "weight" | "rpe" | "originalWeight">>;
+export type EditableSetFields = Partial<Pick<SetLog, "actualReps" | "weight" | "repsInReserve" | "originalWeight">>;
 
 export type LogChange =
   | { kind: "editSet"; workoutId: string; setId: string; patch: EditableSetFields }

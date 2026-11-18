@@ -125,7 +125,7 @@ export function simulateCompletedWorkoutStates(input: SimulateCompletedWorkoutIn
         createSetLog({
           exercise: { ...entry, completedSets: done },
           actualReps: entry.targetReps,
-          rpe: null,
+          repsInReserve: null,
           location,
           autoRegulated: false,
           now,

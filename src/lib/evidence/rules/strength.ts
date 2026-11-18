@@ -1,9 +1,10 @@
 import type { EvidenceRule } from "@/types";
 import type { SourceId } from "../sources";
 import { DROP_SET_LIGHTER_BY } from "@/components/ActiveWorkout/setPlan";
-import { E1RM_MAX_REPS, E1RM_MAX_REPS_IN_RESERVE } from "@/lib/e1rm";
+import { E1RM_MAX_REPS } from "@/lib/e1rm";
+import { REPS_IN_RESERVE_OPTIONS, RIR_ESTIMATE, repsInReserveLabel } from "@/lib/effort";
 import { EXERCISES } from "@/lib/exercises";
-import { EFFORT_WORD_RPE } from "@/lib/import/evidence";
+import { EFFORT_WORD_REPS_IN_RESERVE } from "@/lib/import/evidence";
 import {
   DROP_SETS as D,
   MUSCLE_INDEX as I,
@@ -54,11 +55,13 @@ const range = (values: number[]) => {
 
 const STUDIED_COUNT = studied.length;
 
-/** "Easy 7, Ideal 8, Hard 9" for every effort word an import reads. */
-const EFFORT_WORDS = Object.entries(EFFORT_WORD_RPE)
-  .map(([word, rpe]) => `${word[0].toUpperCase()}${word.slice(1)} ${rpe}`)
+/** "Easy 3+ left, Ideal 1-2 left, Max 0 left" for every effort word an import reads. */
+const EFFORT_WORDS = Object.entries(EFFORT_WORD_REPS_IN_RESERVE)
+  .map(([word, answer]) => `${word[0].toUpperCase()}${word.slice(1)} ${repsInReserveLabel(answer)}`)
   .join(", ");
-const easyRpe = EFFORT_WORD_RPE.easy;
+/** "0 for 0, 1.5 for 1-2, 3 for 3+": the reps credited for each answer. */
+const EFFORT_CREDITS = REPS_IN_RESERVE_OPTIONS.map((answer) => `${RIR_ESTIMATE[answer]} for ${answer}`).join(", ");
+const easyCredit = RIR_ESTIMATE[EFFORT_WORD_REPS_IN_RESERVE.easy];
 
 /**
  * Rules behind the one strength model for gym and home, each shown where the app acts on
@@ -191,18 +194,18 @@ export const STRENGTH_RULES = {
     area: "effort",
     status: "active",
     title: "How are effort words from other apps read?",
-    summary: "An imported set's effort word becomes an approximate RPE",
-    appBehavior: `Sets imported from another app can carry an effort word. When those sets feed the strength estimate, each word is read as an approximate RPE: ${EFFORT_WORDS}. The reps left in reserve are then 10 minus that RPE, at most ${E1RM_MAX_REPS_IN_RESERVE}, as for an RPE you log yourself: a set marked Easy counts as ${10 - easyRpe} reps short of failure. A set with no word, or a word not in the list, is read as taken to its limit, which gives the lower estimate. Warm-ups give no estimate, and a drop counts as drops do.`,
+    summary: "An imported set's effort word becomes an answer for reps left",
+    appBehavior: `Sets imported from another app can carry an effort word. When those sets feed the strength estimate, each word is read as one of the app's answers for reps left: ${EFFORT_WORDS}. The reps credited are then the same as for an answer you give yourself (${EFFORT_CREDITS}): a set marked Easy counts as ${easyCredit} reps short of failure. A set with no word, or a word not in the list, is read as taken to its limit, which gives the lower estimate. Warm-ups give no estimate, and a drop counts as drops do.`,
     rationale:
-      "An estimated max from a set depends on how close to failure it went. The other apps record that in words, not reps, so the words are mapped to the nearest RPE that matches their usual meaning, and a set with no word is read the cautious way.",
+      "An estimated max from a set depends on how close to failure it went. The other apps record that in words, not reps, so each word is mapped to the answer for reps left that matches its usual meaning, and a set with no word is read the cautious way.",
     caveat:
       "The apps do not say what their words mean in reps; the mapping is this app's reading of them, not a research finding. Imported sets with these words also count less as they age, like any other session.",
     strength: "heuristic",
     sources: [],
     reviewedOn: "2026-11",
     implementedIn: [
-      "src/lib/import/evidence.ts#EFFORT_WORD_RPE",
-      "src/lib/import/evidence.ts#effortRpe",
+      "src/lib/import/evidence.ts#EFFORT_WORD_REPS_IN_RESERVE",
+      "src/lib/import/evidence.ts#effortRepsInReserve",
       "src/lib/import/evidence.ts#importedSessionStrengthSets",
     ],
     surfaces: ["src/components/ImportedHistory/ImportedSessionSheet.tsx"],

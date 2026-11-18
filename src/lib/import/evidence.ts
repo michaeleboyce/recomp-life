@@ -22,30 +22,31 @@ import { applyOverrides, lookupName } from "@/lib/import/mapping";
 import type { MappingOverrides } from "@/lib/import/mapping/types";
 import { isMuscleId } from "@/lib/muscles";
 import { MUSCLE_WEIGHTS, volumeCredits, type StrengthSet, type StrengthSetRole } from "@/lib/strength";
-import type { ImportedSessionRecord, ImportedSetRecord, MuscleGroupVolume, MuscleId } from "@/types";
+import type { ImportedSessionRecord, ImportedSetRecord, MuscleGroupVolume, MuscleId, RepsInReserve } from "@/types";
 
 /**
- * The effort words other apps log, as an approximate RPE: the reps left in reserve are
- * credited by the app's estimate (10 − RPE). Graded heuristic: the apps do not say what
- * their words mean in reps. A set without a word is read as taken to its limit, which
- * gives the lower estimate.
+ * The effort words other apps log, as a reps-in-reserve answer: a word for an all-out
+ * set is "0", a hard or comfortable working set "1-2", an easy one "3+". The reps
+ * credited for an answer are the app's own (`RIR_ESTIMATE`), as for an answer logged in
+ * the app. Graded heuristic: the apps do not say what their words mean in reps. A set
+ * without a word is read as taken to its limit, which gives the lower estimate.
  *
  * @evidence import-effort-words
  */
-export const EFFORT_WORD_RPE: Readonly<Record<string, number>> = {
-  easy: 7,
-  ideal: 8,
-  moderate: 8,
-  hard: 9,
-  max: 10,
-  failure: 10,
-  failed: 10,
+export const EFFORT_WORD_REPS_IN_RESERVE: Readonly<Record<string, RepsInReserve>> = {
+  easy: "3+",
+  ideal: "1-2",
+  moderate: "1-2",
+  hard: "1-2",
+  max: "0",
+  failure: "0",
+  failed: "0",
 };
 
-/** The approximate RPE for an effort word, or null. */
-export function effortRpe(word: string | null | undefined): number | null {
+/** The reps-in-reserve answer an effort word is read as; null for no word or an unknown one. */
+export function effortRepsInReserve(word: string | null | undefined): RepsInReserve | null {
   if (!word) return null;
-  return EFFORT_WORD_RPE[word.trim().toLowerCase()] ?? null;
+  return EFFORT_WORD_REPS_IN_RESERVE[word.trim().toLowerCase()] ?? null;
 }
 
 const SET_SPACING_MS = 1000;
@@ -114,7 +115,7 @@ function sessionTime(session: Pick<ImportedSessionRecord, "startedAt">): number 
  * - Warm-ups stay warm-ups (counted for nothing); a drop continues the set of the same
  *   exercise before it, so it is discounted and kept out of the estimated max.
  * - A loaded set of at least one rep is read as taken to its limit, less the reps its
- *   effort word leaves (`effortRpe`): it is marked as the library's estimate-eligible
+ *   effort word leaves (`effortRepsInReserve`): it is marked as the library's estimate-eligible
  *   kind (T1, as many reps as possible), and the library's rep limits still apply. Sets
  *   with no load (bodyweight, assistance, timed holds) give no estimate.
  * - Each set is a second after the one before it, from the session's start.
@@ -143,7 +144,7 @@ export function importedSessionStrengthSets(
       weight,
       perHand: EXERCISES[exerciseId].grip === "per_hand",
       reps,
-      rpe: effortRpe(set.effort),
+      repsInReserve: effortRepsInReserve(set.effort),
       role,
       tier: estimable ? "T1" : "T3",
       isAMRAP: estimable,

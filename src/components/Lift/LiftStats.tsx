@@ -33,9 +33,9 @@ export function LiftStats({ stats }: { stats: Stats }) {
         sub="avg reps"
       />
       <Stat
-        label={<Term id="rpe" label="Effort">Effort</Term>}
+        label={<Term id="rir" label="Reps left">Reps left</Term>}
         value={fmt1(stats.effort)}
-        sub="avg RPE"
+        sub="avg"
       />
       <Stat
         label="Volume"

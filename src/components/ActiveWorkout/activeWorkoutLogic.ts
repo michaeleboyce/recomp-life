@@ -4,6 +4,7 @@ import { applyChange, type LogChange } from "@/lib/rebuild";
 import { entrySetsFor, workingSetsFor } from "@/lib/workout/setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
 import type {
+  RepsInReserve,
   SetLog,
   TrainingPhase,
   WorkoutSession,
@@ -91,7 +92,7 @@ export function isDropAccepted(entry: WorkoutExerciseState, sets: SetLog[]): boo
 }
 
 /**
- * A logged set after an edit to its reps, weight or RPE, with the status derived
+ * A logged set after an edit to its reps, weight or effort answer, with the status derived
  * again by the engine's rule (the one `createSetLog` uses; an accepted load drop
  * stays one). Null when the change is not an edit of a set on this session.
  */
@@ -119,12 +120,12 @@ export function entryIndexForSet(plan: WorkoutPlan, set: SetLog): number {
 
 export interface DropSuggestion {
   reducedWeight: number;
-  rpe: number;
+  repsInReserve: RepsInReserve;
 }
 
 /**
  * The T2 auto-regulation suggestion for an entry: offered between its first and
- * second set when the first set's RPE crossed the phase threshold. Derived from
+ * second set when the first set's answer called for one in this phase. Derived from
  * the logged set, so it is still there after a reload.
  */
 export function dropSuggestionFor(
@@ -135,10 +136,10 @@ export function dropSuggestionFor(
   // With a weight per set the lifter chose every weight already; nothing to suggest.
   if (entry.tier !== "T2" || entry.completedSets !== 1 || entry.perSet) return null;
   const first = workingSetsFor(sets, entry.exerciseId, entry.tier)[0];
-  if (!first || first.rpe == null) return null;
-  const result = evaluateT2AutoRegulation(first.rpe, phase, first.weight);
+  if (!first || first.repsInReserve == null) return null;
+  const result = evaluateT2AutoRegulation(first.repsInReserve, phase, first.weight);
   if (result.action !== "suggest_drop" || !result.reducedWeight) return null;
-  return { reducedWeight: result.reducedWeight, rpe: first.rpe };
+  return { reducedWeight: result.reducedWeight, repsInReserve: first.repsInReserve };
 }
 
 /** m:ss for a whole number of seconds. */

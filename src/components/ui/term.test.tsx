@@ -28,11 +28,11 @@ describe("Term", () => {
     render(<Term id="amrap">AMRAP</Term>);
     fireEvent.click(screen.getByRole("button", { name: "What does AMRAP mean?" }));
     const sheet = screen.getByRole("dialog");
-    fireEvent.click(within(sheet).getByRole("button", { name: GLOSSARY.rpe.term }));
-    expect(within(sheet).getByRole("heading", { name: "RPE" })).toBeInTheDocument();
+    fireEvent.click(within(sheet).getByRole("button", { name: GLOSSARY.rir.term }));
+    expect(within(sheet).getByRole("heading", { name: "Reps in reserve" })).toBeInTheDocument();
     expect(within(sheet).getByRole("link", { name: "All terms" })).toHaveAttribute(
       "href",
-      "/more/glossary#rpe"
+      "/more/glossary#rir"
     );
   });
 
@@ -48,8 +48,8 @@ describe("Term", () => {
   });
 
   it("can hide its links for use mid-workout", () => {
-    render(<Term id="rpe" hideLinks>RPE</Term>);
-    fireEvent.click(screen.getByRole("button", { name: "What does RPE mean?" }));
+    render(<Term id="rir" hideLinks>Reps left</Term>);
+    fireEvent.click(screen.getByRole("button", { name: "What does Reps left mean?" }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.queryByRole("link")).toBeNull();
   });

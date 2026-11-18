@@ -36,7 +36,7 @@ describe("More page", () => {
 
     const learn = group("Learn");
     expect(link(learn, /Glossary/)).toHaveAttribute("href", "/more/glossary");
-    expect(link(learn, /Glossary/)).toHaveTextContent("What AMRAP, T1, RPE and the rest mean");
+    expect(link(learn, /Glossary/)).toHaveTextContent("What AMRAP, T1, reps left and the rest mean");
     expect(link(learn, /How the app coaches/)).toHaveAttribute("href", "/research");
     expect(link(learn, /How the app decides/)).toHaveAttribute("href", "/more/how-it-works");
     expect(link(learn, /Adjustment log/)).toHaveAttribute("href", "/more/adjustments");

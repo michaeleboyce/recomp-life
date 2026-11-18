@@ -124,7 +124,7 @@ export function tilesFromForecasts(
   if (t1 && row && typeof best === "number" && typeof probability === "number") {
     // The same count the stored chance is for: the reps needed at the usual effort.
     const credit = typeof row.inputs.effortCredit === "number" ? row.inputs.effortCredit : 0;
-    const target = repsToBeat(t1.weight, best, 10 - credit);
+    const target = repsToBeat(t1.weight, best, credit);
     if (target) {
       newBest = {
         probability,

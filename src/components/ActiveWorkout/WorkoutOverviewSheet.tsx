@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ArrowRight, Check, Circle, Pencil } from "lucide-react";
+import { repsInReserveLabel } from "@/lib/effort";
 import { getExercise } from "@/lib/exercises";
 import type { LogChange } from "@/lib/rebuild";
 import { entrySetsFor } from "@/lib/workout/setSelectors";
@@ -49,7 +50,7 @@ interface WorkoutOverviewSheetProps {
 function setSummary(set: SetLog, perHand: boolean): string {
   const reps = `${set.actualReps} ${set.actualReps === 1 ? "rep" : "reps"}`;
   const weight = `${set.weight} ${perHand ? "lbs per hand" : "lbs"}`;
-  const effort = set.rpe != null ? `, RPE ${set.rpe}` : "";
+  const effort = set.repsInReserve != null ? `, ${repsInReserveLabel(set.repsInReserve)}` : "";
   const missed = set.status === "failed" ? `, below the target of ${set.targetReps}` : "";
   return `${reps} at ${weight}${effort}${missed}`;
 }

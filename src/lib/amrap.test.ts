@@ -1,10 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { getAMRAPGuidance, T1_AMRAP_TARGET_RPE } from "./amrap";
+import { getAMRAPGuidance, T1_AMRAP_TARGET_REPS_IN_RESERVE } from "./amrap";
 
 describe("getAMRAPGuidance", () => {
-  it("tells T1 sets to stop about one rep short of failure", () => {
-    expect(getAMRAPGuidance("T1")).toContain("1 rep left");
-    expect(getAMRAPGuidance("T1")).toContain(`RPE ${T1_AMRAP_TARGET_RPE}`);
+  it("tells T1 sets to stop a rep or two short of failure", () => {
+    expect(T1_AMRAP_TARGET_REPS_IN_RESERVE).toBe("1-2");
+    expect(getAMRAPGuidance("T1")).toBe(`Stop with ${T1_AMRAP_TARGET_REPS_IN_RESERVE} reps left`);
+  });
+
+  it("never names the rating by its abbreviation", () => {
+    for (const tier of ["T1", "T3"] as const) {
+      expect(getAMRAPGuidance(tier)).not.toMatch(/\b(RPE|RIR)\b/);
+    }
   });
 
   it("tells T3 sets to push close to failure", () => {

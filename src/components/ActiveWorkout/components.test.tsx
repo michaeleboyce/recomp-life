@@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
+import { REPS_IN_RESERVE_QUESTION } from "@/lib/effort";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import { AMRAPIndicator } from "./AMRAPIndicator";
@@ -10,7 +11,7 @@ import { LogDock } from "./LogDock";
 import { PrOpportunityLine } from "./PrOpportunityLine";
 import { RepPicker } from "./RepPicker";
 import { FINAL_SECONDS, restRingFraction } from "./RestTimer";
-import { RPESelector } from "./RPESelector";
+import { EffortSelector } from "./EffortSelector";
 import { WeightDisplay } from "./WeightDisplay";
 import { WorkoutOverviewSheet } from "./WorkoutOverviewSheet";
 import { clampReps, repChips, restNextLabel } from "./activeWorkoutLogic";
@@ -264,21 +265,43 @@ describe("PrOpportunityLine", () => {
   });
 });
 
-describe("RPESelector", () => {
-  it("selects a value, and clears it when tapped again", () => {
-    const onSelect = vi.fn();
-    const { rerender } = render(<RPESelector selectedRPE={null} onSelectRPE={onSelect} />);
-    fireEvent.click(screen.getByRole("button", { name: "RPE 8.5" }));
-    expect(onSelect).toHaveBeenLastCalledWith(8.5);
+describe("EffortSelector", () => {
+  it("asks the question and offers three answers, none pressed when nothing is selected", () => {
+    render(<EffortSelector selected={null} onSelect={vi.fn()} />);
+    expect(screen.getByRole("heading", { name: new RegExp(REPS_IN_RESERVE_QUESTION) })).toHaveTextContent("(optional)");
+    const buttons = within(screen.getByRole("region", { name: "Effort" })).getAllByRole("button", {
+      name: /reps left$/,
+    });
+    expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual([
+      "0 reps left",
+      "1-2 reps left",
+      "3+ reps left",
+    ]);
+    for (const button of buttons) {
+      expect(button).toHaveAttribute("type", "button");
+      expect(button).toHaveAttribute("aria-pressed", "false");
+    }
+    expect(screen.getByText("None left")).toBeInTheDocument();
+    expect(screen.getByText("A couple")).toBeInTheDocument();
+    expect(screen.getByText("Plenty")).toBeInTheDocument();
+  });
 
-    rerender(<RPESelector selectedRPE={8.5} onSelectRPE={onSelect} />);
-    fireEvent.click(screen.getByRole("button", { name: "RPE 8.5" }));
+  it("selects an answer, and clears it when tapped again", () => {
+    const onSelect = vi.fn();
+    const { rerender } = render(<EffortSelector selected={null} onSelect={onSelect} />);
+    fireEvent.click(screen.getByRole("button", { name: "1-2 reps left" }));
+    expect(onSelect).toHaveBeenLastCalledWith("1-2");
+
+    rerender(<EffortSelector selected="1-2" onSelect={onSelect} />);
+    expect(screen.getByRole("button", { name: "1-2 reps left" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "0 reps left" })).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(screen.getByRole("button", { name: "1-2 reps left" }));
     expect(onSelect).toHaveBeenLastCalledWith(null);
   });
 
   it("keeps its evidence line", () => {
-    const { container } = render(<RPESelector selectedRPE={null} onSelectRPE={vi.fn()} />);
-    expect(container.querySelector('[data-evidence="rpe-logging"]')).not.toBeNull();
+    const { container } = render(<EffortSelector selected={null} onSelect={vi.fn()} />);
+    expect(container.querySelector('[data-evidence="effort-logging"]')).not.toBeNull();
   });
 });
 
@@ -323,7 +346,7 @@ describe("ExerciseBlock", () => {
     );
     expect(screen.getByRole("heading", { name: "DB Romanian Deadlift" })).toBeInTheDocument();
     expect(screen.getByText("Set 5 of 5")).toBeInTheDocument();
-    expect(screen.getByText(/stop with about 1 rep left/i)).toBeInTheDocument();
+    expect(screen.getByText(/stop with 1-2 reps left/i)).toBeInTheDocument();
     expect(container.querySelector('[data-evidence="amrap-effort"]')).not.toBeNull();
   });
 
@@ -344,11 +367,11 @@ describe("glossary terms mid-workout", () => {
     expect(within(sheet).queryByRole("link")).toBeNull();
   });
 
-  it("the tier badge, RPE heading and 'new best' are explained", () => {
+  it("the tier badge, effort heading and 'new best' are explained", () => {
     render(
       <>
         <ExerciseBlock exercise={entry({ tier: "T2" })} location="gym" />
-        <RPESelector selectedRPE={null} onSelectRPE={vi.fn()} />
+        <EffortSelector selected={null} onSelect={vi.fn()} />
         <PrOpportunityLine
           opportunity={{ repsNeeded: 5, e1rmAtRepsNeeded: 286, bestE1RM: 266, chance: "likely" }}
           recentAMRAPReps={[]}
@@ -356,8 +379,8 @@ describe("glossary terms mid-workout", () => {
       </>
     );
     expect(screen.getByRole("button", { name: "What does T2 mean?" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /Effort \(.*RPE.*, optional\)/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "What does RPE mean?" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /How many more reps could you have done\?/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "What does reps left mean?" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "What does new best mean?" })).toBeInTheDocument();
   });
 });

@@ -53,10 +53,10 @@ export function applyChange(log: LogState, change: LogChange, at: number = 0): L
         if (change.patch.actualReps !== undefined) edited.actualReps = change.patch.actualReps;
         if (change.patch.weight !== undefined) edited.weight = change.patch.weight;
         if (change.patch.originalWeight !== undefined) edited.originalWeight = change.patch.originalWeight;
-        // An explicit `rpe: undefined` clears the RPE.
-        if ("rpe" in change.patch) {
-          if (change.patch.rpe == null) delete edited.rpe;
-          else edited.rpe = change.patch.rpe;
+        // An explicit `repsInReserve: undefined` clears the answer.
+        if ("repsInReserve" in change.patch) {
+          if (change.patch.repsInReserve == null) delete edited.repsInReserve;
+          else edited.repsInReserve = change.patch.repsInReserve;
         }
         edited.status = statusAfterEdit(edited);
         return edited;

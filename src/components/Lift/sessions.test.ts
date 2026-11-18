@@ -19,15 +19,15 @@ describe("liftSessions", () => {
     expect(rows.filter((r) => r.best)).toHaveLength(1);
   });
 
-  it("marks the AMRAP set, failed sets, mean RPE and the best session", () => {
+  it("marks the AMRAP set, failed sets, mean reps left and the best session", () => {
     const w1 = makeWorkout({
       id: "w1",
       completedAt: new Date("2026-11-01T10:00:00Z"),
       startedAt: new Date("2026-11-01T09:00:00Z"),
       sets: [
         makeSet({ exerciseId: "squat", tier: "warmup", weight: 95, actualReps: 5 }),
-        makeSet({ exerciseId: "squat", tier: "T1", weight: 215, actualReps: 3, rpe: 7 }),
-        makeSet({ exerciseId: "squat", tier: "T1", weight: 215, actualReps: 2, status: "failed", rpe: 9 }),
+        makeSet({ exerciseId: "squat", tier: "T1", weight: 215, actualReps: 3, repsInReserve: "3+" }),
+        makeSet({ exerciseId: "squat", tier: "T1", weight: 215, actualReps: 2, status: "failed", repsInReserve: "0" }),
         makeSet({ exerciseId: "squat", tier: "T1", weight: 215, actualReps: 5, isAMRAP: true }),
         makeSet({ exerciseId: "bench", tier: "T2", weight: 120, actualReps: 10 }),
       ],
@@ -44,8 +44,8 @@ describe("liftSessions", () => {
     ] as Estimated1RM[];
 
     const [second, first] = liftSessions([w1, w2], e1rms, "squat");
-    expect(second).toMatchObject({ workoutId: "w2", tier: "T2", weight: 165, rpe: null, best: false });
-    expect(first).toMatchObject({ workoutId: "w1", tier: "T1", weight: 215, rpe: 8, best: true });
+    expect(second).toMatchObject({ workoutId: "w2", tier: "T2", weight: 165, meanRepsInReserve: null, best: false });
+    expect(first).toMatchObject({ workoutId: "w1", tier: "T1", weight: 215, meanRepsInReserve: 1.5, best: true });
     expect(first.sets).toEqual([
       { reps: 3, amrap: false, failed: false },
       { reps: 2, amrap: false, failed: true },
