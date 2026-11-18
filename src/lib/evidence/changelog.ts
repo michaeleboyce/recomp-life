@@ -12,6 +12,13 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-18",
+    ruleId: "accessory-progression",
+    change:
+      "Double progression read an accessory's last app session however old it was, so a session from over a year ago could still add a step (or, after three stuck sessions long ago, drop the weight). A last session older than the own-history window before the workout being planned now adds nothing: the weight stays, the row says \"Last done 14 months ago: same weight to start\", and a break that long starts the count of stuck sessions again. A cautious choice (heuristic), as the first-weight limits are.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
     ruleId: "starting-weights",
     change:
       "While starting weights suggested from imported history wait to be confirmed, Today lists \"Confirm your starting weights\" under Needs attention, linking to Settings → Import history. A lift not yet done in the app no longer says \"First time\" when the imported history holds it: it says it is at the default starting weight and what the history suggests. No planned weight changes until you confirm one.",
