@@ -24,6 +24,7 @@ import { startWorkout } from "@/lib/data/workouts";
 import { clearAccessoryWeight, setAccessorySettings, setAccessoryWeight, updateSettings } from "@/lib/data/records";
 import { sessionMinutesFromParam, sessionMinutesOf, type SessionMinutes } from "@/lib/accessories/sessionBudget";
 import { EXERCISES } from "@/lib/exercises";
+import { sessionPaceCorrection } from "@/lib/forecast";
 import { resolvePreferences } from "@/lib/exercisePreferences";
 import {
   favoriteEditsAt,
@@ -358,9 +359,15 @@ export function useWorkoutSetup(
   // (`resolveNextWorkout`), on this screen's day, so the same day gives the same picks,
   // kept to this workout's session length.
   const [openedAt] = useState(() => new Date());
+  // The length is measured with the lifter's own pace, as the length line shows it.
   const accessorySource = useMemo<AccessorySource>(
-    () => ({ settings: { ...settings, sessionMinutes }, strengthSets: strengthSets ?? [], now: openedAt }),
-    [settings, sessionMinutes, strengthSets, openedAt]
+    () => ({
+      settings: { ...settings, sessionMinutes },
+      strengthSets: strengthSets ?? [],
+      now: openedAt,
+      pace: sessionPaceCorrection(completedWorkouts ?? [], openedAt, settings.trainingPhase),
+    }),
+    [settings, sessionMinutes, strengthSets, openedAt, completedWorkouts]
   );
 
   /**

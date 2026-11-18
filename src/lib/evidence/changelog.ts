@@ -12,6 +12,13 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-18",
+    ruleId: "session-length-budget",
+    change:
+      "The accessories were kept to the session length on paper while Today and the Ready screen showed the length corrected for your own pace, so the sheet could say \"3 of 3 fit in 60 min\" beside \"About 66 of 60 min\". The budget now measures the plan the way the screens do: on paper, with the day's per-set plans, times your pace once you have finished enough sessions. A lifter faster than the estimate gets room for more accessories, a slower one fewer; Today, the Ready screen and Coming up agree.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
     ruleId: "accessory-selection",
     change:
       "An accessory offered at home in place of a gym one used to give the replacement as its reason (\"At home instead of Machine Chest Fly\"). It now gives the reason it earned itself, as every other pick does, and the accessory sheet names the gym exercise it stands in for as a quieter note below.",

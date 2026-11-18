@@ -1,3 +1,4 @@
+import { sessionPaceCorrection, type PaceSession } from "@/lib/forecast/sessionLength";
 import type { StrengthSet } from "@/lib/strength";
 import { applySteps } from "@/lib/trace/replay";
 import { change, num, stageWords, step } from "@/lib/trace/text";
@@ -64,7 +65,11 @@ export interface UpcomingWorkout {
 }
 
 export interface ProjectUpcomingInput {
-  completedWorkouts: Pick<WorkoutSession, "templateId" | "startedAt" | "completedAt">[];
+  /**
+   * The finished workouts: the rotation, and the lifter's pace the session length is
+   * measured with (`sessionPaceCorrection`, as the lengths shown are).
+   */
+  completedWorkouts: (Pick<WorkoutSession, "templateId" | "startedAt" | "completedAt"> & Partial<PaceSession>)[];
   templates: Record<string, WorkoutTemplate>;
   liftStates: LiftState[];
   location: WorkoutLocation;
@@ -361,6 +366,7 @@ function accessorySourceOf(input: ProjectionInput): AccessorySource | null {
     settings: { ...input.settings, equipment: input.equipment },
     strengthSets: input.strengthSets ?? [],
     now: input.accessoriesNow,
+    pace: sessionPaceCorrection(input.completedWorkouts, input.accessoriesNow, input.settings.trainingPhase),
   };
 }
 

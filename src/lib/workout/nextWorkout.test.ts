@@ -9,6 +9,7 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { nextWorkoutFrom, readinessTodayFrom, strengthSetsFrom } from "@/lib/data/forecasts";
 import { todayForecastFrom } from "@/hooks/useTodayForecast";
+import { forecastSessionLength, sessionPaceCorrection } from "@/lib/forecast";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { describeNextWorkout } from "./buildPlan";
 import { resolveNextWorkout } from "./nextWorkout";
@@ -48,13 +49,18 @@ describe("resolveNextWorkout: one resolution for every consumer", () => {
         variantStates,
         strengthSets,
         ...(settings.nextSetPlans ? { nextSetPlans: settings.nextSetPlans } : {}),
-        accessories: { settings, strengthSets, now },
+        // The Ready screen's source: the same day, and the pace of the same finished workouts.
+        accessories: { settings, strengthSets, now, pace: sessionPaceCorrection(completedWorkouts, now, settings.trainingPhase) },
       });
       expect(configure.plan, c.name).toEqual(resolved.plan);
       expect(configure.prescribed, c.name).toEqual(resolved.prescribed);
       expect(configure.nextSetPlanEdits, c.name).toEqual(resolved.nextSetPlanEdits);
       expect(configure.accessoryEdits, c.name).toEqual(resolved.accessoryEdits);
       expect(resolved.accessoryEdits.length, c.name).toBeGreaterThan(0);
+      // One session length: the budget the accessories were kept to measures the plan
+      // as Today's length line does (the forecast, corrected by the lifter's pace).
+      const shown = forecastSessionLength({ plan: resolved.plan, workouts: records.workouts, phase: settings.trainingPhase, now });
+      expect(resolved.accessories?.budget?.plannedMinutes, c.name).toBe(Math.round(shown.seconds / 60));
       const program = resolved.plan.filter((e) => e.tier !== "accessory");
 
       // The spelled-out description.
@@ -95,6 +101,37 @@ describe("resolveNextWorkout: one resolution for every consumer", () => {
       });
       expect(first.templateId, c.name).toBe(resolved.templateId);
       expect(first.plan, c.name).toEqual(program);
+    }
+  });
+
+  it("keeps Coming up's accessories to the length its cards show, the same as Today's", () => {
+    for (const c of cases.filter((x) => x.index % 4 === 3)) {
+      const { records, settings, location } = c;
+      const completedWorkouts = records.workouts.filter((w) => w.completedAt != null);
+      const strengthSets = strengthSetsFrom(records);
+      const now = records.readAt;
+      const resolved = nextWorkoutFrom(records, location);
+      const [first, second] = projectUpcomingWorkouts({
+        completedWorkouts,
+        templates: WORKOUT_TEMPLATES,
+        liftStates: records.liftStates,
+        location,
+        equipment: settings.equipment,
+        includeWarmUps: settings.showWarmUps,
+        count: 2,
+        settings,
+        now: new Date(0),
+        variantStates: records.variantStates ?? [],
+        strengthSets,
+        reentry: true,
+        nextSetPlans: settings.nextSetPlans,
+        accessoriesNow: now,
+      });
+      expect(first.accessories?.edits, c.name).toEqual(resolved.accessoryEdits);
+      for (const card of [first, second]) {
+        const shown = forecastSessionLength({ plan: card.plan, workouts: records.workouts, phase: settings.trainingPhase, now });
+        expect(card.accessories?.budget?.plannedMinutes, c.name).toBe(Math.round(shown.seconds / 60));
+      }
     }
   });
 

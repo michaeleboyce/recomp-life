@@ -7,7 +7,7 @@ import {
 import type { WorkoutPlan } from "@/lib/workout/types";
 import type { ForecastBasis, TrainingPhase, WorkoutSession } from "@/types";
 import { CALIBRATION, SESSION_LENGTH_MODEL } from "./coefficients";
-import { finishedBy } from "./log";
+import { finishedBy, type FinishedRow } from "./log";
 import { clamp, median, robustSd } from "./math";
 
 export interface SessionLengthForecast {
@@ -29,6 +29,10 @@ export interface SessionLengthForecast {
   sdScale: number;
 }
 
+/** What the pace reads of a finished workout: its sets, real length, phase and finish. */
+export type PaceSession = FinishedRow &
+  Partial<Pick<WorkoutSession, "sets" | "totalDurationSeconds" | "endedEarly" | "completionContext">>;
+
 /**
  * Real length over length on paper for each finished session up to `now`, oldest
  * first. Length on paper is `estimateLoggedSeconds` of the sets that were logged, so
@@ -36,7 +40,7 @@ export interface SessionLengthForecast {
  * Sessions that were ended early, have no sets or no recorded length are left out.
  */
 export function sessionPaceRatios(
-  workouts: WorkoutSession[],
+  workouts: readonly PaceSession[],
   now: Date,
   fallbackPhase?: TrainingPhase
 ): number[] {
@@ -46,11 +50,32 @@ export function sessionPaceRatios(
     const mode = workout.completionContext?.phaseMode;
     const phase: TrainingPhase | undefined = mode ? { mode } : fallbackPhase;
     const onPaper = estimateLoggedSeconds(workout.sets ?? [], phase);
-    const real = workout.totalDurationSeconds;
+    const real = workout.totalDurationSeconds ?? 0;
     if (!(onPaper > 0) || !(real > 0)) continue;
     ratios.push(real / onPaper);
   }
   return ratios;
+}
+
+/** The latest SESSION_LENGTH_MODEL.recentSessions pace ratios up to `now`. */
+function recentPaceRatios(workouts: readonly PaceSession[], now: Date, phase?: TrainingPhase): number[] {
+  return sessionPaceRatios(workouts, now, phase).slice(-SESSION_LENGTH_MODEL.recentSessions);
+}
+
+/**
+ * The lifter's own pace: what the session-length forecast multiplies the length on
+ * paper by (`forecastSessionLength`'s `correction`). 1 until there are
+ * SESSION_LENGTH_MODEL.minSessionsForCorrection finished sessions by `now`, then the
+ * median pace ratio of the latest `recentSessions`. Plain data for every planning path
+ * that measures a plan against a length (the session-length budget), so the length it
+ * keeps to is the one the screens show.
+ *
+ * @evidence forecast-session-length
+ * @evidence session-length-budget
+ */
+export function sessionPaceCorrection(workouts: readonly PaceSession[], now: Date, phase?: TrainingPhase): number {
+  const ratios = recentPaceRatios(workouts, now, phase);
+  return ratios.length >= SESSION_LENGTH_MODEL.minSessionsForCorrection ? median(ratios) : 1;
 }
 
 /**
@@ -79,9 +104,7 @@ export function forecastSessionLength(input: {
     CALIBRATION.sdScaleMin,
     CALIBRATION.sdScaleMax
   );
-  const ratios = sessionPaceRatios(input.workouts, input.now, input.phase).slice(
-    -SESSION_LENGTH_MODEL.recentSessions
-  );
+  const ratios = recentPaceRatios(input.workouts, input.now, input.phase);
 
   let basis: ForecastBasis = "prior";
   let correction = 1;

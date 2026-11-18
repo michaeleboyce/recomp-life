@@ -1,7 +1,7 @@
 // The session length to plan for (L1 to L4): the setting, and which accessories fit in
-// it. A planning convenience on the app's own time estimate (`estimateWorkoutSeconds`),
-// not a training rule: the program's lifts are never shortened, pins are always kept.
-// Pure and deterministic.
+// it. A planning convenience on the app's own time estimate (`estimateWorkoutSeconds`,
+// corrected by the lifter's own pace as the screens show it), not a training rule: the
+// program's lifts are never shortened, pins are always kept. Pure and deterministic.
 import { estimateSetSeconds, estimateWorkoutSeconds } from "@/lib/workout/duration";
 import type { TrainingPhase, UserSettings } from "@/types";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
@@ -96,13 +96,20 @@ export interface FitAccessoriesInput {
   phase?: TrainingPhase;
   /** In the order they would be added (best first). */
   candidates: readonly BudgetCandidate[];
+  /**
+   * The lifter's own pace (`sessionPaceCorrection`): real length over length on paper,
+   * the factor the session-length forecast on Today, Ready and Coming up applies. Left
+   * out, or not a positive number, the length on paper (1).
+   */
+  pace?: number;
 }
 
 const toMinutes = (seconds: number) => Math.round(seconds / 60);
 
 /**
- * Which accessories fit in the session length. The length of a plan is the app's
- * estimate on paper (`estimateWorkoutSeconds`: every set plus the rest after it). The
+ * Which accessories fit in the session length. The length of a plan is the one the
+ * screens show: the app's estimate on paper (`estimateWorkoutSeconds`: every set plus
+ * the rest after it) times the lifter's own `pace` (1 before there is history). The
  * program's lifts are always in and never shortened. Pinned accessories are always
  * kept, even past the length. The rest are taken in the order given, each kept only
  * when the plan with it stays at or under the length; one that does not fit is left
@@ -113,8 +120,9 @@ const toMinutes = (seconds: number) => Math.round(seconds / 60);
  */
 export function fitAccessoriesToBudget(input: FitAccessoriesInput): SessionBudget {
   const { minutes, phase, candidates } = input;
-  const programSeconds = estimateWorkoutSeconds(input.programPlan, phase);
-  const perSet = estimateSetSeconds("accessory", phase);
+  const pace = typeof input.pace === "number" && Number.isFinite(input.pace) && input.pace > 0 ? input.pace : 1;
+  const programSeconds = estimateWorkoutSeconds(input.programPlan, phase) * pace;
+  const perSet = estimateSetSeconds("accessory", phase) * pace;
   const secondsOf = (c: BudgetCandidate) => Math.max(0, c.sets) * perSet;
   const limit = minutes === null ? Infinity : minutes * 60;
   const programOverBudget = programSeconds > limit;

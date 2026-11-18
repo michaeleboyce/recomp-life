@@ -12,7 +12,11 @@
 // docs/plans/2026-11-17-accessories-design.md): only accessory entries were added; every
 // T1 to T3 entry is as before. Regenerated on purpose on 2026-11-18 for the T3 threshold
 // sized to the step: only T3 weights moved (the demo's T3s go up more often); no T1, T2
-// or accessory entry changed.
+// or accessory entry changed. Regenerated on purpose later on 2026-11-18 for one session
+// length (the budget measures the plan as the screens do: per-set plans applied, times
+// the lifter's pace): only accessories were added, 340 lines in 85 of 96 starts (the
+// demo's sessions run at about 0.78 to 0.80 of their length on paper, so a third pick
+// fits in 60 min); no T1 to T3 entry changed and no accessory was removed.
 //
 // A difference means a planning number moved. The refactor must not move any. If the
 // first home weights are changed on purpose (F6, seeding from the exercise's own
@@ -25,6 +29,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { nextWorkoutFrom, strengthSetsFrom, type LedgerRecords } from "@/lib/data/forecasts";
+import { sessionPaceCorrection } from "@/lib/forecast";
 import { importedSession, importedSet } from "@/lib/import/testRecords";
 import { rebuildDerived } from "@/lib/rebuild";
 import { substituteModification } from "@/lib/workout/buildPlan";
@@ -299,7 +304,8 @@ function startAt(scenario: Scenario, index: number, location: WorkoutLocation) {
     variantStates,
     strengthSets,
     ...(settings.nextSetPlans ? { nextSetPlans: settings.nextSetPlans } : {}),
-    accessories: { settings, strengthSets, now: startedAt },
+    // As the Ready screen gives it: the day, and the lifter's pace in the finished workouts.
+    accessories: { settings, strengthSets, now: startedAt, pace: sessionPaceCorrection(done, startedAt, settings.trainingPhase) },
   });
 
   // The started session, resumed.

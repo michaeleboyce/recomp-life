@@ -52,8 +52,8 @@ export {
   usualEffortCredit,
 } from "./reps";
 
-export type { SessionLengthForecast } from "./sessionLength";
-export { forecastSessionLength, sessionPaceRatios } from "./sessionLength";
+export type { PaceSession, SessionLengthForecast } from "./sessionLength";
+export { forecastSessionLength, sessionPaceCorrection, sessionPaceRatios } from "./sessionLength";
 
 export type { HorizonForecast } from "./horizon";
 export { e1rmResults, forecastBodyweight, forecastE1RM, weighIns } from "./horizon";
