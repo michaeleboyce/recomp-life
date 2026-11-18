@@ -2,9 +2,13 @@ import type { EvidenceRule } from "@/types";
 import type { SourceId } from "../sources";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import {
+  REPS_FORMULA_DIVISOR,
   RESET_FACTOR,
+  T3_INCREASE_REPS_MAX,
+  T3_INCREASE_REPS_MIN,
   T3_INCREMENT_LBS,
-  T3_LAST_SET_INCREASE_REPS,
+  T3_TARGET_REPS,
+  t3IncreaseThreshold,
 } from "@/lib/progression";
 import { CREDIT_MIN_WEIGHT_RATIO } from "@/lib/workout/credit";
 import { CAP_REP_STEP, HARDER_HOME_VARIANT } from "@/lib/workout/variant";
@@ -24,6 +28,26 @@ const [t1, t2, t3] = WORKOUT_TEMPLATES.A1.exercises;
 const resetPercent = Math.round(RESET_FACTOR * 100);
 const creditPercent = Math.round(CREDIT_MIN_WEIGHT_RATIO * 100);
 const startPercent = (fraction: number) => `${Math.round(fraction * 100)}%`;
+
+/** A T3 step as a percentage of the weight, rounded. */
+const stepPercent = (weight: number, next: number) => Math.round(((next - weight) / weight) * 100);
+/** Worked T3 examples, computed by the function that decides (`t3IncreaseThreshold`). */
+const T3_EXAMPLES = (
+  [
+    ["a lat pulldown", 120, 125],
+    ["a dumbbell", 50, 55],
+    ["a dumbbell", 25, 30],
+    ["a dumbbell", 15, 20],
+  ] as const
+)
+  .map(([what, weight, next]) => {
+    const t = t3IncreaseThreshold({ weight, nextWeight: next, targetReps: T3_TARGET_REPS });
+    const bound = t === T3_INCREASE_REPS_MIN ? " (the floor)" : t === T3_INCREASE_REPS_MAX ? " (the ceiling)" : "";
+    return `${what} going ${weight} → ${next} lb (${stepPercent(weight, next)}% heavier) asks for ${t}${bound}`;
+  })
+  .join(", ");
+const T3_SMALL_STEP_PERCENT = stepPercent(120, 120 + T3_INCREMENT_LBS);
+const T3_BIG_STEP_PERCENT = stepPercent(25, 25 + T3_INCREMENT_LBS);
 
 export const PROGRESSION_RULES = {
   "tier-structure": {
@@ -67,23 +91,40 @@ export const PROGRESSION_RULES = {
     area: "progression",
     status: "active",
     title: "When does T3 weight go up?",
-    summary: `T3 weight goes up when the last set reaches ${T3_LAST_SET_INCREASE_REPS} reps`,
-    appBehavior: `When you finish every set of a T3 exercise, the app adds ${T3_INCREMENT_LBS} lb for next time if the last set reached ${T3_LAST_SET_INCREASE_REPS} reps, whatever your training phase. Total reps across the sets do not count. Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. Each workout's page shows what happened to its T3 lift under "What it did".`,
+    summary: `T3 goes up once the last set shows ${T3_TARGET_REPS} reps at the next weight`,
+    appBehavior:
+      `When you finish every set of a T3 exercise, its weight goes up for next time if the last set reached the reps the next step asks for, whatever your training phase. ` +
+      `That number comes from the rep-to-strength formula the app uses everywhere, weight × (1 + reps ÷ ${REPS_FORMULA_DIVISOR}): the last set must show you could still do ${T3_TARGET_REPS} reps at the next weight. ` +
+      `So reps needed = ${REPS_FORMULA_DIVISOR} × (next ÷ current × (1 + ${T3_TARGET_REPS} ÷ ${REPS_FORMULA_DIVISOR}) − 1), rounded up and kept between ${T3_INCREASE_REPS_MIN} and ${T3_INCREASE_REPS_MAX}. ` +
+      `The next weight is ${T3_INCREMENT_LBS} lb more for the lift itself, or one dumbbell step (never past your heaviest dumbbell) for a home exercise. ` +
+      `For example, ${T3_EXAMPLES}. ` +
+      `Bodyweight work, and a T3 already at your heaviest dumbbell, use ${T3_INCREASE_REPS_MAX}. ` +
+      `Total reps across the sets do not count. Otherwise the weight stays the same; it never goes down. Stopping part-way, or a set cut short by pain, a recent run or equipment limits, changes nothing. ` +
+      `Each T3 exercise's page says its own number and why, the last set of a workout shows the number to reach and then what happens next time, and each workout's page shows what happened to its T3 lift under "What it did".`,
     rationale:
-      "Muscle growth improves as sets end closer to failure. Under this rule the first two sets of 15 can be about 10 reps short of failure, and people judge reps left least accurately in high-rep sets.",
+      `A fixed number asks too much after a small step and too little after a big one: ${T3_INCREMENT_LBS} lb is ${T3_SMALL_STEP_PERCENT}% of a 120 lb pulldown but ${T3_BIG_STEP_PERCENT}% of a 25 lb dumbbell. Asking the last set to predict the target reps at the next weight keeps each step about as hard as the last. Muscle growth improves as sets end closer to failure, and people judge reps left least accurately in high-rep sets, so the last set, taken as far as you can, is the honest test.`,
     caveat:
-      "This is the stock GZCLP rule. A double progression (every set near the top of a rep range) would fit the evidence on proximity to failure better; that change is still open.",
-    strength: "program",
-    sources: ["robinson2024", "halperin2022"],
+      `The 3×${T3_TARGET_REPS}+ scheme, and the rule that the last set decides, are GZCLP's own (program); stock GZCLP moves up at a flat ${T3_INCREASE_REPS_MAX} reps whatever the step. ` +
+      `The step-sized number is this app's own arithmetic, which is why the rule is graded a heuristic and not a program rule: no study tested it, and the rep formula is known to be imprecise above about 10 reps. ` +
+      `The floor of ${T3_INCREASE_REPS_MIN} is there because the formula is rough at high reps, so a tiny step still asks for a hard last set; the ceiling of ${T3_INCREASE_REPS_MAX} keeps the stock rule as the hardest case. ` +
+      `Research supports taking sets close to failure (it is cited under the accessory rule), not this threshold, so nothing is cited here. A double progression (every set near the top of a rep range, as accessories use) would fit that evidence better; that change is still open.`,
+    strength: "heuristic",
+    sources: [],
     reviewedOn: "2026-11",
     implementedIn: [
+      "src/lib/progression.ts#t3IncreaseThreshold",
       "src/lib/progression.ts#evaluateT3Progression",
       "src/lib/workout/completeWorkout.ts#computeCompletion",
+      "src/lib/workout/variant.ts#evaluateVariant",
+      "src/lib/workout/t3Increase.ts#liftT3Increase",
+      "src/lib/workout/t3Increase.ts#homeT3Increase",
     ],
     surfaces: [
       "src/components/Log/WhatItDid.tsx",
       "src/components/ExercisePage/NextSession.tsx",
       "src/components/ExercisePage/ExerciseStrength.tsx",
+      "src/components/ActiveWorkout/ExerciseBlock.tsx",
+      "src/components/ActiveWorkout/T3NextTime.tsx",
     ],
   },
   "accessory-progression": {

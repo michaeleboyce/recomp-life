@@ -13,7 +13,11 @@
 // raised or lowered the barbell weight. The demo lines were regenerated on purpose again
 // on 2026-11-16: the demo now plans as the Ready screen does, so its first gym session
 // of each lift after the home block takes the re-entry weight (H6) and every later gym
-// weight follows from that. The scripted lines did not change.
+// weight follows from that. The scripted lines did not change. Regenerated on purpose on
+// 2026-11-18 for the T3 threshold sized to the step (18 to 25 reps instead of a flat 25):
+// every changed line is a T3. Its text now names that session's own threshold, and in
+// the demo each T3 whose last set fell between its new threshold and 24 now goes up
+// (later T3 weights follow). No T1 or T2 line changed.
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -98,7 +102,9 @@ describe("outcome kind and text equal the old description", () => {
     // The demo log exercises more than a pass: 72 lift outcomes in all. Since 2026-11-15
     // the eight home sessions hold their 20 substituted lifts (the home exercises
     // progress instead), and the dumbbell row, done as itself at home, still progresses.
-    expect(tally(now)).toEqual({ passed: 29, held: 20, t3Same: 19, missed: 3, t3Up: 1 });
+    // Since 2026-11-18 a T3 goes up at the threshold for its step (18 to 25 reps), so
+    // most demo T3 sessions now go up.
+    expect(tally(now)).toEqual({ passed: 29, held: 20, t3Same: 1, missed: 3, t3Up: 19 });
   });
 
   it("for a scripted log with misses, a reset, partial and skipped lifts, load drops and home days", () => {

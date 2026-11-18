@@ -10,9 +10,9 @@ import {
   RESET_FACTOR,
   T1_NEXT_STAGE,
   T2_NEXT_STAGE,
-  T3_LAST_SET_INCREASE_REPS,
   getHoldReason,
   outcomeRuleId,
+  t3IncreaseThreshold,
 } from "@/lib/progression";
 import type {
   EquipmentProfile,
@@ -645,6 +645,19 @@ function pointOf(state: VariantState, t3Scheme?: { sets: number; reps: number })
   };
 }
 
+/**
+ * A home exercise's next weight after a pass, as lifted: one dumbbell step, up to the
+ * heaviest dumbbell; null at the heaviest dumbbell, where the cap policy takes over.
+ * The same step `evaluateVariant` takes.
+ */
+export function homeNextWeight(
+  weight: number,
+  equipment: Pick<EquipmentProfile, "dumbbellIncrementLbs" | "maxDumbbellWeight">
+): number | null {
+  const max = equipment.maxDumbbellWeight;
+  return weight < max ? Math.min(weight + equipment.dumbbellIncrementLbs, max) : null;
+}
+
 /** The outcome of a variant nothing was evaluated for (not done, only logged). */
 export function unchangedVariantOutcome(
   state: VariantState,
@@ -682,8 +695,12 @@ export function unchangedVariantOutcome(
  * lighter, when the dumbbells allow one; otherwise CAP_REP_STEP more reps a set. A pass
  * of any kind counts one step earned at home (`passesSinceGym`).
  *
+ * A T3 goes up when its last set reaches the threshold for its next dumbbell step
+ * (`t3IncreaseThreshold`); at the heaviest dumbbell there is none, so the maximum.
+ *
  * @evidence home-progression
  * @evidence cap-progression
+ * @evidence t3-progression
  */
 export function evaluateVariant(input: EvaluateVariantInput): VariantEvaluation {
   const { sets, partial, heavier, equipment, now, t3Scheme } = input;
@@ -768,7 +785,12 @@ export function evaluateVariant(input: EvaluateVariantInput): VariantEvaluation 
   };
 
   if (tier === "T3") {
-    if (lastReps >= T3_LAST_SET_INCREASE_REPS) return passed("t3Up");
+    const threshold = t3IncreaseThreshold({
+      weight: working.weight,
+      nextWeight: homeNextWeight(working.weight, equipment),
+      targetReps: variantScheme(working, t3Scheme).reps,
+    });
+    if (lastReps >= threshold) return passed("t3Up");
     // Kept at a heavier weight than prescribed, it went up because of it.
     return heavier != null
       ? result(working, "t3Up", "heavier")

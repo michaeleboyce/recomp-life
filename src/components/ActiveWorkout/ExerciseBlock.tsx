@@ -31,13 +31,15 @@ interface ExerciseBlockProps {
   repRange?: { min: number; max: number };
   /** Opens the swap sheet for this exercise (W11); left out, no Swap button. */
   onSwap?: () => void;
+  /** A T3's last set: the reps that move its weight up ("20 to move up", `t3MoveUpHint`). */
+  moveUpHint?: string;
 }
 
 /**
  * What is being done right now: tier, exercise (the substitute when there is one),
  * the muscles it works, a way to check form, and one line of context for the set.
  */
-export function ExerciseBlock({ exercise, location, isAMRAPSet = false, repRange, onSwap }: ExerciseBlockProps) {
+export function ExerciseBlock({ exercise, location, isAMRAPSet = false, repRange, moveUpHint, onSwap }: ExerciseBlockProps) {
   const exerciseInfo = getExercise(exercise.substituteExerciseId || exercise.exerciseId);
   const currentSet = Math.min(exercise.completedSets + 1, exercise.targetSets);
   // A ramp or back-off set says so; a working set reads as always.
@@ -71,6 +73,12 @@ export function ExerciseBlock({ exercise, location, isAMRAPSet = false, repRange
           isAMRAPSet && (
             <p className="text-[13px] text-muted-foreground">
               <AMRAPIndicator tier={exercise.tier} />
+              {moveUpHint && (
+                <span data-testid="t3-move-up" className="ml-1.5 inline-flex items-center gap-1 align-middle">
+                  · <b className="font-semibold text-foreground">{moveUpHint}</b>
+                  <EvidenceLine ruleId="t3-progression" variant="icon" hideLibraryLink />
+                </span>
+              )}
             </p>
           )
         )}

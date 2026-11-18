@@ -7,6 +7,10 @@ import {
   evaluateT2Progression,
   evaluateT3Progression,
   evaluateT2AutoRegulation,
+  t3IncreaseThreshold,
+  T3_INCREASE_REPS_MAX,
+  T3_INCREASE_REPS_MIN,
+  T3_TARGET_REPS,
 } from "./progression";
 import type {
   LiftState,
@@ -446,15 +450,65 @@ describe("evaluateT2Progression", () => {
   });
 });
 
-describe("evaluateT3Progression", () => {
-  it("goes up when the last set reaches 25 reps", () => {
-    expect(evaluateT3Progression(25, 30)).toEqual({ newWeight: 35, increased: true });
-    expect(evaluateT3Progression(31, 30)).toEqual({ newWeight: 35, increased: true });
+describe("t3IncreaseThreshold", () => {
+  // The spec's table (docs/plans/2026-11-18-t3-jump-threshold-design.md).
+  it.each([
+    ["lat pulldown 120 → 125 (4%): the floor; the formula alone says 17", 120, 125, 18],
+    ["dumbbell 50 → 55 (10%)", 50, 55, 20],
+    ["dumbbell 25 → 30 (20%)", 25, 30, 24],
+    ["dumbbell 15 → 20 (33%): the ceiling", 15, 20, 25],
+  ])("%s", (_label, weight, nextWeight, expected) => {
+    expect(t3IncreaseThreshold({ weight, nextWeight, targetReps: T3_TARGET_REPS })).toBe(expected);
   });
 
-  it("stays the same when the last set is short of 25", () => {
-    expect(evaluateT3Progression(24, 30)).toEqual({ newWeight: 30, increased: false });
-    expect(evaluateT3Progression(15, 30)).toEqual({ newWeight: 30, increased: false });
+  it("keeps between the bounds, which are the stock 25 and 18", () => {
+    expect(T3_INCREASE_REPS_MAX).toBe(25);
+    expect(T3_INCREASE_REPS_MIN).toBe(18);
+    expect(t3IncreaseThreshold({ weight: 1000, nextWeight: 1001, targetReps: 15 })).toBe(T3_INCREASE_REPS_MIN);
+    expect(t3IncreaseThreshold({ weight: 5, nextWeight: 10, targetReps: 15 })).toBe(T3_INCREASE_REPS_MAX);
+    for (let weight = 5; weight <= 300; weight += 2.5) {
+      const t = t3IncreaseThreshold({ weight, nextWeight: weight + 5, targetReps: 15 });
+      expect(t).toBeGreaterThanOrEqual(T3_INCREASE_REPS_MIN);
+      expect(t).toBeLessThanOrEqual(T3_INCREASE_REPS_MAX);
+    }
+  });
+
+  it("asks for at least the formula's reps: the lifter is good for the target at the next weight", () => {
+    for (let weight = 20; weight <= 200; weight += 5) {
+      const t = t3IncreaseThreshold({ weight, nextWeight: weight + 5, targetReps: 15 });
+      if (t === T3_INCREASE_REPS_MAX) continue;
+      expect(weight * (1 + t / 30)).toBeGreaterThanOrEqual((weight + 5) * (1 + 15 / 30) - 1e-9);
+    }
+  });
+
+  it("is the maximum for bodyweight work and when there is no next step", () => {
+    expect(t3IncreaseThreshold({ weight: 0, nextWeight: 5, targetReps: 15 })).toBe(T3_INCREASE_REPS_MAX);
+    expect(t3IncreaseThreshold({ weight: 50, nextWeight: null, targetReps: 15 })).toBe(T3_INCREASE_REPS_MAX);
+    expect(t3IncreaseThreshold({ weight: 50, nextWeight: 50, targetReps: 15 })).toBe(T3_INCREASE_REPS_MAX);
+  });
+
+  it("asks for more when the target is higher", () => {
+    expect(t3IncreaseThreshold({ weight: 120, nextWeight: 125, targetReps: 20 })).toBeGreaterThan(
+      t3IncreaseThreshold({ weight: 120, nextWeight: 125, targetReps: 15 })
+    );
+  });
+});
+
+describe("evaluateT3Progression", () => {
+  it("goes up when the last set reaches the threshold for a 5 lb step", () => {
+    // 30 → 35 is a 17% step: 23 reps.
+    expect(evaluateT3Progression(23, 30)).toEqual({ newWeight: 35, increased: true, threshold: 23 });
+    expect(evaluateT3Progression(31, 30)).toEqual({ newWeight: 35, increased: true, threshold: 23 });
+  });
+
+  it("stays the same when the last set is short of it", () => {
+    expect(evaluateT3Progression(22, 30)).toEqual({ newWeight: 30, increased: false, threshold: 23 });
+    expect(evaluateT3Progression(15, 30)).toEqual({ newWeight: 30, increased: false, threshold: 23 });
+  });
+
+  it("a heavy T3 goes up at the floor", () => {
+    expect(evaluateT3Progression(18, 120)).toMatchObject({ newWeight: 125, increased: true });
+    expect(evaluateT3Progression(17, 120)).toMatchObject({ newWeight: 120, increased: false });
   });
 
   it("never goes down", () => {

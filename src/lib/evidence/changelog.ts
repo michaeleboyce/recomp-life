@@ -67,6 +67,13 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     sources: [],
   },
   {
+    date: "2026-11-18",
+    ruleId: "t3-progression",
+    change:
+      "T3 weight used to go up when the last set reached a flat 25 reps, for every exercise. It now goes up when the last set shows you could still do the target reps at the next weight, by the app's rep formula: 18 to 25 reps depending on the size of the step (for example 18 for a 120 lb pulldown going up 5 lb, 24 for a 25 lb dumbbell). The threshold is graded heuristic; past sessions are re-read under it. The exercise page, the workout's last T3 set, What it did and the why sheet show each exercise's own number.",
+    sources: [],
+  },
+  {
     date: "2026-11-17",
     ruleId: "accessory-selection",
     change:

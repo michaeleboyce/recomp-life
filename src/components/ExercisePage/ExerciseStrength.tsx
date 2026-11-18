@@ -5,7 +5,9 @@ import { liftTimelineFor } from "@/hooks/useStrengthTimeline";
 import type { RangeKey } from "@/lib/metrics/types";
 import type { WindowSpan } from "@/lib/metrics/window";
 import { liftWindowKey, useChartSpan, useChartWindowStore } from "@/stores/chartWindowStore";
-import { T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
+import { DEFAULT_USER_PROFILE } from "@/db/seed";
+import { useSettings } from "@/hooks";
+import { T3_INCREASE_REPS_MAX, T3_INCREASE_REPS_MIN } from "@/lib/progression";
 import { loadingOf, type StrengthSet } from "@/lib/strength";
 import { cn } from "@/lib/utils";
 import { TrendChartSkeleton, formatShortDate } from "@/components/chart-kit";
@@ -86,12 +88,15 @@ export function OwnStrength({
  * the rep count that adds weight. `sessions` is undefined while loading.
  */
 export function T3Strength({ sessions }: { sessions: readonly LiftSession[] | undefined }) {
-  const rows = sessions ? t3LastSets(sessions) : [];
+  const settings = useSettings();
+  const equipment = (settings ?? DEFAULT_USER_PROFILE.settings).equipment;
+  const rows = sessions ? t3LastSets(sessions, equipment) : [];
   return (
     <section aria-label="Strength" className="flex flex-col gap-1.5">
       <SectionHeader title="Last set" action={<EvidenceLine ruleId="t3-progression" variant="icon" />} />
-      <p className="text-[13px] text-muted-foreground">
-        The weight goes up when the last set reaches {T3_LAST_SET_INCREASE_REPS} reps.
+      <p data-testid="t3-threshold-note" className="text-[13px] text-muted-foreground">
+        Each last set against the reps its weight needed to go up, {T3_INCREASE_REPS_MIN} to{" "}
+        {T3_INCREASE_REPS_MAX}: the bigger the jump to the next weight, the more reps.
       </p>
       {sessions === undefined ? (
         <SkeletonCard />
@@ -113,10 +118,10 @@ export function T3Strength({ sessions }: { sessions: readonly LiftSession[] | un
                   row.reached ? "text-accent-primary" : "text-foreground"
                 )}
               >
-                {row.reps}/{T3_LAST_SET_INCREASE_REPS}
+                {row.reps}/{row.threshold}
               </span>
               <span className="w-16 shrink-0 text-right text-xs text-muted-foreground">
-                {row.reached ? "goes up" : `${T3_LAST_SET_INCREASE_REPS - row.reps} short`}
+                {row.reached ? "goes up" : `${row.threshold - row.reps} short`}
               </span>
             </li>
           ))}

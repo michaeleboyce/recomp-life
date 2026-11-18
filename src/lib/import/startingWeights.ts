@@ -12,7 +12,9 @@
  * - T2 (3×10): STARTING_WEIGHT_RULES.t2FractionOfFiveRepMax of that five-rep max, the
  *   guide's usual T2 start.
  * - T3: the weight the estimate says could be lifted STARTING_WEIGHT_RULES.t3Reps
- *   times, the program's 15 reps with some to spare and below the 25-rep raise.
+ *   times, the program's 15 reps with some to spare. The raise asks the last set for 18
+ *   to 25 reps depending on the step (`t3IncreaseThreshold`), so a heavy T3 can go up
+ *   after its first session.
  * - When the newest evidence is old, the app's time-off rule (`calculateWeightDecay`)
  *   takes its share off.
  * - Barbell weights are rounded down to loadable plates; dumbbell weights to the

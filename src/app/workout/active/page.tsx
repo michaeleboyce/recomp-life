@@ -28,6 +28,8 @@ import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
 import { useActiveWorkout } from "@/components/ActiveWorkout/useActiveWorkout";
 import { useWorkoutAccessories } from "@/components/ActiveWorkout/useWorkoutAccessories";
 import { AccessoryNextTime, AddAccessoryButton } from "@/components/ActiveWorkout/AccessoryNextTime";
+import { T3NextTime } from "@/components/ActiveWorkout/T3NextTime";
+import { t3IncreaseForEntry, t3MoveUpHint, t3NextTimeAfterSet } from "@/lib/workout/t3Increase";
 import { AccessorySheet } from "@/components/PreWorkout/AccessorySheet";
 import { SwapSheet } from "@/components/Swap/SwapSheet";
 import { useSwapContext } from "@/components/Swap/useSwapContext";
@@ -251,6 +253,13 @@ function ActiveWorkoutContent() {
 
   const title = templateTitle(session.templateId);
   const isOver = status === "complete" || !entry;
+  // A T3's last set just logged: what its weight does next time, against its own threshold.
+  const t3Next = t3NextTimeAfterSet(
+    [...sets].reverse().find((set) => set.role !== "drop"),
+    plan,
+    sets,
+    settings.equipment
+  );
 
   // A drop after the latest set: one tap from the rest screen (or the finished screen).
   const latestSet = sets.at(-1);
@@ -363,6 +372,7 @@ function ActiveWorkoutContent() {
         {accessoryNext && lastAccessoryId && (
           <AccessoryNextTime name={getExercise(lastAccessoryId).name} text={accessoryNext} className="mb-4" />
         )}
+        {t3Next && <T3NextTime name={getExercise(t3Next.exerciseId).name} text={t3Next.text} className="mb-4" />}
         <WorkoutFinished
           setsLogged={sets.length}
           duration={elapsed}
@@ -436,6 +446,8 @@ function ActiveWorkoutContent() {
       />
     ) : accessoryNext && lastAccessoryId ? (
       <AccessoryNextTime name={getExercise(lastAccessoryId).name} text={accessoryNext} />
+    ) : t3Next ? (
+      <T3NextTime name={getExercise(t3Next.exerciseId).name} text={t3Next.text} />
     ) : null;
   // The lift's chance to pass is about its working weight, whatever the next set weighs.
   const workingWeight = workout.planEntry?.weight ?? entry.weight;
@@ -462,6 +474,9 @@ function ActiveWorkoutContent() {
         exercise={entry}
         location={session.location}
         isAMRAPSet={workout.isAMRAPSet}
+        {...(workout.isAMRAPSet && entry.tier === "T3" && !entry.isWarmUp
+          ? { moveUpHint: t3MoveUpHint(t3IncreaseForEntry(entry, settings.equipment)) }
+          : {})}
         repRange={
           entry.tier === "accessory"
             ? accessories.repRange(entry.substituteExerciseId || entry.exerciseId, entry.targetReps)
