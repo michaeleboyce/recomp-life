@@ -394,7 +394,7 @@ export interface HomeVariantChoice {
  * needs no substitute (it works at home) or has none.
  *
  * The exercise: a substitute picked on Configure (one of the conversion's alternatives,
- * as before), else the lift's current variant at this tier, else today's conversion
+ * as before, or any home option of the lift, from the swap sheet), else the lift's current variant at this tier, else today's conversion
  * pick. The weight: the variant's own, or for a variant never used, its seed
  * (`seedVariantWeight`: the pooled estimate through the exercise's starting ratio when
  * `strengthSets` give one, else the ratio times the barbell weight).
@@ -414,8 +414,11 @@ export function chooseHomeVariant(input: HomeVariantInput): HomeVariantChoice | 
   // "no_substitute" and exercises that already work at home come back as themselves.
   if (adaptation.adaptedExercise.id === exercise.id) return null;
 
+  // A substitute picked on Configure or in the swap sheet: one of the conversion's
+  // alternatives, or any home option of the lift (the swap sheet offers them all).
   const overridden = overrideId
-    ? adaptation.alternatives.find((alt) => alt.exercise.id === overrideId)?.exercise.id
+    ? (adaptation.alternatives.find((alt) => alt.exercise.id === overrideId)?.exercise.id ??
+      (homeOptionsFor(liftId).includes(overrideId) && EXERCISES[overrideId] ? overrideId : undefined))
     : undefined;
   // A current variant left from an older catalogue (its exercise gone, or no longer a
   // home option for the lift) is passed over: the plan never names an unknown exercise.

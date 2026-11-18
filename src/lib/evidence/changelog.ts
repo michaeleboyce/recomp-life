@@ -14,6 +14,20 @@ export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>>
     date: "2026-11-18",
     ruleId: "swap-recommendation",
     change:
+      "At home before a workout, a program lift's own home versions are marked \"Counts as\" in the swap sheet, rank first among equal scores, and are done as the lift (its home exercise, with its own weight and progression) instead of a swap that left the lift held. During a workout or at the gym nothing changes.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "home-progression",
+    change:
+      "Any of a lift's home versions can now be picked for it, from the swap sheet as well as the Ready screen, even when the usual dumbbell form fits; it keeps its own weight and progression as before.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "swap-recommendation",
+    change:
       "Switched on: the swap sheet shows the recommended swaps before and during a workout, each with its weight, sets and reps, reason, history and score parts, pairs that cover an exercise together, and what the swap does to the program lift. A swap is for that workout only unless \"Every time\" is switched on, which marks the replacement preferred at that location (and, for an accessory, leaves the original out there). At home without a bench, exercises that need one are no longer offered. An exercise added in place of a program lift (the second of a pair, or after sets of the lift were logged) is logged only: it is not judged as an accessory and does not count as an accessory session for its next weight.",
     sources: [],
   },

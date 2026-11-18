@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { useCompletedWorkouts, usePainEntries, useSettings, useStrengthEvidence } from "@/hooks";
+import {
+  useCompletedWorkouts,
+  useLiftStates,
+  usePainEntries,
+  useSettings,
+  useStrengthEvidence,
+  useVariantStates,
+} from "@/hooks";
 import { DAY_MS } from "@/lib/dates";
 import { getMuscleRecovery } from "@/lib/muscleLoad";
 import type { SwapContext, SwapSlot } from "@/lib/swap";
@@ -14,20 +21,28 @@ const NO_IDS: readonly string[] = [];
 /**
  * What the swap sheet ranks from (`SwapContext`): the settings' preferences, equipment
  * and hand-set accessory weights, every set as strength evidence, recent pain and each
- * muscle's recovery, for the entry being replaced (`slot`) at `location`. Undefined
- * while any of it is still loading.
+ * muscle's recovery, for the entry being replaced (`slot`) at `location`. Undefined while
+ * any of it is still loading. Before a workout at home it also carries the lift's state
+ * and the home exercises' states (`liftId`), so a home version of the lift is planned as
+ * the home-substitute path plans it; during one (`inWorkout`) a home version is a swap.
  */
 export function useSwapContext(input: {
   location: WorkoutLocation;
   exclude?: readonly string[];
   slot?: SwapSlot;
+  /** The program lift being replaced (the entry's own id). */
+  liftId?: string;
+  inWorkout?: boolean;
   now: Date;
 }): SwapContext | undefined {
   const settings = useSettings();
   const strengthSets = useStrengthEvidence();
   const painEntries = usePainEntries();
   const workouts = useCompletedWorkouts();
-  const { location, slot, now } = input;
+  const liftStates = useLiftStates();
+  const variantStates = useVariantStates();
+  const { location, slot, now, liftId, inWorkout = false } = input;
+  const liftState = liftId ? liftStates?.find((s) => s.exerciseId === liftId) : undefined;
   const exclude = input.exclude ?? NO_IDS;
 
   const recovery = useMemo(
@@ -40,7 +55,7 @@ export function useSwapContext(input: {
   );
 
   return useMemo(() => {
-    if (!settings || !strengthSets || !recovery) return undefined;
+    if (!settings || !strengthSets || !recovery || !variantStates) return undefined;
     return {
       location,
       ...(settings.exercisePreferences ? { preferences: settings.exercisePreferences } : {}),
@@ -53,7 +68,10 @@ export function useSwapContext(input: {
       recovery,
       painEntries: pain,
       phase: settings.trainingPhase,
+      inWorkout,
+      ...(liftState ? { liftState } : {}),
+      variantStates,
       now,
     };
-  }, [settings, strengthSets, recovery, pain, location, exclude, slot, now]);
+  }, [settings, strengthSets, recovery, variantStates, liftState, inWorkout, pain, location, exclude, slot, now]);
 }

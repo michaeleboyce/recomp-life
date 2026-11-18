@@ -4,6 +4,7 @@ import { recommendSwapSets, recommendSwaps, type SwapPrescription } from "@/lib/
 import {
   SWAP_RECOMMENDED_COUNT,
   confirmLabel,
+  countsAsTag,
   everyTimeOption,
   historyText,
   pairView,
@@ -103,5 +104,12 @@ describe("everyTimeOption", () => {
     expect(option.label).toBe("Suggest first every time at home");
     expect(option.detail).toMatch(/program keeps Barbell Squat/);
     expect(option.writes).toEqual([{ scope: "home", exerciseId: "goblet_squat", preference: "preferred" }]);
+  });
+});
+
+describe("countsAsTag", () => {
+  it("names the lift a home version counts as", () => {
+    expect(countsAsTag("bench")).toBe("Counts as bench press");
+    expect(countsAsTag("squat")).toBe("Counts as squat");
   });
 });

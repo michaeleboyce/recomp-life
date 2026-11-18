@@ -11,11 +11,13 @@ import { STRENGTH_POOLING, asLifted, impliedWeightForReps, priorFor, type Streng
 import { joinList, plural } from "@/lib/text";
 import { accessoryDay } from "@/lib/workout/accessoryPlan";
 import { pooledEstimateOf, transferRatioOf } from "@/lib/workout/strength";
-import { homeOptionsFor, isVariantTier, seedVariantWeight } from "@/lib/workout/variant";
+import { chooseHomeVariant, homeOptionsFor, isVariantTier, seedVariantWeight, variantScheme } from "@/lib/workout/variant";
+import { swapCountsAsLift } from "./progressionEffect";
 import type {
   AccessoryHandSetWeight,
   EquipmentProfile,
   Exercise,
+  LiftState,
   ExercisePreferences,
   LocationExercisePreferences,
   MuscleId,
@@ -23,6 +25,7 @@ import type {
   RecoveryStatus,
   Tier,
   TrainingPhase,
+  VariantState,
   WorkoutLocation,
 } from "@/types";
 
@@ -98,6 +101,8 @@ export interface SwapScorePart {
  *   (`accessoryPrescription`);
  * - "ratio": the starting ratio times the original's weight; "conversion": the flat
  *   dumbbell conversion;
+ * - "variant": a home version of the lift picked at home, at its own home state's weight
+ *   (`chooseHomeVariant`, the home-substitute path; see `SwapCandidate.countsAs`);
  * - "default": the catalogue's default weight (`DEFAULT_ACCESSORY_WEIGHTS`);
  * - "none": no weight is known; the lifter enters one (weight 0).
  */
@@ -109,6 +114,7 @@ export type SwapWeightBasis =
   | "hand"
   | "ratio"
   | "conversion"
+  | "variant"
   | "default"
   | "none";
 
@@ -137,6 +143,12 @@ export interface SwapCandidate {
   history?: SwapHistory;
   /** The original's muscles this candidate works. */
   coverage: SwapCoverage;
+  /**
+   * The program lift this candidate is done as, when picking it counts as doing the lift
+   * (one of its home versions, at home, before the workout: `swapCountsAsLift`). With
+   * `liftState` in the context, its prescription is what the home-substitute path plans.
+   */
+  countsAs?: string;
 }
 
 export interface SwapHistory {
@@ -193,6 +205,12 @@ export interface SwapContext {
   painEntries?: readonly Pick<PainSorenessEntry, "region" | "sensation" | "severity">[];
   /** Accepted for the callers' convenience; no part reads it yet. */
   phase?: TrainingPhase;
+  /** A swap during the workout: a home version is then a swap like any other. */
+  inWorkout?: boolean;
+  /** At home: the original lift's state, for a home version's weight (`chooseHomeVariant`). */
+  liftState?: LiftState;
+  /** At home: the home exercises' states, for a home version's own weight. */
+  variantStates?: readonly VariantState[];
   now: Date;
 }
 
@@ -326,6 +344,32 @@ export function prescribeSwap(exerciseId: string, originalId: string, context: S
   const scheme = { sets: slot.sets, reps: slot.reps, isAMRAP: slot.isAMRAP };
   const barbellWeight = slot.originalWeight ?? slot.weight;
 
+  // A home version picked at home before the workout is done as the lift: what the
+  // home-substitute path plans for it (its own state, or its seed).
+  // (Without the lift's state the weight is seeded below, as before.)
+  if (equipment && context.liftState && isVariantTier(slot.tier) && swapCountsAsLift(slot.tier, originalId, exerciseId, context)) {
+    const choice = chooseHomeVariant({
+      liftId: originalId,
+      tier: slot.tier,
+      liftState: context.liftState,
+      variantStates: context.variantStates ?? [],
+      equipment,
+      overrideId: exerciseId,
+      strengthSets: sets,
+    });
+    if (choice && choice.state.exerciseId === exerciseId) {
+      const own = variantScheme(choice.state, slot.tier === "T3" ? { sets: slot.sets, reps: slot.reps } : undefined);
+      return {
+        weight: choice.weight,
+        sets: own.sets,
+        reps: own.reps,
+        isAMRAP: slot.isAMRAP,
+        basis: "variant",
+        note: choice.seeded ? "Its first weight as a home version of the lift" : "Its own weight as a home version of the lift",
+      };
+    }
+  }
+
   if (equipment && isVariantTier(slot.tier) && priorFor(originalId, exerciseId)) {
     const seed = seedVariantWeight({
       liftId: originalId,
@@ -365,7 +409,7 @@ export function prescribeSwap(exerciseId: string, originalId: string, context: S
 }
 
 /** A prescription's weight that the lifter's own sets or the strength model gave. */
-const KNOWN_BASES: ReadonlySet<SwapWeightBasis> = new Set(["history", "learned", "estimate", "progression", "hand"]);
+const KNOWN_BASES: ReadonlySet<SwapWeightBasis> = new Set(["history", "learned", "estimate", "progression", "hand", "variant"]);
 
 const setsCache = new WeakMap<readonly StrengthSet[], Map<number, StrengthSet[]>>();
 
@@ -527,7 +571,8 @@ function reasonOf(parts: readonly SwapScorePart[]): string {
  * Offered: every exercise in the catalogue that shares at least one main muscle with the
  * original, except the original, those in `exclude`, those blocked (overall or at this
  * location) and, at home, those that need a gym and, when the equipment has no bench,
- * those that need one (`NEEDS_BENCH`, as accessory selection leaves them out). Ranked by score, ties by name, then id.
+ * those that need one (`NEEDS_BENCH`, as accessory selection leaves them out). Ranked by
+ * score, ties to one that counts as the lift (`countsAs`), then by name, then id.
  * Unknown `exerciseId`: none.
  *
  * @evidence swap-recommendation
@@ -562,6 +607,7 @@ export function recommendSwaps(exerciseId: string, context: SwapContext): SwapCa
     const historyWeight = SWAP_HISTORY_WEIGHT * (weighted / (weighted + SWAP_HISTORY_HALF_SESSIONS));
 
     const prescription = prescribeSwap(candidate.id, exerciseId, context);
+    const counts = !!context.slot && swapCountsAsLift(context.slot.tier, exerciseId, candidate.id, context);
     const parts = scoreParts(original, candidate, coverage, prescription, history, historyWeight, context, preferences);
     const score = round1(parts.reduce((sum, p) => sum + p.points, 0)) + 0;
     candidates.push({
@@ -572,12 +618,15 @@ export function recommendSwaps(exerciseId: string, context: SwapContext): SwapCa
       prescription,
       ...(history ? { history } : {}),
       coverage,
+      ...(counts ? { countsAs: exerciseId } : {}),
     });
   }
 
   return candidates.sort(
     (a, b) =>
       b.score - a.score ||
+      // Among equals, one that counts as the lift comes first.
+      Number(!!b.countsAs) - Number(!!a.countsAs) ||
       EXERCISES[a.exerciseId].name.localeCompare(EXERCISES[b.exerciseId].name) ||
       (a.exerciseId < b.exerciseId ? -1 : a.exerciseId > b.exerciseId ? 1 : 0)
   );

@@ -133,6 +133,7 @@ function ActiveWorkoutContent() {
     location: session?.location ?? "gym",
     exclude: accessories.inPlan,
     ...(swapSlot ? { slot: swapSlot } : {}),
+    inWorkout: true,
     now: swapping?.at ?? openedAt,
   });
   /** The working entry a block or row stands for (a warm-up's is the lift after it). */

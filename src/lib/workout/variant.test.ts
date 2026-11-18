@@ -391,6 +391,16 @@ describe("chooseHomeVariant with home history", () => {
     const choice = chooseHomeVariant({ liftId: "squat", tier: "T1", liftState: squat(), variantStates: [current], equipment: EQUIPMENT, overrideId: "goblet_squat" })!;
     expect(choice.state.exerciseId).toBe("goblet_squat");
   });
+
+  it("an override that is any of the lift's home options wins, even when the primary fits", () => {
+    // DB bench fits, so the conversion lists no alternatives; floor press is still a home version of bench.
+    const choice = chooseHomeVariant({ liftId: "bench", tier: "T2", liftState: undefined, variantStates: [], equipment: EQUIPMENT, overrideId: "db_floor_press" })!;
+    expect(choice.adaptation.alternatives).toEqual([]);
+    expect(choice.state.exerciseId).toBe("db_floor_press");
+    // Not a home option: ignored.
+    const other = chooseHomeVariant({ liftId: "bench", tier: "T2", liftState: undefined, variantStates: [], equipment: EQUIPMENT, overrideId: "push_up" })!;
+    expect(other.state.exerciseId).not.toBe("push_up");
+  });
 });
 
 describe("evaluateVariant: GZCLP in dumbbell steps", () => {

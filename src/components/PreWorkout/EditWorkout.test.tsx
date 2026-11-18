@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
+import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { initializeDatabase } from "@/db/init";
@@ -8,7 +9,7 @@ import { updateSettings } from "@/lib/data/records";
 import { DaySelector } from "./DaySelector";
 import { EditWorkoutButton } from "./EditWorkoutButton";
 import { PlannedExerciseList } from "./PlannedExerciseList";
-import { useWorkoutSetup } from "./useWorkoutSetup";
+import { useWorkoutSetup, type WorkoutSetup } from "./useWorkoutSetup";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
@@ -138,6 +139,45 @@ describe("the edit sheet", () => {
     expect(names).not.toContain("Barbell Squat");
     expect(names).not.toContain("Barbell Bench Press");
     expect(names).not.toContain("Lat Pulldown");
+  });
+
+  it("at home, a home version of the lift is done as the lift: tagged, no swap, its own weight", async () => {
+    await updateSettings({ defaultLocation: "home" });
+    const seen: { current: WorkoutSetup | null } = { current: null };
+    function Spy() {
+      const setup = useWorkoutSetup("A1");
+      useEffect(() => {
+        seen.current = setup;
+      });
+      if (setup.isLoading || !setup.templateId) return null;
+      return <EditWorkoutButton setup={setup} />;
+    }
+    render(<Spy />);
+    fireEvent.click(await screen.findByRole("button", { name: /Edit workout/ }));
+    const sheet = await screen.findByRole("dialog", { name: "Edit workout" });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Swap DB Bench Press" }));
+    const panel = await within(sheet).findByTestId("swap-panel");
+    await within(panel).findByRole("region", { name: "Recommended" });
+    const row = within(panel)
+      .getAllByTestId("swap-candidate")
+      .find((r) => within(r).queryByRole("button", { name: "Pick DB Floor Press" }))!;
+    expect(within(row).getByTestId("swap-counts")).toHaveTextContent("Counts as bench press");
+    const shownWeight = Number.parseFloat(within(row).getByTestId("swap-prescription").textContent!);
+    fireEvent.click(within(row).getByRole("button", { name: "Pick DB Floor Press" }));
+    expect(within(panel).getByTestId("swap-effect")).toHaveTextContent(
+      "Counts as Bench press: DB Floor Press has its own weight and moves up on its own."
+    );
+    fireEvent.click(within(panel).getByRole("button", { name: "Swap in DB Floor Press" }));
+    await waitFor(() => expect(within(sheet).queryByTestId("swap-panel")).toBeNull());
+
+    // No swap edit: the plan does the bench as floor press, at the weight the row showed.
+    const current = seen.current!;
+    expect(current.edits).toEqual([]);
+    const entry = current.plan.find((e) => !e.isWarmUp && e.exerciseId === "bench")!;
+    expect(entry.substituteExerciseId).toBe("db_floor_press");
+    expect(entry.weight).toBe(shownWeight);
+    expect(current.prescribed.find((p) => p.exerciseId === "bench")!.home?.exerciseId).toBe("db_floor_press");
+    expect(within(sheet).queryByText("Logged only, progression paused")).toBeNull();
   });
 
   it("swaps one lift for two: the first takes its place, the second is added", async () => {

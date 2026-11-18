@@ -325,12 +325,15 @@ describe("buildWorkoutPlan at home (D5: same exercise as Configure; H3: seeded w
       ).toEqual(base);
     });
 
-    it("ignores an override when the default substitute fits (no alternatives offered)", () => {
-      // Bench 100 -> DB bench 40/hand fits, so Configure offers no alternatives.
+    it("honours an override that is one of the lift's home options even when the default fits", () => {
+      // Bench 100 -> DB bench 40/hand fits, so Configure offers no alternatives; the
+      // swap sheet still offers floor press as a home version of bench.
+      const plan = buildWorkoutPlan(input({ location: "home", overrides: { bench: "db_floor_press" } }));
+      const bench = plan.find((e) => !e.isWarmUp && e.exerciseId === "bench")!;
+      expect(bench.substituteExerciseId).toBe("db_floor_press");
+      // An override that is not a home option of the lift is still ignored.
       const base = buildWorkoutPlan(input({ location: "home" }));
-      expect(
-        buildWorkoutPlan(input({ location: "home", overrides: { bench: "db_floor_press" } }))
-      ).toEqual(base);
+      expect(buildWorkoutPlan(input({ location: "home", overrides: { bench: "push_up" } }))).toEqual(base);
     });
 
     it("ignores overrides for exercises that are not in the template", () => {
