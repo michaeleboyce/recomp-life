@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { db } from "@/db/local";
 import { clearDb, makeProfile } from "@/lib/data/testUtils";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
+import { importedSession, importedSet } from "@/lib/import/testRecords";
 
 const replace = vi.fn();
 let search = new URLSearchParams();
@@ -125,6 +126,25 @@ describe("Strength tab", () => {
     search = new URLSearchParams({ tab: "muscles" });
     render(<ProgressPage />);
     expect(await screen.findByText("No muscle data yet")).toBeInTheDocument();
+  });
+
+  // Made-up imported history only: the repository is public.
+  it("the muscles tab opens on imported history alone, before any workout is logged in the app", async () => {
+    await db.importedSessions.add(
+      importedSession(
+        [importedSet({ exerciseName: "Made-up Squat", mappedExerciseId: "squat", weightPerImplementLb: 225, reps: 5 })],
+        { id: "imp-only", sourceApp: "fitbod", title: "Leg Day", startedAt: new Date() }
+      )
+    );
+    search = new URLSearchParams({ tab: "muscles" });
+    render(<ProgressPage />);
+    // The tab (a stub here) also shows while the database is being read; wait for the
+    // reads to finish, then the empty note must not have replaced it.
+    expect(await screen.findByTestId("muscles-tab")).toBeInTheDocument();
+    await waitFor(async () => expect(await db.importedSessions.count()).toBe(1));
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(screen.queryByText("No muscle data yet")).toBeNull();
+    expect(screen.getByTestId("muscles-tab")).toBeInTheDocument();
   });
 });
 

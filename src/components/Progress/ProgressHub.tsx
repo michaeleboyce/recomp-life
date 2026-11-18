@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Activity } from "lucide-react";
-import { useCompletedWorkouts, usePainEntries } from "@/hooks";
+import { useCompletedWorkouts, useImportedSessions, usePainEntries } from "@/hooks";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { ForecastsEntry } from "@/components/Forecast/ForecastsEntry";
@@ -31,12 +31,21 @@ export function parseTab(value: string | null): ProgressTab {
 function MusclesPanel() {
   const workouts = useCompletedWorkouts();
   const pain = usePainEntries();
-  if (workouts !== undefined && pain !== undefined && workouts.length === 0 && pain.length === 0) {
+  // Sessions imported from another app count as muscle data: the tab reads them.
+  const imported = useImportedSessions();
+  if (
+    workouts !== undefined &&
+    pain !== undefined &&
+    imported !== undefined &&
+    workouts.length === 0 &&
+    pain.length === 0 &&
+    imported.length === 0
+  ) {
     return (
       <EmptyState
         icon={<Activity />}
         title="No muscle data yet"
-        body="Log a workout and each muscle's weekly sets and recovery show up here."
+        body="Log a workout, or import your history in Settings, and each muscle's weekly sets, recovery and strength trend show up here."
       />
     );
   }
