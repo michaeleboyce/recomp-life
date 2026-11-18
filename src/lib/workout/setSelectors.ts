@@ -1,4 +1,4 @@
-import type { SetLog, SetRole, Tier } from "@/types";
+import type { SetLog, Tier } from "@/types";
 
 /** True for sets logged as warm-ups (tier "warmup"). */
 export function isWarmUpSet(set: SetLog): boolean {
@@ -11,9 +11,6 @@ export function isWarmUpSet(set: SetLog): boolean {
  * The `drop-set-evidence` rule states it (see `dropSetWeight` in components/ActiveWorkout/setPlan.ts).
  */
 export const DROP_SET_LIGHTER_BY = 0.2;
-
-/** Roles that are extra to the program's working sets: never part of a pass or a fail. */
-export const EXTRA_SET_ROLES: readonly SetRole[] = ["ramp", "backoff", "drop"];
 
 /**
  * True for a working set of the program: no role (every row logged before roles) or

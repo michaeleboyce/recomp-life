@@ -1,13 +1,12 @@
 // The accessory rows on Today and the Ready screen (A7, A8): what each shows, the
-// one-line reason, and the summary line they fold into. Pure; no React.
+// one-line reason. Pure; no React.
 import { getAccessoryRepRange } from "@/lib/accessories";
 import type { AccessoryPrescription } from "@/lib/accessories/index";
 import { EXERCISES } from "@/lib/exercises";
-import { plural } from "@/lib/text";
 import type { AccessoryPlan, AccessoryRow } from "@/lib/workout/accessoryPlan";
 import type { WorkoutPlan } from "@/lib/workout/types";
 import { formatLbs } from "./format";
-import { displayLiftName, nameInSentence } from "./todayModel";
+import { displayLiftName } from "./todayModel";
 
 /** One accessory as a row shows it. */
 export interface AccessoryRowView {
@@ -96,10 +95,4 @@ export function accessoryRowViews(plan: WorkoutPlan, accessories: AccessoryPlan 
       const planned = accessories?.planned.find((p) => p.exerciseId === entry.exerciseId);
       return viewOf(entry.exerciseId, entry, planned?.prescription ?? null, planned?.pick?.reasons[0] ?? null, planned?.pick != null);
     });
-}
-
-/** "+ 3 accessories · bicep curls, lateral raises, hack squat". */
-export function accessorySummary(views: readonly Pick<AccessoryRowView, "exerciseId">[]): string {
-  const names = views.map((v) => nameInSentence(v.exerciseId));
-  return `+ ${plural(views.length, "accessory", "accessories")} · ${names.join(", ")}`;
 }

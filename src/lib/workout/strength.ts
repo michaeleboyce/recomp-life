@@ -195,11 +195,6 @@ export interface OwnHistory {
 
 const ownCache = new WeakMap<readonly StrengthSet[], Map<string, OwnHistory>>();
 
-/** The start of the own-history window for a plan on `now` (epoch ms). */
-export function ownHistorySince(now: Date): number {
-  return now.getTime() - OWN_HISTORY_WINDOW_WEEKS * WEEK_MS;
-}
-
 /** A set the lifter did with a load: not a warm-up, a drop or a weight set by hand and not lifted. */
 function isLoadedWorkSet(set: StrengthSet): boolean {
   if (set.provisional || set.role === "warmup" || set.role === "drop") return false;

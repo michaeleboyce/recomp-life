@@ -3,9 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import {
   estimateWorkoutMinutes,
-  formatPrChance,
   formatSetsReps,
-  formatTodayDate,
   shortLiftName,
 } from "./format";
 
@@ -61,20 +59,5 @@ describe("estimateWorkoutMinutes", () => {
 
   it("is at least 5 minutes", () => {
     expect(estimateWorkoutMinutes([])).toBe(5);
-  });
-});
-
-describe("formatPrChance", () => {
-  it("words each chance and leaves unknown unsaid", () => {
-    expect(formatPrChance("likely")).toBe("Likely.");
-    expect(formatPrChance("stretch")).toBe("A stretch.");
-    expect(formatPrChance("unlikely")).toBe("Unlikely.");
-    expect(formatPrChance("unknown")).toBe("");
-  });
-});
-
-describe("formatTodayDate", () => {
-  it("gives weekday, short month and day", () => {
-    expect(formatTodayDate(new Date(2026, 10, 11))).toBe("Wednesday, Nov 11");
   });
 });

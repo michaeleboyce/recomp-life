@@ -12,7 +12,6 @@ import {
   importedSessionsBetween,
   importedVolumePoints,
   importedWorkingWeightPoints,
-  lastImportedSession,
   withImportedPoints,
 } from "./history";
 import { importDay, importedSession, importedSet } from "./testRecords";
@@ -73,11 +72,6 @@ describe("importedLiftIndex", () => {
     expect(importedLiftIndex(combined)).toBe(importedLiftIndex(combined));
     const appOnly = sets.map((set) => ({ ...set, imported: undefined }));
     expect(importedHistoryOf(appOnly, "squat")).toEqual([]);
-  });
-
-  it("gives the latest imported session of an exercise, or null", () => {
-    expect(lastImportedSession(sets, "squat")?.topSet?.weight).toBe(195);
-    expect(lastImportedSession(sets, "deadlift")).toBeNull();
   });
 });
 

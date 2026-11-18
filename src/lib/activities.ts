@@ -1,4 +1,4 @@
-import type { ActivityKind, ActivityLog, RunLog, YogaStyle } from '@/types';
+import type { ActivityKind, ActivityLog, YogaStyle } from '@/types';
 import type { RuleId } from '@/lib/evidence/rules';
 
 /** Kinds in the order they are offered when logging. */
@@ -111,31 +111,3 @@ export function describeActivity(activity: Pick<ActivityLog, 'kind' | 'style'>):
   return ACTIVITY_KIND_LABELS[activity.kind];
 }
 
-const WEEK_NOUNS: Record<ActivityKind | 'run', [singular: string, plural: string]> = {
-  run: ['run', 'runs'],
-  yoga: ['yoga', 'yoga'],
-  cycling: ['ride', 'rides'],
-  hiking: ['hike', 'hikes'],
-  walking: ['walk', 'walks'],
-  other: ['other', 'other'],
-};
-
-/**
- * One-line count of the non-lifting sessions in a set of logs, for example
- * "1 run · 2 yoga". Returns an empty string when there are none.
- */
-export function summariseOtherSessions(
-  runs: Pick<RunLog, 'id'>[],
-  activities: Pick<ActivityLog, 'kind'>[]
-): string {
-  const counts: [keyof typeof WEEK_NOUNS, number][] = [
-    ['run', runs.length],
-    ...ACTIVITY_KINDS.map(
-      (kind) => [kind, activities.filter((a) => a.kind === kind).length] as [ActivityKind, number]
-    ),
-  ];
-  return counts
-    .filter(([, count]) => count > 0)
-    .map(([key, count]) => `${count} ${WEEK_NOUNS[key][count === 1 ? 0 : 1]}`)
-    .join(' · ');
-}

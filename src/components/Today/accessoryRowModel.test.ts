@@ -4,7 +4,6 @@ import type { WorkoutExerciseState } from "@/lib/workout/types";
 import {
   accessoryRowViews,
   accessoryScheme,
-  accessorySummary,
   accessoryWeightText,
   viewsOfRows,
 } from "./accessoryRowModel";
@@ -78,15 +77,11 @@ describe("accessory rows", () => {
     expect(view.reason).toBe("Added by you");
   });
 
-  it("words the weight, the scheme and the summary", () => {
+  it("words the weight and the scheme", () => {
     expect(accessoryScheme(3, { min: 12, max: 15 })).toBe("3×12–15");
     expect(accessoryScheme(3, { min: 15, max: 15 })).toBe("3×15");
     expect(accessoryWeightText({ weight: 20, perHand: true, bodyweight: false })).toBe("20 lb/hand");
     expect(accessoryWeightText({ weight: null, perHand: false, bodyweight: false })).toBe("Enter weight");
     expect(accessoryWeightText({ weight: null, perHand: false, bodyweight: true })).toBe("Bodyweight");
-    expect(accessorySummary([{ exerciseId: "bicep_curls" }, { exerciseId: "hack_squat" }])).toBe(
-      "+ 2 accessories · bicep curls, hack squat"
-    );
-    expect(accessorySummary([{ exerciseId: "bicep_curls" }])).toBe("+ 1 accessory · bicep curls");
   });
 });

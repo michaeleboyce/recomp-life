@@ -6,7 +6,6 @@ import {
   ACTIVITY_NOTE_WINDOW_HOURS,
   describeActivity,
   evaluateActivityImpact,
-  summariseOtherSessions,
 } from './activities';
 import type { ActivityLog } from '@/types';
 
@@ -108,25 +107,5 @@ describe('describeActivity', () => {
     for (const kind of ACTIVITY_KINDS.filter((k) => k !== 'yoga')) {
       expect(describeActivity({ kind, style: null })).toBe(ACTIVITY_KIND_LABELS[kind]);
     }
-  });
-});
-
-describe('summariseOtherSessions', () => {
-  it('is empty when nothing was logged', () => {
-    expect(summariseOtherSessions([], [])).toBe('');
-  });
-
-  it('counts runs and each kind, singular and plural', () => {
-    const activities = [
-      makeActivity({ kind: 'yoga' }),
-      makeActivity({ kind: 'yoga' }),
-      makeActivity({ kind: 'cycling' }),
-      makeActivity({ kind: 'hiking' }),
-      makeActivity({ kind: 'hiking' }),
-    ];
-    expect(summariseOtherSessions([{ id: 'r1' }], activities)).toBe(
-      '1 run · 2 yoga · 1 ride · 2 hikes'
-    );
-    expect(summariseOtherSessions([{ id: 'r1' }, { id: 'r2' }], [])).toBe('2 runs');
   });
 });
