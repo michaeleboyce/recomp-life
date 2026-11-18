@@ -15,6 +15,25 @@ export interface PendingDrop {
   weight: number;
 }
 
+/**
+ * Drop sets in progress (every drop logged is on the workout row): the set the drops
+ * continue, the set the next drop continues, and the next drop's weight and reps.
+ */
+export interface DropDraft {
+  sessionId: string;
+  rootId: string;
+  parentId: string;
+  weight: number;
+  reps: number;
+  /** The reps the drop was set up with (the set before's), for the rep chips. */
+  suggestedReps: number;
+}
+
+/** The next drop after one was logged as `parentId`: from it, at `weight` and `reps`. */
+export function continuedDrop(draft: DropDraft, parentId: string, weight: number, reps: number): DropDraft {
+  return { ...draft, parentId, weight, reps, suggestedReps: reps };
+}
+
 /** The value chosen for the set `key`, or undefined when that set has none. */
 export function choiceFor<T>(choice: SetChoice<T> | null, key: string): T | undefined {
   return choice && choice.key === key ? choice.value : undefined;

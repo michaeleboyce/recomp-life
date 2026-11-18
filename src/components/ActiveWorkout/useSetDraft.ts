@@ -4,7 +4,14 @@ import { useCallback, useMemo, useState } from "react";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import type { RepsInReserve } from "@/types";
 import { clampReps } from "./activeWorkoutLogic";
-import { choiceFor, withoutEntrySpotWeights, withSpotWeight, type SetChoice } from "./setDraft";
+import {
+  choiceFor,
+  continuedDrop,
+  withoutEntrySpotWeights,
+  withSpotWeight,
+  type DropDraft,
+  type SetChoice,
+} from "./setDraft";
 import type { SpotWeightsByKey } from "./setPlan";
 import { loadSpotWeights, saveSpotWeights } from "./spotWeightStorage";
 
@@ -23,6 +30,8 @@ const NO_SPOT_WEIGHTS: SpotWeightsByKey = {};
  *   a reload keeps them; each is for its own set.
  * - accepted and declined drops: the workout store, so leaving the screen and coming
  *   back keeps them and a reload does not (a logged drop set then says it instead).
+ * - drop sets in progress (the next drop's weight and reps): React state for this
+ *   session; lost when the screen is left (the drops logged are on the workout row).
  */
 export function useSetDraft(sessionId: string | null) {
   const pendingDrop = useWorkoutStore((s) => s.pendingDrop);
@@ -81,6 +90,34 @@ export function useSetDraft(sessionId: string | null) {
     setRepsInReserveChoice(null);
   }, []);
 
+  // Drop sets in progress, for this session only.
+  const [dropDraft, setDropDraft] = useState<DropDraft | null>(null);
+  const drop = dropDraft && sessionId && dropDraft.sessionId === sessionId ? dropDraft : null;
+  /** Sets up drops from the set `parentId` (in the chain started by `rootId`). */
+  const startDrop = useCallback(
+    (rootId: string, parentId: string, weight: number, reps: number) => {
+      if (!sessionId) return;
+      setDropDraft({ sessionId, rootId, parentId, weight, reps, suggestedReps: reps });
+    },
+    [sessionId]
+  );
+  /** The next drop after `from` was logged as `parentId`. */
+  const continueDrop = useCallback(
+    (from: DropDraft, parentId: string, weight: number, reps: number) =>
+      setDropDraft(continuedDrop(from, parentId, weight, reps)),
+    []
+  );
+  /** The next drop's weight, never below `min`. */
+  const setDropWeightAtLeast = useCallback(
+    (min: number, weight: number) => setDropDraft((d) => (d ? { ...d, weight: Math.max(min, weight) } : d)),
+    []
+  );
+  const setDropReps = useCallback(
+    (reps: number) => setDropDraft((d) => (d ? { ...d, reps: clampReps(reps) } : d)),
+    []
+  );
+  const endDrop = useCallback(() => setDropDraft(null), []);
+
   /** Accepts the T2 drop on the entry at `index`. */
   const acceptDrop = useCallback(
     (index: number, weight: number) => useWorkoutStore.getState().acceptDrop(index, weight),
@@ -110,5 +147,12 @@ export function useSetDraft(sessionId: string | null) {
     acceptDrop,
     dismissDrop,
     clearPendingDropOn,
+    /** Drop sets in progress; null when none is. */
+    drop,
+    startDrop,
+    continueDrop,
+    setDropWeightAtLeast,
+    setDropReps,
+    endDrop,
   };
 }

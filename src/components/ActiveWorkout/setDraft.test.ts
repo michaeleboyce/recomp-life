@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout";
-import { choiceFor, withoutEntrySpotWeights, withPendingDrop, withSpotWeight } from "./setDraft";
+import { choiceFor, continuedDrop, withoutEntrySpotWeights, withPendingDrop, withSpotWeight } from "./setDraft";
 
 function e(over: Partial<WorkoutExerciseState>): WorkoutExerciseState {
   return {
@@ -41,6 +41,20 @@ describe("withSpotWeight", () => {
 describe("withoutEntrySpotWeights", () => {
   it("drops one entry's weights and keeps every other entry's, 1 apart from 10", () => {
     expect(withoutEntrySpotWeights({ "1:0": 50, "1:2": 55, "10:0": 60, "0:1": 200 }, 1)).toEqual({ "10:0": 60, "0:1": 200 });
+  });
+});
+
+describe("continuedDrop", () => {
+  it("goes on from the drop just logged, in the same chain, suggesting the reps it was done for", () => {
+    const draft = { sessionId: "w1", rootId: "s1", parentId: "s1", weight: 160, reps: 5, suggestedReps: 5 };
+    expect(continuedDrop(draft, "d1", 140, 4)).toEqual({
+      sessionId: "w1",
+      rootId: "s1",
+      parentId: "d1",
+      weight: 140,
+      reps: 4,
+      suggestedReps: 4,
+    });
   });
 });
 

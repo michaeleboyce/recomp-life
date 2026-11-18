@@ -14,7 +14,7 @@
  * | draft: reps, effort picked   | useSetDraft: React, by "entry:set" | setSelectedReps, setSelectedRepsInReserve                     | logSet                          | key changes (next set); deleting a set           | lost   | lost    |
  * | draft: pending T2 drop       | useSetDraft: store             | acceptDrop                                                    | plan, dropAccepted              | log on its entry, delete on it, swap of it, reset| lost   | kept    |
  * | draft: declined T2 drop      | useSetDraft: store             | keepWeight                                                    | dropSuggestion                  | another session id, reset                        | lost   | kept    |
- * | drop sets in progress        | React (per session id)         | startDropSet, setDropWeight/Reps, logDropSet, endDropSets     | dropSet                         | endDropSets                                      | lost   | lost    |
+ * | draft: drop sets in progress | useSetDraft: React (per session id) | startDropSet, setDropWeight/Reps, logDropSet, endDropSets     | dropSet                         | endDropSets                                      | lost   | lost    |
  * | rest countdown               | store (RestTimer ticks it)     | only through restCountdown.ts: logSet, endDropSets start it; jumpTo, swap, endEarly, startDropSet, delete of the latest set skip it; RestTimer ticks, adds, ends | RestTimer, LogDock | skipRest, reset | lost | kept |
  * | view: viewed entry           | useWorkoutView: store          | logSet (last set of an entry), jumpTo, swap, delete           | activeIndex                     | another session id, reset                        | lost (resumes at first unfinished) | kept |
  * | view: ended-early index      | useWorkoutView: React          | endEarly                                                      | activeIndex, finish             | never                                            | lost   | lost    |
@@ -43,7 +43,6 @@ import {
   applyPlanEdits,
   createSetLog,
   isNextSetAMRAP,
-  type WorkoutExerciseState,
   type WorkoutPlan,
 } from "@/lib/workout";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
@@ -51,7 +50,6 @@ import { useWorkoutStore } from "@/stores/workoutStore";
 import { midWorkoutRemove, midWorkoutSwap, type MidWorkoutChange, type SwapReplacement } from "@/lib/swap";
 import type { PlanEdit, RepsInReserve, SetLog, Tier, TrainingPhase } from "@/types";
 import {
-  clampReps,
   correctedSet,
   dropSuggestionFor,
   entryIndexForSet,
@@ -61,9 +59,6 @@ import {
 import { planForSession } from "@/lib/workout/planForSession";
 import { getPrOpportunity } from "./prOpportunity";
 import {
-  attachDrops,
-  buildDropSet,
-  dropSetWeight,
   exerciseForLog,
   minWeightFor,
   nextSetView,
@@ -76,26 +71,14 @@ import {
 import { clampWeight } from "@/components/SetPlan/setPlanModel";
 import { withPendingDrop } from "./setDraft";
 import { useSetDraft } from "./useSetDraft";
+import { useDropSets } from "./useDropSets";
+import { useTapGuard } from "./useTapGuard";
 import { screenIndexes, useWorkoutView } from "./useWorkoutView";
-import { afterSetLogged, restsAfterDrops, restTimer } from "./restCountdown";
+import { afterSetLogged, restTimer } from "./restCountdown";
 
 /** The exercise a set was done with: the substitute when there was one. */
 const performedId = (set: Pick<SetLog, "exerciseId" | "substituteExerciseId">) =>
   set.substituteExerciseId || set.exerciseId;
-
-/**
- * Drop sets in progress (UI state; every drop logged is on the workout row): the set
- * the drops continue, the set the next drop continues, and its weight and reps.
- */
-interface DropState {
-  sessionId: string;
-  rootId: string;
-  parentId: string;
-  weight: number;
-  reps: number;
-  /** The reps the drop was set up with (the set before's), for the rep chips. */
-  suggestedReps: number;
-}
 
 const DEFAULT_PHASE: TrainingPhase = { mode: "maintaining" };
 
@@ -130,7 +113,7 @@ export function useActiveWorkout(
   options: { tapGuardMs?: number } = {}
 ) {
   const tapGuardMs = options.tapGuardMs ?? logTapGuard.ms;
-  const lastLogAt = useRef(0);
+  const guard = useTapGuard(tapGuardMs);
   const session = useWorkout(sessionId);
   const settings = useSettings();
   const liftStates = useLiftStates();
@@ -140,7 +123,6 @@ export function useActiveWorkout(
   // View state: the entry shown, ended early, the e1RM flash.
   const { storeReady, viewedEntryIndex, viewEntry, endedAtIndex, endAt, e1rmFlash, flashE1rm, clearFlash } =
     useWorkoutView(session);
-  const [dropState, setDropState] = useState<DropState | null>(null);
   // Id of a set that has been written but is not yet visible on the live record.
   const [awaitingSetId, setAwaitingSetId] = useState<string | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -199,6 +181,12 @@ export function useActiveWorkout(
     acceptDrop: acceptDropOn,
     dismissDrop,
     clearPendingDropOn,
+    drop,
+    startDrop,
+    continueDrop,
+    setDropWeightAtLeast,
+    setDropReps: setDraftDropReps,
+    endDrop,
   } = useSetDraft(session?.id ?? null);
 
   // Drop sets continue a set and are not sets of their entry; a per-set entry keeps its
@@ -275,8 +263,8 @@ export function useActiveWorkout(
 
   const logSet = useCallback(async () => {
     if (!session || !entry || !planEntry || !baseEntry || isSaving) return;
-    if (Date.now() - lastLogAt.current < tapGuardMs) return;
-    lastLogAt.current = Date.now();
+    if (guard.tooSoon()) return;
+    guard.mark();
     setError(null);
 
     // The set's own weight, reps and role come from the plan entry (per-set weights),
@@ -313,7 +301,7 @@ export function useActiveWorkout(
       console.error("Failed to save set:", err);
       setAwaitingSetId(null);
       // A failed save must not block the retry.
-      lastLogAt.current = 0;
+      guard.release();
       setError("That set could not be saved. Try again.");
       return;
     }
@@ -327,7 +315,7 @@ export function useActiveWorkout(
     if (after.view !== undefined) viewEntry(after.view);
     if (after.rest) restTimer.start(entry.tier, trainingPhase);
   }, [
-    tapGuardMs,
+    guard,
     session,
     entry,
     planEntry,
@@ -370,133 +358,20 @@ export function useActiveWorkout(
   );
 
   // --- Drop sets -------------------------------------------------------------------
-
-  // The set a drop would continue: the latest set logged, when it is not a warm-up.
-  const latestSet = sets.at(-1);
-  const dropFrom = latestSet && latestSet.tier !== "warmup" ? latestSet : null;
-  const dropStart =
-    dropFrom && equipment
-      ? dropSetWeight(dropFrom.weight, performedId(dropFrom), dropFrom.location, equipment)
-      : null;
-  /** The weight a drop after the latest set starts at; null when no lighter drop is possible. */
-  const dropPreview =
-    dropFrom && dropStart != null && dropStart < dropFrom.weight ? dropStart : null;
-
-  const activeDrop = dropState && session && dropState.sessionId === session.id ? dropState : null;
-  const dropSet = useMemo(() => {
-    if (!activeDrop || !equipment) return null;
-    const chain = attachDrops(sets).find((row) => row.set.id === activeDrop.rootId);
-    if (!chain) return null;
-    const root = chain.set;
-    const planned = plan[entryIndexForSet(plan, root)];
-    const exercise: WorkoutExerciseState = {
-      exerciseId: root.exerciseId,
-      ...(root.substituteExerciseId ? { substituteExerciseId: root.substituteExerciseId } : {}),
-      tier: root.tier,
-      targetSets: 1,
-      targetReps: activeDrop.reps,
-      weight: activeDrop.weight,
-      ...(planned?.originalWeight != null ? { originalWeight: planned.originalWeight } : {}),
-      isAMRAP: false,
-      isWarmUp: false,
-      completedSets: 0,
-    };
-    return {
-      /** The set the drops continue, and the drops logged after it so far. */
-      root,
-      drops: chain.drops,
-      weight: activeDrop.weight,
-      reps: activeDrop.reps,
-      suggestedReps: activeDrop.suggestedReps,
-      /** The drop as an entry, for the weight display. */
-      exercise,
-      step: weightStepFor(performedId(root), root.location, equipment),
-      minWeight: minWeightFor(performedId(root), root.location, equipment),
-    };
-  }, [activeDrop, equipment, sets, plan]);
-
-  /**
-   * Goes on from the latest set at a lighter weight (`dropPreview`): the rest stops and
-   * the drop is set up, to be adjusted and logged.
-   */
-  const startDropSet = useCallback(() => {
-    if (!session || !dropFrom || dropPreview == null) return;
-    if (Date.now() - lastLogAt.current < tapGuardMs) return;
-    lastLogAt.current = Date.now();
-    restTimer.skip();
-    clearFlash();
-    const rootId =
-      dropFrom.role === "drop"
-        ? (attachDrops(sets).find((row) => row.drops.some((d) => d.id === dropFrom.id))?.set.id ??
-          dropFrom.id)
-        : dropFrom.id;
-    const reps = dropFrom.actualReps > 0 ? dropFrom.actualReps : dropFrom.targetReps;
-    setDropState({
-      sessionId: session.id,
-      rootId,
-      parentId: dropFrom.id,
-      weight: dropPreview,
-      reps,
-      suggestedReps: reps,
-    });
-  }, [session, dropFrom, dropPreview, tapGuardMs, sets, clearFlash]);
-
-  const setDropWeight = useCallback(
-    (weight: number) =>
-      setDropState((drop) =>
-        drop ? { ...drop, weight: Math.max(dropSet?.minWeight ?? 0, weight) } : drop
-      ),
-    [dropSet?.minWeight]
-  );
-  const setDropReps = useCallback(
-    (reps: number) => setDropState((drop) => (drop ? { ...drop, reps: clampReps(reps) } : drop)),
-    []
-  );
-
-  /**
-   * Logs the drop: a row with role "drop" continuing the set before it. No rest starts;
-   * the next drop is set up from this one, about as much lighter again.
-   */
-  const logDropSet = useCallback(async () => {
-    if (!session || !activeDrop || !equipment || isSaving) return;
-    if (Date.now() - lastLogAt.current < tapGuardMs) return;
-    const parent = sets.find((set) => set.id === activeDrop.parentId);
-    if (!parent) return;
-    lastLogAt.current = Date.now();
-    setError(null);
-
-    const drop = buildDropSet({
-      parent,
-      weight: activeDrop.weight,
-      actualReps: activeDrop.reps,
-      repsInReserve: null,
-      now: new Date(),
-      id: uuidv4(),
-      clientId: uuidv4(),
-    });
-    setAwaitingSetId(drop.id);
-    try {
-      await appendSet(session.id, drop);
-    } catch (err) {
-      console.error("Failed to save drop set:", err);
-      setAwaitingSetId(null);
-      lastLogAt.current = 0;
-      setError("That drop could not be saved. Try again.");
-      return;
-    }
-    const next = dropSetWeight(drop.weight, performedId(drop), drop.location, equipment);
-    const reps = drop.actualReps > 0 ? drop.actualReps : activeDrop.reps;
-    setDropState({ ...activeDrop, parentId: drop.id, weight: next, reps, suggestedReps: reps });
-  }, [session, activeDrop, equipment, isSaving, tapGuardMs, sets]);
-
-  /** No more drops: the rest that follows the set starts, when anything is left to do. */
-  const endDropSets = useCallback(() => {
-    if (!activeDrop) return;
-    lastLogAt.current = Date.now();
-    const root = sets.find((set) => set.id === activeDrop.rootId);
-    setDropState(null);
-    if (root && restsAfterDrops(root.tier, endedAtIndex != null, plan)) restTimer.start(root.tier, trainingPhase);
-  }, [activeDrop, sets, endedAtIndex, plan, trainingPhase]);
+  const { dropPreview, dropSet, startDropSet, setDropWeight, setDropReps, logDropSet, endDropSets } = useDropSets({
+    session,
+    sets,
+    plan,
+    equipment,
+    isSaving,
+    endedEarly: endedAtIndex != null,
+    trainingPhase,
+    guard,
+    draft: { drop, startDrop, continueDrop, setDropWeightAtLeast, setDropReps: setDraftDropReps, endDrop },
+    setAwaitingSetId,
+    setError,
+    clearFlash,
+  });
 
   const setSelectedReps = useCallback(
     (reps: number) => pickReps(setKey, reps),
