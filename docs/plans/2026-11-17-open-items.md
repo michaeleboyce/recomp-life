@@ -166,10 +166,13 @@ Decisions for Michael:
 
 Still to do:
 
-- R3 / K5: one owner for each piece of active-workout state.
-- `useStrengthEvidence()` is called by about 14 hooks and each builds its own array, so the
-  per-array caches are never shared on one screen. A provider mounted once in
-  `src/app/layout.tsx`, or a cache in `strengthEvidenceOf` keyed on its input arrays.
+- Done 2026-11-18: R3 (the saved session, one set draft, the rest countdown and view state
+  each have one owner; see the map at the top of `useActiveWorkout.ts`), and one shared copy of
+  the strength evidence per screen (`src/lib/workout/sharedEvidence.ts`). Left on purpose: the
+  draft's parts keep their own lifetimes (picked reps are lost on a reload, a weight changed on
+  the spot survives); one rule would change what the lifter sees.
+- The Log row for a swapped lift now names the swap; a lift stopped early with no swap still
+  reads "all targets hit" when the sets it did log hit their reps.
 - Helpers left apart because their output differs (`formatLbs` in `LogEdit`, three "N days
   ago" forms, percent with decimals); `homeVersion.ts` keeps a local `plural`.
 
