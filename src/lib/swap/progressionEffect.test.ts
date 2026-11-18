@@ -15,7 +15,7 @@ import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, PlanEdit, SetLog, Tier, WorkoutLocation, WorkoutSession } from "@/types";
 import { swapEdits } from "./combos";
 import { midWorkoutSwap } from "./midWorkout";
-import { swapProgressionEffect } from "./progressionEffect";
+import { standInText, swapProgressionEffect } from "./progressionEffect";
 
 const SETTINGS = DEFAULT_USER_PROFILE.settings;
 const TEMPLATE = WORKOUT_TEMPLATES.A1;
@@ -157,5 +157,13 @@ describe("swapProgressionEffect words", () => {
   it("an accessory has no program progression; the same exercise changes nothing", () => {
     expect(swapProgressionEffect("accessory", "face_pulls", "reverse_fly")).toMatchObject({ kind: "accessory", liftHeld: false, dayStaysDue: false });
     expect(swapProgressionEffect("T1", "squat", "squat").kind).toBe("none");
+  });
+});
+
+describe("standInText", () => {
+  it("says what a stand-in replaced, in swapProgressionEffect's words", () => {
+    expect(standInText("goblet_squat", { exerciseId: "squat", tier: "T1" })).toBe(
+      `Stood in for Barbell Squat. ${swapProgressionEffect("T1", "squat", "goblet_squat").text}`
+    );
   });
 });

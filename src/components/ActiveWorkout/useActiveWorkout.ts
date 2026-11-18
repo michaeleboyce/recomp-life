@@ -28,7 +28,8 @@ import {
 } from "@/lib/workout";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { useWorkoutStore } from "@/stores/workoutStore";
-import type { PlanEdit, RepsInReserve, SetLog, TrainingPhase } from "@/types";
+import { midWorkoutRemove, midWorkoutSwap, type MidWorkoutChange, type SwapReplacement } from "@/lib/swap";
+import type { PlanEdit, RepsInReserve, SetLog, Tier, TrainingPhase } from "@/types";
 import {
   clampReps,
   correctedSet,
@@ -692,6 +693,73 @@ export function useActiveWorkout(
     [session, basePlan, frozen]
   );
 
+  /**
+   * Lays a swap or removal during the workout (W11) on the session: each edit appended
+   * with `appendPlanEdit` in order, then the frozen plan set to the one the change
+   * returns (no entry moves). An entry replaced in place drops the weights changed on
+   * the spot for it, which were the original's.
+   */
+  const applyChange = useCallback(
+    async (change: MidWorkoutChange, index: number) => {
+      if (!session) return;
+      for (const edit of change.edits) await appendPlanEdit(session.id, edit);
+      setFrozen((was) => (was && was.sessionId === session.id ? { sessionId: was.sessionId, plan: change.plan } : was));
+      if (change.mode === "replaced") {
+        setSpotChoice((was) => {
+          if (!was || was.sessionId !== session.id) return was;
+          const weights = Object.fromEntries(Object.entries(was.weights).filter(([key]) => !key.startsWith(`${index}:`)));
+          saveSpotWeights(session.id, weights);
+          return { sessionId: session.id, weights };
+        });
+      }
+      const store = useWorkoutStore.getState();
+      if (store.pendingDrop?.entryIndex === index) store.clearPendingDrop();
+    },
+    [session]
+  );
+
+  const changeFor = useCallback(
+    (exerciseId: string, tier: Tier) => {
+      if (!session || !basePlan || frozen?.sessionId !== session.id) throw new Error("The workout is still loading.");
+      if (session.completedAt != null) throw new Error("This workout is already saved.");
+      const index = basePlan.findIndex((e) => !e.isWarmUp && e.exerciseId === exerciseId && e.tier === tier);
+      return { plan: basePlan, sets, exerciseId, tier, index };
+    },
+    [session, basePlan, frozen, sets]
+  );
+
+  /**
+   * Swaps an exercise not yet finished for one or more others (`midWorkoutSwap`): with
+   * no set logged it is replaced in place, otherwise its logged sets stay and the rest is
+   * dropped, the replacements appended. Saved as plan edits, so resume, the Log and the
+   * rebuild agree; the screen goes to the first replacement. Rejects with an Error to
+   * show (nothing saved) when the swap is not possible.
+   */
+  const swapExercise = useCallback(
+    async (exerciseId: string, tier: Tier, replacements: readonly SwapReplacement[]): Promise<void> => {
+      const { index, ...input } = changeFor(exerciseId, tier);
+      const change = midWorkoutSwap({ ...input, replacements });
+      await applyChange(change, index);
+      const to = change.replacementIndexes[0];
+      if (to != null && to >= 0) {
+        const store = useWorkoutStore.getState();
+        store.skipRest();
+        store.viewEntry(to);
+        setE1rmFlash(null);
+      }
+    },
+    [changeFor, applyChange]
+  );
+
+  /** Removes an exercise with no set logged (`midWorkoutRemove`): hidden, its warm-ups skipped. */
+  const removeExercise = useCallback(
+    async (exerciseId: string, tier: Tier): Promise<void> => {
+      const { index, ...input } = changeFor(exerciseId, tier);
+      await applyChange(midWorkoutRemove(input), index);
+    },
+    [changeFor, applyChange]
+  );
+
   const jumpTo = useCallback((index: number) => {
     const store = useWorkoutStore.getState();
     store.skipRest();
@@ -817,6 +885,10 @@ export function useActiveWorkout(
     clearCorrectionError,
     /** Appends an exercise to the workout (never inserts); rejects with an Error to show. */
     addExercise,
+    /** Swaps an unfinished exercise for one or more others; rejects with an Error to show. */
+    swapExercise,
+    /** Removes an exercise with no set logged; rejects with an Error to show. */
+    removeExercise,
     jumpTo,
     endEarly,
     /** True once the user chose to end before the plan was done. */

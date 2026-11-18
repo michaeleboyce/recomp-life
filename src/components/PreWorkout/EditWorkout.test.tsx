@@ -98,16 +98,28 @@ describe("impact states", () => {
 });
 
 describe("the edit sheet", () => {
-  it("swaps a lift for a candidate and marks the replacement logged only", async () => {
+  it("swaps a lift for the top recommendation at its prescription and marks the replacement logged only", async () => {
     const sheet = await openSheet();
     fireEvent.click(within(sheet).getByRole("button", { name: "Swap Lat Pulldown" }));
-    const choices = within(sheet).getByRole("list", { name: "Choices" });
-    const first = within(choices).getAllByRole("button")[0];
-    const chosen = first.textContent!;
+    const panel = await within(sheet).findByTestId("swap-panel");
+    const recommended = await within(panel).findByRole("region", { name: "Recommended" });
+    const top = within(recommended).getAllByTestId("swap-candidate")[0];
+    const pick = within(top).getByRole("button", { name: /^Pick / });
+    const chosen = pick.getAttribute("aria-label")!.replace(/^Pick /, "");
+    const prescription = within(top).getByTestId("swap-prescription").textContent!;
     expect(chosen).not.toBe("Lat Pulldown");
-    fireEvent.click(first);
+    // What it does to the lift is said before confirming.
+    expect(within(panel).getByTestId("swap-effect")).toHaveTextContent(/Lat Pulldown stays at its T3 weight/);
+    fireEvent.click(pick);
+    fireEvent.click(within(panel).getByRole("button", { name: `Swap in ${chosen}` }));
 
+    await waitFor(() => expect(within(sheet).queryByTestId("swap-panel")).toBeNull());
     expect(within(sheet).getByText(chosen)).toBeInTheDocument();
+    // The entry takes the candidate's weight (a T3 keeps its sets and reps).
+    const weight = Number.parseFloat(prescription);
+    if (Number.isFinite(weight)) {
+      expect(sheet.querySelector(`[data-stepper-value='${chosen} weight']`)!.textContent).toContain(String(weight));
+    }
     expect(within(sheet).queryByRole("button", { name: "Swap Lat Pulldown" })).toBeNull();
     expect(within(sheet).getByText("Logged only, progression paused")).toBeInTheDocument();
     expect(within(sheet).getByText("Not done today, weight unchanged")).toBeInTheDocument();
@@ -116,27 +128,53 @@ describe("the edit sheet", () => {
   it("does not offer exercises already in the workout as swaps", async () => {
     const sheet = await openSheet();
     fireEvent.click(within(sheet).getByRole("button", { name: "Swap Lat Pulldown" }));
-    const names = within(within(sheet).getByRole("list", { name: "Choices" }))
-      .getAllByRole("button")
-      .map((b) => b.textContent);
+    const panel = await within(sheet).findByTestId("swap-panel");
+    await within(panel).findByRole("region", { name: "Recommended" });
+    fireEvent.click(within(panel).getByRole("button", { name: /All exercises/ }));
+    const names = within(panel)
+      .getAllByTestId("swap-candidate")
+      .map((row) => within(row).getByRole("button", { name: /^Pick / }).getAttribute("aria-label")!.replace(/^Pick /, ""));
+    expect(names.length).toBeGreaterThan(3);
     expect(names).not.toContain("Barbell Squat");
     expect(names).not.toContain("Barbell Bench Press");
     expect(names).not.toContain("Lat Pulldown");
   });
 
-  it("adds an exercise at 3 x 12 and resets to the program", async () => {
+  it("swaps one lift for two: the first takes its place, the second is added", async () => {
+    const sheet = await openSheet();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Swap Lat Pulldown" }));
+    const panel = await within(sheet).findByTestId("swap-panel");
+    const recommended = await within(panel).findByRole("region", { name: "Recommended" });
+    fireEvent.click(within(panel).getByRole("button", { name: "Pick more than one" }));
+    const [a, b] = within(recommended)
+      .getAllByTestId("swap-candidate")
+      .map((row) => within(row).getByRole("button", { name: /^Pick / }).getAttribute("aria-label")!.replace(/^Pick /, ""));
+    fireEvent.click(within(panel).getByRole("button", { name: `Pick ${a}` }));
+    fireEvent.click(within(panel).getByRole("button", { name: `Pick ${b}` }));
+    fireEvent.click(within(panel).getByRole("button", { name: "Swap in 2 exercises" }));
+
+    await waitFor(() => expect(within(sheet).queryByTestId("swap-panel")).toBeNull());
+    const rows = within(sheet).getAllByTestId("edit-entry");
+    expect(rows).toHaveLength(4);
+    expect(within(rows[2]).getByText(a)).toBeInTheDocument();
+    expect(within(rows[3]).getByText(b)).toBeInTheDocument();
+  });
+
+  it("adds an exercise at its prescription, shown on the row, and resets to the program", async () => {
     const sheet = await openSheet();
     fireEvent.click(within(sheet).getByRole("button", { name: "Add exercise" }));
     const choices = within(sheet).getByRole("list", { name: "Choices" });
     const first = within(choices).getAllByRole("button")[0];
-    const added = first.textContent!;
+    const added = first.getAttribute("aria-label")!;
+    const shown = within(first).getByTestId("pick-prescription").textContent!;
+    const [sets, reps] = shown.split(" × ").slice(-2).map((n) => Number.parseInt(n, 10));
     fireEvent.click(first);
 
     const rows = within(sheet).getAllByTestId("edit-entry");
     expect(rows).toHaveLength(4);
     expect(within(rows[3]).getByText(added)).toBeInTheDocument();
-    expect(within(rows[3]).getByText("3", { selector: "[data-stepper-value$='sets']" })).toBeInTheDocument();
-    expect(within(rows[3]).getByText("12", { selector: "[data-stepper-value$='reps']" })).toBeInTheDocument();
+    expect(within(rows[3]).getByText(String(sets), { selector: "[data-stepper-value$='sets']" })).toBeInTheDocument();
+    expect(within(rows[3]).getByText(String(reps), { selector: "[data-stepper-value$='reps']" })).toBeInTheDocument();
 
     fireEvent.click(within(sheet).getByRole("button", { name: "Reset to program" }));
     expect(within(sheet).getAllByTestId("edit-entry")).toHaveLength(3);

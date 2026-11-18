@@ -111,8 +111,8 @@ export function LiftRows({ rows }: { rows: TodayLiftRow[] }) {
         const style = tierStyle(entry.tier);
         const tierTerm = index === 0 ? TIER_TERM[entry.tier] : undefined;
         const scheme = formatSetsReps(entry);
-        const perHand =
-          entry.substituteExerciseId && EXERCISES[entry.substituteExerciseId]?.grip === "per_hand";
+        // The exercise shown: the home version when there is one, else the program's own lift.
+        const perHand = EXERCISES[entry.substituteExerciseId || entry.exerciseId]?.grip === "per_hand";
         return (
           <li
             key={`${entry.tier}-${entry.exerciseId}`}

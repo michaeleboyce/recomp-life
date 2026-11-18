@@ -46,7 +46,7 @@ import {
   type AccessorySource,
 } from "@/lib/workout";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
-import { addEdit, removeEdit, schemeEdit, setWeightsEdit, swapEdit, weightEdit } from "./editList";
+import { addEdit, removeEdit, schemeEdit, setWeightsEdit, swapEdit, weightEdit, withEdits } from "./editList";
 import { computeImpact } from "./impact";
 import { lighterWeight, notesToWrite, queueNote, type PendingNote } from "./setupNotes";
 import type {
@@ -236,6 +236,11 @@ export function useWorkoutSetup(
   const setWeight = useCallback(
     (exerciseId: string, tier: Tier, weight: number) =>
       changeEdits((list) => weightEdit(list, exerciseId, tier, weight)),
+    [changeEdits]
+  );
+  /** Several edits at once, in order (a recommended swap's `swapEdits`, an add at its prescription). */
+  const applyEdits = useCallback(
+    (next: readonly PlanEdit[]) => changeEdits((list) => withEdits(list, next)),
     [changeEdits]
   );
   const resetEdits = useCallback(() => {
@@ -844,6 +849,7 @@ export function useWorkoutSetup(
     swapExercise,
     removeExercise,
     addExercise,
+    applyEdits,
     setScheme,
     setWeight,
     setSetWeights,

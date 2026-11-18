@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { isDroppedEntry } from "@/lib/swap";
 import { tierStyle } from "@/lib/tierStyle";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 
@@ -22,7 +23,7 @@ export function WorkoutMiniMap({
 }: WorkoutMiniMapProps) {
   const groups = exercises
     .map((exercise, index) => ({ exercise, index }))
-    .filter((item) => !item.exercise.isWarmUp);
+    .filter((item) => !item.exercise.isWarmUp && !isDroppedEntry(item.exercise));
 
   const total = groups.reduce((sum, g) => sum + g.exercise.targetSets, 0);
   const done = groups.reduce(

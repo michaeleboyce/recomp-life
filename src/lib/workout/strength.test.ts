@@ -4,6 +4,7 @@ import type { SetLog, WorkoutSession } from "@/types";
 import {
   OWN_HISTORY_WINDOW_WEEKS,
   ownHistoryOf,
+  standInsOf,
   pooledEstimateOf,
   strengthSetOf,
   strengthSetsOf,
@@ -59,6 +60,22 @@ describe("strengthSetsOf", () => {
     const open: WorkoutSession = { ...makeSession({ id: "open" }), completedAt: null, sets: [set({ id: "2" })] };
     const gone: WorkoutSession = { ...makeSession({ id: "gone", completedAt: at }), deletedAt: 5, sets: [set({ id: "3" })] };
     expect(strengthSetsOf([done, open, gone]).map((s) => [s.id, s.sessionId])).toEqual([["1", "done"]]);
+  });
+
+  it("marks the sets of an exercise added to stand in for a program lift, and only those", () => {
+    const goblet = makeSet("goblet_squat", "accessory", { id: "g", completedAt: at });
+    const curls = makeSet("bicep_curls", "accessory", { id: "c", completedAt: at });
+    const session: WorkoutSession = {
+      ...makeSession({ id: "w", completedAt: at }),
+      sets: [set({ id: "s" }), goblet, curls],
+      planEdits: [
+        { kind: "add", exerciseId: "goblet_squat", sets: 3, reps: 3, weight: 50, isAMRAP: true, replaces: { exerciseId: "squat", tier: "T1" } },
+        { kind: "add", exerciseId: "bicep_curls", sets: 3, reps: 12, weight: 25, isAMRAP: true },
+      ],
+    };
+    const byId = Object.fromEntries(strengthSetsOf([session]).map((s) => [s.id, s.standsInFor]));
+    expect(byId).toEqual({ s: undefined, g: { exerciseId: "squat", tier: "T1" }, c: undefined });
+    expect(standInsOf(session.planEdits)).toEqual(new Map([["goblet_squat", { exerciseId: "squat", tier: "T1" }]]));
   });
 });
 

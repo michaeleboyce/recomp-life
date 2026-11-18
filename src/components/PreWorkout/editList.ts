@@ -14,7 +14,12 @@ export { plannedSetsOf };
  */
 
 type Scheme = { sets: number; reps: number };
-type NewAccessory = Scheme & { weight: number; isAMRAP: boolean };
+type NewAccessory = Scheme & {
+  weight: number;
+  isAMRAP: boolean;
+  /** A stand-in for a program lift swapped out (`PlanEdit` add's `replaces`), kept as is. */
+  replaces?: { exerciseId: string; tier: Tier };
+};
 
 const keyOf = (exerciseId: string, tier: Tier) => `${exerciseId}|${tier}`;
 
@@ -104,6 +109,7 @@ export function addEdit(edits: PlanEdit[], exerciseId: string, accessory: NewAcc
       reps: clampCount(accessory.reps),
       weight: Math.max(0, accessory.weight),
       isAMRAP: accessory.isAMRAP,
+      ...(accessory.replaces ? { replaces: accessory.replaces } : {}),
     },
   ];
 }
@@ -144,6 +150,7 @@ export function swapEdit(
         reps: old.reps,
         weight: DEFAULT_ACCESSORY_WEIGHTS[replacementId] ?? 0,
         isAMRAP: old.isAMRAP,
+        ...(old.replaces ? { replaces: old.replaces } : {}),
       });
     }
   }
@@ -169,6 +176,30 @@ export function swapEdit(
     ...edits.filter((e) => !isFollowUp(e, exerciseId, tier)),
     { kind: "swap", exerciseId, tier, replacementId },
   ];
+}
+
+/**
+ * Lays several edits on the list in order, each through its own function above (so a
+ * swap of a swapped entry re-points the one swap, and a follow-up replaces an earlier
+ * one): how a swap's edits (`swapEdits` in `@/lib/swap`) are applied before a workout.
+ */
+export function withEdits(edits: PlanEdit[], next: readonly PlanEdit[]): PlanEdit[] {
+  return next.reduce<PlanEdit[]>((list, edit) => {
+    switch (edit.kind) {
+      case "swap":
+        return swapEdit(list, edit.exerciseId, edit.tier, edit.replacementId);
+      case "scheme":
+        return schemeEdit(list, edit.exerciseId, edit.tier, edit.sets, edit.reps);
+      case "weight":
+        return weightEdit(list, edit.exerciseId, edit.tier, edit.weight);
+      case "add":
+        return addEdit(list, edit.exerciseId, edit);
+      case "remove":
+        return removeEdit(list, edit.exerciseId, edit.tier);
+      case "setWeights":
+        return setWeightsEdit(list, edit.exerciseId, edit.tier, edit.sets);
+    }
+  }, edits);
 }
 
 /**

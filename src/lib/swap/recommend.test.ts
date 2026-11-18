@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
+import { NEEDS_BENCH } from "@/lib/accessories/select";
 import { EXERCISES } from "@/lib/exercises";
 import { importedStrengthSets } from "@/lib/import/evidence";
 import { importedSession, importedSet } from "@/lib/import/testRecords";
@@ -221,6 +222,17 @@ describe("recommendSwaps: properties", () => {
       expect(list.length).toBeGreaterThan(0);
       expect(list.every((c) => !EXERCISES[c.exerciseId].requiresGym)).toBe(true);
     }
+  });
+
+  it("leaves out exercises that need a bench at home when there is none, and only then", () => {
+    const noBench = { ...EQUIPMENT, hasBench: false };
+    const homeNoBench = recommendSwaps("bench", ctx({ location: "home", equipment: noBench })).map((c) => c.exerciseId);
+    expect(homeNoBench.length).toBeGreaterThan(0);
+    for (const id of NEEDS_BENCH) expect(homeNoBench).not.toContain(id);
+    const homeBench = recommendSwaps("bench", ctx({ location: "home" })).map((c) => c.exerciseId);
+    expect(homeBench).toContain("incline_db_press");
+    const gymNoBench = recommendSwaps("bench", ctx({ equipment: noBench })).map((c) => c.exerciseId);
+    expect(gymNoBench).toContain("incline_db_press");
   });
 
   it("leaves out the original and the exercises already in the workout; nothing for an unknown id", () => {

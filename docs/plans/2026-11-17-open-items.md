@@ -75,6 +75,31 @@ Still to do (small), queued with the polish items:
   changelog entry. Found by the edit-delete-log-entries session; taken here after the swap
   screens and the full future-workout view land.
 
+## From the full future-workout view and the swap screens, 2026-11-18
+
+Checked on the live data: every Coming up card opens its workout in full, later workouts offer
+"Do this one today" with the day that stays next, and Today has "Do a different day".
+
+- A program lift with no session in the app and unconfirmed starting weights is planned at the
+  default weight and says "First time", whatever the imported history holds: on the live data
+  the dumbbell row is 65 a hand as lat pulldown's home stand-in (from its own history) and 35
+  as Press day's own T3. Either seed an unconfirmed program lift from its own history the way
+  home versions are (F6), labelled as such, or put "Confirm your starting weights" in Today's
+  Needs attention until it is done. Take with the own-history window fix above.
+- "Every time" on a swap is a real standing choice only for accessories. For a program slot
+  the planner reads no preference, and a swapped program lift is held and leaves its day due,
+  so a standing swap would never advance. Proposed package (waiting for Michael): the
+  replacement becomes that slot's lift at that location with its own weight and progression,
+  counting for the rotation, the way home versions already work; a one-off swap to a version
+  of the same lift then counts as doing the day.
+- The card for the next workout and its full view build the plan by two paths (re-entry
+  "everyLift" and accessories after set plans, against Today's path). Equal in every test;
+  make `projectUpcomingWorkouts` build each shown plan through `planWorkoutStart`.
+- `LiftRows` labels its list "Today's lifts" for screen readers on the full view too.
+- After a reload mid-workout the screen resumes at the first unfinished entry, not the one
+  the user had jumped to. During the rest screen the block's Swap is under the rest overlay.
+- There is no way to load demo data from the UI, so browser checks seed a database by hand.
+
 ## Promised and missing
 
 | Item | Where it was promised | In the code today | Size |

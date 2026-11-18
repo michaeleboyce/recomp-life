@@ -54,6 +54,8 @@ export interface WorkoutExerciseState {
    * rule decided `weight`, as `resolveReentry` worked it out. Absent otherwise.
    */
   reentry?: PlanReentry;
+  /** An entry added to stand in for a program lift swapped out (an `add` edit's `replaces`): logged only. */
+  replaces?: { exerciseId: string; tier: Tier };
 }
 
 /**

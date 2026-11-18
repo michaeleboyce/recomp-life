@@ -15,7 +15,22 @@ import {
   type TransferRatio,
 } from "@/lib/strength";
 import { timeOf } from "@/lib/strength/estimate";
-import type { ImportedSessionRecord, SetLog, WorkoutSession } from "@/types";
+import type { ImportedSessionRecord, PlanEdit, SetLog, Tier, WorkoutSession } from "@/types";
+
+/** What a stand-in replaced: a program lift at its tier. */
+export type StandIn = { exerciseId: string; tier: Tier };
+
+/**
+ * The exercises a session added to stand in for a program lift swapped out (`add` edits
+ * with `replaces`), by exercise id.
+ */
+export function standInsOf(planEdits: readonly PlanEdit[] | undefined): Map<string, StandIn> {
+  const out = new Map<string, StandIn>();
+  for (const edit of planEdits ?? []) {
+    if (edit.kind === "add" && edit.replaces) out.set(edit.exerciseId, edit.replaces);
+  }
+  return out;
+}
 
 /** What a stored set was for, in the strength library's terms. */
 function roleOf(set: Pick<SetLog, "tier" | "role">): StrengthSetRole {
@@ -38,8 +53,9 @@ function roleOf(set: Pick<SetLog, "tier" | "role">): StrengthSetRole {
  * dumbbell in each hand (catalogue grip `per_hand`), and its role. A warm-up is kept as
  * a warm-up, which the library counts for nothing.
  */
-export function strengthSetOf(set: SetLog, sessionId: string): StrengthSet {
+export function strengthSetOf(set: SetLog, sessionId: string, standIns?: ReadonlyMap<string, StandIn>): StrengthSet {
   const exerciseId = set.substituteExerciseId || set.exerciseId;
+  const standsInFor = set.tier === "accessory" ? standIns?.get(exerciseId) : undefined;
   return {
     id: set.id,
     sessionId,
@@ -53,6 +69,7 @@ export function strengthSetOf(set: SetLog, sessionId: string): StrengthSet {
     isAMRAP: set.isAMRAP,
     date: set.completedAt,
     ...(set.dropOf ? { dropOf: set.dropOf } : {}),
+    ...(standsInFor ? { standsInFor: { ...standsInFor } } : {}),
   };
 }
 
@@ -62,11 +79,15 @@ export function strengthSetOf(set: SetLog, sessionId: string): StrengthSet {
  * done, not what is in progress.
  */
 export function strengthSetsOf(
-  workouts: readonly Pick<WorkoutSession, "id" | "completedAt" | "deletedAt" | "sets">[]
+  workouts: readonly (Pick<WorkoutSession, "id" | "completedAt" | "deletedAt" | "sets"> &
+    Partial<Pick<WorkoutSession, "planEdits">>)[]
 ): StrengthSet[] {
   return workouts
     .filter((workout) => workout.completedAt != null && workout.deletedAt == null)
-    .flatMap((workout) => (workout.sets ?? []).map((set) => strengthSetOf(set, workout.id)));
+    .flatMap((workout) => {
+      const standIns = standInsOf(workout.planEdits);
+      return (workout.sets ?? []).map((set) => strengthSetOf(set, workout.id, standIns));
+    });
 }
 
 /**
@@ -90,7 +111,8 @@ export function strengthSetsOf(
  * @evidence strength-pooling
  */
 export function strengthEvidenceOf(
-  workouts: readonly Pick<WorkoutSession, "id" | "completedAt" | "deletedAt" | "sets">[],
+  workouts: readonly (Pick<WorkoutSession, "id" | "completedAt" | "deletedAt" | "sets"> &
+    Partial<Pick<WorkoutSession, "planEdits">>)[],
   imported: readonly ImportedSessionRecord[],
   overrides?: MappingOverrides
 ): StrengthSet[] {

@@ -12,6 +12,7 @@ import {
   setWeightsEdit,
   swapEdit,
   weightEdit,
+  withEdits,
   workingSetNumbers,
 } from "./editList";
 
@@ -223,5 +224,35 @@ describe("per-set quick fills", () => {
     ]);
     const perSet = [{ weight: 80, reps: 10, role: "ramp" as const }, { weight: 100, reps: 10 }];
     expect(plannedSetsOf({ targetSets: 2, targetReps: 10, weight: 100, perSet })).toEqual(perSet);
+  });
+});
+
+describe("withEdits", () => {
+  it("lays a swap's edits on the list through the same functions, keeping it minimal", () => {
+    const swap: PlanEdit[] = [
+      { kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "db_bench" },
+      { kind: "weight", exerciseId: "db_bench", tier: "T2", weight: 50 },
+      { kind: "add", exerciseId: "push_up", sets: 3, reps: 15, weight: 0, isAMRAP: true },
+    ];
+    expect(withEdits([], swap)).toEqual(swap);
+    // Swapping the replacement again re-points the one swap and drops its weight.
+    const again = withEdits(withEdits([], swap), [
+      { kind: "swap", exerciseId: "db_bench", tier: "T2", replacementId: "db_floor_press" },
+      { kind: "weight", exerciseId: "db_floor_press", tier: "T2", weight: 45 },
+    ]);
+    expect(again).toEqual([
+      { kind: "swap", exerciseId: "bench", tier: "T2", replacementId: "db_floor_press" },
+      { kind: "add", exerciseId: "push_up", sets: 3, reps: 15, weight: 0, isAMRAP: true },
+      { kind: "weight", exerciseId: "db_floor_press", tier: "T2", weight: 45 },
+    ]);
+  });
+
+  it("handles scheme, remove and per-set edits too", () => {
+    const list = withEdits([], [
+      { kind: "scheme", exerciseId: "face_pulls", tier: "accessory", sets: 3, reps: 15 },
+      { kind: "remove", exerciseId: "squat", tier: "T1" },
+      { kind: "setWeights", exerciseId: "bench", tier: "T2", sets: [{ weight: 100, reps: 10 }] },
+    ]);
+    expect(list.map((e) => e.kind)).toEqual(["scheme", "remove", "setWeights"]);
   });
 });

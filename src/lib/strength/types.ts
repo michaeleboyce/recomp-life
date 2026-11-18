@@ -44,6 +44,12 @@ export interface StrengthSet {
    * every other set, never a GZCLP session. Absent on the app's own sets.
    */
   imported?: true;
+  /**
+   * Done in a slot added to stand in for a program lift swapped out (the session's `add`
+   * edit with `replaces`): a real set for the strength model and volume, but never an
+   * accessory session for double progression. Absent otherwise.
+   */
+  standsInFor?: { exerciseId: string; tier: Tier };
 }
 
 /** The best set of one session for one exercise. */

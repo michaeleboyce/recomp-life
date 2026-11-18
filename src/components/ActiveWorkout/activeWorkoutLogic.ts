@@ -1,6 +1,7 @@
 // Pure derivations for the active workout screen. No React, no database.
 import { evaluateT2AutoRegulation } from "@/lib/progression";
 import { applyChange, type LogChange } from "@/lib/rebuild";
+import { isWarmUpOfDropped } from "@/lib/swap";
 import { entrySetsFor, workingSetsFor } from "@/lib/workout/setSelectors";
 import type { WorkoutExerciseState, WorkoutPlan } from "@/lib/workout/types";
 import type {
@@ -41,7 +42,7 @@ function isStaleWarmUp(plan: WorkoutPlan, index: number): boolean {
 /** First entry at or after `from` that still has sets to do, else -1. */
 export function nextIncompleteIndex(plan: WorkoutPlan, from = 0): number {
   for (let i = Math.max(from, 0); i < plan.length; i++) {
-    if (!isComplete(plan[i]) && !isStaleWarmUp(plan, i)) return i;
+    if (!isComplete(plan[i]) && !isStaleWarmUp(plan, i) && !isWarmUpOfDropped(plan, i)) return i;
   }
   return -1;
 }

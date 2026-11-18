@@ -186,8 +186,18 @@ describe("midWorkoutSwap", () => {
     expect(change.loggedSets).toBe(2);
     expect(change.edits).toEqual([
       { kind: "scheme", exerciseId: "squat", tier: "T1", sets: 2, reps: 3 },
-      { kind: "add", exerciseId: "leg_press", sets: 3, reps: 3, weight: 180, isAMRAP: true },
+      {
+        kind: "add",
+        exerciseId: "leg_press",
+        sets: 3,
+        reps: 3,
+        weight: 180,
+        isAMRAP: true,
+        replaces: { exerciseId: "squat", tier: "T1" },
+      },
     ]);
+    // The appended entry carries the marker: it stands in for the squat, logged only.
+    expect(change.plan.at(-1)).toMatchObject({ exerciseId: "leg_press", replaces: { exerciseId: "squat", tier: "T1" } });
     expectIndexesKept(before, change.plan, index);
     expect(change.plan[index]).toMatchObject({ exerciseId: "squat", targetSets: 2 });
     expect(change.replacementIndexes).toEqual([before.length]);
