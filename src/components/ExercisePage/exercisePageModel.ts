@@ -22,7 +22,6 @@ import type {
   Tier,
   WorkoutSession,
 } from "@/types";
-import type { Point } from "@/lib/metrics/types";
 import { displayLiftName } from "@/components/Today/todayModel";
 import { homeSubstitutesOf, programLiftFor } from "@/components/Lift/homeVersion";
 import { liftSessions, type LiftSession } from "@/components/Lift/sessions";
@@ -162,12 +161,6 @@ export function liftPlanWeight(state: LiftState | undefined, tier: Tier, weight:
   const planned =
     tier === "T1" ? state.t1PlannedWeight : tier === "T2" ? state.t2PlannedWeight : tier === "T3" ? state.t3PlannedWeight : undefined;
   return planned !== undefined && planned !== weight ? planned : null;
-}
-
-/** The exercise's own estimated max per session, oldest first, from its own T1 sets. */
-export function strengthPoints(sets: readonly StrengthSet[] | undefined, exerciseId: string): Point[] {
-  if (!sets) return [];
-  return sessionEstimates(sets, exerciseId).map((e) => ({ t: new Date(e.date).getTime(), v: e.estimatedMax }));
 }
 
 /** One T3 session's last set against the rep count that adds weight. */

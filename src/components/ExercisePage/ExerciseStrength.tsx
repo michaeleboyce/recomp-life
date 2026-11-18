@@ -1,71 +1,80 @@
 "use client";
 
-import { useMemo } from "react";
-import { summarize } from "@/lib/metrics";
-import type { Series } from "@/lib/metrics/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { liftTimelineFor } from "@/hooks/useStrengthTimeline";
+import type { RangeKey } from "@/lib/metrics/types";
+import type { WindowSpan } from "@/lib/metrics/window";
+import { liftWindowKey, useChartSpan, useChartWindowStore } from "@/stores/chartWindowStore";
 import { T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
 import { loadingOf, type StrengthSet } from "@/lib/strength";
 import { cn } from "@/lib/utils";
-import { ChartEmpty, LazyTrendChart, formatShortDate } from "@/components/chart-kit";
+import { TrendChartSkeleton, formatShortDate } from "@/components/chart-kit";
+import { StrengthTrendPanel } from "@/components/StrengthTrend/StrengthTrendPanel";
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { SectionHeader } from "@/components/ui/section-header";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { Term } from "@/components/ui/term";
 import type { LiftSession } from "@/components/Lift/sessions";
-import { strengthPoints, t3LastSets } from "./exercisePageModel";
+import { t3LastSets } from "./exercisePageModel";
 
 /**
- * The exercise's own estimated max over time, from its own T1 sets (`sessionEstimates`):
- * never another exercise's. A dumbbell exercise's is the total load it moved.
+ * The exercise's own estimated max over time, on the same chart as a barbell lift's
+ * (`StrengthTrendPanel`): its own sessions as dots (logged and imported, never another
+ * exercise's), the smooth line, the window controls and its latest estimate as the
+ * anchor. A dumbbell exercise's is the total load it moved. The window is the page's:
+ * presets through `onRangeChange`, a zoom through the chart window store.
  */
 export function OwnStrength({
   exerciseId,
   name,
   sets,
+  range,
+  onRangeChange,
 }: {
   exerciseId: string;
   name: string;
+  /** Every set as strength evidence (`useStrengthEvidence`); undefined while loading. */
   sets: readonly StrengthSet[] | undefined;
+  range: RangeKey;
+  onRangeChange: (range: RangeKey) => void;
 }) {
-  const series = useMemo<Series>(
-    () => ({
-      metric: "e1rm",
-      params: { exerciseId },
-      points: strengthPoints(sets, exerciseId),
-      unit: "lbs",
-      better: "up",
-    }),
-    [sets, exerciseId]
+  const [now] = useState(() => Date.now());
+  const timeline = useMemo(
+    () => (sets === undefined ? undefined : liftTimelineFor(sets, exerciseId, now)),
+    [sets, exerciseId, now]
   );
-  const latest = summarize(series).latest;
+  const key = liftWindowKey(exerciseId);
+  const span = useChartSpan(key);
+  const setSpan = useChartWindowStore((st) => st.setSpan);
+  const onSpanChange = useCallback((next: WindowSpan | null) => setSpan(key, next), [setSpan, key]);
+  // A zoom lasts while the page is open.
+  useEffect(() => () => setSpan(key, null), [setSpan, key]);
   const twoDumbbells = loadingOf(exerciseId) === "two-dumbbells";
 
   return (
     <section aria-label="Strength" className="flex flex-col gap-1.5">
       <SectionHeader title="Strength" action={<EvidenceLine ruleId="e1rm-estimate" variant="icon" />} />
-      <div className="flex items-baseline gap-2">
-        <span className="text-xs text-muted-foreground">
-          <Term id="e1rm">Estimated max</Term>
-          {twoDumbbells && ", both dumbbells together"}
-        </span>
-        {latest && (
-          <span data-testid="own-estimate" className="font-mono text-2xl font-bold tabular-nums text-foreground">
-            {Math.round(latest.v)}
-            <span className="ml-1 text-xs font-normal text-muted-foreground">lbs</span>
-          </span>
-        )}
-      </div>
-      {sets === undefined ? (
-        <SkeletonCard />
-      ) : series.points.length === 0 ? (
-        <ChartEmpty message={`A T1 session of ${name} with a last set of 2 or more reps gives its estimate.`} height={64} />
+      {timeline === undefined ? (
+        <TrendChartSkeleton height={200} />
       ) : (
-        <LazyTrendChart
-          series={series}
-          variant="line"
-          showPoints
-          seriesLabel="Estimated max"
+        <StrengthTrendPanel
+          timeline={timeline}
+          range={range}
+          onRangeChange={onRangeChange}
+          span={span}
+          onSpanChange={onSpanChange}
+          title={
+            <>
+              <Term id="e1rm">Estimated max</Term>
+              {twoDumbbells && ", both dumbbells together"}
+            </>
+          }
           ariaLabel={`${name} estimated max over time`}
+          anchorLabel="Latest"
+          anchorTestId="own-estimate"
+          emptyMessage={`A T1 session of ${name} with a last set of 2 or more reps gives its estimate.`}
+          headingLevel={3}
+          size="md"
         />
       )}
     </section>

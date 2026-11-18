@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeLiftState, makeSet, makeWorkout } from "@/lib/data/testUtils";
 import { T3_LAST_SET_INCREASE_REPS } from "@/lib/progression";
+import { sessionEstimates } from "@/lib/strength";
 import { strengthSetsOf } from "@/lib/workout/strength";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 import type { LiftAdjustment, NextSetPlan } from "@/types";
@@ -18,7 +19,6 @@ import {
   nextPlannedEntry,
   performedSessions,
   ratioBasisText,
-  strengthPoints,
   t3LastSets,
 } from "./exercisePageModel";
 
@@ -202,20 +202,11 @@ describe("strength", () => {
   ];
   const sets = strengthSetsOf(workouts);
 
-  it("charts the exercise's own estimated max from its own T1 sets", () => {
-    const squat = strengthPoints(sets, "squat");
-    const split = strengthPoints(sets, "bulgarian_split_squat");
-    expect(squat).toHaveLength(1);
-    expect(split).toHaveLength(1);
-    expect(split[0].v).not.toBe(squat[0].v);
-    expect(strengthPoints(undefined, "squat")).toEqual([]);
-  });
-
   it("says what a home version's latest session means for its lift, with the ratio", () => {
     const counts = homeCountsToward(sets, "squat", "bulgarian_split_squat");
     expect(counts.pooled).toBeGreaterThan(0);
     expect(counts.ratio?.ratio).toBeGreaterThan(0);
-    expect(counts.says).toBe(Math.round(strengthPoints(sets, "bulgarian_split_squat")[0].v / counts.ratio!.ratio));
+    expect(counts.says).toBe(Math.round(sessionEstimates(sets, "bulgarian_split_squat")[0].estimatedMax / counts.ratio!.ratio));
     expect(counts.fromTarget).toBe(false);
     expect(homeCountsToward(undefined, "squat", "goblet_squat")).toMatchObject({ pooled: null, says: null });
   });

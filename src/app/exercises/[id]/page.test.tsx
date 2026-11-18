@@ -118,8 +118,11 @@ describe("an exercise's page", () => {
       `/log/workout?id=${own[0].id}`
     );
 
-    // Its own strength, never the barbell squat's 1RM chart.
+    // Its own strength on the same chart as a lift's (its latest estimate, the window
+    // controls), never the barbell squat's 1RM chart.
     const strength = screen.getByRole("region", { name: "Strength" });
+    expect(await within(strength).findByTestId("own-estimate")).toHaveTextContent(/\d/);
+    expect(within(strength).getByRole("radio", { name: "All" })).toBeInTheDocument();
     expect(within(strength).queryByRole("img", { name: /Barbell squat/i })).toBeNull();
     expect(screen.queryByRole("region", { name: "Estimated 1RM" })).toBeNull();
     expect(screen.queryByRole("region", { name: "Lift stats" })).toBeNull();
@@ -182,7 +185,8 @@ describe("an exercise's page", () => {
     await waitFor(() => expect(within(next).getByTestId("not-planned")).toHaveTextContent("Not in your coming workouts."));
     expect(within(next).queryByRole("button", { name: "Adjust weight" })).toBeNull();
     expect(await screen.findByText(/^No .+ sessions yet\.$/)).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Strength" })).toHaveTextContent("gives its estimate");
+    // It never gives an estimated max, so it has no strength chart.
+    expect(screen.queryByRole("region", { name: "Strength" })).toBeNull();
   });
 
   it("a home version without a photo shows its muscle figure", async () => {

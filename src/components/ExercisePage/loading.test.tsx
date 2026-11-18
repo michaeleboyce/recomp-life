@@ -45,7 +45,7 @@ describe("an exercise page while its data loads", () => {
   });
 
   it("the strength chart does not say how to get an estimate before the sets load", () => {
-    render(<OwnStrength exerciseId="bulgarian_split_squat" name="Bulgarian split squat" sets={undefined} />);
+    render(<OwnStrength exerciseId="bulgarian_split_squat" name="Bulgarian split squat" sets={undefined} range="3m" onRangeChange={() => {}} />);
     expect(screen.queryByText(/gives its estimate/)).toBeNull();
   });
 
