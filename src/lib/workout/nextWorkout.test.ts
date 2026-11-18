@@ -16,7 +16,7 @@ import { resolveNextWorkout } from "./nextWorkout";
 import { dueTemplateId } from "./rotation";
 import { planWorkoutStart } from "./startPlan";
 import { planningCases } from "./testPlanningCases";
-import { projectUpcomingWorkouts } from "./upcoming";
+import { describeUpcomingWorkout, projectUpcomingWorkouts } from "./upcoming";
 
 describe("resolveNextWorkout: one resolution for every consumer", () => {
   const cases = planningCases();
@@ -111,14 +111,13 @@ describe("resolveNextWorkout: one resolution for every consumer", () => {
       const strengthSets = strengthSetsFrom(records);
       const now = records.readAt;
       const resolved = nextWorkoutFrom(records, location);
-      const [first, second] = projectUpcomingWorkouts({
+      const projection = {
         completedWorkouts,
         templates: WORKOUT_TEMPLATES,
         liftStates: records.liftStates,
         location,
         equipment: settings.equipment,
         includeWarmUps: settings.showWarmUps,
-        count: 2,
         settings,
         now: new Date(0),
         variantStates: records.variantStates ?? [],
@@ -126,8 +125,16 @@ describe("resolveNextWorkout: one resolution for every consumer", () => {
         reentry: true,
         nextSetPlans: settings.nextSetPlans,
         accessoriesNow: now,
-      });
+      };
+      const [first, second] = projectUpcomingWorkouts({ ...projection, count: 2 });
       expect(first.accessories?.edits, c.name).toEqual(resolved.accessoryEdits);
+      // One path for each card: its plan is the full view's, to the entry.
+      for (const [position, card] of [first, second].entries()) {
+        const detail = describeUpcomingWorkout({ ...projection, position })!;
+        expect(card.plan, `${c.name} #${position}`).toEqual(detail.plan);
+        expect(card.accessories, `${c.name} #${position}`).toEqual(detail.accessories);
+      }
+      expect(first.plan, c.name).toEqual(resolved.plan);
       for (const card of [first, second]) {
         const shown = forecastSessionLength({ plan: card.plan, workouts: records.workouts, phase: settings.trainingPhase, now });
         expect(card.accessories?.budget?.plannedMinutes, c.name).toBe(Math.round(shown.seconds / 60));
