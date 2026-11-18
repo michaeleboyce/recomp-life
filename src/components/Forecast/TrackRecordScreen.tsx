@@ -28,7 +28,7 @@ import {
   widenedKinds,
   wrongest,
   type Period,
-} from "./forecastText";
+} from "@/lib/forecast/text";
 
 const ROW = "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-border py-2 first:border-t-0";
 const ROW_VALUE = "font-display text-xl leading-none font-extrabold whitespace-nowrap text-right tabular-nums";

@@ -22,7 +22,7 @@ import {
   LIFTS_WITH_PAGE,
   TARGET_IN_TEN,
   type ForecastView,
-} from "./forecastText";
+} from "@/lib/forecast/text";
 
 /**
  * The working behind one stored forecast: the number and range as stored, the inputs

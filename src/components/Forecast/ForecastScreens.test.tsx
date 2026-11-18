@@ -12,7 +12,7 @@ import type { Forecast } from "@/types";
 import { ForecastsEntry } from "./ForecastsEntry";
 import { ForecastsScreen } from "./ForecastsScreen";
 import { TrackRecordScreen } from "./TrackRecordScreen";
-import { TOO_FEW_TO_JUDGE } from "./forecastText";
+import { TOO_FEW_TO_JUDGE } from "@/lib/forecast/text";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),

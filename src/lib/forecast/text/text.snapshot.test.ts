@@ -32,7 +32,7 @@ import {
   widenedKinds,
   wrongest,
   type ForecastView,
-} from "./forecastText";
+} from ".";
 
 // The snapshot was written in UTC; pin the zone before anything formats a date so the
 // file matches on any machine (`vi.hoisted` runs before the imports).
@@ -194,7 +194,7 @@ const HAND_MADE: Forecast[] = [
     kind: "stallRisk",
     workoutId: undefined,
     dueAt: ahead(5),
-    event: { type: "stall", windowDays: 4 },
+    event: { type: "missAtStage", windowDays: 4 },
     prediction: { point: 0.3, probability: 0.3, unit: "chance" },
     inputs: {
       sampleSize: 5,
@@ -216,7 +216,7 @@ const HAND_MADE: Forecast[] = [
     workoutId: undefined,
     basis: "persistence",
     dueAt: ahead(-1),
-    event: { type: "stall", windowDays: 4 },
+    event: { type: "missAtStage", windowDays: 4 },
     prediction: { point: 0.6, probability: 0.6, unit: "chance" },
     inputs: { sampleSize: 2 },
   }),
@@ -225,7 +225,7 @@ const HAND_MADE: Forecast[] = [
     kind: "milestone",
     workoutId: undefined,
     dueAt: ahead(30),
-    event: { type: "milestone", weight: 300 },
+    event: { type: "weightReached", weight: 300 },
     prediction: { point: 20800, low: 20790, high: 20820, unit: "day" },
     inputs: { sampleSize: 6, gapDays: 3, target: 300, reachChance: 0.7, rangeChance: 0.65, weight: 275 },
   }),
@@ -236,7 +236,7 @@ const HAND_MADE: Forecast[] = [
     workoutId: undefined,
     basis: "persistence",
     dueAt: ahead(30),
-    event: { type: "milestone" },
+    event: { type: "weightReached" },
     prediction: { point: 0.5, probability: 0.5, unit: "chance" },
     inputs: {},
   }),

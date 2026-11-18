@@ -3,7 +3,7 @@
 import { RangeBar } from "@/components/chart-kit";
 import { GradeChip } from "@/components/ui/grade-chip";
 import { cn } from "@/lib/utils";
-import type { ForecastView } from "./forecastText";
+import type { ForecastView } from "@/lib/forecast/text";
 
 /**
  * One open forecast as stored: what is predicted, the number and its range, when it

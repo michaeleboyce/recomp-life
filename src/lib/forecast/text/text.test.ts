@@ -16,7 +16,7 @@ import {
   viewOf,
   voidLine,
   wrongest,
-} from "./forecastText";
+} from ".";
 
 // A local stamp, so the dates in words are the same in every time zone.
 const NOW = new Date(2026, 10, 15, 12);

@@ -5,7 +5,7 @@ import { Telescope } from "lucide-react";
 import { useScoredForecasts } from "@/hooks";
 import { summarize } from "@/lib/forecast";
 import { ListRow } from "@/components/ui/list-row";
-import { judgeShare, openForecasts } from "./forecastText";
+import { judgeShare, openForecasts } from "@/lib/forecast/text";
 
 /**
  * The Progress hub's way into Forecasts: how many are open and, once there are enough
