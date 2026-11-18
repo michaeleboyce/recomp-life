@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-43 active rules, 5 planned rules, 42 sources. Last reviewed against the research: November 2026.
+45 active rules, 3 planned rules, 42 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -27,7 +27,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `tier-structure` | Program and progression | Active | Strong evidence | ACSM 2026, Pelland 2026 |
 | `gzclp-progression` | Program and progression | Active | Program rule | none |
 | `t3-progression` | Program and progression | Active | Program rule | Robinson 2024, Halperin 2022 |
-| `accessory-progression` | Program and progression | Planned | Moderate evidence | Robinson 2024 |
+| `accessory-progression` | Program and progression | Active | Moderate evidence | Robinson 2024 |
 | `off-program-credit` | Program and progression | Active | Coaching heuristic | none |
 | `home-progression` | Program and progression | Active | Program rule | none |
 | `cap-progression` | Program and progression | Active | Coaching heuristic | none |
@@ -53,7 +53,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `run-interference` | Running | Active | Moderate evidence | Robineau 2016, Markov 2021, Schumann 2022 |
 | `weekly-volume` | Training volume | Active | Moderate evidence | Pelland 2026, Roth 2022 |
 | `accessories-in-cut` | Training volume | Active | Limited evidence | Roth 2022, Murphy & Koehler 2022 |
-| `accessory-selection` | Training volume | Planned | Coaching heuristic | none |
+| `accessory-selection` | Training volume | Active | Coaching heuristic | none |
 | `volume-ratio` | Training volume | Planned | Coaching heuristic | none |
 | `rate-of-loss` | Fat loss | Active | Moderate evidence | Helms 2014 |
 | `fat-loss-stall` | Fat loss | Active | Limited evidence | Peos 2021 |
@@ -141,20 +141,19 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### When would accessory weights go up?
 
 - **Rule id:** `accessory-progression`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Moderate evidence
-- **Implemented in:** `src/lib/accessories.ts` (`evaluateAccessoryProgression`), `src/lib/accessories/prescription.ts` (`accessoryPrescription`), `src/lib/accessories/prescription.ts` (`ownHistoryFirstWeight`), `src/lib/workout/accessoryPlan.ts` (`planAccessories`)
+- **Implemented in:** `src/lib/accessories.ts` (`evaluateAccessoryProgression`), `src/lib/accessories/prescription.ts` (`accessoryPrescription`), `src/lib/accessories/prescription.ts` (`ownHistoryFirstWeight`), `src/lib/workout/accessoryPlan.ts` (`planAccessories`), `src/lib/workout/accessoryPlan.ts` (`accessoryNextTime`), `src/lib/workout/accessoryPlan.ts` (`accessoryOutcomesOf`)
+- **Shown in:** `src/components/PreWorkout/AccessorySheet.tsx`, `src/components/Why/AccessoryWhySheet.tsx`, `src/components/ActiveWorkout/ExerciseBlock.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** Add weight once every set reaches the top of its rep range
 
-**What the app does.** Rule in code: when every set of an accessory's last session reaches the top of its rep range, add one step (5 lb, or your dumbbell increment for dumbbell work). After 3 sessions in a row at the same weight without that, drop to 90% and rebuild; otherwise keep the weight. A weight you set by hand wins until you next log the exercise. The first time an exercise is done in the app, its weight comes from its own history (imported or logged at another tier) over the 56 days before its newest set: the heaviest weight at which you reached the top of the range, else your estimated strength for the middle of the range, never more than the heaviest weight lifted plus 1 step, rounded down. With no history the weight is left for you to enter. Not connected yet.
+**What the app does.** When every set of an accessory's last session reaches the top of its rep range, add one step (5 lb, or your dumbbell increment for dumbbell work). After 3 sessions in a row at the same weight without that, drop to 90% and rebuild; otherwise keep the weight. A weight you set by hand wins until you next log the exercise. The first time an exercise is done in the app, its weight comes from its own history (imported or logged at another tier) over the 56 days before its newest set: the heaviest weight at which you reached the top of the range, else your estimated strength for the middle of the range, never more than the heaviest weight lifted plus 1 step, rounded down. With no history the weight is left for you to enter. The workout shows each accessory's rep range, and after its last set, the summary and the Log say what it does next time.
 
 **Why.** This double progression keeps every set reasonably close to failure, which is where muscle growth responds best.
 
 **Limits.** The first-weight limits are a cautious choice, not a researched rule: they keep a weight from another app or an old session from starting too heavy.
-
-**Before this is switched on.** Switch to active when the accessory rows, sheet and workout show the prescription (accessories design X3 and X4).
 
 **Sources**
 
@@ -712,20 +711,19 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 ### How are a workout's accessories chosen?
 
 - **Rule id:** `accessory-selection`
-- **Status:** Planned (in the code, not connected to any screen)
+- **Status:** Active
 - **Evidence:** Coaching heuristic
 - **Implemented in:** `src/lib/accessories/select.ts` (`chooseAccessories`), `src/lib/workout/accessoryPlan.ts` (`planAccessories`)
+- **Shown in:** `src/components/PreWorkout/AccessorySheet.tsx`, `src/components/Why/AccessoryWhySheet.tsx`
 - **Reviewed:** November 2026
 
 **In one line.** A scored list: your pins and preferences, your habits, and this week's gaps
 
-**What the app does.** Rule in code: every workout gets accessories up to the phase's number, chosen from a scored list. Exercises you pinned to the day are always in. Then points are added: 40 for an exercise you marked preferred; up to 30 for one you do often and lately (each session counts half as much for every 14 days of age, and more when it was done on the same kind of day); up to 20 when its main muscle is short of 10 sets this week, counting the sets today's main lifts will add (full at 6 short); up to 12 when today's main lifts leave its muscles alone (none once they give it 3 sets). 8 come off when its main muscle is still recovering, and 6 when another pick already works that muscle and it is not short (such a repeat is picked only when nothing else is left). Blocked exercises are never offered; at home a gym-only exercise is swapped for its home version or left out. With no accessory history the day's usual list is used. Not connected yet.
+**What the app does.** Every workout gets accessories up to the phase's number, chosen from a scored list. Exercises you pinned to the day are always in. Then points are added: 40 for an exercise you marked preferred; up to 30 for one you do often and lately (each session counts half as much for every 14 days of age, and more when it was done on the same kind of day); up to 20 when its main muscle is short of 10 sets this week, counting the sets today's main lifts will add (full at 6 short); up to 12 when today's main lifts leave its muscles alone (none once they give it 3 sets). 8 come off when its main muscle is still recovering, and 6 when another pick already works that muscle and it is not short (such a repeat is picked only when nothing else is left). Blocked exercises are never offered; at home a gym-only exercise is swapped for its home version or left out. With no accessory history the day's usual list is used. They are chosen once for the day, the same on Today, the Ready screen and the workout, and each comes with its reasons and score. Removing, swapping or adding one is yours and always wins; the setting can also be "ask me" (none chosen) or "none".
 
 **Why.** Each part follows something the app already counts: what you choose, what you actually do, the weekly set target and recovery. The pins and preferences come first because you have the final say.
 
 **Limits.** The points are judgment, not research: no study ranks these reasons against each other. The order of the parts is a design choice, shown with every pick so it can be checked and overridden.
-
-**Before this is switched on.** Switch to active when Today and the Ready screen show the chosen accessories with their reasons (accessories design X3 and X4).
 
 **Sources.** None: this is a coaching convention with no direct research.
 
@@ -1142,6 +1140,8 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **17 November 2026** — `accessory-selection` (How are a workout's accessories chosen?): Switched on: every workout now comes with accessories chosen by this rule (the setting can be changed to "ask me" or "none"). Today and the Ready screen list them under the main lifts with a reason each; the why sheet shows every part of the score; the accessory sheet changes, swaps, adds or pins them. Sources: .
+- **17 November 2026** — `accessory-progression` (When would accessory weights go up?): Switched on: each accessory is planned at the weight double progression gives (or one set by hand, or a first weight from your history), the workout shows its rep range, and after its last set, the summary and the Log say what it does next time and why. Sources: .
 - **17 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): A workout keeps the home weight it started with: when the heaviest dumbbell or the dumbbell step is changed after it started, resuming it shows the weight it recorded with a note, the weight can still be changed for the set, and finishing it judges the sets against that weight instead of the new limit. Sources: .
 - **17 November 2026** — `import-effort-words` (How are effort words from other apps read?): Switched on: an imported session's detail, opened from the Log or a lift's session list, shows each set's effort word with the approximate RPE it is read as. Sources: .
 - **17 November 2026** — `strength-pooling` (How do gym and home sessions combine into one strength estimate?): Sessions imported from another app now feed every plan, not only the muscle view and the starting-weight suggestions: a home exercise's first weight, re-entry and the learned ratios read them, by the same rules and with the same halving for age. They still never change the workout order or the progression. The lift page shows them, marked as imported, and cites this rule. Sources: .

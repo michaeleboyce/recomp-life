@@ -53,10 +53,10 @@ export const VOLUME_RULES = {
   },
   "accessory-selection": {
     area: "volume",
-    status: "planned",
+    status: "active",
     title: "How are a workout's accessories chosen?",
     summary: "A scored list: your pins and preferences, your habits, and this week's gaps",
-    appBehavior: `Rule in code: every workout gets accessories up to the phase's number, chosen from a scored list. Exercises you pinned to the day are always in. Then points are added: ${ACCESSORY_PREFERRED_WEIGHT} for an exercise you marked preferred; up to ${ACCESSORY_HABIT_WEIGHT} for one you do often and lately (each session counts half as much for every ${STRENGTH_POOLING.evidenceHalfLifeDays} days of age, and more when it was done on the same kind of day); up to ${ACCESSORY_SHORTFALL_WEIGHT} when its main muscle is short of ${WEEKLY_SET_TARGET} sets this week, counting the sets today's main lifts will add (full at ${ACCESSORY_SHORTFALL_FULL_SETS} short); up to ${ACCESSORY_DAY_FIT_WEIGHT} when today's main lifts leave its muscles alone (none once they give it ${ACCESSORY_DAY_HARD_SETS} sets). ${ACCESSORY_RECOVERY_PENALTY} come off when its main muscle is still recovering, and ${ACCESSORY_SPREAD_PENALTY} when another pick already works that muscle and it is not short (such a repeat is picked only when nothing else is left). Blocked exercises are never offered; at home a gym-only exercise is swapped for its home version or left out. With no accessory history the day's usual list is used. Not connected yet.`,
+    appBehavior: `Every workout gets accessories up to the phase's number, chosen from a scored list. Exercises you pinned to the day are always in. Then points are added: ${ACCESSORY_PREFERRED_WEIGHT} for an exercise you marked preferred; up to ${ACCESSORY_HABIT_WEIGHT} for one you do often and lately (each session counts half as much for every ${STRENGTH_POOLING.evidenceHalfLifeDays} days of age, and more when it was done on the same kind of day); up to ${ACCESSORY_SHORTFALL_WEIGHT} when its main muscle is short of ${WEEKLY_SET_TARGET} sets this week, counting the sets today's main lifts will add (full at ${ACCESSORY_SHORTFALL_FULL_SETS} short); up to ${ACCESSORY_DAY_FIT_WEIGHT} when today's main lifts leave its muscles alone (none once they give it ${ACCESSORY_DAY_HARD_SETS} sets). ${ACCESSORY_RECOVERY_PENALTY} come off when its main muscle is still recovering, and ${ACCESSORY_SPREAD_PENALTY} when another pick already works that muscle and it is not short (such a repeat is picked only when nothing else is left). Blocked exercises are never offered; at home a gym-only exercise is swapped for its home version or left out. With no accessory history the day's usual list is used. They are chosen once for the day, the same on Today, the Ready screen and the workout, and each comes with its reasons and score. Removing, swapping or adding one is yours and always wins; the setting can also be "ask me" (none chosen) or "none".`,
     rationale:
       "Each part follows something the app already counts: what you choose, what you actually do, the weekly set target and recovery. The pins and preferences come first because you have the final say.",
     caveat:
@@ -68,9 +68,7 @@ export const VOLUME_RULES = {
       "src/lib/accessories/select.ts#chooseAccessories",
       "src/lib/workout/accessoryPlan.ts#planAccessories",
     ],
-    surfaces: [],
-    activationNotes:
-      "Switch to active when Today and the Ready screen show the chosen accessories with their reasons (accessories design X3 and X4).",
+    surfaces: ["src/components/PreWorkout/AccessorySheet.tsx", "src/components/Why/AccessoryWhySheet.tsx"],
   },
   "volume-ratio": {
     area: "volume",

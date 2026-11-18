@@ -135,6 +135,7 @@ function PicksView({
   onPin,
   onAddView,
   onDone,
+  inWorkout,
 }: AccessorySheetProps & { onAddView: () => void; onDone: () => void }) {
   const ranked = useMemo(() => rankedCandidates(choice), [choice]);
   const views = useMemo(() => viewsOfRows(rows), [rows]);
@@ -190,6 +191,11 @@ function PicksView({
           {phase.mode === "cutting" && <EvidenceLine ruleId="accessories-in-cut" variant="icon" />}
         </section>
       )}
+
+      <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-3">
+        <EvidenceLine ruleId="accessory-selection" hideLibraryLink={inWorkout} />
+        <EvidenceLine ruleId="accessory-progression" hideLibraryLink={inWorkout} />
+      </div>
 
       <Button className="mt-3 min-h-11" onClick={onDone}>
         Done
@@ -555,7 +561,10 @@ function AddView({
           </>
         )}
       </div>
-      <Button variant="outline" className="mt-5 min-h-11" onClick={onDone}>
+      <div className="mt-5 border-t border-border pt-3">
+        <EvidenceLine ruleId="accessory-selection" hideLibraryLink={inWorkout} />
+      </div>
+      <Button variant="outline" className="mt-3 min-h-11" onClick={onDone}>
         Close
       </Button>
     </>

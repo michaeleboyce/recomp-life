@@ -10,6 +10,7 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTi
 import { Stripes } from "@/components/ui/stripes";
 import { accessoryRowViews, accessoryScheme, accessoryWeightParts, accessoryWeightText } from "@/components/Today/accessoryRowModel";
 import { basisTitle, lastTimeText, rankText, scorePartLines, signed } from "./accessoryWhy";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { setWhyInUrl } from "./whyParam";
 
 const SECTION = "text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase";
@@ -107,6 +108,7 @@ export function AccessoryWhySheet({ exerciseId, location }: { exerciseId: string
                   </tr>
                 </tbody>
               </table>
+              <EvidenceLine ruleId="accessory-selection" />
             </section>
           )}
 
@@ -122,6 +124,7 @@ export function AccessoryWhySheet({ exerciseId, location }: { exerciseId: string
               Next time: every set at {top} adds one step; {ACCESSORY_STUCK_SESSIONS} sessions short of it at the
               same weight drop it to {percent(ACCESSORY_DELOAD_FRACTION)} to build back.
             </p>
+            <EvidenceLine ruleId="accessory-progression" />
           </section>
         </div>
       </SheetContent>

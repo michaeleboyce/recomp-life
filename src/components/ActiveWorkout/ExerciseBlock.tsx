@@ -8,6 +8,7 @@ import type { WorkoutExerciseState } from "@/lib/workout/types";
 import { TermIcon } from "@/components/ui/term";
 import type { TermId } from "@/lib/glossary";
 import type { Tier, WorkoutLocation } from "@/types";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { AMRAPIndicator } from "./AMRAPIndicator";
 import { roleLabel } from "./setPlan";
 
@@ -61,6 +62,7 @@ export function ExerciseBlock({ exercise, location, isAMRAPSet = false, repRange
               {repRange.min === repRange.max ? repRange.max : `${repRange.min}–${repRange.max}`} reps
             </b>{" "}
             · take every set toward {repRange.max}; all at {repRange.max} adds weight next time
+            <EvidenceLine ruleId="accessory-progression" variant="icon" hideLibraryLink className="ml-1 inline-flex align-middle" />
           </p>
         ) : (
           isAMRAPSet && (
