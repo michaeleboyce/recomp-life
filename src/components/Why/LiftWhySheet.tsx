@@ -19,6 +19,7 @@ import {
 import { Stripes } from "@/components/ui/stripes";
 import { formatLbs, formatSetsReps } from "@/components/Today/format";
 import { displayLiftName } from "@/components/Today/todayModel";
+import { AccessoryWhySheet } from "./AccessoryWhySheet";
 import { WhySteps } from "./WhySteps";
 import { YourCall } from "./YourCall";
 import { WHY_PARAM, parseWhyParam, setWhyInUrl, type WhyTarget } from "./whyParam";
@@ -53,6 +54,8 @@ export function LiftWhySheet() {
 function LiftWhySheetFor({ target }: { target: WhyTarget }) {
   const { location, isLoading } = useTrainingLocation();
   if (isLoading) return null;
+  // An accessory has no decision trace: its own view says why it was picked and why at this weight.
+  if (target.tier === "accessory") return <AccessoryWhySheet exerciseId={target.exerciseId} location={location} />;
   return <LiftWhySheetAt target={target} location={location} />;
 }
 

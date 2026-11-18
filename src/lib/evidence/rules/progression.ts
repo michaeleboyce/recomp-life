@@ -88,10 +88,10 @@ export const PROGRESSION_RULES = {
   },
   "accessory-progression": {
     area: "progression",
-    status: "planned",
+    status: "active",
     title: "When would accessory weights go up?",
     summary: "Add weight once every set reaches the top of its rep range",
-    appBehavior: `Rule in code: when every set of an accessory's last session reaches the top of its rep range, add one step (${ACCESSORY_LOAD_STEP_LBS} lb, or your dumbbell increment for dumbbell work). After ${ACCESSORY_STUCK_SESSIONS} sessions in a row at the same weight without that, drop to ${Math.round(ACCESSORY_DELOAD_FRACTION * 100)}% and rebuild; otherwise keep the weight. A weight you set by hand wins until you next log the exercise. The first time an exercise is done in the app, its weight comes from its own history (imported or logged at another tier) over the ${OWN_HISTORY_FIRST_WEIGHT.recentDays} days before its newest set: the heaviest weight at which you reached the top of the range, else your estimated strength for the middle of the range, never more than the heaviest weight lifted plus ${OWN_HISTORY_FIRST_WEIGHT.stepsAboveHeaviest} step, rounded down. With no history the weight is left for you to enter. Not connected yet.`,
+    appBehavior: `When every set of an accessory's last session reaches the top of its rep range, add one step (${ACCESSORY_LOAD_STEP_LBS} lb, or your dumbbell increment for dumbbell work). After ${ACCESSORY_STUCK_SESSIONS} sessions in a row at the same weight without that, drop to ${Math.round(ACCESSORY_DELOAD_FRACTION * 100)}% and rebuild; otherwise keep the weight. A weight you set by hand wins until you next log the exercise. The first time an exercise is done in the app, its weight comes from its own history (imported or logged at another tier) over the ${OWN_HISTORY_FIRST_WEIGHT.recentDays} days before its newest set: the heaviest weight at which you reached the top of the range, else your estimated strength for the middle of the range, never more than the heaviest weight lifted plus ${OWN_HISTORY_FIRST_WEIGHT.stepsAboveHeaviest} step, rounded down. With no history the weight is left for you to enter. The workout shows each accessory's rep range, and after its last set, the summary and the Log say what it does next time.`,
     rationale:
       "This double progression keeps every set reasonably close to failure, which is where muscle growth responds best.",
     caveat:
@@ -103,10 +103,15 @@ export const PROGRESSION_RULES = {
       "src/lib/accessories.ts#evaluateAccessoryProgression",
       "src/lib/accessories/prescription.ts#accessoryPrescription",
       "src/lib/accessories/prescription.ts#ownHistoryFirstWeight",
+      "src/lib/workout/accessoryPlan.ts#planAccessories",
+      "src/lib/workout/accessoryPlan.ts#accessoryNextTime",
+      "src/lib/workout/accessoryPlan.ts#accessoryOutcomesOf",
     ],
-    surfaces: [],
-    activationNotes:
-      "Switch to active when the accessory rows, sheet and workout show the prescription (accessories design X3 and X4).",
+    surfaces: [
+      "src/components/PreWorkout/AccessorySheet.tsx",
+      "src/components/Why/AccessoryWhySheet.tsx",
+      "src/components/ActiveWorkout/ExerciseBlock.tsx",
+    ],
   },
   "off-program-credit": {
     area: "progression",

@@ -11,7 +11,7 @@ import { useCompletedWorkouts, useLiftStates } from "./useWorkouts";
  * The upcoming workout in the rotation with its plan for the given location
  * (defaults to the profile's default location, else "gym"): `resolveNextWorkout`, the
  * one function every screen plans the next workout with, over the live rows. Warm-ups
- * follow the `showWarmUps` setting; no accessories. At home each lift is planned from
+ * follow the `showWarmUps` setting; the accessories the accessory mode ("auto": chosen). At home each lift is planned from
  * its home exercise's own weight (a first one seeded from the strength estimate, H3),
  * and the first session back at a location takes its re-entry weight (H6), from the
  * app's and the imported sessions' sets (`useStrengthEvidence`). Next-session set plans

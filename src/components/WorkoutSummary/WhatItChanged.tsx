@@ -3,6 +3,7 @@
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { describeSessionOutcomes } from "@/components/Log/outcomes";
 import { useWorkoutSnapshots } from "@/components/Log/useWorkoutSnapshots";
+import { AccessoryOutcomeRow, useAccessoryOutcomes } from "@/components/Log/AccessoryOutcomes";
 import { GradeChip } from "@/components/ui/grade-chip";
 import { useWorkout } from "@/hooks";
 import { getRule, isRuleId } from "@/lib/evidence";
@@ -25,9 +26,11 @@ function delta(from: number, to: number): string | null {
 export function WhatItChanged({ workoutId }: { workoutId: string }) {
   const workout = useWorkout(workoutId);
   const snapshots = useWorkoutSnapshots(workoutId);
+  // Each accessory: what double progression does with it next time (A10).
+  const accessories = useAccessoryOutcomes(workout);
   if (!workout || !snapshots) return null;
   const rows = describeSessionOutcomes(workout, snapshots.outcomes, snapshots.variantOutcomes);
-  if (rows.length === 0) return null;
+  if (rows.length === 0 && !accessories?.length) return null;
 
   return (
     <section aria-label="What it did" className="flex flex-col">
@@ -67,6 +70,7 @@ export function WhatItChanged({ workoutId }: { workoutId: string }) {
             </li>
           );
         })}
+        {accessories?.map((outcome) => <AccessoryOutcomeRow key={outcome.exerciseId} outcome={outcome} compact />)}
       </ul>
     </section>
   );

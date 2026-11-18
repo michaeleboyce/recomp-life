@@ -292,6 +292,20 @@ describe("ExerciseBlock", () => {
     expect(screen.queryByText(/AMRAP/)).toBeNull();
   });
 
+  it("shows an accessory's rep range and what all sets at the top do (A9)", () => {
+    render(
+      <ExerciseBlock
+        exercise={entry({ exerciseId: "bicep_curls", tier: "accessory", targetSets: 3, targetReps: 15, isAMRAP: true })}
+        location="gym"
+        isAMRAPSet
+        repRange={{ min: 12, max: 15 }}
+      />
+    );
+    expect(screen.getByTestId("accessory-range")).toHaveTextContent(
+      "12–15 reps · take every set toward 15; all at 15 adds weight next time"
+    );
+  });
+
   it("lets a long name wrap to two lines instead of cutting it off", () => {
     render(<ExerciseBlock exercise={entry({ substituteExerciseId: "single_leg_db_rdl" })} location="home" />);
     const heading = screen.getByRole("heading", { level: 1 });

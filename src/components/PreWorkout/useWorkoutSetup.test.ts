@@ -116,23 +116,67 @@ describe("preview", () => {
       "squat:160x1",
     ]);
     act(() => hook.result.current.setWarmUps(false));
-    expect(describePlan(hook.result.current.plan)).toEqual([
+    expect(describePlan(hook.result.current.plan.filter((e) => e.tier !== "accessory"))).toEqual([
       "T1:squat",
       "T2:bench",
       "T3:lat_pulldown",
     ]);
   });
 
-  it("adds chosen accessories to the plan", async () => {
+  it("plans the chosen accessories after T3 by default, each at its prescription (A6)", async () => {
     const hook = await mount("A1");
-    const accessory = hook.result.current.accessoryRecommendations[0];
-    act(() => hook.result.current.toggleAccessory(accessory));
-    expect(hook.result.current.plan.at(-1)).toMatchObject({
-      exerciseId: accessory,
-      tier: "accessory",
-    });
-    act(() => hook.result.current.toggleAccessory(accessory));
+    const { plan, accessoryPlan, accessoryRows } = hook.result.current;
+    expect(accessoryPlan?.mode).toBe("auto");
+    const picks = accessoryPlan!.choice.picks.map((p) => p.exerciseId);
+    expect(picks.length).toBeGreaterThan(0);
+    const working = plan.filter((e) => !e.isWarmUp);
+    expect(working.slice(0, 3).map((e) => e.tier)).toEqual(["T1", "T2", "T3"]);
+    expect(working.slice(3).map((e) => `${e.tier}:${e.exerciseId}`)).toEqual(picks.map((id) => `accessory:${id}`));
+    for (const row of accessoryRows) {
+      expect(row.entry).toMatchObject({
+        targetSets: row.prescription.sets,
+        targetReps: row.prescription.reps.max,
+        weight: row.prescription.weight ?? 0,
+      });
+      expect(row.chosen).toBe(true);
+      expect(row.pick?.reasons.length).toBeGreaterThan(0);
+    }
+    expect(hook.result.current.selectedAccessories).toEqual(picks);
+  });
+
+  it("removes, swaps and adds accessories as edits on top of the choice", async () => {
+    const hook = await mount("A1");
+    const [first, second] = hook.result.current.accessoryRows.map((r) => r.exerciseId);
+    const other = hook.result.current.accessoryPlan!.choice.others[0].exerciseId;
+    act(() => hook.result.current.removeAccessory(first));
+    expect(hook.result.current.selectedAccessories).not.toContain(first);
+    act(() => hook.result.current.swapAccessory(second, other));
+    const ids = hook.result.current.selectedAccessories;
+    expect(ids).not.toContain(second);
+    expect(ids).toContain(other);
+    const swapped = hook.result.current.accessoryRows.find((r) => r.exerciseId === other)!;
+    expect(swapped.entry.targetReps).toBe(swapped.prescription.reps.max);
+    expect(swapped.chosen).toBe(false);
+    act(() => hook.result.current.addAccessory(first));
+    expect(hook.result.current.selectedAccessories.at(-1)).toBe(first);
+    act(() => hook.result.current.clearAccessories());
     expect(hook.result.current.plan.some((e) => e.tier === "accessory")).toBe(false);
+    // The program's lifts never move.
+    expect(describePlan(hook.result.current.plan.filter((e) => !e.isWarmUp))).toEqual([
+      "T1:squat",
+      "T2:bench",
+      "T3:lat_pulldown",
+    ]);
+  });
+
+  it("plans none with the mode set to ask or none", async () => {
+    for (const mode of ["ask", "none"] as const) {
+      await patchSettings({ accessories: mode });
+      const hook = await mount("A1");
+      expect(hook.result.current.plan.some((e) => e.tier === "accessory")).toBe(false);
+      expect(hook.result.current.accessoryPlan?.choice.picks.length).toBeGreaterThan(0);
+      hook.unmount();
+    }
   });
 
   it("offers the technique review for squat and deadlift days only", async () => {
@@ -143,16 +187,18 @@ describe("preview", () => {
 });
 
 describe("accessories and preferences", () => {
-  it("offers a preferred accessory on every workout and drops blocked ones", async () => {
+  it("picks a preferred accessory on every workout and never a blocked one", async () => {
     const plain = await mount("A1");
-    const day = plain.result.current.accessoryRecommendations;
+    const day = plain.result.current.selectedAccessories;
     expect(day).not.toContain(OFF_DAY);
     plain.unmount();
 
     await patchSettings({ exercisePreferences: { [OFF_DAY]: "preferred", [day[0]]: "blocked" } });
     const hook = await mount("A1");
-    expect(hook.result.current.accessoryRecommendations).toContain(OFF_DAY);
-    expect(hook.result.current.accessoryRecommendations).not.toContain(day[0]);
+    expect(hook.result.current.selectedAccessories).toContain(OFF_DAY);
+    expect(hook.result.current.selectedAccessories).not.toContain(day[0]);
+    const offered = [...hook.result.current.accessoryPlan!.choice.picks, ...hook.result.current.accessoryPlan!.choice.others];
+    expect(offered.map((c) => c.exerciseId)).not.toContain(day[0]);
   });
 
   it("applies location-scoped preferences for the chosen location", async () => {
@@ -162,11 +208,11 @@ describe("accessories and preferences", () => {
       exercisePreferencesByLocation: { home: { [OFF_DAY]: "preferred" } },
     });
     const hook = await mount("A1");
-    expect(hook.result.current.accessoryRecommendations).not.toContain(OFF_DAY);
+    expect(hook.result.current.selectedAccessories).not.toContain(OFF_DAY);
     expect(hook.result.current.exercisePreferences).toEqual({});
 
     act(() => hook.result.current.setLocation("home"));
-    expect(hook.result.current.accessoryRecommendations).toContain(OFF_DAY);
+    expect(hook.result.current.selectedAccessories).toContain(OFF_DAY);
     expect(hook.result.current.exercisePreferences).toEqual({ [OFF_DAY]: "preferred" });
   });
 });
@@ -238,6 +284,7 @@ describe("home substitutes", () => {
         includeWarmUps: session.includeWarmUps,
         selectedAccessories: session.selectedAccessories,
         overrides: overridesFromSession(session),
+        edits: session.planEdits,
       })
     ).toEqual(preview);
   });
@@ -252,8 +299,8 @@ describe("home substitutes", () => {
 describe("starting", () => {
   it("creates the session with the chosen options and the readiness log", async () => {
     const hook = await mount("A1");
-    const accessory = hook.result.current.accessoryRecommendations[0];
-    act(() => hook.result.current.toggleAccessory(accessory));
+    const accessories = hook.result.current.selectedAccessories;
+    const accessoryEdits = hook.result.current.accessoryPlan!.edits;
     act(() => hook.result.current.setSleepHours("5-7"));
     act(() => hook.result.current.setStressLevel("good"));
 
@@ -265,10 +312,12 @@ describe("starting", () => {
       templateId: "A1",
       location: "gym",
       includeWarmUps: true,
-      selectedAccessories: [accessory],
+      selectedAccessories: accessories,
       completedAt: null,
       sets: [],
     });
+    // The accessories' weights and schemes are saved as edits, ahead of everything else.
+    expect((await db.workouts.get(sessionId!))!.planEdits?.slice(0, accessoryEdits.length)).toEqual(accessoryEdits);
     expect(await db.readinessLogs.toArray()).toMatchObject([
       { sessionId, sleepHours: "5-7", stressLevel: "good" },
     ]);
@@ -615,7 +664,7 @@ describe("editing the workout", () => {
   it("removes a lift and adds an accessory", async () => {
     const hook = await mount("A1");
     act(() => hook.result.current.removeExercise("bench", "T2"));
-    expect(describePlan(hook.result.current.plan.filter((e) => !e.isWarmUp))).toEqual([
+    expect(describePlan(hook.result.current.plan.filter((e) => !e.isWarmUp && e.tier !== "accessory"))).toEqual([
       "T1:squat",
       "T3:lat_pulldown",
     ]);
@@ -710,7 +759,10 @@ describe("next-session set plans (E6)", () => {
       sessionId = await hook.result.current.start();
     });
     const session = (await db.workouts.get(sessionId!))!;
+    // The planned accessories' edits come first; then the set plan's, then the user's.
+    const adds = hook.result.current.accessoryPlan!.edits;
     expect(session.planEdits).toEqual([
+      ...adds,
       { kind: "setWeights", exerciseId: "squat", tier: "T1", sets: SETS },
       { kind: "weight", exerciseId: "bench", tier: "T2", weight: 120 },
     ]);
@@ -835,7 +887,8 @@ describe("starting from a favourite", () => {
     });
     const session = (await db.workouts.get(sessionId!))!;
     expect(session.location).toBe("gym");
-    expect(session.planEdits ?? []).toEqual(hook.result.current.edits);
+    // The planned accessories' edits first, then the favourite's.
+    expect(session.planEdits ?? []).toEqual([...hook.result.current.accessoryPlan!.edits, ...hook.result.current.edits]);
     expect(session.planEdits ?? []).not.toContainEqual(
       expect.objectContaining({ kind: "weight", exerciseId: "squat", tier: "T1" })
     );

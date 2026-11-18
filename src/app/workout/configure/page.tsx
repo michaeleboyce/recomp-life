@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUnfinishedWorkout } from "@/hooks";
@@ -17,11 +17,14 @@ import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
 import { DaySelector } from "@/components/PreWorkout/DaySelector";
 import { FavouriteActions } from "@/components/PreWorkout/FavouriteActions";
 import { EditWorkoutButton } from "@/components/PreWorkout/EditWorkoutButton";
-import { AccessoryPicker } from "@/components/PreWorkout/AccessoryPicker";
 import { HomeAlternatives } from "@/components/PreWorkout/HomeAlternatives";
 import { LocationToggle } from "@/components/PreWorkout/LocationToggle";
 import { PainSummary } from "@/components/PreWorkout/PainSummary";
 import { PlannedExerciseList } from "@/components/PreWorkout/PlannedExerciseList";
+import { AccessorySheet } from "@/components/PreWorkout/AccessorySheet";
+import { viewsOfRows } from "@/components/Today/accessoryRowModel";
+import { dayName } from "@/components/Today/todayModel";
+import { accessoryPinsFor } from "@/lib/accessories/index";
 import { ReadinessCheck } from "@/components/PreWorkout/ReadinessCheck";
 import { SetupAdvisories } from "@/components/PreWorkout/SetupAdvisories";
 import { SetupExpander } from "@/components/PreWorkout/SetupExpander";
@@ -62,6 +65,16 @@ function ConfigureWorkoutContent() {
     fromUrl.status === "applied" ? fromUrl.resolved : null
   );
   const length = useReadyLength(setup.plan, setup.trainingPhase);
+  // Today's "Change" opens the accessory sheet here (`?accessories=open`).
+  const [accessoriesOpen, setAccessoriesOpen] = useState(() => params.get("accessories") === "open");
+  const accessoryViews = useMemo(() => viewsOfRows(setup.accessoryRows), [setup.accessoryRows]);
+  const inPlan = useMemo(
+    () =>
+      setup.plan.flatMap((entry) =>
+        entry.isWarmUp ? [] : [entry.exerciseId, ...(entry.substituteExerciseId ? [entry.substituteExerciseId] : [])]
+      ),
+    [setup.plan]
+  );
 
   // Wait for the favourite too, so the rotation's day is never flashed first, and for
   // the open workout, so START never shows for a moment before Resume replaces it.
@@ -153,6 +166,27 @@ function ConfigureWorkoutContent() {
         plan={setup.plan}
         trainingPhase={setup.trainingPhase}
         impact={setup.impact}
+        accessories={accessoryViews}
+        onChangeAccessories={() => setAccessoriesOpen(true)}
+      />
+      <AccessorySheet
+        open={accessoriesOpen}
+        onOpenChange={setAccessoriesOpen}
+        dayLabel={dayName(setup.template.exercises.find((e) => e.tier === "T1")?.exerciseId, setup.template.name)}
+        rows={setup.accessoryRows}
+        choice={setup.accessoryPlan?.choice ?? null}
+        source={setup.accessorySource}
+        inPlan={inPlan}
+        phase={setup.trainingPhase}
+        mode={setup.accessoryPlan?.mode ?? "auto"}
+        pins={accessoryPinsFor(setup.accessorySource.settings, setup.templateId)}
+        onAdd={setup.addAccessory}
+        onRemove={setup.removeAccessory}
+        onSwap={setup.swapAccessory}
+        onClear={setup.clearAccessories}
+        onWeight={setup.setAccessoryWeight}
+        onMode={setup.setAccessoryMode}
+        onPin={setup.pinAccessory}
       />
       <EditWorkoutButton setup={setup} />
 
@@ -198,24 +232,6 @@ function ConfigureWorkoutContent() {
             <TechniqueChecklist exerciseType={setup.techniqueFocus} />
           </SetupExpander>
         )}
-
-        <SetupExpander
-          title="Add accessories"
-          badge={
-            setup.selectedAccessories.length > 0 && (
-              <Badge variant="outline">{setup.selectedAccessories.length}</Badge>
-            )
-          }
-        >
-          <AccessoryPicker
-            recommendations={setup.accessoryRecommendations}
-            selectedAccessories={setup.selectedAccessories}
-            onToggle={setup.toggleAccessory}
-            trainingPhase={setup.trainingPhase}
-            location={setup.location}
-            exercisePreferences={setup.exercisePreferences}
-          />
-        </SetupExpander>
 
         {hasSubstitutes && (
           <SetupExpander title="Alternatives for home">

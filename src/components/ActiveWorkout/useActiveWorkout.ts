@@ -13,11 +13,13 @@ import {
 import { liftName } from "@/components/LogEdit/format";
 import { toast } from "@/components/ui/toast";
 import { commitLogChange } from "@/lib/data/logEdits";
-import { appendSet, discardWorkout, finishWorkout } from "@/lib/data/workouts";
+import { appendPlanEdit, appendSet, discardWorkout, finishWorkout } from "@/lib/data/workouts";
 import { calculateE1RM, isE1RMEligibleSet } from "@/lib/e1rm";
+import { EXERCISES } from "@/lib/exercises";
 import type { LogChange } from "@/lib/rebuild";
 import { getRestSeconds } from "@/lib/restTimes";
 import {
+  applyPlanEdits,
   createSetLog,
   isNextSetAMRAP,
   nextStep,
@@ -26,7 +28,7 @@ import {
 } from "@/lib/workout";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { useWorkoutStore } from "@/stores/workoutStore";
-import type { SetLog, TrainingPhase } from "@/types";
+import type { PlanEdit, SetLog, TrainingPhase } from "@/types";
 import {
   clampReps,
   correctedSet,
@@ -649,6 +651,42 @@ export function useActiveWorkout(
 
   const clearCorrectionError = useCallback(() => setCorrectionError(null), []);
 
+  /**
+   * Adds an exercise mid-workout (A9): APPENDED after every entry, never inserted, so
+   * the weights changed on the spot (keyed by entry index) stay on their sets. Saved in
+   * the session's `planEdits` as an `add` edit, so resume, the rebuild and the Log plan
+   * it too, and laid on the frozen plan here. Rejects (nothing saved) when the workout
+   * is not ready, the exercise is unknown or already in the workout, or the scheme is
+   * not a whole number of sets and reps with a weight of at least 0.
+   */
+  const addExercise = useCallback(
+    async (
+      exerciseId: string,
+      prescription: { sets: number; reps: number; weight: number; isAMRAP: boolean }
+    ): Promise<void> => {
+      if (!session || !basePlan || frozen?.sessionId !== session.id) throw new Error("The workout is still loading.");
+      if (session.completedAt != null) throw new Error("This workout is already saved.");
+      const exercise = EXERCISES[exerciseId];
+      if (!exercise) throw new Error("That exercise is not in the library.");
+      const { sets: count, reps, weight, isAMRAP } = prescription;
+      if (!Number.isInteger(count) || count < 1 || !Number.isInteger(reps) || reps < 1) {
+        throw new Error("Sets and reps must be whole numbers of at least 1.");
+      }
+      if (!Number.isFinite(weight) || weight < 0) throw new Error("The weight must be 0 or more.");
+      const inPlan = basePlan.some(
+        (e) => !e.isWarmUp && (e.exerciseId === exerciseId || e.substituteExerciseId === exerciseId)
+      );
+      if (inPlan) throw new Error(`${exercise.name} is already in this workout.`);
+      const edit: PlanEdit = { kind: "add", exerciseId, sets: count, reps, weight, isAMRAP };
+      await appendPlanEdit(session.id, edit);
+      // The frozen plan is planned once per session: the new entry goes on its end.
+      setFrozen((was) =>
+        was && was.sessionId === session.id ? { sessionId: was.sessionId, plan: applyPlanEdits(was.plan, [edit]) } : was
+      );
+    },
+    [session, basePlan, frozen]
+  );
+
   const jumpTo = useCallback((index: number) => {
     const store = useWorkoutStore.getState();
     store.skipRest();
@@ -772,6 +810,8 @@ export function useActiveWorkout(
     correctSet,
     correctionError,
     clearCorrectionError,
+    /** Appends an exercise to the workout (never inserts); rejects with an Error to show. */
+    addExercise,
     jumpTo,
     endEarly,
     /** True once the user chose to end before the plan was done. */

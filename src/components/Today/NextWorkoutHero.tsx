@@ -23,6 +23,8 @@ import { workoutDisplayName } from "@/lib/workoutNames";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { PainSorenessEntry, WorkoutLocation, WorkoutSession } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AccessoryRows, CHANGE_ACCESSORIES_HREF } from "./AccessoryRows";
+import { accessoryRowViews } from "./accessoryRowModel";
 import { ComingUpLine } from "./ComingUpLine";
 import { ForecastTiles } from "./ForecastTiles";
 import { LiftRows, buildLiftRows } from "./LiftRows";
@@ -56,7 +58,13 @@ export function NextWorkoutHero() {
   const showOpen = Boolean(open && openTemplate && openPlan);
   const plan = showOpen ? openPlan : next?.plan;
   const working = useMemo(() => plan?.filter((entry) => !entry.isWarmUp) ?? [], [plan]);
-  const rows = useMemo(() => buildLiftRows(working, finished ?? []), [working, finished]);
+  // The program's lifts get the lift rows; the accessories their own, under T3 (A7).
+  const program = useMemo(() => working.filter((entry) => entry.tier !== "accessory"), [working]);
+  const rows = useMemo(() => buildLiftRows(program, finished ?? []), [program, finished]);
+  const accessories = useMemo(
+    () => (plan ? accessoryRowViews(plan, showOpen ? null : next?.accessories) : []),
+    [plan, showOpen, next]
+  );
 
   // Until it is known whether a workout is open, neither Start nor Resume is shown.
   if (!next || open === undefined || (open && openTemplate && !openPlan)) {
@@ -83,6 +91,15 @@ export function NextWorkoutHero() {
         newBestHref={t1 && !t1.substituteExerciseId ? `/progress/lift/${t1.exerciseId}` : undefined}
       />
       <LiftRows rows={rows} />
+      {(accessories.length > 0 || !showOpen) && (
+        <AccessoryRows
+          views={accessories}
+          collapsible
+          why={!showOpen}
+          changeHref={showOpen ? undefined : CHANGE_ACCESSORIES_HREF}
+          className="px-5"
+        />
+      )}
       <div className="flex flex-col gap-1 px-5 pt-2">
         {open ? (
           <ResumeOpen session={open} />

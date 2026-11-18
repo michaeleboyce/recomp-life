@@ -26,6 +26,9 @@ import { WorkoutOverviewSheet } from "@/components/ActiveWorkout/WorkoutOverview
 import { formatClock, restNextLabel } from "@/components/ActiveWorkout/activeWorkoutLogic";
 import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
 import { useActiveWorkout } from "@/components/ActiveWorkout/useActiveWorkout";
+import { useWorkoutAccessories } from "@/components/ActiveWorkout/useWorkoutAccessories";
+import { AccessoryNextTime, AddAccessoryButton } from "@/components/ActiveWorkout/AccessoryNextTime";
+import { AccessorySheet } from "@/components/PreWorkout/AccessorySheet";
 import {
   useElapsedSeconds,
   useLeaveGuard,
@@ -86,6 +89,31 @@ function ActiveWorkoutContent() {
   const sessionForecasts = useSessionForecasts(session?.id);
   const decisions = useStoredDecisions(session?.id) ?? undefined;
   const [whyOpen, setWhyOpen] = useState(false);
+
+  // Accessories: add one mid-workout (appended to the plan), and what each does next time.
+  const accessories = useWorkoutAccessories(session, plan, settings);
+  const [addOpen, setAddOpen] = useState(false);
+  const addAccessory = async (exerciseId: string) => {
+    const prescription = accessories.prescriptionFor(exerciseId);
+    if (!prescription) return;
+    try {
+      await workout.addExercise(exerciseId, prescription);
+      toast({ message: `${getExercise(exerciseId).name} added at the end` });
+    } catch (err) {
+      console.error("Failed to add an accessory:", err);
+      toast({ message: `Could not add it: ${errorText(err)}` });
+    }
+  };
+  // The accessory whose sets were all just done: what it does next time (A9).
+  const lastAccessorySet = sets.at(-1)?.tier === "accessory" ? sets.at(-1) : undefined;
+  const lastAccessoryId = lastAccessorySet ? lastAccessorySet.substituteExerciseId || lastAccessorySet.exerciseId : null;
+  const lastAccessoryEntry = lastAccessoryId
+    ? plan.find((e) => !e.isWarmUp && e.tier === "accessory" && (e.substituteExerciseId || e.exerciseId) === lastAccessoryId)
+    : undefined;
+  const accessoryNext =
+    lastAccessoryId && lastAccessoryEntry && lastAccessoryEntry.completedSets >= lastAccessoryEntry.targetSets
+      ? accessories.nextTime(lastAccessoryId, sets)
+      : null;
 
   // A workout that is already saved has nothing left to log: go on to Today. This is
   // how Back from its summary lands (the summary replaced this screen, but the leave
@@ -235,6 +263,22 @@ function ActiveWorkoutContent() {
     </>
   );
 
+  const addSheet = accessories.source ? (
+    <AccessorySheet
+      open={addOpen}
+      onOpenChange={setAddOpen}
+      addOnly
+      inWorkout
+      dayLabel={title}
+      rows={[]}
+      choice={accessories.choice}
+      source={accessories.source}
+      inPlan={accessories.inPlan}
+      phase={workout.trainingPhase}
+      onAdd={addAccessory}
+    />
+  ) : null;
+
   if (isOver) {
     return (
       <div className="mx-auto min-h-screen max-w-lg bg-background px-5 pt-4 pb-8">
@@ -245,6 +289,9 @@ function ActiveWorkoutContent() {
           exercises={plan}
           onOpenOverview={sets.length > 0 ? () => setOverviewOpen(true) : undefined}
         />
+        {accessoryNext && lastAccessoryId && (
+          <AccessoryNextTime name={getExercise(lastAccessoryId).name} text={accessoryNext} className="mb-4" />
+        )}
         <WorkoutFinished
           setsLogged={sets.length}
           duration={elapsed}
@@ -255,7 +302,11 @@ function ActiveWorkoutContent() {
           onDropSet={workout.endedEarly ? undefined : onDropSet}
           dropSetLabel={dropSetLabel}
         />
+        {!workout.endedEarly && (
+          <AddAccessoryButton onClick={() => setAddOpen(true)} className="mt-4" />
+        )}
         {overview}
+        {addSheet}
       </div>
     );
   }
@@ -312,6 +363,8 @@ function ActiveWorkoutContent() {
         verdict={lastSetVerdict(lastForecast, lastSet, session)}
         previousBest={lastForecast.newBest?.event.level ?? null}
       />
+    ) : accessoryNext && lastAccessoryId ? (
+      <AccessoryNextTime name={getExercise(lastAccessoryId).name} text={accessoryNext} />
     ) : null;
   // The lift's chance to pass is about its working weight, whatever the next set weighs.
   const workingWeight = workout.planEntry?.weight ?? entry.weight;
@@ -338,6 +391,11 @@ function ActiveWorkoutContent() {
         exercise={entry}
         location={session.location}
         isAMRAPSet={workout.isAMRAPSet}
+        repRange={
+          entry.tier === "accessory"
+            ? accessories.repRange(entry.substituteExerciseId || entry.exerciseId, entry.targetReps)
+            : undefined
+        }
       />
 
       <WeightDisplay
@@ -441,7 +499,10 @@ function ActiveWorkoutContent() {
         dropSetLabel={dropSetLabel}
       />
 
+      <AddAccessoryButton onClick={() => setAddOpen(true)} />
+
       {overview}
+      {addSheet}
 
       <EndWorkoutConfirmDialog
         open={showEndDialog}

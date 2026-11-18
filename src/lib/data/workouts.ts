@@ -203,6 +203,23 @@ export async function startWorkout(input: StartWorkoutInput): Promise<string> {
  * rows in line with its sets, so the e1RM readers are live during a workout. A set
  * added to a workout that is already finished also re-runs progression.
  */
+/**
+ * Appends one edit to an unfinished workout's `planEdits` (an accessory added during
+ * the workout, A9), so resume, the rebuild and the Log plan it as the screen did.
+ * Rejects when the workout is gone or already finished.
+ */
+export async function appendPlanEdit(workoutId: string, edit: PlanEdit): Promise<void> {
+  await db.transaction("rw", db.workouts, async () => {
+    const workout = await db.workouts.get(workoutId);
+    if (!workout || workout.deletedAt != null) throw new Error("That workout no longer exists.");
+    if (workout.completedAt != null) throw new Error("That workout is already finished.");
+    await db.workouts.update(workoutId, {
+      planEdits: [...(workout.planEdits ?? []), edit],
+      ...editStamps(workout),
+    });
+  });
+}
+
 export async function appendSet(workoutId: string, set: SetLog): Promise<void> {
   await db.transaction("rw", rebuildTables(), async () => {
     const workout = await db.workouts.get(workoutId);

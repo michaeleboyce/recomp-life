@@ -8,6 +8,7 @@ import type { WorkoutExerciseState } from "@/lib/workout/types";
 import { TermIcon } from "@/components/ui/term";
 import type { TermId } from "@/lib/glossary";
 import type { Tier, WorkoutLocation } from "@/types";
+import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { AMRAPIndicator } from "./AMRAPIndicator";
 import { roleLabel } from "./setPlan";
 
@@ -25,13 +26,15 @@ interface ExerciseBlockProps {
   /** Where the workout is happening: the Form sheet's preference control starts there. */
   location: WorkoutLocation;
   isAMRAPSet?: boolean;
+  /** An accessory's rep range: every set is taken toward the top (double progression). */
+  repRange?: { min: number; max: number };
 }
 
 /**
  * What is being done right now: tier, exercise (the substitute when there is one),
  * the muscles it works, a way to check form, and one line of context for the set.
  */
-export function ExerciseBlock({ exercise, location, isAMRAPSet = false }: ExerciseBlockProps) {
+export function ExerciseBlock({ exercise, location, isAMRAPSet = false, repRange }: ExerciseBlockProps) {
   const exerciseInfo = getExercise(exercise.substituteExerciseId || exercise.exerciseId);
   const currentSet = Math.min(exercise.completedSets + 1, exercise.targetSets);
   // A ramp or back-off set says so; a working set reads as always.
@@ -53,10 +56,20 @@ export function ExerciseBlock({ exercise, location, isAMRAPSet = false }: Exerci
         <h1 className="line-clamp-2 min-w-0 font-display text-[30px] leading-[0.95] font-extrabold break-words uppercase">
           {exerciseInfo.name}
         </h1>
-        {isAMRAPSet && (
-          <p className="text-[13px] text-muted-foreground">
-            <AMRAPIndicator tier={exercise.tier} />
+        {repRange && exercise.tier === "accessory" ? (
+          <p data-testid="accessory-range" className="text-[13px] leading-snug text-muted-foreground">
+            <b className="font-mono font-semibold text-foreground tabular-nums">
+              {repRange.min === repRange.max ? repRange.max : `${repRange.min}–${repRange.max}`} reps
+            </b>{" "}
+            · take every set toward {repRange.max}; all at {repRange.max} adds weight next time
+            <EvidenceLine ruleId="accessory-progression" variant="icon" hideLibraryLink className="ml-1 inline-flex align-middle" />
           </p>
+        ) : (
+          isAMRAPSet && (
+            <p className="text-[13px] text-muted-foreground">
+              <AMRAPIndicator tier={exercise.tier} />
+            </p>
+          )
         )}
       </div>
       <div className="flex flex-col items-center gap-1">

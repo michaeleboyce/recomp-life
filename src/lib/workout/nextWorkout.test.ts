@@ -2,7 +2,9 @@
 // given the same inputs gets a deeply equal plan: Today's rows (`useNextWorkout`'s
 // call), the ledger and Today's forecast (`nextWorkoutFrom`), the coming workouts
 // (`projectUpcomingWorkouts`), Configure with no change (`planWorkoutStart`) and the
-// spelled-out `describeNextWorkout`. Made-up data only.
+// spelled-out `describeNextWorkout`. The accessories (A6) are the same for Today, the
+// ledger and Configure; the coming workouts and the description plan the program alone.
+// Made-up data only.
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { nextWorkoutFrom, readinessTodayFrom, strengthSetsFrom } from "@/lib/data/forecasts";
@@ -24,7 +26,8 @@ describe("resolveNextWorkout: one resolution for every consumer", () => {
       const completedWorkouts = records.workouts.filter((w) => w.completedAt != null);
       const strengthSets = strengthSetsFrom(records);
       const variantStates = records.variantStates ?? [];
-      const inputs = { completedWorkouts, liftStates: records.liftStates, variantStates, strengthSets, settings, location };
+      const now = records.readAt;
+      const inputs = { completedWorkouts, liftStates: records.liftStates, variantStates, strengthSets, settings, location, now };
 
       const resolved = resolveNextWorkout(inputs);
       expect(resolved.templateId, c.name).toBe(dueTemplateId(completedWorkouts));
@@ -45,10 +48,14 @@ describe("resolveNextWorkout: one resolution for every consumer", () => {
         variantStates,
         strengthSets,
         ...(settings.nextSetPlans ? { nextSetPlans: settings.nextSetPlans } : {}),
+        accessories: { settings, strengthSets, now },
       });
       expect(configure.plan, c.name).toEqual(resolved.plan);
       expect(configure.prescribed, c.name).toEqual(resolved.prescribed);
       expect(configure.nextSetPlanEdits, c.name).toEqual(resolved.nextSetPlanEdits);
+      expect(configure.accessoryEdits, c.name).toEqual(resolved.accessoryEdits);
+      expect(resolved.accessoryEdits.length, c.name).toBeGreaterThan(0);
+      const program = resolved.plan.filter((e) => e.tier !== "accessory");
 
       // The spelled-out description.
       const described = describeNextWorkout({
@@ -66,7 +73,7 @@ describe("resolveNextWorkout: one resolution for every consumer", () => {
         },
         reentry: true,
       });
-      expect(described.plan, c.name).toEqual(resolved.plan);
+      expect(described.plan, c.name).toEqual(program);
       expect(described.liftStates, c.name).toEqual(resolved.liftStates);
       expect(described.variantStates, c.name).toEqual(resolved.variantStates);
 
@@ -87,7 +94,7 @@ describe("resolveNextWorkout: one resolution for every consumer", () => {
         nextSetPlans: settings.nextSetPlans,
       });
       expect(first.templateId, c.name).toBe(resolved.templateId);
-      expect(first.plan, c.name).toEqual(resolved.plan);
+      expect(first.plan, c.name).toEqual(program);
     }
   });
 

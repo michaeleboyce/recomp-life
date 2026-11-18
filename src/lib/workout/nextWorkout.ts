@@ -4,6 +4,7 @@
 import type { StrengthSet } from "@/lib/strength";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { LiftState, UserSettings, VariantState, WorkoutLocation, WorkoutTemplate } from "@/types";
+import type { AccessorySettings } from "./accessoryPlan";
 import type { RotationSession } from "./credit";
 import { dueTemplateId } from "./rotation";
 import { planWorkoutStart, type WorkoutStartPlan } from "./startPlan";
@@ -22,8 +23,13 @@ export interface NextWorkoutInput {
    * Left out (a projection given none), seeds use the starting ratio and re-entry the steps.
    */
   strengthSets?: readonly StrengthSet[];
-  /** Equipment, warm-ups, the saved default location and the next-session set plans (E6). */
-  settings: Pick<UserSettings, "equipment" | "showWarmUps" | "defaultLocation" | "nextSetPlans">;
+  /**
+   * Equipment, warm-ups, the saved default location and the next-session set plans (E6),
+   * and what the accessories are chosen from (phase, preferences, the accessory mode,
+   * pins and hand-set weights; absent ones read as their defaults).
+   */
+  settings: Pick<UserSettings, "equipment" | "showWarmUps" | "defaultLocation" | "nextSetPlans"> &
+    Partial<Omit<AccessorySettings, "equipment">>;
   /** Where it is done; left out, the saved default, else the gym. */
   location?: WorkoutLocation;
   /**
@@ -33,6 +39,13 @@ export interface NextWorkoutInput {
   reentry?: "day" | "everyLift";
   /** The templates; left out, the program's. */
   templates?: Record<string, WorkoutTemplate>;
+  /**
+   * Plan the accessories (A6; the default): chosen and prescribed as the start will
+   * (`planAccessories`). False for a projection of the program alone (Coming up).
+   */
+  accessories?: boolean;
+  /** When it is planned for: the accessories are worked out for this calendar day. Left out, now. */
+  now?: Date;
 }
 
 /** The next workout as every screen reads it. */
@@ -47,7 +60,9 @@ export interface ResolvedNextWorkout extends NextWorkoutDescription, WorkoutStar
  * The next workout in the A1 -> B1 -> A2 -> B2 rotation, resolved once: the due day
  * (`dueTemplateId`), then exactly what starting it now with no change on Configure would
  * plan and store (`planWorkoutStart`: re-entry, each lift resolved, the prescription,
- * the next-session set plans). Warm-ups follow the settings; no accessories.
+ * the next-session set plans, the accessories). Warm-ups follow the settings; the
+ * accessories follow the accessory mode ("auto" by default) and are the same on every
+ * path for the same day.
  */
 export function resolveNextWorkout(input: NextWorkoutInput): ResolvedNextWorkout {
   const { settings } = input;
@@ -67,6 +82,15 @@ export function resolveNextWorkout(input: NextWorkoutInput): ResolvedNextWorkout
     ...(input.strengthSets ? { strengthSets: input.strengthSets } : {}),
     ...(settings.nextSetPlans ? { nextSetPlans: settings.nextSetPlans } : {}),
     reentry: input.reentry ?? "day",
+    ...(input.accessories === false
+      ? {}
+      : {
+          accessories: {
+            settings: { ...settings, trainingPhase: settings.trainingPhase ?? { mode: "maintaining" } },
+            strengthSets: input.strengthSets ?? [],
+            now: input.now ?? new Date(),
+          },
+        }),
   });
   return { templateId, template, location, ...start };
 }

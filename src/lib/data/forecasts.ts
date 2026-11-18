@@ -381,7 +381,8 @@ export function traceContextFrom(
 /**
  * The upcoming workout in the rotation with its plan, from the records: the same
  * `resolveNextWorkout` that `useNextWorkout` calls, at `location` (else the saved
- * default, else the gym), warm-ups as the settings say, no accessories; home exercises
+ * default, else the gym), warm-ups as the settings say, the accessories chosen for the
+ * day the records were read (`planAccessories`); home exercises
  * at their own weights (a first one seeded from the strength estimate), the first
  * session back at a location at its re-entry weight, and the next-session set plans
  * (`settings.nextSetPlans`, E6). Its `liftStates` and `variantStates` are the ones the
@@ -395,6 +396,7 @@ export function nextWorkoutFrom(records: LedgerRecords, location?: WorkoutLocati
     strengthSets: strengthSetsFrom(records),
     settings: records.settings,
     location,
+    now: records.readAt,
   });
 }
 

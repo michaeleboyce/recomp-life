@@ -12,6 +12,20 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-17",
+    ruleId: "accessory-selection",
+    change:
+      "Switched on: every workout now comes with accessories chosen by this rule (the setting can be changed to \"ask me\" or \"none\"). Today and the Ready screen list them under the main lifts with a reason each; the why sheet shows every part of the score; the accessory sheet changes, swaps, adds or pins them.",
+    sources: [],
+  },
+  {
+    date: "2026-11-17",
+    ruleId: "accessory-progression",
+    change:
+      "Switched on: each accessory is planned at the weight double progression gives (or one set by hand, or a first weight from your history), the workout shows its rep range, and after its last set, the summary and the Log say what it does next time and why.",
+    sources: [],
+  },
+  {
+    date: "2026-11-17",
     ruleId: "cap-progression",
     change:
       "A workout keeps the home weight it started with: when the heaviest dumbbell or the dumbbell step is changed after it started, resuming it shows the weight it recorded with a note, the weight can still be changed for the set, and finishing it judges the sets against that weight instead of the new limit.",

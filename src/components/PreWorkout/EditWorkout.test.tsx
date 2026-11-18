@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { initializeDatabase } from "@/db/init";
 import { clearDb, seedFixtureStartingWeights } from "@/lib/data/testUtils";
+import { updateSettings } from "@/lib/data/records";
 import { DaySelector } from "./DaySelector";
 import { EditWorkoutButton } from "./EditWorkoutButton";
 import { PlannedExerciseList } from "./PlannedExerciseList";
@@ -38,6 +39,8 @@ beforeEach(async () => {
   await clearDb();
   await initializeDatabase();
   await seedFixtureStartingWeights();
+  // These tests are about editing the program's lifts: no accessories chosen for them.
+  await updateSettings({ accessories: "ask" });
 });
 afterEach(cleanup);
 

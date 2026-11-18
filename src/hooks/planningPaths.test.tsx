@@ -4,11 +4,13 @@
 // (`useNextWorkout`), the forecast's plan (`nextWorkoutFrom` over the ledger records),
 // the Configure plan and its prescription (`useWorkoutSetup`), the prescription
 // recorded at start (`startWorkout`), the plan its forecasts and decisions are made from
-// (`sessionStartInputs`) and the active workout's plan. At home and at the gym.
-// Made-up sessions only.
+// (`sessionStartInputs`) and the active workout's plan. At home and at the gym. The
+// accessories chosen by default (A6) are the same on every path too: the same
+// exercises, weights and schemes on Today, the forecast, Ready, the plan recorded at
+// start and the active workout. Made-up sessions only.
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 
 const nav = vi.hoisted(() => ({ params: "" }));
 vi.mock("next/navigation", () => ({
@@ -65,6 +67,8 @@ function history(): ImportedSessionRecord[] {
     // The newest dumbbell bench session, under a name the import did not know: it counts
     // only through the choice remembered since.
     imp("Mystery Press", null, 10, 70, 8),
+    // Accessories done in the other app: their first weights come from these.
+    ...[30, 16, 9].flatMap((d) => [imp("Bicep Curl", "bicep_curls", d, 30, 12), imp("Lateral Raise", "lateral_raises", d + 1, 15, 15)]),
   ];
 }
 
@@ -77,6 +81,13 @@ function fromPlan(plan: WorkoutPlan): string[] {
     .filter((e) => !e.isWarmUp && PROGRAM_TIERS.has(e.tier))
     .map((e) => line(e.tier, e.exerciseId, e.substituteExerciseId ?? e.exerciseId, e.weight, e.targetSets, e.targetReps))
     .sort();
+}
+
+/** The accessories of a plan, in order: what each is, at what weight and scheme. */
+function accessoriesOf(plan: WorkoutPlan): string[] {
+  return plan
+    .filter((e) => !e.isWarmUp && e.tier === "accessory")
+    .map((e) => `accessory:${e.exerciseId} ${e.weight} ${e.targetSets}x${e.targetReps}${e.isAMRAP ? "+" : ""}`);
 }
 
 /** The same from a stored prescription (the home exercise's own when there is one). */
@@ -92,6 +103,7 @@ function fromPrescribed(prescribed: readonly PrescribedEntry[]): string[] {
 interface Paths {
   today: WorkoutPlan;
   rows: string[];
+  accessories: string[];
 }
 
 /** Plans the next workout at `location` on every path and checks they agree. */
@@ -101,11 +113,18 @@ async function expectPathsAgree(location: WorkoutLocation): Promise<Paths> {
   const next = today.result.current!;
   const rows = fromPlan(next.plan);
   expect(rows.length).toBeGreaterThanOrEqual(3);
+  // Accessories are chosen by default, after the program's lifts.
+  const accessories = accessoriesOf(next.plan);
+  expect(accessories.length).toBeGreaterThan(0);
+  expect(next.plan.findIndex((e) => e.tier === "accessory")).toBeGreaterThan(
+    next.plan.findLastIndex((e) => PROGRAM_TIERS.has(e.tier))
+  );
 
   const records = await readLedgerRecords();
   const ledger = nextWorkoutFrom(records, location);
   expect(ledger.templateId).toBe(next.templateId);
   expect(fromPlan(ledger.plan)).toEqual(rows);
+  expect(accessoriesOf(ledger.plan)).toEqual(accessories);
 
   // Today's hero resolves it once for its rows, tiles and readiness (R1).
   const hero = renderHook(() => useTodayWorkout(location));
@@ -120,7 +139,27 @@ async function expectPathsAgree(location: WorkoutLocation): Promise<Paths> {
   expect(setup.result.current.templateId).toBe(next.templateId);
   expect(fromPlan(setup.result.current.plan)).toEqual(rows);
   expect(fromPrescribed(setup.result.current.prescribed)).toEqual(rows);
+  expect(accessoriesOf(setup.result.current.plan)).toEqual(accessories);
+
+  // Started from Ready as the button starts it: the accessories recorded at start are
+  // the ones shown, and the active workout and its forecasts plan exactly those.
+  const recordsBeforeStart = await readLedgerRecords();
+  let started: string | null = null;
+  await act(async () => {
+    started = await setup.result.current.start();
+  });
   setup.unmount();
+  const startedSession = (await db.workouts.get(started!))!;
+  expect(fromPrescribed(startedSession.prescribed ?? [])).toEqual(rows);
+  expect(accessoriesOf(sessionStartInputs(recordsBeforeStart, startedSession)!.plan)).toEqual(accessories);
+  useWorkoutStore.getState().reset();
+  const resumed = renderHook(() => useActiveWorkout(started, { tapGuardMs: 0 }));
+  await waitFor(() => expect(resumed.result.current.status).toBe("active"), { timeout: 15_000 });
+  expect(fromPlan(resumed.result.current.plan)).toEqual(rows);
+  expect(accessoriesOf(resumed.result.current.plan)).toEqual(accessories);
+  resumed.unmount();
+  await discardWorkout(started!);
+  useWorkoutStore.getState().reset();
 
   // Started without a prescription, the data layer works it out from the ledger.
   const before = await readLedgerRecords();
@@ -139,7 +178,7 @@ async function expectPathsAgree(location: WorkoutLocation): Promise<Paths> {
 
   await discardWorkout(id);
   useWorkoutStore.getState().reset();
-  return { today: next.plan, rows };
+  return { today: next.plan, rows, accessories };
 }
 
 /** The same next workout planned from the app's log alone, as before imported history counted. */
@@ -211,7 +250,9 @@ describe("with imported history and no app workouts", () => {
   });
 
   it("plans the same gym weights on every path, from the lift states", async () => {
-    const { rows } = await expectPathsAgree("gym");
+    const { rows, accessories } = await expectPathsAgree("gym");
+    // The first accessory weights come from the imported sessions ("from your history").
+    expect(accessories.find((a) => a.startsWith("accessory:bicep_curls"))).toMatch(/^accessory:bicep_curls 30 3x15\+$/);
     // Barbell weights move only by progression or a confirmed starting weight.
     expect(await logOnly("gym")).toEqual(rows);
   });

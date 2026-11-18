@@ -3,10 +3,14 @@
 // every session start of the demo log, at the gym and at home, plain and with made-up
 // imported sessions, hand-set home and barbell weights, next-session set plans, a home
 // substitute picked on Configure and Edit-workout edits, it records what each path plans:
-// the start (`planWorkoutStart`: plan, prescription with `.home`, `nextSetPlanEdits`),
-// Today's forecast plan (`nextWorkoutFrom`), the next workout as Today's rows plan it
-// (`describeNextWorkout` with the hooks' inputs), the coming workouts
-// (`projectUpcomingWorkouts`) and the resumed session (`planForSession`).
+// the start (`planWorkoutStart`: plan, prescription with `.home`, `nextSetPlanEdits`,
+// the accessories' edits), Today's forecast plan (`nextWorkoutFrom`), the next workout
+// as Today's rows plan it (`resolveNextWorkout` with the hooks' inputs), the coming
+// workouts (`projectUpcomingWorkouts`) and the resumed session (`planForSession`).
+//
+// Regenerated on purpose for A6 (accessories chosen by default,
+// docs/plans/2026-11-17-accessories-design.md): only accessory entries were added; every
+// T1 to T3 entry is as before.
 //
 // A difference means a planning number moved. The refactor must not move any. If the
 // first home weights are changed on purpose (F6, seeding from the exercise's own
@@ -21,7 +25,8 @@ import { generateDemoData } from "@/lib/demo/generateDemoData";
 import { nextWorkoutFrom, strengthSetsFrom, type LedgerRecords } from "@/lib/data/forecasts";
 import { importedSession, importedSet } from "@/lib/import/testRecords";
 import { rebuildDerived } from "@/lib/rebuild";
-import { describeNextWorkout, substituteModification } from "@/lib/workout/buildPlan";
+import { substituteModification } from "@/lib/workout/buildPlan";
+import { resolveNextWorkout } from "@/lib/workout/nextWorkout";
 import { planForSession } from "@/lib/workout/planForSession";
 import { planWorkoutStart } from "@/lib/workout/startPlan";
 import { projectUpcomingWorkouts } from "@/lib/workout/upcoming";
@@ -251,20 +256,14 @@ function startAt(scenario: Scenario, index: number, location: WorkoutLocation) {
 
   // Today's forecast plan (the ledger) and Today's rows (the hooks' inputs).
   const ledger = nextWorkoutFrom(records, location);
-  const rows = describeNextWorkout({
+  const rows = resolveNextWorkout({
     completedWorkouts: done,
-    templates: WORKOUT_TEMPLATES,
     liftStates,
-    plan: {
-      location,
-      equipment,
-      includeWarmUps: settings.showWarmUps,
-      selectedAccessories: [],
-      variantStates,
-      strengthSets,
-      nextSetPlans: settings.nextSetPlans,
-    },
-    reentry: true,
+    variantStates,
+    strengthSets,
+    settings,
+    location,
+    now: startedAt,
   });
   const upcoming = projectUpcomingWorkouts({
     completedWorkouts: done,
@@ -298,6 +297,7 @@ function startAt(scenario: Scenario, index: number, location: WorkoutLocation) {
     variantStates,
     strengthSets,
     ...(settings.nextSetPlans ? { nextSetPlans: settings.nextSetPlans } : {}),
+    accessories: { settings, strengthSets, now: startedAt },
   });
 
   // The started session, resumed.
@@ -310,14 +310,14 @@ function startAt(scenario: Scenario, index: number, location: WorkoutLocation) {
     completedAt: null,
     totalDurationSeconds: 0,
     includeWarmUps: settings.showWarmUps,
-    selectedAccessories: [],
+    selectedAccessories: start.accessoryEdits.flatMap((e) => (e.kind === "add" ? [e.exerciseId] : [])),
     sets: [],
     preWorkoutPainEntries: [],
     modifications: start.plan
       .filter((e) => !e.isWarmUp && e.substituteExerciseId && overrides?.[e.exerciseId] === e.substituteExerciseId)
       .map((e) => substituteModification(e.exerciseId, e.substituteExerciseId!, e.originalWeight ?? 0, e.weight)),
     prescribed: start.prescribed,
-    planEdits: [...start.nextSetPlanEdits, ...edits],
+    planEdits: [...start.accessoryEdits, ...start.nextSetPlanEdits, ...edits],
     synced: false,
   };
   const resumed = planForSession({ session, template, liftStates, equipment, variantStates, strengthSets });
@@ -332,6 +332,7 @@ function startAt(scenario: Scenario, index: number, location: WorkoutLocation) {
       plan: lines(start.plan),
       prescribed: plain(start.prescribed),
       nextSetPlanEdits: plain(start.nextSetPlanEdits),
+      accessoryEdits: plain(start.accessoryEdits),
       reentries: plain(start.reentries),
     },
     resumed: lines(resumed),
