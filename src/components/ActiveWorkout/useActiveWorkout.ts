@@ -16,9 +16,9 @@
  * | draft: declined T2 drop      | useSetDraft: store             | keepWeight                                                    | dropSuggestion                  | another session id, reset                        | lost   | kept    |
  * | drop sets in progress        | React (per session id)         | startDropSet, setDropWeight/Reps, logDropSet, endDropSets     | dropSet                         | endDropSets                                      | lost   | lost    |
  * | rest countdown               | store (RestTimer ticks it)     | only through restCountdown.ts: logSet, endDropSets start it; jumpTo, swap, endEarly, startDropSet, delete of the latest set skip it; RestTimer ticks, adds, ends | RestTimer, LogDock | skipRest, reset | lost | kept |
- * | viewed entry                 | store                          | logSet (last set of an entry), jumpTo, swap, delete           | activeIndex                     | another session id, reset                        | lost (resumes at first unfinished) | kept |
- * | ended-early index            | React                          | endEarly                                                      | activeIndex, finish             | never                                            | lost   | lost    |
- * | e1RM flash                   | React + timeout                | logSet                                                        | screen                          | 3 s, drop start, correction, swap, jump          | lost   | lost    |
+ * | view: viewed entry           | useWorkoutView: store          | logSet (last set of an entry), jumpTo, swap, delete           | activeIndex                     | another session id, reset                        | lost (resumes at first unfinished) | kept |
+ * | view: ended-early index      | useWorkoutView: React          | endEarly                                                      | activeIndex, finish             | never                                            | lost   | lost    |
+ * | view: e1RM flash             | useWorkoutView: React + timeout| logSet                                                        | screen                          | 3 s, drop start, correction, swap, jump          | lost   | lost    |
  * | saving, errors, log tap guard| React / ref                    | logSet, logDropSet, correctSet, finish                        | screen                          | next attempt                                     | lost   | lost    |
  */
 
@@ -57,7 +57,6 @@ import {
   entryIndexForSet,
   isDropAccepted,
   isLatestSetOfEntry,
-  resolveActiveIndex,
 } from "./activeWorkoutLogic";
 import { planForSession } from "@/lib/workout/planForSession";
 import { getPrOpportunity } from "./prOpportunity";
@@ -77,6 +76,7 @@ import {
 import { clampWeight } from "@/components/SetPlan/setPlanModel";
 import { withPendingDrop } from "./setDraft";
 import { useSetDraft } from "./useSetDraft";
+import { screenIndexes, useWorkoutView } from "./useWorkoutView";
 import { afterSetLogged, restsAfterDrops, restTimer } from "./restCountdown";
 
 /** The exercise a set was done with: the substitute when there was one. */
@@ -98,7 +98,6 @@ interface DropState {
 }
 
 const DEFAULT_PHASE: TrainingPhase = { mode: "maintaining" };
-const E1RM_FLASH_MS = 3000;
 
 export type ActiveWorkoutStatus =
   /** Records are still being read. */
@@ -138,13 +137,10 @@ export function useActiveWorkout(
   const variantStates = useVariantStates();
   const strengthSets = useStrengthEvidence();
 
-  const viewedEntryIndex = useWorkoutStore((s) => s.viewedEntryIndex);
-  const storeSessionId = useWorkoutStore((s) => s.sessionId);
-
-  // Index of the entry that was on screen when the user chose to end early.
-  const [endedAtIndex, setEndedAtIndex] = useState<number | null>(null);
+  // View state: the entry shown, ended early, the e1RM flash.
+  const { storeReady, viewedEntryIndex, viewEntry, endedAtIndex, endAt, e1rmFlash, flashE1rm, clearFlash } =
+    useWorkoutView(session);
   const [dropState, setDropState] = useState<DropState | null>(null);
-  const [e1rmFlash, setE1rmFlash] = useState<number | null>(null);
   // Id of a set that has been written but is not yet visible on the live record.
   const [awaitingSetId, setAwaitingSetId] = useState<string | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -182,13 +178,6 @@ export function useActiveWorkout(
   }
   const basePlan = session && frozen?.sessionId === session.id ? frozen.plan : null;
 
-  useEffect(() => {
-    if (session) {
-      useWorkoutStore.getState().beginSession(session.id);
-    }
-  }, [session]);
-  const storeReady = !!session && storeSessionId === session.id;
-
   // The saved session owns the start time: it is written once, when the workout starts
   // (`startWorkout`), and never changed. One Date per value, so the clock is not restarted.
   const startedAtMs = session ? new Date(session.startedAt).getTime() : null;
@@ -220,8 +209,7 @@ export function useActiveWorkout(
     return withPendingDrop(screenPlan(basePlan, sets, spotWeights), storeReady ? pendingDrop : null);
   }, [basePlan, sets, spotWeights, pendingDrop, storeReady]);
 
-  const naturalIndex = resolveActiveIndex(plan, storeReady ? viewedEntryIndex : null);
-  const activeIndex = endedAtIndex != null ? plan.length : naturalIndex;
+  const { naturalIndex, activeIndex } = screenIndexes(plan, viewedEntryIndex, endedAtIndex);
   const planEntry = plan[activeIndex];
   const baseEntry = basePlan?.[activeIndex];
   const isAMRAPSet = planEntry ? isNextSetAMRAP(planEntry) : false;
@@ -330,16 +318,13 @@ export function useActiveWorkout(
       return;
     }
 
-    if (e1rm) {
-      setE1rmFlash(e1rm);
-      setTimeout(() => setE1rmFlash(null), E1RM_FLASH_MS);
-    }
+    if (e1rm) flashE1rm(e1rm);
 
     clearPendingDropOn(activeIndex);
 
     // Another set of the entry after its rest, or on to whatever is next.
     const after = afterSetLogged(plan, activeIndex);
-    if (after.view !== undefined) useWorkoutStore.getState().viewEntry(after.view);
+    if (after.view !== undefined) viewEntry(after.view);
     if (after.rest) restTimer.start(entry.tier, trainingPhase);
   }, [
     tapGuardMs,
@@ -356,6 +341,8 @@ export function useActiveWorkout(
     plan,
     trainingPhase,
     clearPendingDropOn,
+    flashE1rm,
+    viewEntry,
   ]);
 
   /**
@@ -437,7 +424,7 @@ export function useActiveWorkout(
     if (Date.now() - lastLogAt.current < tapGuardMs) return;
     lastLogAt.current = Date.now();
     restTimer.skip();
-    setE1rmFlash(null);
+    clearFlash();
     const rootId =
       dropFrom.role === "drop"
         ? (attachDrops(sets).find((row) => row.drops.some((d) => d.id === dropFrom.id))?.set.id ??
@@ -452,7 +439,7 @@ export function useActiveWorkout(
       reps,
       suggestedReps: reps,
     });
-  }, [session, dropFrom, dropPreview, tapGuardMs, sets]);
+  }, [session, dropFrom, dropPreview, tapGuardMs, sets, clearFlash]);
 
   const setDropWeight = useCallback(
     (weight: number) =>
@@ -566,7 +553,7 @@ export function useActiveWorkout(
           setCorrectionError("That change could not be saved. Try again.");
           return false;
         }
-        setE1rmFlash(null);
+        clearFlash();
         toast({
           message: `${label} corrected`,
           action: {
@@ -609,15 +596,14 @@ export function useActiveWorkout(
       setAwaitingSetId((id) => (id === original.id ? null : id));
       // Start the set over from its target, not from what was picked for the deleted one.
       clearPicks();
-      const store = useWorkoutStore.getState();
       // The rest that followed the deleted set is over: it is the next set to do.
       if (wasMostRecent) restTimer.skip();
       const index = entryIndexForSet(plan, original);
       if (index !== -1) {
         clearPendingDropOn(index);
-        store.viewEntry(index);
+        viewEntry(index);
       }
-      setE1rmFlash(null);
+      clearFlash();
       toast({
         message: `${label} deleted`,
         action: {
@@ -643,7 +629,7 @@ export function useActiveWorkout(
       });
       return true;
     },
-    [session, sets, plan, clearPicks, clearPendingDropOn]
+    [session, sets, plan, clearPicks, clearPendingDropOn, viewEntry, clearFlash]
   );
 
   const clearCorrectionError = useCallback(() => setCorrectionError(null), []);
@@ -726,11 +712,11 @@ export function useActiveWorkout(
       const to = change.replacementIndexes[0];
       if (to != null && to >= 0) {
         restTimer.skip();
-        useWorkoutStore.getState().viewEntry(to);
-        setE1rmFlash(null);
+        viewEntry(to);
+        clearFlash();
       }
     },
-    [changeFor, applyChange]
+    [changeFor, applyChange, viewEntry, clearFlash]
   );
 
   /** Removes an exercise with no set logged (`midWorkoutRemove`): hidden, its warm-ups skipped. */
@@ -744,14 +730,14 @@ export function useActiveWorkout(
 
   const jumpTo = useCallback((index: number) => {
     restTimer.skip();
-    useWorkoutStore.getState().viewEntry(index);
-    setE1rmFlash(null);
-  }, []);
+    viewEntry(index);
+    clearFlash();
+  }, [viewEntry, clearFlash]);
 
   const endEarly = useCallback(() => {
     restTimer.skip();
-    setEndedAtIndex(naturalIndex);
-  }, [naturalIndex]);
+    endAt(naturalIndex);
+  }, [naturalIndex, endAt]);
 
   /** Applies progression and marks the workout finished. Resolves true on success. */
   const finish = useCallback(async (): Promise<boolean> => {
