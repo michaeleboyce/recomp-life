@@ -11,6 +11,41 @@ import type { SourceId } from "./sources";
 
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
+    date: "2026-11-18",
+    ruleId: "time-off",
+    change:
+      "The days-off note on Today now counts sessions imported from other apps: training logged elsewhere is not time off.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "recovery-windows",
+    change:
+      "The Strength tab's recovery rows now count sessions imported from other apps: a lift was last trained at its latest session of either kind.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "weekly-volume",
+    change:
+      "The weekly review now counts sessions imported from other apps in its sessions, each lift's sessions, hard sets per muscle group and tonnage, and says how many were imported. New bests, effort and readiness stay the app's own.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "e1rm-estimate",
+    change:
+      "The \"estimated 1RM down\" note now also reads the estimates of sessions imported from other apps after the lift's last session in the app.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
+    ruleId: "strength-pooling",
+    change:
+      "One number per lift: the Strength tab's lift cards and Today's lift tiles now show the plan's estimate, the same number as the lift page headline, with the change of the same smooth line. They had shown the latest session's own estimate.",
+    sources: [],
+  },
+  {
     date: "2026-11-17",
     ruleId: "accessory-selection",
     change:

@@ -502,7 +502,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** Hard sets take 1–3 days to recover from; stress can slow that
 
-**What the app does.** A lift shows Recovering for 48 hours after it was last trained, Ready from 48 hours, Primed from 72 to 120 hours, then Ready again. While cutting, 12 hours are added to each of these. After 21 days it shows Long break. The setup screen notes when a lift in today's workout was trained less than 48 hours ago.
+**What the app does.** A lift shows Recovering for 48 hours after it was last trained, Ready from 48 hours, Primed from 72 to 120 hours, then Ready again. While cutting, 12 hours are added to each of these. After 21 days it shows Long break. The setup screen notes when a lift in today's workout was trained less than 48 hours ago. On the Strength and Muscles tabs, sessions imported from other apps count as training.
 
 **Why.** After hard sets, performance takes roughly one to three days to come back, and longer when sets were taken to failure. In one study, lifters under high life stress recovered more slowly over four days.
 
@@ -524,7 +524,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **In one line.** Short breaks cost little strength; long ones come back fast
 
-**What the app does.** Breaks of up to 20 days change nothing. After that the setup screen suggests starting lighter: 5% after 21–41 days, 10% after 42–69 days, 15% after 70 days or more. The suggestion is scaled by 1.25 while cutting and 0.75 while bulking, and never exceeds 20%. You can always keep your old weight. Today mentions a break once it has been 5 days since your last workout, and from 21 days says that setup will suggest lighter weights.
+**What the app does.** Breaks of up to 20 days change nothing. After that the setup screen suggests starting lighter: 5% after 21–41 days, 10% after 42–69 days, 15% after 70 days or more. The suggestion is scaled by 1.25 while cutting and 0.75 while bulking, and never exceeds 20%. You can always keep your old weight. Today mentions a break once it has been 5 days since your last workout (a session imported from another app counts), and from 21 days says that setup will suggest lighter weights.
 
 **Why.** Strength is well preserved through breaks: one session a week maintains it for months, and after a full 10-week layoff trainees were back to their pre-break level in about 5 weeks. Losses do grow with the length of the break, so the suggestion scales with time away.
 
@@ -1140,6 +1140,11 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **18 November 2026** — `time-off` (Why lighter weights after a break?): The days-off note on Today now counts sessions imported from other apps: training logged elsewhere is not time off. Sources: .
+- **18 November 2026** — `recovery-windows` (What do the recovery statuses mean?): The Strength tab's recovery rows now count sessions imported from other apps: a lift was last trained at its latest session of either kind. Sources: .
+- **18 November 2026** — `weekly-volume` (How is weekly volume counted, and why 10 sets?): The weekly review now counts sessions imported from other apps in its sessions, each lift's sessions, hard sets per muscle group and tonnage, and says how many were imported. New bests, effort and readiness stay the app's own. Sources: .
+- **18 November 2026** — `e1rm-estimate` (How is my 1RM estimated?): The "estimated 1RM down" note now also reads the estimates of sessions imported from other apps after the lift's last session in the app. Sources: .
+- **18 November 2026** — `strength-pooling` (How do gym and home sessions combine into one strength estimate?): One number per lift: the Strength tab's lift cards and Today's lift tiles now show the plan's estimate, the same number as the lift page headline, with the change of the same smooth line. They had shown the latest session's own estimate. Sources: .
 - **17 November 2026** — `accessory-selection` (How are a workout's accessories chosen?): Switched on: every workout now comes with accessories chosen by this rule (the setting can be changed to "ask me" or "none"). Today and the Ready screen list them under the main lifts with a reason each; the why sheet shows every part of the score; the accessory sheet changes, swaps, adds or pins them. Sources: .
 - **17 November 2026** — `accessory-progression` (When would accessory weights go up?): Switched on: each accessory is planned at the weight double progression gives (or one set by hand, or a first weight from your history), the workout shows its rep range, and after its last set, the summary and the Log say what it does next time and why. Sources: .
 - **17 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): A workout keeps the home weight it started with: when the heaviest dumbbell or the dumbbell step is changed after it started, resuming it shows the weight it recorded with a note, the weight can still be changed for the set, and finishing it judges the sets against that weight instead of the new limit. Sources: .
