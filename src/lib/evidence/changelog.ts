@@ -12,6 +12,13 @@ import type { SourceId } from "./sources";
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
     date: "2026-11-18",
+    ruleId: "strength-pooling",
+    change:
+      "The weekly review's lift rows now count the lift's home versions: an app session done as a substitute or stand-in and an imported session of the home exercise count as sessions of the lift (\"2 sessions, 1 at home\"), and their estimates, converted through the same ratios as the lift chart, can be the week's best (\"Best from DB Bench Press\"). A week with only a dumbbell bench had shown the bench with no sessions and no estimate. A new best is still judged on the app's own barbell estimates.",
+    sources: [],
+  },
+  {
+    date: "2026-11-18",
     ruleId: "swap-recommendation",
     change:
       "Switched on: the swap sheet shows the recommended swaps before and during a workout, each with its weight, sets and reps, reason, history and score parts, pairs that cover an exercise together, and what the swap does to the program lift. A swap is for that workout only unless \"Every time\" is switched on, which marks the replacement preferred at that location (and, for an accessory, leaves the original out there). At home without a bench, exercises that need one are no longer offered. An exercise added in place of a program lift (the second of a pair, or after sets of the lift were logged) is logged only: it is not judged as an accessory and does not count as an accessory session for its next weight.",

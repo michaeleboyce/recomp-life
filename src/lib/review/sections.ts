@@ -9,6 +9,8 @@ import { SLEEP_LEVELS, STRESS_LEVELS } from "@/lib/metrics/readiness";
 import type { Point } from "@/lib/metrics/types";
 import { calculateGroupVolume } from "@/lib/volumeTracking";
 import { excludeWarmUps } from "@/lib/workout/setSelectors";
+import { strengthEvidenceOf } from "@/lib/workout/strength";
+import { relatedExercises, strengthTimeline, type StrengthSet } from "@/lib/strength";
 import { LIFT_NAMES, MAIN_LIFTS } from "@/lib/liftNames";
 import { cutTargetBand, paceStatus } from "@/lib/rateOfLoss";
 import type { ImportedSessionRecord, RepsInReserve, WorkoutSession } from "@/types";
@@ -50,29 +52,86 @@ export function weeklyValue(points: Point[], weekStart: Date): number {
   return points.find((p) => p.t === weekOf(weekStart).getTime())?.v ?? 0;
 }
 
+/** An estimate behind a lift row: the app's, an imported session's, or a home version's. */
+type RowEstimate = Point & { from?: string };
+
+/**
+ * Sessions of the week with a non-warm-up set of the lift or one of its home versions
+ * (`relatedExercises`, as the lift chart pools them): the app's workouts, by the exercise
+ * actually performed (a substitute at home is its home version), and the imported
+ * sessions. One done only as a home version is "at home".
+ */
+function liftSessions(
+  liftId: string,
+  week: readonly WorkoutSession[],
+  importedSets: readonly StrengthSet[],
+  weekStart: Date
+): { sessions: number; homeSessions: number; importedSessions: number } {
+  const home = new Set(relatedExercises(liftId));
+  let sessions = 0;
+  let homeSessions = 0;
+  for (const w of week) {
+    const sets = excludeWarmUps(w.sets ?? []);
+    const done = sets.map((s) => s.substituteExerciseId || s.exerciseId);
+    const barbell = done.includes(liftId);
+    // The lift's slot (whatever stood in) or a home version of it.
+    if (!sets.some((s) => s.exerciseId === liftId) && !done.some((id) => home.has(id))) continue;
+    sessions += 1;
+    if (!barbell) homeSessions += 1;
+  }
+  const bySession = new Map<string, { barbell: boolean }>();
+  for (const s of importedSets) {
+    if (s.role === "warmup" || !inWeek(toMs(s.date), weekStart)) continue;
+    if (s.exerciseId !== liftId && !home.has(s.exerciseId)) continue;
+    const entry = bySession.get(s.sessionId) ?? { barbell: false };
+    entry.barbell ||= s.exerciseId === liftId;
+    bySession.set(s.sessionId, entry);
+  }
+  const importedSessions = bySession.size;
+  const importedHome = [...bySession.values()].filter((e) => !e.barbell).length;
+  return { sessions: sessions + importedSessions, homeSessions: homeSessions + importedHome, importedSessions };
+}
+
+/**
+ * One row per main lift: the week's best estimate (the app's, an imported session's or
+ * a home version's converted into the lift's pounds as the lift chart converts it,
+ * `strengthTimeline`) against the best of the weeks before, the working weight and the
+ * sessions, home versions included. A new best is the app's own barbell estimate,
+ * judged against the app's own.
+ *
+ * @evidence strength-pooling
+ */
 export function liftReviews(source: ReviewSource, weekStart: Date, weekEnd: Date): LiftReview[] {
   const start = weekStart.getTime();
   let compareFrom = weekStart;
   for (let i = 0; i < E1RM_COMPARE_WEEKS; i++) compareFrom = previousWeek(compareFrom);
   const week = workoutsInWeek(source, weekStart);
   const index = importedIndex(source);
+  const importedSets = importedStrengthSets(source.imported ?? [], source.overrides);
+  const evidence = strengthEvidenceOf(source.workouts, source.imported ?? [], source.overrides);
 
   return MAIN_LIFTS.map((id): LiftReview => {
     const history = index.get(id) ?? [];
     const app = computeMetric("e1rm", source, { exerciseId: id }).points;
-    // The app's estimates and the imported sessions' (marked imported), oldest first; at
-    // the same instant the app's first.
-    const e1rm = [...app, ...importedE1rmPoints(history)].sort(
-      (a, b) => a.t - b.t || Number(a.imported === true) - Number(b.imported === true)
+    // Home versions' sessions in the lift's pounds, as the lift chart draws them.
+    const homePoints: RowEstimate[] = strengthTimeline(id, evidence, { now: weekEnd.getTime() })
+      .points.filter((p) => p.sourceId !== "own" && p.sourceId !== "imported" && !p.provisional)
+      .map((p) => ({ t: p.t, v: p.value, refId: p.sessionId, from: p.exerciseId, ...(p.imported ? { imported: true } : {}) }));
+    // The app's estimates, the imported sessions' (marked imported) and the home versions',
+    // oldest first; at the same instant the app's barbell estimate first.
+    const rank = (p: RowEstimate) => (p.from ? 2 : p.imported ? 1 : 0);
+    const e1rm: RowEstimate[] = [...app, ...importedE1rmPoints(history), ...homePoints].sort(
+      (a, b) => a.t - b.t || rank(a) - rank(b)
     );
     const inThisWeek = e1rm.filter((p) => inWeek(p.t, weekStart));
     // Highest value; on a tie the earliest, which is when the best was first reached.
-    const best = inThisWeek.reduce<Point | null>((b, p) => (!b || p.v > b.v ? p : b), null);
+    const best = inThisWeek.reduce<RowEstimate | null>((b, p) => (!b || p.v > b.v ? p : b), null);
     const prior = e1rm.filter((p) => p.t >= compareFrom.getTime() && p.t < start).map((p) => p.v);
     const priorBest = prior.length > 0 ? Math.max(...prior) : null;
-    // A new best is the app's own, judged against the app's own (as everywhere else).
-    const earlier = best && !best.imported ? app.filter((p) => p.t < best.t).map((p) => p.v) : [];
-    const importedSessions = history.filter((h) => h.sets > 0 && inWeek(h.t, weekStart)).length;
+    // A new best is the app's own barbell estimate, judged against the app's own (as everywhere else).
+    const own = best !== null && !best.imported && !best.from;
+    const earlier = own ? app.filter((p) => p.t < best.t).map((p) => p.v) : [];
+    const counts = liftSessions(id, week, importedSets, weekStart);
 
     const weights = computeMetric("workingWeight", source, { exerciseId: id }).points;
     const atEnd = lastBefore(weights, weekEnd.getTime());
@@ -84,16 +143,14 @@ export function liftReviews(source: ReviewSource, weekStart: Date, weekEnd: Date
       bestE1RM: best?.v ?? null,
       bestWorkoutId: best?.refId ?? null,
       bestImported: best?.imported === true,
+      bestFrom: best?.from ?? null,
       e1rmChange: best && priorBest !== null ? best.v - priorBest : null,
       priorBest,
       // A first-ever estimate is not a best: there is nothing to beat (as the new-PR insight).
-      isPR: best !== null && earlier.length > 0 && isNewPR(best.v, earlier),
+      isPR: own && earlier.length > 0 && isNewPR(best.v, earlier),
       workingWeight: atEnd?.v ?? null,
       workingWeightChange: atEnd && atStart ? atEnd.v - atStart.v : null,
-      sessions:
-        week.filter((w) => excludeWarmUps(w.sets ?? []).some((s) => s.exerciseId === id)).length +
-        importedSessions,
-      importedSessions,
+      ...counts,
     };
   });
 }
