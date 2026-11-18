@@ -784,6 +784,8 @@ export const ACCESSORY_IDS: string[] = [
   // The bodyweight ones (push_up, bench_dip, sit_up, crunch) are left out: they have no
   // load for double progression to move.
   "db_lunge", "leg_press", "db_fly", "db_bent_over_row", "cable_row",
+  // A chest-supported row: the low back rests, so it suits days after heavy deadlifts.
+  "incline_db_row",
 ];
 
 /**
@@ -827,6 +829,7 @@ export const DEFAULT_ACCESSORY_WEIGHTS: Record<string, number> = {
   leg_press: 90,
   db_fly: 20,
   db_bent_over_row: 30,
+  incline_db_row: 25,
   cable_row: 70,
 };
 

@@ -30,6 +30,7 @@ import {
   performedSessions,
   type ExerciseKind,
 } from "./exercisePageModel";
+import { AccessoryNextSession } from "./AccessoryNextSession";
 import { useNextSetPlanStore } from "./nextSetPlanAdapter";
 
 /** Where back goes with no in-app history: Today when opened from there, else `fallback`. */
@@ -123,6 +124,8 @@ export function ExercisePage({ exerciseId, backHref }: { exerciseId: string; bac
         <TabsContent value="training" className="flex flex-col gap-6 pt-2">
           {kind.kind === "home" ? (
             <HomeNextSession liftId={kind.liftId} exerciseId={exerciseId} name={title} store={store} />
+          ) : kind.kind === "accessory" ? (
+            <AccessoryNextSession exerciseId={exerciseId} name={title} sets={strengthSets} />
           ) : (
             <PlannedNextSession
               exerciseId={exerciseId}

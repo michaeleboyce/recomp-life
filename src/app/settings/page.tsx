@@ -24,6 +24,7 @@ import { useProfile } from "@/hooks";
 import { exportBackup, importBackup, parseBackup } from "@/lib/data/backup";
 import { updateProfile as saveProfile, updateSettings as saveSettings } from "@/lib/data/records";
 import { DataIntegrityCard } from "@/components/LogEdit";
+import packageJson from "../../../package.json";
 
 function formatHeight(totalInches: number): string {
   const feet = Math.floor(totalInches / 12);
@@ -446,7 +447,7 @@ export default function SettingsPage() {
 
         {/* Version Footer */}
         <div className="text-center text-xs text-muted-foreground py-4">
-          Version 0.1.0
+          Version {packageJson.version}
         </div>
       </div>
     </div>

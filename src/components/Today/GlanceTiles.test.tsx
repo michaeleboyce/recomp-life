@@ -112,8 +112,12 @@ describe("GlanceTiles", () => {
     });
     expect(within(tile).queryByRole("button")).toBeNull();
     expect(tile).toHaveTextContent(/est\. 1RM/);
-    const terms = screen.getAllByRole("button", { name: /^What does .* mean\?$/ });
-    expect(terms.length).toBeGreaterThanOrEqual(2);
+    // The second lift's tile loads on its own; wait for both terms rather than count at once.
+    const terms = await waitFor(() => {
+      const found = screen.getAllByRole("button", { name: /^What does .* mean\?$/ });
+      expect(found.length).toBeGreaterThanOrEqual(2);
+      return found;
+    });
     for (const term of terms) expect(term.closest("a")).toBeNull();
     fireEvent.click(terms[0]);
     const sheet = await screen.findByRole("dialog");

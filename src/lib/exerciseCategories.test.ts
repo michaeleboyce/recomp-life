@@ -52,7 +52,7 @@ describe("getGroupedExercises", () => {
     const groups = getGroupedExercises();
     const accessories = groups.find((g) => g.label === "Accessories")!;
     expect(accessories.exercises).toHaveLength(ACCESSORY_IDS.length);
-    expect(ACCESSORY_IDS.length).toBe(36);
+    expect(ACCESSORY_IDS.length).toBe(37);
     const names = accessories.exercises.map((e) => e.name);
     const sorted = [...names].sort((a, b) => a.localeCompare(b));
     expect(names).toEqual(sorted);
