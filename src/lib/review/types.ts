@@ -3,13 +3,21 @@ import type { RuleId } from "@/lib/evidence";
 import type { MetricSource } from "@/lib/metrics/types";
 import type { MainLiftId } from "@/components/Progress/lifts";
 import type { PaceWord } from "@/components/Progress/body/bodyMath";
-import type { ActivityLog } from "@/types";
+import type { MappingOverrides } from "@/lib/import/mapping/types";
+import type { ActivityLog, ImportedSessionRecord } from "@/types";
 
 /**
  * What the review reads: the metrics source plus the non-running activities, which the
- * metrics layer does not carry. `activities` may be omitted (treated as none).
+ * metrics layer does not carry, and the sessions imported from other apps (history:
+ * they count as training for sessions, lift sessions and estimates, and volume; never
+ * for effort, readiness, working weight or a new best). `activities` and `imported` may
+ * be omitted (treated as none); `overrides` are the remembered name choices.
  */
-export type ReviewSource = MetricSource & { activities?: ActivityLog[] };
+export type ReviewSource = MetricSource & {
+  activities?: ActivityLog[];
+  imported?: readonly ImportedSessionRecord[];
+  overrides?: MappingOverrides;
+};
 
 export interface ReviewOptions {
   /**
@@ -21,30 +29,39 @@ export interface ReviewOptions {
 }
 
 export interface SessionsReview {
+  /** The app's workouts and the imported sessions this week. */
   count: number;
   target: number | null;
   previous: number;
+  /** How many of `count` were imported. */
+  imported: number;
+  /** How many of `previous` were imported. */
+  previousImported: number;
 }
 
 export interface LiftReview {
   id: MainLiftId;
   label: string;
-  /** Best estimated 1RM logged this week; null when none. */
+  /** Best estimated 1RM this week, the app's or an imported session's; null when none. */
   bestE1RM: number | null;
-  /** The workout the best came from. */
+  /** The workout (or imported session) the best came from. */
   bestWorkoutId: string | null;
+  /** The best came from an imported session (so it is never a new best). */
+  bestImported: boolean;
   /** bestE1RM minus the best of the four weeks before; null when either is missing. */
   e1rmChange: number | null;
   /** The best of the four weeks before, for the label. */
   priorBest: number | null;
-  /** bestE1RM beats every earlier estimate (and there was an earlier one). */
+  /** bestE1RM is the app's and beats every earlier estimate of the app's (and there was one). */
   isPR: boolean;
   /** T1 working weight as of the end of the week; null before the lift was ever trained. */
   workingWeight: number | null;
   /** workingWeight minus the working weight as of the start of the week. */
   workingWeightChange: number | null;
-  /** Workouts this week with a non-warm-up set of the lift (any tier). */
+  /** Workouts and imported sessions this week with a non-warm-up set of the lift (any tier). */
   sessions: number;
+  /** How many of `sessions` were imported. */
+  importedSessions: number;
 }
 
 export interface PRReview {
@@ -78,10 +95,12 @@ export interface MuscleVolume {
 }
 
 export interface VolumeReview {
-  /** Direct hard sets per display group; groups with sets in either week, most first. */
+  /** Direct hard sets per display group, imported ones included; groups with sets in either week, most first. */
   groups: MuscleVolume[];
   tonnage: number;
   previousTonnage: number;
+  /** Imported sessions this week counted in the groups and tonnage. */
+  importedSessions: number;
 }
 
 export interface CardioTotals {

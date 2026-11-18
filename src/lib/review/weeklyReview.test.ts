@@ -19,7 +19,7 @@ describe("buildWeeklyReview", () => {
   const review = buildWeeklyReview(fixture(), [], WEEK, AFTER, OPTS);
 
   it("counts sessions inside the week boundaries against the target and last week", () => {
-    expect(review.sessions).toEqual({ count: 3, target: WEEKLY_SESSION_TARGET, previous: 1 });
+    expect(review.sessions).toEqual({ count: 3, target: WEEKLY_SESSION_TARGET, previous: 1, imported: 0, previousImported: 0 });
     expect(review.isCurrentWeek).toBe(false);
     expect(review.isEmpty).toBe(false);
   });

@@ -19,6 +19,12 @@ function BestChip() {
   );
 }
 
+/** "3 sessions", or "3 sessions, 1 imported". */
+function sessionsText(lift: WeeklyReview["lifts"][number]): string {
+  const imported = lift.importedSessions > 0 ? `, ${lift.importedSessions} imported` : "";
+  return `${plural(lift.sessions, "session")}${imported}`;
+}
+
 /** Sessions against the target, effort, and one row per main lift. */
 export function TrainingSection({ review }: { review: WeeklyReview }) {
   const { sessions, effort } = review;
@@ -28,7 +34,7 @@ export function TrainingSection({ review }: { review: WeeklyReview }) {
       <ListRow
         href="/log"
         title="Sessions"
-        subtitle={`${sessions.previous} the week before`}
+        subtitle={`${sessions.imported > 0 ? `${sessions.imported} imported · ` : ""}${sessions.previous} the week before`}
         value={<span className="font-display text-2xl font-bold">{sessions.target === null ? sessions.count : `${sessions.count} of ${sessions.target}`}</span>}
         valueSub={<Delta value={sessions.count - sessions.previous} better="up" />}
       />
@@ -64,10 +70,10 @@ export function TrainingSection({ review }: { review: WeeklyReview }) {
           title={lift.label}
           subtitle={
             lift.workingWeight === null
-              ? plural(lift.sessions, "session")
+              ? sessionsText(lift)
               : `${lbs(lift.workingWeight)} lbs working${
                   lift.workingWeightChange ? ` (${lift.workingWeightChange > 0 ? "+" : "−"}${lbs(Math.abs(lift.workingWeightChange))})` : ""
-                } · ${plural(lift.sessions, "session")}`
+                } · ${sessionsText(lift)}`
           }
           value={lift.bestE1RM === null ? DASH : lbs(lift.bestE1RM)}
           valueSub={

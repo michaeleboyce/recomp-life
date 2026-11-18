@@ -7,6 +7,7 @@ import {
   bodyweightReview,
   cardioReview,
   effortReview,
+  importedInWeek,
   liftReviews,
   readinessReview,
   volumeReview,
@@ -45,8 +46,11 @@ export function buildWeeklyReview(
 
   const has = (rows: ReadonlyArray<{ date: Date | string }>) =>
     rows.some((r) => inWeek(toMs(r.date), start));
+  const imported = importedInWeek(source, start).length;
+  const previousImported = importedInWeek(source, previousWeek(start)).length;
   const isEmpty =
     workoutsInWeek(source, start).length === 0 &&
+    imported === 0 &&
     !has(source.bodyweight) &&
     !has(source.runs) &&
     !has(source.activities ?? []);
@@ -55,10 +59,13 @@ export function buildWeeklyReview(
     weekStart: start,
     weekEnd: end,
     isCurrentWeek: inWeek(now.getTime(), start),
+    // Imported sessions are training too (history: never for the rotation).
     sessions: {
-      count: workoutsInWeek(source, start).length,
+      count: workoutsInWeek(source, start).length + imported,
       target: options.sessionTarget ?? null,
-      previous: weeklyValue(sessionPoints, previousWeek(start)),
+      previous: weeklyValue(sessionPoints, previousWeek(start)) + previousImported,
+      imported,
+      previousImported,
     },
     lifts,
     prs,
