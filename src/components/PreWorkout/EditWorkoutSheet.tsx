@@ -6,9 +6,12 @@ import { minWeightFor, weightStepFor } from "@/components/ActiveWorkout/setPlan"
 import { EvidenceLine } from "@/components/Evidence/EvidenceLine";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { SwapPanel } from "@/components/Swap/SwapSheet";
+import { prescriptionText } from "@/components/Swap/swapSheetModel";
+import { useSwapContext } from "@/components/Swap/useSwapContext";
 import { applyPreferences } from "@/lib/exercisePreferences";
-import { DEFAULT_ACCESSORY_WEIGHTS, EXERCISES, getExercise } from "@/lib/exercises";
-import { swapCandidates } from "@/lib/swapCandidates";
+import { EXERCISES, getExercise } from "@/lib/exercises";
+import { prescribeSwap, replacementAddEdit, swapEdits, type SwapCandidate, type SwapSlot } from "@/lib/swap";
 import { cn } from "@/lib/utils";
 import type { PlannedSet, PrescribedEntry, Tier } from "@/types";
 import { EditEntryRow } from "./EditEntryRow";
@@ -16,11 +19,7 @@ import { ExercisePicker } from "./ExercisePicker";
 import { ImpactLine } from "./ImpactLine";
 import type { WorkoutSetup } from "./useWorkoutSetup";
 
-/** Sets and reps a newly added exercise starts with. */
-export const ADDED_EXERCISE_SETS = 3;
-export const ADDED_EXERCISE_REPS = 12;
-
-type Picking = { mode: "swap"; exerciseId: string; tier: Tier } | { mode: "add" } | null;
+type Picking = { mode: "swap"; exerciseId: string; shownId: string; tier: Tier; slot: SwapSlot } | { mode: "add" } | null;
 
 /**
  * The program's own sets for an entry, for "Plan · You" in the per-set editor: what was
@@ -69,15 +68,16 @@ export function EditWorkoutSheet({
   );
   const notDone = impact.filter((item) => item.status === "not-done");
 
+  // What the swap sheet ranks from, for the entry being swapped (W10).
+  const swapContext = useSwapContext({
+    location,
+    exclude: inPlan,
+    ...(picking?.mode === "swap" ? { slot: picking.slot } : {}),
+    now: setup.accessorySource.now,
+  });
+
   const choices = useMemo(() => {
-    if (!picking) return [];
-    if (picking.mode === "swap") {
-      return swapCandidates(picking.exerciseId, {
-        location,
-        preferences: exercisePreferences,
-        exclude: inPlan,
-      }).map((exercise) => exercise.id);
-    }
+    if (picking?.mode !== "add") return [];
     const ids = Object.values(EXERCISES)
       .filter((exercise) => !inPlan.includes(exercise.id))
       .filter((exercise) => location === "gym" || !exercise.requiresGym)
@@ -91,24 +91,18 @@ export function EditWorkoutSheet({
     onOpenChange(next);
   };
 
-  const pick = (exerciseId: string) => {
-    if (picking?.mode === "swap") {
-      setup.swapExercise(picking.exerciseId, picking.tier, exerciseId);
-    } else if (picking?.mode === "add") {
-      setup.addExercise(exerciseId, {
-        sets: ADDED_EXERCISE_SETS,
-        reps: ADDED_EXERCISE_REPS,
-        weight: DEFAULT_ACCESSORY_WEIGHTS[exerciseId] ?? 0,
-        isAMRAP: false,
-      });
-    }
+  // An added exercise comes at its own prescription, as an accessory would (the swap logic's).
+  const addPrescription = (exerciseId: string) =>
+    swapContext ? prescribeSwap(exerciseId, exerciseId, { ...swapContext, slot: undefined }) : null;
+  const add = (exerciseId: string) => {
+    const prescription = addPrescription(exerciseId);
+    if (prescription) setup.applyEdits([replacementAddEdit({ exerciseId, prescription })]);
     setPicking(null);
   };
-
-  const pickerTitle =
-    picking?.mode === "swap"
-      ? `Swap ${getExercise(picking.exerciseId).name} for`
-      : "Add an exercise";
+  const swap = (picks: SwapCandidate[]) => {
+    if (picking?.mode !== "swap") return;
+    setup.applyEdits(swapEdits(picking.exerciseId, picking.tier, picks));
+  };
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -124,11 +118,25 @@ export function EditWorkoutSheet({
           Changes apply to this workout only.
         </SheetDescription>
 
-        {picking ? (
+        {picking?.mode === "swap" ? (
+          <SwapPanel
+            exerciseId={picking.exerciseId}
+            shownId={picking.shownId}
+            tier={picking.tier}
+            context={swapContext}
+            onConfirm={swap}
+            onBack={() => setPicking(null)}
+            onDone={() => setPicking(null)}
+          />
+        ) : picking?.mode === "add" ? (
           <ExercisePicker
-            title={pickerTitle}
+            title="Add an exercise"
             exerciseIds={choices}
-            onPick={pick}
+            prescriptionOf={(id) => {
+              const p = addPrescription(id);
+              return p ? prescriptionText(id, p, "accessory") : "";
+            }}
+            onPick={add}
             onBack={() => setPicking(null)}
           />
         ) : (
@@ -145,7 +153,22 @@ export function EditWorkoutSheet({
                       item.exerciseId === entry.exerciseId &&
                       item.tier === entry.tier
                   )}
-                  onSwap={() => setPicking({ mode: "swap", exerciseId: entry.exerciseId, tier: entry.tier })}
+                  onSwap={() =>
+                    setPicking({
+                      mode: "swap",
+                      exerciseId: entry.exerciseId,
+                      shownId: entry.substituteExerciseId || entry.exerciseId,
+                      tier: entry.tier,
+                      slot: {
+                        tier: entry.tier,
+                        sets: entry.targetSets,
+                        reps: entry.targetReps,
+                        isAMRAP: entry.isAMRAP,
+                        weight: entry.weight,
+                        ...(entry.originalWeight != null ? { originalWeight: entry.originalWeight } : {}),
+                      },
+                    })
+                  }
                   onRemove={() => setup.removeExercise(entry.exerciseId, entry.tier)}
                   onScheme={(sets, reps) => setup.setScheme(entry.exerciseId, entry.tier, sets, reps)}
                   onWeight={(weight) => setup.setWeight(entry.exerciseId, entry.tier, weight)}

@@ -22,7 +22,8 @@ import { recoveryFromLastTrained, type MuscleValues } from "@/lib/muscleLoad";
 import type { StrengthSet } from "@/lib/strength";
 import type { AccessoryMode, MuscleId, PlanEdit, TrainingPhase, UserSettings, WorkoutLocation, WorkoutSession } from "@/types";
 import { ACCESSORY_STUCK_SESSIONS } from "@/lib/accessories";
-import { strengthSetOf } from "./strength";
+import { standInText } from "@/lib/swap/progressionEffect";
+import { standInsOf, strengthSetOf, type StandIn } from "./strength";
 import { estimateSetSeconds } from "./duration";
 import type { WorkoutExerciseState, WorkoutPlan } from "./types";
 
@@ -255,7 +256,7 @@ export function accessoryRowsOf(
 ): AccessoryRow[] {
   const candidates = accessories ? [...accessories.choice.picks, ...accessories.choice.others] : [];
   return plan
-    .filter((entry) => !entry.isWarmUp && entry.tier === "accessory")
+    .filter((entry) => !entry.isWarmUp && entry.tier === "accessory" && !entry.replaces)
     .map((entry) => {
       const planned = accessories?.planned.find((p) => p.exerciseId === entry.exerciseId);
       return {
@@ -273,17 +274,19 @@ export function accessoryRowsOf(
  * read with the session's sets counted (`accessoryPrescription`), so double
  * progression's verdict and next weight are the ones the next plan will give. `sets`
  * is the evidence before the session (`strengthSetsOf` / `strengthEvidenceOf`); the
- * session's own sets are added here. Null when the session has no working set of it.
+ * session's own sets are added here. Null when the session has no working set of it, or
+ * when it stood in for a program lift swapped out (`replaces`): it is logged only.
  *
  * @evidence accessory-progression
  */
 export function accessoryNextTime(
   exerciseId: string,
-  session: Pick<WorkoutSession, "id" | "sets">,
+  session: Pick<WorkoutSession, "id" | "sets"> & Partial<Pick<WorkoutSession, "planEdits">>,
   sets: readonly StrengthSet[],
   settings: Pick<AccessorySettings, "equipment" | "accessoryWeights">,
   now: Date
 ): AccessoryPrescription | null {
+  if (standInsOf(session.planEdits).has(exerciseId)) return null;
   const own = (session.sets ?? [])
     .filter((set) => set.tier === "accessory" && set.status !== "skipped_pain")
     .map((set) => strengthSetOf(set, session.id))
@@ -322,20 +325,25 @@ export function nextTimeText(p: AccessoryPrescription): string {
 /** One accessory of a finished workout and what it does next time (A10). */
 export interface AccessoryOutcome {
   exerciseId: string;
-  next: AccessoryPrescription;
-  /** "All sets at 15: up to 30 next time". */
+  /** What double progression does next time; null for a stand-in (`standsInFor`). */
+  next: AccessoryPrescription | null;
+  /** "All sets at 15: up to 30 next time", or for a stand-in what it stood in for (`standInText`). */
   text: string;
+  /** It stood in for a program lift swapped out: logged only, not judged as an accessory. */
+  standsInFor?: StandIn;
 }
 
 /**
  * What each accessory of a finished workout does next time, as of that workout: its
  * sets read with everything logged before it (later sessions and weights set by hand
- * after it are left out), in the order they were done.
+ * after it are left out), in the order they were done. An exercise that stood in for a
+ * program lift swapped out is not judged as an accessory: its line says what it stood in
+ * for and that the lift is held (`standInText`).
  *
  * @evidence accessory-progression
  */
 export function accessoryOutcomesOf(
-  workout: Pick<WorkoutSession, "id" | "sets" | "completedAt" | "startedAt">,
+  workout: Pick<WorkoutSession, "id" | "sets" | "completedAt" | "startedAt"> & Partial<Pick<WorkoutSession, "planEdits">>,
   sets: readonly StrengthSet[],
   settings: Pick<AccessorySettings, "equipment" | "accessoryWeights">
 ): AccessoryOutcome[] {
@@ -349,7 +357,10 @@ export function accessoryOutcomesOf(
     const id = set.substituteExerciseId || set.exerciseId;
     if (set.tier === "accessory" && !ids.includes(id)) ids.push(id);
   }
-  return ids.flatMap((exerciseId) => {
+  const standIns = standInsOf(workout.planEdits);
+  return ids.flatMap((exerciseId): AccessoryOutcome[] => {
+    const standsInFor = standIns.get(exerciseId);
+    if (standsInFor) return [{ exerciseId, next: null, text: standInText(exerciseId, standsInFor), standsInFor }];
     const next = accessoryNextTime(exerciseId, workout, before, { equipment: settings.equipment, accessoryWeights: weights }, new Date(end));
     return next ? [{ exerciseId, next, text: nextTimeText(next) }] : [];
   });

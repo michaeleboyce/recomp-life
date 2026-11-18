@@ -97,8 +97,17 @@ export function recommendSwapSets(
 /** A replacement as the edits need it: the exercise and what it is done at. */
 export type SwapReplacement = Pick<SwapCandidate, "exerciseId" | "prescription">;
 
-/** The `add` edit that appends a replacement at its prescription. */
-export function replacementAddEdit(replacement: SwapReplacement): Extract<PlanEdit, { kind: "add" }> {
+const PROGRAM_TIERS: readonly Tier[] = ["T1", "T2", "T3"];
+
+/**
+ * The `add` edit that appends a replacement at its prescription. With `replaces` (a
+ * program lift it stands in for), the entry is marked so nothing judges it as an
+ * accessory: it is logged only (`PlanEdit` add's `replaces`).
+ */
+export function replacementAddEdit(
+  replacement: SwapReplacement,
+  replaces?: { exerciseId: string; tier: Tier }
+): Extract<PlanEdit, { kind: "add" }> {
   const { exerciseId, prescription } = replacement;
   return {
     kind: "add",
@@ -107,6 +116,7 @@ export function replacementAddEdit(replacement: SwapReplacement): Extract<PlanEd
     reps: prescription.reps,
     weight: prescription.weight,
     isAMRAP: prescription.isAMRAP,
+    ...(replaces && PROGRAM_TIERS.includes(replaces.tier) ? { replaces: { ...replaces } } : {}),
   };
 }
 
@@ -116,9 +126,10 @@ export function replacementAddEdit(replacement: SwapReplacement): Extract<PlanEd
  * tier), then a `weight` edit when its prescribed weight is not what the swap starts it
  * at (`DEFAULT_ACCESSORY_WEIGHTS`, else 0), and for an accessory entry a `scheme` edit
  * to its own sets and reps (a T1, T2 or T3 keeps the entry's scheme, which the swap
- * keeps). Every further replacement is an `add` at its prescription. No stored format
- * changes: resume and the rebuild read these as any other edits. Empty for no
- * replacement.
+ * keeps). Every further replacement is an `add` at its prescription, marked as standing
+ * in for the original when that is a T1, T2 or T3 (`replaces`), so it is logged only and
+ * never judged as an accessory. Resume and the rebuild read these as any other edits.
+ * Empty for no replacement.
  */
 export function swapEdits(original: string, tier: Tier, replacements: readonly SwapReplacement[]): PlanEdit[] {
   if (replacements.length === 0) return [];
@@ -136,6 +147,6 @@ export function swapEdits(original: string, tier: Tier, replacements: readonly S
   if (first.prescription.weight !== (DEFAULT_ACCESSORY_WEIGHTS[first.exerciseId] ?? 0)) {
     edits.push({ kind: "weight", exerciseId: first.exerciseId, tier, weight: first.prescription.weight });
   }
-  for (const replacement of rest) edits.push(replacementAddEdit(replacement));
+  for (const replacement of rest) edits.push(replacementAddEdit(replacement, { exerciseId: original, tier }));
   return edits;
 }

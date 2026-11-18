@@ -67,7 +67,13 @@ export function useWorkoutAccessories(
   /** What an accessory does next time, after this session's sets of it; null before any. */
   const nextTime = (exerciseId: string, sets: readonly SetLog[]) => {
     if (!session || !settings) return null;
-    const next = accessoryNextTime(exerciseId, { id: session.id, sets: [...sets] }, strengthSets, settings, new Date());
+    const next = accessoryNextTime(
+      exerciseId,
+      { id: session.id, sets: [...sets], planEdits: session.planEdits },
+      strengthSets,
+      settings,
+      new Date()
+    );
     return next ? nextTimeText(next) : null;
   };
 

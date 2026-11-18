@@ -51,6 +51,18 @@ const PROGRAM_TIERS: readonly Tier[] = ["T1", "T2", "T3"];
 const nameOf = (id: string) => EXERCISES[id]?.name ?? id;
 
 /**
+ * The line a finished workout shows for an exercise that stood in for a program lift
+ * (an `add` edit with `replaces`), instead of an accessory's next-time verdict: what it
+ * stood in for and what that did, in `swapProgressionEffect`'s words.
+ *
+ * @evidence swap-recommendation
+ */
+export function standInText(replacementId: string, replaces: { exerciseId: string; tier: Tier }): string {
+  const effect = swapProgressionEffect(replaces.tier, replaces.exerciseId, replacementId);
+  return `Stood in for ${nameOf(replaces.exerciseId)}. ${effect.text}`;
+}
+
+/**
  * What the program does with `originalId` at `tier` when it is swapped for
  * `replacementId`, as the progression code does it today (see the comment at the top of
  * this file). Pure: reads the catalogue for names only.

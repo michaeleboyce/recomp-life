@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Check, Circle, Pencil } from "lucide-react";
+import { ArrowRight, Check, Circle, Pencil, Repeat2, Trash2 } from "lucide-react";
 import { getExercise } from "@/lib/exercises";
+import { isDroppedEntry } from "@/lib/swap";
 import type { LogChange } from "@/lib/rebuild";
 import { entrySetsFor } from "@/lib/workout/setSelectors";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,10 @@ interface WorkoutOverviewSheetProps {
   correctionError?: string | null;
   /** Called when the edit sheet opens, so an old error is not shown for a new set. */
   onCorrectionStart?: () => void;
+  /** Opens the swap sheet for an exercise not yet finished, by its index (W11). */
+  onSwapExercise?: (index: number) => void;
+  /** Removes an exercise with no set logged, by its index (W11). */
+  onRemoveExercise?: (index: number) => void;
 }
 
 function setSummary(set: SetLog, perHand: boolean): string {
@@ -73,16 +78,19 @@ export function WorkoutOverviewSheet({
   onCorrectSet,
   correctionError,
   onCorrectionStart,
+  onSwapExercise,
+  onRemoveExercise,
 }: WorkoutOverviewSheetProps) {
   // The set in the edit sheet. Kept after closing so the sheet can animate out.
   const [editing, setEditing] = useState<SetLog | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const canCorrect = !!workoutId && !!onCorrectSet;
 
-  // Warm-ups are not listed, but the original indices are kept for jumping.
+  // Warm-ups are not listed, nor exercises removed or swapped out before a set; the
+  // original indices are kept for jumping.
   const mainExercises = exercises
     .map((e, i) => ({ exercise: e, originalIndex: i }))
-    .filter((item) => !item.exercise.isWarmUp);
+    .filter((item) => !item.exercise.isWarmUp && !isDroppedEntry(item.exercise));
 
   return (
     <>
@@ -153,22 +161,49 @@ export function WorkoutOverviewSheet({
 
               return (
                 <li key={`${exercise.exerciseId}-${exercise.tier}-${idx}`}>
-                  {onSelectExercise ? (
-                    <button
-                      type="button"
-                      aria-current={isCurrent ? "step" : undefined}
-                      disabled={isCompleted}
-                      onClick={() => {
-                        onSelectExercise(originalIndex);
-                        onOpenChange(false);
-                      }}
-                      className={rowClass}
-                    >
-                      {row}
-                    </button>
-                  ) : (
-                    <div className={rowClass}>{row}</div>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <div className="min-w-0 flex-1">
+                      {onSelectExercise ? (
+                        <button
+                          type="button"
+                          aria-current={isCurrent ? "step" : undefined}
+                          disabled={isCompleted}
+                          onClick={() => {
+                            onSelectExercise(originalIndex);
+                            onOpenChange(false);
+                          }}
+                          className={rowClass}
+                        >
+                          {row}
+                        </button>
+                      ) : (
+                        <div className={rowClass}>{row}</div>
+                      )}
+                    </div>
+                    {!isCompleted && onSwapExercise && (
+                      <button
+                        type="button"
+                        aria-label={`Swap ${exerciseInfo.name}`}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onSwapExercise(originalIndex);
+                        }}
+                        className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      >
+                        <Repeat2 className="size-4" aria-hidden="true" />
+                      </button>
+                    )}
+                    {exercise.completedSets === 0 && !isCompleted && onRemoveExercise && (
+                      <button
+                        type="button"
+                        aria-label={`Remove ${exerciseInfo.name}`}
+                        onClick={() => onRemoveExercise(originalIndex)}
+                        className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
 
                   {logged.length > 0 && (
                     <ul
