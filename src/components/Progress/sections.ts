@@ -2,6 +2,7 @@
 import { displayLiftName } from "@/components/Today/todayModel";
 import { DAY_MS } from "@/lib/dates";
 import { EXERCISES } from "@/lib/exercises";
+import type { ImportedLiftIndex } from "@/lib/import/history";
 import { calculateRecoveryStatus, getMostRecent, lastTrainedDates } from "@/lib/recovery";
 import type { StrengthSet } from "@/lib/strength";
 import { reentryKey, resolveReentry } from "@/lib/workout/reentry";
@@ -114,21 +115,46 @@ function daysAgoText(days: number): string {
 }
 
 /**
+ * When each exercise was last trained in a session imported from another app: the time
+ * of its first set in the latest imported session with a set of it that is not a
+ * warm-up, from the imported lift history (`importedLiftIndex`).
+ */
+export function importedLastTrained(index: ImportedLiftIndex): Partial<Record<string, Date>> {
+  const out: Partial<Record<string, Date>> = {};
+  for (const [exerciseId, history] of index) {
+    for (let i = history.length - 1; i >= 0; i -= 1) {
+      if (history[i].sets > 0) {
+        out[exerciseId] = new Date(history[i].t);
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/**
  * One row per main lift with a lift state, using the same status as the Dashboard's
- * recovery bars. A lift was last trained at the later of its barbell sessions and the
- * sessions of the home exercises done for it (`lastTrainedDates`): home training is
- * training. Empty when none of them has been trained yet.
+ * recovery bars. A lift was last trained at the latest of its barbell sessions, the
+ * sessions of the home exercises done for it (`lastTrainedDates`: home training is
+ * training) and the imported sessions of the lift or of those home exercises
+ * (`importedLast`, from `importedLastTrained`; counted as heavy sessions). Empty when
+ * none of them has been trained yet.
  */
 export function recoveryRows(
   liftStates: LiftState[],
   now: Date,
   phase: TrainingPhase,
-  variantStates: readonly VariantState[] = []
+  variantStates: readonly VariantState[] = [],
+  importedLast: Partial<Record<string, Date>> = {}
 ): RecoveryRow[] {
   const rows = MAIN_LIFTS.flatMap((id): RecoveryRow[] => {
     const state = liftStates.find((s) => s.exerciseId === id);
     if (!state) return [];
-    const { t1, t2 } = lastTrainedDates(state, variantStates);
+    const dates = lastTrainedDates(state, variantStates);
+    const homeIds = variantStates.filter((v) => v.liftId === id).map((v) => v.exerciseId);
+    let t1 = dates.t1;
+    for (const exerciseId of [id, ...homeIds]) t1 = getMostRecent(t1, importedLast[exerciseId] ?? null);
+    const t2 = dates.t2;
     const status = calculateRecoveryStatus(t1, t2, now, phase);
     const last = getMostRecent(t1, t2);
     const detail = last

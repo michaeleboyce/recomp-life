@@ -12,7 +12,7 @@ import { SkeletonCard } from "@/components/ui/skeleton";
 import { LiftList } from "./LiftList";
 import { StrengthTotal } from "./StrengthTotal";
 import { GymDebtSection, RecoverySection } from "./StrengthSections";
-import { DEFAULT_MAX_DUMBBELL, gymDebtItems, recoveryRows } from "./sections";
+import { DEFAULT_MAX_DUMBBELL, gymDebtItems, importedLastTrained, recoveryRows } from "./sections";
 import { MAIN_LIFTS } from "./lifts";
 import { strengthOverview, trendTotal } from "./strength";
 
@@ -41,7 +41,9 @@ export function StrengthTab() {
         source.liftStates,
         new Date(now),
         source.settings?.trainingPhase ?? { mode: "maintaining" },
-        variantStates
+        variantStates,
+        // An imported session is training too: "last trained" is the latest of either kind.
+        importedLastTrained(imported)
       ),
       gymDebt: gymDebtItems({
         liftStates: source.liftStates,
