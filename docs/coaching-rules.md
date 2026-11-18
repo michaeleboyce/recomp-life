@@ -4,7 +4,7 @@
 
 Every coaching rule in ReComp Life: what the app does, why, how strong the research is, where the rule lives in the code and where it is shown. The same content appears in the app under Tools > How the App Coaches.
 
-45 active rules, 3 planned rules, 42 sources. Last reviewed against the research: November 2026.
+45 active rules, 4 planned rules, 42 sources. Last reviewed against the research: November 2026.
 
 To add or change research, follow [research/ADDING_RESEARCH.md](research/ADDING_RESEARCH.md).
 
@@ -54,6 +54,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 | `weekly-volume` | Training volume | Active | Moderate evidence | Pelland 2026, Roth 2022 |
 | `accessories-in-cut` | Training volume | Active | Limited evidence | Roth 2022, Murphy & Koehler 2022 |
 | `accessory-selection` | Training volume | Active | Coaching heuristic | none |
+| `swap-recommendation` | Training volume | Planned | Coaching heuristic | none |
 | `volume-ratio` | Training volume | Planned | Coaching heuristic | none |
 | `rate-of-loss` | Fat loss | Active | Moderate evidence | Helms 2014 |
 | `fat-loss-stall` | Fat loss | Active | Limited evidence | Peos 2021 |
@@ -727,6 +728,26 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 **Sources.** None: this is a coaching convention with no direct research.
 
+### How are swaps recommended?
+
+- **Rule id:** `swap-recommendation`
+- **Status:** Planned (in the code, not connected to any screen)
+- **Evidence:** Coaching heuristic
+- **Implemented in:** `src/lib/swap/recommend.ts` (`recommendSwaps`), `src/lib/swap/combos.ts` (`recommendSwapSets`), `src/lib/swapCandidates.ts` (`swapCandidates`)
+- **Reviewed:** November 2026
+
+**In one line.** Ranked by muscles covered, movement, your choices and history, and pain
+
+**What the app does.** Rule in code: when an exercise is swapped, every exercise that shares one of its main muscles is offered, best first, with its score broken into parts. Up to 40 points for covering the original's main muscles (in proportion) and up to 10 for its helper muscles; 15 for a version of the same movement (the dumbbell or barbell form, or a home exercise for the lift), else 5 when it fits the tier (for a T1 or T2, a compound lift working at least 3 muscles); 25 for an exercise you marked preferred; up to 15 for one you have done often and lately, app and imported history alike (each session counts half as much for every 14 days of age; half the points at 2 such sessions); 10 when its weight comes from your own sets or the strength model rather than a default. 8 come off when it adds a main muscle that is still recovering, and 30 when it loads a joint with a pain entry of severity 2 or more. Blocked exercises are never offered, and at home nothing that needs a gym. Each comes with the weight, sets and reps it would be done at, from the existing weight rules (its own recent sets, the strength model, an accessory's progression, the starting ratio), and a program lift keeps its sets and reps. When no single exercise covers every main muscle, up to 3 pairs that together do are offered, 10 points off a pair for each main muscle both cover. The Edit workout sheet already lists its swaps in this order; the parts, reasons, weights and pairs are not shown yet.
+
+**Why.** A replacement should train what the original trained, ideally in the same movement, so the session still does its job. Your own choices, what you already do and a weight you can trust come next; recovering muscles and painful joints are reasons to look elsewhere.
+
+**Limits.** The points are judgment, not research: no study ranks these reasons against each other, and muscles covered is read from the app's own list of main and helper muscles per exercise. The parts are shown with every suggestion so they can be checked, and the choice is always yours.
+
+**Before this is switched on.** Switch to active when the Edit workout sheet and the active workout show the recommended swaps with their reasons and an EvidenceLine (swaps design W10 to W12).
+
+**Sources.** None: this is a coaching convention with no direct research.
+
 ### How much accessory work is too much?
 
 - **Rule id:** `volume-ratio`
@@ -1140,6 +1161,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 
 Changes made to the app because of research, newest first.
 
+- **18 November 2026** — `swap-recommendation` (How are swaps recommended?): New rule: swaps are ranked by a score in parts (muscles covered, same movement or tier fit, preferred, done before, a known weight, recovery and pain), each with the weight, sets and reps it would be done at, and pairs are offered when no single exercise covers the original. The Edit workout sheet's swap list now follows this order (same movement first, preferred no longer always first). Sources: .
 - **17 November 2026** — `accessory-selection` (How are a workout's accessories chosen?): Switched on: every workout now comes with accessories chosen by this rule (the setting can be changed to "ask me" or "none"). Today and the Ready screen list them under the main lifts with a reason each; the why sheet shows every part of the score; the accessory sheet changes, swaps, adds or pins them. Sources: .
 - **17 November 2026** — `accessory-progression` (When would accessory weights go up?): Switched on: each accessory is planned at the weight double progression gives (or one set by hand, or a first weight from your history), the workout shows its rep range, and after its last set, the summary and the Log say what it does next time and why. Sources: .
 - **17 November 2026** — `cap-progression` (What happens at your heaviest dumbbell?): A workout keeps the home weight it started with: when the heaviest dumbbell or the dumbbell step is changed after it started, resuming it shows the weight it recorded with a note, the weight can still be changed for the set, and finishing it judges the sets against that weight instead of the new limit. Sources: .
