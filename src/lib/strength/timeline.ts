@@ -313,6 +313,8 @@ export type TrendReason =
 
 export interface SmoothedLine {
   halfLifeDays: number;
+  /** The estimate as of each instant a dot arrives, a target lapses, and today. */
+  knots: TrendPoint[];
   /** On an even grid of days ending at `now`, oldest first, from the first dot shown. */
   points: TrendPoint[];
   /** The line at `now`. */
@@ -423,29 +425,51 @@ export function gridTimes(from: number, now: number, stepDays = 1): number[] {
 const EMPTY = 1e-12;
 
 /**
- * The smooth line and its band (M2). With only the lift's own sessions and one session,
- * the line equals that session; with the planner's evidence alone (one session of the
- * lift and related sessions after it) it equals `pooledLiftEstimate`. At `now`, with
- * every source on and the standard half-life, `reason` says why it differs from the
- * anchor, if it does.
+ * The smooth line and its band (M2). The line is the app's estimate as of each session:
+ * at every instant a dot arrives (and today) it is the recency-weighted mean of every
+ * dot up to then (`knots`); between sessions it runs straight from one to the next, and
+ * `points` reads it on an even grid of days. With only the lift's own sessions and one
+ * session, the line equals that session; with the planner's evidence alone (one session
+ * of the lift and related sessions after it) it equals `pooledLiftEstimate`. At `now`,
+ * with every source on and the standard half-life, `reason` says why it differs from
+ * the anchor, if it does.
  *
  * @evidence strength-pooling
  */
 export function smoothedEstimate(timeline: StrengthTimeline, options: SmoothOptions): SmoothedLine {
   const { halfLifeDays, stepDays = 1 } = options;
   const points = enabledPoints(timeline, options.sources).filter((p) => p.t <= timeline.now);
-  if (points.length === 0) return { halfLifeDays, points: [], today: null, reason: null };
+  if (points.length === 0) return { halfLifeDays, knots: [], points: [], today: null, reason: null };
 
-  const line: TrendPoint[] = [];
-  walk(timeline, points, halfLifeDays, gridTimes(points[0].t, timeline.now, stepDays), (t, acc) => {
+  const instants = new Set<number>(points.map((p) => p.t));
+  for (const p of points) if (p.until !== undefined && p.until <= timeline.now) instants.add(p.until);
+  instants.add(timeline.now);
+  const knots: TrendPoint[] = [];
+  walk(timeline, points, halfLifeDays, [...instants].sort((a, b) => a - b), (t, acc) => {
     if (acc.n <= 0 || !(acc.w > 0)) return;
     const v = acc.wv / acc.w;
     const sd = v * relativeSdOf(acc);
-    line.push({ t, v, low: v - sd, high: v + sd });
+    knots.push({ t, v, low: v - sd, high: v + sd });
   });
-  const last = line[line.length - 1];
-  const today = last && last.t === timeline.now ? last : null;
-  return { halfLifeDays, points: line, today, reason: reasonFor(timeline, options, today) };
+
+  const line: TrendPoint[] = [];
+  let k = 0;
+  for (const t of gridTimes(knots[0]?.t ?? timeline.now, timeline.now, stepDays)) {
+    while (k + 1 < knots.length && knots[k + 1].t <= t) k++;
+    const a = knots[k];
+    const b = knots[k + 1];
+    if (!a || t < a.t) continue;
+    if (!b || a.t === t) {
+      line.push(a.t === t ? a : { ...a, t });
+      continue;
+    }
+    const f = (t - a.t) / (b.t - a.t);
+    const mix = (x: number, y: number) => x + (y - x) * f;
+    line.push({ t, v: mix(a.v, b.v), low: mix(a.low, b.low), high: mix(a.high, b.high) });
+  }
+  const lastKnot = knots[knots.length - 1];
+  const today = lastKnot && lastKnot.t === timeline.now ? lastKnot : null;
+  return { halfLifeDays, knots, points: line, today, reason: reasonFor(timeline, options, today) };
 }
 
 function reasonFor(timeline: StrengthTimeline, options: SmoothOptions, today: TrendPoint | null): TrendReason | null {
