@@ -33,6 +33,7 @@ import {
   smoothingText,
   sourceDetail,
   sourceLabel,
+  spanText,
   trendSummary,
 } from "./trendText";
 
@@ -247,7 +248,7 @@ export function StrengthTrendPanel({
       </div>
       {zoomed && (
         <p className="-mt-1.5 font-mono text-[12px] text-muted-foreground" data-testid="zoom-span">
-          {formatShortDate(view.from)} – {formatShortDate(view.to)}
+          {spanText(view.from, view.to)}
         </p>
       )}
 
@@ -270,6 +271,12 @@ export function StrengthTrendPanel({
       <p className="-mt-1.5 text-[11px] text-muted-foreground">
         Strip: share of the line each week by source. Drag or pinch the chart, or move the ends below, to zoom.
       </p>
+      {reason && (
+        <p data-testid="trend-reason" className="text-[13px] text-foreground">
+          {reason}
+        </p>
+      )}
+      {note && <p className="text-xs text-muted-foreground">{note}</p>}
       <p className="sr-only" aria-live="polite" data-testid="trend-summary">
         {summary}
       </p>
@@ -383,12 +390,6 @@ export function StrengthTrendPanel({
         </button>
       </div>
 
-      {reason && (
-        <p data-testid="trend-reason" className="text-xs text-muted-foreground">
-          {reason}
-        </p>
-      )}
-      {note && <p className="text-xs text-muted-foreground">{note}</p>}
 
       {showTable && (
         <div className="max-h-80 overflow-auto rounded-lg bg-card">

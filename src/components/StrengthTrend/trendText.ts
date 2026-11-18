@@ -171,8 +171,9 @@ export function pointDetail(
     if (point.provisional) factors.push(`× ${TARGET_EVIDENCE.weight} for a weight not lifted yet`);
     const days = Math.max(0, Math.round((at - point.t) / DAY_MS));
     const age = `${w.age < 0.01 ? w.age.toExponential(1) : w.age.toFixed(2)} for its age (${plural(days, "day")}, halving every ${plural(halfLifeDays, "day")})`;
-    const base = factors.length > 0 ? `${factors.join(" ")} × ` : "";
-    lines.push(`Counts today: ${base}${age} = ${w.weight < 0.01 ? w.weight.toExponential(1) : w.weight.toFixed(2)}, ${percent(share)} of the line.`);
+    const total = w.weight < 0.01 ? w.weight.toExponential(1) : w.weight.toFixed(2);
+    const sum = factors.length > 0 ? `${factors.join(" ")} × ${age} = ${total}` : age;
+    lines.push(`Counts today: ${sum}, ${percent(share)} of the line.`);
   }
   return { title: `${name} · ${formatShortDate(point.t)}${kind}`, lines };
 }
@@ -201,4 +202,12 @@ export function trendSummary(args: {
     ? ` ${timeline.unit === "lbs" ? "The plan's estimate today" : "The index today"}: ${formatTrendValue(timeline.anchor.value, timeline.unit)}${unit}.`
     : "";
   return `${head}: the line goes from ${formatTrendValue(first, timeline.unit)} to ${formatTrendValue(last, timeline.unit)}${unit}. ${plural(dots.length, "session")} shown (${bySource}).${anchor}`;
+}
+
+/** "Mar 4 – Jun 8", with years when the span crosses one: "Nov 11, 2025 – Jun 8, 2026". */
+export function spanText(from: number, to: number): string {
+  const a = new Date(from);
+  const b = new Date(to);
+  if (a.getFullYear() === b.getFullYear()) return `${formatShortDate(from)} – ${formatShortDate(to)}`;
+  return `${formatShortDate(from)}, ${a.getFullYear()} – ${formatShortDate(to)}, ${b.getFullYear()}`;
 }

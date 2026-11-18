@@ -113,8 +113,19 @@ export function StrengthTrendChart({
   const [ref, width] = useWidth();
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const [gesture, setGesture] = useState<Gesture>({ kind: "none" });
-  const [preview, setPreview] = useState<Span | null>(null);
+  // Refs hold the live gesture (events can arrive before a re-render); state redraws.
+  const [gesture, setGestureState] = useState<Gesture>({ kind: "none" });
+  const [preview, setPreviewState] = useState<Span | null>(null);
+  const gestureRef = useRef<Gesture>({ kind: "none" });
+  const previewRef = useRef<Span | null>(null);
+  const setGesture = (g: Gesture) => {
+    gestureRef.current = g;
+    setGestureState(g);
+  };
+  const setPreview = (span: Span | null) => {
+    previewRef.current = span;
+    setPreviewState(span);
+  };
   const view = preview ?? window;
 
   const dots = useMemo(() => points.filter((p) => p.t >= view.from && p.t <= view.to), [points, view]);
@@ -126,7 +137,7 @@ export function StrengthTrendChart({
     // The band may run off the plot; the line and the dots set the scale.
     for (const p of visibleLine) values.push(p.v);
     if (anchorShown) values.push(anchor!.v);
-    return niceScale(values, [5, 4, 3]);
+    return niceScale(values, [6, 5, 4, 3]);
   }, [dots, visibleLine, anchorShown, anchor]);
 
   const yAxisW = Math.max(Y_AXIS_MIN, Math.ceil(Math.max(...scale.ticks.map((t) => formatNumber(t).length)) * TICK_CHAR_W) + 8);
@@ -160,13 +171,17 @@ export function StrengthTrendChart({
   function onPointerDown(e: PointerEvent<SVGSVGElement>) {
     const p = localXY(e);
     pointers.current.set(e.pointerId, p);
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    try {
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    } catch {
+      // A pointer the browser no longer tracks; the gesture still works without capture.
+    }
     if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()];
       setGesture({
         kind: "pinch",
         d0: Math.max(10, Math.abs(a.x - b.x)),
-        span0: view,
+        span0: previewRef.current ?? window,
         center: x.invert((a.x + b.x) / 2),
       });
     } else if (pointers.current.size === 1) {
@@ -176,6 +191,7 @@ export function StrengthTrendChart({
 
   function onPointerMove(e: PointerEvent<SVGSVGElement>) {
     if (!pointers.current.has(e.pointerId)) return;
+    const gesture = gestureRef.current;
     const p = localXY(e);
     pointers.current.set(e.pointerId, p);
     if (gesture.kind === "pinch" && pointers.current.size >= 2) {
@@ -191,6 +207,8 @@ export function StrengthTrendChart({
 
   function finish(e: PointerEvent<SVGSVGElement>, cancelled: boolean) {
     pointers.current.delete(e.pointerId);
+    const gesture = gestureRef.current;
+    const preview = previewRef.current;
     if (gesture.kind === "pinch") {
       if (pointers.current.size === 0) {
         if (preview && !cancelled) onZoom(preview);
