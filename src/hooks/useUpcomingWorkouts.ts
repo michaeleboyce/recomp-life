@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
-import { projectUpcomingWorkouts, type UpcomingWorkout } from "@/lib/workout/upcoming";
+import {
+  describeUpcomingWorkout,
+  projectUpcomingWorkouts,
+  type ProjectUpcomingInput,
+  type UpcomingWorkout,
+  type UpcomingWorkoutDetail,
+} from "@/lib/workout/upcoming";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import type { WorkoutLocation } from "@/types";
 import { useSettings } from "./useProfile";
@@ -9,14 +15,11 @@ import { useVariantStates } from "./useVariantStates";
 import { useCompletedWorkouts, useLiftStates } from "./useWorkouts";
 
 /**
- * The next `count` workouts at `location`: the first exactly as `useNextWorkout`
- * describes it (home exercises at their own weights, re-entry applied), the rest
- * projected assuming every set is completed. `undefined` while loading.
+ * What the projection reads, from the live rows: the first workout exactly as
+ * `useNextWorkout` describes it (home exercises at their own weights, re-entry applied),
+ * the accessories for the day the screen was opened. `undefined` while loading.
  */
-export function useUpcomingWorkouts(
-  location: WorkoutLocation,
-  count = 5
-): UpcomingWorkout[] | undefined {
+function useProjectionInput(location: WorkoutLocation): Omit<ProjectUpcomingInput, "count"> | undefined {
   const completedWorkouts = useCompletedWorkouts();
   const liftStates = useLiftStates();
   const variantStates = useVariantStates();
@@ -37,14 +40,13 @@ export function useUpcomingWorkouts(
     }
     // No profile (not yet seeded, or just cleared): plan with the seed defaults.
     const settings = loadedSettings ?? DEFAULT_USER_PROFILE.settings;
-    return projectUpcomingWorkouts({
+    return {
       completedWorkouts,
       templates: WORKOUT_TEMPLATES,
       liftStates,
       location,
       equipment: settings.equipment,
       includeWarmUps: settings.showWarmUps,
-      count,
       settings,
       // Only stamps the simulated workouts' dates; nothing shown depends on it.
       now: new Date(0),
@@ -56,6 +58,32 @@ export function useUpcomingWorkouts(
       // Each workout with the accessories that fit in the session length, so the
       // lengths shown are the ones the Ready screen plans.
       accessoriesNow: openedAt,
-    });
-  }, [completedWorkouts, liftStates, variantStates, strengthSets, loadedSettings, location, count, openedAt]);
+    };
+  }, [completedWorkouts, liftStates, variantStates, strengthSets, loadedSettings, location, openedAt]);
+}
+
+/**
+ * The next `count` workouts at `location`: the first exactly as `useNextWorkout`
+ * describes it (home exercises at their own weights, re-entry applied), the rest
+ * projected assuming every set is completed. `undefined` while loading.
+ */
+export function useUpcomingWorkouts(
+  location: WorkoutLocation,
+  count = 5
+): UpcomingWorkout[] | undefined {
+  const input = useProjectionInput(location);
+  return useMemo(() => (input ? projectUpcomingWorkouts({ ...input, count }) : undefined), [input, count]);
+}
+
+/**
+ * One coming workout in full (`describeUpcomingWorkout`): position 0 is the next
+ * workout as Today and Ready plan it, later ones assume every session before is
+ * completed. `undefined` while loading; null for a position out of range.
+ */
+export function useUpcomingWorkoutDetail(
+  location: WorkoutLocation,
+  position: number
+): UpcomingWorkoutDetail | null | undefined {
+  const input = useProjectionInput(location);
+  return useMemo(() => (input ? describeUpcomingWorkout({ ...input, position }) : undefined), [input, position]);
 }

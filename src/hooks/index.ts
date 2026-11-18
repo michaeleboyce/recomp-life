@@ -44,7 +44,7 @@ export { useInsights } from "./useInsights";
 export { useWeeklyReview, type WeeklyReviewResult } from "./useWeeklyReview";
 export { useProjection, type ProjectionResult } from "./useProjection";
 export { useTrainingLocation } from "./useTrainingLocation";
-export { useUpcomingWorkouts } from "./useUpcomingWorkouts";
+export { useUpcomingWorkoutDetail, useUpcomingWorkouts } from "./useUpcomingWorkouts";
 export {
   useOpenWorkoutForecast,
   useTodayForecast,

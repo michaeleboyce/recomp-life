@@ -8,6 +8,7 @@ import { EYEBROW } from "@/components/Today/TodayHero";
 import { formatLbs } from "@/components/Today/format";
 import { dayName, displayLiftName, photoPosition } from "@/components/Today/todayModel";
 import { getExercise } from "@/lib/exercises";
+import { upcomingWorkoutHref } from "@/lib/routes";
 import { tierStyle } from "@/lib/tierStyle";
 import { cn } from "@/lib/utils";
 import type { UpcomingEntry, UpcomingWorkout } from "@/lib/workout/upcoming";
@@ -59,28 +60,33 @@ function sequenceLabel(index: number): string {
 /**
  * One upcoming workout as a photo card: a photo of its main lift behind a fade, its
  * place in the sequence, code and length, the name, the three lifts with their
- * projected weights and the muscles it works. The next one is outlined and opens
- * the start screen at the location shown, so a Home preview starts a home workout.
+ * projected weights and the muscles it works. Every card opens that workout in full
+ * at the location shown. The next one is outlined and also has START, which opens
+ * the Ready screen there, so a Home preview starts a home workout.
  */
 export function UpcomingWorkoutCard({
   workout,
   index,
   minutes,
   location,
+  from = null,
 }: {
   workout: UpcomingWorkout;
   index: number;
   /** The session-length forecast in minutes (`upcomingMinutes`); hidden when null. */
   minutes: number | null;
-  /** The location being shown; the next card opens the Ready screen there. */
-  location?: WorkoutLocation;
+  /** The location being shown; the cards open there. */
+  location: WorkoutLocation;
+  /** "today" when the list was opened from Today, so back from the full view returns there. */
+  from?: "today" | null;
 }) {
   const isNext = index === 0;
   const t1 = workout.entries.find((e) => e.tier === "T1");
   const photoId = t1 ? t1.substituteExerciseId || t1.exerciseId : undefined;
   const photo = photoId && hasExercisePhoto(photoId) ? photoId : null;
   const name = dayName(workout.template.exercises.find((e) => e.tier === "T1")?.exerciseId, templateTitle(workout.templateId));
-  const startHref = location ? `/workout/configure?location=${location}` : "/workout/configure";
+  const startHref = `/workout/configure?location=${location}`;
+  const fullHref = upcomingWorkoutHref(index, location, from);
   const figureIds = workout.entries.map((e) => e.substituteExerciseId || e.exerciseId);
   const headingId = `upcoming-${index}-title`;
 
@@ -89,7 +95,11 @@ export function UpcomingWorkoutCard({
       aria-labelledby={headingId}
       data-testid="upcoming-workout"
       data-next={isNext || undefined}
-      className="relative h-[146px] shrink-0 overflow-hidden rounded-[18px] bg-card"
+      className={cn(
+        "relative shrink-0 overflow-hidden rounded-[18px] bg-card",
+        // The next card is taller: START sits under its lifts.
+        isNext ? "h-[200px]" : "h-[146px]"
+      )}
     >
       {photo && (
         <>
@@ -107,7 +117,7 @@ export function UpcomingWorkoutCard({
         </>
       )}
 
-      <div className="absolute top-2.5 bottom-2.5 left-3.5 flex w-[212px] flex-col justify-between">
+      <div className="absolute top-2.5 left-3.5 flex h-[126px] w-[212px] flex-col justify-between">
         <div>
           <p className={cn(EYEBROW, isNext ? "text-accent-primary" : "text-muted-foreground")}>
             {sequenceLabel(index)} · {workout.templateId}
@@ -121,17 +131,12 @@ export function UpcomingWorkoutCard({
               name.length > 10 ? "text-[26px]" : "text-[32px]"
             )}
           >
-            {isNext ? (
-              <Link
-                href={startHref}
-                aria-label={`Start ${name}`}
-                className="outline-none after:absolute after:inset-0 after:rounded-[18px] after:content-[''] focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
-              >
-                {name}
-              </Link>
-            ) : (
-              name
-            )}
+            <Link
+              href={fullHref}
+              className="outline-none after:absolute after:inset-0 after:rounded-[18px] after:content-[''] focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
+            >
+              {name}
+            </Link>
           </h2>
         </div>
         <ul aria-label={`${name} exercises`} className="flex flex-col gap-px">
@@ -143,10 +148,21 @@ export function UpcomingWorkoutCard({
 
       <span
         aria-hidden="true"
-        className="absolute top-2 right-2 bottom-2 flex items-center rounded-[14px] bg-background/85 px-2"
+        className="absolute top-2 right-2 flex h-[130px] items-center rounded-[14px] bg-background/85 px-2"
       >
         <WorkoutFigure exerciseIds={figureIds} className="h-[92px]" />
       </span>
+
+      {isNext && (
+        <Link
+          href={startHref}
+          aria-label={`Start ${name}`}
+          // Above the card's own link, which covers the whole card.
+          className="absolute right-3.5 bottom-3 left-3.5 z-10 flex h-11 items-center justify-center rounded-full bg-primary font-display text-[15px] leading-none font-extrabold tracking-[0.14em] text-primary-foreground uppercase outline-none transition-transform focus-visible:ring-[3px] focus-visible:ring-ring/50 active:scale-[0.99]"
+        >
+          Start
+        </Link>
+      )}
 
       {isNext && (
         <span
