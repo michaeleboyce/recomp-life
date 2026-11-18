@@ -11,6 +11,13 @@ import type { SourceId } from "./sources";
 
 export const EVIDENCE_CHANGELOG: ReadonlyArray<EvidenceChange<RuleId, SourceId>> = [
   {
+    date: "2026-11-18",
+    ruleId: "swap-recommendation",
+    change:
+      "New rule: swaps are ranked by a score in parts (muscles covered, same movement or tier fit, preferred, done before, a known weight, recovery and pain), each with the weight, sets and reps it would be done at, and pairs are offered when no single exercise covers the original. The Edit workout sheet's swap list now follows this order (same movement first, preferred no longer always first).",
+    sources: [],
+  },
+  {
     date: "2026-11-17",
     ruleId: "accessory-selection",
     change:

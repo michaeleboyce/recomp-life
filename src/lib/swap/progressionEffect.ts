@@ -1,0 +1,92 @@
+// What swapping an exercise does to the program (W10), worded from the progression code's
+// actual behaviour. Pure. progressionEffect.test.ts runs real sessions through
+// `computeCompletion`, `rebuildDerived` and the rotation fold and fails if this text and
+// that behaviour ever disagree.
+//
+// The behaviour it describes (src/lib/workout/completeWorkout.ts, credit.ts):
+// - A T1, T2 or T3 swapped for another exercise (a `swap` edit, before or during a
+//   workout) has none of its own sets in the session: `computeCompletion` records it as
+//   not done and leaves its lift state exactly as it was: weight, stage, fail count and
+//   last-workout date. The same holds when it was ended early during the workout (a
+//   `scheme` edit to the sets done): the entry no longer matches its prescription
+//   (`classifyEntry`), so it is logged only. Neither is a pass or a miss.
+// - The swapped-in exercise is logged only: it changes no lift state, and a `swap` to a
+//   home version of the lift is not a home substitute (Configure's `overrides`), so its
+//   home exercise state does not move either. (The original's stored prescription still
+//   spends the re-entry steps it took in at start: at the gym `passesSinceGym` of its
+//   home exercises goes to 0, at home `gymPassesSinceHome` is cleared, swapped or not.)
+// - A swapped T1 means the session does not move the A1 -> B1 -> A2 -> B2 rotation
+//   (`sessionCountsForRotation`): the same day is due next time. A swapped T2 or T3 does
+//   not affect the rotation.
+// - An accessory has no program progression; the exercise swapped in is planned from its
+//   own sets next time (`accessoryPrescription`).
+import { EXERCISES } from "@/lib/exercises";
+import type { Tier } from "@/types";
+
+/**
+ * "held": a program lift left exactly as it is, neither passed nor missed.
+ * "accessory": no program lift is involved.
+ * "none": nothing is swapped (the same exercise).
+ */
+export type SwapProgressionKind = "held" | "accessory" | "none";
+
+export interface SwapProgressionEffect {
+  kind: SwapProgressionKind;
+  /** The original lift's weight, stage, fail count and last-workout date stay as they are. */
+  liftHeld: boolean;
+  /** The swapped-in exercise moves no program lift state. */
+  replacementCounts: false;
+  /** For a T1: the session does not move the rotation, so the same day is due next time. */
+  dayStaysDue: boolean;
+  /** One or two plain sentences for the swap sheet. */
+  text: string;
+}
+
+export interface SwapProgressionContext {
+  /** Sets of the original already logged in this session (a swap during the workout). */
+  setsLogged?: number;
+}
+
+const PROGRAM_TIERS: readonly Tier[] = ["T1", "T2", "T3"];
+const nameOf = (id: string) => EXERCISES[id]?.name ?? id;
+
+/**
+ * What the program does with `originalId` at `tier` when it is swapped for
+ * `replacementId`, as the progression code does it today (see the comment at the top of
+ * this file). Pure: reads the catalogue for names only.
+ */
+export function swapProgressionEffect(
+  tier: Tier,
+  originalId: string,
+  replacementId: string,
+  context: SwapProgressionContext = {}
+): SwapProgressionEffect {
+  const original = nameOf(originalId);
+  const replacement = nameOf(replacementId);
+  if (originalId === replacementId) {
+    return { kind: "none", liftHeld: false, replacementCounts: false, dayStaysDue: false, text: "Nothing changes." };
+  }
+  if (!PROGRAM_TIERS.includes(tier)) {
+    return {
+      kind: "accessory",
+      liftHeld: false,
+      replacementCounts: false,
+      dayStaysDue: false,
+      text: `Accessories are not part of the program's progression: next time ${replacement} is planned from its own sets.`,
+    };
+  }
+  const logged = context.setsLogged ?? 0;
+  const kept =
+    logged > 0
+      ? `The ${logged === 1 ? "set" : `${logged} sets`} of ${original} already done ${logged === 1 ? "is" : "are"} kept in the log. `
+      : "";
+  const held = `${original} stays at its ${tier} weight and stage: a swapped lift counts as neither a pass nor a miss. ${replacement} is logged only.`;
+  const day = tier === "T1" ? " This day stays due next time." : "";
+  return {
+    kind: "held",
+    liftHeld: true,
+    replacementCounts: false,
+    dayStaysDue: tier === "T1",
+    text: `${kept}${held}${day}`,
+  };
+}
