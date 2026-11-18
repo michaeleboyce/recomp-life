@@ -13,7 +13,7 @@ import {
 import type { WorkoutPlan } from "@/lib/workout/types";
 import type { PlannedSet, Tier, WorkoutLocation, WorkoutSession } from "@/types";
 import { buildLiftRows, type TodayLiftRow } from "@/components/Today/LiftRows";
-import { formatLbs } from "@/components/Today/format";
+import { formatLbs } from "@/lib/text";
 import { displayLiftName, liftReason, type LiftReason } from "@/components/Today/todayModel";
 
 /** `?n=`: a whole number from 0 to the furthest position planned; null for anything else. */

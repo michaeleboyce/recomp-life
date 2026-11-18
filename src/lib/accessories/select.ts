@@ -18,6 +18,7 @@ import type {
   TrainingPhase,
   WorkoutLocation,
 } from "@/types";
+import { DAY_MS } from "@/lib/dates";
 
 // ─── Score weights (heuristic: judgment, not research; rule accessory-selection) ─
 // Ordered as decision 2 orders them: pinned > preferred > habit > shortfall > day fit
@@ -77,7 +78,6 @@ export const NEEDS_BENCH: ReadonlySet<string> = new Set([
   "hip_thrust",
 ]);
 
-const DAY_MS = 86_400_000;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

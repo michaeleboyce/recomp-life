@@ -18,7 +18,7 @@
 // An empty week has no takeaways.
 import { getRule, type RuleId } from "@/lib/evidence";
 import type { Insight, InsightKind } from "@/lib/insights";
-import { joinList } from "@/lib/insights/shared";
+import { joinList } from "@/lib/text";
 import { isMainLift, LIFT_NAMES } from "@/lib/liftNames";
 import type { PaceWord } from "@/lib/rateOfLoss";
 import { nextWeek } from "./weeks";

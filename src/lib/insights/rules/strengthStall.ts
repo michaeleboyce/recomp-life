@@ -4,7 +4,8 @@ import { importedLiftIndex, type ImportedLiftIndex } from "@/lib/import/history"
 import { RESET_FACTOR, roundToNearest5 } from "@/lib/progression";
 import type { LiftState } from "@/types";
 import type { Insight, InsightContext } from "../types";
-import { formatLbs, isValidDate, joinList, liftName, plural, toDate } from "../shared";
+import { formatLbs, joinList, plural } from "@/lib/text";
+import { isValidDate, liftName, toDate } from "../shared";
 
 /**
  * The lift's recent estimated 1RMs: the lift state's (the app's T1 sessions), then the

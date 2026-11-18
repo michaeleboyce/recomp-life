@@ -5,7 +5,7 @@ import type { AccessoryPrescription } from "@/lib/accessories/index";
 import { EXERCISES } from "@/lib/exercises";
 import type { AccessoryPlan, AccessoryRow } from "@/lib/workout/accessoryPlan";
 import type { WorkoutPlan } from "@/lib/workout/types";
-import { formatLbs } from "./format";
+import { formatLbs } from "@/lib/text";
 import { displayLiftName } from "./todayModel";
 
 /** One accessory as a row shows it. */

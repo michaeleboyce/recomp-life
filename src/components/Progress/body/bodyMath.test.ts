@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { BodyweightLog } from "@/types";
-import { cutTargetBand, formatSigned, paceStatus, weighInGroups } from "./bodyMath";
+import { cutTargetBand, paceStatus } from "@/lib/rateOfLoss";
+import { formatSigned, weighInGroups } from "./bodyMath";
 
 describe("formatSigned", () => {
   it("signs non-zero values and leaves zero bare", () => {

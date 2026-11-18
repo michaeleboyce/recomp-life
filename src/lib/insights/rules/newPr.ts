@@ -1,7 +1,9 @@
 import { isNewPR } from "@/lib/e1rm";
 import type { Estimated1RM } from "@/types";
 import type { Insight, InsightContext } from "../types";
-import { DAY_MS, formatLbs, isValidDate, liftName, toDate } from "../shared";
+import { DAY_MS } from "@/lib/dates";
+import { formatLbs } from "@/lib/text";
+import { isValidDate, liftName, toDate } from "../shared";
 
 const RECENT_DAYS = 7;
 

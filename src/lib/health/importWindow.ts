@@ -1,3 +1,4 @@
+import { DAY_MS } from "@/lib/dates";
 // When to import from Apple Health and how far back to look. Pure.
 
 /** How far back the very first import reaches. */
@@ -13,7 +14,6 @@ export const HEALTH_OVERLAP_DAYS = 3;
 /** Opening the app imports automatically at most this often. */
 export const HEALTH_AUTO_IMPORT_MINUTES = 15;
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The moment to import from, given when the last import ran (null: never). */
 export function importSince(lastImportAt: number | null, now: Date): Date {

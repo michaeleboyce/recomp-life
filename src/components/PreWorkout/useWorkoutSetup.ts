@@ -65,8 +65,8 @@ import type {
   WorkoutModification,
   WorkoutTemplateExercise,
 } from "@/types";
+import { HOUR_MS } from "@/lib/dates";
 
-const HOUR_MS = 60 * 60 * 1000;
 const PAIN_WINDOW_MS = 7 * 24 * HOUR_MS;
 const RUN_WINDOW_MS = 24 * HOUR_MS;
 const ACTIVITY_WINDOW_MS = ACTIVITY_NOTE_WINDOW_HOURS * HOUR_MS;

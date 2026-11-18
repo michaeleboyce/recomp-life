@@ -1,7 +1,9 @@
 import { calculateWeeklyRateOfLoss, getStallProtocolSuggestion } from "@/lib/rateOfLoss";
 import { detectFatLossStall } from "@/lib/stallDetection";
 import type { Insight, InsightContext } from "../types";
-import { DAY_MS, plural, sortedWeights } from "../shared";
+import { DAY_MS } from "@/lib/dates";
+import { plural } from "@/lib/text";
+import { sortedWeights } from "../shared";
 
 /** Upper bound on weeks looked back, so a long flat history stays cheap. */
 const MAX_WEEKS = 52;

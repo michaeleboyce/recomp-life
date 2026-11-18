@@ -1,6 +1,7 @@
 import { calculateWeeklyRateOfLoss } from "@/lib/rateOfLoss";
 import type { Insight, InsightContext } from "../types";
-import { DAY_MS, sortedWeights } from "../shared";
+import { DAY_MS } from "@/lib/dates";
+import { sortedWeights } from "../shared";
 
 /** A rate from weigh-ins older than this is not "current". */
 const MAX_STALENESS_DAYS = 14;

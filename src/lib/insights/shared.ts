@@ -1,7 +1,6 @@
-// Small helpers shared by the insight rules. Pure.
+// Small helpers shared by the insight rules. Pure. Words and numbers come from
+// `lib/text`, day lengths from `lib/dates`.
 import { EXERCISES } from "@/lib/exercises";
-
-export const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Records synced from another device may carry ISO strings; always normalise. */
 export function toDate(value: Date | string | number): Date {
@@ -15,21 +14,6 @@ export function isValidDate(d: Date): boolean {
 /** Display name of an exercise, falling back to its id. */
 export function liftName(exerciseId: string): string {
   return EXERCISES[exerciseId]?.name ?? exerciseId;
-}
-
-/** 226 -> "226", 226.44 -> "226.4". */
-export function formatLbs(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
-}
-
-export function plural(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? "" : "s"}`;
-}
-
-/** "a", "a and b", "a, b and c". */
-export function joinList(items: string[]): string {
-  if (items.length <= 1) return items.join("");
-  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
 
 /** Bodyweight entries as the rate/stall functions take them: valid, not in the future, oldest first. */

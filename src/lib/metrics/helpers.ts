@@ -3,7 +3,6 @@ import { getMonday } from "@/lib/dates";
 import type { SetLog, WorkoutSession } from "@/types";
 import type { MetricDef, MetricParams, MetricSource, Point, Series } from "./types";
 
-export { DAY_MS } from "@/lib/dates";
 
 /** Epoch milliseconds of a stored date, which may be a Date or an ISO string. */
 export function toMs(value: Date | string | number | null | undefined): number {
@@ -98,11 +97,6 @@ export function setsVolume(sets: SetLog[]): number {
 
 export function mean(values: number[]): number {
   return values.reduce((a, b) => a + b, 0) / values.length;
-}
-
-/** "3 sets", "1 set". */
-export function count(n: number, singular: string, plural = `${singular}s`): string {
-  return `${n} ${n === 1 ? singular : plural}`;
 }
 
 /** "232.5", "190": at most `digits` decimals, trailing zeros dropped. */

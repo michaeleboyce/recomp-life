@@ -7,6 +7,7 @@ import type { ScoredForecast } from "@/lib/forecast";
 import { VOID_REASONS, type VoidReason } from "@/lib/forecast";
 import { e1rmsForWorkout } from "@/lib/rebuild/e1rm";
 import type { Forecast, RepsInReserve, SetLog, Tier, WorkoutSession } from "@/types";
+import { joinList, percent } from "@/lib/text";
 
 /** Weights within this many lbs count as the same weight. */
 const SAME_WEIGHT_LBS = 0.01;
@@ -62,12 +63,6 @@ export function forecastWindow(pmf: readonly number[], low: number): { firstReps
   return { firstReps: first, lastReps: Math.min(top, first + span) };
 }
 
-const percent = (p: number) => `${Math.round(p * 100)}%`;
-
-function listOf(parts: string[]): string {
-  if (parts.length <= 1) return parts.join("");
-  return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
-}
 
 export interface ForecastNote {
   /** Bold lead: "5 or more is a new best", or the most likely count when there is no best. */
@@ -120,7 +115,7 @@ export function forecastNote(
       : ["a starting guess (no final sets of this lift yet)"];
   if ((num(reps.inputs.readinessShift) ?? 0) !== 0) parts.push("today's readiness");
   if ((num(reps.inputs.cuttingShift) ?? 0) !== 0) parts.push("the cut");
-  const basis = `Built from ${listOf(parts)}.`;
+  const basis = `Built from ${joinList(parts)}.`;
 
   return { lead, chance, selected, basis };
 }

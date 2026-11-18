@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getMetric } from "@/lib/metrics";
 import type { RangeKey } from "@/lib/metrics/types";
 import { BodyChart } from "./BodyChart";
-import { cutTargetBand } from "./bodyMath";
+import { cutTargetBand } from "@/lib/rateOfLoss";
 import { useBodySeries } from "./useBodySeries";
 import { WeighInList } from "./WeighInList";
 import { rangeSuffix } from "../rangeText";

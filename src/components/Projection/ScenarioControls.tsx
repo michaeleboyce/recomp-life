@@ -16,6 +16,7 @@ import {
 import type { TrainingPhase } from "@/types";
 import { TermIcon } from "@/components/ui/term";
 import { ScenarioSlider } from "./ScenarioSlider";
+import { joinList } from "@/lib/text";
 
 type Phase = TrainingPhase["mode"];
 
@@ -31,11 +32,6 @@ const percent = (v: number) => `${Math.round(v)}%`;
 function snap(value: number, min: number, max: number, step: number): number {
   const snapped = min + Math.round((value - min) / step) * step;
   return Math.min(max, Math.max(min, Number(snapped.toFixed(4))));
-}
-
-function joinList(items: string[]): string {
-  if (items.length <= 1) return items.join("");
-  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
 
 interface ScenarioControlsProps {

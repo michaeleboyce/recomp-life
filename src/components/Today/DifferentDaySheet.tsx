@@ -9,7 +9,7 @@ import { nextOccurrences, type UpcomingWorkout } from "@/lib/workout/upcoming";
 import type { WorkoutLocation } from "@/types";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { upcomingMinutes } from "@/components/Upcoming/sessionMinutes";
-import { formatLbs } from "./format";
+import { formatLbs } from "@/lib/text";
 import { dayName, displayLiftName } from "./todayModel";
 
 /** "Squat 190 · Bench press 100 · Lat pulldown 90": a day's lifts as the projection plans them. */

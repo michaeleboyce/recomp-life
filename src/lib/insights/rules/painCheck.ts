@@ -1,6 +1,7 @@
 import { getExpiredPainEntries } from "@/lib/painAutoClear";
 import type { Insight, InsightContext } from "../types";
-import { DAY_MS, toDate } from "../shared";
+import { DAY_MS } from "@/lib/dates";
+import { toDate } from "../shared";
 
 /** One "still there?" check per pain entry older than 7 days (replaces the Dashboard prompt). */
 export function painCheckInsights(ctx: InsightContext): Insight[] {

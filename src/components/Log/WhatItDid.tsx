@@ -8,7 +8,8 @@ import { TierBadge } from "@/components/ui/tier-badge";
 import { useWorkout } from "@/hooks";
 import { isRuleId, type RuleId } from "@/lib/evidence";
 import { cn } from "@/lib/utils";
-import { describeSessionOutcomes, type OutcomeKind, type SessionOutcomeRow } from "./outcomes";
+import type { OutcomeKind } from "@/lib/workout/outcomes";
+import { describeSessionOutcomes, type SessionOutcomeRow } from "./outcomes";
 import { useWorkoutSnapshots } from "./useWorkoutSnapshots";
 import { AccessoryOutcomeRow, useAccessoryOutcomes } from "./AccessoryOutcomes";
 

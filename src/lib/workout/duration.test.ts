@@ -1,6 +1,5 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { estimateWorkoutMinutes as todayExport } from "@/components/Today/format";
 import { SESSION_LENGTH_MODEL } from "@/lib/forecast/coefficients";
 import { CUTTING_REST_BONUS_SECONDS, REST_SECONDS } from "@/lib/restTimes";
 import {
@@ -74,9 +73,5 @@ describe("estimateWorkoutMinutes", () => {
 
   it("is at least 5 minutes", () => {
     expect(estimateWorkoutMinutes([])).toBe(5);
-  });
-
-  it("is what the Today screen's helper re-exports", () => {
-    expect(todayExport).toBe(estimateWorkoutMinutes);
   });
 });

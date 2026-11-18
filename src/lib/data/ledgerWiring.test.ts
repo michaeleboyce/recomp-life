@@ -28,7 +28,7 @@ vi.mock("@/lib/forecast", async (importOriginal) => {
   };
 });
 
-import { planForSession } from "@/components/ActiveWorkout/activeWorkoutLogic";
+import { planForSession } from "@/lib/workout/planForSession";
 import { initializeDatabase } from "@/db/init";
 import { db } from "@/db/local";
 import { isRuleId } from "@/lib/evidence";

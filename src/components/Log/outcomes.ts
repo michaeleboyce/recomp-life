@@ -1,7 +1,7 @@
 // What one finished session did to each of its program lifts. The lift outcomes' logic
 // lives in src/lib/workout/outcomes.ts, built on the outcome the progression code
-// reports; this file re-exports it for the Log components and adds the lines for the
-// home exercises, which progress on their own weight (`VariantOutcome`). Pure.
+// reports; this file adds the lines for the home exercises, which progress on their
+// own weight (`VariantOutcome`). Pure.
 import { liftName } from "@/components/LogEdit/format";
 import { displayLiftName, nameInSentence } from "@/components/Today/todayModel";
 import { getRule, isRuleId } from "@/lib/evidence";
@@ -21,9 +21,6 @@ import type {
   VariantPoint,
   WorkoutSession,
 } from "@/types";
-
-export { describeOutcome, describeOutcomes } from "@/lib/workout/outcomes";
-export type { LiftOutcome, OutcomeKind, ProgramTier } from "@/lib/workout/outcomes";
 
 /**
  * The program lift's name, with the home substitute it was done as when the session's

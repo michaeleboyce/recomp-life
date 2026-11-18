@@ -1,7 +1,8 @@
 import { checkSystemicFatigue } from "@/lib/deload";
 import type { LiftState } from "@/types";
 import type { Insight, InsightContext } from "../types";
-import { joinList, liftName } from "../shared";
+import { joinList } from "@/lib/text";
+import { liftName } from "../shared";
 
 const OPTIONAL = "If you feel run down, an easier week is optional";
 

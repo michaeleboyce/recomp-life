@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { TraceAlternative } from "@/types";
 import type { WeightChances } from "@/hooks";
-import { formatLbs } from "@/components/Today/format";
+import { formatLbs } from "@/lib/text";
 
 const LABELS: Record<string, string> = {
   easier: "lighter",

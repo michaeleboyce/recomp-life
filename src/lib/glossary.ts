@@ -22,6 +22,7 @@ import { CUTTING_REST_BONUS_SECONDS, REST_SECONDS } from "@/lib/restTimes";
 import { CREDIT_MIN_WEIGHT_RATIO } from "@/lib/workout/credit";
 import { T1_STAGE_SCHEME, T2_STAGE_SCHEME } from "@/lib/workout/prescription";
 import { WORKOUT_ROTATION } from "@/lib/workoutTemplates";
+import { percent as pct } from "@/lib/text";
 
 export type TermId =
   | "gzclp" | "t1" | "t2" | "t3" | "rotation" | "sets-reps" | "amrap-plus" | "stage"
@@ -44,7 +45,6 @@ export interface GlossaryEntry {
 
 export type GlossaryTheme = "Program" | "Effort" | "Progress" | "Body";
 
-const pct = (fraction: number) => `${Math.round(fraction * 100)}%`;
 /** 0.075 -> "7.5%": a drop size keeps its half percent. */
 const dropPct = (fraction: number) => `${Math.round(fraction * 1000) / 10}%`;
 const resetPct = pct(RESET_FACTOR);

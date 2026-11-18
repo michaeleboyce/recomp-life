@@ -39,9 +39,9 @@ import {
   isDropAccepted,
   isLatestSetOfEntry,
   nextIncompleteIndex,
-  planForSession,
   resolveActiveIndex,
 } from "./activeWorkoutLogic";
+import { planForSession } from "@/lib/workout/planForSession";
 import { getPrOpportunity } from "./prOpportunity";
 import {
   attachDrops,

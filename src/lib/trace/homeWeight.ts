@@ -18,6 +18,7 @@ import {
 import type { EquipmentProfile, TraceStep, VariantCapAction, VariantState } from "@/types";
 import { joinList, num, step } from "./text";
 import type { PlanEntry, TraceContext } from "./types";
+import { plural } from "@/lib/text";
 
 export const HOME_PROGRESSION_RULE = "home-progression";
 export const CAP_PROGRESSION_RULE = "cap-progression";
@@ -68,7 +69,6 @@ type HomeContext = Pick<TraceContext, "location" | "equipment" | "home">;
 const nameOf = (exerciseId: string) => EXERCISES[exerciseId]?.name ?? exerciseId;
 /** "Barbell Squat" -> "squat": how the program lift is named in a sentence. */
 const liftWord = (liftId: string) => nameOf(liftId).replace(/^barbell /i, "").toLowerCase();
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** "75", or "75 a hand" for two dumbbells. */
 function asLiftedText(weight: number, perHand: boolean): string {

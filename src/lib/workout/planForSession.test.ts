@@ -1,17 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { planForSession } from "./planForSession";
-import { planForSession as reExported } from "@/components/ActiveWorkout/activeWorkoutLogic";
 import { EQUIPMENT, makeSession, seedLiftStates } from "./testFixtures";
 import { seedVariantState } from "./variant";
 
 const template = WORKOUT_TEMPLATES.A1;
 
 describe("planForSession", () => {
-  it("keeps the old import path working", () => {
-    expect(reExported).toBe(planForSession);
-  });
-
   it("plans from the lift states when nothing was stored", () => {
     const plan = planForSession({
       session: makeSession(),

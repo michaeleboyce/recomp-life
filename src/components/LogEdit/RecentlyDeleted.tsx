@@ -11,8 +11,8 @@ import { useRecentlyDeleted } from "@/hooks";
 import { restore, softDelete, type DeletedItem } from "@/lib/data/logEdits";
 import { errorText, formatDay } from "./format";
 import { useCommitLogChange } from "./useCommitLogChange";
+import { DAY_MS } from "@/lib/dates";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 function startOfDay(ms: number): number {
   const d = new Date(ms);

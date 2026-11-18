@@ -2,9 +2,6 @@
 import { EXERCISES } from "@/lib/exercises";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
 
-// Moved to src/lib/workout/duration.ts; re-exported for the screens that import it here.
-export { estimateWorkoutMinutes } from "@/lib/workout/duration";
-
 /** "Barbell Squat" -> "Squat"; other names unchanged; unknown ids as given. */
 export function shortLiftName(exerciseId: string): string {
   const name = EXERCISES[exerciseId]?.name ?? exerciseId;
@@ -14,9 +11,4 @@ export function shortLiftName(exerciseId: string): string {
 /** "5×3+" for an AMRAP entry, "3×10" otherwise. */
 export function formatSetsReps(entry: WorkoutExerciseState): string {
   return `${entry.targetSets}×${entry.targetReps}${entry.isAMRAP ? "+" : ""}`;
-}
-
-/** Whole numbers as is, otherwise one decimal. */
-export function formatLbs(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }

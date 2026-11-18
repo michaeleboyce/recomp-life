@@ -1,11 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import type { WorkoutExerciseState } from "@/lib/workout/types";
-import {
-  estimateWorkoutMinutes,
-  formatSetsReps,
-  shortLiftName,
-} from "./format";
+import { estimateWorkoutMinutes } from "@/lib/workout/duration";
+import { formatSetsReps, shortLiftName } from "./format";
 
 function entry(overrides: Partial<WorkoutExerciseState>): WorkoutExerciseState {
   return {

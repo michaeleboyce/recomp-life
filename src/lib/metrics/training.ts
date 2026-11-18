@@ -2,8 +2,8 @@
 import { MUSCLE_GROUPS, type DisplayGroup } from "@/lib/muscles";
 import { calculateGroupVolume } from "@/lib/volumeTracking";
 import { excludeWarmUps } from "@/lib/workout/setSelectors";
+import { plural } from "@/lib/text";
 import {
-  count,
   defineMetric,
   formatNumber,
   formatWhole,
@@ -70,6 +70,6 @@ export const tonnage = defineMetric(
     workoutsByWeek(source.workouts).map(({ weekStart, workouts }) => ({
       t: weekStart,
       v: setsVolume(excludeWarmUps(workouts.flatMap((w) => w.sets ?? []))),
-      label: count(workouts.length, "session"),
+      label: plural(workouts.length, "session"),
     }))
 );

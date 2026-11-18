@@ -5,7 +5,8 @@ import { EXERCISES } from "@/lib/exercises";
 import { isMainLift } from "@/lib/liftNames";
 import { DUMBBELL_LOAD_FACTOR } from "@/lib/dbConversion";
 import { capNextStep, type CapNext } from "@/lib/trace/homeWeight";
-import { formatLbs, shortLiftName } from "./format";
+import { formatLbs } from "@/lib/text";
+import { shortLiftName } from "./format";
 
 /** Plain names for lifts whose stored name is an abbreviation. */
 const PLAIN_NAME: Record<string, string> = {

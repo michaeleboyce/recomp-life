@@ -2,7 +2,8 @@
 import { calendarDaysBetween } from "@/lib/dates";
 import { calculateWeeklyRateOfLoss } from "@/lib/rateOfLoss";
 import type { BodyweightLog } from "@/types";
-import { count, defineMetric, formatNumber, mean, toMs, weekStartMs } from "./helpers";
+import { plural } from "@/lib/text";
+import { defineMetric, formatNumber, mean, toMs, weekStartMs } from "./helpers";
 import type { MetricSource, Point, Series } from "./types";
 
 /** Days of weigh-ins `lossRate` needs before its first point. */
@@ -72,7 +73,7 @@ export const bodyweight7d = defineMetric(
       return {
         t: entry.t,
         v: mean(window),
-        label: count(window.length, "entry", "entries"),
+        label: plural(window.length, "entry", "entries"),
         refId: entry.id,
       };
     });

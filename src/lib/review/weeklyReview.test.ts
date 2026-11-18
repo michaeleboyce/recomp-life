@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import { generateDemoData } from "@/lib/demo/generateDemoData";
-import { cutTargetBand } from "@/components/Progress/body/bodyMath";
+import { cutTargetBand } from "@/lib/rateOfLoss";
 import { WEEKLY_SESSION_TARGET } from "@/lib/workout/rotation";
 import { calculateGroupVolume } from "@/lib/volumeTracking";
 import { calculateWeeklyRateOfLoss } from "@/lib/rateOfLoss";
