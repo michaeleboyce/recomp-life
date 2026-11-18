@@ -36,7 +36,9 @@ import {
   type SetBlock,
 } from "./upcomingView";
 
+// Passed as values: this page is not yet in these rules' `surfaces` lists.
 const PROGRESSION_RULE: RuleId = "gzclp-progression";
+const BUDGET_RULE: RuleId = "session-length-budget";
 
 /** The look of Today's START. */
 const MAIN_BUTTON =
@@ -182,7 +184,7 @@ function DetailBody({
           {length && (
             <p data-testid="upcoming-length" className="flex items-center gap-1 text-[13px] font-semibold text-foreground">
               {length}
-              {budget?.minutes != null && <EvidenceLine ruleId="session-length-budget" variant="icon" />}
+              {budget?.minutes != null && <EvidenceLine ruleId={BUDGET_RULE} variant="icon" />}
             </p>
           )}
         </div>
