@@ -266,13 +266,17 @@ export function accessoryNextTime(
 }
 
 /**
- * "All sets at 15: up to 30 next time", "Short of 15 on a set: 25 again next time",
- * "Short of 15 for 3 sessions: down to 22.5 next time": what an accessory does next
+ * "All sets at 15: up to 30 lb next time", "Short of 15 on a set: 25 lb again next time",
+ * "Short of 15 for 3 sessions: down to 22.5 lb next time": what an accessory does next
  * time and why, in one line.
  */
 export function nextTimeText(p: AccessoryPrescription): string {
   const top = p.reps.max;
-  const unit = (w: number | null) => (w == null ? "" : `${Math.round(w * 100) / 100}`);
+  const unit = (w: number | null) => (w == null ? "" : `${Math.round(w * 100) / 100} lb`);
+  // Done without a weight (none entered): nothing to step up from.
+  if (p.last && !(p.last.weight > 0) && EXERCISES[p.exerciseId]?.type !== "bodyweight") {
+    return `Done without a weight: enter one next time, then work toward ${top} reps`;
+  }
   if (p.basis === "hand") return `Set by you: ${unit(p.weight)} next time${p.planWeight != null ? ` (the plan says ${unit(p.planWeight)})` : ""}`;
   if (p.verdict === "up") return `All sets at ${top}: up to ${unit(p.weight)} next time`;
   if (p.verdict === "down") return `Short of ${top} for ${ACCESSORY_STUCK_SESSIONS} sessions: down to ${unit(p.weight)} next time`;

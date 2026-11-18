@@ -174,13 +174,13 @@ describe("accessoryNextTime and nextTimeText (A9, A10)", () => {
   it("all sets at the top: up one step next time", () => {
     const next = accessoryNextTime("bicep_curls", session([15, 15, 15]) as never, HISTORY, SETTINGS, at(0, 20))!;
     expect(next).toMatchObject({ weight: 35, verdict: "up" });
-    expect(nextTimeText(next)).toBe("All sets at 15: up to 35 next time");
+    expect(nextTimeText(next)).toBe("All sets at 15: up to 35 lb next time");
   });
 
   it("a set short: the same weight again", () => {
     const next = accessoryNextTime("bicep_curls", session([15, 14, 12]) as never, HISTORY, SETTINGS, at(0, 20))!;
     expect(next).toMatchObject({ weight: 30, verdict: "same" });
-    expect(nextTimeText(next)).toBe("Short of 15 on a set: 30 again next time");
+    expect(nextTimeText(next)).toBe("Short of 15 on a set: 30 lb again next time");
   });
 
   it("a finished workout says it per accessory, as of that workout", () => {
@@ -190,8 +190,13 @@ describe("accessoryNextTime and nextTimeText (A9, A10)", () => {
     const settings = { ...SETTINGS, accessoryWeights: { bicep_curls: { weight: 50, setAt: at(-1).getTime() } } };
     const outcomes = accessoryOutcomesOf(done as never, [...HISTORY, ...later], settings);
     expect(outcomes).toEqual([
-      expect.objectContaining({ exerciseId: "bicep_curls", text: "All sets at 15: up to 35 next time" }),
+      expect.objectContaining({ exerciseId: "bicep_curls", text: "All sets at 15: up to 35 lb next time" }),
     ]);
+  });
+
+  it("done without a weight: asks for one instead of stepping up from nothing", () => {
+    const next = accessoryNextTime("bicep_curls", session([15, 15, 15], 0) as never, [], SETTINGS, at(0, 20))!;
+    expect(nextTimeText(next)).toBe("Done without a weight: enter one next time, then work toward 15 reps");
   });
 
   it("nothing done of it: nothing to say", () => {

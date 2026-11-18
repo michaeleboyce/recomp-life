@@ -102,8 +102,8 @@ describe("/workout/summary", () => {
     const did = await screen.findByRole("region", { name: "What it did" });
     const rows = await within(did).findAllByText(/next time$/);
     expect(rows.map((r) => r.textContent)).toEqual([
-      "All sets at 15: up to 30 next time",
-      "Short of 20 on a set: 15 again next time",
+      "All sets at 15: up to 30 lb next time",
+      "Short of 20 on a set: 15 lb again next time",
     ]);
   });
 

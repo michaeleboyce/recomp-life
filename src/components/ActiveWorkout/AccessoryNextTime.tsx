@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * After an accessory's last set: what double progression does with it next time, and
- * why ("All sets at 15: up to 30 next time").
+ * why ("All sets at 15: up to 30 lb next time").
  */
 export function AccessoryNextTime({ name, text, className }: { name: string; text: string; className?: string }) {
   return (
