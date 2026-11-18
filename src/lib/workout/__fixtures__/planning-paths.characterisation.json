@@ -8668,7 +8668,7 @@
      "warmup ohp>db_shoulder_press | 20(85) 1x10",
      "warmup ohp>db_shoulder_press | 30(85) 1x5",
      "T1 ohp>db_shoulder_press | 95(181) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":85,\"ownEstimate\":107,\"targetReps\":3,\"history\":{\"at\":\"2026-09-11T17:30\",\"weight\":40,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbsp-6\",\"imported\":true}}",
-     "T2 deadlift>db_rdl | 60(155) 4x8 | variant=deadlift|db_rdl|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":155,\"ownEstimate\":160,\"targetReps\":10,\"history\":{\"at\":\"2026-09-12T17:30\",\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true}}",
+     "T2 deadlift>single_leg_db_rdl | 35(155) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":155,\"ratio\":0.35,\"estimate\":268,\"targetReps\":10}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
@@ -8698,8 +8698,8 @@
       "reps": 10,
       "stage": "3x10",
       "home": {
-       "exerciseId": "db_rdl",
-       "weight": 60,
+       "exerciseId": "single_leg_db_rdl",
+       "weight": 35,
        "perHand": true,
        "stage": "3x10",
        "sets": 3,
@@ -8755,7 +8755,7 @@
     "warmup ohp>db_shoulder_press | 20(85) 1x10",
     "warmup ohp>db_shoulder_press | 30(85) 1x5",
     "T1 ohp>db_shoulder_press | 95(181) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand | seed={\"source\":\"history\",\"barbellWeight\":85,\"ownEstimate\":107,\"targetReps\":3,\"history\":{\"at\":\"2026-09-11T17:30\",\"weight\":40,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbsp-6\",\"imported\":true}}",
-    "T2 deadlift>db_rdl | 60(155) 4x8 | variant=deadlift|db_rdl|T2 perHand | seed={\"source\":\"history\",\"barbellWeight\":155,\"ownEstimate\":160,\"targetReps\":10,\"history\":{\"at\":\"2026-09-12T17:30\",\"weight\":60,\"reps\":10,\"perHand\":true,\"sessionId\":\"imp-dbrdl-6\",\"imported\":true}}",
+    "T2 deadlift>single_leg_db_rdl | 35(155) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":155,\"ratio\":0.35,\"estimate\":268,\"targetReps\":10}",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
@@ -9158,7 +9158,7 @@
      "warmup ohp>db_shoulder_press | 20(85) 1x10",
      "warmup ohp>db_shoulder_press | 30(85) 1x5",
      "T1 ohp>db_shoulder_press | 95(181) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand",
-     "T2 deadlift>db_rdl | 50(155) 4x8 | variant=deadlift|db_rdl|T2 perHand",
+     "T2 deadlift>single_leg_db_rdl | 35(155) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":155,\"ratio\":0.35,\"estimate\":283,\"targetReps\":10}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
@@ -9188,8 +9188,8 @@
       "reps": 10,
       "stage": "3x10",
       "home": {
-       "exerciseId": "db_rdl",
-       "weight": 50,
+       "exerciseId": "single_leg_db_rdl",
+       "weight": 35,
        "perHand": true,
        "stage": "3x10",
        "sets": 3,
@@ -9245,7 +9245,7 @@
     "warmup ohp>db_shoulder_press | 20(85) 1x10",
     "warmup ohp>db_shoulder_press | 30(85) 1x5",
     "T1 ohp>db_shoulder_press | 95(181) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand",
-    "T2 deadlift>db_rdl | 50(155) 4x8 | variant=deadlift|db_rdl|T2 perHand",
+    "T2 deadlift>single_leg_db_rdl | 35(155) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":155,\"ratio\":0.35,\"estimate\":283,\"targetReps\":10}",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
@@ -9648,7 +9648,7 @@
      "warmup ohp>db_shoulder_press | 20(85) 1x10",
      "warmup ohp>db_shoulder_press | 35(85) 1x5",
      "T1 ohp>db_shoulder_press | 95(162) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand",
-     "T2 deadlift>db_rdl | 55(155) 4x8 | variant=deadlift|db_rdl|T2 perHand",
+     "T2 deadlift>single_leg_db_rdl | 35(155) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":155,\"ratio\":0.35,\"estimate\":287,\"targetReps\":10}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
@@ -9678,8 +9678,8 @@
       "reps": 10,
       "stage": "3x10",
       "home": {
-       "exerciseId": "db_rdl",
-       "weight": 55,
+       "exerciseId": "single_leg_db_rdl",
+       "weight": 35,
        "perHand": true,
        "stage": "3x10",
        "sets": 3,
@@ -9735,7 +9735,7 @@
     "warmup ohp>db_shoulder_press | 20(85) 1x10",
     "warmup ohp>db_shoulder_press | 35(85) 1x5",
     "T1 ohp>db_shoulder_press | 95(162) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand",
-    "T2 deadlift>db_rdl | 55(155) 4x8 | variant=deadlift|db_rdl|T2 perHand",
+    "T2 deadlift>single_leg_db_rdl | 35(155) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":155,\"ratio\":0.35,\"estimate\":287,\"targetReps\":10}",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
@@ -10165,7 +10165,7 @@
      "warmup ohp>db_shoulder_press | 20(100) 1x10",
      "warmup ohp>db_shoulder_press | 35(100) 1x5",
      "T1 ohp>db_shoulder_press | 95(190) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":55,\"fromEstimate\":50,\"stepsEarned\":1,\"targetReps\":3,\"location\":\"home\",\"lastWeight\":50,\"estimate\":122,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
-     "T2 deadlift>db_rdl | 60(185) 4x8 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":60,\"fromSteps\":60,\"fromEstimate\":65,\"stepsEarned\":1,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":316,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
+     "T2 deadlift>single_leg_db_rdl | 40(185) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":185,\"ratio\":0.35,\"estimate\":316,\"targetReps\":10}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
@@ -10195,8 +10195,8 @@
       "reps": 10,
       "stage": "3x10",
       "home": {
-       "exerciseId": "db_rdl",
-       "weight": 60,
+       "exerciseId": "single_leg_db_rdl",
+       "weight": 40,
        "perHand": true,
        "stage": "3x10",
        "sets": 3,
@@ -10259,19 +10259,6 @@
       "estimate": 122,
       "ratio": 0.9117481449103596,
       "exerciseId": "db_shoulder_press"
-     },
-     "deadlift|T2": {
-      "rule": "steps",
-      "weight": 60,
-      "fromSteps": 60,
-      "fromEstimate": 65,
-      "stepsEarned": 1,
-      "targetReps": 10,
-      "location": "home",
-      "lastWeight": 55,
-      "estimate": 316,
-      "ratio": 0.5574737007643811,
-      "exerciseId": "db_rdl"
      }
     }
    },
@@ -10279,7 +10266,7 @@
     "warmup ohp>db_shoulder_press | 20(100) 1x10",
     "warmup ohp>db_shoulder_press | 35(100) 1x5",
     "T1 ohp>db_shoulder_press | 95(190) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand",
-    "T2 deadlift>db_rdl | 60(185) 4x8 | variant=deadlift|db_rdl|T2 perHand",
+    "T2 deadlift>single_leg_db_rdl | 40(185) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":185,\"ratio\":0.35,\"estimate\":316,\"targetReps\":10}",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
@@ -10750,7 +10737,7 @@
      "warmup ohp>db_shoulder_press | 20(105) 1x10",
      "warmup ohp>db_shoulder_press | 35(105) 1x5",
      "T1 ohp>db_shoulder_press | 95(200) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":60,\"fromEstimate\":50,\"stepsEarned\":2,\"targetReps\":3,\"location\":\"home\",\"lastWeight\":50,\"estimate\":122,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
-     "T2 deadlift>db_rdl | 65(195) 4x8 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"steps\",\"weight\":65,\"fromSteps\":65,\"fromEstimate\":65,\"stepsEarned\":2,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":329,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
+     "T2 deadlift>single_leg_db_rdl | 40(195) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":195,\"ratio\":0.35,\"estimate\":329,\"targetReps\":10}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
@@ -10780,8 +10767,8 @@
       "reps": 10,
       "stage": "3x10",
       "home": {
-       "exerciseId": "db_rdl",
-       "weight": 65,
+       "exerciseId": "single_leg_db_rdl",
+       "weight": 40,
        "perHand": true,
        "stage": "3x10",
        "sets": 3,
@@ -10844,19 +10831,6 @@
       "estimate": 122,
       "ratio": 0.9117481449103596,
       "exerciseId": "db_shoulder_press"
-     },
-     "deadlift|T2": {
-      "rule": "steps",
-      "weight": 65,
-      "fromSteps": 65,
-      "fromEstimate": 65,
-      "stepsEarned": 2,
-      "targetReps": 10,
-      "location": "home",
-      "lastWeight": 55,
-      "estimate": 329,
-      "ratio": 0.5574737007643811,
-      "exerciseId": "db_rdl"
      }
     }
    },
@@ -10864,7 +10838,7 @@
     "warmup ohp>db_shoulder_press | 20(105) 1x10",
     "warmup ohp>db_shoulder_press | 35(105) 1x5",
     "T1 ohp>db_shoulder_press | 95(200) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand",
-    "T2 deadlift>db_rdl | 65(195) 4x8 | variant=deadlift|db_rdl|T2 perHand",
+    "T2 deadlift>single_leg_db_rdl | 40(195) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":195,\"ratio\":0.35,\"estimate\":329,\"targetReps\":10}",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
@@ -11335,7 +11309,7 @@
      "warmup ohp>db_shoulder_press | 20(110) 1x10",
      "warmup ohp>db_shoulder_press | 35(110) 1x5",
      "T1 ohp>db_shoulder_press | 95(209) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand | reentry={\"rule\":\"estimate\",\"weight\":50,\"fromSteps\":65,\"fromEstimate\":50,\"stepsEarned\":3,\"targetReps\":3,\"location\":\"home\",\"lastWeight\":50,\"estimate\":124,\"ratio\":0.9117481449103596,\"exerciseId\":\"db_shoulder_press\"}",
-     "T2 deadlift>db_rdl | 65(205) 4x8 | variant=deadlift|db_rdl|T2 perHand | reentry={\"rule\":\"estimate\",\"weight\":65,\"fromSteps\":70,\"fromEstimate\":65,\"stepsEarned\":3,\"targetReps\":10,\"location\":\"home\",\"lastWeight\":55,\"estimate\":325,\"ratio\":0.5574737007643811,\"exerciseId\":\"db_rdl\"}",
+     "T2 deadlift>single_leg_db_rdl | 40(205) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":205,\"ratio\":0.35,\"estimate\":325,\"targetReps\":10}",
      "T3 face_pulls | 30 3x15+",
      "accessory oh_tricep_ext | 0 3x15+",
      "accessory bicep_curls | 25 3x12"
@@ -11365,8 +11339,8 @@
       "reps": 10,
       "stage": "3x10",
       "home": {
-       "exerciseId": "db_rdl",
-       "weight": 65,
+       "exerciseId": "single_leg_db_rdl",
+       "weight": 40,
        "perHand": true,
        "stage": "3x10",
        "sets": 3,
@@ -11429,19 +11403,6 @@
       "estimate": 124,
       "ratio": 0.9117481449103596,
       "exerciseId": "db_shoulder_press"
-     },
-     "deadlift|T2": {
-      "rule": "estimate",
-      "weight": 65,
-      "fromSteps": 70,
-      "fromEstimate": 65,
-      "stepsEarned": 3,
-      "targetReps": 10,
-      "location": "home",
-      "lastWeight": 55,
-      "estimate": 325,
-      "ratio": 0.5574737007643811,
-      "exerciseId": "db_rdl"
      }
     }
    },
@@ -11449,7 +11410,7 @@
     "warmup ohp>db_shoulder_press | 20(110) 1x10",
     "warmup ohp>db_shoulder_press | 35(110) 1x5",
     "T1 ohp>db_shoulder_press | 95(209) 2x4+ | variant=ohp|db_shoulder_press|T1 perHand",
-    "T2 deadlift>db_rdl | 65(205) 4x8 | variant=deadlift|db_rdl|T2 perHand",
+    "T2 deadlift>single_leg_db_rdl | 40(205) 4x8 | variant=deadlift|single_leg_db_rdl|T2 perHand | seed={\"source\":\"estimate\",\"barbellWeight\":205,\"ratio\":0.35,\"estimate\":325,\"targetReps\":10}",
     "T3 face_pulls | 30 3x15+",
     "accessory oh_tricep_ext | 0 3x15+",
     "accessory bicep_curls | 25 3x12"
