@@ -26,7 +26,9 @@ describe("research library", () => {
     expect(screen.getByText(getRule("rest-heavy").title)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "Program rule" }));
     expect(screen.queryByText(getRule("rest-heavy").title)).toBeNull();
-    expect(screen.getByText(getRule("t3-progression").title)).toBeInTheDocument();
+    expect(screen.getByText(getRule("gzclp-progression").title)).toBeInTheDocument();
+    // The T3 threshold is the app's own arithmetic, so it is not listed as a program rule.
+    expect(screen.queryByText(getRule("t3-progression").title)).toBeNull();
   });
 
   it("lists only a model's rules for ?model=", () => {

@@ -105,11 +105,11 @@ export const PROGRESSION_RULES = {
       `A fixed number asks too much after a small step and too little after a big one: ${T3_INCREMENT_LBS} lb is ${T3_SMALL_STEP_PERCENT}% of a 120 lb pulldown but ${T3_BIG_STEP_PERCENT}% of a 25 lb dumbbell. Asking the last set to predict the target reps at the next weight keeps each step about as hard as the last. Muscle growth improves as sets end closer to failure, and people judge reps left least accurately in high-rep sets, so the last set, taken as far as you can, is the honest test.`,
     caveat:
       `The 3×${T3_TARGET_REPS}+ scheme, and the rule that the last set decides, are GZCLP's own (program); stock GZCLP moves up at a flat ${T3_INCREASE_REPS_MAX} reps whatever the step. ` +
-      `The step-sized number is this app's own arithmetic (graded heuristic): no study tested it, and the rep formula is known to be imprecise above about 10 reps. ` +
+      `The step-sized number is this app's own arithmetic, which is why the rule is graded a heuristic and not a program rule: no study tested it, and the rep formula is known to be imprecise above about 10 reps. ` +
       `The floor of ${T3_INCREASE_REPS_MIN} is there because the formula is rough at high reps, so a tiny step still asks for a hard last set; the ceiling of ${T3_INCREASE_REPS_MAX} keeps the stock rule as the hardest case. ` +
-      `The cited studies support taking sets close to failure, not this threshold. A double progression (every set near the top of a rep range, as accessories use) would fit that evidence better; that change is still open.`,
-    strength: "program",
-    sources: ["robinson2024", "halperin2022"],
+      `Research supports taking sets close to failure (it is cited under the accessory rule), not this threshold, so nothing is cited here. A double progression (every set near the top of a rep range, as accessories use) would fit that evidence better; that change is still open.`,
+    strength: "heuristic",
+    sources: [],
     reviewedOn: "2026-11",
     implementedIn: [
       "src/lib/progression.ts#t3IncreaseThreshold",

@@ -59,6 +59,22 @@ Still to do (small), queued with the polish items:
 - Today now chooses accessories for the next three workouts as well (for the Coming up line);
   the cost on a long history has not been measured.
 
+## From the T3 threshold change and another session's bug check, 2026-11-18
+
+- The T3 rule is graded `heuristic` and cites nothing: its threshold is the app's own
+  arithmetic, and the research on proximity to failure is cited under the accessory rule.
+- A dumbbell row done as the T3 lift itself always steps 5 lb, past the heaviest dumbbell and
+  whatever the dumbbell increment. The threshold matches that step; the step may be wrong.
+- A first T3 weight is the one liftable about 20 times; with a floor of 18 a T3 seeded from
+  imported history can go up after its first session. Decide whether that is wanted.
+- "last set reached 26 of 18" reads oddly above the threshold: say "26 reps, needed 18".
+- The demo data's T3 last sets (18 to 26) now move almost every T3 up each session.
+- The own-history window (`ownHistoryOf`, `ownHistoryFirstWeight`) counts back from the newest
+  logged set, not the planning date, so very old sets can seed today's weight. Fix by passing
+  the planning date through `seedVariantWeight` / `resolveLifts` and their callers, with a
+  changelog entry. Found by the edit-delete-log-entries session; taken here after the swap
+  screens and the full future-workout view land.
+
 ## Promised and missing
 
 | Item | Where it was promised | In the code today | Size |
