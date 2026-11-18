@@ -17,7 +17,6 @@ import { templateTitle } from "@/components/ActiveWorkout/templateTitle";
 import { DaySelector } from "@/components/PreWorkout/DaySelector";
 import { FavouriteActions } from "@/components/PreWorkout/FavouriteActions";
 import { EditWorkoutButton } from "@/components/PreWorkout/EditWorkoutButton";
-import { AccessoryPicker } from "@/components/PreWorkout/AccessoryPicker";
 import { HomeAlternatives } from "@/components/PreWorkout/HomeAlternatives";
 import { LocationToggle } from "@/components/PreWorkout/LocationToggle";
 import { PainSummary } from "@/components/PreWorkout/PainSummary";
@@ -198,24 +197,6 @@ function ConfigureWorkoutContent() {
             <TechniqueChecklist exerciseType={setup.techniqueFocus} />
           </SetupExpander>
         )}
-
-        <SetupExpander
-          title="Add accessories"
-          badge={
-            setup.selectedAccessories.length > 0 && (
-              <Badge variant="outline">{setup.selectedAccessories.length}</Badge>
-            )
-          }
-        >
-          <AccessoryPicker
-            recommendations={setup.accessoryRecommendations}
-            selectedAccessories={setup.selectedAccessories}
-            onToggle={setup.toggleAccessory}
-            trainingPhase={setup.trainingPhase}
-            location={setup.location}
-            exercisePreferences={setup.exercisePreferences}
-          />
-        </SetupExpander>
 
         {hasSubstitutes && (
           <SetupExpander title="Alternatives for home">

@@ -103,6 +103,7 @@ export const PROGRESSION_RULES = {
       "src/lib/accessories.ts#evaluateAccessoryProgression",
       "src/lib/accessories/prescription.ts#accessoryPrescription",
       "src/lib/accessories/prescription.ts#ownHistoryFirstWeight",
+      "src/lib/workout/accessoryPlan.ts#planAccessories",
     ],
     surfaces: [],
     activationNotes:

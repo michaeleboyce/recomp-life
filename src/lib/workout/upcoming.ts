@@ -219,6 +219,7 @@ export function projectUpcomingWorkouts(input: ProjectUpcomingInput): UpcomingWo
         settings: { equipment, showWarmUps: includeWarmUps, nextSetPlans: input.nextSetPlans },
         location,
         reentry: "everyLift",
+        accessories: false,
       })
     : describeNextWorkout({
         completedWorkouts,

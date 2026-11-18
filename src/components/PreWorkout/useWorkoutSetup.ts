@@ -21,8 +21,9 @@ import { adaptExerciseForHome } from "@/lib/autoAdapt";
 import { recordAdjustment } from "@/lib/data/adjustments";
 import { recordCoachEvent, type CoachEventInput } from "@/lib/data/coachEvents";
 import { startWorkout } from "@/lib/data/workouts";
-import { ACCESSORY_IDS, EXERCISES } from "@/lib/exercises";
-import { resolvePreferences, withPreferredAccessories } from "@/lib/exercisePreferences";
+import { clearAccessoryWeight, setAccessorySettings, setAccessoryWeight } from "@/lib/data/records";
+import { EXERCISES } from "@/lib/exercises";
+import { resolvePreferences } from "@/lib/exercisePreferences";
 import {
   favoriteEditsAt,
   favoritePinNote,
@@ -33,12 +34,22 @@ import { RECOVERY_HOURS, lastTrainedDates } from "@/lib/recovery";
 import { evaluateRunImpact, workoutHasLowerBody } from "@/lib/runRecovery";
 import { sleepBucket } from "@/lib/health/sleep";
 import { getExerciseDecaySuggestions } from "@/lib/weightDecay";
-import { getPrescription, nextSetPlanKey, planWorkoutStart, substituteModification } from "@/lib/workout";
-import { ACCESSORY_RECOMMENDATIONS, WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
+import {
+  accessoryAddEdit,
+  accessoryRowsOf,
+  getPrescription,
+  nextSetPlanKey,
+  planWorkoutStart,
+  prescribeAccessory,
+  substituteModification,
+  type AccessorySource,
+} from "@/lib/workout";
+import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { addEdit, removeEdit, schemeEdit, setWeightsEdit, swapEdit, weightEdit } from "./editList";
 import { computeImpact } from "./impact";
 import { lighterWeight, notesToWrite, queueNote, type PendingNote } from "./setupNotes";
 import type {
+  AccessoryMode,
   ExerciseAdaptation,
   LiftState,
   PlanEdit,
@@ -268,7 +279,8 @@ export function useWorkoutSetup(
   /** True while the answer shown is the one Apple Health gave. */
   const sleepIsFromHealth = healthSleep !== null && sleepHours === healthSleep;
   const [stressLevel, setStressLevel] = useState<StressLevel | null>(null);
-  const [selectedAccessories, setSelectedAccessories] = useState<string[]>([]);
+  // Accessories named outright (a favourite's): planned instead of the app's choice.
+  const [namedAccessories, setNamedAccessories] = useState<string[]>([]);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [runAdvisoryDismissed, setRunAdvisoryDismissed] = useState(false);
   const [activityNoteDismissed, setActivityNoteDismissed] = useState(false);
@@ -293,7 +305,7 @@ export function useWorkoutSetup(
     setSeededFrom(favorite);
     setChosenTemplateId(favorite.templateId);
     setWarmUpsChoice(favorite.includeWarmUps);
-    setSelectedAccessories(favorite.selectedAccessories);
+    setNamedAccessories(favorite.selectedAccessories);
     setOverrides(favorite.overrides);
     setEditState({ templateId: favorite.templateId, edits: favorite.planEdits });
     // Its location is this workout's, as if chosen here (saved as the default below).
@@ -323,6 +335,14 @@ export function useWorkoutSetup(
     [saveLocation, savedLocation]
   );
 
+  // What the accessories are chosen and prescribed from: the same inputs as Today's
+  // (`resolveNextWorkout`), on this screen's day, so the same day gives the same picks.
+  const [openedAt] = useState(() => new Date());
+  const accessorySource = useMemo<AccessorySource>(
+    () => ({ settings, strengthSets: strengthSets ?? [], now: openedAt }),
+    [settings, strengthSets, openedAt]
+  );
+
   /**
    * Exactly what the active workout will perform, and what the program prescribes for
    * the day's lifts before any edit (stored on the session): at home each lift's home
@@ -338,7 +358,8 @@ export function useWorkoutSetup(
             location,
             equipment,
             includeWarmUps: warmUps,
-            selectedAccessories,
+            selectedAccessories: namedAccessories,
+            accessories: accessorySource,
             overrides,
             edits: pinned,
             variantStates,
@@ -346,19 +367,85 @@ export function useWorkoutSetup(
             ...(nextSetPlans ? { nextSetPlans } : {}),
           })
         : null,
-    [template, liftStates, location, equipment, warmUps, selectedAccessories, overrides, pinned, variantStates, strengthSets, nextSetPlans]
+    [template, liftStates, location, equipment, warmUps, namedAccessories, accessorySource, overrides, pinned, variantStates, strengthSets, nextSetPlans]
   );
   const plan = useMemo(() => startPlan?.plan ?? [], [startPlan]);
   const prescribed = startPlan?.prescribed ?? NO_PRESCRIBED;
   /** The per-set weights set on an exercise's page for this session, as edits (E6). */
   const setPlanEdits = startPlan?.nextSetPlanEdits ?? NO_EDITS;
-  /** Everything that changes the program's plan, as saved on the session: set plans first, so the user's edits win. */
-  const sessionEdits = useMemo(
+  /** The planned accessories as `add` edits (A6), saved first on the session. */
+  const accessoryEdits = startPlan?.accessoryEdits ?? NO_EDITS;
+  const accessoryPlan = startPlan?.accessories ?? null;
+  /** Edits to the program: set plans first, so the user's edits win. Accessories never touch it. */
+  const programEdits = useMemo(
     () => (setPlanEdits.length === 0 ? pinned : [...setPlanEdits, ...pinned]),
     [setPlanEdits, pinned]
   );
+  /** Everything that changes the program's plan, as saved on the session: accessories, set plans, then the user's edits. */
+  const sessionEdits = useMemo(
+    () => (accessoryEdits.length === 0 ? programEdits : [...accessoryEdits, ...programEdits]),
+    [accessoryEdits, programEdits]
+  );
   /** Per program lift: counts toward progression, logged only, or not done. Empty without edits. */
-  const impact = useMemo(() => computeImpact(plan, prescribed, sessionEdits), [plan, prescribed, sessionEdits]);
+  const impact = useMemo(() => computeImpact(plan, prescribed, programEdits), [plan, prescribed, programEdits]);
+
+  /** The accessories as planned now (after the user's changes), each with its prescription and reasons. */
+  const accessoryRows = useMemo(
+    () => (accessoryPlan ? accessoryRowsOf(plan, accessoryPlan, accessorySource) : []),
+    [plan, accessoryPlan, accessorySource]
+  );
+  /** The accessories in the plan, by id: what a favourite saved from here keeps. */
+  const selectedAccessories = useMemo(() => accessoryRows.map((row) => row.exerciseId), [accessoryRows]);
+
+  /** Adds an accessory at its prescription (the app's weight and scheme for it today). */
+  const addAccessory = useCallback(
+    (exerciseId: string) => {
+      const add = accessoryAddEdit(prescribeAccessory(exerciseId, accessorySource));
+      changeEdits((list) => addEdit(list, exerciseId, add));
+    },
+    [changeEdits, accessorySource]
+  );
+  const removeAccessory = useCallback(
+    (exerciseId: string) => changeEdits((list) => removeEdit(list, exerciseId, "accessory")),
+    [changeEdits]
+  );
+  /** Puts `replacementId` in an accessory's place, at its own prescription. */
+  const swapAccessory = useCallback(
+    (exerciseId: string, replacementId: string) => {
+      const add = accessoryAddEdit(prescribeAccessory(replacementId, accessorySource));
+      changeEdits((list) => {
+        const swapped = swapEdit(list, exerciseId, "accessory", replacementId);
+        const schemed = schemeEdit(swapped, replacementId, "accessory", add.sets, add.reps);
+        return weightEdit(schemed, replacementId, "accessory", add.weight);
+      });
+    },
+    [changeEdits, accessorySource]
+  );
+  /** "No accessories today": every accessory in the plan removed, for this workout only. */
+  const clearAccessories = useCallback(() => {
+    const ids = accessoryRows.map((row) => row.exerciseId);
+    changeEdits((list) => ids.reduce((acc, id) => removeEdit(acc, id, "accessory"), list));
+  }, [changeEdits, accessoryRows]);
+  /**
+   * An accessory's weight set by hand (kept until a session logs the exercise), or with
+   * null the plan's again; this workout's entry follows at once.
+   */
+  const setAccessoryWeightTo = useCallback(
+    async (exerciseId: string, weight: number | null) => {
+      const row = accessoryRows.find((r) => r.exerciseId === exerciseId);
+      const planned = row?.prescription.planWeight ?? row?.prescription.weight ?? 0;
+      if (weight === null) await clearAccessoryWeight(exerciseId);
+      else await setAccessoryWeight(exerciseId, weight);
+      changeEdits((list) => weightEdit(list, exerciseId, "accessory", weight ?? planned));
+    },
+    [accessoryRows, changeEdits]
+  );
+  const setAccessoryMode = useCallback((mode: AccessoryMode) => setAccessorySettings({ mode }), []);
+  const pinAccessory = useCallback(
+    (exerciseId: string, pinned: boolean) =>
+      templateId ? setAccessorySettings({ pin: { templateId, exerciseId, pinned } }) : Promise.resolve(),
+    [templateId]
+  );
 
   /**
    * Each set its own weight and rep target; null makes the entry's sets uniform again
@@ -642,23 +729,6 @@ export function useWorkoutSetup(
     return (painEntries ?? []).filter((entry) => new Date(entry.date).getTime() > cutoff);
   }, [painEntries]);
 
-  // Every preferred accessory is offered, then the rest of the day's recommendations.
-  const accessoryRecommendations = useMemo(
-    () =>
-      withPreferredAccessories(
-        templateId ? (ACCESSORY_RECOMMENDATIONS[templateId] ?? []) : [],
-        exercisePreferences,
-        ACCESSORY_IDS
-      ),
-    [templateId, exercisePreferences]
-  );
-
-  const toggleAccessory = useCallback((exerciseId: string) => {
-    setSelectedAccessories((prev) =>
-      prev.includes(exerciseId) ? prev.filter((id) => id !== exerciseId) : [...prev, exerciseId]
-    );
-  }, []);
-
   const t1ExerciseId = template?.exercises.find((e) => e.tier === "T1")?.exerciseId;
   const techniqueFocus: "squat" | "deadlift" | null =
     t1ExerciseId === "squat" || t1ExerciseId === "deadlift" ? t1ExerciseId : null;
@@ -687,7 +757,8 @@ export function useWorkoutSetup(
         templateId,
         location,
         includeWarmUps: warmUps,
-        selectedAccessories,
+        // The accessories planned at start (their weights are in the `add` edits).
+        selectedAccessories: accessoryEdits.flatMap((edit) => (edit.kind === "add" ? [edit.exerciseId] : [])),
         modifications,
         readiness:
           sleepHours && stressLevel
@@ -721,7 +792,7 @@ export function useWorkoutSetup(
     plan,
     location,
     warmUps,
-    selectedAccessories,
+    accessoryEdits,
     sleepHours,
     stressLevel,
     prescribed,
@@ -775,9 +846,21 @@ export function useWorkoutSetup(
     healthSleepMinutes,
     stressLevel,
     setStressLevel,
+    /** The accessories in the plan by id (what a favourite keeps). */
     selectedAccessories,
-    toggleAccessory,
-    accessoryRecommendations,
+    /** The accessories chosen today, with the scored list they came from; null while loading. */
+    accessoryPlan,
+    /** The accessories as planned now, each with its prescription and reasons. */
+    accessoryRows,
+    /** What the accessories are prescribed from (for an accessory not in the plan yet). */
+    accessorySource,
+    addAccessory,
+    removeAccessory,
+    swapAccessory,
+    clearAccessories,
+    setAccessoryWeight: setAccessoryWeightTo,
+    setAccessoryMode,
+    pinAccessory,
     homeAdaptations,
     chooseSubstitute,
     runAdvisory,

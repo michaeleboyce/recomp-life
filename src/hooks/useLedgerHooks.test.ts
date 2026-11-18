@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { initializeDatabase } from "@/db/init";
 import { db } from "@/db/local";
-import { readLedgerRecords } from "@/lib/data/forecasts";
+import { nextWorkoutFrom, readLedgerRecords } from "@/lib/data/forecasts";
 import { softDelete } from "@/lib/data/logEdits";
 import { clearDb, runSession } from "@/lib/data/testUtils";
 import { appendSet, finishWorkout, startWorkout } from "@/lib/data/workouts";
@@ -225,7 +225,8 @@ describe("useSessionForecasts, useScoredForecasts, useTrackRecord and useStoredD
     const next = renderHook(() => useNextWorkout("gym"));
     await waitFor(() => expect(next.result.current).toBeDefined());
     expect(next.result.current!.templateId).toBe(session.templateId);
-    const nextPlan = next.result.current!.plan.filter((entry) => !entry.isWarmUp);
+    // The program's lifts, as the workout was started (without the accessories Today plans).
+    const nextPlan = next.result.current!.plan.filter((entry) => !entry.isWarmUp && entry.tier !== "accessory");
     next.unmount();
     return { nextPlan };
   }
@@ -368,12 +369,15 @@ describe("useTodayForecast", () => {
     await history(8);
     const records = await readLedgerRecords(new Date());
     const today = todayForecastFrom(records, "gym");
+    // Started as Ready starts it with no change: with the accessories chosen for today.
+    const next = nextWorkoutFrom(records, "gym");
 
     const id = await startWorkout({
       templateId: "A1",
       location: "gym",
       includeWarmUps: records.settings.showWarmUps,
-      selectedAccessories: [],
+      selectedAccessories: next.accessories!.planned.map((p) => p.exerciseId),
+      planEdits: next.accessoryEdits,
     });
     const newBest = (await db.forecasts.get(sessionForecastId(id, "newBest", "squat", "T1")))!;
     const length = (await db.forecasts.get(sessionForecastId(id, "sessionLength")))!;

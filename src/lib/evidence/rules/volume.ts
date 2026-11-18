@@ -64,7 +64,10 @@ export const VOLUME_RULES = {
     strength: "heuristic",
     sources: [],
     reviewedOn: "2026-11",
-    implementedIn: ["src/lib/accessories/select.ts#chooseAccessories"],
+    implementedIn: [
+      "src/lib/accessories/select.ts#chooseAccessories",
+      "src/lib/workout/accessoryPlan.ts#planAccessories",
+    ],
     surfaces: [],
     activationNotes:
       "Switch to active when Today and the Ready screen show the chosen accessories with their reasons (accessories design X3 and X4).",

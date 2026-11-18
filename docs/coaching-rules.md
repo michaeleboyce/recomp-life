@@ -143,7 +143,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `accessory-progression`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Moderate evidence
-- **Implemented in:** `src/lib/accessories.ts` (`evaluateAccessoryProgression`), `src/lib/accessories/prescription.ts` (`accessoryPrescription`), `src/lib/accessories/prescription.ts` (`ownHistoryFirstWeight`)
+- **Implemented in:** `src/lib/accessories.ts` (`evaluateAccessoryProgression`), `src/lib/accessories/prescription.ts` (`accessoryPrescription`), `src/lib/accessories/prescription.ts` (`ownHistoryFirstWeight`), `src/lib/workout/accessoryPlan.ts` (`planAccessories`)
 - **Reviewed:** November 2026
 
 **In one line.** Add weight once every set reaches the top of its rep range
@@ -714,7 +714,7 @@ Most training studies last 8 to 12 weeks and many use people new to lifting, so 
 - **Rule id:** `accessory-selection`
 - **Status:** Planned (in the code, not connected to any screen)
 - **Evidence:** Coaching heuristic
-- **Implemented in:** `src/lib/accessories/select.ts` (`chooseAccessories`)
+- **Implemented in:** `src/lib/accessories/select.ts` (`chooseAccessories`), `src/lib/workout/accessoryPlan.ts` (`planAccessories`)
 - **Reviewed:** November 2026
 
 **In one line.** A scored list: your pins and preferences, your habits, and this week's gaps
