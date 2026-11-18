@@ -171,7 +171,7 @@ export function SwapPanel({
           </button>
         )}
         <Title className="pr-10 text-lg font-semibold">Swap {name}</Title>
-        <Description className="text-sm text-muted-foreground">{description}</Description>
+        {(asSheet || !!setsLogged) && <Description className="text-sm text-muted-foreground">{description}</Description>}
       </div>
 
       {!context ? (
@@ -348,7 +348,7 @@ function CandidateRow({
           className={cn("flex min-h-11 min-w-0 flex-1 flex-col gap-0.5 rounded-xl px-3 text-left", compact ? "py-1.5" : "py-2", FOCUS)}
         >
           <span className="flex items-baseline justify-between gap-2">
-            <span className={cn("truncate font-semibold", compact ? "text-[13px]" : "text-[15px]")}>
+            <span className={cn("min-w-0 font-semibold", compact ? "truncate text-[13px]" : "text-[15px] leading-tight")}>
               {order >= 0 && <span className="mr-1 font-mono text-xs text-muted-foreground">{order + 1}.</span>}
               {name}
             </span>
