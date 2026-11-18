@@ -14,6 +14,7 @@ import {
   TRANSFER_RATIO as R,
   type TransferPrior,
 } from "@/lib/strength/coefficients";
+import { TREND_SMOOTHING } from "@/lib/strength/timeline";
 
 /** 0.4 -> "40%", 0.035 -> "3.5%". */
 const pct = (fraction: number) => `${Number((fraction * 100).toPrecision(3))}%`;
@@ -98,7 +99,7 @@ export const STRENGTH_RULES = {
     status: "active",
     title: "How do gym and home sessions combine into one strength estimate?",
     summary: "Barbell and home sessions pool into one estimate; home ones count less",
-    appBehavior: `Every session gives an estimated max with the same formula and limits as the barbell lift (T1 sets taken as far as you can, ${E1RM_MAX_REPS} reps or fewer), on the total weight moved: both dumbbells when you hold one in each hand, the single dumbbell for a goblet squat. A lift's estimate starts from its latest barbell session; with only barbell sessions it is exactly your latest estimated 1RM. Home sessions after it are converted through the exercise's ratio and added, each counting ${pct(P.transferWeight)} as much as a barbell session, and a session's weight halves for every ${P.evidenceHalfLifeDays} days it is older than the newest one. The range assumes one session's estimate is off by about ${pct(P.sessionSdFraction)}, a home session by more, plus the uncertainty of the ratio. Back at the gym after home sessions, the barbell weight is the smaller of your last barbell weight plus the steps your home passes earned and the heaviest weight at which the estimate says the stage's reps are possible, rounded down to plates you can load; the first home weight after gym sessions follows the same rule, capped by your heaviest dumbbell. Each muscle's trend averages every exercise that works it, a primary muscle at ${M.primary} and a secondary one at ${M.secondary}, each exercise against its own earlier sessions; an exercise not done for ${I.staleAfterDays} days drops out until you do it again. Sessions imported from another app count by the same rules and the same ${P.evidenceHalfLifeDays}-day halving, so a session years old informs the trend but not next week's weight: they feed every plan (a home exercise's first weight, re-entry and the learned ratios) and the lift pages, where they are marked as imported, but they never change the workout order or the progression.`,
+    appBehavior: `Every session gives an estimated max with the same formula and limits as the barbell lift (T1 sets taken as far as you can, ${E1RM_MAX_REPS} reps or fewer), on the total weight moved: both dumbbells when you hold one in each hand, the single dumbbell for a goblet squat. A lift's estimate starts from its latest barbell session; with only barbell sessions it is exactly your latest estimated 1RM. Home sessions after it are converted through the exercise's ratio and added, each counting ${pct(P.transferWeight)} as much as a barbell session, and a session's weight halves for every ${P.evidenceHalfLifeDays} days it is older than the newest one. The range assumes one session's estimate is off by about ${pct(P.sessionSdFraction)}, a home session by more, plus the uncertainty of the ratio. Back at the gym after home sessions, the barbell weight is the smaller of your last barbell weight plus the steps your home passes earned and the heaviest weight at which the estimate says the stage's reps are possible, rounded down to plates you can load; the first home weight after gym sessions follows the same rule, capped by your heaviest dumbbell. Each muscle's trend averages every exercise that works it, a primary muscle at ${M.primary} and a secondary one at ${M.secondary}, each exercise against its own earlier sessions; an exercise not done for ${I.staleAfterDays} days drops out until you do it again. Sessions imported from another app count by the same rules and the same ${P.evidenceHalfLifeDays}-day halving, so a session years old informs the trend but not next week's weight: they feed every plan (a home exercise's first weight, re-entry and the learned ratios) and the lift pages, where they are marked as imported, but they never change the workout order or the progression. The estimated-max chart on each lift's page, and the strength trend chart of each muscle, draw this as one smooth line: the estimate as of each session, the weighted mean of every session up to then with these same weights (a home session through its ratio at ${pct(P.transferWeight)}), with a band of one standard deviation and every session behind it as a dot by source. Its smoothing can be light (a weight halves every ${TREND_SMOOTHING.light} days), standard (${TREND_SMOOTHING.standard} days, as the plan) or heavy (${TREND_SMOOTHING.heavy} days); the smoothing and the sources you switch off change only the line, never a planned weight. The big number is the plan's own estimate, which starts from the latest barbell session and adds only the home sessions after it, so it can differ from the line; the chart says by how much and why. The Strength tab's total adds the lifts' lines.`,
     rationale:
       "A barbell session measures the lift itself; a home session measures the same muscles through a different movement, so it says something about the lift, but less. Counting it for less keeps one good home day from moving the barbell weight much, while a run of home sessions still shows. Taking the smaller of the two re-entry rules means the barbell weight never jumps past what either your passes or your measured strength supports.",
     caveat:
@@ -121,12 +122,18 @@ export const STRENGTH_RULES = {
       "src/lib/data/forecasts.ts#strengthSetsFrom",
       "src/lib/import/history.ts#importedLiftIndex",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
+      "src/lib/strength/timeline.ts#TREND_SMOOTHING",
+      "src/lib/strength/timeline.ts#strengthTimeline",
+      "src/lib/strength/timeline.ts#muscleTimeline",
+      "src/lib/strength/timeline.ts#smoothedEstimate",
+      "src/lib/strength/timeline.ts#weeklyShares",
     ],
     surfaces: [
       "src/components/Progress/MusclesTab.tsx",
       "src/components/ExercisePage/HomeNextSession.tsx",
       "src/components/ExercisePage/CountsToward.tsx",
       "src/components/Lift/ImportedHistory.tsx",
+      "src/components/StrengthTrend/StrengthTrendPanel.tsx",
     ],
   },
   "target-evidence": {
@@ -153,6 +160,7 @@ export const STRENGTH_RULES = {
       "src/hooks/useStrengthEvidence.ts#useStrengthEvidence",
       "src/lib/data/forecasts.ts#strengthSetsFrom",
       "src/lib/trace/homeWeight.ts#homeWeightSteps",
+      "src/lib/strength/timeline.ts#strengthTimeline",
     ],
     surfaces: ["src/components/ExercisePage/HomeNextSession.tsx"],
   },
