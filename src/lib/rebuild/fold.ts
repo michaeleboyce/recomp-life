@@ -335,7 +335,10 @@ function sortedVariants(variants: Map<string, VariantState>): VariantState[] {
  * variant that already exists keeps the anchored values (in `variants`); one the session
  * used for the first time is anchored only in the returned map, and is stored only if
  * the session performed it, as the live app stores it. The lifts are what the session
- * did: the exercise, weight and scheme it recorded.
+ * did: the exercise, weight and scheme it recorded. A home exercise the session did first
+ * is seeded for the day the session started: its own history counts back from
+ * `session.startedAt` (`resolveSavedSession`), as `completeWorkout` seeds it, never from
+ * the newest set.
  *
  * `restore` puts back, for every lift the session was prescribed but logged no set of
  * (taken out of the plan, or simply not done), the lift's running state and the running

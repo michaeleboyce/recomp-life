@@ -5,7 +5,9 @@ import {
   evaluateAccessoryProgression,
   getAccessoryRepRange,
 } from "@/lib/accessories";
+import { calendarDaysBetween } from "@/lib/dates";
 import { EXERCISES } from "@/lib/exercises";
+import { plural } from "@/lib/text";
 import { asLifted, impliedWeightForReps, latestEstimate, type StrengthSet } from "@/lib/strength";
 import type { AccessoryHandSetWeight, EquipmentProfile, UserSettings } from "@/types";
 import { sanitizeAccessoryWeights } from "./settings";
@@ -221,6 +223,12 @@ function lastOf(session: StrengthSet[]): AccessoryLastSession {
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
 
+/** "8 weeks ago", "14 months ago": how long ago a session older than the window was. */
+function longAgoText(date: Date, now: Date): string {
+  const days = calendarDaysBetween(date, now);
+  return days < 61 ? `${plural(Math.round(days / 7), "week")} ago` : `${plural(Math.round(days / 30), "month")} ago`;
+}
+
 interface PlanWeight {
   weight: number | null;
   basis: "progression" | "history" | "none";
@@ -236,11 +244,14 @@ function planFromLog(input: AccessoryPrescriptionInput, range: { min: number; ma
   if (sessions.length > 0) {
     const lasts = sessions.map(lastOf);
     const last = lasts[lasts.length - 1];
-    // Sessions in a row, newest back, at the last weight without every set at the top.
+    const window = OWN_HISTORY_FIRST_WEIGHT.recentDays * DAY_MS;
+    // Sessions in a row, newest back, at the last weight without every set at the top. A
+    // break longer than the own-history window starts the count again.
     let stuck = 0;
     for (let i = lasts.length - 1; i >= 0; i -= 1) {
       const s = lasts[i];
       if (s.weight !== last.weight || s.reps.every((r) => r >= range.max)) break;
+      if (i < lasts.length - 1 && t(lasts[i + 1].date) - t(s.date) > window) break;
       stuck += 1;
     }
     if (bodyweight && !(last.weight > 0)) {
@@ -251,6 +262,16 @@ function planFromLog(input: AccessoryPrescriptionInput, range: { min: number; ma
         last,
         verdict: "same",
         note: all ? `Every set reached ${range.max} last time: add load or slow the reps` : `Working toward ${range.max} reps on every set`,
+      };
+    }
+    // Last done longer ago than the own-history window: nothing is added from it.
+    if (t(last.date) < input.now.getTime() - window) {
+      return {
+        weight: last.weight,
+        basis: "progression",
+        last,
+        verdict: "same",
+        note: `Last done ${longAgoText(last.date, input.now)}: same weight to start`,
       };
     }
     const result = evaluateAccessoryProgression(
@@ -296,7 +317,9 @@ function planFromLog(input: AccessoryPrescriptionInput, range: { min: number; ma
  * 2. double progression (`evaluateAccessoryProgression`) over the app's sessions of
  *    the exercise as an accessory: every set at the top of the range, up one step;
  *    stuck ACCESSORY_STUCK_SESSIONS sessions, down to ACCESSORY_DELOAD_FRACTION; else
- *    the same;
+ *    the same. A last session older than OWN_HISTORY_FIRST_WEIGHT.recentDays before the
+ *    date planned for adds nothing: the same weight, with when it was done; and a break
+ *    that long starts the stuck count again;
  * 3. a first weight from the exercise's own history (`ownHistoryFirstWeight`);
  * 4. none: the user enters one.
  * The step is the dumbbell increment for dumbbell work, 5 lb otherwise.

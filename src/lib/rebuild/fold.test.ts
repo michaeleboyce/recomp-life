@@ -255,6 +255,34 @@ describe("rebuildDerived: partial, home, T3, late sets", () => {
     expect(variantOf(final, split)).toMatchObject({ current: true });
   });
 
+  it("seeds a home exercise a session did first from the sets in the window before that session's start", () => {
+    // Made-up log: squat T1 as the split squat at home, then B1 at the gym two days later,
+    // then A2 at home 15 weeks after that, squat T2 as the split squat for the first time.
+    const sim = startSim();
+    runSession(sim, { templateId: "A1", location: "home" });
+    runSession(sim, { templateId: "B1" });
+    const later = new Date(sim.workouts.at(-1)!.completedAt!);
+    later.setDate(later.getDate() + 15 * 7);
+    runSession(sim, { templateId: "A2", location: "home", startedAt: later });
+    const t2 = "squat|bulgarian_split_squat|T2";
+    // The newest set's clock (B1's) would read the split squat sets as recent: the
+    // session's start reads them as too old to set its weight.
+    const { variantStates } = rebuilt(sim);
+    expect(variantOf(variantStates, t2).seed.source).not.toBe("history");
+    // They still say when it was last done.
+    const lastSplit = Math.max(
+      ...sim.workouts[0].sets.filter((s) => s.substituteExerciseId === "bulgarian_split_squat").map((s) => new Date(s.completedAt).getTime())
+    );
+    expect(variantOf(variantStates, t2).seed.lastDone).toBe(lastSplit);
+
+    // Two days after it, the same sets are its own history.
+    const near = startSim();
+    runSession(near, { templateId: "A1", location: "home" });
+    runSession(near, { templateId: "B1" });
+    runSession(near, { templateId: "A2", location: "home" });
+    expect(variantOf(rebuilt(near).variantStates, t2).seed.source).toBe("history");
+  });
+
   it("records when a weight was set by hand, for a home exercise and for a barbell tier", () => {
     const sim = startSim();
     runSession(sim, { templateId: "A1", location: "home" });

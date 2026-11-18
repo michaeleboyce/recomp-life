@@ -3,7 +3,7 @@ import { lineValueAt } from "@/components/chart-kit/trendGeometry";
 import { windowBounds } from "@/lib/metrics/window";
 import { TREND_SMOOTHING, smoothedEstimate, strengthTimeline, type StrengthSet } from "@/lib/strength";
 import { makeStrengthSet } from "@/lib/strength/testHelpers";
-import { latestNote, lineChange, liftEstimate, strengthOverview, trendLimits, trendView } from "./strength";
+import { estimateNote, latestNote, lineChange, liftEstimate, strengthOverview, trendLimits, trendView } from "./strength";
 
 const NOW = new Date(2026, 10, 18, 12);
 
@@ -126,6 +126,19 @@ describe("the newest evidence of the estimate and the card's note (Q4)", () => {
     expect(latestNote(overview(home), "3m", now)).toBe(`Imported, ${shortDay(daysAgo(8))} · DB Bench Press`);
     const appHome = strengthTimeline("bench", [...sets, ...dbBench("h", 2)], { now });
     expect(latestNote(overview(appHome), "3m", now)).toBe(`${shortDay(daysAgo(2))} · DB Bench Press`);
+  });
+
+  it("says the same for a lift's estimate on its own (Today's tiles) as for its card", () => {
+    const cases = [
+      timeline(),
+      strengthTimeline("bench", sets.slice(0, 2), { now }),
+      strengthTimeline("bench", [...sets.slice(0, 2), ...dbBench("h", 8, true)], { now }),
+      strengthTimeline("bench", [...sets, ...dbBench("h", 2)], { now }),
+    ];
+    for (const tl of cases) {
+      expect(estimateNote("bench", liftEstimate(tl, "3m")!, "3m", now)).toBe(latestNote(overview(tl), "3m", now));
+    }
+    expect(estimateNote("bench", liftEstimate(cases[2], "3m")!, "3m", now)).toBe(`Imported, ${shortDay(daysAgo(8))} · DB Bench Press`);
   });
 
   it("gives the date, with the year when it is not this year, when the newest is older than the range", () => {

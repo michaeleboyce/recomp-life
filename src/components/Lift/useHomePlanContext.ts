@@ -1,14 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLiftStates, useNextWorkout, useSettings, useStrengthEvidence, useVariantStates } from "@/hooks";
 import { DEFAULT_USER_PROFILE } from "@/db/seed";
 import type { HomePlanContext } from "./homeVersion";
 
 /**
  * What a home exercise's next session is planned from: the next workout at home as
- * Today plans it, and the stored states and strength sets it was built from.
- * Undefined while loading.
+ * Today plans it, and the stored states and strength sets it was built from, planned
+ * for now (when the screen opened), as Today plans for now. Undefined while loading.
  */
 export function useHomePlanContext(): HomePlanContext | undefined {
   const next = useNextWorkout("home");
@@ -16,10 +16,11 @@ export function useHomePlanContext(): HomePlanContext | undefined {
   const variantStates = useVariantStates();
   const strengthSets = useStrengthEvidence();
   const settings = useSettings();
+  const [now] = useState(() => new Date());
 
   return useMemo(() => {
     if (!next || !liftStates || !variantStates || !strengthSets || settings === undefined) return undefined;
     const equipment = (settings ?? DEFAULT_USER_PROFILE.settings).equipment;
-    return { next, liftStates, variantStates, strengthSets, equipment };
-  }, [next, liftStates, variantStates, strengthSets, settings]);
+    return { next, liftStates, variantStates, strengthSets, equipment, now };
+  }, [next, liftStates, variantStates, strengthSets, settings, now]);
 }

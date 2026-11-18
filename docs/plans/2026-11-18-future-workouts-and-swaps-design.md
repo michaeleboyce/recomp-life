@@ -12,8 +12,8 @@ order of the whole batch agreed that day, so nothing is lost between sessions.
 | 1 | Main checkout fast-forwarded to `origin/main`, packages reinstalled | done |
 | 2 | Imported history in the weekly review, insights and Strength recovery rows; one number for a lift on Progress → Strength, Today and the lift page; lift page "Show all" paged (H1 to H6) | deployed 2026-11-18 |
 | 3 | Session length: a setting, a budget in accessory selection, a per-workout choice on Ready (L1 to L7) | deployed 2026-11-18 |
-| 4 | This spec (W1 to W12) | swap logic deployed; the full view and the swap screens building |
-| 5 | Polish (P1 to P4 below) | after 3 |
+| 4 | This spec (W1 to W12) | deployed 2026-11-18; a swap to a lift's own home version at home counts as the lift; a standing swap of a program lift is still open |
+| 5 | Polish (P1 to P4 below) | deployed 2026-11-18, except P4 (the two first-weight helpers follow different rules and were left apart) |
 | 6 | Code health (K1 to K6 below) | K2, the lint warnings and one slice of K4 done by another session on 2026-11-18; the rest last, when no feature work is open |
 
 ## What exists today

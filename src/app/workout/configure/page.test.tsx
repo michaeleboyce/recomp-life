@@ -200,8 +200,12 @@ describe("configure page", () => {
   it("starts the workout with a chosen home substitute and opens the active screen", async () => {
     await open("templateId=B2");
     fireEvent.click(screen.getByRole("button", { name: "Home" }));
-    const alternatives = await screen.findByRole("group", { name: "Alternatives" });
-    fireEvent.click(within(alternatives).getByRole("button", { name: /Single-Leg DB RDL/ }));
+    // Chosen in the swap sheet, which "Change" opens on that lift.
+    fireEvent.click(await screen.findByRole("button", { name: "Change Barbell Deadlift" }));
+    const panel = await screen.findByTestId("swap-panel");
+    fireEvent.click(await within(panel).findByRole("button", { name: "Pick Single-Leg DB RDL" }));
+    fireEvent.click(within(panel).getByRole("button", { name: "Swap in Single-Leg DB RDL" }));
+    await waitFor(() => expect(screen.queryByTestId("swap-panel")).toBeNull());
     await waitFor(() => expect(rows()[0]).toMatch(/^T1Single-Leg DB RDLin place of Barbell Deadlift/));
 
     fireEvent.click(screen.getByRole("button", { name: "START WORKOUT" }));

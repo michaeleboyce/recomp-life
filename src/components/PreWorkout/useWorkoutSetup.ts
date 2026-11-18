@@ -102,6 +102,8 @@ export interface HomeAdaptation {
   adaptation: ExerciseAdaptation;
   /** The substitute the plan will actually use; undefined when nothing is substituted. */
   chosenExerciseId: string | undefined;
+  /** The weight the plan does it at today (the home exercise's own); undefined when not in the plan. */
+  plannedWeight?: number;
 }
 
 /** Lifts trained within `RECOVERY_HOURS.ready`, as the barbell lift or as a home exercise. */
@@ -517,7 +519,13 @@ export function useWorkoutSetup(
           e.tier === templateExercise.tier
       );
       return [
-        { templateExercise, weight, adaptation, chosenExerciseId: entry?.substituteExerciseId },
+        {
+          templateExercise,
+          weight,
+          adaptation,
+          chosenExerciseId: entry?.substituteExerciseId,
+          ...(entry ? { plannedWeight: entry.weight } : {}),
+        },
       ];
     });
   }, [template, location, liftStates, equipment, plan]);
