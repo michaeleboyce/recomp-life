@@ -7,6 +7,7 @@ import { ListRow } from "@/components/ui/list-row";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Term } from "@/components/ui/term";
 import type { VolumeReview } from "@/lib/review";
+import { plural } from "@/lib/text";
 import { whole } from "./format";
 
 /** Hard sets per muscle group (last week's in each label) and the week's tonnage. */
@@ -28,6 +29,7 @@ export function VolumeSection({ volume }: { volume: VolumeReview }) {
       />
       <p className="text-xs text-muted-foreground">
         <Term id="hard-set">Hard sets</Term> per muscle group; last week in brackets.
+        {volume.importedSessions > 0 && ` Includes ${plural(volume.importedSessions, "imported session")}.`}
       </p>
       <BarSeries
         data={data}

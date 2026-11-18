@@ -11,16 +11,20 @@ const BODY: Record<InactivityAlertLevel, string> = {
 };
 
 /**
- * Days since the last completed workout, as InactivityBanner computes it. A user with
- * no completed workout at all gets nothing.
+ * Days since the last completed workout, as InactivityBanner computes it, counting
+ * sessions imported from other apps too (their end, else their start): training in
+ * another app is not time off. A user with no workout or imported session gets nothing.
+ *
+ * @evidence time-off
  */
 export function inactivityInsights(ctx: InsightContext): Insight[] {
   let last: Date | null = null;
-  for (const w of ctx.workouts) {
-    if (!w.completedAt) continue;
-    const d = toDate(w.completedAt);
+  const consider = (value: Date | string) => {
+    const d = toDate(value);
     if (isValidDate(d) && (!last || d.getTime() > last.getTime())) last = d;
-  }
+  };
+  for (const w of ctx.workouts) if (w.completedAt) consider(w.completedAt);
+  for (const s of ctx.imported ?? []) if (s.deletedAt == null) consider(s.endedAt ?? s.startedAt);
 
   const days = getDaysSinceLastWorkout(last, ctx.now);
   const alert = checkInactivity(days);

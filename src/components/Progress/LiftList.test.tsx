@@ -44,6 +44,38 @@ describe("LiftList", () => {
     expect(within(card).queryByText("–")).toBeNull();
   });
 
+  it("with the pooled estimate, shows it and its line's change instead of the latest session's", () => {
+    const now = new Date(2026, 10, 18, 12);
+    const before = new Date(now);
+    before.setDate(before.getDate() - 10);
+    const card = lift([{ t: before.getTime(), v: 158 }], null);
+    card.estimate = {
+      value: 162,
+      change: 4.4,
+      line: [
+        { t: before.getTime(), v: 157.6 },
+        { t: now.getTime(), v: 162 },
+      ],
+      latest: { t: before.getTime(), imported: false },
+    };
+    render(<LiftList lifts={[card]} />);
+    const link = screen.getByRole("link");
+    expect(within(link).getByText("162")).toBeInTheDocument();
+    expect(within(link).queryByText("158")).toBeNull();
+    expect(link).toHaveTextContent("+4");
+  });
+
+  it("marks the pooled estimate imported, with the date, when the lift's newest session is an old imported one", () => {
+    const at = new Date(2024, 7, 2, 18).getTime();
+    const card = lift([], { t: at, v: 175, imported: true });
+    card.estimate = { value: 171, change: null, line: [], latest: { t: at, imported: true } };
+    render(<LiftList lifts={[card]} />);
+    const link = screen.getByRole("link");
+    expect(within(link).getByText("171")).toBeInTheDocument();
+    expect(within(link).getByTestId("lift-latest-imported")).toHaveTextContent("Imported");
+    expect(within(link).getByTestId("lift-latest-date")).toHaveTextContent("Aug 2, 2024");
+  });
+
   it("shows '–' only for a lift with no estimate at all", () => {
     render(<LiftList lifts={[lift([], null)]} />);
     expect(within(screen.getByRole("link")).getByText("–")).toBeInTheDocument();

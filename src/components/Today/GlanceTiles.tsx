@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useBodyweightLog, useDueTemplateId, useImportedSessions, useLiftE1RM, useMetric, useSettings } from "@/hooks";
+import { useBodyweightLog, useDueTemplateId, useImportedSessions, useMetric, useSettings } from "@/hooks";
 import { WORKOUT_TEMPLATES } from "@/lib/workoutTemplates";
 import { getMonday } from "@/lib/dates";
 import { importedSessionsBetween } from "@/lib/import/history";
@@ -12,6 +12,7 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { TermIcon } from "@/components/ui/term";
 import { paceStatus, type PaceWord } from "@/components/Progress/body/bodyMath";
 import { rangeSuffix } from "@/components/Progress/rangeText";
+import { useLiftEstimate } from "@/components/Progress/useLiftEstimate";
 import { formatLbs, shortLiftName } from "./format";
 
 /** The program rotates four workouts (A1, B1, A2, B2), so a full week is four sessions. */
@@ -144,12 +145,14 @@ function WeekTile() {
 }
 
 function LiftTile({ exerciseId }: { exerciseId: string }) {
-  // The app's estimates and those of the lift's imported sessions (marked imported).
-  const e1rm = useLiftE1RM(exerciseId, "3m");
-  if (!e1rm) return <TileSkeleton />;
+  // The lift page headline's number (the pooled estimate, imported sessions included),
+  // with the change of the same smooth line over 3 months.
+  const estimate = useLiftEstimate(exerciseId, "3m");
+  if (estimate === undefined) return <TileSkeleton />;
 
-  const latest = e1rm.full.points.at(-1);
-  const change = e1rm.summary.change;
+  const latest = estimate?.latest ?? null;
+  const change = estimate?.change ?? null;
+  const line = estimate?.line ?? [];
 
   // The term sits beside the link, not inside it (as on the forecast tiles): no button
   // inside an anchor, and no tap in its glossary sheet bubbling up to open the lift page.
@@ -159,22 +162,20 @@ function LiftTile({ exerciseId }: { exerciseId: string }) {
         href={`/progress/lift/${exerciseId}`}
         className="flex-1"
         label={<span className="block pr-6">{shortLiftName(exerciseId)} est. 1RM</span>}
-        value={latest ? formatLbs(Math.round(latest.v)) : DASH}
-        unit={latest ? "lbs" : undefined}
+        value={estimate ? formatLbs(Math.round(estimate.value)) : DASH}
+        unit={estimate ? "lbs" : undefined}
         delta={
-          !latest ? (
+          !estimate ? (
             <Hint>Finish a workout to estimate it</Hint>
-          ) : latest.imported ? (
+          ) : latest?.imported ? (
             <Hint>Imported, {formatTileDay(latest.t)}</Hint>
           ) : change !== null ? (
-            // The real span of the points, not the nominal 3 months.
-            <Delta value={Math.round(change)} unit="lb" suffix={rangeSuffix(e1rm.series.points)} better="up" />
+            // The real span of the line shown, not the nominal 3 months.
+            <Delta value={Math.round(change)} unit="lb" suffix={rangeSuffix(line)} better="up" />
           ) : undefined
         }
         sparkline={
-          e1rm.series.points.length > 1 ? (
-            <Sparkline points={e1rm.series.points} width={150} height={24} tone={toneFor(change, "up")} />
-          ) : undefined
+          line.length > 1 ? <Sparkline points={line} width={150} height={24} tone={toneFor(change, "up")} /> : undefined
         }
       />
       <TermIcon id="e1rm" label="est. 1RM" className="absolute top-1.5 right-1.5" />

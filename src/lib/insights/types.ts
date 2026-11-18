@@ -1,7 +1,8 @@
 // Insight types. Re-exported unchanged from ./index (the contract).
 import type { RuleId } from "@/lib/evidence";
 import type { MetricSource } from "@/lib/metrics/types";
-import type { WorkoutSession } from "@/types";
+import type { MappingOverrides } from "@/lib/import/mapping/types";
+import type { ImportedSessionRecord, WorkoutSession } from "@/types";
 
 export type InsightKind =
   | "unfinished-workout"
@@ -38,6 +39,14 @@ export interface InsightContext extends MetricSource {
   unfinishedWorkout: WorkoutSession | null;
   /** Older unfinished workouts that have working sets: too old to resume, kept until the user decides. */
   leftWorkouts?: WorkoutSession[];
+  /**
+   * Sessions imported from other apps (history). Read for recency (inactivity) and the
+   * e1RM trend (strength-stall); rules that need what imports lack (per-set outcomes,
+   * GZCLP stages, the app's own bests) leave them out. Omitted: none.
+   */
+  imported?: readonly ImportedSessionRecord[];
+  /** The remembered name choices for imported sets. */
+  overrides?: MappingOverrides;
   now: Date;
 }
 

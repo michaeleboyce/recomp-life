@@ -39,7 +39,7 @@ export const RECOVERY_RULES = {
     status: "active",
     title: "What do the recovery statuses mean?",
     summary: "Hard sets take 1–3 days to recover from; stress can slow that",
-    appBehavior: `A lift shows Recovering for ${RECOVERY_HOURS.ready} hours after it was last trained, Ready from ${RECOVERY_HOURS.ready} hours, Primed from ${RECOVERY_HOURS.primed} to ${RECOVERY_HOURS.pastPeak} hours, then Ready again. While cutting, ${CUTTING_RECOVERY_BONUS_HOURS} hours are added to each of these. After ${LONG_BREAK_DAYS} days it shows Long break. The setup screen notes when a lift in today's workout was trained less than ${RECOVERY_HOURS.ready} hours ago.`,
+    appBehavior: `A lift shows Recovering for ${RECOVERY_HOURS.ready} hours after it was last trained, Ready from ${RECOVERY_HOURS.ready} hours, Primed from ${RECOVERY_HOURS.primed} to ${RECOVERY_HOURS.pastPeak} hours, then Ready again. While cutting, ${CUTTING_RECOVERY_BONUS_HOURS} hours are added to each of these. After ${LONG_BREAK_DAYS} days it shows Long break. The setup screen notes when a lift in today's workout was trained less than ${RECOVERY_HOURS.ready} hours ago. On the Strength and Muscles tabs, sessions imported from other apps count as training.`,
     rationale:
       "After hard sets, performance takes roughly one to three days to come back, and longer when sets were taken to failure. In one study, lifters under high life stress recovered more slowly over four days.",
     caveat: `The "Primed" window and the extra ${CUTTING_RECOVERY_BONUS_HOURS} hours while cutting are coaching heuristics with no direct research behind them. Statuses are based on time alone; how you feel on the day counts for more.`,
@@ -60,7 +60,7 @@ export const RECOVERY_RULES = {
     status: "active",
     title: "Why lighter weights after a break?",
     summary: "Short breaks cost little strength; long ones come back fast",
-    appBehavior: `Breaks of up to ${LONG_BREAK_DAYS - 1} days change nothing. After that the setup screen suggests starting lighter: ${describeDecayTiers()}. The suggestion is scaled by ${DECAY_PHASE_MULTIPLIERS.cutting} while cutting and ${DECAY_PHASE_MULTIPLIERS.bulking} while bulking, and never exceeds ${pct(MAX_DECAY)}. You can always keep your old weight. Today mentions a break once it has been 5 days since your last workout, and from ${LONG_BREAK_DAYS} days says that setup will suggest lighter weights.`,
+    appBehavior: `Breaks of up to ${LONG_BREAK_DAYS - 1} days change nothing. After that the setup screen suggests starting lighter: ${describeDecayTiers()}. The suggestion is scaled by ${DECAY_PHASE_MULTIPLIERS.cutting} while cutting and ${DECAY_PHASE_MULTIPLIERS.bulking} while bulking, and never exceeds ${pct(MAX_DECAY)}. You can always keep your old weight. Today mentions a break once it has been 5 days since your last workout (a session imported from another app counts), and from ${LONG_BREAK_DAYS} days says that setup will suggest lighter weights.`,
     rationale:
       "Strength is well preserved through breaks: one session a week maintains it for months, and after a full 10-week layoff trainees were back to their pre-break level in about 5 weeks. Losses do grow with the length of the break, so the suggestion scales with time away.",
     caveat:
@@ -72,6 +72,7 @@ export const RECOVERY_RULES = {
       "src/lib/weightDecay.ts#calculateWeightDecay",
       "src/lib/recovery.ts#LONG_BREAK_DAYS",
       "src/lib/inactivity.ts#checkInactivity",
+      "src/lib/insights/rules/inactivity.ts#inactivityInsights",
     ],
     surfaces: ["src/app/workout/configure/page.tsx", "src/components/Today/AttentionList.tsx"],
   },

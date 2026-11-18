@@ -113,6 +113,7 @@ export const STRENGTH_RULES = {
       "src/lib/strength/estimate.ts#externalLoad",
       "src/lib/strength/estimate.ts#sessionEstimates",
       "src/lib/strength/pooled.ts#pooledLiftEstimate",
+      "src/components/Progress/strength.ts#liftEstimate",
       "src/lib/strength/muscleIndex.ts#muscleStrengthIndex",
       "src/lib/strength/reentry.ts#barbellReentryWeight",
       "src/lib/strength/reentry.ts#homeReentryWeight",

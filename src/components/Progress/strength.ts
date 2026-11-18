@@ -5,7 +5,9 @@ import {
   withImportedPoints,
   type ImportedLiftIndex,
 } from "@/lib/import/history";
+import { lineValueAt } from "@/components/chart-kit/trendGeometry";
 import { computeMetric, inRange, summarize } from "@/lib/metrics";
+import { windowBounds } from "@/lib/metrics/window";
 import { WEEK_MS } from "@/lib/dates";
 import type { MetricSource, Point, RangeKey, Series, SeriesSummary } from "@/lib/metrics/types";
 import { TREND_SMOOTHING, smoothedEstimate, sumLines, type StrengthTimeline } from "@/lib/strength";
@@ -85,6 +87,49 @@ export function trendTotal(timelines: readonly StrengthTimeline[], range: RangeK
   };
 }
 
+export interface LiftEstimate {
+  /** The planner's pooled estimate (`timeline.anchor`), the number the lift page headline shows. */
+  value: number;
+  /**
+   * The smooth line's change over the window (standard smoothing, every source), worked
+   * out as the lift page's chart works out its change; null with under a day of line.
+   */
+  change: number | null;
+  /** That line inside the window, for a sparkline. */
+  line: Point[];
+  /** The newest session of the lift itself (app or imported) up to now. */
+  latest: { t: number; imported: boolean } | null;
+}
+
+/**
+ * One lift's number wherever it is shown on its own (Progress > Strength, Today's lift
+ * tiles): the same pooled estimate as the lift page headline, with a change from the
+ * same smooth line its chart draws over `window`. Null when the lift has no estimate.
+ *
+ * @evidence strength-pooling
+ */
+export function liftEstimate(timeline: StrengthTimeline, window: RangeKey): LiftEstimate | null {
+  const anchor = timeline.anchor;
+  if (!anchor) return null;
+  const now = timeline.now;
+  const line = smoothedEstimate(timeline, { halfLifeDays: TREND_SMOOTHING.standard }).points;
+  // As the chart: the window, no earlier than the first dot (or a week back), up to now.
+  const firstT = timeline.points.length > 0 ? timeline.points[0].t : now;
+  const bounds = windowBounds(window, now);
+  const from = Math.max(bounds.from, Math.min(firstT, now - WEEK_MS));
+  const to = Math.min(bounds.to, now);
+  const start = lineValueAt(line, Math.max(from, line[0]?.t ?? from));
+  const end = lineValueAt(line, to);
+  const own = timeline.points.filter((p) => (p.sourceId === "own" || p.sourceId === "imported") && p.t <= now);
+  const newest = own.at(-1);
+  return {
+    value: anchor.value,
+    change: start && end && end.t > start.t ? end.v - start.v : null,
+    line: line.filter((p) => p.t >= from && p.t <= to).map((p) => ({ t: p.t, v: p.v })),
+    latest: newest ? { t: newest.t, imported: newest.imported } : null,
+  };
+}
+
 /** "Total of four lifts, est. 1RM", or the lifts included when fewer have estimates. */
 export function totalLabel(lifts: MainLiftId[]): string {
   if (lifts.length === MAIN_LIFTS.length) return "Total of four lifts, est. 1RM";
@@ -127,6 +172,11 @@ export interface LiftOverview {
    * range has a point or the lift has no estimate at all.
    */
   latestBeforeRange: Point | null;
+  /**
+   * The lift's number as the lift page shows it (`liftEstimate` over its timeline): what
+   * the card shows when given. Absent or null without a timeline or an estimate.
+   */
+  estimate?: LiftEstimate | null;
 }
 
 /** The newest point of a series, or null. */
@@ -145,14 +195,18 @@ export interface StrengthOverview {
  * Each main lift's estimated 1RM over `range` and their total. With `imported` (the
  * imported sessions per exercise), each lift's series also has the estimates of its
  * imported sessions, marked imported; a stall is judged on the app's own estimates.
+ * With `timelines` (the lifts' strength timelines, `useLiftTimelines`), each lift also
+ * gets its `estimate`, the pooled number the lift page headline shows.
  */
 export function strengthOverview(
   source: MetricSource,
   range: RangeKey,
   now: number,
-  imported?: ImportedLiftIndex
+  imported?: ImportedLiftIndex,
+  timelines?: readonly StrengthTimeline[]
 ): StrengthOverview {
   const lifts = MAIN_LIFTS.map((id): LiftOverview => {
+    const timeline = timelines?.find((tl) => tl.subject.kind === "lift" && tl.subject.liftId === id);
     const full = withImportedPoints(
       computeMetric("e1rm", source, { exerciseId: id }),
       importedE1rmPoints(imported?.get(id) ?? [])
@@ -167,6 +221,7 @@ export function strengthOverview(
       summary: summarize(series),
       stall: stallOf(appPointsOnly(full.points)),
       latestBeforeRange: series.points.length > 0 ? null : newestPoint(full.points),
+      ...(timeline ? { estimate: liftEstimate(timeline, range) } : {}),
     };
   });
 

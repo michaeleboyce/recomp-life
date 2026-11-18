@@ -47,7 +47,7 @@ export function formatWeekRange(weekStart: Date): string {
 }
 
 /**
- * Week starts with any workout, weigh-in, run or activity, newest first, plus the week
+ * Week starts with any workout, imported session, weigh-in, run or activity, newest first, plus the week
  * containing `now` (always first). Records dated after `now`'s week are ignored.
  */
 export function reviewWeeks(source: ReviewSource, now: Date): Date[] {
@@ -61,6 +61,9 @@ export function reviewWeeks(source: ReviewSource, now: Date): Date[] {
   source.bodyweight.forEach((b) => add(b.date));
   source.runs.forEach((r) => add(r.date));
   (source.activities ?? []).forEach((a) => add(a.date));
+  (source.imported ?? []).forEach((session) => {
+    if (session.deletedAt == null) add(session.startedAt);
+  });
   return [...starts]
     .filter((t) => t <= current)
     .sort((a, b) => b - a)

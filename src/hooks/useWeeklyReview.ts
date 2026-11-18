@@ -3,7 +3,9 @@ import { buildWeeklyReview, previousWeek, reviewWeeks, weekOf, type WeeklyReview
 // Today's weekly target, so the review and the Today tile count against the same number.
 // Read only inside the hook body, so the import cycle through "@/hooks" is harmless.
 import { WEEKLY_SESSION_TARGET } from "@/components/Today/GlanceTiles";
+import { useImportedSessions } from "./useImportedSessions";
 import { useInsights } from "./useInsights";
+import { useMappingOverrides } from "./useMappingOverrides";
 import { useMetricSource } from "./useMetric";
 import { useActivities } from "./useRecords";
 
@@ -26,14 +28,17 @@ export function useWeeklyReview(weekStart?: Date): WeeklyReviewResult | undefine
   const source = useMetricSource();
   const insights = useInsights();
   const activities = useActivities();
+  // Sessions imported from other apps count as training in the review (names as remapped).
+  const imported = useImportedSessions();
+  const overrides = useMappingOverrides();
   const [now] = useState(() => new Date());
   const key = weekStart ? weekOf(weekStart).getTime() : null;
 
   return useMemo(() => {
-    if (!source || !insights || !activities) return undefined;
+    if (!source || !insights || !activities || !imported) return undefined;
     const thisWeek = weekOf(now);
     const lastWeek = previousWeek(thisWeek);
-    const full = { ...source, activities };
+    const full = { ...source, activities, imported, overrides };
     const week = key === null ? lastWeek : new Date(key);
     return {
       review: buildWeeklyReview(full, insights, week, now, { sessionTarget: WEEKLY_SESSION_TARGET }),
@@ -41,5 +46,5 @@ export function useWeeklyReview(weekStart?: Date): WeeklyReviewResult | undefine
       thisWeek,
       lastWeek,
     };
-  }, [source, insights, activities, now, key]);
+  }, [source, insights, activities, imported, overrides, now, key]);
 }

@@ -152,8 +152,10 @@ describe("Lift page (the barbell lift's exercise page)", () => {
     // The demo also has home squat sessions, which this page leaves out.
     expect(demo.workouts.some((w) => w.sets.some((s) => s.exerciseId === "squat" && s.substituteExerciseId))).toBe(true);
     const sessions = await screen.findByRole("region", { name: "Barbell Squat sessions" });
-    await waitFor(() => expect(within(sessions).getAllByTestId("session-row").length).toBe(Math.min(total, 10)));
-    if (total > 10) fireEvent.click(within(sessions).getByRole("button", { name: /Show all/ }));
+    await waitFor(() => expect(within(sessions).getAllByTestId("session-row").length).toBe(Math.min(total, 20)));
+    while (within(sessions).queryByRole("button", { name: /^Show \d+ more$/ })) {
+      fireEvent.click(within(sessions).getByRole("button", { name: /^Show \d+ more$/ }));
+    }
     expect(within(sessions).getAllByTestId("session-row")).toHaveLength(total);
   });
 

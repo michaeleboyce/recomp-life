@@ -12,7 +12,7 @@ import { SkeletonCard } from "@/components/ui/skeleton";
 import { LiftList } from "./LiftList";
 import { StrengthTotal } from "./StrengthTotal";
 import { GymDebtSection, RecoverySection } from "./StrengthSections";
-import { DEFAULT_MAX_DUMBBELL, gymDebtItems, recoveryRows } from "./sections";
+import { DEFAULT_MAX_DUMBBELL, gymDebtItems, importedLastTrained, recoveryRows } from "./sections";
 import { MAIN_LIFTS } from "./lifts";
 import { strengthOverview, trendTotal } from "./strength";
 
@@ -33,15 +33,18 @@ export function StrengthTab() {
     const equipment = source.settings?.equipment ?? DEFAULT_USER_PROFILE.settings.equipment;
     const maxDumbbell = source.settings?.equipment?.maxDumbbellWeight ?? DEFAULT_MAX_DUMBBELL;
     return {
-      // Imported sessions of each lift are history too (marked imported).
-      overview: strengthOverview(source, range, now, imported),
+      // Imported sessions of each lift are history too (marked imported). Each card shows
+      // the pooled estimate from the lift's timeline, the lift page headline's number.
+      overview: strengthOverview(source, range, now, imported, timelines),
       // The total is the sum of the lifts' smooth lines, the line each lift page draws.
       total: trendTotal(timelines, range, now),
       recovery: recoveryRows(
         source.liftStates,
         new Date(now),
         source.settings?.trainingPhase ?? { mode: "maintaining" },
-        variantStates
+        variantStates,
+        // An imported session is training too: "last trained" is the latest of either kind.
+        importedLastTrained(imported)
       ),
       gymDebt: gymDebtItems({
         liftStates: source.liftStates,
